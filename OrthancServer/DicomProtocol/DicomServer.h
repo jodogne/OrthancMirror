@@ -42,6 +42,7 @@
 #include "IStoreRequestHandlerFactory.h"
 #include "IWorklistRequestHandlerFactory.h"
 #include "IApplicationEntityFilter.h"
+#include "RemoteModalityParameters.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -51,6 +52,22 @@ namespace Orthanc
 {
   class DicomServer : public boost::noncopyable
   {
+  public:
+    // WARNING: The methods of this class must be thread-safe
+    class IRemoteModalities : public boost::noncopyable
+    {
+    public:
+      virtual ~IRemoteModalities()
+      {
+      }
+      
+      virtual bool IsSameAETitle(const std::string& aet1,
+                                 const std::string& aet2) = 0;
+
+      virtual bool LookupAETitle(RemoteModalityParameters& modality,
+                                 const std::string& aet) = 0;
+    };
+    
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
@@ -60,6 +77,7 @@ namespace Orthanc
     uint16_t port_;
     bool continue_;
     uint32_t associationTimeout_;
+    IRemoteModalities* modalities_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
     IStoreRequestHandlerFactory* storeRequestHandlerFactory_;
@@ -85,6 +103,9 @@ namespace Orthanc
     void SetApplicationEntityTitle(const std::string& aet);
     const std::string& GetApplicationEntityTitle() const;
 
+    void SetRemoteModalities(IRemoteModalities& modalities);
+    IRemoteModalities& GetRemoteModalities() const;
+    
     void SetFindRequestHandlerFactory(IFindRequestHandlerFactory& handler);
     bool HasFindRequestHandlerFactory() const;
     IFindRequestHandlerFactory& GetFindRequestHandlerFactory() const;

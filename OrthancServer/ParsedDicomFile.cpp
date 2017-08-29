@@ -81,13 +81,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParsedDicomFile.h"
 
-#include "OrthancInitialization.h"
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "Internals/DicomFrameIndex.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
+#include "../Core/SystemToolbox.h"
 
 #if ORTHANC_ENABLE_JPEG == 1
 #  include "../Core/Images/JpegReader.h"
@@ -948,7 +948,7 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : 
     pimpl_(new PImpl)
   {
-    CreateFromDicomMap(map, Configuration::GetDefaultEncoding());
+    CreateFromDicomMap(map, GetDefaultDicomEncoding());
   }
 
 
@@ -1212,7 +1212,7 @@ namespace Orthanc
   Encoding ParsedDicomFile::GetEncoding() const
   {
     return FromDcmtkBridge::DetectEncoding(*pimpl_->file_->getDataset(),
-                                           Configuration::GetDefaultEncoding());
+                                           GetDefaultDicomEncoding());
   }
 
 
@@ -1235,13 +1235,13 @@ namespace Orthanc
                                       unsigned int maxStringLength)
   {
     FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
-                                        format, flags, maxStringLength, Configuration::GetDefaultEncoding());
+                                        format, flags, maxStringLength, GetDefaultDicomEncoding());
   }
 
 
   void ParsedDicomFile::DatasetToJson(Json::Value& target)
   {
-    Configuration::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
   }
 
 
@@ -1351,7 +1351,7 @@ namespace Orthanc
 	const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
-    result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, Configuration::GetDefaultEncoding()));
+    result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, GetDefaultDicomEncoding()));
 
     const Json::Value::Members tags = json.getMemberNames();
     
@@ -1438,13 +1438,13 @@ namespace Orthanc
 
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
   {
-    Configuration::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
   }
 
 
   void ParsedDicomFile::ExtractDicomAsJson(Json::Value& target) const
   {
-    Configuration::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
   }
 
 

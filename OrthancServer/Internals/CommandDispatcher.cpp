@@ -871,8 +871,9 @@ namespace Orthanc
                   worklistHandler.reset(server_.GetWorklistRequestHandlerFactory().ConstructWorklistRequestHandler());
                 }
 
-                cond = Internals::findScp(assoc_, &msg, presID, findHandler.get(), 
-                                          worklistHandler.get(), remoteIp_, remoteAet_, calledAet_);
+                cond = Internals::findScp(assoc_, &msg, presID, server_.GetRemoteModalities(),
+                                          findHandler.get(), worklistHandler.get(),
+                                          remoteIp_, remoteAet_, calledAet_);
               }
               break;
 

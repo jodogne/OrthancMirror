@@ -35,7 +35,6 @@
 #include "DicomInstanceToStore.h"
 
 #include "FromDcmtkBridge.h"
-#include "OrthancInitialization.h"
 #include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -106,15 +105,15 @@ namespace Orthanc
     if (!summary_.HasContent())
     {
       summary_.Allocate();
-      Configuration::ExtractDicomSummary(summary_.GetContent(), 
-                                         *parsed_.GetContent().GetDcmtkObject().getDataset());
+      FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
+                                           *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
     
     if (!json_.HasContent())
     {
       json_.Allocate();
-      Configuration::ExtractDicomAsJson(json_.GetContent(), 
-                                        *parsed_.GetContent().GetDcmtkObject().getDataset());
+      FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
+                                          *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
   }
 

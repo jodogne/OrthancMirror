@@ -710,7 +710,7 @@ namespace Orthanc
       }
       else
       {
-        encoding = Configuration::GetDefaultEncoding();
+        encoding = GetDefaultDicomEncoding();
       }
 
       dicom.SetEncoding(encoding);

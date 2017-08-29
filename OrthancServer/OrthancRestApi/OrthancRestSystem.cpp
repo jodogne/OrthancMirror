@@ -251,7 +251,7 @@ namespace Orthanc
 
   static void GetDefaultEncoding(RestApiGetCall& call)
   {
-    Encoding encoding = Configuration::GetDefaultEncoding();
+    Encoding encoding = GetDefaultDicomEncoding();
     call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
   }
 
