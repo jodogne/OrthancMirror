@@ -36,7 +36,6 @@
 
 #include "../OrthancServer/FromDcmtkBridge.h"
 #include "../OrthancServer/ToDcmtkBridge.h"
-#include "../OrthancServer/OrthancInitialization.h"
 #include "../OrthancServer/DicomModification.h"
 #include "../OrthancServer/ServerToolbox.h"
 #include "../Core/OrthancException.h"
@@ -1062,8 +1061,8 @@ static void CheckEncoding(const ParsedDicomFile& dicom,
 
 TEST(ParsedDicomFile, DicomMapEncodings1)
 {
-  Configuration::SetDefaultEncoding(Encoding_Ascii);
-  ASSERT_EQ(Encoding_Ascii, Configuration::GetDefaultEncoding());
+  SetDefaultDicomEncoding(Encoding_Ascii);
+  ASSERT_EQ(Encoding_Ascii, GetDefaultDicomEncoding());
 
   {
     DicomMap m;

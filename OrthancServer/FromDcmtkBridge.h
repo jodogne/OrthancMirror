@@ -60,6 +60,14 @@
 #  include "../Core/Lua/LuaFunctionCall.h"
 #endif
 
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error The macro ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS must be defined
+#endif
+
 
 namespace Orthanc
 {
@@ -70,7 +78,6 @@ namespace Orthanc
 #endif
 
     friend class ParsedDicomFile;
-    friend class Configuration;
 
   private:
     FromDcmtkBridge();  // Pure static class
@@ -220,5 +227,15 @@ namespace Orthanc
     static void ExecuteToDicom(DicomMap& target,
                                LuaFunctionCall& call);
 #endif
+
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset);
+
+    static void ExtractDicomAsJson(Json::Value& target, 
+                                   DcmDataset& dataset);
+
+    static void InitializeCodecs();
+
+    static void FinalizeCodecs();
   };
 }

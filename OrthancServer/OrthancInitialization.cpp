@@ -43,25 +43,13 @@
 #include "ServerEnumerations.h"
 #include "DatabaseWrapper.h"
 #include "FromDcmtkBridge.h"
-#include "ToDcmtkBridge.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <curl/curl.h>
 #include <boost/thread/recursive_mutex.hpp>
 
-
-#if ORTHANC_ENABLE_DCMTK_JPEG == 1
-#  include <dcmtk/dcmjpeg/djdecode.h>
-#endif
-
-
-#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
-#  include <dcmtk/dcmjpls/djdecode.h>
-#endif
-
-
-#include <dcmtk/dcmnet/dul.h>
+#include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
 
 
 
@@ -482,6 +470,16 @@ namespace Orthanc
       Toolbox::InitializeGlobalLocale(NULL);
     }
 
+    if (configuration_.isMember("DefaultEncoding"))
+    {
+      std::string encoding = GetGlobalStringParameterInternal("DefaultEncoding", "");
+      SetDefaultDicomEncoding(StringToEncoding(encoding.c_str()));
+    }
+    else
+    {
+      SetDefaultDicomEncoding(ORTHANC_DEFAULT_DICOM_ENCODING);
+    }
+
     if (configuration_.isMember("Pkcs11"))
     {
       ConfigurePkcs11(configuration_["Pkcs11"]);
@@ -495,15 +493,7 @@ namespace Orthanc
     FromDcmtkBridge::InitializeDictionary(GetGlobalBoolParameterInternal("LoadPrivateDictionary", true));
     LoadCustomDictionary(configuration_);
 
-#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
-    LOG(WARNING) << "Registering JPEG Lossless codecs";
-    DJLSDecoderRegistration::registerCodecs();    
-#endif
-
-#if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    LOG(WARNING) << "Registering JPEG codecs";
-    DJDecoderRegistration::registerCodecs(); 
-#endif
+    FromDcmtkBridge::InitializeCodecs();
 
     fontRegistry_.AddFromResource(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
 
@@ -517,17 +507,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
-
-#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
-    // Unregister JPEG-LS codecs
-    DJLSDecoderRegistration::cleanup();
-#endif
-
-#if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    // Unregister JPEG codecs
-    DJDecoderRegistration::cleanup();
-#endif
-
+    FromDcmtkBridge::FinalizeCodecs();
     HttpClient::FinalizeOpenSsl();
     Toolbox::FinalizeGlobalLocale();
   }
@@ -1134,25 +1114,16 @@ namespace Orthanc
   }
 
 
-  Encoding Configuration::GetDefaultEncoding()
-  {
-    std::string s = GetGlobalStringParameter("DefaultEncoding", "Latin1");
-
-    // By default, Latin1 encoding is assumed
-    return s.empty() ? Encoding_Latin1 : StringToEncoding(s.c_str());
-  }
-
-
   void Configuration::SetDefaultEncoding(Encoding encoding)
   {
-    std::string name = EnumerationToString(encoding);
+    SetDefaultDicomEncoding(encoding);
 
     {
+      // Propagate the encoding to the configuration file that is
+      // stored in memory
       boost::recursive_mutex::scoped_lock lock(globalMutex_);
-      configuration_["DefaultEncoding"] = name;
+      configuration_["DefaultEncoding"] = EnumerationToString(encoding);
     }
-
-    LOG(INFO) << "Default encoding was changed to: " << name;
   }
 
 
@@ -1169,22 +1140,5 @@ namespace Orthanc
     std::string b = writer.write(current);
 
     return a != b;
-  }
-
-
-  void Configuration::ExtractDicomSummary(DicomMap& target, 
-                                          DcmItem& dataset)
-  {
-    FromDcmtkBridge::ExtractDicomSummary(target, dataset, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, GetDefaultEncoding());
-  }
-
-  
-  void Configuration::ExtractDicomAsJson(Json::Value& target, 
-                                         DcmDataset& dataset)
-  {
-    FromDcmtkBridge::ExtractDicomAsJson(target, dataset, 
-                                        DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
-                                        ORTHANC_MAXIMUM_TAG_LENGTH, GetDefaultEncoding());
   }
 }

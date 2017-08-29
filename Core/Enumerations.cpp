@@ -1475,5 +1475,28 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }  
+
+
+  static boost::mutex  defaultEncodingMutex_;  // Should not be necessary
+  static Encoding      defaultEncoding_ = ORTHANC_DEFAULT_DICOM_ENCODING;
+  
+  Encoding GetDefaultDicomEncoding()
+  {
+    boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+    return defaultEncoding_;
   }
+
+  void SetDefaultDicomEncoding(Encoding encoding)
+  {
+    std::string name = EnumerationToString(encoding);
+    
+    {
+      boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+      defaultEncoding_ = encoding;
+    }
+
+    LOG(INFO) << "Default encoding for DICOM was changed to: " << name;
+  }
+
 }

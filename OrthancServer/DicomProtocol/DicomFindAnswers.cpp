@@ -64,7 +64,7 @@ namespace Orthanc
 
 
   DicomFindAnswers::DicomFindAnswers(bool isWorklist) : 
-    encoding_(Configuration::GetDefaultEncoding()),
+    encoding_(GetDefaultDicomEncoding()),
     isWorklist_(isWorklist),
     complete_(true)
   {

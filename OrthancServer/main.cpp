@@ -89,6 +89,23 @@ public:
 
 
 
+class ModalitiesFromConfiguration : public Orthanc::DicomServer::IRemoteModalities
+{
+public:
+  virtual bool IsSameAETitle(const std::string& aet1,
+                             const std::string& aet2) 
+  {
+    return Orthanc::Configuration::IsSameAETitle(aet1, aet2);
+  }
+
+  virtual bool LookupAETitle(RemoteModalityParameters& modality,
+                             const std::string& aet) 
+  {
+    return Orthanc::Configuration::LookupDicomModalityUsingAETitle(modality, aet);
+  }
+};
+
+
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
   public IFindRequestHandlerFactory, 
@@ -797,10 +814,12 @@ static bool StartDicomServer(ServerContext& context,
   }
 
   MyDicomServerFactory serverFactory(context);
-
-  // DICOM server
-  DicomServer dicomServer;
   OrthancApplicationEntityFilter dicomFilter(context);
+  ModalitiesFromConfiguration modalities;
+  
+  // Setup the DICOM server  
+  DicomServer dicomServer;
+  dicomServer.SetRemoteModalities(modalities);
   dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
   dicomServer.SetStoreRequestHandlerFactory(serverFactory);
   dicomServer.SetMoveRequestHandlerFactory(serverFactory);

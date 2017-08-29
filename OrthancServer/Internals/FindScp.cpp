@@ -139,6 +139,7 @@ namespace Orthanc
   {  
     struct FindScpData
     {
+      DicomServer::IRemoteModalities* modalities_;
       IFindRequestHandler* findHandler_;
       IWorklistRequestHandler* worklistHandler_;
       DicomFindAnswers answers_;
@@ -197,7 +198,8 @@ namespace Orthanc
            * Ensure that the remote modality is known to Orthanc for C-FIND requests.
            **/
 
-          if (!Configuration::LookupDicomModalityUsingAETitle(modality, *data.remoteAet_))
+          assert(data.modalities_ != NULL);
+          if (!data.modalities_->LookupAETitle(modality, *data.remoteAet_))
           {
             LOG(ERROR) << "Modality with AET \"" << *data.remoteAet_
                        << "\" is not defined in the \"DicomModalities\" configuration option";
@@ -252,7 +254,7 @@ namespace Orthanc
               }
 
               DicomMap input;
-              Configuration::ExtractDicomSummary(input, *requestIdentifiers);
+              FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
 
               data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
@@ -314,6 +316,7 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
+                                 DicomServer::IRemoteModalities& modalities,
                                  IFindRequestHandler* findHandler,
                                  IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
@@ -321,9 +324,10 @@ namespace Orthanc
                                  const std::string& calledAet)
   {
     FindScpData data;
-    data.lastRequest_ = NULL;
+    data.modalities_ = &modalities;
     data.findHandler_ = findHandler;
     data.worklistHandler_ = worklistHandler;
+    data.lastRequest_ = NULL;
     data.remoteIp_ = &remoteIp;
     data.remoteAet_ = &remoteAet;
     data.calledAet_ = &calledAet;

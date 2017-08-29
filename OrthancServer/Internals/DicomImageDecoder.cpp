@@ -85,7 +85,6 @@
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
 #include "../ParsedDicomFile.h"
-#include "../OrthancInitialization.h"
 
 #if ORTHANC_ENABLE_PNG == 1
 #  include "../../Core/Images/PngWriter.h"
@@ -257,7 +256,7 @@ namespace Orthanc
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
       DicomMap m;
-      Configuration::ExtractDicomSummary(m, dataset);
+      FromDcmtkBridge::ExtractDicomSummary(m, dataset);
 
       /**
        * Create an accessor to the raw values of the DICOM image.
@@ -329,7 +328,7 @@ namespace Orthanc
                                                 bool ignorePhotometricInterpretation)
   {
     DicomMap m;
-    Configuration::ExtractDicomSummary(m, dataset);
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset);
 
     DicomImageInformation info(m);
     PixelFormat format;

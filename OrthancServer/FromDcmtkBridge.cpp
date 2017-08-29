@@ -84,9 +84,16 @@
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
 
-
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-#include <EmbeddedResources.h>
+#  include <EmbeddedResources.h>
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+#  include <dcmtk/dcmjpeg/djdecode.h>
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+#  include <dcmtk/dcmjpls/djdecode.h>
 #endif
 
 
@@ -2017,4 +2024,52 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
+                                            DcmItem& dataset)
+  {
+    ExtractDicomSummary(target, dataset,
+                        ORTHANC_MAXIMUM_TAG_LENGTH,
+                        GetDefaultDicomEncoding());
+  }
+
+  
+  void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target, 
+                                           DcmDataset& dataset)
+  {
+    ExtractDicomAsJson(target, dataset, 
+                       DicomToJsonFormat_Full,
+                       DicomToJsonFlags_Default, 
+                       ORTHANC_MAXIMUM_TAG_LENGTH,
+                       GetDefaultDicomEncoding());
+  }
+
+
+  void FromDcmtkBridge::InitializeCodecs()
+  {
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+    LOG(WARNING) << "Registering JPEG Lossless codecs in DCMTK";
+    DJLSDecoderRegistration::registerCodecs();    
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+    LOG(WARNING) << "Registering JPEG codecs in DCMTK";
+    DJDecoderRegistration::registerCodecs(); 
+#endif
+  }
+
+
+  void FromDcmtkBridge::FinalizeCodecs()
+  {
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+    // Unregister JPEG-LS codecs
+    DJLSDecoderRegistration::cleanup();
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+    // Unregister JPEG codecs
+    DJDecoderRegistration::cleanup();
+#endif
+  }
 }

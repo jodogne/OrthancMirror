@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "../../Core/Enumerations.h"
+
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <vector>

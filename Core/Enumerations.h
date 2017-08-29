@@ -544,4 +544,8 @@ namespace Orthanc
   bool IsUserContentType(FileContentType type);
 
   bool IsBinaryValueRepresentation(ValueRepresentation vr);
+  
+  Encoding GetDefaultDicomEncoding();
+
+  void SetDefaultDicomEncoding(Encoding encoding);
 }

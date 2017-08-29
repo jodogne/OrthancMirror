@@ -39,7 +39,6 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
 #include "../Internals/CommandDispatcher.h"
-#include "../OrthancInitialization.h"
 
 #include <boost/thread.hpp>
 
@@ -90,6 +89,7 @@ namespace Orthanc
     aet_("ANY-SCP")
   {
     port_ = 104;
+    modalities_ = NULL;
     findRequestHandlerFactory_ = NULL;
     moveRequestHandlerFactory_ = NULL;
     storeRequestHandlerFactory_ = NULL;
@@ -179,6 +179,24 @@ namespace Orthanc
     return aet_;
   }
 
+  void DicomServer::SetRemoteModalities(IRemoteModalities& modalities)
+  {
+    Stop();
+    modalities_ = &modalities;
+  }
+  
+  DicomServer::IRemoteModalities& DicomServer::GetRemoteModalities() const
+  {
+    if (modalities_ == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *modalities_;
+    }
+  }
+    
   void DicomServer::SetFindRequestHandlerFactory(IFindRequestHandlerFactory& factory)
   {
     Stop();
@@ -296,6 +314,12 @@ namespace Orthanc
 
   void DicomServer::Start()
   {
+    if (modalities_ == NULL)
+    {
+      LOG(ERROR) << "No list of modalities was provided to the DICOM server";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
     Stop();
 
     /* initialize network, i.e. create an instance of T_ASC_Network*. */
@@ -339,13 +363,20 @@ namespace Orthanc
 
   bool DicomServer::IsMyAETitle(const std::string& aet) const
   {
+    if (modalities_ == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
     if (!HasCalledApplicationEntityTitleCheck())
     {
       // OK, no check on the AET.
       return true;
     }
-
-    return Configuration::IsSameAETitle(aet, GetApplicationEntityTitle());
+    else
+    {
+      return modalities_->IsSameAETitle(aet, GetApplicationEntityTitle());
+    }
   }
 
 }

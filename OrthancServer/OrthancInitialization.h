@@ -47,17 +47,6 @@
 #include "IDatabaseWrapper.h"
 #include "ServerEnumerations.h"
 
-#if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
-#  error The macro ORTHANC_ENABLE_DCMTK_JPEG must be defined
-#endif
-
-#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
-#  error The macro ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS must be defined
-#endif
-
-
-class DcmDataset;
-class DcmItem;
 
 namespace Orthanc
 {
@@ -138,16 +127,8 @@ namespace Orthanc
 
     static const FontRegistry& GetFontRegistry();
 
-    static Encoding GetDefaultEncoding();
-
     static void SetDefaultEncoding(Encoding encoding);
 
     static bool HasConfigurationChanged();
-
-    static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset);
-
-    static void ExtractDicomAsJson(Json::Value& target, 
-                                   DcmDataset& dataset);
   };
 }
