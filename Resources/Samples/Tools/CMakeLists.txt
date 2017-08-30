@@ -8,32 +8,18 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   link_libraries(pthread dl)
 endif()
 
+include(${CMAKE_SOURCE_DIR}/../../CMake/OrthancFrameworkParameters.cmake)
+
 set(STATIC_BUILD ON)
 set(ALLOW_DOWNLOADS ON)
 
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../..)
-
-include(CheckIncludeFiles)
-include(CheckIncludeFileCXX)
-include(CheckLibraryExists)
-include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/ZlibConfiguration.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
-
-add_definitions(
-  -DORTHANC_ENABLE_BASE64=0
-  -DORTHANC_ENABLE_MD5=0
-  -DORTHANC_ENABLE_PUGIXML=0
-  -DORTHANC_ENABLE_LOGGING=0
-  -DORTHANC_SANDBOXED=0
-  )
+include(${CMAKE_SOURCE_DIR}/../../CMake/OrthancFrameworkConfiguration.cmake)
 
 add_library(CommonLibraries
   ${BOOST_SOURCES}
   ${JSONCPP_SOURCES}
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
+  ${ORTHANC_ROOT}/Core/Logging.cpp
   ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
