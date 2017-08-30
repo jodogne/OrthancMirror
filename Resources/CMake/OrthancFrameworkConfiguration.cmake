@@ -309,10 +309,6 @@ if (ENABLE_DCMTK)
     message(FATAL_ERROR "Support for locales must be enabled if enabling DICOM support")
   endif()
 
-  if (NOT HAS_EMBEDDED_RESOURCES)
-    message(FATAL_ERROR "HAS_EMBEDDED_RESOURCES must be set to ON if enabling DICOM support")
-  endif()
-
   include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfiguration.cmake)
 
   add_definitions(-DORTHANC_ENABLE_DCMTK=1)
