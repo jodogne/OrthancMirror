@@ -325,7 +325,7 @@ if (ENABLE_DCMTK)
     add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=0)
   endif()
 
-  set(ORTHANC_DICOM_SOURCES
+  set(ORTHANC_DICOM_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomModification.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/FromDcmtkBridge.cpp
@@ -334,13 +334,11 @@ if (ENABLE_DCMTK)
 
     ${ORTHANC_ROOT}/Core/DicomParsing/Internals/DicomFrameIndex.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/Internals/DicomImageDecoder.cpp
-
-    ${DCMTK_SOURCES}
     )
 
   if (ENABLE_DCMTK_NETWORKING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=1)
-    list(APPEND ORTHANC_DICOM_SOURCES
+    list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
@@ -430,3 +428,14 @@ set(ORTHANC_CORE_SOURCES
   ${ORTHANC_CORE_SOURCES_INTERNAL}
   ${ORTHANC_CORE_SOURCES_DEPENDENCIES}
   )
+
+if (ENABLE_DCMTK)
+  set(ORTHANC_DICOM_SOURCES_DEPENDENCIES
+    ${DCMTK_SOURCES}
+    )
+  
+  set(ORTHANC_DICOM_SOURCES
+    ${ORTHANC_DICOM_SOURCES_INTERNAL}
+    ${ORTHANC_DICOM_SOURCES_DEPENDENCIES}
+    )
+endif()

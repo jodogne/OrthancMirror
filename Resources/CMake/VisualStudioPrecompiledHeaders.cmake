@@ -1,4 +1,4 @@
-macro(ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS PrecompiledHeaders PrecompiledSource Sources)
+macro(ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS PrecompiledHeaders PrecompiledSource Sources Target)
   get_filename_component(PrecompiledBasename ${PrecompiledHeaders} NAME_WE)
   set(PrecompiledBinary "${PrecompiledBasename}_$(ConfigurationName).pch")
 
@@ -10,5 +10,5 @@ macro(ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS PrecompiledHeaders PrecompiledSource
     PROPERTIES COMPILE_FLAGS "/Yu\"${PrecompiledHeaders}\" /FI\"${PrecompiledHeaders}\" /Fp\"${PrecompiledBinary}\""
     OBJECT_DEPENDS "${PrecompiledBinary}")
 
-  list(APPEND ${Sources} ${PrecompiledSource})
+  set(${Target} ${PrecompiledSource})
 endmacro()
