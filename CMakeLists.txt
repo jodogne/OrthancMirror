@@ -2,17 +2,26 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Orthanc)
 
-# Version of the build, should always be "mainline" except in release branches
-set(ORTHANC_VERSION "mainline")
 
-# Version of the database schema. History:
-#   * Orthanc 0.1.0 -> Orthanc 0.3.0 = no versioning
-#   * Orthanc 0.3.1                  = version 2
-#   * Orthanc 0.4.0 -> Orthanc 0.7.2 = version 3
-#   * Orthanc 0.7.3 -> Orthanc 0.8.4 = version 4
-#   * Orthanc 0.8.5 -> Orthanc 0.9.4 = version 5
-#   * Orthanc 0.9.5 -> mainline      = version 6
-set(ORTHANC_DATABASE_VERSION 6)
+#####################################################################
+## Generic parameters of the Orthanc framework
+#####################################################################
+
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkParameters.cmake)
+
+# Enable all the optional components of the Orthanc framework
+set(ENABLE_CRYPTO_OPTIONS ON)
+set(ENABLE_JPEG ON)
+set(ENABLE_LOCALE ON)
+set(ENABLE_LUA ON)
+set(ENABLE_PNG ON)
+set(ENABLE_PUGIXML ON)
+set(ENABLE_SQLITE ON)
+set(ENABLE_WEB_CLIENT ON)
+set(ENABLE_WEB_SERVER ON)
+set(ENABLE_DCMTK ON)
+set(ENABLE_DCMTK_NETWORKING ON)
+set(HAS_EMBEDDED_RESOURCES ON)
 
 
 #####################################################################
@@ -20,172 +29,41 @@ set(ORTHANC_DATABASE_VERSION 6)
 #####################################################################
 
 # Parameters of the build
-SET(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
-SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
-SET(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
-SET(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)") 
-SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
-SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
-SET(ENABLE_DCMTK_JPEG ON CACHE BOOL "Enable JPEG decompression in DCMTK")
-SET(ENABLE_DCMTK_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression in DCMTK")
-SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
-SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
-SET(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
-SET(ENABLE_PROFILING OFF CACHE BOOL "Whether to enable the generation of profiling information with gprof")
-SET(ENABLE_CIVETWEB OFF CACHE BOOL "Use Civetweb instead of Mongoose (experimental)")
+SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
+SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
+SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
+SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 # Advanced parameters to fine-tune linking against system libraries
-SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-SET(USE_SYSTEM_CIVETWEB ON CACHE BOOL "Use the system version of Civetweb (experimental)")
-SET(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
-SET(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
-SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
-SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
-SET(USE_SYSTEM_LIBICONV ON CACHE BOOL "Use the system version of libiconv")
-SET(USE_SYSTEM_LIBJPEG ON CACHE BOOL "Use the system version of libjpeg")
-SET(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
-SET(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
-SET(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
-SET(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
-SET(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
-SET(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
-SET(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
-SET(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
-
-# Advanced parameters
-SET(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
-SET(USE_DCMTK_360 OFF CACHE BOOL "Use older DCMTK version 3.6.0 in static builds (instead of default 3.6.2)")
-SET(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
-
-# Distribution-specific settings
 SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-SET(SYSTEM_MONGOOSE_USE_CALLBACKS ON CACHE BOOL "The system version of Mongoose uses callbacks (version >= 3.7)")
-SET(USE_BOOST_ICONV ON CACHE BOOL "Use iconv instead of wconv (Windows only)")
+SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
 
 mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
-mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
-mark_as_advanced(USE_BOOST_ICONV)
-mark_as_advanced(USE_PUGIXML)
 
-# Path to the root folder of the Orthanc distribution
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR})
 
-# These options must be set to "ON" if compiling Orthanc, but might be
-# set to "OFF" in some plugins if their support is not required
-set(ENABLE_DCMTK_NETWORKING ON)  # Enable support for DICOM networking in DCMTK
-set(ENABLE_LOCALE ON)            # Enable support for locales (notably in Boost)
+#####################################################################
+## Configuration of the Orthanc framework
+#####################################################################
 
-# Some basic inclusions
-include(CheckIncludeFiles)
-include(CheckIncludeFileCXX)
-include(CheckFunctionExists)
-include(CheckLibraryExists)
-include(FindPythonInterp)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/AutoGeneratedCode.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/DownloadPackage.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/Compiler.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 
+include_directories(${ORTHANC_ROOT})
 
 
 #####################################################################
 ## List of source files
 #####################################################################
 
-set(ORTHANC_CORE_SOURCES
-  Core/Cache/MemoryCache.cpp
-  Core/Cache/SharedArchive.cpp
-  Core/ChunkedBuffer.cpp
-  Core/Compression/DeflateBaseCompressor.cpp
-  Core/Compression/GzipCompressor.cpp
-  Core/Compression/HierarchicalZipWriter.cpp
-  Core/Compression/ZipWriter.cpp
-  Core/Compression/ZlibCompressor.cpp
-  Core/DicomFormat/DicomArray.cpp
-  Core/DicomFormat/DicomMap.cpp
-  Core/DicomFormat/DicomTag.cpp
-  Core/DicomFormat/DicomImageInformation.cpp
-  Core/DicomFormat/DicomIntegerPixelAccessor.cpp
-  Core/DicomFormat/DicomInstanceHasher.cpp
-  Core/DicomFormat/DicomValue.cpp
-  Core/Enumerations.cpp
-  Core/FileStorage/FilesystemStorage.cpp
-  Core/FileStorage/StorageAccessor.cpp
-  Core/HttpClient.cpp
-  Core/HttpServer/BufferHttpSender.cpp
-  Core/HttpServer/EmbeddedResourceHttpHandler.cpp
-  Core/HttpServer/FilesystemHttpHandler.cpp
-  Core/HttpServer/HttpToolbox.cpp
-  Core/HttpServer/HttpOutput.cpp
-  Core/HttpServer/StringHttpOutput.cpp
-  Core/HttpServer/MongooseServer.cpp
-  Core/HttpServer/HttpFileSender.cpp
-  Core/HttpServer/FilesystemHttpSender.cpp
-  Core/HttpServer/HttpContentNegociation.cpp
-  Core/HttpServer/HttpStreamTranscoder.cpp
-  Core/Logging.cpp
-  Core/RestApi/RestApiCall.cpp
-  Core/RestApi/RestApiGetCall.cpp
-  Core/RestApi/RestApiHierarchy.cpp
-  Core/RestApi/RestApiPath.cpp
-  Core/RestApi/RestApiOutput.cpp
-  Core/RestApi/RestApi.cpp
-  Core/MultiThreading/BagOfTasksProcessor.cpp
-  Core/MultiThreading/Mutex.cpp
-  Core/MultiThreading/ReaderWriterLock.cpp
-  Core/MultiThreading/RunnableWorkersPool.cpp
-  Core/MultiThreading/Semaphore.cpp
-  Core/MultiThreading/SharedMessageQueue.cpp
-  Core/Images/Font.cpp
-  Core/Images/FontRegistry.cpp
-  Core/Images/IImageWriter.cpp
-  Core/Images/Image.cpp
-  Core/Images/ImageAccessor.cpp
-  Core/Images/ImageBuffer.cpp
-  Core/Images/ImageProcessing.cpp
-  Core/Images/JpegErrorManager.cpp
-  Core/Images/JpegReader.cpp
-  Core/Images/JpegWriter.cpp
-  Core/Images/PngReader.cpp
-  Core/Images/PngWriter.cpp
-  Core/SQLite/Connection.cpp
-  Core/SQLite/FunctionContext.cpp
-  Core/SQLite/Statement.cpp
-  Core/SQLite/StatementId.cpp
-  Core/SQLite/StatementReference.cpp
-  Core/SQLite/Transaction.cpp
-  Core/SystemToolbox.cpp
-  Core/TemporaryFile.cpp
-  Core/Toolbox.cpp
-  Core/WebServiceParameters.cpp
-  Core/Lua/LuaContext.cpp
-  Core/Lua/LuaFunctionCall.cpp
-  )
-
-
 set(ORTHANC_SERVER_SOURCES
-  Core/DicomParsing/DicomDirWriter.cpp
-  Core/DicomParsing/DicomModification.cpp
-  Core/DicomParsing/FromDcmtkBridge.cpp
-  Core/DicomParsing/Internals/DicomFrameIndex.cpp
-  Core/DicomParsing/Internals/DicomImageDecoder.cpp
-  Core/DicomParsing/ParsedDicomFile.cpp
-  Core/DicomParsing/ToDcmtkBridge.cpp
-
-  Core/DicomNetworking/DicomFindAnswers.cpp
-  Core/DicomNetworking/DicomServer.cpp
-  Core/DicomNetworking/DicomUserConnection.cpp
-  Core/DicomNetworking/RemoteModalityParameters.cpp
-  Core/DicomNetworking/ReusableDicomUserConnection.cpp
-  Core/DicomNetworking/Internals/CommandDispatcher.cpp
-  Core/DicomNetworking/Internals/FindScp.cpp
-  Core/DicomNetworking/Internals/MoveScp.cpp
-  Core/DicomNetworking/Internals/StoreScp.cpp
-
+  ${ORTHANC_DICOM_SOURCES}
+  
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/DatabaseWrapperBase.cpp
+  OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
@@ -200,23 +78,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
-  OrthancServer/Search/HierarchicalMatcher.cpp
-  OrthancServer/Search/IFindConstraint.cpp
-  OrthancServer/Search/LookupIdentifierQuery.cpp
-  OrthancServer/Search/LookupResource.cpp
-  OrthancServer/Search/SetOfResources.cpp
-  OrthancServer/Search/ListConstraint.cpp
-  OrthancServer/Search/RangeConstraint.cpp
-  OrthancServer/Search/ValueConstraint.cpp
-  OrthancServer/Search/WildcardConstraint.cpp
-  OrthancServer/ServerContext.cpp
-  OrthancServer/ServerEnumerations.cpp
-  OrthancServer/ServerIndex.cpp
-  OrthancServer/ServerToolbox.cpp
-  OrthancServer/SliceOrdering.cpp
-
-  # From "lua-scripting" branch
-  OrthancServer/DicomInstanceToStore.cpp
+  OrthancServer/Scheduler/CallSystemCommand.cpp
   OrthancServer/Scheduler/DeleteInstanceCommand.cpp
   OrthancServer/Scheduler/ModifyInstanceCommand.cpp
   OrthancServer/Scheduler/ServerCommandInstance.cpp
@@ -224,7 +86,20 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Scheduler/ServerScheduler.cpp
   OrthancServer/Scheduler/StorePeerCommand.cpp
   OrthancServer/Scheduler/StoreScuCommand.cpp
-  OrthancServer/Scheduler/CallSystemCommand.cpp
+  OrthancServer/Search/HierarchicalMatcher.cpp
+  OrthancServer/Search/IFindConstraint.cpp
+  OrthancServer/Search/ListConstraint.cpp
+  OrthancServer/Search/LookupIdentifierQuery.cpp
+  OrthancServer/Search/LookupResource.cpp
+  OrthancServer/Search/RangeConstraint.cpp
+  OrthancServer/Search/SetOfResources.cpp
+  OrthancServer/Search/ValueConstraint.cpp
+  OrthancServer/Search/WildcardConstraint.cpp
+  OrthancServer/ServerContext.cpp
+  OrthancServer/ServerEnumerations.cpp
+  OrthancServer/ServerIndex.cpp
+  OrthancServer/ServerToolbox.cpp
+  OrthancServer/SliceOrdering.cpp
   )
 
 
@@ -265,26 +140,29 @@ if (ENABLE_PLUGINS)
 endif()
 
 
-set(ORTHANC_ALL_SOURCES
-  ${ORTHANC_CORE_SOURCES}
-  ${ORTHANC_SERVER_SOURCES}
-  ${ORTHANC_UNIT_TESTS_SOURCES}
-  Plugins/Samples/ServeFolders/Plugin.cpp
-  Plugins/Samples/ModalityWorklists/Plugin.cpp
-  OrthancServer/main.cpp
-  )
-
-
 if (CMAKE_COMPILER_IS_GNUCXX
     AND NOT CMAKE_CROSSCOMPILING 
     AND USE_DCMTK_360)
   # Add the "-pedantic" flag only on the Orthanc sources, and only if
-  # using DCMTK 3.6.0
+  # cross-compiling DCMTK 3.6.0
+  set(ORTHANC_ALL_SOURCES
+    ${ORTHANC_CORE_SOURCES_INTERNAL}
+    ${ORTHANC_SERVER_SOURCES}
+    ${ORTHANC_UNIT_TESTS_SOURCES}
+    Plugins/Samples/ServeFolders/Plugin.cpp
+    Plugins/Samples/ModalityWorklists/Plugin.cpp
+    OrthancServer/main.cpp
+    )
+
   set_source_files_properties(${ORTHANC_ALL_SOURCES}
     PROPERTIES COMPILE_FLAGS -pedantic
     )
 endif()
 
+
+#####################################################################
+## Autogeneration of files
+#####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
   PREPARE_DATABASE            ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
@@ -295,105 +173,6 @@ set(ORTHANC_EMBEDDED_FILES
   LUA_TOOLBOX                 ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
   FONT_UBUNTU_MONO_BOLD_16    ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   )
-
-
-
-#####################################################################
-## Inclusion of third-party dependencies
-#####################################################################
-
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/JsonCppConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibCurlConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibPngConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibJpegConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LuaConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/SQLiteConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/ZlibConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibIconvConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/OpenSslConfiguration.cmake)
-
-if (USE_PUGIXML)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/PugixmlConfiguration.cmake)
-  add_definitions(-DORTHANC_ENABLE_PUGIXML=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_PUGIXML=0)  
-endif()
-
-if (ENABLE_CIVETWEB)
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/CivetwebConfiguration.cmake)
-  add_definitions(
-    -DORTHANC_ENABLE_CIVETWEB=1
-    -DORTHANC_ENABLE_MONGOOSE=0
-    )
-else()
-  include(${CMAKE_SOURCE_DIR}/Resources/CMake/MongooseConfiguration.cmake)
-  add_definitions(
-    -DORTHANC_ENABLE_CIVETWEB=0
-    -DORTHANC_ENABLE_MONGOOSE=1
-    )
-endif()
-
-# These are the two most heavyweight dependencies. We put them as the
-# last includes to quickly spot problems when configuring static
-# builds.
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/BoostConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/DcmtkConfiguration.cmake)
-
-
-if (ENABLE_SSL)
-  add_definitions(-DORTHANC_ENABLE_SSL=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_SSL=0)
-endif()
-
-
-if (ENABLE_DCMTK_JPEG)
-  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG=0)
-endif()
-
-
-if (ENABLE_DCMTK_JPEG_LOSSLESS)
-  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=0)
-endif()
-
-
-if (ENABLE_PLUGINS)
-  add_definitions(-DORTHANC_ENABLE_PLUGINS=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_PLUGINS=0)
-endif()
-
-
-if (ENABLE_LOCALE)
-  add_definitions(-DORTHANC_ENABLE_LOCALE=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_LOCALE=0)
-endif()
-
-
-if (ENABLE_PKCS11)
-  if (ENABLE_SSL)
-    include(${CMAKE_SOURCE_DIR}/Resources/CMake/LibP11Configuration.cmake)
-
-    add_definitions(-DORTHANC_ENABLE_PKCS11=1)
-    list(APPEND ORTHANC_CORE_SOURCES Core/Pkcs11.cpp)
-  else()
-    message(FATAL_ERROR "OpenSSL is required to enable PKCS#11")
-  endif()
-else()
-  add_definitions(-DORTHANC_ENABLE_PKCS11=0)  
-endif()
-
-
-
-#####################################################################
-## Autogeneration of files
-#####################################################################
 
 if (STANDALONE_BUILD)
   # We embed all the resources in the binaries for standalone builds
@@ -435,32 +214,24 @@ endif()
 ## Configuration of the C/C++ macros
 #####################################################################
 
+if (ENABLE_PLUGINS)
+  add_definitions(-DORTHANC_ENABLE_PLUGINS=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_PLUGINS=0)
+endif()
+
+
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
 else()
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
 endif()
 
+
 include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
 add_definitions(
-  -DORTHANC_VERSION="${ORTHANC_VERSION}"
-  -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
   -DORTHANC_BUILD_UNIT_TESTS=1
-  -DORTHANC_ENABLE_BASE64=1
-  -DORTHANC_ENABLE_LOGGING=1
-  -DORTHANC_ENABLE_LOGGING_PLUGIN=0
-  -DORTHANC_ENABLE_DCMTK=1
-  -DORTHANC_ENABLE_DCMTK_NETWORKING=1
-  -DORTHANC_ENABLE_JPEG=1
-  -DORTHANC_ENABLE_LUA=1
-  -DORTHANC_ENABLE_MD5=1
-  -DORTHANC_ENABLE_PNG=1
-  -DORTHANC_ENABLE_SQLITE=1
-  -DORTHANC_HAS_EMBEDDED_RESOURCES=1
-  -DORTHANC_MAXIMUM_TAG_LENGTH=256
-  -DORTHANC_SANDBOXED=0
-  -DORTHANC_DEFAULT_DICOM_ENCODING=Encoding_Latin1
   
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0
@@ -499,33 +270,13 @@ if (${OPENSSL_SOURCES_LENGTH} GREATER 0)
   add_library(OpenSSL STATIC ${OPENSSL_SOURCES})
 endif()
 
-# "CodeLibrary" contains all the third-party dependencies and the
+
+# "CoreLibrary" contains all the third-party dependencies and the
 # content of the "Core" folder, but not OpenSSL, nor DCMTK.
 add_library(CoreLibrary
   STATIC
   ${ORTHANC_CORE_SOURCES}
   ${AUTOGENERATED_SOURCES}
-
-  ${BOOST_SOURCES}
-  ${CURL_SOURCES}
-  ${JSONCPP_SOURCES}
-  ${LIBICONV_SOURCES}
-  ${LIBJPEG_SOURCES}
-  ${LIBP11_SOURCES}
-  ${LIBPNG_SOURCES}
-  ${LUA_SOURCES}
-  ${CIVETWEB_SOURCES}
-  ${MONGOOSE_SOURCES}
-  ${PUGIXML_SOURCES}
-  ${SQLITE_SOURCES}
-  ${ZLIB_SOURCES}
-
-  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/md5/md5.c
-  ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/base64/base64.cpp
-
-  # This is the minizip distribution to create ZIP files using zlib
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )  
 
 

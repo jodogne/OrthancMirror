@@ -39,6 +39,10 @@
 #include <list>
 #include <boost/lexical_cast.hpp>
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+#  include <gtest/gtest_prod.h>
+#endif
+
 namespace Orthanc
 {
   class HierarchicalZipWriter
