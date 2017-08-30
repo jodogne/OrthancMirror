@@ -116,7 +116,7 @@ if (ENABLE_CRYPTO_OPTIONS)
       include(${CMAKE_CURRENT_LIST_DIR}/LibP11Configuration.cmake)
 
       add_definitions(-DORTHANC_ENABLE_PKCS11=1)
-      list(APPEND ORTHANC_CORE_SOURCES
+      list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
         ${ORTHANC_ROOT}/Core/Pkcs11.cpp
         )
     else()
@@ -399,6 +399,14 @@ endif()
 #####################################################################
 ## Gathering of all the source code
 #####################################################################
+
+# The "xxx_INTERNAL" variables list the source code that belongs to
+# the Orthanc project. It can be used to configure precompiled headers
+# if using Microsoft Visual Studio.
+
+# The "xxx_DEPENDENCIES" variables list the source code coming from
+# third-party dependencies.
+
 
 set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${BOOST_SOURCES}
