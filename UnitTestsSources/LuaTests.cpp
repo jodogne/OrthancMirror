@@ -288,11 +288,10 @@ TEST(Lua, Http)
   Orthanc::LuaContext lua;
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
-  // It is not guaranteed that the URL on server
-  // "www.montefiore.ulg.ac.be" will work forever. We switched to it,
-  // as the "www.orthanc-server.com" now mandatory uses HTTPS.
-  const std::string BASE = "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/";
-  //const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
+  // The "http://www.orthanc-server.com/downloads/third-party/" does
+  // not automatically redirect to HTTPS, so we cas use it even if the
+  // OpenSSL/HTTPS support is disabled in curl
+  const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
 
   lua.Execute("JSON = loadstring(HttpGet('" + BASE + "JSON.lua')) ()");
   const std::string url(BASE + "Product.json");
