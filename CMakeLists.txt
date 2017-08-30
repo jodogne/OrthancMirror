@@ -250,7 +250,7 @@ if (MSVC)
   add_definitions(-DORTHANC_USE_PRECOMPILED_HEADERS=1)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_CORE_SOURCES)
+    "PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp" ORTHANC_CORE_SOURCES_INTERNAL)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
     "PrecompiledHeadersServer.h" "OrthancServer/PrecompiledHeadersServer.cpp" ORTHANC_SERVER_SOURCES)
