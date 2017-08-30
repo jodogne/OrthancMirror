@@ -61,47 +61,18 @@
 #if ORTHANC_ENABLE_DCMTK == 1
 #  include "DicomParsing/ParsedDicomFile.h"
 
-#  include <dcmtk/dcmdata/dcchrstr.h>
-#  include <dcmtk/dcmdata/dcdeftag.h>
-#  include <dcmtk/dcmdata/dcdicent.h>
-#  include <dcmtk/dcmdata/dcdict.h>
+// Headers from DCMTK used in Orthanc headers 
+#  include <dcmtk/dcmdata/dcdatset.h>
 #  include <dcmtk/dcmdata/dcfilefo.h>
-#  include <dcmtk/dcmdata/dcistrmb.h>
-#  include <dcmtk/dcmdata/dcistrmf.h>
 #  include <dcmtk/dcmdata/dcmetinf.h>
-#  include <dcmtk/dcmdata/dcostrmb.h>
-#  include <dcmtk/dcmdata/dcpixel.h>
 #  include <dcmtk/dcmdata/dcpixseq.h>
-#  include <dcmtk/dcmdata/dcpxitem.h>
-#  include <dcmtk/dcmdata/dcuid.h>
-#  include <dcmtk/dcmdata/dcvrae.h>
-#  include <dcmtk/dcmdata/dcvras.h>
-#  include <dcmtk/dcmdata/dcvrcs.h>
-#  include <dcmtk/dcmdata/dcvrda.h>
-#  include <dcmtk/dcmdata/dcvrds.h>
-#  include <dcmtk/dcmdata/dcvrdt.h>
-#  include <dcmtk/dcmdata/dcvrfd.h>
-#  include <dcmtk/dcmdata/dcvrfl.h>
-#  include <dcmtk/dcmdata/dcvris.h>
-#  include <dcmtk/dcmdata/dcvrlo.h>
-#  include <dcmtk/dcmdata/dcvrlt.h>
-#  include <dcmtk/dcmdata/dcvrpn.h>
-#  include <dcmtk/dcmdata/dcvrsh.h>
-#  include <dcmtk/dcmdata/dcvrsl.h>
-#  include <dcmtk/dcmdata/dcvrss.h>
-#  include <dcmtk/dcmdata/dcvrst.h>
-#  include <dcmtk/dcmdata/dcvrtm.h>
-#  include <dcmtk/dcmdata/dcvrui.h>
-#  include <dcmtk/dcmdata/dcvrul.h>
-#  include <dcmtk/dcmdata/dcvrus.h>
-#  include <dcmtk/dcmdata/dcvrut.h>
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_NETWORKING == 1
-#  include "DicomParsing/DicomServer.h"
+#  include "DicomNetworking/DicomServer.h"
 
-#  include <dcmtk/dcmnet/dcasccfg.h>
-#  include <dcmtk/dcmnet/diutil.h>
+// Headers from DCMTK used in Orthanc headers 
+#  include <dcmtk/dcmnet/dimse.h>
 #endif
 
 #endif
