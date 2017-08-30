@@ -4,7 +4,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
   # not always properly handled when uncompressing on Windows.
 
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
-  SET(OPENSSL_URL "http://www.orthanc-server.com/downloads/third-party/openssl-1.0.2d.zip")
+  SET(OPENSSL_URL "https://www.orthanc-server.com/downloads/third-party/openssl-1.0.2d.zip")
   SET(OPENSSL_MD5 "4b2ac15fc6db17f3dadc54482d3eee85")
 
   if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
