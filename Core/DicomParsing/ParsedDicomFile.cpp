@@ -146,9 +146,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
-
-
 
 namespace Orthanc
 {
@@ -159,6 +156,33 @@ namespace Orthanc
   };
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+  static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
+
+  static void ParseTagAndGroup(DcmTagKey& key,
+                               const std::string& tag)
+  {
+    DicomTag t = FromDcmtkBridge::ParseTag(tag);
+    key = DcmTagKey(t.GetGroup(), t.GetElement());
+  }
+
+  
+  static unsigned int GetPixelDataBlockCount(DcmPixelData& pixelData,
+                                             E_TransferSyntax transferSyntax)
+  {
+    DcmPixelSequence* pixelSequence = NULL;
+    if (pixelData.getEncapsulatedRepresentation
+        (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
+    {
+      return pixelSequence->card();
+    }
+    else
+    {
+      return 1;
+    }
+  }
+
+  
   static void SendPathValueForDictionary(RestApiOutput& output,
                                          DcmItem& dicom)
   {
@@ -178,33 +202,6 @@ namespace Orthanc
     output.AnswerJson(v);
   }
 
-  static inline uint16_t GetCharValue(char c)
-  {
-    if (c >= '0' && c <= '9')
-      return c - '0';
-    else if (c >= 'a' && c <= 'f')
-      return c - 'a' + 10;
-    else if (c >= 'A' && c <= 'F')
-      return c - 'A' + 10;
-    else
-      return 0;
-  }
-
-  static inline uint16_t GetTagValue(const char* c)
-  {
-    return ((GetCharValue(c[0]) << 12) + 
-            (GetCharValue(c[1]) << 8) + 
-            (GetCharValue(c[2]) << 4) + 
-            GetCharValue(c[3]));
-  }
-
-  static void ParseTagAndGroup(DcmTagKey& key,
-                               const std::string& tag)
-  {
-    DicomTag t = FromDcmtkBridge::ParseTag(tag);
-    key = DcmTagKey(t.GetGroup(), t.GetElement());
-  }
-
 
   static void SendSequence(RestApiOutput& output,
                            DcmSequenceOfItems& sequence)
@@ -218,22 +215,6 @@ namespace Orthanc
     }
 
     output.AnswerJson(v);
-  }
-
-
-  static unsigned int GetPixelDataBlockCount(DcmPixelData& pixelData,
-                                             E_TransferSyntax transferSyntax)
-  {
-    DcmPixelSequence* pixelSequence = NULL;
-    if (pixelData.getEncapsulatedRepresentation
-        (transferSyntax, NULL, pixelSequence).good() && pixelSequence)
-    {
-      return pixelSequence->card();
-    }
-    else
-    {
-      return 1;
-    }
   }
 
 
@@ -413,7 +394,6 @@ namespace Orthanc
   }
 
 
-
   static void SendPathValueForLeaf(RestApiOutput& output,
                                    const std::string& tag,
                                    DcmItem& dicom,
@@ -441,7 +421,32 @@ namespace Orthanc
       output.AnswerStream(stream);
     }
   }
+#endif
 
+  
+  static inline uint16_t GetCharValue(char c)
+  {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    else if (c >= 'a' && c <= 'f')
+      return c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+      return c - 'A' + 10;
+    else
+      return 0;
+  }
+
+  
+  static inline uint16_t GetTagValue(const char* c)
+  {
+    return ((GetCharValue(c[0]) << 12) + 
+            (GetCharValue(c[1]) << 8) + 
+            (GetCharValue(c[2]) << 4) + 
+            GetCharValue(c[3]));
+  }
+
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
                                       const UriComponents& uri)
   {
@@ -498,7 +503,8 @@ namespace Orthanc
       SendPathValueForLeaf(output, uri.back(), *dicom, transferSyntax);
     }
   }
-
+#endif
+  
 
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
@@ -782,6 +788,7 @@ namespace Orthanc
   }
 
     
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
@@ -790,7 +797,7 @@ namespace Orthanc
       output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
     }
   }
-
+#endif
 
 
   bool ParsedDicomFile::GetTagValue(std::string& value,
