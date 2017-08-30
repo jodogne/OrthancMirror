@@ -402,9 +402,7 @@ endif()
 ## Gathering of all the source code
 #####################################################################
 
-set(ORTHANC_CORE_SOURCES
-  ${ORTHANC_CORE_SOURCES_INTERNAL}
-
+set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${BOOST_SOURCES}
   ${CIVETWEB_SOURCES}
   ${CURL_SOURCES}
@@ -426,4 +424,9 @@ set(ORTHANC_CORE_SOURCES
   # This is the minizip distribution to create ZIP files using zlib
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
+  )  
+
+set(ORTHANC_CORE_SOURCES
+  ${ORTHANC_CORE_SOURCES_INTERNAL}
+  ${ORTHANC_CORE_SOURCES_DEPENDENCIES}
   )
