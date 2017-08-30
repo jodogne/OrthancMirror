@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.50.3)
-  SET(CURL_URL "http://www.orthanc-server.com/downloads/third-party/curl-7.50.3.tar.gz")
+  SET(CURL_URL "https://www.orthanc-server.com/downloads/third-party/curl-7.50.3.tar.gz")
   SET(CURL_MD5 "870e16fd88a88b52e26a4f04dfc161db")
 
   DownloadPackage(${CURL_MD5} ${CURL_URL} "${CURL_SOURCES_DIR}")
