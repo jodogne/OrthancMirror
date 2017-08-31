@@ -33,12 +33,6 @@
 
 #pragma once
 
-#include "../DicomFormat/DicomInstanceHasher.h"
-#include "../Images/ImageAccessor.h"
-#include "../IDynamicObject.h"
-#include "../RestApi/RestApiOutput.h"
-#include "../Toolbox.h"
-
 #if !defined(ORTHANC_ENABLE_JPEG)
 #  error Macro ORTHANC_ENABLE_JPEG must be defined to use this file
 #endif
@@ -46,6 +40,24 @@
 #if !defined(ORTHANC_ENABLE_PNG)
 #  error Macro ORTHANC_ENABLE_PNG must be defined to use this file
 #endif
+
+#if !defined(ORTHANC_ENABLE_CIVETWEB)
+#  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to use this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_MONGOOSE)
+#  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
+#endif
+
+#include "../DicomFormat/DicomInstanceHasher.h"
+#include "../Images/ImageAccessor.h"
+#include "../IDynamicObject.h"
+#include "../Toolbox.h"
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+#  include "../RestApi/RestApiOutput.h"
+#endif
+
 
 class DcmDataset;
 class DcmFileFormat;
@@ -96,10 +108,12 @@ namespace Orthanc
 
     ParsedDicomFile* Clone();
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SendPathValue(RestApiOutput& output,
                        const UriComponents& uri);
 
     void Answer(RestApiOutput& output);
+#endif
 
     void Remove(const DicomTag& tag);
 

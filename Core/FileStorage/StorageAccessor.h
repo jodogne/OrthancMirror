@@ -33,10 +33,21 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_CIVETWEB)
+#  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to use this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_MONGOOSE)
+#  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
+#endif
+
 #include "IStorageArea.h"
 #include "FileInfo.h"
-#include "../HttpServer/BufferHttpSender.h"
-#include "../RestApi/RestApiOutput.h"
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+#  include "../HttpServer/BufferHttpSender.h"
+#  include "../RestApi/RestApiOutput.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -51,9 +62,11 @@ namespace Orthanc
   private:
     IStorageArea&  area_;
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SetupSender(BufferHttpSender& sender,
                      const FileInfo& info,
                      const std::string& mime);
+#endif
 
   public:
     StorageAccessor(IStorageArea& area) : area_(area)
@@ -86,6 +99,7 @@ namespace Orthanc
       area_.Remove(info.GetUuid(), info.GetContentType());
     }
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void AnswerFile(HttpOutput& output,
                     const FileInfo& info,
                     const std::string& mime);
@@ -93,5 +107,6 @@ namespace Orthanc
     void AnswerFile(RestApiOutput& output,
                     const FileInfo& info,
                     const std::string& mime);
+#endif
   };
 }
