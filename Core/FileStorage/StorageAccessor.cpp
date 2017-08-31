@@ -36,9 +36,12 @@
 
 #include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
-#include "../HttpServer/HttpStreamTranscoder.h"
 #include "../Toolbox.h"
 #include "../SystemToolbox.h"
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+#  include "../HttpServer/HttpStreamTranscoder.h"
+#endif
 
 namespace Orthanc
 {
@@ -143,6 +146,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
                                     const FileInfo& info,
                                     const std::string& mime)
@@ -168,8 +172,10 @@ namespace Orthanc
 
     sender.SetContentFilename(info.GetUuid() + std::string(extension));
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(HttpOutput& output,
                                    const FileInfo& info,
                                    const std::string& mime)
@@ -180,8 +186,10 @@ namespace Orthanc
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.Answer(transcoder);
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(RestApiOutput& output,
                                    const FileInfo& info,
                                    const std::string& mime)
@@ -192,4 +200,5 @@ namespace Orthanc
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.AnswerStream(transcoder);
   }
+#endif
 }
