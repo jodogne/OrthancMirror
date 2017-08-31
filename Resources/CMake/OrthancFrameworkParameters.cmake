@@ -22,6 +22,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Support of static compilation
 set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
+set(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 
 # Generic parameters of the build
 set(ENABLE_CIVETWEB OFF CACHE BOOL "Use Civetweb instead of Mongoose (experimental)")

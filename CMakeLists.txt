@@ -25,7 +25,8 @@ set(HAS_EMBEDDED_RESOURCES ON)
 
 
 #####################################################################
-## CMake parameters tunable at the command line
+## CMake parameters tunable at the command line to configure the
+## plugins, the companion tools, and the unit tests
 #####################################################################
 
 # Parameters of the build
@@ -33,7 +34,6 @@ SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin t
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
-SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 # Advanced parameters to fine-tune linking against system libraries
