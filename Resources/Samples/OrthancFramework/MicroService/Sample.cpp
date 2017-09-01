@@ -46,6 +46,7 @@ int main()
     Orthanc::MongooseServer httpServer;
     httpServer.SetPortNumber(8000);
     httpServer.Register(rest);
+    httpServer.SetRemoteAccessAllowed(true);
     httpServer.Start();
     
     LOG(WARNING) << "Micro-service started on port " << httpServer.GetPortNumber();
