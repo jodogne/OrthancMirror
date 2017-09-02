@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * New security-related options: "DicomAlwaysAllowEcho"
+* Use "GBK" (frequently used in China) as an alias for "GB18030"
 * Experimental support of actively maintained Civetweb to replace Mongoose 3.8
 * Fix issue 64 (OpenBSD support)
 * Fix static compilation of DCMTK 3.6.2 on Fedora

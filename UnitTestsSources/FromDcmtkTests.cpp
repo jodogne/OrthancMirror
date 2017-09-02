@@ -263,6 +263,7 @@ TEST(FromDcmtkBridge, Enumerations)
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-5
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 192"));  ASSERT_EQ(Encoding_Utf8, e);
   ASSERT_TRUE(GetDicomEncoding(e, "GB18030"));     ASSERT_EQ(Encoding_Chinese, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "GBK"));         ASSERT_EQ(Encoding_Chinese, e);
 }
 
 
