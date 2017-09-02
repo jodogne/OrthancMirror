@@ -1415,8 +1415,15 @@ namespace Orthanc
     {
       encoding = Encoding_Japanese;
     }
-    else if (s == "GB18030")
+    else if (s == "GB18030" || s == "GBK")
     {
+      /**
+       * According to tumashu@163.com, "In China, many dicom file's
+       * 0008,0005 tag is set as "GBK", instead of "GB18030", GBK is a
+       * subset of GB18030, and which is used frequently in China,
+       * suggest support it."
+       * https://groups.google.com/d/msg/orthanc-users/WMM8LMbjpUc/02-1f_yFCgAJ
+       **/
       encoding = Encoding_Chinese;
     }
     /*
