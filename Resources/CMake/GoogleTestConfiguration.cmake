@@ -16,7 +16,10 @@ if (USE_GOOGLE_TEST_DEBIAN_PACKAGE)
   message("Path to the Debian Google Test sources: ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}")
   message("Path to the Debian Google Test includes: ${GOOGLE_TEST_DEBIAN_INCLUDE_DIR}")
 
-  set(GOOGLE_TEST_SOURCES ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}/src/gtest-all.cc)
+  set(GOOGLE_TEST_SOURCES
+    ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}/src/gtest-all.cc
+    )
+
   include_directories(${GOOGLE_TEST_DEBIAN_SOURCES_DIR})
 
   if (NOT EXISTS ${GOOGLE_TEST_SOURCES} OR
@@ -54,5 +57,7 @@ else()
   endif()
 
   include_directories(${GOOGLE_TEST_INCLUDE_DIRS})
-  link_libraries(${GOOGLE_TEST_LIBRARIES})
+
+  # The variable GOOGLE_TEST_LIBRARIES contains the shared library of
+  # Google Test
 endif()
