@@ -86,7 +86,7 @@ SUPPORTED - Debian Jessie/Sid
 
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
 	~/Orthanc
 
@@ -108,7 +108,7 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
 	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE=ON \
 	~/Orthanc
 
 
@@ -123,7 +123,7 @@ SUPPORTED - Ubuntu 14.04 LTS
                        libcharls-dev libjsoncpp-dev libpugixml-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         ~/Orthanc
