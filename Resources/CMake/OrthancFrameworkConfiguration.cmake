@@ -287,6 +287,19 @@ else()
 endif()
 
 
+##
+## Google Test for unit testing
+##
+
+if (ENABLE_GOOGLE_TEST)
+  include(${CMAKE_CURRENT_LIST_DIR}/GoogleTestConfiguration.cmake)
+else()
+  unset(USE_SYSTEM_GOOGLE_TEST CACHE)
+  unset(USE_GOOGLE_TEST_DEBIAN_PACKAGE CACHE)
+endif()
+
+
+
 #####################################################################
 ## Inclusion of mandatory third-party dependencies
 #####################################################################
