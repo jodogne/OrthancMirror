@@ -11,6 +11,9 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkParameters.cmake)
 
 # Enable all the optional components of the Orthanc framework
 set(ENABLE_CRYPTO_OPTIONS ON)
+set(ENABLE_DCMTK ON)
+set(ENABLE_DCMTK_NETWORKING ON)
+set(ENABLE_GOOGLE_TEST ON)
 set(ENABLE_JPEG ON)
 set(ENABLE_LOCALE ON)
 set(ENABLE_LUA ON)
@@ -19,8 +22,7 @@ set(ENABLE_PUGIXML ON)
 set(ENABLE_SQLITE ON)
 set(ENABLE_WEB_CLIENT ON)
 set(ENABLE_WEB_SERVER ON)
-set(ENABLE_DCMTK ON)
-set(ENABLE_DCMTK_NETWORKING ON)
+
 set(HAS_EMBEDDED_RESOURCES ON)
 
 
@@ -36,12 +38,6 @@ SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin"
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
-# Advanced parameters to fine-tune linking against system libraries
-SET(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
-
-mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
-
 
 #####################################################################
 ## Configuration of the Orthanc framework
@@ -49,7 +45,6 @@ mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/Resources/CMake/GoogleTestConfiguration.cmake)
 
 include_directories(${ORTHANC_ROOT})
 
@@ -319,8 +314,12 @@ add_executable(UnitTests
   ${ORTHANC_UNIT_TESTS_SOURCES}
   )
 
-target_link_libraries(UnitTests ServerLibrary CoreLibrary ${DCMTK_LIBRARIES})
-
+target_link_libraries(UnitTests
+  ServerLibrary
+  CoreLibrary
+  ${DCMTK_LIBRARIES}
+  ${GOOGLE_TEST_LIBRARIES}
+  )
 
 
 #####################################################################
