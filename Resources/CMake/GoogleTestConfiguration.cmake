@@ -1,5 +1,5 @@
-if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
-  find_path(GTEST_DEBIAN_SOURCES_DIR
+if (USE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE)
+  find_path(GOOGLE_TEST_DEBIAN_SOURCES_DIR
     NAMES src/gtest-all.cc
     PATHS
     /usr/src/gtest
@@ -7,37 +7,37 @@ if (USE_GTEST_DEBIAN_SOURCE_PACKAGE)
     PATH_SUFFIXES src
     )
 
-  find_path(GTEST_DEBIAN_INCLUDE_DIR
+  find_path(GOOGLE_TEST_DEBIAN_INCLUDE_DIR
     NAMES gtest.h
     PATHS
     /usr/include/gtest
     )
 
-  message("Path to the Debian Google Test sources: ${GTEST_DEBIAN_SOURCES_DIR}")
-  message("Path to the Debian Google Test includes: ${GTEST_DEBIAN_INCLUDE_DIR}")
+  message("Path to the Debian Google Test sources: ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}")
+  message("Path to the Debian Google Test includes: ${GOOGLE_TEST_DEBIAN_INCLUDE_DIR}")
 
-  set(GTEST_SOURCES ${GTEST_DEBIAN_SOURCES_DIR}/src/gtest-all.cc)
-  include_directories(${GTEST_DEBIAN_SOURCES_DIR})
+  set(GOOGLE_TEST_SOURCES ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}/src/gtest-all.cc)
+  include_directories(${GOOGLE_TEST_DEBIAN_SOURCES_DIR})
 
-  if (NOT EXISTS ${GTEST_SOURCES} OR
-      NOT EXISTS ${GTEST_DEBIAN_INCLUDE_DIR}/gtest.h)
+  if (NOT EXISTS ${GOOGLE_TEST_SOURCES} OR
+      NOT EXISTS ${GOOGLE_TEST_DEBIAN_INCLUDE_DIR}/gtest.h)
     message(FATAL_ERROR "Please install the libgtest-dev package")
   endif()
 
 elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
-  set(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
-  set(GTEST_URL "http://www.orthanc-server.com/downloads/third-party/gtest-1.7.0.zip")
-  set(GTEST_MD5 "2d6ec8ccdf5c46b05ba54a9fd1d130d7")
+  set(GOOGLE_TEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
+  set(GOOGLE_TEST_URL "http://www.orthanc-server.com/downloads/third-party/gtest-1.7.0.zip")
+  set(GOOGLE_TEST_MD5 "2d6ec8ccdf5c46b05ba54a9fd1d130d7")
 
-  DownloadPackage(${GTEST_MD5} ${GTEST_URL} "${GTEST_SOURCES_DIR}")
+  DownloadPackage(${GOOGLE_TEST_MD5} ${GOOGLE_TEST_URL} "${GOOGLE_TEST_SOURCES_DIR}")
 
   include_directories(
-    ${GTEST_SOURCES_DIR}/include
-    ${GTEST_SOURCES_DIR}
+    ${GOOGLE_TEST_SOURCES_DIR}/include
+    ${GOOGLE_TEST_SOURCES_DIR}
     )
 
-  set(GTEST_SOURCES
-    ${GTEST_SOURCES_DIR}/src/gtest-all.cc
+  set(GOOGLE_TEST_SOURCES
+    ${GOOGLE_TEST_SOURCES_DIR}/src/gtest-all.cc
     )
 
   # https://code.google.com/p/googletest/issues/detail?id=412
@@ -45,14 +45,14 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
     add_definitions(/D _VARIADIC_MAX=10)
   endif()
 
-  source_group(ThirdParty\\GoogleTest REGULAR_EXPRESSION ${GTEST_SOURCES_DIR}/.*)
+  source_group(ThirdParty\\GoogleTest REGULAR_EXPRESSION ${GOOGLE_TEST_SOURCES_DIR}/.*)
 
 else()
   include(FindGTest)
-  if (NOT GTEST_FOUND)
+  if (NOT GOOGLE_TEST_FOUND)
     message(FATAL_ERROR "Unable to find GoogleTest")
   endif()
 
-  include_directories(${GTEST_INCLUDE_DIRS})
-  link_libraries(${GTEST_LIBRARIES})
+  include_directories(${GOOGLE_TEST_INCLUDE_DIRS})
+  link_libraries(${GOOGLE_TEST_LIBRARIES})
 endif()
