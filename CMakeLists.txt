@@ -37,10 +37,10 @@ SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 # Advanced parameters to fine-tune linking against system libraries
-SET(USE_GTEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+SET(USE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
 SET(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
 
-mark_as_advanced(USE_GTEST_DEBIAN_SOURCE_PACKAGE)
+mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_SOURCE_PACKAGE)
 
 
 #####################################################################
@@ -314,7 +314,7 @@ install(
 #####################################################################
 
 add_executable(UnitTests
-  ${GTEST_SOURCES}
+  ${GOOGLE_TEST_SOURCES}
   ${ORTHANC_UNIT_TESTS_PCH}
   ${ORTHANC_UNIT_TESTS_SOURCES}
   )
