@@ -76,6 +76,8 @@ Long-term
 * Support DICOM TLS (cf. "--enable-tls" in storescp)
 * Support Storage Commitment:
   https://groups.google.com/forum/#!msg/orthanc-users/VZOn8St65jw/s8kg_OHesj0J
+* Support extended association:
+  https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 
 
 =======
