@@ -91,3 +91,6 @@ set(ENABLE_DCMTK_NETWORKING OFF CACHE INTERNAL "Enable DICOM networking in DCMTK
 
 set(HAS_EMBEDDED_RESOURCES OFF CACHE INTERNAL
   "Whether resources are auto-generated using EmbedResources.py")
+
+set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
+  "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
