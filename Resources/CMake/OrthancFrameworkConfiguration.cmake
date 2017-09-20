@@ -32,7 +32,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/Compiler.cmake)
 
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
-  ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
   ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
   ${ORTHANC_ROOT}/Core/Compression/GzipCompressor.cpp
@@ -47,8 +46,6 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomValue.cpp
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
-  ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-  ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
   ${ORTHANC_ROOT}/Core/Images/Font.cpp
   ${ORTHANC_ROOT}/Core/Images/FontRegistry.cpp
   ${ORTHANC_ROOT}/Core/Images/IImageWriter.cpp
@@ -57,14 +54,6 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/Mutex.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/ReaderWriterLock.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
-  ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
-  ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
-  ${ORTHANC_ROOT}/Core/TemporaryFile.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Core/WebServiceParameters.cpp
   )
@@ -398,8 +387,6 @@ add_definitions(
   -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
   -DORTHANC_DEFAULT_DICOM_ENCODING=Encoding_Latin1
   -DORTHANC_ENABLE_BASE64=1
-  -DORTHANC_ENABLE_LOGGING=1
-  -DORTHANC_ENABLE_LOGGING_PLUGIN=0
   -DORTHANC_ENABLE_MD5=1
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
@@ -407,9 +394,32 @@ add_definitions(
 
 
 if (ORTHANC_SANDBOXED)
-  add_definitions(-DORTHANC_SANDBOXED=1)
+  add_definitions(
+    -DORTHANC_SANDBOXED=1
+    -DORTHANC_ENABLE_LOGGING=0
+    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
+    )
+  
 else()
-  add_definitions(-DORTHANC_SANDBOXED=0)
+  add_definitions(
+    -DORTHANC_SANDBOXED=0
+    -DORTHANC_ENABLE_LOGGING=1
+    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
+    )
+  
+  list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+    ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
+    ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
+    ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/Mutex.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/ReaderWriterLock.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
+    ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
+    ${ORTHANC_ROOT}/Core/TemporaryFile.cpp
+    )
 endif()
 
 

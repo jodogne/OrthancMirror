@@ -38,7 +38,10 @@
 #  error ORTHANC_ENABLE_LOCALE must be defined to use this file
 #endif
 
-#include "../SystemToolbox.h"
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
+
 #include "../Toolbox.h"
 #include "../OrthancException.h"
 
@@ -138,12 +141,14 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void Font::LoadFromFile(const std::string& path)
   {
     std::string font;
     SystemToolbox::ReadFile(font, path);
     LoadFromMemory(font);
   }
+#endif
 
 
   static unsigned int MyMin(unsigned int a, 

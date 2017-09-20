@@ -162,6 +162,7 @@ namespace Orthanc
 #endif
 
 
+#if ORTHANC_SANDBOXED == 0
   void JpegWriter::WriteToMemoryInternal(std::string& jpeg,
                                          unsigned int width,
                                          unsigned int height,
@@ -206,4 +207,5 @@ namespace Orthanc
     jpeg.assign(reinterpret_cast<const char*>(data), size);
     free(data);
   }
+#endif
 }
