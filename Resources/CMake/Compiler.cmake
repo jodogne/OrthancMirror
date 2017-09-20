@@ -179,6 +179,9 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     message(FATAL_ERROR "Please install the uuid-dev package")
   endif()
 
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  message("Building using Emscripten (for WebAssembly or asm.js targets)")
+
 else()
   message(FATAL_ERROR "Support your platform here")
 endif()
