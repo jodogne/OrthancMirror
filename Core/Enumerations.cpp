@@ -38,6 +38,7 @@
 #include "Toolbox.h"
 #include "Logging.h"
 
+#include <boost/thread/mutex.hpp>
 #include <string.h>
 #include <cassert>
 

@@ -35,10 +35,10 @@
 
 
 /********************************************************************
- ** LINUX ARCHITECTURES
+ ** LINUX-LIKE ARCHITECTURES
  ********************************************************************/
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__EMSCRIPTEN__)
 #  define ORTHANC_HAS_BUILTIN_BYTE_SWAP 1
 #  include <endian.h>
 #endif

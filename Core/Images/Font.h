@@ -84,7 +84,9 @@ namespace Orthanc
 
     void LoadFromMemory(const std::string& font);
 
+#if ORTHANC_SANDBOXED == 0
     void LoadFromFile(const std::string& path);
+#endif
 
     const std::string& GetName() const
     {
