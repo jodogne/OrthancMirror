@@ -57,7 +57,9 @@ namespace Orthanc
 
     void AddFromMemory(const std::string& font);
 
+#if ORTHANC_SANDBOXED == 0
     void AddFromFile(const std::string& path);
+#endif
 
 #if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
     void AddFromResource(EmbeddedResources::FileResourceId resource);

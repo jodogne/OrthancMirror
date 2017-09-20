@@ -248,6 +248,7 @@ namespace Orthanc
 
 
 
+#if ORTHANC_SANDBOXED == 0
   void PngWriter::WriteToMemoryInternal(std::string& png,
                                         unsigned int width,
                                         unsigned int height,
@@ -271,4 +272,5 @@ namespace Orthanc
 
     chunks.Flatten(png);
   }
+#endif
 }

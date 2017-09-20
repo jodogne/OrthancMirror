@@ -57,12 +57,14 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void FontRegistry::AddFromFile(const std::string& path)
   {
     std::auto_ptr<Font> f(new Font);
     f->LoadFromFile(path);
     fonts_.push_back(f.release());
   }
+#endif
 
 
 #if ORTHANC_HAS_EMBEDDED_RESOURCES == 1

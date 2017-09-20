@@ -33,6 +33,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The class FilesystemStorage cannot be used in sandboxed environments
+#endif
+
 #include "IStorageArea.h"
 
 #include <stdint.h>

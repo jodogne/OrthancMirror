@@ -33,6 +33,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The class StorageAccessor cannot be used in sandboxed environments
+#endif
+
 #if !defined(ORTHANC_ENABLE_CIVETWEB)
 #  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to use this file
 #endif
