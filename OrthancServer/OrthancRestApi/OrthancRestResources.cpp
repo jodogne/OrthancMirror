@@ -34,10 +34,11 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/HttpServer/HttpContentNegociation.h"
-#include "../../Core/Logging.h"
+#include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../Core/HttpServer/HttpContentNegociation.h"
+#include "../../Core/Logging.h"
 #include "../OrthancInitialization.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"
@@ -497,7 +498,7 @@ namespace Orthanc
   }
 
 
-
+  template <bool GzipCompression>
   static void GetRawFrame(RestApiGetCall& call)
   {
     std::string frameId = call.GetUriComponent("frame", "0");
@@ -520,7 +521,17 @@ namespace Orthanc
       locker.GetDicom().GetRawFrame(raw, mime, frame);
     }
 
-    call.GetOutput().AnswerBuffer(raw, mime);
+    if (GzipCompression)
+    {
+      GzipCompressor gzip;
+      std::string compressed;
+      gzip.Compress(compressed, raw.empty() ? NULL : raw.c_str(), raw.size());
+      call.GetOutput().AnswerBuffer(compressed, "application/gzip");
+    }
+    else
+    {
+      call.GetOutput().AnswerBuffer(raw, mime);
+    }
   }
 
 
@@ -1473,7 +1484,8 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
-    Register("/instances/{id}/frames/{frame}/raw", GetRawFrame);
+    Register("/instances/{id}/frames/{frame}/raw", GetRawFrame<false>);
+    Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
