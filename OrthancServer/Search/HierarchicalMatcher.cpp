@@ -122,9 +122,10 @@ namespace Orthanc
       }
       else
       {
+        std::set<DicomTag> ignoreTagLength;
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding));
+                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
 
         if (value->IsBinary())
         {
@@ -222,9 +223,10 @@ namespace Orthanc
           return false;
         }
 
+        std::set<DicomTag> ignoreTagLength;
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding));
+                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
 
         if (value->IsNull() ||
             value->IsBinary() ||

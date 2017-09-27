@@ -842,9 +842,10 @@ namespace Orthanc
         return false;
       }
 
+      std::set<DicomTag> tmp;
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
                                   (*element, DicomToJsonFlags_Default, 
-                                   ORTHANC_MAXIMUM_TAG_LENGTH, GetEncoding()));
+                                   0, GetEncoding(), tmp));
       
       if (v.get() == NULL ||
           v->IsNull())
@@ -1241,14 +1242,36 @@ namespace Orthanc
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength)
   {
+    std::set<DicomTag> ignoreTagLength;
     FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
-                                        format, flags, maxStringLength, GetDefaultDicomEncoding());
+                                        format, flags, maxStringLength,
+                                        GetDefaultDicomEncoding(), ignoreTagLength);
+  }
+
+
+  void ParsedDicomFile::DatasetToJson(Json::Value& target, 
+                                      DicomToJsonFormat format,
+                                      DicomToJsonFlags flags,
+                                      unsigned int maxStringLength,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
+                                        format, flags, maxStringLength,
+                                        GetDefaultDicomEncoding(), ignoreTagLength);
+  }
+
+
+  void ParsedDicomFile::DatasetToJson(Json::Value& target,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(), ignoreTagLength);
   }
 
 
   void ParsedDicomFile::DatasetToJson(Json::Value& target)
   {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
+    const std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(), ignoreTagLength);
   }
 
 
@@ -1446,12 +1469,6 @@ namespace Orthanc
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
   {
     FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
-  }
-
-
-  void ParsedDicomFile::ExtractDicomAsJson(Json::Value& target) const
-  {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset());
   }
 
 
