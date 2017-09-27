@@ -1,8 +1,16 @@
 Pending changes in the mainline
 ===============================
 
-* New security-related options: "DicomAlwaysAllowEcho"
+REST API
+--------
+
 * New URI: "/instances/.../frames/.../raw.gz" to compress raw frames using gzip
+* New argument "ignore-length" to force the inclusion of too long tags in JSON
+
+Maintenance
+-----------
+
+* New security-related options: "DicomAlwaysAllowEcho"
 * Use "GBK" (frequently used in China) as an alias for "GB18030"
 * Experimental support of actively maintained Civetweb to replace Mongoose 3.8
 * Fix issue 64 (OpenBSD support)

@@ -431,7 +431,7 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(context, *it);
 
         Json::Value dicomAsJson;
-        locker.GetDicom().ExtractDicomAsJson(dicomAsJson);
+        locker.GetDicom().DatasetToJson(dicomAsJson);
 
         std::string s = dicomAsJson.toStyledString();
         context.AddAttachment(*it, FileContentType_DicomAsJson, s.c_str(), s.size());

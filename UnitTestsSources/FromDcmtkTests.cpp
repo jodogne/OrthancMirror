@@ -395,7 +395,28 @@ namespace Orthanc
       element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
 
       Json::Value b;
-      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+      std::set<DicomTag> ignoreTagLength;
+      ignoreTagLength.insert(DICOM_TAG_PATIENT_ID);
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 0, Encoding_Ascii, ignoreTagLength);
+      ASSERT_TRUE(b.isMember("0010,0010"));
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, ignoreTagLength);
+      ASSERT_TRUE(b["0010,0010"].isNull()); // "Hello" has more than 3 characters
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, ignoreTagLength);
+      ASSERT_TRUE(b["0010,0010"].isObject());
+      ASSERT_EQ("PatientName", b["0010,0010"]["Name"].asString());
+      ASSERT_EQ("TooLong", b["0010,0010"]["Type"].asString());
+      ASSERT_TRUE(b["0010,0010"]["Value"].isNull());
+
+      ignoreTagLength.insert(DICOM_TAG_PATIENT_NAME);
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, ignoreTagLength);
       ASSERT_EQ("Hello", b["0010,0010"].asString());
     }
 
@@ -419,7 +440,9 @@ namespace Orthanc
       element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
 
       Json::Value b;
-      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+      std::set<DicomTag> ignoreTagLength;
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 0, Encoding_Ascii, ignoreTagLength);
       ASSERT_EQ("Hello", b["0010,0010"].asString());
     }
 
@@ -430,7 +453,9 @@ namespace Orthanc
 
       {
         Json::Value b;
-        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                       DicomToJsonFlags_Default, 0, Encoding_Ascii, ignoreTagLength);
         ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
         ASSERT_EQ(2u, b["0008,1110"].size());
       
@@ -447,7 +472,9 @@ namespace Orthanc
 
       {
         Json::Value b;
-        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 0, Encoding_Ascii);
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full,
+                                       DicomToJsonFlags_Default, 0, Encoding_Ascii, ignoreTagLength);
 
         Json::Value c;
         ServerToolbox::SimplifyTags(c, b, DicomToJsonFormat_Human);

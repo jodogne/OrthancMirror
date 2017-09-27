@@ -395,6 +395,8 @@ namespace Orthanc
                                             unsigned int maxStringLength,
                                             Encoding defaultEncoding)
   {
+    std::set<DicomTag> ignoreTagLength;
+    
     Encoding encoding = DetectEncoding(dataset, defaultEncoding);
 
     target.Clear();
@@ -405,7 +407,8 @@ namespace Orthanc
       {
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
-                        ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, encoding));
+                        ConvertLeafElement(*element, DicomToJsonFlags_Default,
+                                           maxStringLength, encoding, ignoreTagLength));
       }
     }
   }
@@ -426,7 +429,8 @@ namespace Orthanc
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
                                                   DicomToJsonFlags flags,
                                                   unsigned int maxStringLength,
-                                                  Encoding encoding)
+                                                  Encoding encoding,
+                                                  const std::set<DicomTag>& ignoreTagLength)
   {
     if (!element.isLeaf())
     {
@@ -448,7 +452,8 @@ namespace Orthanc
         std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
 
         if (maxStringLength != 0 &&
-            utf8.size() > maxStringLength)
+            utf8.size() > maxStringLength &&
+            ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
         {
           return new DicomValue;  // Too long, create a NULL value
         }
@@ -486,7 +491,8 @@ namespace Orthanc
             return new DicomValue("", false);   // Empty string
           }
           else if (maxStringLength != 0 &&
-                   element.getLength() > maxStringLength)
+                   element.getLength() > maxStringLength &&
+                   ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
           {
             return new DicomValue;  // Too long, create a NULL value
           }
@@ -499,7 +505,7 @@ namespace Orthanc
       }
     }
 
-
+    
     try
     {
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
@@ -814,7 +820,8 @@ namespace Orthanc
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
-                                      Encoding encoding)
+                                      Encoding encoding,
+                                      const std::set<DicomTag>& ignoreTagLength)
   {
     if (parent.type() == Json::nullValue)
     {
@@ -827,8 +834,17 @@ namespace Orthanc
     if (element.isLeaf())
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement(element, flags, 0, encoding));
-      LeafValueToJson(target, *v, format, flags, maxStringLength);
+      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+                                  (element, flags, 0, encoding, ignoreTagLength));
+
+      if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
+      {
+        LeafValueToJson(target, *v, format, flags, maxStringLength);
+      }
+      else
+      {
+        LeafValueToJson(target, *v, format, flags, 0);
+      }
     }
     else
     {
@@ -844,7 +860,7 @@ namespace Orthanc
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = target.append(Json::objectValue);
-        DatasetToJson(v, *child, format, flags, maxStringLength, encoding);
+        DatasetToJson(v, *child, format, flags, maxStringLength, encoding, ignoreTagLength);
       }
     }
   }
@@ -855,7 +871,8 @@ namespace Orthanc
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
-                                      Encoding encoding)
+                                      Encoding encoding,
+                                      const std::set<DicomTag>& ignoreTagLength)
   {
     assert(parent.type() == Json::objectValue);
 
@@ -900,7 +917,8 @@ namespace Orthanc
         }
       }
 
-      FromDcmtkBridge::ElementToJson(parent, *element, format, flags, maxStringLength, encoding);
+      FromDcmtkBridge::ElementToJson(parent, *element, format, flags,
+                                     maxStringLength, encoding, ignoreTagLength);
     }
   }
 
@@ -910,12 +928,13 @@ namespace Orthanc
                                            DicomToJsonFormat format,
                                            DicomToJsonFlags flags,
                                            unsigned int maxStringLength,
-                                           Encoding defaultEncoding)
+                                           Encoding defaultEncoding,
+                                           const std::set<DicomTag>& ignoreTagLength)
   {
     Encoding encoding = DetectEncoding(dataset, defaultEncoding);
 
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding, ignoreTagLength);
   }
 
 
@@ -925,8 +944,9 @@ namespace Orthanc
                                             DicomToJsonFlags flags,
                                             unsigned int maxStringLength)
   {
+    std::set<DicomTag> ignoreTagLength;
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii, ignoreTagLength);
   }
 
 
@@ -2036,13 +2056,15 @@ namespace Orthanc
 
   
   void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target, 
-                                           DcmDataset& dataset)
+                                           DcmDataset& dataset,
+                                           const std::set<DicomTag>& ignoreTagLength)
   {
     ExtractDicomAsJson(target, dataset, 
                        DicomToJsonFormat_Full,
                        DicomToJsonFlags_Default, 
                        ORTHANC_MAXIMUM_TAG_LENGTH,
-                       GetDefaultDicomEncoding());
+                       GetDefaultDicomEncoding(),
+                       ignoreTagLength);
   }
 
 
