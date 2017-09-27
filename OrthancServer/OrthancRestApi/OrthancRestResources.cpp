@@ -48,6 +48,42 @@
 
 namespace Orthanc
 {
+  static void AnswerDicomAsJson(RestApiCall& call,
+                                const Json::Value& dicom,
+                                bool simplify)
+  {
+    if (simplify)
+    {
+      Json::Value simplified;
+      ServerToolbox::SimplifyTags(simplified, dicom, DicomToJsonFormat_Human);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(dicom);
+    }
+  }
+
+
+  static void ParseSetOfTags(std::set<DicomTag>& target,
+                             const RestApiGetCall& call,
+                             const std::string& argument)
+  {
+    target.clear();
+
+    if (call.HasArgument(argument))
+    {
+      std::vector<std::string> tags;
+      Toolbox::TokenizeString(tags, call.GetArgument(argument, ""), ',');
+
+      for (size_t i = 0; i < tags.size(); i++)
+      {
+        target.insert(FromDcmtkBridge::ParseTag(tags[i]));
+      }
+    }
+  }
+
+
   // List all the patients, studies, series or instances ----------------------
  
   static void AnswerListOfResources(RestApiOutput& output,
@@ -206,18 +242,22 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
+
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
     
-    if (simplify)
+    if (simplify ||
+        !ignoreTagLength.empty())
     {
       Json::Value full;
-      context.ReadDicomAsJson(full, publicId);
-
-      Json::Value simplified;
-      ServerToolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Human);
-      call.GetOutput().AnswerJson(simplified);
+      context.ReadDicomAsJson(full, publicId, ignoreTagLength);
+      AnswerDicomAsJson(call, full, simplify);
     }
     else
     {
+      // This path allows to avoid the JSON decoding if no
+      // simplification is asked, or if no "ignore-length" argument is
+      // present
       std::string full;
       context.ReadDicomAsJson(full, publicId);
       call.GetOutput().AnswerBuffer(full, "application/json");
@@ -1010,16 +1050,7 @@ namespace Orthanc
     if (ExtractSharedTags(sharedTags, context, publicId))
     {
       // Success: Send the value of the shared tags
-      if (simplify)
-      {
-        Json::Value simplified;
-        ServerToolbox::SimplifyTags(simplified, sharedTags, DicomToJsonFormat_Human);
-        call.GetOutput().AnswerJson(simplified);
-      }
-      else
-      {
-        call.GetOutput().AnswerJson(sharedTags);
-      }
+      AnswerDicomAsJson(call, sharedTags, simplify);
     }
   }
 
@@ -1041,6 +1072,9 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
     bool simplify = call.HasArgument("simplify");
+
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
 
     typedef std::set<DicomTag> ModuleTags;
     ModuleTags moduleTags;
@@ -1064,7 +1098,7 @@ namespace Orthanc
       publicId = instances.front();
     }
 
-    context.ReadDicomAsJson(tags, publicId);
+    context.ReadDicomAsJson(tags, publicId, ignoreTagLength);
     
     // Filter the tags of the instance according to the module
     Json::Value result = Json::objectValue;
@@ -1077,16 +1111,7 @@ namespace Orthanc
       }      
     }
 
-    if (simplify)
-    {
-      Json::Value simplified;
-      ServerToolbox::SimplifyTags(simplified, result, DicomToJsonFormat_Human);
-      call.GetOutput().AnswerJson(simplified);
-    }
-    else
-    {
-      call.GetOutput().AnswerJson(result);
-    }    
+    AnswerDicomAsJson(call, result, simplify);
   }
     
 
@@ -1283,6 +1308,9 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     bool simplify = call.HasArgument("simplify");
 
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
+
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
     Instances instances;
@@ -1295,7 +1323,7 @@ namespace Orthanc
          it != instances.end(); ++it)
     {
       Json::Value full;
-      context.ReadDicomAsJson(full, *it);
+      context.ReadDicomAsJson(full, *it, ignoreTagLength);
 
       if (simplify)
       {
@@ -1394,16 +1422,7 @@ namespace Orthanc
     Json::Value header;
     dicom.HeaderToJson(header, DicomToJsonFormat_Full);
 
-    if (simplify)
-    {
-      Json::Value simplified;
-      ServerToolbox::SimplifyTags(simplified, header, DicomToJsonFormat_Human);
-      call.GetOutput().AnswerJson(simplified);
-    }
-    else
-    {
-      call.GetOutput().AnswerJson(header);
-    }
+    AnswerDicomAsJson(call, header, simplify);
   }
 
 

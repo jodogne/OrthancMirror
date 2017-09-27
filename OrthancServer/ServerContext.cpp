@@ -383,48 +383,82 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicomAsJson(std::string& result,
-                                      const std::string& instancePublicId)
+  void ServerContext::ReadDicomAsJsonInternal(std::string& result,
+                                              const std::string& instancePublicId)
   {
     FileInfo attachment;
     if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
     {
       ReadAttachment(result, attachment);
-      return;
     }
-
-    // The "DICOM as JSON" summary is not available from the Orthanc
-    // store (most probably deleted), reconstruct it from the DICOM file
-    std::string dicom;
-    ReadDicom(dicom, instancePublicId);
-
-    LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: " << instancePublicId;
-    
-    ParsedDicomFile parsed(dicom);
-
-    Json::Value summary;
-    parsed.DatasetToJson(summary);
-
-    result = summary.toStyledString();
-
-    if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson, result.c_str(), result.size()))
+    else
     {
-      LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
-      throw OrthancException(ErrorCode_InternalError);
+      // The "DICOM as JSON" summary is not available from the Orthanc
+      // store (most probably deleted), reconstruct it from the DICOM file
+      std::string dicom;
+      ReadDicom(dicom, instancePublicId);
+
+      LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: "
+                << instancePublicId;
+    
+      ParsedDicomFile parsed(dicom);
+
+      Json::Value summary;
+      parsed.DatasetToJson(summary);
+
+      result = summary.toStyledString();
+
+      if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
+                         result.c_str(), result.size()))
+      {
+        LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
+
+  void ServerContext::ReadDicomAsJson(std::string& result,
+                                      const std::string& instancePublicId,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    if (ignoreTagLength.empty())
+    {
+      ReadDicomAsJsonInternal(result, instancePublicId);
+    }
+    else
+    {
+      Json::Value tmp;
+      ReadDicomAsJson(tmp, instancePublicId, ignoreTagLength);
+      result = tmp.toStyledString();
     }
   }
 
 
   void ServerContext::ReadDicomAsJson(Json::Value& result,
-                                      const std::string& instancePublicId)
+                                      const std::string& instancePublicId,
+                                      const std::set<DicomTag>& ignoreTagLength)
   {
-    std::string tmp;
-    ReadDicomAsJson(tmp, instancePublicId);
-
-    Json::Reader reader;
-    if (!reader.parse(tmp, result))
+    if (ignoreTagLength.empty())
     {
-      throw OrthancException(ErrorCode_CorruptedFile);
+      std::string tmp;
+      ReadDicomAsJsonInternal(tmp, instancePublicId);
+
+      Json::Reader reader;
+      if (!reader.parse(tmp, result))
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+    }
+    else
+    {
+      // The "DicomAsJson" attachment might have stored some tags as
+      // "too long". We are forced to re-parse the DICOM file.
+      std::string dicom;
+      ReadDicom(dicom, instancePublicId);
+
+      ParsedDicomFile parsed(dicom);
+      parsed.DatasetToJson(result, ignoreTagLength);
     }
   }
 

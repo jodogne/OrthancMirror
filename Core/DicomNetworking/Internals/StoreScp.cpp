@@ -167,8 +167,10 @@ namespace Orthanc
 
           try
           {
+            std::set<DicomTag> ignoreTagLength;
+            
             FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet);
-            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet);
+            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet, ignoreTagLength);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {

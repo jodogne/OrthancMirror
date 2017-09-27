@@ -90,21 +90,24 @@ namespace Orthanc
                               DicomToJsonFormat format,
                               DicomToJsonFlags flags,
                               unsigned int maxStringLength,
-                              Encoding encoding);
+                              Encoding encoding,
+                              const std::set<DicomTag>& ignoreTagLength);
 
     static void ElementToJson(Json::Value& parent,
                               DcmElement& element,
                               DicomToJsonFormat format,
                               DicomToJsonFlags flags,
                               unsigned int maxStringLength,
-                              Encoding dicomEncoding);
+                              Encoding dicomEncoding,
+                              const std::set<DicomTag>& ignoreTagLength);
 
     static void ExtractDicomAsJson(Json::Value& target, 
                                    DcmDataset& dataset,
                                    DicomToJsonFormat format,
                                    DicomToJsonFlags flags,
                                    unsigned int maxStringLength,
-                                   Encoding defaultEncoding);
+                                   Encoding defaultEncoding,
+                                   const std::set<DicomTag>& ignoreTagLength);
 
     static void ChangeStringEncoding(DcmItem& dataset,
                                      Encoding source,
@@ -132,7 +135,8 @@ namespace Orthanc
     static DicomValue* ConvertLeafElement(DcmElement& element,
                                           DicomToJsonFlags flags,
                                           unsigned int maxStringLength,
-                                          Encoding encoding);
+                                          Encoding encoding,
+                                          const std::set<DicomTag>& ignoreTagLength);
 
     static void ExtractHeaderAsJson(Json::Value& target, 
                                     DcmMetaInfo& header,
@@ -230,7 +234,8 @@ namespace Orthanc
                                     DcmItem& dataset);
 
     static void ExtractDicomAsJson(Json::Value& target, 
-                                   DcmDataset& dataset);
+                                   DcmDataset& dataset,
+                                   const std::set<DicomTag>& ignoreTagLength);
 
     static void InitializeCodecs();
 

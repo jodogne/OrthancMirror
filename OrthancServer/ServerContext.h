@@ -106,6 +106,8 @@ namespace Orthanc
 
     static void ChangeThread(ServerContext* that);
 
+    void ReadDicomAsJsonInternal(std::string& result,
+                                 const std::string& instancePublicId);
 
     ServerIndex index_;
     IStorageArea& area_;
@@ -193,10 +195,26 @@ namespace Orthanc
                                      CompressionType compression);
 
     void ReadDicomAsJson(std::string& result,
-                         const std::string& instancePublicId);
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);
 
     void ReadDicomAsJson(Json::Value& result,
-                         const std::string& instancePublicId);
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);
+
+    void ReadDicomAsJson(std::string& result,
+                         const std::string& instancePublicId)
+    {
+      std::set<DicomTag> ignoreTagLength;
+      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
+    }
+
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId)
+    {
+      std::set<DicomTag> ignoreTagLength;
+      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
+    }
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId)

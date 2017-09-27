@@ -112,8 +112,11 @@ namespace Orthanc
     if (!json_.HasContent())
     {
       json_.Allocate();
+
+      std::set<DicomTag> ignoreTagLength;
       FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
-                                          *parsed_.GetContent().GetDcmtkObject().getDataset());
+                                          *parsed_.GetContent().GetDcmtkObject().getDataset(),
+                                          ignoreTagLength);
     }
   }
 

@@ -182,8 +182,17 @@ namespace Orthanc
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength);
 
+    void DatasetToJson(Json::Value& target, 
+                       DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
+                       unsigned int maxStringLength,
+                       const std::set<DicomTag>& ignoreTagLength);
+      
     // This version uses the default parameters for
     // FileContentType_DicomAsJson
+    void DatasetToJson(Json::Value& target,
+                       const std::set<DicomTag>& ignoreTagLength);
+
     void DatasetToJson(Json::Value& target);
 
     void HeaderToJson(Json::Value& target, 
@@ -207,8 +216,6 @@ namespace Orthanc
     void ChangeEncoding(Encoding target);
 
     void ExtractDicomSummary(DicomMap& target) const;
-
-    void ExtractDicomAsJson(Json::Value& target) const;
 
     bool LookupTransferSyntax(std::string& result);
 
