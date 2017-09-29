@@ -93,5 +93,17 @@ namespace Orthanc
       FormatDataUriScheme(target, "application/octet-stream");
     }
 #endif
+
+    bool ParseInteger32(int32_t& result) const;
+
+    bool ParseInteger64(int64_t& result) const;                                
+
+    bool ParseUnsignedInteger32(uint32_t& result) const;
+
+    bool ParseUnsignedInteger64(uint64_t& result) const;                                
+
+    bool ParseFloat(float& result) const;                                
+
+    bool ParseDouble(double& result) const;                                
   };
 }

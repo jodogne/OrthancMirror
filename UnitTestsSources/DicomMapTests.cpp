@@ -220,3 +220,124 @@ TEST(DicomMap, Modules)
   TestModule(ResourceType_Series, DicomModule_Series);   // TODO
   TestModule(ResourceType_Instance, DicomModule_Instance);
 }
+
+
+TEST(DicomMap, Parse)
+{
+  DicomMap m;
+  float f;
+  double d;
+  int32_t i;
+  int64_t j;
+  uint32_t k;
+  uint64_t l;
+  
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "      ", false);  // Empty value
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "0", true);  // Binary value
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+
+  // 2**31-1
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483647", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(2147483647.0f, f);
+  ASSERT_DOUBLE_EQ(2147483647.0, d);
+  ASSERT_EQ(2147483647, i);
+  ASSERT_EQ(2147483647, j);
+  ASSERT_EQ(2147483647u, k);
+  ASSERT_EQ(2147483647u, l);
+  
+  // 2**31
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483648", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(2147483648.0f, f);
+  ASSERT_DOUBLE_EQ(2147483648.0, d);
+  ASSERT_EQ(2147483648, j);
+  ASSERT_EQ(2147483648u, k);
+  ASSERT_EQ(2147483648u, l);
+
+  // 2**32-1
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "4294967295", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(4294967295.0f, f);
+  ASSERT_DOUBLE_EQ(4294967295.0, d);
+  ASSERT_EQ(4294967295, j);
+  ASSERT_EQ(4294967295u, k);
+  ASSERT_EQ(4294967295u, l);
+  
+  // 2**32
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "4294967296", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(4294967296.0f, f);
+  ASSERT_DOUBLE_EQ(4294967296.0, d);
+  ASSERT_EQ(4294967296, j);
+  ASSERT_EQ(4294967296u, l);
+  
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "-1", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(-1.0f, f);
+  ASSERT_DOUBLE_EQ(-1.0, d);
+  ASSERT_EQ(-1, i);
+  ASSERT_EQ(-1, j);
+
+  // -2**31
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "-2147483648", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(-2147483648.0f, f);
+  ASSERT_DOUBLE_EQ(-2147483648.0, d); 
+  ASSERT_EQ(-2147483648, i);
+  ASSERT_EQ(-2147483648, j);
+  
+  // -2**31 - 1
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "-2147483649", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseDouble(d));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger32(i));
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseInteger64(j));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
+  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
+  ASSERT_FLOAT_EQ(-2147483649.0f, f);
+  ASSERT_DOUBLE_EQ(-2147483649.0, d); 
+  ASSERT_EQ(-2147483649, j);
+}
