@@ -94,6 +94,9 @@ namespace Orthanc
     }
 #endif
 
+    bool CopyToString(std::string& result,
+                      bool allowBinary) const;
+    
     bool ParseInteger32(int32_t& result) const;
 
     bool ParseInteger64(int64_t& result) const;                                

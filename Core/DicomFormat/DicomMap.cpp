@@ -865,4 +865,111 @@ namespace Orthanc
       LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
     }
   }
+
+
+  bool DicomMap::CopyToString(std::string& result,
+                              const DicomTag& tag,
+                              bool allowBinary) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->CopyToString(result, allowBinary);
+    }
+  }
+    
+  bool DicomMap::ParseInteger32(int32_t& result,
+                                const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseInteger32(result);
+    }
+  }
+
+  bool DicomMap::ParseInteger64(int64_t& result,
+                                const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseInteger64(result);
+    }
+  }
+
+  bool DicomMap::ParseUnsignedInteger32(uint32_t& result,
+                                        const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseUnsignedInteger32(result);
+    }
+  }
+
+  bool DicomMap::ParseUnsignedInteger64(uint64_t& result,
+                                        const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseUnsignedInteger64(result);
+    }
+  }
+
+  bool DicomMap::ParseFloat(float& result,
+                            const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseFloat(result);
+    }
+  }
+
+  bool DicomMap::ParseDouble(double& result,
+                             const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseDouble(result);
+    }
+  }
 }
