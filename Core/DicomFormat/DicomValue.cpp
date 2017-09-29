@@ -37,6 +37,8 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
+#include <boost/lexical_cast.hpp>
+
 namespace Orthanc
 {
   DicomValue::DicomValue(const DicomValue& other) : 
@@ -91,4 +93,86 @@ namespace Orthanc
   }
 #endif
 
+
+  template <typename T,
+            bool allowSigned>
+  static bool ParseValue(T& result,
+                         const DicomValue& source)
+  {
+    if (source.IsBinary() ||
+        source.IsNull())
+    {
+      return false;
+    }
+    
+    try
+    {
+      std::string value = Toolbox::StripSpaces(source.GetContent());
+      if (value.empty())
+      {
+        return false;
+      }
+
+      if (!allowSigned &&
+          value[0] == '-')
+      {
+        return false;
+      }
+      
+      result = boost::lexical_cast<T>(value);
+      return true;
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return false;
+    }
+  }
+
+  bool DicomValue::ParseInteger32(int32_t& result) const
+  {
+    int64_t tmp;
+    if (ParseValue<int64_t, true>(tmp, *this))
+    {
+      result = static_cast<int32_t>(tmp);
+      return (tmp == static_cast<int64_t>(result));  // Check no overflow occurs
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool DicomValue::ParseInteger64(int64_t& result) const
+  {
+    return ParseValue<int64_t, true>(result, *this);
+  }
+
+  bool DicomValue::ParseUnsignedInteger32(uint32_t& result) const
+  {
+    uint64_t tmp;
+    if (ParseValue<uint64_t, false>(tmp, *this))
+    {
+      result = static_cast<uint32_t>(tmp);
+      return (tmp == static_cast<uint64_t>(result));  // Check no overflow occurs
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool DicomValue::ParseUnsignedInteger64(uint64_t& result) const
+  {
+    return ParseValue<uint64_t, false>(result, *this);
+  }
+
+  bool DicomValue::ParseFloat(float& result) const
+  {
+    return ParseValue<float, true>(result, *this);
+  }
+
+  bool DicomValue::ParseDouble(double& result) const
+  {
+    return ParseValue<double, true>(result, *this);
+  }
 }
