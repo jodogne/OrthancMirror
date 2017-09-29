@@ -1095,14 +1095,14 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
   {
     DicomMap m;
     ParsedDicomFile dicom(m);
-    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Ascii);
   }
 
   {
     DicomMap m;
     ParsedDicomFile dicom(m, Encoding_Latin4);
-    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin4);
   }
 
@@ -1110,7 +1110,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
     DicomMap m;
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
     ParsedDicomFile dicom(m);
-    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin5);
   }
 
@@ -1118,7 +1118,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
     DicomMap m;
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
     ParsedDicomFile dicom(m, Encoding_Latin1);
-    ASSERT_EQ(1, dicom.GetDcmtkObject().getDataset()->card());
+    ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin5);
   }
 }
