@@ -397,6 +397,7 @@ namespace Orthanc
 #endif
 
 
+#if ORTHANC_ENABLE_LOCALE == 1
   static const char* GetBoostLocaleEncoding(const Encoding sourceEncoding)
   {
     switch (sourceEncoding)
@@ -463,6 +464,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+#endif
 
 
 #if ORTHANC_ENABLE_LOCALE == 1

@@ -175,4 +175,22 @@ namespace Orthanc
   {
     return ParseValue<double, true>(result, *this);
   }
+
+  bool DicomValue::CopyToString(std::string& result,
+                                bool allowBinary) const
+  {
+    if (IsNull())
+    {
+      return false;
+    }
+    else if (IsBinary() && !allowBinary)
+    {
+      return false;
+    }
+    else
+    {
+      result.assign(content_);
+      return true;
+    }
+  }    
 }
