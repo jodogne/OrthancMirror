@@ -977,7 +977,7 @@ TEST(Toolbox, AccessJson)
   v = Json::objectValue;
   ASSERT_EQ("nope", Toolbox::GetJsonStringField(v, "hello", "nope"));
   ASSERT_EQ(-10, Toolbox::GetJsonIntegerField(v, "hello", -10));
-  ASSERT_EQ(10, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_EQ(10u, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
   ASSERT_TRUE(Toolbox::GetJsonBooleanField(v, "hello", true));
 
   v["hello"] = "world";
@@ -995,7 +995,7 @@ TEST(Toolbox, AccessJson)
   v["hello"] = 42;
   ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
   ASSERT_EQ(42, Toolbox::GetJsonIntegerField(v, "hello", -10));
-  ASSERT_EQ(42, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_EQ(42u, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
   ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
 
   v["hello"] = false;
