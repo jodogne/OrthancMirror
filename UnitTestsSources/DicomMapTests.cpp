@@ -231,6 +231,7 @@ TEST(DicomMap, Parse)
   int64_t j;
   uint32_t k;
   uint64_t l;
+  std::string s;
   
   m.SetValue(DICOM_TAG_PATIENT_NAME, "      ", false);  // Empty value
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
@@ -248,6 +249,11 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
 
+  ASSERT_FALSE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, true));
+  ASSERT_EQ("0", s);
+               
+
   // 2**31-1
   m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483647", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
@@ -262,6 +268,27 @@ TEST(DicomMap, Parse)
   ASSERT_EQ(2147483647, j);
   ASSERT_EQ(2147483647u, k);
   ASSERT_EQ(2147483647u, l);
+
+  // Test shortcuts
+  m.SetValue(DICOM_TAG_PATIENT_NAME, "42", false);
+  ASSERT_TRUE(m.ParseFloat(f, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(m.ParseDouble(d, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(m.ParseInteger32(i, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(m.ParseInteger64(j, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(m.ParseUnsignedInteger32(k, DICOM_TAG_PATIENT_NAME));
+  ASSERT_TRUE(m.ParseUnsignedInteger64(l, DICOM_TAG_PATIENT_NAME));
+  ASSERT_FLOAT_EQ(42.0f, f);
+  ASSERT_DOUBLE_EQ(42.0, d);
+  ASSERT_EQ(42, i);
+  ASSERT_EQ(42, j);
+  ASSERT_EQ(42u, k);
+  ASSERT_EQ(42u, l);
+
+  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+  ASSERT_EQ("42", s);
+  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, true));
+  ASSERT_EQ("42", s);
+               
   
   // 2**31
   m.SetValue(DICOM_TAG_PATIENT_NAME, "2147483648", false);

@@ -183,5 +183,27 @@ namespace Orthanc
                                           size_t size);
 
     void LogMissingTagsForStore() const;
+
+    bool CopyToString(std::string& result,
+                      const DicomTag& tag,
+                      bool allowBinary) const;
+    
+    bool ParseInteger32(int32_t& result,
+                        const DicomTag& tag) const;
+
+    bool ParseInteger64(int64_t& result,
+                        const DicomTag& tag) const;                                
+
+    bool ParseUnsignedInteger32(uint32_t& result,
+                                const DicomTag& tag) const;
+
+    bool ParseUnsignedInteger64(uint64_t& result,
+                                const DicomTag& tag) const;                                
+
+    bool ParseFloat(float& result,
+                    const DicomTag& tag) const;                                
+
+    bool ParseDouble(double& result,
+                     const DicomTag& tag) const;                                
   };
 }
