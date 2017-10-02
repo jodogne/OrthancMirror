@@ -218,6 +218,10 @@ namespace Orthanc
         ToMatlabStringInternal<uint16_t>(buffer, *this);
         break;
 
+      case PixelFormat_Grayscale32:
+        ToMatlabStringInternal<uint32_t>(buffer, *this);
+        break;
+
       case PixelFormat_SignedGrayscale16:
         ToMatlabStringInternal<int16_t>(buffer, *this);
         break;

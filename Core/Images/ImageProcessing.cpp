@@ -413,6 +413,13 @@ namespace Orthanc
     }
 
     if (target.GetFormat() == PixelFormat_Float32 &&
+        source.GetFormat() == PixelFormat_Grayscale32)
+    {
+      ConvertGrayscaleToFloat<uint32_t>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Float32 &&
         source.GetFormat() == PixelFormat_SignedGrayscale16)
     {
       ConvertGrayscaleToFloat<int16_t>(target, source);
@@ -579,6 +586,10 @@ namespace Orthanc
         SetInternal<uint16_t>(image, value);
         return;
 
+      case PixelFormat_Grayscale32:
+        SetInternal<uint32_t>(image, value);
+        return;
+
       case PixelFormat_SignedGrayscale16:
         SetInternal<int16_t>(image, value);
         return;
@@ -664,9 +675,9 @@ namespace Orthanc
   }
 
 
-  void ImageProcessing::GetMinMaxValue(int64_t& minValue,
-                                       int64_t& maxValue,
-                                       const ImageAccessor& image)
+  void ImageProcessing::GetMinMaxIntegerValue(int64_t& minValue,
+                                              int64_t& maxValue,
+                                              const ImageAccessor& image)
   {
     switch (image.GetFormat())
     {
@@ -688,10 +699,41 @@ namespace Orthanc
         break;
       }
 
+      case PixelFormat_Grayscale32:
+      {
+        uint32_t a, b;
+        GetMinMaxValueInternal<uint32_t>(a, b, image);
+        minValue = a;
+        maxValue = b;
+        break;
+      }
+
       case PixelFormat_SignedGrayscale16:
       {
         int16_t a, b;
         GetMinMaxValueInternal<int16_t>(a, b, image);
+        minValue = a;
+        maxValue = b;
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::GetMinMaxFloatValue(float& minValue,
+                                            float& maxValue,
+                                            const ImageAccessor& image)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Float32:
+      {
+        assert(sizeof(float) == 32);
+        float a, b;
+        GetMinMaxValueInternal<float>(a, b, image);
         minValue = a;
         maxValue = b;
         break;
