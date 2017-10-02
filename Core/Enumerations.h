@@ -199,8 +199,14 @@ namespace Orthanc
      **/
     PixelFormat_Float32 = 6,
 
-    // This is the memory layout for Cairo
-    PixelFormat_BGRA32 = 7
+    // This is the memory layout for Cairo (internal use)
+    PixelFormat_BGRA32 = 7,
+
+    /**
+     * {summary}{Graylevel, unsigned 32bpp image.}
+     * {description}{The image is graylevel. Each pixel is unsigned and stored in 4 bytes.}
+     **/
+    PixelFormat_Grayscale32 = 8
   };
 
 

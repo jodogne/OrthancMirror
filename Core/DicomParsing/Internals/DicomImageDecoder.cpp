@@ -703,7 +703,7 @@ namespace Orthanc
       {
         // Grayscale image: Stretch its dynamics to the [0,255] range
         int64_t a, b;
-        ImageProcessing::GetMinMaxValue(a, b, *image);
+        ImageProcessing::GetMinMaxIntegerValue(a, b, *image);
 
         if (a == b)
         {
