@@ -178,18 +178,20 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    try
+    if (values.HasTag(DICOM_TAG_NUMBER_OF_FRAMES))
     {
-      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+      try
+      {
+        numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
     }
-    catch (OrthancException&)
+    else
     {
-      // If the tag "NumberOfFrames" is absent, assume there is a single frame
       numberOfFrames_ = 1;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if ((bitsAllocated_ != 8 && bitsAllocated_ != 16 && 
