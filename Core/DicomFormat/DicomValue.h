@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <string>
 #include <boost/noncopyable.hpp>
 
