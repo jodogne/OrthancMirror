@@ -267,7 +267,7 @@ TEST(DicomMap, Parse)
   ASSERT_EQ(2147483647, i);
   ASSERT_EQ(2147483647ll, j);
   ASSERT_EQ(2147483647u, k);
-  ASSERT_EQ(2147483647llu, l);
+  ASSERT_EQ(2147483647ull, l);
 
   // Test shortcuts
   m.SetValue(DICOM_TAG_PATIENT_NAME, "42", false);
@@ -282,7 +282,7 @@ TEST(DicomMap, Parse)
   ASSERT_EQ(42, i);
   ASSERT_EQ(42ll, j);
   ASSERT_EQ(42u, k);
-  ASSERT_EQ(42llu, l);
+  ASSERT_EQ(42ull, l);
 
   ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
   ASSERT_EQ("42", s);
@@ -302,7 +302,7 @@ TEST(DicomMap, Parse)
   ASSERT_DOUBLE_EQ(2147483648.0, d);
   ASSERT_EQ(2147483648ll, j);
   ASSERT_EQ(2147483648u, k);
-  ASSERT_EQ(2147483648llu, l);
+  ASSERT_EQ(2147483648ull, l);
 
   // 2**32-1
   m.SetValue(DICOM_TAG_PATIENT_NAME, "4294967295", false);
@@ -316,7 +316,7 @@ TEST(DicomMap, Parse)
   ASSERT_DOUBLE_EQ(4294967295.0, d);
   ASSERT_EQ(4294967295ll, j);
   ASSERT_EQ(4294967295u, k);
-  ASSERT_EQ(4294967295llu, l);
+  ASSERT_EQ(4294967295ull, l);
   
   // 2**32
   m.SetValue(DICOM_TAG_PATIENT_NAME, "4294967296", false);
@@ -329,7 +329,7 @@ TEST(DicomMap, Parse)
   ASSERT_FLOAT_EQ(4294967296.0f, f);
   ASSERT_DOUBLE_EQ(4294967296.0, d);
   ASSERT_EQ(4294967296ll, j);
-  ASSERT_EQ(4294967296llu, l);
+  ASSERT_EQ(4294967296ull, l);
   
   m.SetValue(DICOM_TAG_PATIENT_NAME, "-1", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseFloat(f));
