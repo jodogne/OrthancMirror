@@ -57,6 +57,10 @@ namespace Orthanc
              ParsedDicomFile& dicom);
 
     void Encode(std::string& target);
+
+    void EnableExtendedSopClass(bool enable);
+
+    bool IsExtendedSopClass() const;
   };
 
 }
