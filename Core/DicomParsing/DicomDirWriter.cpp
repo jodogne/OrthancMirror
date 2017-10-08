@@ -211,6 +211,13 @@ namespace Orthanc
       std::string value;
       bool found = GetUtf8TagValue(value, source, encoding, key);
 
+      if (!found)
+      {
+        // We don't raise an exception if "!optional", even if this
+        // results in an invalid DICOM file
+        value.clear();
+      }
+
       SetTagValue(target, key, value);
       return found;
     }
@@ -238,6 +245,14 @@ namespace Orthanc
                                 const DcmTagKey& key)
     {
       CopyString(target, source, encoding, key, false, true);
+    }
+
+    static void CopyStringType3(DcmDirectoryRecord& target,
+                                DcmDataset& source,
+                                Encoding encoding,
+                                const DcmTagKey& key)
+    {
+      CopyString(target, source, encoding, key, true, true);
     }
 
 
