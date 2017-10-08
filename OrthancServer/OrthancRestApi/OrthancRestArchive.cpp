@@ -625,7 +625,8 @@ namespace Orthanc
       static void Apply(RestApiOutput& output,
                         ServerContext& context,
                         ArchiveIndex& archive,
-                        const std::string& filename)
+                        const std::string& filename,
+                        bool enableExtendedSopClass)
       {
         archive.Expand(context.GetIndex());
 
@@ -643,10 +644,12 @@ namespace Orthanc
           writer.SetZip64(isZip64);
           writer.OpenDirectory("IMAGES");
 
-          // Create the DICOMDIR writer
-          DicomDirWriter dicomDir;
-
+          // Create a DICOMDIR writer
           MediaWriterVisitor v(writer, context);
+
+          // Request type-3 arguments to be added to the DICOMDIR
+          v.dicomDir_.EnableExtendedSopClass(enableExtendedSopClass);
+
           archive.Apply(v);
 
           // Add the DICOMDIR
@@ -723,7 +726,8 @@ namespace Orthanc
       MediaWriterVisitor::Apply(call.GetOutput(),
                                 OrthancRestApi::GetContext(call),
                                 archive,
-                                "Archive.zip");
+                                "Archive.zip",
+                                false);
     }
   }  
 
@@ -758,7 +762,8 @@ namespace Orthanc
     MediaWriterVisitor::Apply(call.GetOutput(),
                               OrthancRestApi::GetContext(call),
                               archive,
-                              id + ".zip");
+                              id + ".zip",
+                              call.HasArgument("extended"));
   }
 
 

@@ -6,6 +6,7 @@ REST API
 
 * New URI: "/instances/.../frames/.../raw.gz" to compress raw frames using gzip
 * New argument "ignore-length" to force the inclusion of too long tags in JSON
+* New argument "/.../media?extended" to include additional type-3 tags in DICOMDIR
 
 Maintenance
 -----------
