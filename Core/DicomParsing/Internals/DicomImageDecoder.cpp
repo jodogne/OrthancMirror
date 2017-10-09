@@ -96,14 +96,17 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcrleccd.h>
 #include <dcmtk/dcmdata/dcrlecp.h>
+#include <dcmtk/dcmdata/dcrlerp.h>
 
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+#  include <dcmtk/dcmjpeg/djrplol.h>
 #  include <dcmtk/dcmjpls/djcodecd.h>
 #  include <dcmtk/dcmjpls/djcparam.h>
-#  include <dcmtk/dcmjpeg/djrplol.h>
+#  include <dcmtk/dcmjpls/djrparam.h>
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
@@ -115,6 +118,7 @@
 #  include <dcmtk/dcmjpeg/djdecpro.h>
 #  include <dcmtk/dcmjpeg/djdecsps.h>
 #  include <dcmtk/dcmjpeg/djdecsv1.h>
+#  include <dcmtk/dcmjpeg/djrploss.h>
 #endif
 
 #if DCMTK_VERSION_NUMBER <= 360
@@ -381,18 +385,130 @@ namespace Orthanc
   }
 
 
+  static ImageAccessor* DecodeLookupTable(std::auto_ptr<ImageAccessor>& target,
+                                          const DicomImageInformation& info,
+                                          DcmDataset& dataset,
+                                          const uint8_t* pixelData,
+                                          unsigned long pixelLength)
+  {
+    LOG(INFO) << "Decoding a lookup table";
+
+    OFString r, g, b;
+    PixelFormat format;
+    const uint16_t* lutRed = NULL;
+    const uint16_t* lutGreen = NULL;
+    const uint16_t* lutBlue = NULL;
+    unsigned long rc = 0;
+    unsigned long gc = 0;
+    unsigned long bc = 0;
+
+    if (pixelData == NULL &&
+        !dataset.findAndGetUint8Array(DCM_PixelData, pixelData, &pixelLength).good())
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    if (info.IsPlanar() ||
+        info.GetNumberOfFrames() != 1 ||
+        !info.ExtractPixelFormat(format, false) ||
+        !dataset.findAndGetOFStringArray(DCM_BluePaletteColorLookupTableDescriptor, b).good() ||
+        !dataset.findAndGetOFStringArray(DCM_GreenPaletteColorLookupTableDescriptor, g).good() ||
+        !dataset.findAndGetOFStringArray(DCM_RedPaletteColorLookupTableDescriptor, r).good() ||
+        !dataset.findAndGetUint16Array(DCM_BluePaletteColorLookupTableData, lutBlue, &bc).good() ||
+        !dataset.findAndGetUint16Array(DCM_GreenPaletteColorLookupTableData, lutGreen, &gc).good() ||
+        !dataset.findAndGetUint16Array(DCM_RedPaletteColorLookupTableData, lutRed, &rc).good() ||
+        r != g ||
+        r != b ||
+        g != b ||
+        lutRed == NULL ||
+        lutGreen == NULL ||
+        lutBlue == NULL ||
+        pixelData == NULL)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    switch (format)
+    {
+      case PixelFormat_RGB24:
+      {
+        if (r != "256\\0\\16" ||
+            rc != 256 ||
+            gc != 256 ||
+            bc != 256 ||
+            pixelLength != target->GetWidth() * target->GetHeight())
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData);
+        
+        for (unsigned int y = 0; y < target->GetHeight(); y++)
+        {
+          uint8_t* p = reinterpret_cast<uint8_t*>(target->GetRow(y));
+
+          for (unsigned int x = 0; x < target->GetWidth(); x++)
+          {
+            p[0] = lutRed[*source] >> 8;
+            p[1] = lutGreen[*source] >> 8;
+            p[2] = lutBlue[*source] >> 8;
+            source++;
+            p += 3;
+          }
+        }
+
+        return target.release();
+      }
+
+      case PixelFormat_RGB48:
+      {
+        if (r != "0\\0\\16" ||
+            rc != 65536 ||
+            gc != 65536 ||
+            bc != 65536 ||
+            pixelLength != 2 * target->GetWidth() * target->GetHeight())
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData);
+        
+        for (unsigned int y = 0; y < target->GetHeight(); y++)
+        {
+          uint16_t* p = reinterpret_cast<uint16_t*>(target->GetRow(y));
+
+          for (unsigned int x = 0; x < target->GetWidth(); x++)
+          {
+            p[0] = lutRed[*source];
+            p[1] = lutGreen[*source];
+            p[2] = lutBlue[*source];
+            source++;
+            p += 3;
+          }
+        }
+
+        return target.release();
+      }
+
+      default:
+        break;
+    }
+
+    throw OrthancException(ErrorCode_InternalError);
+  }                                          
+
+
   ImageAccessor* DicomImageDecoder::DecodeUncompressedImage(DcmDataset& dataset,
                                                             unsigned int frame)
   {
-    ImageSource source;
-    source.Setup(dataset, frame);
-
-
     /**
-     * Resize the target image.
+     * Create the target image.
      **/
 
     std::auto_ptr<ImageAccessor> target(CreateImage(dataset, false));
+
+    ImageSource source;
+    source.Setup(dataset, frame);
 
     if (source.GetWidth() != target->GetWidth() ||
         source.GetHeight() != target->GetHeight())
@@ -400,13 +516,23 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
+    
+    /**
+     * Deal with lookup tables
+     **/
+
+    const DicomImageInformation& info = source.GetAccessor().GetInformation();
+
+    if (info.GetPhotometricInterpretation() == PhotometricInterpretation_Palette)
+    {
+      return DecodeLookupTable(target, info, dataset, NULL, 0);
+    }       
+
 
     /**
      * If the format of the DICOM buffer is natively supported, use a
      * direct access to copy its values.
      **/
-
-    const DicomImageInformation& info = source.GetAccessor().GetInformation();
 
     bool fastVersionSuccess = false;
     PixelFormat sourceFormat;
@@ -470,10 +596,12 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* DicomImageDecoder::ApplyCodec(const DcmCodec& codec,
-                                               const DcmCodecParameter& parameters,
-                                               DcmDataset& dataset,
-                                               unsigned int frame)
+  ImageAccessor* DicomImageDecoder::ApplyCodec
+  (const DcmCodec& codec,
+   const DcmCodecParameter& parameters,
+   const DcmRepresentationParameter& representationParameter,
+   DcmDataset& dataset,
+   unsigned int frame)
   {
     DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
     if (pixelSequence == NULL)
@@ -481,24 +609,49 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
+    DicomMap m;
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset);
+    DicomImageInformation info(m);
+
     std::auto_ptr<ImageAccessor> target(CreateImage(dataset, true));
 
     Uint32 startFragment = 0;  // Default 
     OFString decompressedColorModel;  // Out
-    DJ_RPLossless representationParameter;
-    OFCondition c = codec.decodeFrame(&representationParameter, 
-                                      pixelSequence, &parameters, 
-                                      &dataset, frame, startFragment, target->GetBuffer(), 
-                                      target->GetSize(), decompressedColorModel);
 
-    if (c.good())
+    OFCondition c;
+    
+    if (info.GetPhotometricInterpretation() == PhotometricInterpretation_Palette &&
+        info.GetChannelCount() == 1)
     {
-      return target.release();    
+      std::string uncompressed;
+      uncompressed.resize(info.GetWidth() * info.GetHeight() * info.GetBytesPerValue());
+
+      if (uncompressed.size() == 0 ||
+          !codec.decodeFrame(&representationParameter, 
+                             pixelSequence, &parameters, 
+                             &dataset, frame, startFragment, &uncompressed[0],
+                             uncompressed.size(), decompressedColorModel).good())
+      {
+        LOG(ERROR) << "Cannot decode a palette image";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      return DecodeLookupTable(target, info, dataset,
+                               reinterpret_cast<const uint8_t*>(uncompressed.c_str()),
+                               uncompressed.size());
     }
     else
     {
-      LOG(ERROR) << "Cannot decode an image";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      if (!codec.decodeFrame(&representationParameter, 
+                             pixelSequence, &parameters, 
+                             &dataset, frame, startFragment, target->GetBuffer(), 
+                             target->GetSize(), decompressedColorModel).good())
+      {
+        LOG(ERROR) << "Cannot decode a non-palette image";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      return target.release();
     }
   }
 
@@ -532,6 +685,7 @@ namespace Orthanc
         syntax == EXS_JPEGLSLossy)
     {
       DJLSCodecParameter parameters;
+      DJLSRepresentationParameter representationParameter;
       std::auto_ptr<DJLSDecoderBase> decoder;
 
       switch (syntax)
@@ -550,7 +704,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
     
-      return ApplyCodec(*decoder, parameters, dataset, frame);
+      return ApplyCodec(*decoder, parameters, representationParameter, dataset, frame);
     }
 #endif
 
@@ -573,6 +727,7 @@ namespace Orthanc
         EDC_photometricInterpretation,  // Perform color space conversion from YCbCr to RGB if DICOM photometric interpretation indicates YCbCr
         EUC_default,     // Mode for UID creation, unused for decompression
         EPC_default);    // Automatically determine whether color-by-plane is required from the SOP Class UID and decompressed photometric interpretation
+      DJ_RPLossy representationParameter;
       std::auto_ptr<DJCodecDecoder> decoder;
 
       switch (syntax)
@@ -611,7 +766,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
     
-      return ApplyCodec(*decoder, parameters, dataset, frame);      
+      return ApplyCodec(*decoder, parameters, representationParameter, dataset, frame);      
     }
 #endif
 
@@ -621,7 +776,8 @@ namespace Orthanc
       LOG(INFO) << "Decoding a RLE lossless DICOM image";
       DcmRLECodecParameter parameters;
       DcmRLECodecDecoder decoder;
-      return ApplyCodec(decoder, parameters, dataset, frame);
+      DcmRLERepresentationParameter representationParameter;
+      return ApplyCodec(decoder, parameters, representationParameter, dataset, frame);
     }
 
 
@@ -678,7 +834,8 @@ namespace Orthanc
     if (image->GetFormat() != format)
     {
       // A conversion is required
-      std::auto_ptr<ImageAccessor> target(new Image(format, image->GetWidth(), image->GetHeight(), false));
+      std::auto_ptr<ImageAccessor> target
+        (new Image(format, image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Convert(*target, *image);
       image = target;
     }
@@ -697,6 +854,15 @@ namespace Orthanc
         return true;
       }
 
+      case PixelFormat_RGB48:
+      {
+        std::auto_ptr<ImageAccessor> target
+          (new Image(PixelFormat_RGB24, image->GetWidth(), image->GetHeight(), false));
+        ImageProcessing::Convert(*target, *image);
+        image = target;
+        return true;
+      }
+
       case PixelFormat_Grayscale8:
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
@@ -711,13 +877,15 @@ namespace Orthanc
         }
         else
         {
-          ImageProcessing::ShiftScale(*image, static_cast<float>(-a), 255.0f / static_cast<float>(b - a));
+          ImageProcessing::ShiftScale(*image, static_cast<float>(-a),
+                                      255.0f / static_cast<float>(b - a));
         }
 
         // If the source image is not grayscale 8bpp, convert it
         if (image->GetFormat() != PixelFormat_Grayscale8)
         {
-          std::auto_ptr<ImageAccessor> target(new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight(), false));
+          std::auto_ptr<ImageAccessor> target
+            (new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight(), false));
           ImageProcessing::Convert(*target, *image);
           image = target;
         }
