@@ -219,9 +219,19 @@ namespace Orthanc
   {
     if (photometric_ == PhotometricInterpretation_Palette)
     {
-      return false;
-    }
+      if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_RGB24;
+        return true;
+      }
 
+      if (GetBitsStored() == 16 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_RGB48;
+        return true;
+      }
+    }
+    
     if (ignorePhotometricInterpretation ||
         photometric_ == PhotometricInterpretation_Monochrome1 ||
         photometric_ == PhotometricInterpretation_Monochrome2)
