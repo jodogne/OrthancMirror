@@ -57,6 +57,7 @@
 class DcmDataset;
 class DcmCodec;
 class DcmCodecParameter;
+class DcmRepresentationParameter;
 
 namespace Orthanc
 {
@@ -77,6 +78,7 @@ namespace Orthanc
 
     static ImageAccessor* ApplyCodec(const DcmCodec& codec,
                                      const DcmCodecParameter& parameters,
+                                     const DcmRepresentationParameter& representationParameter,
                                      DcmDataset& dataset,
                                      unsigned int frame);
 
