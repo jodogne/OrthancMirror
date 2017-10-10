@@ -247,6 +247,11 @@ namespace OrthancPlugins
       case OrthancPluginPixelFormat_RGB24:
         return 3;
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 3, 1)
+      case OrthancPluginPixelFormat_RGB48:
+        return 6;
+#endif
+
       default:
         throw std::runtime_error("Unsupport pixel format");
     }
