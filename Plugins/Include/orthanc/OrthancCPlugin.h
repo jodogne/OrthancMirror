@@ -118,7 +118,17 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     3
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+
+
+#if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
+#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision) \
+  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||               \
+   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&             \
+    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||             \
+     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&           \
+      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
+#endif
 
 
 
@@ -569,6 +579,38 @@ extern "C"
     OrthancPluginPixelFormat_RGBA32 = 5,
 
     OrthancPluginPixelFormat_Unknown = 6,   /*!< Unknown pixel format */
+
+    /**
+     * @brief Color image in RGB48 format.
+     *
+     * This format describes a color image. The pixels are stored in 6
+     * consecutive bytes. The memory layout is RRGGBB.
+     **/
+    OrthancPluginPixelFormat_RGB48 = 7,
+
+    /**
+     * @brief Graylevel, unsigned 32bpp image.
+     *
+     * The image is graylevel. Each pixel is unsigned and stored in
+     * four bytes.
+     **/
+    OrthancPluginPixelFormat_Grayscale32 = 8,
+
+    /**
+     * @brief Graylevel, floating-point 32bpp image.
+     *
+     * The image is graylevel. Each pixel is floating-point and stored
+     * in four bytes.
+     **/
+    OrthancPluginPixelFormat_Float32 = 9,
+
+    /**
+     * @brief Color image in BGRA32 format.
+     *
+     * This format describes a color image. The pixels are stored in 4
+     * consecutive bytes. The memory layout is BGRA.
+     **/
+    OrthancPluginPixelFormat_BGRA32 = 10,
 
     _OrthancPluginPixelFormat_INTERNAL = 0x7fffffff
   } OrthancPluginPixelFormat;
