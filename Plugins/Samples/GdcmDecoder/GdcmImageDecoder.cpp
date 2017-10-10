@@ -203,7 +203,7 @@ namespace OrthancPlugins
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 3, 1)
           return OrthancPluginPixelFormat_RGB48;
 #else
-          throw std::runtime_error("RGB48 pixel format is only supported by Orthanc >= 1.3.1");
+          throw std::runtime_error("RGB48 pixel format is only supported if compiled against Orthanc SDK >= 1.3.1");
 #endif
           
         default:
