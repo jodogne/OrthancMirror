@@ -13,6 +13,11 @@ REST API
 * New argument "ignore-length" to force the inclusion of too long tags in JSON
 * New argument "/.../media?extended" to include additional type-3 tags in DICOMDIR
 
+Plugins
+-------
+
+* New pixel formats exposed in SDK: BGRA32, Float32, Grayscale32, RGB48
+
 Maintenance
 -----------
 

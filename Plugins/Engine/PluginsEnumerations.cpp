@@ -139,14 +139,26 @@ namespace Orthanc
     {
       switch (format)
       {
+        case PixelFormat_BGRA32:
+          return OrthancPluginPixelFormat_BGRA32;
+
+        case PixelFormat_Float32:
+          return OrthancPluginPixelFormat_Float32;
+
         case PixelFormat_Grayscale16:
           return OrthancPluginPixelFormat_Grayscale16;
+
+        case PixelFormat_Grayscale32:
+          return OrthancPluginPixelFormat_Grayscale32;
 
         case PixelFormat_Grayscale8:
           return OrthancPluginPixelFormat_Grayscale8;
 
         case PixelFormat_RGB24:
           return OrthancPluginPixelFormat_RGB24;
+
+        case PixelFormat_RGB48:
+          return OrthancPluginPixelFormat_RGB48;
 
         case PixelFormat_RGBA32:
           return OrthancPluginPixelFormat_RGBA32;
@@ -164,14 +176,26 @@ namespace Orthanc
     {
       switch (format)
       {
+        case OrthancPluginPixelFormat_BGRA32:
+          return PixelFormat_BGRA32;
+
+        case OrthancPluginPixelFormat_Float32:
+          return PixelFormat_Float32;
+
         case OrthancPluginPixelFormat_Grayscale16:
           return PixelFormat_Grayscale16;
+
+        case OrthancPluginPixelFormat_Grayscale32:
+          return PixelFormat_Grayscale32;
 
         case OrthancPluginPixelFormat_Grayscale8:
           return PixelFormat_Grayscale8;
 
         case OrthancPluginPixelFormat_RGB24:
           return PixelFormat_RGB24;
+
+        case OrthancPluginPixelFormat_RGB48:
+          return PixelFormat_RGB48;
 
         case OrthancPluginPixelFormat_RGBA32:
           return PixelFormat_RGBA32;

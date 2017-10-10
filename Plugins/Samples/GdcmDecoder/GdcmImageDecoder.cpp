@@ -199,6 +199,13 @@ namespace OrthancPlugins
         case gdcm::PixelFormat::UINT8:
           return OrthancPluginPixelFormat_RGB24;
 
+        case gdcm::PixelFormat::UINT16:
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 3, 1)
+          return OrthancPluginPixelFormat_RGB48;
+#else
+          throw std::runtime_error("RGB48 pixel format is only supported by Orthanc >= 1.3.1");
+#endif
+          
         default:
           break;
       }      
