@@ -48,9 +48,10 @@ else()
       JSONCPP_VERSION_MAJOR ${JSONCPP_VERSION_MAJOR1})
     message("JsonCpp major version: ${JSONCPP_VERSION_MAJOR}")
 
-    if (CMAKE_COMPILER_IS_GNUCXX AND 
+    if ((CMAKE_COMPILER_IS_GNUCXX OR
+          "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") AND 
         JSONCPP_VERSION_MAJOR GREATER 0)
-      message("Switching to C++11 standard, as version of JsonCpp is >= 1.0.0")
+      message("Switching to C++11 standard in gcc/clang, as version of JsonCpp is >= 1.0.0")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-deprecated-declarations")
     endif()
   else()
