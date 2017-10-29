@@ -684,8 +684,11 @@ namespace Orthanc
     if (syntax == EXS_JPEGLSLossless ||
         syntax == EXS_JPEGLSLossy)
     {
+      // The (2, OFTrue) are the default parameters as found in DCMTK 3.6.2
+      // http://support.dcmtk.org/docs/classDJLSRepresentationParameter.html
+      DJLSRepresentationParameter representationParameter(2, OFTrue);
+
       DJLSCodecParameter parameters;
-      DJLSRepresentationParameter representationParameter;
       std::auto_ptr<DJLSDecoderBase> decoder;
 
       switch (syntax)
