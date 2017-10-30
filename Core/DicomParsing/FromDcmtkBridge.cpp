@@ -1906,6 +1906,7 @@ namespace Orthanc
     result->transferInit();
     if (!result->read(is).good())
     {
+      LOG(ERROR) << "Cannot parse an invalid DICOM file (size: " << size << " bytes)";
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
