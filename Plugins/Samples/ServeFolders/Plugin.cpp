@@ -67,6 +67,7 @@ static void RegisterDefaultExtensions()
   extensions_["pexe"] = "application/x-pnacl";
   extensions_["png"]  = "image/png";
   extensions_["svg"]  = "image/svg+xml";
+  extensions_["wasm"] = "application/wasm";
   extensions_["woff"] = "application/x-font-woff";
   extensions_["xml"]  = "application/xml";
 }
