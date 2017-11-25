@@ -454,7 +454,7 @@ namespace Orthanc
     // Whatever the manufacturer, remove the GenericGroupLength tags
     // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.2.html
     // https://bitbucket.org/sjodogne/orthanc/issues/31/
-    if (tag.GetGroup() == 0x0000)
+    if (tag.GetElement() == 0x0000)
     {
       return false;
     }
