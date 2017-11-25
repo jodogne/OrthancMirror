@@ -27,6 +27,7 @@ Maintenance
 * Fix issue 64 (OpenBSD support)
 * Fix static compilation of DCMTK 3.6.2 on Fedora
 * Upgrade to Boost 1.65.1 in static builds
+* Fix issue 31 for good (create new modality types for Philips ADW, GE Xeleris, GE AWServer)
 
 
 Version 1.3.0 (2017-07-19)
