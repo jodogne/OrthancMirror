@@ -21,6 +21,8 @@ Plugins
 Maintenance
 -----------
 
+* Creation of ./Resources/CMake/OrthancFramework*.cmake to reuse the Orthanc
+  C++ framework in other projects
 * New security-related options: "DicomAlwaysAllowEcho"
 * Use "GBK" (frequently used in China) as an alias for "GB18030"
 * Experimental support of actively maintained Civetweb to replace Mongoose 3.8
