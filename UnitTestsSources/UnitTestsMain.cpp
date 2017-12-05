@@ -461,6 +461,20 @@ TEST(Toolbox, UrlDecode)
 }
 
 
+TEST(Toolbox, IsAsciiString)
+{
+  std::string s = "Hello 12 /";
+  ASSERT_EQ(10u, s.size());
+  ASSERT_TRUE(Toolbox::IsAsciiString(s));
+  ASSERT_TRUE(Toolbox::IsAsciiString(s.c_str(), 10));
+  ASSERT_FALSE(Toolbox::IsAsciiString(s.c_str(), 11));  // Taking the trailing hidden '\0'
+
+  s[2] = '\0';
+  ASSERT_EQ(10u, s.size());
+  ASSERT_FALSE(Toolbox::IsAsciiString(s));
+}
+
+
 #if defined(__linux__)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
