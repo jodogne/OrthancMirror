@@ -792,14 +792,37 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
 
-    Json::Value result = Json::arrayValue;
-    for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = peers.begin(); it != peers.end(); ++it)
+    if (call.HasArgument("expand"))
     {
-      result.append(*it);
-    }
+      Json::Value result = Json::objectValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = peers.begin(); it != peers.end(); ++it)
+      {
+        WebServiceParameters peer;
+        Configuration::GetOrthancPeer(peer, *it);
 
-    call.GetOutput().AnswerJson(result);
+        Json::Value jsonPeer = Json::objectValue;
+        // only return the minimum information to identify the destination, do not include "security" information like passwords
+        jsonPeer["Url"] = peer.GetUrl();
+        if (!peer.GetUsername().empty())
+        {
+          jsonPeer["Username"] = peer.GetUsername();
+        }
+        result[*it] = jsonPeer;
+      }
+      call.GetOutput().AnswerJson(result);
+    }
+    else // if expand is not present, keep backward compatibility and return an array of peers
+    {
+      Json::Value result = Json::arrayValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = peers.begin(); it != peers.end(); ++it)
+      {
+        result.append(*it);
+      }
+
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
   static void ListPeerOperations(RestApiGetCall& call)
@@ -872,14 +895,29 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
 
-    Json::Value result = Json::arrayValue;
-    for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = modalities.begin(); it != modalities.end(); ++it)
+    if (call.HasArgument("expand"))
     {
-      result.append(*it);
-    }
+      Json::Value result = Json::objectValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = modalities.begin(); it != modalities.end(); ++it)
+      {
+        Json::Value modality;
+        Configuration::GetModalityUsingSymbolicName(*it).ToJson(modality);
 
-    call.GetOutput().AnswerJson(result);
+        result[*it] = modality;
+      }
+      call.GetOutput().AnswerJson(result);
+    }
+    else // if expand is not present, keep backward compatibility and return an array of modalities ids
+    {
+      Json::Value result = Json::arrayValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = modalities.begin(); it != modalities.end(); ++it)
+      {
+        result.append(*it);
+      }
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
