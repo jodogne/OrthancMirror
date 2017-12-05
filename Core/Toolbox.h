@@ -152,6 +152,8 @@ namespace Orthanc
     bool IsAsciiString(const void* data,
                        size_t size);
 
+    bool IsAsciiString(const std::string& s);
+
     std::string ConvertToAscii(const std::string& source);
 
     std::string StripSpaces(const std::string& source);

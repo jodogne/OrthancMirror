@@ -534,7 +534,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < size; i++, p++)
     {
-      if (*p > 127 || (*p != 0 && iscntrl(*p)))
+      if (*p > 127 || *p == 0 || iscntrl(*p))
       {
         return false;
       }
@@ -543,6 +543,12 @@ namespace Orthanc
     return true;
   }
 
+
+  bool Toolbox::IsAsciiString(const std::string& s)
+  {
+    return IsAsciiString(s.c_str(), s.size());
+  }
+  
 
   std::string Toolbox::ConvertToAscii(const std::string& source)
   {
