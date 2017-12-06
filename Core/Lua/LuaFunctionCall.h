@@ -50,7 +50,13 @@ namespace Orthanc
 
     void CheckAlreadyExecuted();
 
+  protected:
     void ExecuteInternal(int numOutputs);
+
+    lua_State* GetState()
+    {
+      return context_.lua_;
+    }
 
   public:
     LuaFunctionCall(LuaContext& context,
