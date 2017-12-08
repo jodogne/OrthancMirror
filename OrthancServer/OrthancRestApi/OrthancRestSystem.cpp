@@ -54,6 +54,7 @@ namespace Orthanc
   {
     Json::Value result = Json::objectValue;
 
+    result["ApiVersion"] = ORTHANC_API_VERSION;
     result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
     result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
     result["DicomPort"] = Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242);

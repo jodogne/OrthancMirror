@@ -4,6 +4,7 @@ Pending changes in the mainline
 REST API
 --------
 
+* "/system" URI returns the version of the Orthanc REST API
 * added ?expand argument to /peers and /modalities routes
 
 
