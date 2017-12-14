@@ -5,7 +5,9 @@ REST API
 --------
 
 * "/system" URI returns the version of the Orthanc REST API
-* added ?expand argument to /peers and /modalities routes
+* Added "?expand" GET argument to "/peers" and "/modalities" routes
+* New URI: "/tools/create-media-extended" to generate a DICOMDIR
+  archive from several resources, including additional type-3 tags
 
 Maintenance
 -----------
