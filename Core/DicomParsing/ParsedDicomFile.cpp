@@ -39,38 +39,38 @@
   Program: GDCM (Grassroots DICOM). A DICOM library
   Module:  http://gdcm.sourceforge.net/Copyright.html
 
-Copyright (c) 2006-2011 Mathieu Malaterre
-Copyright (c) 1993-2005 CREATIS
-(CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
-All rights reserved.
+  Copyright (c) 2006-2011 Mathieu Malaterre
+  Copyright (c) 1993-2005 CREATIS
+  (CREATIS = Centre de Recherche et d'Applications en Traitement de l'Image)
+  All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
 
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+  * Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
 
- * Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+  * Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
 
- * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
-   contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
-   endorse or promote products derived from this software without specific
-   prior written permission.
+  * Neither name of Mathieu Malaterre, or CREATIS, nor the names of any
+  contributors (CNRS, INSERM, UCB, Universite Lyon I), may be used to
+  endorse or promote products derived from this software without specific
+  prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
+  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 #include "../PrecompiledHeaders.h"
@@ -911,36 +911,59 @@ namespace Orthanc
   void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
                                            Encoding defaultEncoding)
   {
-    pimpl_->file_.reset(new DcmFileFormat);
-
-    const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
-    if (tmp != NULL)
+    try
     {
-      Encoding encoding;
-      if (tmp->IsNull() ||
-          tmp->IsBinary() ||
-          !GetDicomEncoding(encoding, tmp->GetContent().c_str()))
+      pimpl_->file_.reset(new DcmFileFormat);
+
+      const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+
+      if (tmp == NULL)
       {
+        SetEncoding(defaultEncoding);
+      }
+      else if (tmp->IsBinary())
+      {
+        LOG(ERROR) << "Invalid binary string in the SpecificCharacterSet (0008,0005) tag";
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else if (tmp->IsNull() ||
+               tmp->GetContent().empty())
+      {
+        SetEncoding(defaultEncoding);
       }
       else
       {
-        SetEncoding(encoding);
-      }
-    }
-    else
-    {
-      SetEncoding(defaultEncoding);
-    }
+        Encoding encoding;
 
-    for (DicomMap::Map::const_iterator 
-           it = source.map_.begin(); it != source.map_.end(); ++it)
-    {
-      if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
-          !it->second->IsNull())
-      {
-        ReplacePlainString(it->first, it->second->GetContent());
+        if (GetDicomEncoding(encoding, tmp->GetContent().c_str()))
+        {
+          SetEncoding(encoding);
+        }
+        else
+        {
+          LOG(ERROR) << "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \""
+                     << tmp->GetContent() << "\"";        
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
       }
+
+      for (DicomMap::Map::const_iterator 
+             it = source.map_.begin(); it != source.map_.end(); ++it)
+      {
+        if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
+            !it->second->IsNull())
+        {
+          ReplacePlainString(it->first, it->second->GetContent());
+        }
+      }
+    }
+    catch (OrthancException&)
+    {
+      // Manually delete the PImpl to avoid a memory leak due to
+      // throwing the exception in the constructor
+      delete pimpl_;
+      pimpl_ = NULL;
+      throw;
     }
   }
 
@@ -1070,7 +1093,7 @@ namespace Orthanc
   }
 
 
-#if (ORTHANC_ENABLE_JPEG == 1 &&  \
+#if (ORTHANC_ENABLE_JPEG == 1 &&                \
      ORTHANC_ENABLE_PNG == 1)
   void ParsedDicomFile::EmbedImage(const std::string& mime,
                                    const std::string& content)
@@ -1377,8 +1400,8 @@ namespace Orthanc
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
                                                    DicomFromJsonFlags flags)
   {
-	const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
-	const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
+    const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
+    const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
     result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, GetDefaultDicomEncoding()));
