@@ -716,7 +716,8 @@ namespace Orthanc
     }
   }  
 
-
+  
+  template <bool Extended>
   static void CreateBatchMedia(RestApiPostCall& call)
   {
     ArchiveIndex archive(ResourceType_Patient);  // root
@@ -727,7 +728,7 @@ namespace Orthanc
                                 OrthancRestApi::GetContext(call),
                                 archive,
                                 "Archive.zip",
-                                false);
+                                Extended);
     }
   }  
 
@@ -778,6 +779,7 @@ namespace Orthanc
     Register("/series/{id}/media", CreateMedia);
 
     Register("/tools/create-archive", CreateBatchArchive);
-    Register("/tools/create-media", CreateBatchMedia);
+    Register("/tools/create-media", CreateBatchMedia<false>);
+    Register("/tools/create-media-extended", CreateBatchMedia<true>);
   }
 }
