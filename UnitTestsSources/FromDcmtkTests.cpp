@@ -1250,3 +1250,56 @@ TEST(Toolbox, CaseWithAccents)
 {
   ASSERT_EQ(toUpperResult, Toolbox::ToUpperCaseWithAccents(toUpperSource));
 }
+
+
+
+TEST(ParsedDicomFile, InvalidCharacterSets)
+{
+  {
+    // No encoding provided, fallback to default encoding
+    DicomMap m;
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ASSERT_EQ(Encoding_Latin3, d.GetEncoding());
+  }
+  
+  {
+    // Valid encoding, "ISO_IR 13" is Japanese
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 13", false);
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ASSERT_EQ(Encoding_Japanese, d.GetEncoding());
+  }
+  
+  {
+    // Invalid value for an encoding ("nope" is not in the DICOM standard)
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+
+    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3), OrthancException);
+  }
+  
+  {
+    // Invalid encoding, as provided as a binary string
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 13", true);
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+
+    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3), OrthancException);
+  }
+  
+  {
+    // Encoding provided as an empty string, fallback to default encoding
+    // In Orthanc <= 1.3.1, this test was throwing an exception
+    DicomMap m;
+    m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "", false);
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ASSERT_EQ(Encoding_Latin3, d.GetEncoding());
+  }
+}
