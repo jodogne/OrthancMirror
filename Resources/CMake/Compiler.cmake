@@ -1,6 +1,7 @@
 # This file sets all the compiler-related flags
 
-if (CMAKE_CROSSCOMPILING)
+if (CMAKE_CROSSCOMPILING OR
+    "${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # Cross-compilation necessarily implies standalone and static build
   SET(STATIC_BUILD ON)
   SET(STANDALONE_BUILD ON)
@@ -184,13 +185,6 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 
 else()
   message(FATAL_ERROR "Support your platform here")
-endif()
-
-
-if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -I${LSB_PATH}/include")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -nostdinc++ -I${LSB_PATH}/include -I${LSB_PATH}/include/c++ -I${LSB_PATH}/include/c++/backward -fpermissive")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --lsb-target-version=${LSB_TARGET_VERSION} -L${LSB_LIBPATH}")
 endif()
 
 

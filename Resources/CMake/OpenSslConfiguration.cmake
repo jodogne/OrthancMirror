@@ -203,17 +203,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       ${OPENSSL_SOURCES}
       PROPERTIES COMPILE_DEFINITIONS
       "OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
-
-  elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -N ui_openssl.c -i ${ORTHANC_ROOT}/Resources/Patches/openssl-lsb.diff
-      WORKING_DIRECTORY ${OPENSSL_SOURCES_DIR}/crypto/ui
-      RESULT_VARIABLE Failure
-      )
-
-    if (Failure AND FirstRun)
-      message(FATAL_ERROR "Error while patching a file")
-    endif()
   endif()
 
   source_group(ThirdParty\\OpenSSL REGULAR_EXPRESSION ${OPENSSL_SOURCES_DIR}/.*)
