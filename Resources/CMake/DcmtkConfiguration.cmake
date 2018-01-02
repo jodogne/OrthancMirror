@@ -9,8 +9,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
     SET(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.0.zip")
     SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
-    SET(DCMTK_PATCH_SPEED "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-speed.patch")
-    SET(DCMTK_PATCH_MINGW64 "${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-mingw64.patch")
   else()
     SET(DCMTK_VERSION_NUMBER 362)
     SET(DCMTK_PACKAGE_VERSION "3.6.2")
@@ -99,22 +97,27 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     endif()
   ENDIF()
   
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
+    SET(HAVE_PROTOTYPE_STD__ISINF 1 CACHE INTERNAL "")
+    SET(HAVE_PROTOTYPE_STD__ISNAN 1 CACHE INTERNAL "")
+    SET(HAVE_SYS_GETTID 0 CACHE INTERNAL "")
+
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (FirstRun AND Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+  endif()
+
   SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
   include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
   include(${DCMTK_SOURCES_DIR}/CMake/GenerateDCMTKConfigure.cmake)
-
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    set(HAVE_SSTREAM 1)
-    set(HAVE_PROTOTYPE_BZERO 1)
-    set(HAVE_PROTOTYPE_GETHOSTNAME 1)
-    set(HAVE_PROTOTYPE_GETSOCKOPT 1)
-    set(HAVE_PROTOTYPE_SETSOCKOPT 1)
-    set(HAVE_PROTOTYPE_CONNECT 1)
-    set(HAVE_PROTOTYPE_BIND 1)
-    set(HAVE_PROTOTYPE_ACCEPT 1)
-    set(HAVE_PROTOTYPE_SETSOCKNAME 1)
-    set(HAVE_PROTOTYPE_GETSOCKNAME 1)
-  endif()
 
   set(DCMTK_PACKAGE_VERSION_SUFFIX "")
   set(DCMTK_PACKAGE_VERSION_NUMBER ${DCMTK_VERSION_NUMBER})
@@ -223,7 +226,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
         USE_DCMTK_360)
       # This is a patch for MinGW64
       execute_process(
-        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i ${DCMTK_PATCH_MINGW64}
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-mingw64.patch
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         RESULT_VARIABLE Failure
         )
