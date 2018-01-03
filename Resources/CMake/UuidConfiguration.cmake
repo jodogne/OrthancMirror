@@ -11,7 +11,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       ${E2FSPROGS_SOURCES_DIR}/lib
       )
 
-    set(E2FSPROGS_SOURCES
+    set(UUID_SOURCES
       #${E2FSPROGS_SOURCES_DIR}/lib/uuid/tst_uuid.c
       #${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_time.c
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/clear.c
@@ -25,6 +25,8 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/unparse.c
       )
 
+    file(WRITE ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h "")
+    
     configure_file(
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h.in
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h
@@ -33,7 +35,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     file(WRITE
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
       "#include <stdint.h>\n")
-    
+
     #configure_file(
     #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h.in
     #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
