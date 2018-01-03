@@ -195,6 +195,16 @@ if (DEFINED ENABLE_PROFILING AND ENABLE_PROFILING)
 endif()
 
 
+if (CMAKE_COMPILER_IS_GNUCXX)
+  # "When creating a static library using binutils (ar) and there
+  # exist a duplicate object name (e.g. a/Foo.cpp.o, b/Foo.cpp.o), the
+  # resulting static library can end up having only one of the
+  # duplicate objects. [...] This bug only happens if there are many
+  # objects." https://cmake.org/Bug/view.php?id=14874
+  set(CMAKE_CXX_ARCHIVE_APPEND "<CMAKE_AR> <LINK_FLAGS> q <TARGET> <OBJECTS>")
+endif()
+
+
 if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)
 else()
