@@ -29,11 +29,15 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h.in
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h
       )
-    
-    configure_file(
-      ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h.in
+
+    file(WRITE
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
-      )
+      "#include <stdint.h>\n")
+    
+    #configure_file(
+    #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h.in
+    #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
+    #  )
     
     source_group(ThirdParty\\uuid REGULAR_EXPRESSION ${E2FSPROGS_SOURCES_DIR}/.*)
 
