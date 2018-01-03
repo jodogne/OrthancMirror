@@ -47,7 +47,11 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
   if (MSVC) # VS2012 does not support tuples correctly yet
     add_definitions(/D _VARIADIC_MAX=10)
   endif()
-
+  
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    add_definitions(-DGTEST_HAS_CLONE=0)
+  endif()
+  
   source_group(ThirdParty\\GoogleTest REGULAR_EXPRESSION ${GOOGLE_TEST_SOURCES_DIR}/.*)
 
 else()

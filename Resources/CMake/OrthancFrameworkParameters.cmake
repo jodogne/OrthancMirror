@@ -50,6 +50,7 @@ set(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
 set(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
 set(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
 set(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
+set(USE_SYSTEM_UUID ON CACHE BOOL "Use the system version of the uuid library from e2fsprogs")
 set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Parameters specific to DCMTK

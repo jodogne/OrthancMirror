@@ -88,7 +88,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
   # Remove the "-rdynamic" option
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-  link_libraries(uuid pthread)
+  link_libraries(pthread)
 
   if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
     link_libraries(rt)
@@ -116,11 +116,6 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
       -D_LARGEFILE64_SOURCE=1 
       -D_FILE_OFFSET_BITS=64
       )
-  endif()
-
-  CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_H)
-  if (NOT HAVE_UUID_H)
-    message(FATAL_ERROR "Please install the uuid-dev package (or e2fsprogs if OpenBSD)")
   endif()
 
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
@@ -174,11 +169,6 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     -D_XOPEN_SOURCE=1
     )
   link_libraries(iconv)
-
-  CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_H)
-  if (NOT HAVE_UUID_H)
-    message(FATAL_ERROR "Please install the uuid-dev package")
-  endif()
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   message("Building using Emscripten (for WebAssembly or asm.js targets)")
