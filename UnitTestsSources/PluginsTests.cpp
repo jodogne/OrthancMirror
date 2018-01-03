@@ -58,6 +58,16 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("GetVersionExW"));
   ASSERT_FALSE(l.HasFunction("world"));
 
+#elif defined(__LSB_VERSION__)
+  // For Linux Standard Base, we use a low-level shared library coming
+  // with glibc:
+  // http://www.linuxfromscratch.org/lfs/view/6.5/chapter06/glibc.html
+  SharedLibrary l("libSegFault.so");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("_init") != NULL);
+  ASSERT_TRUE(l.HasFunction("_init"));
+  ASSERT_FALSE(l.HasFunction("world"));
+
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
   SharedLibrary l("libdl.so");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
