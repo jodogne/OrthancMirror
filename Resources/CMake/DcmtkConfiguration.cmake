@@ -105,7 +105,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_SOURCE_DIR}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
+      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
