@@ -47,6 +47,12 @@ if (BOOST_STATIC)
   set(BOOST_URL "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
+  if (IS_DIRECTORY "${BOOST_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
   DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
 
 
