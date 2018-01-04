@@ -200,7 +200,12 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   # exist a duplicate object name (e.g. a/Foo.cpp.o, b/Foo.cpp.o), the
   # resulting static library can end up having only one of the
   # duplicate objects. [...] This bug only happens if there are many
-  # objects." https://cmake.org/Bug/view.php?id=14874
+  # objects." The trick consists in replacing the "r" argument
+  # ("replace") provided to "ar" (as used in CMake < 3.1) by the "q"
+  # argument ("quick append"). This is because of the fact that CMake
+  # will invoke "ar" several times with several batches of ".o"
+  # objects, and using "r" would overwrite symbols defined in
+  # preceding batches. https://cmake.org/Bug/view.php?id=14874
   set(CMAKE_CXX_ARCHIVE_APPEND "<CMAKE_AR> <LINK_FLAGS> q <TARGET> <OBJECTS>")
 endif()
 
