@@ -59,8 +59,6 @@
 #include "Toolbox.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
-#  include "DicomParsing/ParsedDicomFile.h"
-
 // Headers from DCMTK used in Orthanc headers 
 #  include <dcmtk/dcmdata/dcdatset.h>
 #  include <dcmtk/dcmdata/dcfilefo.h>
