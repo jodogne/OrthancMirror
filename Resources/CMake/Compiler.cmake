@@ -99,8 +99,9 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     link_libraries(dl)
   endif()
 
-  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
-    # The "--as-needed" linker flag is not available on FreeBSD
+  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" AND
+      NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    # The "--as-needed" linker flag is not available on FreeBSD and OpenBSD
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--as-needed")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--as-needed")
