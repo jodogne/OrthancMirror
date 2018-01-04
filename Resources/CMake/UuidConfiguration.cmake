@@ -39,6 +39,16 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     check_include_file("sys/un.h"       HAVE_SYS_UN_H)
     check_include_file("unistd.h"       HAVE_UNISTD_H)
 
+    If (NOT HAVE_NET_IF_H)  # This is the case of OpenBSD
+      unset(HAVE_NET_IF_H CACHE)
+      check_include_files("sys/socket.h;net/if.h" HAVE_NET_IF_H)
+    endif()
+
+    if (NOT HAVE_NETINET_TCP_H)  # This is the case of OpenBSD
+      unset(HAVE_NETINET_TCP_H CACHE)
+      check_include_files("sys/socket.h;netinet/tcp.h" HAVE_NETINET_TCP_H)
+    endif()
+
     file(WRITE ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h.cmake "
 #cmakedefine HAVE_NET_IF_H \@HAVE_NET_IF_H\@
 #cmakedefine HAVE_NET_IF_DL_H \@HAVE_NET_IF_DL_H\@
