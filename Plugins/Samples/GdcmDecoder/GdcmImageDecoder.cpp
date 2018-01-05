@@ -114,6 +114,7 @@ namespace OrthancPlugins
         {
           if (image.GetPixelFormat().GetSamplesPerPixel() == 3 &&
               image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::RGB &&
+              image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::YBR_FULL &&
               (image.GetTransferSyntax() != gdcm::TransferSyntax::JPEG2000Lossless ||
                image.GetPhotometricInterpretation() != gdcm::PhotometricInterpretation::YBR_RCT))
           {
@@ -192,6 +193,7 @@ namespace OrthancPlugins
     }
     else if (image.GetPixelFormat().GetSamplesPerPixel() == 3 &&
              (image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::RGB ||
+              image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::YBR_FULL ||
               image.GetPhotometricInterpretation() == gdcm::PhotometricInterpretation::YBR_RCT))
     {
       switch (image.GetPixelFormat())
@@ -257,6 +259,85 @@ namespace OrthancPlugins
     }
   }
 
+  static void ConvertYbrToRgb(uint8_t rgb[3],
+                              const uint8_t ybr[3])
+  {
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
+    // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
+    
+    const float Y  = ybr[0];
+    const float Cb = ybr[1];
+    const float Cr = ybr[2];
+
+    const float result[3] = {
+      Y                             + 1.402f    * (Cr - 128.0f),
+      Y - 0.344136f * (Cb - 128.0f) - 0.714136f * (Cr - 128.0f),
+      Y + 1.772f    * (Cb - 128.0f)
+    };
+
+    for (uint8_t i = 0; i < 3 ; i++)
+    {
+      if (result[i] < 0)
+      {
+        rgb[i] = 0;
+      }
+      else if (result[i] > 255)
+      {
+        rgb[i] = 255;
+      }
+      else
+      {
+        rgb[i] = static_cast<uint8_t>(result[i]);
+      }
+    }    
+  }
+
+  
+  static void FixPhotometricInterpretation(OrthancImageWrapper& image,
+                                           gdcm::PhotometricInterpretation interpretation)
+  {
+    switch (interpretation)
+    {
+      case gdcm::PhotometricInterpretation::RGB:
+        return;
+
+      case gdcm::PhotometricInterpretation::YBR_FULL:
+      {
+        // Fix for Osimis issue WVB-319: Some images are not loading in US_MF
+
+        uint32_t width = image.GetWidth();
+        uint32_t height = image.GetHeight();
+        uint32_t pitch = image.GetPitch();
+        uint8_t* buffer = reinterpret_cast<uint8_t*>(image.GetBuffer());
+        
+        if (image.GetFormat() != OrthancPluginPixelFormat_RGB24 ||
+            pitch < 3 * width)
+        {
+          throw std::runtime_error("Internal error");
+        }
+
+        for (uint32_t y = 0; y < height; y++)
+        {
+          uint8_t* p = buffer + y * pitch;
+          for (uint32_t x = 0; x < width; x++, p += 3)
+          {
+            const uint8_t ybr[3] = { p[0], p[1], p[2] };
+            uint8_t rgb[3];
+            ConvertYbrToRgb(rgb, ybr);
+            p[0] = rgb[0];
+            p[1] = rgb[1];
+            p[2] = rgb[2];
+          }
+        }
+
+        return;
+      }
+
+      default:
+        throw std::runtime_error("Unsupported output photometric interpretation");
+    }    
+  }
+
 
   OrthancPluginImage* GdcmImageDecoder::Decode(OrthancPluginContext* context,
                                                unsigned int frameIndex) const
@@ -310,7 +391,9 @@ namespace OrthancPlugins
         b += targetPitch;
       }
     }
-
+    
+    FixPhotometricInterpretation(target, pimpl_->GetImage().GetPhotometricInterpretation());
+                                 
     return target.Release();
   }
 }
