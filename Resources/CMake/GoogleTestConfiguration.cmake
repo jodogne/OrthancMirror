@@ -56,12 +56,13 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
 
 else()
   include(FindGTest)
-  if (NOT GOOGLE_TEST_FOUND)
+  if (NOT GTEST_FOUND)
     message(FATAL_ERROR "Unable to find GoogleTest")
   endif()
 
-  include_directories(${GOOGLE_TEST_INCLUDE_DIRS})
+  include_directories(${GTEST_INCLUDE_DIRS})
 
-  # The variable GOOGLE_TEST_LIBRARIES contains the shared library of
-  # Google Test
+  # The variable GTEST_LIBRARIES contains the shared library of
+  # Google Test, create an alias for more uniformity
+  set(GOOGLE_TEST_LIBRARIES ${GTEST_LIBRARIES})
 endif()
