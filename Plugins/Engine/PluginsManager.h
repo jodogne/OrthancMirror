@@ -35,7 +35,6 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
-#include "SharedLibrary.h"
 #include "IPluginServiceProvider.h"
 
 #include <map>

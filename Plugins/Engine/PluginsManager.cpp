@@ -38,10 +38,10 @@
 #error The plugin support is disabled
 #endif
 
-
-#include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
+#include "../../Core/Toolbox.h"
 
 #include <cassert>
 #include <memory>
