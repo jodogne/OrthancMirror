@@ -33,15 +33,20 @@
 
 #pragma once
 
-#if ORTHANC_ENABLE_PLUGINS == 1
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
 
-#include "../../Core/OrthancException.h"
-
-#include <boost/noncopyable.hpp>
+#if ORTHANC_SANDBOXED == 1
+#  error The namespace SystemToolbox cannot be used in sandboxed environments
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
+
+#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -75,5 +80,3 @@ namespace Orthanc
     FunctionPointer GetFunction(const std::string& name);
   };
 }
-
-#endif
