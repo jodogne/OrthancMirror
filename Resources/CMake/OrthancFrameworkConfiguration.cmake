@@ -446,6 +446,7 @@ else()
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
+    ${ORTHANC_ROOT}/Core/SharedLibrary.cpp
     ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
     ${ORTHANC_ROOT}/Core/TemporaryFile.cpp
     )

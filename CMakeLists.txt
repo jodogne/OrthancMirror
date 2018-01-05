@@ -124,7 +124,6 @@ if (ENABLE_PLUGINS)
     Plugins/Engine/PluginsEnumerations.cpp
     Plugins/Engine/PluginsErrorDictionary.cpp
     Plugins/Engine/PluginsManager.cpp
-    Plugins/Engine/SharedLibrary.cpp
     )
 
   list(APPEND ORTHANC_UNIT_TESTS_SOURCES

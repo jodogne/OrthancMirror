@@ -31,16 +31,11 @@
  **/
 
 
-#include "../../OrthancServer/PrecompiledHeadersServer.h"
+#include "PrecompiledHeaders.h"
 #include "SharedLibrary.h"
 
-#if ORTHANC_ENABLE_PLUGINS != 1
-#error The plugin support is disabled
-#endif
-
-
-#include "../../Core/Logging.h"
-#include "../../Core/Toolbox.h"
+#include "Logging.h"
+#include "OrthancException.h"
 
 #include <boost/filesystem.hpp>
 

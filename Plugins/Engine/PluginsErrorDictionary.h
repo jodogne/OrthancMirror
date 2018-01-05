@@ -37,7 +37,7 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../Core/OrthancException.h"
-#include "SharedLibrary.h"
+#include "../../Core/SharedLibrary.h"
 
 #include <map>
 #include <string>

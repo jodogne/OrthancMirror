@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../../Core/OrthancException.h"
 #include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;

@@ -35,10 +35,10 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
+#include "../../Core/SharedLibrary.h"
 #include "../../OrthancServer/IDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
-#include "SharedLibrary.h"
 
 namespace Orthanc
 {
