@@ -18,6 +18,8 @@ General
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
+* Option to overwrite and reindex on duplicated instance identifier
+  (i.e. replace older DICOM instance by new one on identical SOPInstanceUID)
 
 
 ============
