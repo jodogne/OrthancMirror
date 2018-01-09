@@ -31,6 +31,13 @@ Dependencies
   http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/building_boost_locale.html
 
 
+=============
+Documentation
+=============
+
+* Document REST API with Swagger/OpenAPI
+
+
 ========
 REST API
 ========
@@ -126,11 +133,6 @@ Lua
 ===========
 Performance
 ===========
-
-
-============
-Orthanc Book
-============
 
 
 ================
