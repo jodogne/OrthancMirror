@@ -333,8 +333,11 @@ endif()
 #####################################################################
 
 include(${CMAKE_CURRENT_LIST_DIR}/JsonCppConfiguration.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/ZlibConfiguration.cmake)
+
+if (NOT ORTHANC_SANDBOXED)
+  include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
+endif()
 
 # We put Boost as the last dependency, as it is the heaviest to
 # configure, which allows to quickly spot problems when configuring
