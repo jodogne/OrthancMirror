@@ -11,8 +11,19 @@ else()
     list(APPEND ORTHANC_BOOST_COMPONENTS locale)
   endif()
 
-  find_package(Boost
-    COMPONENTS filesystem thread system date_time regex ${ORTHANC_BOOST_COMPONENTS})
+  list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread system date_time regex)
+  foreach (item ${ORTHANC_BOOST_COMPONENTS})
+    find_package(Boost QUIET COMPONENTS "${item}")
+    string(TOUPPER ${item} tmp)
+
+    if (Boost_${tmp}_FOUND)
+      set(tmp2 "found")
+    else()
+      set(tmp2 "missing")
+    endif()
+
+    message("Looking for Boost component: ${item} - ${tmp2}")
+  endforeach()
 
   if (NOT Boost_FOUND)
     message(FATAL_ERROR "Unable to locate Boost on this system")
