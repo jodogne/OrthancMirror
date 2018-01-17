@@ -53,7 +53,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Unable to delete instance " << *it << " in a Lua script: " << e.What();
+        LOG(ERROR) << "Unable to delete instance " << *it << ": " << e.What();
       }
     }
 

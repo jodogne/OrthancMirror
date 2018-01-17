@@ -84,7 +84,7 @@ namespace Orthanc
       {
         // Ignore transmission errors (e.g. if the remote modality is
         // powered off)
-        LOG(ERROR) << "Unable to forward to a modality in a Lua script (instance " 
+        LOG(ERROR) << "Unable to forward to a modality in (instance "
                    << *it << "): " << e.What();
 
         if (!ignoreExceptions_)

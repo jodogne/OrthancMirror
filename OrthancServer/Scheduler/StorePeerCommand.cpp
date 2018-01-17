@@ -77,7 +77,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Unable to forward to an Orthanc peer in a Lua script (instance " 
+        LOG(ERROR) << "Unable to forward to an Orthanc peer in (instance "
                    << *it << ", peer " << peer_.GetUrl() << "): " << e.What();
 
         if (!ignoreExceptions_)
