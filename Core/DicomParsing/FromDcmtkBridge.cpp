@@ -1074,6 +1074,7 @@ namespace Orthanc
     }
     else
     {
+      LOG(INFO) << "Unknown DICOM tag: \"" << name << "\"";
       throw OrthancException(ErrorCode_UnknownDicomTag);
     }
 #endif
