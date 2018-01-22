@@ -180,10 +180,6 @@ endif()
 
 
 if (DEFINED ENABLE_PROFILING AND ENABLE_PROFILING)
-  if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(WARNING "Enabling profiling on a non-debug build will not produce full information")
-  endif()
-
   if (CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
