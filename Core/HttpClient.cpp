@@ -84,7 +84,12 @@ extern "C"
 #endif
     static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
   {
+#if ORTHANC_ENABLE_SSL == 1
     return GetHttpStatus(curl_easy_perform(curl), curl, status);
+#else
+    LOG(ERROR) << "Orthanc was compiled without SSL support, cannot make HTTPS request";
+    throw OrthancException(ErrorCode_InternalError);
+#endif
   }
 }
 
