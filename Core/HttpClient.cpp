@@ -88,7 +88,7 @@ extern "C"
     return GetHttpStatus(curl_easy_perform(curl), curl, status);
 #else
     LOG(ERROR) << "Orthanc was compiled without SSL support, cannot make HTTPS request";
-    throw OrthancException(ErrorCode_InternalError);
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
 #endif
   }
 }
