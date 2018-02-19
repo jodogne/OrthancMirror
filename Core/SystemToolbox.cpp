@@ -561,17 +561,30 @@ namespace Orthanc
   }
 
 
-  std::string SystemToolbox::GetNowIsoString()
+  static boost::posix_time::ptime GetNow(bool utc)
   {
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    return boost::posix_time::to_iso_string(now);
+    if (utc)
+    {
+      return boost::posix_time::second_clock::universal_time();
+    }
+    else
+    {
+      return boost::posix_time::second_clock::local_time();
+    }
+  }
+
+
+  std::string SystemToolbox::GetNowIsoString(bool utc)
+  {
+    return boost::posix_time::to_iso_string(GetNow(utc));
   }
 
   
   void SystemToolbox::GetNowDicom(std::string& date,
-                                  std::string& time)
+                                  std::string& time,
+                                  bool utc)
   {
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    boost::posix_time::ptime now = GetNow(utc);
     tm tm = boost::posix_time::to_tm(now);
 
     char s[32];

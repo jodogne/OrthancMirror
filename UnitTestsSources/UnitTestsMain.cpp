@@ -908,6 +908,20 @@ TEST(Toolbox, EndiannessConversions64)
 }
 
 
+TEST(Toolbox, Now)
+{
+  LOG(WARNING) << "Local time: " << SystemToolbox::GetNowIsoString(false);
+  LOG(WARNING) << "Universal time: " << SystemToolbox::GetNowIsoString(true);
+
+  std::string date, time;
+  SystemToolbox::GetNowDicom(date, time, false);
+  LOG(WARNING) << "Local DICOM time: [" << date << "] [" << time << "]";
+
+  SystemToolbox::GetNowDicom(date, time, true);
+  LOG(WARNING) << "Universal DICOM time: [" << date << "] [" << time << "]";
+}
+
+
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 TEST(Toolbox, Xml)

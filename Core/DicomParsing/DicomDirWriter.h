@@ -50,6 +50,10 @@ namespace Orthanc
 
     ~DicomDirWriter();
 
+    void SetUtcUsed(bool utc);
+
+    bool IsUtcUsed() const;
+
     void SetFileSetId(const std::string& id);
 
     void Add(const std::string& directory,
