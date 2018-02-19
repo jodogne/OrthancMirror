@@ -128,6 +128,7 @@ namespace Orthanc
   class DicomDirWriter::PImpl
   {
   private:
+    bool                       utc_;
     std::string                fileSetId_;
     bool                       extendedSopClass_;
     TemporaryFile              file_;
@@ -259,11 +260,23 @@ namespace Orthanc
 
   public:
     PImpl() :
+      utc_(true),   // By default, use UTC (universal time, not local time)
       fileSetId_("ORTHANC_MEDIA"),
       extendedSopClass_(false)
     {
     }
+    
+    bool IsUtcUsed() const
+    {
+      return utc_;
+    }
 
+
+    void SetUtcUsed(bool utc)
+    {
+      utc_ = utc;
+    }
+    
     void EnableExtendedSopClass(bool enable)
     {
       if (enable)
@@ -297,7 +310,7 @@ namespace Orthanc
       // cf. "DicomDirInterface::buildStudyRecord()"
 
       std::string nowDate, nowTime;
-      SystemToolbox::GetNowDicom(nowDate, nowTime);
+      SystemToolbox::GetNowDicom(nowDate, nowTime, utc_);
 
       std::string studyDate;
       if (!GetUtf8TagValue(studyDate, dicom, encoding, DCM_StudyDate) &&
@@ -494,6 +507,16 @@ namespace Orthanc
     {
       delete pimpl_;
     }
+  }
+
+  void DicomDirWriter::SetUtcUsed(bool utc)
+  {
+    pimpl_->SetUtcUsed(utc);
+  }
+  
+  bool DicomDirWriter::IsUtcUsed() const
+  {
+    return pimpl_->IsUtcUsed();
   }
 
   void DicomDirWriter::SetFileSetId(const std::string& id)

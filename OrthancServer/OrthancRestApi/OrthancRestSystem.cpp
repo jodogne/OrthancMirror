@@ -131,9 +131,10 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 
+  template <bool UTC>
   static void GetNowIsoString(RestApiGetCall& call)
   {
-    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(), "text/plain");
+    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), "text/plain");
   }
 
 
@@ -274,7 +275,8 @@ namespace Orthanc
     Register("/statistics", GetStatistics);
     Register("/tools/generate-uid", GenerateUid);
     Register("/tools/execute-script", ExecuteScript);
-    Register("/tools/now", GetNowIsoString);
+    Register("/tools/now", GetNowIsoString<true>);
+    Register("/tools/now-local", GetNowIsoString<false>);
     Register("/tools/dicom-conformance", GetDicomConformanceStatement);
     Register("/tools/default-encoding", GetDefaultEncoding);
     Register("/tools/default-encoding", SetDefaultEncoding);
