@@ -9,6 +9,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
     #-DLUA_LIB=1
     #-Dluaall_c=1
     #-DLUA_COMPAT_ALL=1  # Compile a generic version of Lua
+    -DLUA_DL_DLL=1       # enable dynamic libraries loading (for windows) 
+    -DLUA_USE_DLOPEN= 1  # enable dynamic libraries loading (for linux) 
     )
 
   include_directories(
