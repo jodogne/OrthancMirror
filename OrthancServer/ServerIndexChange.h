@@ -59,7 +59,7 @@ namespace Orthanc
       changeType_(changeType),
       resourceType_(resourceType),
       publicId_(publicId),
-      date_(SystemToolbox::GetNowIsoString())
+      date_(SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */))
     {
     }
 
