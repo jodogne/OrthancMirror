@@ -5,13 +5,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
 
   DownloadPackage(${LUA_MD5} ${LUA_URL} "${LUA_SOURCES_DIR}")
 
-  add_definitions(
-    #-DLUA_LIB=1
-    #-Dluaall_c=1
-    #-DLUA_COMPAT_ALL=1  # Compile a generic version of Lua
-    -DLUA_DL_DLL=1       # enable dynamic libraries loading (for windows) 
-    -DLUA_USE_DLOPEN= 1  # enable dynamic libraries loading (for linux) 
-    )
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    add_definitions(-DLUA_DL_DLOPEN=1)    # enable dynamic libraries loading (for linux)
+  elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    add_definitions(-DLUA_DL_DLL=1)       # enable dynamic libraries loading (for windows)
+  elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    add_definitions(-LUA_DL_DYLD=1)       # enable dynamic libraries loading (for OSX)
+  else()
+    message(FATAL_ERROR "Support your platform here")
+  endif()
 
   include_directories(
     ${LUA_SOURCES_DIR}/src
