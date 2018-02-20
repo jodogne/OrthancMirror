@@ -34,6 +34,7 @@ set(ENABLE_CIVETWEB OFF CACHE BOOL "Use Civetweb instead of Mongoose (experiment
 set(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
 set(ENABLE_PROFILING OFF CACHE BOOL "Whether to enable the generation of profiling information with gprof")
 set(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
+set(ENABLE_LUA_MODULES OFF CACHE BOOL "Enable support for loading external Lua modules (only meaningful if using static version of the Lua engine)")
 
 # Parameters to fine-tune linking against system libraries
 set(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
