@@ -12,6 +12,12 @@ REST API
 * New URI: "/tools/create-media-extended" to generate a DICOMDIR
   archive from several resources, including additional type-3 tags
 
+Lua
+---
+
+* New CMake option: "-DENABLE_LUA_MODULES=ON" to enable support for
+  loading external Lua modules if the Lua engine is statically linked
+
 Maintenance
 -----------
 
