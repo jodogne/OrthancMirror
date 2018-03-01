@@ -166,11 +166,13 @@ namespace Orthanc
     minValue = std::numeric_limits<PixelType>::max();
     maxValue = std::numeric_limits<PixelType>::min();
 
+    const unsigned int width = source.GetWidth();
+
     for (unsigned int y = 0; y < source.GetHeight(); y++)
     {
       const PixelType* p = reinterpret_cast<const PixelType*>(source.GetConstRow(y));
 
-      for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++)
       {
         if (*p < minValue)
         {
@@ -236,14 +238,19 @@ namespace Orthanc
 
     const int64_t minValue = std::numeric_limits<PixelType>::min();
     const int64_t maxValue = std::numeric_limits<PixelType>::max();
+    const unsigned int width = image.GetWidth();
 
     for (unsigned int y = 0; y < image.GetHeight(); y++)
     {
       PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++)
       {
-        int64_t v = boost::math::llround(static_cast<float>(*p) * factor);
+        // The "round" operation is extremely costly. We use
+        // truncation instead since Orthanc 1.3.2.
+          
+        //int64_t v = boost::math::llround(static_cast<float>(*p) * factor);
+        int64_t v = static_cast<int64_t>(static_cast<float>(*p) * factor);
 
         if (v > maxValue)
         {
@@ -267,28 +274,37 @@ namespace Orthanc
                           float offset,
                           float scaling)
   {
-    const float minValue = static_cast<float>(std::numeric_limits<PixelType>::min());
-    const float maxValue = static_cast<float>(std::numeric_limits<PixelType>::max());
+    const float minFloatValue = static_cast<float>(std::numeric_limits<PixelType>::min());
+    const float maxFloatValue = static_cast<float>(std::numeric_limits<PixelType>::max());
+    const PixelType minPixelValue = std::numeric_limits<PixelType>::min();
+    const PixelType maxPixelValue = std::numeric_limits<PixelType>::max();
 
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    const unsigned int height = image.GetHeight();
+    const unsigned int width = image.GetWidth();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++)
       {
         float v = (static_cast<float>(*p) + offset) * scaling;
 
-        if (v > maxValue)
+        if (v > maxFloatValue)
         {
-          *p = std::numeric_limits<PixelType>::max();
+          *p = maxPixelValue;
         }
-        else if (v < minValue)
+        else if (v < minFloatValue)
         {
-          *p = std::numeric_limits<PixelType>::min();
+          *p = minPixelValue;
         }
         else
         {
-          *p = static_cast<PixelType>(boost::math::iround(v));
+          // The "round" operation is extremely costly. We use
+          // truncation instead since Orthanc 1.3.2.
+          
+          //*p = static_cast<PixelType>(boost::math::iround(v));
+          *p = static_cast<PixelType>(v);
         }
       }
     }
