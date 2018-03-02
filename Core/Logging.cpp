@@ -133,24 +133,6 @@ namespace Orthanc
         }
       }
     }
-
-    InternalLogger& InternalLogger::operator<< (const std::string& message)
-    {
-      message_ += message;
-      return *this;
-    }
-
-    InternalLogger& InternalLogger::operator<< (const char* message)
-    {
-      message_ += std::string(message);
-      return *this;
-    }
-
-    InternalLogger& InternalLogger::operator<< (int message)
-    {
-      message_ += boost::lexical_cast<std::string>(message);
-      return *this;
-    }
   }
 }
 
@@ -207,24 +189,6 @@ namespace Orthanc
         default:
           fprintf(stderr, "Unknown log level (%d) for message: %s\n", level_, message_.c_str());
       }
-    }
-
-    InternalLogger& InternalLogger::operator<< (const std::string& message)
-    {
-      message_ += message;
-      return *this;
-    }
-
-    InternalLogger& InternalLogger::operator<< (const char* message)
-    {
-      message_ += std::string(message);
-      return *this;
-    }
-
-    InternalLogger& InternalLogger::operator<< (int message)
-    {
-      message_ += boost::lexical_cast<std::string>(message);
-      return *this;
     }
 
     void EnableInfoLevel(bool enabled)

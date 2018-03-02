@@ -116,6 +116,7 @@ namespace Orthanc
        ORTHANC_ENABLE_LOGGING_STDIO == 1)
 
 #  include <boost/noncopyable.hpp>
+#  include <boost/lexical_cast.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger \
   (::Orthanc::Logging::level, __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger \
@@ -146,11 +147,12 @@ namespace Orthanc
 
       ~InternalLogger();
       
-      InternalLogger& operator<< (const std::string& message);
-
-      InternalLogger& operator<< (const char* message);
-
-      InternalLogger& operator<< (int message);
+      template <typename T>
+      InternalLogger& operator<< (T message)
+      {
+        message_ += boost::lexical_cast<std::string>(message);
+        return *this;
+      }
     };
   }
 }
