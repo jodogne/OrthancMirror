@@ -47,6 +47,14 @@
 #  endif
 #endif
 
+#if !defined(ORTHANC_ENABLE_LOGGING_STDIO)
+#  if ORTHANC_ENABLE_LOGGING == 1
+#    error The macro ORTHANC_ENABLE_LOGGING_STDIO must be defined
+#  else
+#    define ORTHANC_ENABLE_LOGGING_STDIO 0
+#  endif
+#endif
+
 #if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
 #  include <orthanc/OrthancCPlugin.h>
 #endif
@@ -104,24 +112,35 @@ namespace Orthanc
 #  define VLOG(level)  ::Orthanc::Logging::NullStream()
 
 
-#elif ORTHANC_ENABLE_LOGGING_PLUGIN == 1
+#elif (ORTHANC_ENABLE_LOGGING_PLUGIN == 1 ||    \
+       ORTHANC_ENABLE_LOGGING_STDIO == 1)
 
 #  include <boost/noncopyable.hpp>
-#  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level,  __FILE__, __LINE__)
-#  define VLOG(level) ::Orthanc::Logging::InternalLogger("TRACE", __FILE__, __LINE__)
+#  define LOG(level)  ::Orthanc::Logging::InternalLogger \
+  (::Orthanc::Logging::level, __FILE__, __LINE__)
+#  define VLOG(level) ::Orthanc::Logging::InternalLogger \
+  (::Orthanc::Logging::TRACE, __FILE__, __LINE__)
 
 namespace Orthanc
 {
   namespace Logging
   {
+    enum Level
+    {
+      ERROR,
+      WARNING,
+      INFO,
+      TRACE
+    };
+    
     class InternalLogger : public boost::noncopyable
     {
     private:
-      std::string level_;
+      Level       level_;
       std::string message_;
 
     public:
-      InternalLogger(const char* level,
+      InternalLogger(Level level,
                      const char* file,
                      int line);
 
@@ -137,7 +156,11 @@ namespace Orthanc
 }
 
 
-#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && ORTHANC_ENABLE_LOGGING == 1 */
+
+
+#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && 
+          ORTHANC_ENABLE_LOGGING_STDIO == 0 && 
+          ORTHANC_ENABLE_LOGGING == 1 */
 
 #  include <boost/thread/mutex.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level,  __FILE__, __LINE__)
