@@ -428,15 +428,26 @@ add_definitions(
 if (ORTHANC_SANDBOXED)
   add_definitions(
     -DORTHANC_SANDBOXED=1
-    -DORTHANC_ENABLE_LOGGING=0
     -DORTHANC_ENABLE_LOGGING_PLUGIN=0
     )
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    add_definitions(
+      -DORTHANC_ENABLE_LOGGING=1
+      -DORTHANC_ENABLE_LOGGING_STDIO=1
+      )
+  else()
+    add_definitions(
+      -DORTHANC_ENABLE_LOGGING=0
+      )
+  endif()
   
 else()
   add_definitions(
     -DORTHANC_SANDBOXED=0
     -DORTHANC_ENABLE_LOGGING=1
     -DORTHANC_ENABLE_LOGGING_PLUGIN=0
+    -DORTHANC_ENABLE_LOGGING_STDIO=0
     )
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
