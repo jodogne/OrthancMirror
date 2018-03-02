@@ -105,22 +105,31 @@ namespace Orthanc
     {
       if (context_ != NULL)
       {
-        if (level_ == "ERROR")
+        switch (level_)
         {
-          OrthancPluginLogError(context_, message_.c_str());
-        }
-        else if (level_ == "WARNING")
-        {
-          OrthancPluginLogWarning(context_, message_.c_str());
-        }
-        else if (level_ == "INFO")
-        {
-          OrthancPluginLogInfo(context_, message_.c_str());
-        }
-        else
-        {
-          std::string s = "Unknown log level (" + level_ + ") for message: " + message_;
-          OrthancPluginLogError(context_, s.c_str());
+          case ERROR:
+            OrthancPluginLogError(context_, message_.c_str());
+            break;
+
+          case WARNING:
+            OrthancPluginLogWarning(context_, message_.c_str());
+            break;
+
+          case INFO:
+            OrthancPluginLogInfo(context_, message_.c_str());
+            break;
+
+          case TRACE:
+            // Not used by plugins
+            break;
+
+          default:
+          {
+            std::string s = ("Unknown log level (" + boost::lexical_cast<std::string>(level_) +
+                             ") for message: " + message_);
+            OrthancPluginLogError(context_, s.c_str());
+            break;
+          }
         }
       }
     }
@@ -146,7 +155,94 @@ namespace Orthanc
 }
 
 
-#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && ORTHANC_ENABLE_LOGGING == 1 */
+#elif ORTHANC_ENABLE_LOGGING_STDIO == 1
+
+/*********************************************************
+ * Logger compatible with <stdio.h>
+ *********************************************************/
+
+#include <stdio.h>
+#include <boost/lexical_cast.hpp>
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    static bool globalVerbose_ = false;
+    static bool globalTrace_ = false;
+    
+    InternalLogger::InternalLogger(Level level,
+                                   const char* file  /* ignored */,
+                                   int line  /* ignored */) :
+      level_(level)
+    {
+    }
+
+    InternalLogger::~InternalLogger()
+    {
+      switch (level_)
+      {
+        case ERROR:
+          fprintf(stderr, "E: %s\n", message_.c_str());
+          break;
+
+        case WARNING:
+          fprintf(stdout, "W: %s\n", message_.c_str());
+          break;
+
+        case INFO:
+          if (globalVerbose_)
+          {
+            fprintf(stdout, "I: %s\n", message_.c_str());
+          }
+          break;
+
+        case TRACE:
+          if (globalTrace_)
+          {
+            fprintf(stdout, "T: %s\n", message_.c_str());
+          }
+          break;
+
+        default:
+          fprintf(stderr, "Unknown log level (%d) for message: %s\n", level_, message_.c_str());
+      }
+    }
+
+    InternalLogger& InternalLogger::operator<< (const std::string& message)
+    {
+      message_ += message;
+      return *this;
+    }
+
+    InternalLogger& InternalLogger::operator<< (const char* message)
+    {
+      message_ += std::string(message);
+      return *this;
+    }
+
+    InternalLogger& InternalLogger::operator<< (int message)
+    {
+      message_ += boost::lexical_cast<std::string>(message);
+      return *this;
+    }
+
+    void EnableInfoLevel(bool enabled)
+    {
+      globalVerbose_ = enabled;
+    }
+
+    void EnableTraceLevel(bool enabled)
+    {
+      globalTrace_ = enabled;
+    }
+  }
+}
+
+
+#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && 
+          ORTHANC_ENABLE_LOGGING_STDIO == 0 && 
+          ORTHANC_ENABLE_LOGGING == 1 */
 
 /*********************************************************
  * Internal logger of Orthanc, that mimics some
@@ -156,7 +252,12 @@ namespace Orthanc
 #include "OrthancException.h"
 #include "Enumerations.h"
 #include "Toolbox.h"
-#include "SystemToolbox.h"
+
+#if ORTHANC_SANDBOXED == 1
+#  include <stdio.h>
+#else
+#  include "SystemToolbox.h"
+#endif
 
 #include <fstream>
 #include <boost/filesystem.hpp>
@@ -232,9 +333,9 @@ namespace Orthanc
               static_cast<int>(now.date().year()),
               now.date().month().as_number(),
               now.date().day().as_number(),
-              now.time_of_day().hours(),
-              now.time_of_day().minutes(),
-              now.time_of_day().seconds(),
+              static_cast<int>(now.time_of_day().hours()),
+              static_cast<int>(now.time_of_day().minutes()),
+              static_cast<int>(now.time_of_day().seconds()),
               SystemToolbox::GetProcessId());
 
       std::string programName = exe.filename().replace_extension("").string();
@@ -436,9 +537,9 @@ namespace Orthanc
                   level[0],
                   now.date().month().as_number(),
                   now.date().day().as_number(),
-                  duration.hours(),
-                  duration.minutes(),
-                  duration.seconds(),
+                  static_cast<int>(duration.hours()),
+                  static_cast<int>(duration.minutes()),
+                  static_cast<int>(duration.seconds()),
                   static_cast<int>(duration.fractional_seconds()));
 
           header = std::string(date) + path.filename().string() + ":" + boost::lexical_cast<std::string>(line) + "] ";
