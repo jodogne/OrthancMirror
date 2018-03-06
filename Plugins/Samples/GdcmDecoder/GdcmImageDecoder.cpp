@@ -265,6 +265,10 @@ namespace OrthancPlugins
     // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
     // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
     
+    // TODO - Check out the outcome of Mathieu's discussion about
+    // truncation of YCbCr-to-RGB conversion:
+    // https://groups.google.com/forum/#!msg/comp.protocols.dicom/JHuGeyWbTz8/ARoTWrJzAQAJ
+
     const float Y  = ybr[0];
     const float Cb = ybr[1];
     const float Cr = ybr[2];
