@@ -201,6 +201,12 @@
     "Name": "NullPointer", 
     "Description": "Cannot handle a NULL pointer"
   },
+  {
+    "Code": 36, 
+    "HttpStatus": 503, 
+    "Name": "DatabaseUnavailable", 
+    "Description": "The database is currently not available (probably a transient situation)"
+  }, 
 
 
 

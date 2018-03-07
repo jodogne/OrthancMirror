@@ -118,7 +118,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     3
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -234,6 +234,7 @@ extern "C"
     OrthancPluginErrorCode_EmptyRequest = 33    /*!< The request is empty */,
     OrthancPluginErrorCode_NotAcceptable = 34    /*!< Cannot send a response which is acceptable according to the Accept HTTP header */,
     OrthancPluginErrorCode_NullPointer = 35    /*!< Cannot handle a NULL pointer */,
+    OrthancPluginErrorCode_DatabaseUnavailable = 36    /*!< The database is currently not available (probably a transient situation) */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

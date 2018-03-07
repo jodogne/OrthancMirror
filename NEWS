@@ -18,6 +18,11 @@ Lua
 * New CMake option: "-DENABLE_LUA_MODULES=ON" to enable support for
   loading external Lua modules if the Lua engine is statically linked
 
+Plugins
+-------
+
+* New error code: DatabaseUnavailable
+
 Maintenance
 -----------
 
