@@ -161,6 +161,9 @@ namespace Orthanc
       case ErrorCode_NullPointer:
         return "Cannot handle a NULL pointer";
 
+      case ErrorCode_DatabaseUnavailable:
+        return "The database is currently not available (probably a transient situation)";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -1616,6 +1619,9 @@ namespace Orthanc
 
       case ErrorCode_NotAcceptable:
         return HttpStatus_406_NotAcceptable;
+
+      case ErrorCode_DatabaseUnavailable:
+        return HttpStatus_503_ServiceUnavailable;
 
       default:
         return HttpStatus_500_InternalServerError;
