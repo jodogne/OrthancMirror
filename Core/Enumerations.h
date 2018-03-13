@@ -35,6 +35,16 @@
 
 #include <string>
 
+
+#if defined(_MSC_VER)
+#  define ORTHANC_FORCE_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__) || defined(__EMSCRIPTEN__)
+#  define ORTHANC_FORCE_INLINE inline __attribute((always_inline))
+#else
+#  error Please support your compiler here
+#endif
+
+
 namespace Orthanc
 {
   enum Endianness

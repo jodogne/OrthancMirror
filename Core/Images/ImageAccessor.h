@@ -43,12 +43,32 @@ namespace Orthanc
   class ImageAccessor
   {
   private:
+    template <Orthanc::PixelFormat Format>
+    friend struct ImageTraits;
+    
     bool readOnly_;
     PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
     unsigned int pitch_;
     uint8_t *buffer_;
+
+    template <typename T>
+    const T& GetPixelUnchecked(unsigned int x,
+                               unsigned int y) const
+    {
+      const uint8_t* row = reinterpret_cast<const uint8_t*>(buffer_) + y * pitch_;
+      return reinterpret_cast<const T*>(row) [x];
+    }
+
+
+    template <typename T>
+    T& GetPixelUnchecked(unsigned int x,
+                         unsigned int y)
+    {
+      uint8_t* row = reinterpret_cast<uint8_t*>(buffer_) + y * pitch_;
+      return reinterpret_cast<T*>(row) [x];
+    }
 
   public:
     ImageAccessor()
