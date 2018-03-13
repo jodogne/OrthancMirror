@@ -227,7 +227,8 @@ namespace Orthanc
 
 
 
-  template <typename PixelType>
+  template <typename PixelType,
+            bool UseRound>
   void MultiplyConstantInternal(ImageAccessor& image,
                                 float factor)
   {
@@ -246,11 +247,16 @@ namespace Orthanc
 
       for (unsigned int x = 0; x < width; x++, p++)
       {
-        // The "round" operation is extremely costly. We use
-        // truncation instead since Orthanc 1.3.2.
-          
-        //int64_t v = boost::math::llround(static_cast<float>(*p) * factor);
-        int64_t v = static_cast<int64_t>(static_cast<float>(*p) * factor);
+        int64_t v;
+        if (UseRound)
+        {
+          // The "round" operation is very costly
+          v = boost::math::llround(static_cast<float>(*p) * factor);
+        }
+        else
+        {
+          v = static_cast<int64_t>(static_cast<float>(*p) * factor);
+        }
 
         if (v > maxValue)
         {
@@ -269,7 +275,8 @@ namespace Orthanc
   }
 
 
-  template <typename PixelType>
+  template <typename PixelType,
+            bool UseRound>
   void ShiftScaleInternal(ImageAccessor& image,
                           float offset,
                           float scaling)
@@ -298,12 +305,13 @@ namespace Orthanc
         {
           *p = minPixelValue;
         }
+        else if (UseRound)
+        {
+          // The "round" operation is very costly
+          *p = static_cast<PixelType>(boost::math::iround(v));
+        }
         else
         {
-          // The "round" operation is extremely costly. We use
-          // truncation instead since Orthanc 1.3.2.
-          
-          //*p = static_cast<PixelType>(boost::math::iround(v));
           *p = static_cast<PixelType>(v);
         }
       }
@@ -806,20 +814,42 @@ namespace Orthanc
 
 
   void ImageProcessing::MultiplyConstant(ImageAccessor& image,
-                                         float factor)
+                                         float factor,
+                                         bool useRound)
   {
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        MultiplyConstantInternal<uint8_t>(image, factor);
+        if (useRound)
+        {
+          MultiplyConstantInternal<uint8_t, true>(image, factor);
+        }
+        else
+        {
+          MultiplyConstantInternal<uint8_t, false>(image, factor);
+        }
         return;
 
       case PixelFormat_Grayscale16:
-        MultiplyConstantInternal<uint16_t>(image, factor);
+        if (useRound)
+        {
+          MultiplyConstantInternal<uint16_t, true>(image, factor);
+        }
+        else
+        {
+          MultiplyConstantInternal<uint16_t, false>(image, factor);
+        }
         return;
 
       case PixelFormat_SignedGrayscale16:
-        MultiplyConstantInternal<int16_t>(image, factor);
+        if (useRound)
+        {
+          MultiplyConstantInternal<int16_t, true>(image, factor);
+        }
+        else
+        {
+          MultiplyConstantInternal<int16_t, false>(image, factor);
+        }
         return;
 
       default:
@@ -830,20 +860,42 @@ namespace Orthanc
 
   void ImageProcessing::ShiftScale(ImageAccessor& image,
                                    float offset,
-                                   float scaling)
+                                   float scaling,
+                                   bool useRound)
   {
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        ShiftScaleInternal<uint8_t>(image, offset, scaling);
+        if (useRound)
+        {
+          ShiftScaleInternal<uint8_t, true>(image, offset, scaling);
+        }
+        else
+        {
+          ShiftScaleInternal<uint8_t, false>(image, offset, scaling);
+        }
         return;
 
       case PixelFormat_Grayscale16:
-        ShiftScaleInternal<uint16_t>(image, offset, scaling);
+        if (useRound)
+        {
+          ShiftScaleInternal<uint16_t, true>(image, offset, scaling);
+        }
+        else
+        {
+          ShiftScaleInternal<uint16_t, false>(image, offset, scaling);
+        }
         return;
 
       case PixelFormat_SignedGrayscale16:
-        ShiftScaleInternal<int16_t>(image, offset, scaling);
+        if (useRound)
+        {
+          ShiftScaleInternal<int16_t, true>(image, offset, scaling);
+        }
+        else
+        {
+          ShiftScaleInternal<int16_t, false>(image, offset, scaling);
+        }
         return;
 
       default:
