@@ -71,12 +71,16 @@ namespace Orthanc
     static void AddConstant(ImageAccessor& image,
                             int64_t value);
 
+    // "useRound" is expensive
     static void MultiplyConstant(ImageAccessor& image,
-                                 float factor);
+                                 float factor,
+                                 bool useRound);
 
+    // "useRound" is expensive
     static void ShiftScale(ImageAccessor& image,
                            float offset,
-                           float scaling);
+                           float scaling,
+                           bool useRound);
 
     static void Invert(ImageAccessor& image);
   };

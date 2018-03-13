@@ -881,7 +881,8 @@ namespace Orthanc
         else
         {
           ImageProcessing::ShiftScale(*image, static_cast<float>(-a),
-                                      255.0f / static_cast<float>(b - a));
+                                      255.0f / static_cast<float>(b - a),
+                                      true /* TODO - Consider using "false" to speed up */);
         }
 
         // If the source image is not grayscale 8bpp, convert it
