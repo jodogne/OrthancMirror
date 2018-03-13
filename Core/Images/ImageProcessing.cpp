@@ -615,7 +615,7 @@ namespace Orthanc
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        SetInternal<uint8_t>(image, value);
+        memset(image.GetBuffer(), static_cast<uint8_t>(value), image.GetPitch() * image.GetHeight());
         return;
 
       case PixelFormat_Grayscale16:
