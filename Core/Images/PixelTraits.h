@@ -34,149 +34,118 @@
 #pragma once
 
 #include "../Enumerations.h"
+#include "../OrthancException.h"
 
+#include <limits>
 
 namespace Orthanc
 {
+  template <PixelFormat format,
+            typename _PixelType>
+  struct IntegerPixelTraits
+  {
+    typedef _PixelType  PixelType;
+
+    ORTHANC_FORCE_INLINE
+    static PixelFormat GetPixelFormat()
+    {
+      return format;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static PixelType IntegerToPixel(int64_t value)
+    {
+      if (value < static_cast<int64_t>(std::numeric_limits<PixelType>::min()) ||
+          value > static_cast<int64_t>(std::numeric_limits<PixelType>::max()))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        return static_cast<PixelType>(value);
+      }
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetZero(PixelType& target)
+    {
+      target = 0;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetMinValue(PixelType& target)
+    {
+      target = std::numeric_limits<PixelType>::min();
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetMaxValue(PixelType& target)
+    {
+      target = std::numeric_limits<PixelType>::max();
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void Copy(PixelType& target,
+                     const PixelType& source)
+    {
+      target = source;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static float PixelToFloat(const PixelType& source)
+    {
+      return static_cast<float>(source);
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void FloatToPixel(PixelType& target,
+                             float value)
+    {
+      if (value < static_cast<float>(std::numeric_limits<PixelType>::min()))
+      {
+        target = std::numeric_limits<PixelType>::min();
+      }
+      else if (value > static_cast<float>(std::numeric_limits<PixelType>::max()))
+      {
+        target = std::numeric_limits<PixelType>::max();
+      }
+      else
+      {
+        target = static_cast<PixelType>(value);
+      }
+    }
+
+    ORTHANC_FORCE_INLINE
+    static bool IsEqual(const PixelType& a,
+                        const PixelType& b)
+    {
+      return a == b;
+    }
+  };
+
+
   template <PixelFormat Format>
   struct PixelTraits;
 
 
   template <>
-  struct PixelTraits<PixelFormat_Grayscale8>
+  struct PixelTraits<PixelFormat_Grayscale8> :
+    public IntegerPixelTraits<PixelFormat_Grayscale8, uint8_t>
   {
-    typedef uint8_t   PixelType;
-
-    ORTHANC_FORCE_INLINE
-    static PixelFormat GetPixelFormat()
-    {
-      return PixelFormat_Grayscale8;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void SetZero(PixelType& target)
-    {
-      target = 0;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void Copy(PixelType& target,
-                     const PixelType& source)
-    {
-      target = source;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static float PixelToFloat(const PixelType& source)
-    {
-      return static_cast<float>(source);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void FloatToPixel(PixelType& target,
-                             float value)
-    {
-      target = static_cast<uint8_t>(value);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static bool IsEqual(const PixelType& a,
-                        const PixelType& b)
-    {
-      return a == b;
-    }
   };
 
-
+  
   template <>
-  struct PixelTraits<PixelFormat_Grayscale16>
+  struct PixelTraits<PixelFormat_Grayscale16> :
+    public IntegerPixelTraits<PixelFormat_Grayscale16, uint16_t>
   {
-    typedef uint16_t   PixelType;
-
-    ORTHANC_FORCE_INLINE
-    static PixelFormat GetPixelFormat()
-    {
-      return PixelFormat_Grayscale16;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void SetZero(PixelType& target)
-    {
-      target = 0;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void Copy(PixelType& target,
-                     const PixelType& source)
-    {
-      target = source;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static float PixelToFloat(const PixelType& source)
-    {
-      return static_cast<float>(source);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void FloatToPixel(PixelType& target,
-                             float value)
-    {
-      target = static_cast<uint16_t>(value);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static bool IsEqual(const PixelType& a,
-                        const PixelType& b)
-    {
-      return a == b;
-    }
   };
 
-
+  
   template <>
-  struct PixelTraits<PixelFormat_SignedGrayscale16>
+  struct PixelTraits<PixelFormat_SignedGrayscale16> :
+    public IntegerPixelTraits<PixelFormat_SignedGrayscale16, int16_t>
   {
-    typedef int16_t   PixelType;
-
-    ORTHANC_FORCE_INLINE
-    static PixelFormat GetPixelFormat()
-    {
-      return PixelFormat_SignedGrayscale16;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void SetZero(PixelType& target)
-    {
-      target = 0;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void Copy(PixelType& target,
-                     const PixelType& source)
-    {
-      target = source;
-    }
-
-    ORTHANC_FORCE_INLINE
-    static float PixelToFloat(const PixelType& source)
-    {
-      return static_cast<float>(source);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static void FloatToPixel(PixelType& target,
-                             float value)
-    {
-      target = static_cast<int16_t>(value);
-    }
-
-    ORTHANC_FORCE_INLINE
-    static bool IsEqual(const PixelType& a,
-                        const PixelType& b)
-    {
-      return a == b;
-    }
   };
 
 
