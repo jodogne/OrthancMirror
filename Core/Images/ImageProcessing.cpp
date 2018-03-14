@@ -627,15 +627,36 @@ namespace Orthanc
         return;
 
       case PixelFormat_Grayscale16:
-        SetInternal<uint16_t>(image, value);
+        if (value == 0)
+        {
+          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
+        }
+        else
+        {
+          SetInternal<uint16_t>(image, value);
+        }
         return;
 
       case PixelFormat_Grayscale32:
-        SetInternal<uint32_t>(image, value);
+        if (value == 0)
+        {
+          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
+        }
+        else
+        {
+          SetInternal<uint32_t>(image, value);
+        }
         return;
 
       case PixelFormat_SignedGrayscale16:
-        SetInternal<int16_t>(image, value);
+        if (value == 0)
+        {
+          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
+        }
+        else
+        {
+          SetInternal<int16_t>(image, value);
+        }
         return;
 
       case PixelFormat_Float32:
