@@ -114,7 +114,7 @@ namespace Orthanc
         // Y = 0.2126 R + 0.7152 G + 0.0722 B
         int32_t v = (2126 * static_cast<int32_t>(s[0]) +
                      7152 * static_cast<int32_t>(s[1]) +
-                     0722 * static_cast<int32_t>(s[2])) / 1000;
+                     0722 * static_cast<int32_t>(s[2])) / 10000;
         
         if (static_cast<int32_t>(v) < static_cast<int32_t>(minValue))
         {
