@@ -33,8 +33,10 @@
 
 #pragma once
 
+#include "ImageAccessor.h"
 #include "PixelTraits.h"
 
+#include <cassert>
 
 namespace Orthanc
 {
