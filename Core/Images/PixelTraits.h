@@ -190,6 +190,18 @@ namespace Orthanc
               a.green_ == b.green_ &&
               a.blue_ == b.blue_);
     }
+
+    ORTHANC_FORCE_INLINE
+    static void FloatToPixel(PixelType& target,
+                             float value)
+    {
+      uint8_t v;
+      PixelTraits<PixelFormat_Grayscale8>::FloatToPixel(v, value);
+
+      target.red_ = v;
+      target.green_ = v;
+      target.blue_ = v;
+    }
   };
 
 
@@ -237,6 +249,19 @@ namespace Orthanc
               a.green_ == b.green_ &&
               a.red_ == b.red_ &&
               a.alpha_ == b.alpha_);
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void FloatToPixel(PixelType& target,
+                             float value)
+    {
+      uint8_t v;
+      PixelTraits<PixelFormat_Grayscale8>::FloatToPixel(v, value);
+
+      target.blue_ = v;
+      target.green_ = v;
+      target.red_ = v;
+      target.alpha_ = 255;      
     }
   };
 }
