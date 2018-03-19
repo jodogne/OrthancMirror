@@ -641,6 +641,8 @@ namespace Orthanc
 
     for (size_t i = 0; i < instances.size(); i++)
     {
+      // TODO - Don't read the full JSON from the disk if only "main
+      // DICOM tags" are to be returned
       Json::Value dicom;
       context_.ReadDicomAsJson(dicom, instances[i]);
       
