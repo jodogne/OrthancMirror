@@ -594,6 +594,41 @@ namespace Orthanc
     }
 
     if (target.GetFormat() == PixelFormat_BGRA32 &&
+        source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      {
+        const int16_t* p = reinterpret_cast<const int16_t*>(source.GetConstRow(y));
+        uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
+        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        {
+          uint8_t value;
+          if (*p < 0)
+          {
+            value = 0;
+          }
+          else if (*p > 255)
+          {
+            value = 255;
+          }
+          else
+          {
+            value = static_cast<uint8_t>(*p);
+          }
+
+          q[0] = value;
+          q[1] = value;
+          q[2] = value;
+          q[3] = 255;
+          p += 1;
+          q += 4;
+        }
+      }
+
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_BGRA32 &&
         source.GetFormat() == PixelFormat_RGB24)
     {
       for (unsigned int y = 0; y < source.GetHeight(); y++)
