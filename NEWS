@@ -32,6 +32,9 @@ Maintenance
 * Support of Linux Standard Base
 * Static linking against libuuid (from e2fsprogs)
 * Fix static build on CentOS 6
+* Upgrade to JsonCpp 1.8.4 for static builds
+* Possibility of using JsonCpp 0.10.6 if the compiler does not support C++11
+  with the "-DUSE_LEGACY_JSONCPP=ON" CMake option
 
 
 Version 1.3.1 (2017-11-29)
