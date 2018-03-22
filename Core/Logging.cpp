@@ -94,7 +94,7 @@ namespace Orthanc
       context_ = context;
     }
 
-    InternalLogger::InternalLogger(const char* level,
+    InternalLogger::InternalLogger(Level level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
