@@ -67,11 +67,13 @@ set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Tes
 set(SYSTEM_MONGOOSE_USE_CALLBACKS ON CACHE BOOL "The system version of Mongoose uses callbacks (version >= 3.7)")
 set(USE_BOOST_ICONV ON CACHE BOOL "Use iconv instead of wconv (Windows only)")
 set(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
+set(USE_LEGACY_JSONCPP OFF CACHE BOOL "Use the old branch 0.x.y of JsonCpp, that does not require a C++11 compiler (for old versions of Visual Studio)")
 
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 mark_as_advanced(USE_BOOST_ICONV)
 mark_as_advanced(USE_PUGIXML)
+mark_as_advanced(USE_LEGACY_JSONCPP)
 
 
 #####################################################################
