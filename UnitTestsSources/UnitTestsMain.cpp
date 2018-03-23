@@ -668,6 +668,15 @@ TEST(Toolbox, Enumerations)
 
   ASSERT_EQ(DicomVersion_2008, StringToDicomVersion(EnumerationToString(DicomVersion_2008)));
   ASSERT_EQ(DicomVersion_2017c, StringToDicomVersion(EnumerationToString(DicomVersion_2017c)));
+
+  for (int i = static_cast<int>(ValueRepresentation_ApplicationEntity);
+       i < static_cast<int>(ValueRepresentation_NotSupported); i += 1)
+  {
+    ValueRepresentation vr = static_cast<ValueRepresentation>(i);
+    ASSERT_EQ(vr, StringToValueRepresentation(EnumerationToString(vr), true));
+  }
+
+  ASSERT_THROW(StringToValueRepresentation("nope", true), OrthancException);
 }
 
 

@@ -1520,4 +1520,10 @@ namespace Orthanc
       return false;
     }
   }
+
+
+  void ParsedDicomFile::Apply(ITagVisitor& visitor)
+  {
+    FromDcmtkBridge::Apply(*pimpl_->file_->getDataset(), visitor, GetDefaultDicomEncoding());
+  }
 }
