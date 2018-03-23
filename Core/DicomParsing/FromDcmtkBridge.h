@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "ITagVisitor.h"
 #include "../DicomFormat/DicomElement.h"
 #include "../DicomFormat/DicomMap.h"
 
@@ -240,5 +241,9 @@ namespace Orthanc
     static void InitializeCodecs();
 
     static void FinalizeCodecs();
+
+    static void Apply(DcmItem& dataset,
+                      ITagVisitor& visitor,
+                      Encoding defaultEncoding);
   };
 }
