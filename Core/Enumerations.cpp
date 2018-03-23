@@ -878,6 +878,112 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(ValueRepresentation vr)
+  {
+    switch (vr)
+    {
+      case ValueRepresentation_ApplicationEntity:     // AE
+        return "AE";
+
+      case ValueRepresentation_AgeString:             // AS
+        return "AS";
+
+      case ValueRepresentation_AttributeTag:          // AT (2 x uint16_t)
+        return "AT";
+
+      case ValueRepresentation_CodeString:            // CS
+        return "CS";
+
+      case ValueRepresentation_Date:                  // DA
+        return "DA";
+
+      case ValueRepresentation_DecimalString:         // DS
+        return "DS";
+
+      case ValueRepresentation_DateTime:              // DT
+        return "DT";
+
+      case ValueRepresentation_FloatingPointSingle:   // FL (float)
+        return "FL";
+
+      case ValueRepresentation_FloatingPointDouble:   // FD (double)
+        return "FD";
+
+      case ValueRepresentation_IntegerString:         // IS
+        return "IS";
+
+      case ValueRepresentation_LongString:            // LO
+        return "LO";
+
+      case ValueRepresentation_LongText:              // LT
+        return "LT";
+
+      case ValueRepresentation_OtherByte:             // OB
+        return "OB";
+
+      case ValueRepresentation_OtherDouble:           // OD
+        return "OD";
+
+      case ValueRepresentation_OtherFloat:            // OF
+        return "OF";
+
+      case ValueRepresentation_OtherLong:             // OL
+        return "OL";
+
+      case ValueRepresentation_OtherWord:             // OW
+        return "OW";
+
+      case ValueRepresentation_PersonName:            // PN
+        return "PN";
+
+      case ValueRepresentation_ShortString:           // SH
+        return "SH";
+
+      case ValueRepresentation_SignedLong:            // SL (int32_t)
+        return "SL";
+
+      case ValueRepresentation_Sequence:              // SQ
+        return "SQ";
+
+      case ValueRepresentation_SignedShort:           // SS (int16_t)
+        return "SS";
+
+      case ValueRepresentation_ShortText:             // ST
+        return "ST";
+
+      case ValueRepresentation_Time:                  // TM
+        return "TM";
+
+      case ValueRepresentation_UnlimitedCharacters:   // UC
+        return "UC";
+
+      case ValueRepresentation_UniqueIdentifier:      // UI (UID)
+        return "UI";
+
+      case ValueRepresentation_UnsignedLong:          // UL (uint32_t)
+        return "UL";
+
+      case ValueRepresentation_Unknown:               // UN
+        return "UN";
+
+      case ValueRepresentation_UniversalResource:     // UR (URI or URL)
+        return "UR";
+
+      case ValueRepresentation_UnsignedShort:         // US (uint16_t)
+        return "US";
+
+      case ValueRepresentation_UnlimitedText:         // UT
+        return "UT";
+
+      case ValueRepresentation_NotSupported:
+        return "Not supported";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);

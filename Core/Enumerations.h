@@ -620,6 +620,8 @@ namespace Orthanc
 
   const char* EnumerationToString(DicomVersion version);
 
+  const char* EnumerationToString(ValueRepresentation vr);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
