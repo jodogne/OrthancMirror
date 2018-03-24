@@ -182,7 +182,7 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      LOG(ERROR) << std::string("The path does not point to a regular file: ") << path;
+      LOG(ERROR) << "The path does not point to a regular file: " << path;
       throw OrthancException(ErrorCode_RegularFileExpected);
     }
 
@@ -210,7 +210,7 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      LOG(ERROR) << std::string("The path does not point to a regular file: ") << path;
+      LOG(ERROR) << "The path does not point to a regular file: " << path;
       throw OrthancException(ErrorCode_RegularFileExpected);
     }
 
