@@ -123,6 +123,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
   static const DicomTag DICOM_TAG_DEIDENTIFICATION_METHOD(0x0012, 0x0063);
+  static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID(0x0008, 0x1155);
+  static const DicomTag DICOM_TAG_FRAME_OF_REFERENCE_UID(0x0020, 0x0052);
 
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);

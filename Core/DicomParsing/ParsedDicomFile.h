@@ -49,6 +49,7 @@
 #  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
 #endif
 
+#include "ITagVisitor.h"
 #include "../DicomFormat/DicomInstanceHasher.h"
 #include "../Images/ImageAccessor.h"
 #include "../IDynamicObject.h"
@@ -220,5 +221,7 @@ namespace Orthanc
     bool LookupTransferSyntax(std::string& result);
 
     bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;
+
+    void Apply(ITagVisitor& visitor);
   };
 }
