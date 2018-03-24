@@ -82,7 +82,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       endif()
 
     else()
-      message("Applying patch to detect mathematic primitives in DCMTK 3.6.2")
+      # "3.6.2 CXX11 fails on Linux; patch suggestions included"
+      # https://forum.dcmtk.org/viewtopic.php?f=3&t=4637
+      message("Applying patch to detect mathematic primitives in DCMTK 3.6.2 with C++11")
       execute_process(
         COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
         ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-cmath.patch
