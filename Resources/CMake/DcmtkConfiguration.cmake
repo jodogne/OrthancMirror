@@ -81,8 +81,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
         message(FATAL_ERROR "Error while patching a file")
       endif()
 
-    else (FirstRun())
-      message("No need to apply a patch for speed in DCMTK")
+    else()
+      message("Applying patch to detect mathematic primitives in DCMTK 3.6.2")
+      execute_process(
+        COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+        ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-cmath.patch
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE Failure
+        )
+
+      if (Failure)
+        message(FATAL_ERROR "Error while patching a file")
+      endif()
     endif()
   else()
     message("The patches for DCMTK have already been applied")
@@ -99,8 +109,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
-    SET(HAVE_PROTOTYPE_STD__ISINF 1 CACHE INTERNAL "")
-    SET(HAVE_PROTOTYPE_STD__ISNAN 1 CACHE INTERNAL "")
     SET(HAVE_SYS_GETTID 0 CACHE INTERNAL "")
 
     execute_process(
