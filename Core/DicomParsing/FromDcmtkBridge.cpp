@@ -667,11 +667,11 @@ namespace Orthanc
           return new DicomValue;
       }
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return new DicomValue;
     }
-    catch (std::bad_cast)
+    catch (std::bad_cast&)
     {
       return new DicomValue;
     }
@@ -2095,5 +2095,323 @@ namespace Orthanc
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
 #endif
+  }
+
+
+
+  // Forward declaration
+  static void ApplyVisitorToElement(DcmElement& element,
+                                    ITagVisitor& visitor,
+                                    const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    Encoding encoding);
+ 
+  static void ApplyVisitorToDataset(DcmItem& dataset,
+                                    ITagVisitor& visitor,
+                                    const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    Encoding encoding)
+  {
+    assert(parentTags.size() == parentIndexes.size());
+
+    for (unsigned long i = 0; i < dataset.card(); i++)
+    {
+      DcmElement* element = dataset.getElement(i);
+      if (element == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding);
+      }      
+    }
+  }
+
+
+  static void ApplyVisitorToLeaf(DcmElement& element,
+                                 ITagVisitor& visitor,
+                                 const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 Encoding encoding)
+  {
+    // TODO - Merge this function with ConvertLeafElement()
+
+    assert(element.isLeaf());
+
+    DcmEVR evr = element.getTag().getEVR();
+    ValueRepresentation vr = FromDcmtkBridge::Convert(evr);
+
+    char *c = NULL;
+    if (element.isaString() &&
+        element.getString(c).good())
+    {
+      std::string utf8;
+
+      if (c != NULL)  // This case corresponds to the empty string
+      {
+        std::string s(c);
+        utf8 = Toolbox::ConvertToUtf8(s, encoding);
+      }
+
+      std::string newValue;
+      ITagVisitor::Action action = visitor.VisitString
+        (newValue, parentTags, parentIndexes, tag, vr, utf8);
+
+      switch (action)
+      {
+        case ITagVisitor::Action_None:
+          break;
+
+        case ITagVisitor::Action_Replace:
+        {
+          std::string s = Toolbox::ConvertFromUtf8(newValue, encoding);
+          if (element.putString(s.c_str(), s.size()) != EC_Normal)
+          {
+            LOG(ERROR) << "Cannot replace value of tag: " << tag.Format();
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      return;  // We're done
+    }
+
+
+    try
+    {
+      // http://support.dcmtk.org/docs/dcvr_8h-source.html
+      switch (element.getVR())
+      {
+
+        /**
+         * Deal with binary data (including PixelData).
+         **/
+
+        case EVR_OB:  // other byte
+        case EVR_OF:  // other float
+        case EVR_OW:  // other word
+        case EVR_UN:  // unknown value representation
+        case EVR_ox:  // OB or OW depending on context
+        case EVR_DS:  // decimal string
+        case EVR_IS:  // integer string
+        case EVR_AS:  // age string
+        case EVR_DA:  // date string
+        case EVR_DT:  // date time string
+        case EVR_TM:  // time string
+        case EVR_AE:  // application entity title
+        case EVR_CS:  // code string
+        case EVR_SH:  // short string
+        case EVR_LO:  // long string
+        case EVR_ST:  // short text
+        case EVR_LT:  // long text
+        case EVR_UT:  // unlimited text
+        case EVR_PN:  // person name
+        case EVR_UI:  // unique identifier
+        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+        {
+          Uint8* data = NULL;
+
+          if (element.getUint8Array(data) == EC_Normal)
+          {
+            visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
+          }
+          else
+          {
+            visitor.VisitUnknown(parentTags, parentIndexes, tag, vr);
+          }
+
+          break;
+        }
+    
+        /**
+         * Numeric types
+         **/ 
+      
+        case EVR_SL:  // signed long
+        {
+          Sint32 f;
+          if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
+          {
+            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+        case EVR_SS:  // signed short
+        {
+          Sint16 f;
+          if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
+          {
+            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+        case EVR_UL:  // unsigned long
+        {
+          Uint32 f;
+          if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
+          {
+            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+        case EVR_US:  // unsigned short
+        {
+          Uint16 f;
+          if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
+          {
+            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+        case EVR_FL:  // float single-precision
+        {
+          Float32 f;
+          if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
+          {
+            visitor.VisitDouble(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+        case EVR_FD:  // float double-precision
+        {
+          Float64 f;
+          if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
+          {
+            visitor.VisitDouble(parentTags, parentIndexes, tag, vr, f);
+          }
+
+          break;
+        }
+
+
+        /**
+         * Attribute tag.
+         **/
+
+        case EVR_AT:
+        {
+          DcmTagKey tagKey;
+          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tagKey, 0).good())
+          {
+            DicomTag t(tagKey.getGroup(), tagKey.getElement());
+            visitor.VisitAttribute(parentTags, parentIndexes, tag, vr, t);
+          }
+
+          break;
+        }
+
+
+        /**
+         * Sequence types, should never occur at this point because of
+         * "element.isLeaf()".
+         **/
+
+        case EVR_SQ:  // sequence of items
+          return;
+
+
+          /**
+           * Internal to DCMTK.
+           **/ 
+
+        case EVR_xs:  // SS or US depending on context
+        case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
+        case EVR_na:  // na="not applicable", for data which has no VR
+        case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
+        case EVR_item:  // used internally for items
+        case EVR_metainfo:  // used internally for meta info datasets
+        case EVR_dataset:  // used internally for datasets
+        case EVR_fileFormat:  // used internally for DICOM files
+        case EVR_dicomDir:  // used internally for DICOMDIR objects
+        case EVR_dirRecord:  // used internally for DICOMDIR records
+        case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
+        case EVR_pixelItem:  // used internally for pixel items in a compressed image
+        case EVR_PixelData:  // used internally for uncompressed pixeld data
+        case EVR_OverlayData:  // used internally for overlay data
+          visitor.VisitUnknown(parentTags, parentIndexes, tag, vr);
+          return;
+
+
+          /**
+           * Default case.
+           **/ 
+
+        default:
+          return;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return;
+    }
+    catch (std::bad_cast&)
+    {
+      return;
+    }
+  }
+
+
+  static void ApplyVisitorToElement(DcmElement& element,
+                                    ITagVisitor& visitor,
+                                    const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    Encoding encoding)
+  {
+    assert(parentTags.size() == parentIndexes.size());
+
+    DicomTag tag(FromDcmtkBridge::Convert(element.getTag()));
+
+    if (element.isLeaf())
+    {
+      ApplyVisitorToLeaf(element, visitor, parentTags, parentIndexes, tag, encoding);
+    }
+    else
+    {
+      // "All subclasses of DcmElement except for DcmSequenceOfItems
+      // are leaf nodes, while DcmSequenceOfItems, DcmItem, DcmDataset
+      // etc. are not." The following dynamic_cast is thus OK.
+      DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
+
+      std::vector<DicomTag> tags = parentTags;
+      std::vector<size_t> indexes = parentIndexes;
+      tags.push_back(tag);
+      indexes.push_back(0);
+
+      for (unsigned long i = 0; i < sequence.card(); i++)
+      {
+        indexes.back() = static_cast<size_t>(i);
+        DcmItem* child = sequence.getItem(i);
+        ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding);
+      }
+    }
+  }
+
+
+  void FromDcmtkBridge::Apply(DcmItem& dataset,
+                              ITagVisitor& visitor,
+                              Encoding defaultEncoding)
+  {
+    std::vector<DicomTag> parentTags;
+    std::vector<size_t> parentIndexes;
+    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
+    ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding);
   }
 }
