@@ -94,7 +94,7 @@ namespace Orthanc
       context_ = context;
     }
 
-    InternalLogger::InternalLogger(Level level,
+    InternalLogger::InternalLogger(InternalLevel level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -107,19 +107,19 @@ namespace Orthanc
       {
         switch (level_)
         {
-          case ERROR:
+          case InternalLevel_ERROR:
             OrthancPluginLogError(context_, message_.c_str());
             break;
 
-          case WARNING:
+          case InternalLevel_WARNING:
             OrthancPluginLogWarning(context_, message_.c_str());
             break;
 
-          case INFO:
+          case InternalLevel_INFO:
             OrthancPluginLogInfo(context_, message_.c_str());
             break;
 
-          case TRACE:
+          case InternalLevel_TRACE:
             // Not used by plugins
             break;
 
@@ -153,7 +153,7 @@ namespace Orthanc
     static bool globalVerbose_ = false;
     static bool globalTrace_ = false;
     
-    InternalLogger::InternalLogger(Level level,
+    InternalLogger::InternalLogger(InternalLevel level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -164,22 +164,22 @@ namespace Orthanc
     {
       switch (level_)
       {
-        case ERROR:
+        case InternalLevel_ERROR:
           fprintf(stderr, "E: %s\n", message_.c_str());
           break;
 
-        case WARNING:
+        case InternalLevel_WARNING:
           fprintf(stdout, "W: %s\n", message_.c_str());
           break;
 
-        case INFO:
+        case InternalLevel_INFO:
           if (globalVerbose_)
           {
             fprintf(stdout, "I: %s\n", message_.c_str());
           }
           break;
 
-        case TRACE:
+        case InternalLevel_TRACE:
           if (globalTrace_)
           {
             fprintf(stdout, "T: %s\n", message_.c_str());
