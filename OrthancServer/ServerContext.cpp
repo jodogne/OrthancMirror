@@ -562,6 +562,13 @@ namespace Orthanc
                                      const std::string& uuid,
                                      ResourceType expectedType)
   {
+    if (expectedType == ResourceType_Instance)
+    {
+      // remove the file from the DicomCache
+      boost::mutex::scoped_lock lock(dicomCacheMutex_);
+      dicomCache_.Invalidate(uuid);
+    }
+
     return index_.DeleteResource(target, uuid, expectedType);
   }
 

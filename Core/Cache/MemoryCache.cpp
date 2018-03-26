@@ -78,6 +78,15 @@ namespace Orthanc
   {
   }
 
+  void MemoryCache::Invalidate(const std::string& id)
+  {
+    if (index_.Contains(id))
+    {
+      VLOG(1) << "Invalidating a cache page";
+      index_.Invalidate(id);
+    }
+  }
+
   MemoryCache::~MemoryCache()
   {
     while (!index_.IsEmpty())
