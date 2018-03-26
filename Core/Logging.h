@@ -114,30 +114,30 @@ namespace Orthanc
 
 #  include <boost/noncopyable.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger \
-  (::Orthanc::Logging::level, __FILE__, __LINE__)
+  (::Orthanc::Logging::InternalLevel_ ## level, __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger \
-  (::Orthanc::Logging::TRACE, __FILE__, __LINE__)
+  (::Orthanc::Logging::InternalLevel_TRACE, __FILE__, __LINE__)
 
 namespace Orthanc
 {
   namespace Logging
   {
-    enum Level
+    enum InternalLevel
     {
-      ERROR,
-      WARNING,
-      INFO,
-      TRACE
+      InternalLevel_ERROR,
+      InternalLevel_WARNING,
+      InternalLevel_INFO,
+      InternalLevel_TRACE
     };
     
     class InternalLogger : public boost::noncopyable
     {
     private:
-      Level       level_;
-      std::string message_;
+      InternalLevel  level_;
+      std::string    message_;
 
     public:
-      InternalLogger(Level level,
+      InternalLogger(InternalLevel level,
                      const char* file,
                      int line);
 
