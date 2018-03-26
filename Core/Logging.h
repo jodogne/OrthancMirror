@@ -59,6 +59,8 @@
 #  include <orthanc/OrthancCPlugin.h>
 #endif
 
+#include <boost/lexical_cast.hpp>
+
 namespace Orthanc
 {
   namespace Logging
@@ -91,13 +93,8 @@ namespace Orthanc
       {
       }
       
-      std::ostream& operator<< (const std::string& message)
-      {
-        return *this;
-      }
-
-      // This overload fixes build problems with Visual Studio 2015
-      std::ostream& operator<< (const char* message)
+      template <typename T>
+      std::ostream& operator<< (const T& message)
       {
         return *this;
       }
@@ -116,7 +113,6 @@ namespace Orthanc
        ORTHANC_ENABLE_LOGGING_STDIO == 1)
 
 #  include <boost/noncopyable.hpp>
-#  include <boost/lexical_cast.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger \
   (::Orthanc::Logging::level, __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger \
@@ -148,7 +144,7 @@ namespace Orthanc
       ~InternalLogger();
       
       template <typename T>
-      InternalLogger& operator<< (T message)
+      InternalLogger& operator<< (const T& message)
       {
         message_ += boost::lexical_cast<std::string>(message);
         return *this;
@@ -186,15 +182,10 @@ namespace Orthanc
 
       ~InternalLogger();
       
-      std::ostream& operator<< (const std::string& message)
+      template <typename T>
+      std::ostream& operator<< (const T& message)
       {
-        return (*stream_) << message;
-      }
-
-      // This overload fixes build problems with Visual Studio 2015
-      std::ostream& operator<< (const char* message)
-      {
-        return (*stream_) << message;
+        return (*stream_) << boost::lexical_cast<std::string>(message);
       }
     };
   }
