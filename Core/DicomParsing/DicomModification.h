@@ -47,6 +47,8 @@ namespace Orthanc
      **/
 
   private:
+    class RelationshipsVisitor;
+
     typedef std::set<DicomTag> SetOfTags;
     typedef std::map<DicomTag, Json::Value*> Replacements;
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
@@ -61,9 +63,13 @@ namespace Orthanc
     bool allowManualIdentifiers_;
     bool keepStudyInstanceUid_;
     bool keepSeriesInstanceUid_;
+    bool updateReferencedRelationships_;
 
-    void MapDicomIdentifier(ParsedDicomFile& dicom,
-                            ResourceType level);
+    std::string MapDicomIdentifier(const std::string& original,
+                                   ResourceType level);
+
+    void MapDicomTags(ParsedDicomFile& dicom,
+                      ResourceType level);
 
     void MarkNotOrthancAnonymization();
 

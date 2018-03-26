@@ -74,12 +74,21 @@ for table in root.iter('%stable' % br):
                         'Series Instance UID',
                         'Study Instance UID',
                 ]:
-                    FormatLine('// Tag (%s) is set in Apply()' % tag, name)
+                    FormatLine('// Tag (%s) is set in Apply()         /* %s */' % (tag, profile), name)
+                elif name in [
+                        'Referenced Image Sequence',
+                        'Source Image Sequence',
+                        'Referenced SOP Instance UID',
+                        'Frame of Reference UID',
+                        'Referenced Frame of Reference UID',
+                        'Related Frame of Reference UID',
+                ]:
+                    FormatLine('// Tag (%s) => RelationshipsVisitor   /* %s */' % (tag, profile), name)
                 elif name in [
                         'Patient\'s Name',
                         'Patient ID',
                 ]:
-                    FormatLine('// Tag (%s) is set below (*)' % tag, name)
+                    FormatLine('// Tag (%s) is set below (*)          /* %s */' % (tag, profile), name)
                 elif profile == 'X':
                     FormatLine('removals_.insert(DicomTag(%s));' % tag, name)
                 elif profile.startswith('X/'):

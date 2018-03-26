@@ -11,6 +11,7 @@ REST API
 * Added "?expand" GET argument to "/peers" and "/modalities" routes
 * New URI: "/tools/create-media-extended" to generate a DICOMDIR
   archive from several resources, including additional type-3 tags
+* Preservation of UID relationships while anonymizing
 
 Lua
 ---

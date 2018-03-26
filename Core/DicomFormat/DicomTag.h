@@ -123,8 +123,6 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID(0x0002, 0x0003);
   static const DicomTag DICOM_TAG_DEIDENTIFICATION_METHOD(0x0012, 0x0063);
-  static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID(0x0008, 0x1155);
-  static const DicomTag DICOM_TAG_FRAME_OF_REFERENCE_UID(0x0020, 0x0052);
 
   // DICOM tags used for fMRI (thanks to Will Ryder)
   static const DicomTag DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS(0x0020, 0x0105);
@@ -195,4 +193,12 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES(0x0020, 0x1208);  
   static const DicomTag DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES(0x0020, 0x1209);  
   static const DicomTag DICOM_TAG_SOP_CLASSES_IN_STUDY(0x0008, 0x0062);  
+
+  // Tags to preserve relationships during anonymization
+  static const DicomTag DICOM_TAG_REFERENCED_IMAGE_SEQUENCE(0x0008, 0x1140);
+  static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID(0x0008, 0x1155);
+  static const DicomTag DICOM_TAG_SOURCE_IMAGE_SEQUENCE(0x0008, 0x2112);
+  static const DicomTag DICOM_TAG_FRAME_OF_REFERENCE_UID(0x0020, 0x0052);
+  static const DicomTag DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID(0x3006, 0x0024);
+  static const DicomTag DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID(0x3006, 0x00c2);
 }
