@@ -64,5 +64,7 @@ namespace Orthanc
     ~MemoryCache();
 
     IDynamicObject& Access(const std::string& id);
+
+    void Invalidate(const std::string& id);
   };
 }
