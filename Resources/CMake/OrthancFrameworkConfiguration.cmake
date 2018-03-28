@@ -71,6 +71,11 @@ if (NOT ENABLE_JPEG)
   add_definitions(-DORTHANC_ENABLE_JPEG=0)
 endif()
 
+if (NOT ENABLE_ZLIB)
+  unset(USE_SYSTEM_ZLIB CACHE)
+  add_definitions(-DORTHANC_ENABLE_ZLIB=0)
+endif()
+
 if (NOT ENABLE_PNG)
   unset(USE_SYSTEM_LIBPNG CACHE)
   add_definitions(-DORTHANC_ENABLE_PNG=0)
@@ -117,11 +122,6 @@ endif()
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
-  ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
-  ${ORTHANC_ROOT}/Core/Compression/GzipCompressor.cpp
-  ${ORTHANC_ROOT}/Core/Compression/HierarchicalZipWriter.cpp
-  ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
-  ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomArray.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomImageInformation.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomInstanceHasher.cpp
@@ -269,10 +269,36 @@ endif()
 
 
 ##
+## zlib support
+##
+
+if (ENABLE_ZLIB)
+  include(${CMAKE_CURRENT_LIST_DIR}/ZlibConfiguration.cmake)
+  add_definitions(-DORTHANC_ENABLE_ZLIB=1)
+
+  list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+    ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
+    ${ORTHANC_ROOT}/Core/Compression/HierarchicalZipWriter.cpp
+    ${ORTHANC_ROOT}/Core/Compression/GzipCompressor.cpp
+    ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
+    ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
+
+    # This is the minizip distribution to create ZIP files using zlib
+    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
+    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
+    )
+endif()
+
+
+##
 ## PNG support: libpng (in conjunction with zlib)
 ##
 
 if (ENABLE_PNG)
+  if (NOT ENABLE_ZLIB)
+    message(FATAL_ERROR "Support for zlib must be enabled if enabling libpng support")
+  endif()
+
   include(${CMAKE_CURRENT_LIST_DIR}/LibPngConfiguration.cmake)
   add_definitions(-DORTHANC_ENABLE_PNG=1)
 
@@ -333,7 +359,6 @@ endif()
 #####################################################################
 
 include(${CMAKE_CURRENT_LIST_DIR}/JsonCppConfiguration.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/ZlibConfiguration.cmake)
 
 if (NOT ORTHANC_SANDBOXED)
   include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
@@ -509,10 +534,6 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
 
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
-
-  # This is the minizip distribution to create ZIP files using zlib
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
-  ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
   )  
 
 set(ORTHANC_CORE_SOURCES
