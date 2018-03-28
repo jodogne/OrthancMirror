@@ -35,6 +35,15 @@
 
 #include "IBufferCompressor.h"
 
+#if !defined(ORTHANC_ENABLE_ZLIB)
+#  error The macro ORTHANC_ENABLE_ZLIB must be defined
+#endif
+
+#if ORTHANC_ENABLE_ZLIB != 1
+#  error ZLIB support must be enabled to include this file
+#endif
+
+
 #include <stdint.h>
 
 namespace Orthanc
