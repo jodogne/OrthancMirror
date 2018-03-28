@@ -47,8 +47,6 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
-include_directories(${ORTHANC_ROOT})
-
 
 #####################################################################
 ## List of source files

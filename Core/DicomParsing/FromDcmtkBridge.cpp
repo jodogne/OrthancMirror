@@ -48,7 +48,6 @@
 #include "../OrthancException.h"
 
 #if ORTHANC_SANDBOXED == 0
-#  include "../SystemToolbox.h"
 #  include "../TemporaryFile.h"
 #endif
 
@@ -134,6 +133,7 @@ namespace Orthanc
     std::string content;
     EmbeddedResources::GetFileResource(content, resource);
 
+#if ORTHANC_SANDBOXED == 0
     TemporaryFile tmp;
     tmp.Write(content);
 
@@ -143,6 +143,14 @@ namespace Orthanc
                  << "your TEMP directory does not contain special characters.";
       throw OrthancException(ErrorCode_InternalError);
     }
+#else
+    if (!dictionary.loadFromMemory(content))
+    {
+      LOG(ERROR) << "Cannot read embedded dictionary. Under Windows, make sure that " 
+                 << "your TEMP directory does not contain special characters.";
+      throw OrthancException(ErrorCode_InternalError);
+    }
+#endif
   }
                              
 #else

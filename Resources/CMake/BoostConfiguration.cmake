@@ -233,7 +233,6 @@ if (BOOST_STATIC)
       )        
 
     if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
-        CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR  # For WebAssembly or asm.js
         CMAKE_SYSTEM_VERSION STREQUAL "LinuxStandardBase")
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/std/codecvt.cpp
@@ -255,7 +254,8 @@ if (BOOST_STATIC)
             CMAKE_SYSTEM_NAME STREQUAL "kFreeBSD" OR
             CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
             CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
-            CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
+            CMAKE_SYSTEM_NAME STREQUAL "NaCl64" OR
+            CMAKE_SYSTEM_NAME STREQUAL "Emscripten") # For WebAssembly or asm.js
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
         ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
