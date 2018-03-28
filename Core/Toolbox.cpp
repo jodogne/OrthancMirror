@@ -103,6 +103,78 @@ extern "C"
 
 namespace Orthanc
 {
+  void Toolbox::LinesIterator::FindEndOfLine()
+  {
+    lineEnd_ = lineStart_;
+
+    while (lineEnd_ < content_.size() &&
+           content_[lineEnd_] != '\n' &&
+           content_[lineEnd_] != '\r')
+    {
+      lineEnd_ += 1;
+    }
+  }
+  
+
+  Toolbox::LinesIterator::LinesIterator(const std::string& content) :
+    content_(content),
+    lineStart_(0)
+  {
+    FindEndOfLine();
+  }
+
+    
+  bool Toolbox::LinesIterator::GetLine(std::string& target) const
+  {
+    assert(lineStart_ <= content_.size() &&
+           lineEnd_ <= content_.size() &&
+           lineStart_ <= lineEnd_);
+
+    if (lineStart_ == content_.size())
+    {
+      return false;
+    }
+    else
+    {
+      target = content_.substr(lineStart_, lineEnd_ - lineStart_);
+      return true;
+    }
+  }
+
+    
+  void Toolbox::LinesIterator::Next()
+  {
+    lineStart_ = lineEnd_;
+
+    if (lineStart_ != content_.size())
+    {
+      assert(content_[lineStart_] == '\r' ||
+             content_[lineStart_] == '\n');
+
+      char second;
+      
+      if (content_[lineStart_] == '\r')
+      {
+        second = '\n';
+      }
+      else
+      {
+        second = '\r';
+      }
+        
+      lineStart_ += 1;
+
+      if (lineStart_ < content_.size() &&
+          content_[lineStart_] == second)
+      {
+        lineStart_ += 1;
+      }
+
+      FindEndOfLine();
+    }
+  }
+
+  
   void Toolbox::ToUpperCase(std::string& s)
   {
     std::transform(s.begin(), s.end(), s.begin(), toupper);
@@ -1411,5 +1483,44 @@ namespace Orthanc
     uuid_unparse ( uuid, s );
 #endif
     return s;
+  }
+}
+
+
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content)
+{
+  return reinterpret_cast<OrthancLinesIterator*>(new Orthanc::Toolbox::LinesIterator(content));
+}
+
+
+bool OrthancLinesIterator_GetLine(std::string& target,
+                                         const OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    return reinterpret_cast<const Orthanc::Toolbox::LinesIterator*>(iterator)->GetLine(target);
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    reinterpret_cast<Orthanc::Toolbox::LinesIterator*>(iterator)->Next();
+  }
+}
+
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    delete reinterpret_cast<const Orthanc::Toolbox::LinesIterator*>(iterator);
   }
 }

@@ -1043,6 +1043,73 @@ TEST(Toolbox, AccessJson)
 }
 
 
+TEST(Toolbox, LinesIterator)
+{
+  std::string s;
+
+  {
+    std::string content;
+    Toolbox::LinesIterator it(content);
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\n\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s));
+  }
+  
+  {
+    std::string content = "\n Hello \n\nWorld\n\n";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\r Hello \r\rWorld\r\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\n\r Hello \n\r\n\rWorld\n\r\n\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\r\n Hello \r\n\r\nWorld\r\n\r\n";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+}
+
+
 int main(int argc, char **argv)
 {
   Logging::Initialize();
