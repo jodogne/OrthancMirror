@@ -107,6 +107,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")  # WebAssembly or asm.js
       # Check out "../WebAssembly/arith.h"
+      UNSET(SIZEOF_VOID_P   CACHE)
+      UNSET(SIZEOF_CHAR     CACHE)
+      UNSET(SIZEOF_DOUBLE   CACHE)
+      UNSET(SIZEOF_FLOAT    CACHE)
+      UNSET(SIZEOF_INT      CACHE)
+      UNSET(SIZEOF_LONG     CACHE)
+      UNSET(SIZEOF_SHORT    CACHE)
+      UNSET(SIZEOF_VOID_P   CACHE)
+      UNSET(C_CHAR_UNSIGNED CACHE)
+
       SET(SIZEOF_VOID_P 4   CACHE INTERNAL "")
       SET(SIZEOF_CHAR 1     CACHE INTERNAL "")
       SET(SIZEOF_DOUBLE 8   CACHE INTERNAL "")
@@ -116,6 +126,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       SET(SIZEOF_SHORT 2    CACHE INTERNAL "")
       SET(SIZEOF_VOID_P 4   CACHE INTERNAL "")
       SET(C_CHAR_UNSIGNED 0 CACHE INTERNAL "")
+
       configure_file(
         ${ORTHANC_ROOT}/Resources/WebAssembly/arith.h
         ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/arith.h
@@ -125,6 +136,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       message(FATAL_ERROR "Support your platform here")
     endif()
   ENDIF()
+
   
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
@@ -268,17 +280,31 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     endif()
   endif()
 
-  list(REMOVE_ITEM DCMTK_SOURCES 
-    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
-    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
-    )
 
   if (USE_DCMTK_360)
     # Removing this file is required with DCMTK 3.6.0
     list(REMOVE_ITEM DCMTK_SOURCES 
-      ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdictbi.cc
+      
       )
+  else()
+    if (ORTHANC_SANDBOXED)
+      configure_file(
+        ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
+        ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
+        COPYONLY)
+      
+      configure_file(
+        ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
+        ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
+        COPYONLY)
+    endif()
   endif()
+
+  
+  list(REMOVE_ITEM DCMTK_SOURCES 
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
+    )
 
   #set_source_files_properties(${DCMTK_SOURCES}
   #  PROPERTIES COMPILE_DEFINITIONS

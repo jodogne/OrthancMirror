@@ -79,6 +79,24 @@ namespace Orthanc
 
   namespace Toolbox
   {
+    class LinesIterator
+    {
+    private:
+      const std::string& content_;
+      size_t             lineStart_;
+      size_t             lineEnd_;
+
+      void FindEndOfLine();
+  
+    public:
+      LinesIterator(const std::string& content);
+  
+      bool GetLine(std::string& target) const;
+
+      void Next();
+    };
+    
+    
     void ToUpperCase(std::string& s);  // Inplace version
 
     void ToLowerCase(std::string& s);  // Inplace version
@@ -218,3 +236,24 @@ namespace Orthanc
     std::string GenerateUuid();
   }
 }
+
+
+
+
+/**
+ * The plain C, opaque data structure "OrthancLinesIterator" is a thin
+ * wrapper around Orthanc::Toolbox::LinesIterator, and is only used by
+ * "../Resources/WebAssembly/dcdict.cc", in order to avoid code
+ * duplication
+ **/
+
+struct OrthancLinesIterator;
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content);
+
+bool OrthancLinesIterator_GetLine(std::string& target,
+                                  const OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator);

@@ -339,7 +339,14 @@ endif()
 ##
 
 if (ENABLE_LOCALE)
-  include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
+  if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    # In WebAssembly or asm.js, we rely on the version of iconv that
+    # is shipped with the stdlib
+    unset(USE_BOOST_ICONV CACHE)
+  else()
+    include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
+  endif()
+  
   add_definitions(-DORTHANC_ENABLE_LOCALE=1)
 endif()
 
