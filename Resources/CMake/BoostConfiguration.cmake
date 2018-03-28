@@ -233,6 +233,7 @@ if (BOOST_STATIC)
       )        
 
     if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
+        CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR  # For WebAssembly or asm.js
         CMAKE_SYSTEM_VERSION STREQUAL "LinuxStandardBase")
       list(APPEND BOOST_SOURCES
         ${BOOST_SOURCES_DIR}/libs/locale/src/std/codecvt.cpp

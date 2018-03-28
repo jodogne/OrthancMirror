@@ -35,7 +35,6 @@
 #include "ToDcmtkBridge.h"
 
 #include <memory>
-#include <dcmtk/dcmnet/diutil.h>
 
 #include "../OrthancException.h"
 

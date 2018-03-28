@@ -214,5 +214,7 @@ namespace Orthanc
 
     std::string ToUpperCaseWithAccents(const std::string& source);
 #endif
+
+    std::string GenerateUuid();
   }
 }
