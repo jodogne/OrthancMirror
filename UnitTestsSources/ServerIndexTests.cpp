@@ -824,7 +824,7 @@ TEST(ServerIndex, AttachmentRecycling)
 
   for (size_t i = 0; i < ids.size(); i++)
   {
-    FileInfo info(SystemToolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
+    FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
     index.AddAttachment(info, ids[i]);
 
     index.ComputeStatistics(tmp);
