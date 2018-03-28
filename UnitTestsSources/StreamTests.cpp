@@ -35,7 +35,6 @@
 #include "gtest/gtest.h"
 
 #include "../Core/SystemToolbox.h"
-#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
 #include "../Core/HttpServer/BufferHttpSender.h"
@@ -115,7 +114,7 @@ TEST(Gzip, EmptyWithPrefix)
 
 TEST(Zlib, Basic)
 {
-  std::string s = SystemToolbox::GenerateUuid();
+  std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
  
   std::string compressed, compressed2;
@@ -132,7 +131,7 @@ TEST(Zlib, Basic)
 
 TEST(Zlib, Level)
 {
-  std::string s = SystemToolbox::GenerateUuid();
+  std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
  
   std::string compressed, compressed2;
@@ -149,7 +148,7 @@ TEST(Zlib, Level)
 
 TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
 {
-  std::string s = SystemToolbox::GenerateUuid();
+  std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
  
   std::string compressed;
@@ -254,7 +253,7 @@ TEST(HttpStreamTranscoder, Basic)
 {
   ZlibCompressor compressor;
 
-  const std::string s = "Hello world " + SystemToolbox::GenerateUuid();
+  const std::string s = "Hello world " + Toolbox::GenerateUuid();
 
   std::string t;
   IBufferCompressor::Compress(t, compressor, s);

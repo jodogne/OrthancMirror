@@ -49,6 +49,10 @@
 #  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
 #endif
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 #include "ITagVisitor.h"
 #include "../DicomFormat/DicomInstanceHasher.h"
 #include "../Images/ImageAccessor.h"
@@ -160,7 +164,9 @@ namespace Orthanc
 
     void SaveToMemoryBuffer(std::string& buffer);
 
+#if ORTHANC_SANDBOXED == 0
     void SaveToFile(const std::string& path);
+#endif
 
     void EmbedContent(const std::string& dataUriScheme);
 

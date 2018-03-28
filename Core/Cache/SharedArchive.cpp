@@ -34,7 +34,7 @@
 #include "../PrecompiledHeaders.h"
 #include "SharedArchive.h"
 
-#include "../SystemToolbox.h"
+#include "../Toolbox.h"
 
 
 namespace Orthanc
@@ -100,7 +100,7 @@ namespace Orthanc
       RemoveInternal(oldest);
     }
 
-    std::string id = SystemToolbox::GenerateUuid();
+    std::string id = Toolbox::GenerateUuid();
     RemoveInternal(id);  // Should never be useful because of UUID
     archive_[id] = obj;
     lru_.Add(id);

@@ -52,7 +52,7 @@ namespace Orthanc
 #endif
 
     // We use UUID to create unique path to temporary files
-    std::string filename = "Orthanc-" + Orthanc::SystemToolbox::GenerateUuid();
+    std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
 
     if (extension != NULL)
     {

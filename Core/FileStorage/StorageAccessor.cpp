@@ -37,7 +37,7 @@
 #include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../SystemToolbox.h"
+#include "../Toolbox.h"
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
 #  include "../HttpServer/HttpStreamTranscoder.h"
@@ -51,7 +51,7 @@ namespace Orthanc
                                   CompressionType compression,
                                   bool storeMd5)
   {
-    std::string uuid = SystemToolbox::GenerateUuid();
+    std::string uuid = Toolbox::GenerateUuid();
 
     std::string md5;
 

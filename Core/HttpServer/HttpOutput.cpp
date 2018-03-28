@@ -36,7 +36,6 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
-#include "../SystemToolbox.h"
 #include "../Toolbox.h"
 #include "../Compression/GzipCompressor.h"
 #include "../Compression/ZlibCompressor.h"
@@ -440,7 +439,7 @@ namespace Orthanc
       header += *it;
     }
 
-    multipartBoundary_ = SystemToolbox::GenerateUuid();
+    multipartBoundary_ = Toolbox::GenerateUuid();
     multipartContentType_ = contentType;
     header += "Content-Type: multipart/" + subType + "; type=" + contentType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
 

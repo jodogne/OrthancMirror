@@ -37,13 +37,20 @@
 #define NOMINMAX
 #endif
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "../Logging.h"
-#include "../SystemToolbox.h"
 #include "../Toolbox.h"
-#include "../TemporaryFile.h"
 #include "../OrthancException.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#  include "../TemporaryFile.h"
+#endif
 
 #include <list>
 #include <limits>
@@ -1151,7 +1158,7 @@ namespace Orthanc
         // The "PatientID" field is of type LO (Long String), 64
         // Bytes Maximum. An UUID is of length 36, thus it can be used
         // as a random PatientID.
-        return SystemToolbox::GenerateUuid();
+        return Toolbox::GenerateUuid();
 
       case ResourceType_Instance:
         return dcmGenerateUniqueIdentifier(uid, SITE_INSTANCE_UID_ROOT);

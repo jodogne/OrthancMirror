@@ -359,10 +359,7 @@ endif()
 #####################################################################
 
 include(${CMAKE_CURRENT_LIST_DIR}/JsonCppConfiguration.cmake)
-
-if (NOT ORTHANC_SANDBOXED)
-  include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
-endif()
+include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
 
 # We put Boost as the last dependency, as it is the heaviest to
 # configure, which allows to quickly spot problems when configuring
@@ -396,7 +393,6 @@ if (ENABLE_DCMTK)
   endif()
 
   set(ORTHANC_DICOM_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomModification.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/FromDcmtkBridge.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomFile.cpp
@@ -477,6 +473,7 @@ else()
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
+    ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp

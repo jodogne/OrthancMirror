@@ -87,6 +87,20 @@ extern "C"
 #endif
 
 
+// Inclusions for UUID
+// http://stackoverflow.com/a/1626302
+
+extern "C"
+{
+#if defined(_WIN32)
+#  include <rpc.h>
+#else
+#  include <uuid/uuid.h>
+#endif
+}
+
+
+
 namespace Orthanc
 {
   void Toolbox::ToUpperCase(std::string& s)
@@ -1376,4 +1390,26 @@ namespace Orthanc
     return boost::locale::conv::utf_to_utf<char>(w);
   }
 #endif
+
+
+  std::string Toolbox::GenerateUuid()
+  {
+#ifdef WIN32
+    UUID uuid;
+    UuidCreate ( &uuid );
+
+    unsigned char * str;
+    UuidToStringA ( &uuid, &str );
+
+    std::string s( ( char* ) str );
+
+    RpcStringFreeA ( &str );
+#else
+    uuid_t uuid;
+    uuid_generate_random ( uuid );
+    char s[37];
+    uuid_unparse ( uuid, s );
+#endif
+    return s;
+  }
 }

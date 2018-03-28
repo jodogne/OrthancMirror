@@ -87,7 +87,10 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../SystemToolbox.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
 
 #if ORTHANC_ENABLE_JPEG == 1
 #  include "../Images/JpegReader.h"
@@ -885,6 +888,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void ParsedDicomFile::SaveToFile(const std::string& path)
   {
     // TODO Avoid using a temporary memory buffer, write directly on disk
@@ -892,6 +896,7 @@ namespace Orthanc
     SaveToMemoryBuffer(content);
     SystemToolbox::WriteFile(content, path);
   }
+#endif
 
 
   ParsedDicomFile::ParsedDicomFile(bool createIdentifiers) : pimpl_(new PImpl)
