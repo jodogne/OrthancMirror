@@ -106,8 +106,20 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
 
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")  # WebAssembly or asm.js
-      SET(C_CHAR_UNSIGNED 0 CACHE INTERNAL "Whether char is unsigned.")
-      SET(SIZEOF_VOID_P 4 CACHE INTERNAL "")
+      # Check out "../WebAssembly/arith.h"
+      SET(SIZEOF_VOID_P 4   CACHE INTERNAL "")
+      SET(SIZEOF_CHAR 1     CACHE INTERNAL "")
+      SET(SIZEOF_DOUBLE 8   CACHE INTERNAL "")
+      SET(SIZEOF_FLOAT 4    CACHE INTERNAL "")
+      SET(SIZEOF_INT 4      CACHE INTERNAL "")
+      SET(SIZEOF_LONG 4     CACHE INTERNAL "")
+      SET(SIZEOF_SHORT 2    CACHE INTERNAL "")
+      SET(SIZEOF_VOID_P 4   CACHE INTERNAL "")
+      SET(C_CHAR_UNSIGNED 0 CACHE INTERNAL "")
+      configure_file(
+        ${ORTHANC_ROOT}/Resources/WebAssembly/arith.h
+        ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/arith.h
+        COPYONLY)
 
     else()
       message(FATAL_ERROR "Support your platform here")
@@ -156,7 +168,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     endif()
 
     # This step must be after the generation of "osconfig.h"
-    INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+      INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
+    endif()
   endif()
 
   AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmdata/libsrc DCMTK_SOURCES)

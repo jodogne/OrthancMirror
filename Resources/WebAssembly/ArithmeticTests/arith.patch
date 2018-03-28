@@ -1,0 +1,46 @@
+--- /home/jodogne/Subversion/orthanc/Resources/WebAssembly/ArithmeticTests/i/dcmtk-3.6.2/config/tests/arith.cc	2017-07-14 17:41:11.000000000 +0200
++++ arith.cc	2018-03-28 13:53:34.242234303 +0200
+@@ -19,6 +19,8 @@
+  *           for being used within oflimits.h.
+  */
+ 
++#include <emscripten/emscripten.h>
++
+ // Note: This depends on some files of ofstd and osconfig.h,
+ //       although it is part of configure testing itself.
+ //       Therefore, ensure osconfig.h has already been generated
+@@ -514,7 +516,9 @@
+ }
+ #endif
+ 
+-int main( int argc, char** argv )
++extern "C"
++{
++int EMSCRIPTEN_KEEPALIVE Run()
+ {
+ #ifdef HAVE_WINDOWS_H
+     // Activate the fallback workaround, it will only be used
+@@ -524,6 +528,8 @@
+ #endif
+ 
+     COUT << "Inspecting fundamental arithmetic types... " << OFendl;
++
++#if 0
+     if( argc != 2 )
+     {
+         STD_NAMESPACE cerr << "--   " << "Error: missing destination file "
+@@ -532,6 +538,9 @@
+     }
+ 
+     STD_NAMESPACE ofstream out( argv[1] );
++#else
++    std::ostream& out = std::cerr;
++#endif
+ 
+     out << "#ifndef CONFIG_ARITH_H" << '\n';
+     out << "#define CONFIG_ARITH_H" << '\n';
+@@ -619,3 +628,4 @@
+ 
+     return 0;
+ }
++}
