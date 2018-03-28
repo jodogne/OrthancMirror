@@ -102,8 +102,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
   IF (CMAKE_CROSSCOMPILING)
     if (CMAKE_COMPILER_IS_GNUCXX AND
-        ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")  # MinGW
+        CMAKE_SYSTEM_NAME STREQUAL "Windows")  # MinGW
       SET(C_CHAR_UNSIGNED 1 CACHE INTERNAL "Whether char is unsigned.")
+
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")  # WebAssembly or asm.js
+      SET(C_CHAR_UNSIGNED 0 CACHE INTERNAL "Whether char is unsigned.")
+      SET(SIZEOF_VOID_P 4 CACHE INTERNAL "")
+
     else()
       message(FATAL_ERROR "Support your platform here")
     endif()
