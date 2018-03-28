@@ -376,7 +376,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/BoostConfiguration.cmake)
 
 if (ENABLE_DCMTK)
   if (NOT ENABLE_LOCALE)
-    message(FATAL_ERROR "Support for locales must be enabled if enabling DICOM support")
+#    message(FATAL_ERROR "Support for locales must be enabled if enabling DICOM support")
   endif()
 
   include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfiguration.cmake)
