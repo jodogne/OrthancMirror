@@ -162,74 +162,50 @@ namespace Orthanc
   }
 
 
-  bool OrthancRestApi::ParseModifyRequest(DicomModification& target,
+  void OrthancRestApi::ParseModifyRequest(DicomModification& target,
                                           const Json::Value& request)
   {
-    if (request.isObject())
+    if (!request.isObject())
     {
-      bool force = GetBooleanValue("Force", request, false);
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    bool force = GetBooleanValue("Force", request, false);
       
-      if (GetBooleanValue("RemovePrivateTags", request, false))
-      {
-        target.SetRemovePrivateTags(true);
-      }
-
-      if (request.isMember("Remove"))
-      {
-        ParseListOfTags(target, request["Remove"], TagOperation_Remove, force);
-      }
-
-      if (request.isMember("Replace"))
-      {
-        ParseReplacements(target, request["Replace"], force);
-      }
-
-      // The "Keep" operation only makes sense for the tags
-      // StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID. Avoid
-      // this feature as much as possible, as this breaks the DICOM
-      // model of the real world, except if you know exactly what
-      // you're doing!
-      if (request.isMember("Keep"))
-      {
-        ParseListOfTags(target, request["Keep"], TagOperation_Keep, force);
-      }
-
-      return true;
-    }
-    else
+    if (GetBooleanValue("RemovePrivateTags", request, false))
     {
-      return false;
+      target.SetRemovePrivateTags(true);
+    }
+
+    if (request.isMember("Remove"))
+    {
+      ParseListOfTags(target, request["Remove"], TagOperation_Remove, force);
+    }
+
+    if (request.isMember("Replace"))
+    {
+      ParseReplacements(target, request["Replace"], force);
+    }
+
+    // The "Keep" operation only makes sense for the tags
+    // StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID. Avoid
+    // this feature as much as possible, as this breaks the DICOM
+    // model of the real world, except if you know exactly what
+    // you're doing!
+    if (request.isMember("Keep"))
+    {
+      ParseListOfTags(target, request["Keep"], TagOperation_Keep, force);
     }
   }
 
 
-  static bool ParseModifyRequest(DicomModification& target,
-                                 const RestApiPostCall& call)
+  static void ParseAnonymizationRequest(DicomModification& target,
+                                        const Json::Value& request,
+                                        ServerContext& context)
   {
-    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
-
-    Json::Value request;
-    if (call.ParseJsonRequest(request))
+    if (!request.isObject())
     {
-      return OrthancRestApi::ParseModifyRequest(target, request);
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
-  static bool ParseAnonymizationRequest(DicomModification& target,
-                                        RestApiPostCall& call)
-  {
-    // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
-
-    Json::Value request;
-    if (!call.ParseJsonRequest(request) ||
-        !request.isObject())
-    {
-      return false;
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     bool force = GetBooleanValue("Force", request, false);
@@ -250,7 +226,8 @@ namespace Orthanc
     }
         
     target.SetupAnonymization(version);
-    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);
+
+    std::string patientName = target.GetReplacementAsString(DICOM_TAG_PATIENT_NAME);    
 
     if (GetBooleanValue("KeepPrivateTags", request, false))
     {
@@ -277,10 +254,43 @@ namespace Orthanc
     {
       // Overwrite the random Patient's Name by one that is more
       // user-friendly (provided none was specified by the user)
-      target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
+      target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(context), true);
     }
+  }
 
-    return true;
+
+  static void ParseModifyRequest(DicomModification& target,
+                                 const RestApiPostCall& call)
+  {
+    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request))
+    {
+      OrthancRestApi::ParseModifyRequest(target, request);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  static void ParseAnonymizationRequest(DicomModification& target,
+                                        RestApiPostCall& call)
+  {
+    // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
+
+    Json::Value request;
+    if (call.ParseJsonRequest(request) &&
+        request.isObject())
+    {
+      ParseAnonymizationRequest(target, request, OrthancRestApi::GetContext(call));
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
 
 
@@ -442,27 +452,26 @@ namespace Orthanc
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    if (ParseModifyRequest(modification, call))
-    {
-      if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
-      {
-        modification.SetLevel(ResourceType_Patient);
-      }
-      else if (modification.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
-      {
-        modification.SetLevel(ResourceType_Study);
-      }
-      else if (modification.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
-      {
-        modification.SetLevel(ResourceType_Series);
-      }
-      else
-      {
-        modification.SetLevel(ResourceType_Instance);
-      }
+    ParseModifyRequest(modification, call);
 
-      AnonymizeOrModifyInstance(modification, call);
+    if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      modification.SetLevel(ResourceType_Patient);
     }
+    else if (modification.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      modification.SetLevel(ResourceType_Study);
+    }
+    else if (modification.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      modification.SetLevel(ResourceType_Series);
+    }
+    else
+    {
+      modification.SetLevel(ResourceType_Instance);
+    }
+
+    AnonymizeOrModifyInstance(modification, call);
   }
 
 
@@ -471,10 +480,9 @@ namespace Orthanc
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    if (ParseAnonymizationRequest(modification, call))
-    {
-      AnonymizeOrModifyInstance(modification, call);
-    }
+    ParseAnonymizationRequest(modification, call);
+
+    AnonymizeOrModifyInstance(modification, call);
   }
 
 
@@ -484,12 +492,11 @@ namespace Orthanc
   {
     DicomModification modification;
 
-    if (ParseModifyRequest(modification, call))
-    {
-      modification.SetLevel(resourceType);
-      AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom, 
-                                changeType, resourceType, call);
-    }
+    ParseModifyRequest(modification, call);
+
+    modification.SetLevel(resourceType);
+    AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom, 
+                              changeType, resourceType, call);
   }
 
 
@@ -499,11 +506,10 @@ namespace Orthanc
   {
     DicomModification modification;
 
-    if (ParseAnonymizationRequest(modification, call))
-    {
-      AnonymizeOrModifyResource(modification, MetadataType_AnonymizedFrom, 
-                                changeType, resourceType, call);
-    }
+    ParseAnonymizationRequest(modification, call);
+
+    AnonymizeOrModifyResource(modification, MetadataType_AnonymizedFrom, 
+                              changeType, resourceType, call);
   }
 
 
