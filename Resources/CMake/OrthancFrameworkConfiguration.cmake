@@ -405,6 +405,12 @@ if (ENABLE_DCMTK)
     ${ORTHANC_ROOT}/Core/DicomParsing/Internals/DicomImageDecoder.cpp
     )
 
+  if (NOT ORTHANC_SANDBOXED)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
+      )
+  endif()
+
   if (ENABLE_DCMTK_NETWORKING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
@@ -476,7 +482,6 @@ else()
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
