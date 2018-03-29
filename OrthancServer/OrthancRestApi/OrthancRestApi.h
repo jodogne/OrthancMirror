@@ -96,8 +96,5 @@ namespace Orthanc
                               const std::string& publicId,
                               ResourceType resourceType,
                               StoreStatus status) const;
-
-    static void ParseModifyRequest(DicomModification& target,
-                                   const Json::Value& request);
   };
 }

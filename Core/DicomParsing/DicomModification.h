@@ -46,6 +46,13 @@ namespace Orthanc
      * (3) Replace tags
      **/
 
+  public:
+    enum TagOperation
+    {
+      TagOperation_Keep,
+      TagOperation_Remove
+    };
+
   private:
     class RelationshipsVisitor;
 
@@ -139,5 +146,10 @@ namespace Orthanc
     {
       return allowManualIdentifiers_;
     }
+
+    void ParseModifyRequest(const Json::Value& request);
+
+    void ParseAnonymizationRequest(bool& patientNameReplaced,
+                                   const Json::Value& request);
   };
 }
