@@ -97,7 +97,7 @@ namespace Orthanc
                               ResourceType resourceType,
                               StoreStatus status) const;
 
-    static bool ParseModifyRequest(DicomModification& target,
+    static void ParseModifyRequest(DicomModification& target,
                                    const Json::Value& request);
   };
 }
