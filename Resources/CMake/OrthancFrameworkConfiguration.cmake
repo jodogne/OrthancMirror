@@ -282,10 +282,6 @@ if (ENABLE_ZLIB)
     ${ORTHANC_ROOT}/Core/Compression/GzipCompressor.cpp
     ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
     ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
-
-    # This is the minizip distribution to create ZIP files using zlib
-    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
-    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
     )
 endif()
 
@@ -539,6 +535,16 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
   ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
   )  
+
+
+if (ENABLE_ZLIB)
+  list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
+    # This is the minizip distribution to create ZIP files using zlib
+    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
+    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
+    )
+endif()
+
 
 set(ORTHANC_CORE_SOURCES
   ${ORTHANC_CORE_SOURCES_INTERNAL}
