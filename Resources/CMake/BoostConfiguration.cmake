@@ -145,6 +145,7 @@ if (BOOST_STATIC)
       )
 
   elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    # No support for threads in WebAssembly
 
   else()
     message(FATAL_ERROR "Support your platform here")
