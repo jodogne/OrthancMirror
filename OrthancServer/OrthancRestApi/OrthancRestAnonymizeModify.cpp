@@ -200,8 +200,8 @@ namespace Orthanc
 
 
   static void ParseAnonymizationRequest(DicomModification& target,
-                                        const Json::Value& request,
-                                        ServerContext& context)
+                                        bool& patientNameReplaced,
+                                        const Json::Value& request)
   {
     if (!request.isObject())
     {
@@ -249,13 +249,8 @@ namespace Orthanc
       ParseListOfTags(target, request["Keep"], TagOperation_Keep, force);
     }
 
-    if (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
-        target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName)
-    {
-      // Overwrite the random Patient's Name by one that is more
-      // user-friendly (provided none was specified by the user)
-      target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(context), true);
-    }
+    patientNameReplaced = (target.IsReplaced(DICOM_TAG_PATIENT_NAME) &&
+                           target.GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
   }
 
 
@@ -285,7 +280,15 @@ namespace Orthanc
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
-      ParseAnonymizationRequest(target, request, OrthancRestApi::GetContext(call));
+      bool patientNameReplaced;
+      ParseAnonymizationRequest(target, patientNameReplaced, request);
+
+      if (patientNameReplaced)
+      {
+        // Overwrite the random Patient's Name by one that is more
+        // user-friendly (provided none was specified by the user)
+        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
+      }
     }
     else
     {
