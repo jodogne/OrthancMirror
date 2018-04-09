@@ -95,7 +95,7 @@ namespace Orthanc
 
         {
           ServerContext::DicomCacheLocker lock(context_, *it);
-          modified.reset(lock.GetDicom().Clone());
+          modified.reset(lock.GetDicom().Clone(true));
         }
 
         modification_->Apply(*modified);

@@ -75,7 +75,8 @@ namespace Orthanc
     struct PImpl;
     PImpl* pimpl_;
 
-    ParsedDicomFile(ParsedDicomFile& other);
+    ParsedDicomFile(ParsedDicomFile& other,
+                    bool keepSopInstanceUid);
 
     void CreateFromDicomMap(const DicomMap& source,
                             Encoding defaultEncoding);
@@ -111,7 +112,7 @@ namespace Orthanc
 
     DcmFileFormat& GetDcmtkObject() const;
 
-    ParsedDicomFile* Clone();
+    ParsedDicomFile* Clone(bool keepSopInstanceUid);
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SendPathValue(RestApiOutput& output,
