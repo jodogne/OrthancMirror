@@ -104,7 +104,7 @@ namespace Orthanc
 
     ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
 
-    std::auto_ptr<ParsedDicomFile> modified(locker.GetDicom().Clone());
+    std::auto_ptr<ParsedDicomFile> modified(locker.GetDicom().Clone(true));
     modification.Apply(*modified);
     modified->Answer(call.GetOutput());
   }
@@ -162,7 +162,7 @@ namespace Orthanc
        * Compute the resulting DICOM instance.
        **/
 
-      std::auto_ptr<ParsedDicomFile> modified(original.Clone());
+      std::auto_ptr<ParsedDicomFile> modified(original.Clone(true));
       modification.Apply(*modified);
 
       DicomInstanceToStore toStore;
@@ -434,7 +434,7 @@ namespace Orthanc
     {
       for (Json::ArrayIndex i = 0; i < content.size(); i++)
       {
-        std::auto_ptr<ParsedDicomFile> dicom(base.Clone());
+        std::auto_ptr<ParsedDicomFile> dicom(base.Clone(false));
         const Json::Value* payload = NULL;
 
         if (content[i].type() == Json::stringValue)

@@ -1007,13 +1007,17 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(ParsedDicomFile& other) : 
+  ParsedDicomFile::ParsedDicomFile(ParsedDicomFile& other,
+                                   bool keepSopInstanceUid) : 
     pimpl_(new PImpl)
   {
     pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
 
-    // Create a new instance-level identifier
-    ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+    if (!keepSopInstanceUid)
+    {
+      // Create a new instance-level identifier
+      ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+    }
   }
 
 
@@ -1041,9 +1045,9 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile* ParsedDicomFile::Clone()
+  ParsedDicomFile* ParsedDicomFile::Clone(bool keepSopInstanceUid)
   {
-    return new ParsedDicomFile(*this);
+    return new ParsedDicomFile(*this, keepSopInstanceUid);
   }
 
 

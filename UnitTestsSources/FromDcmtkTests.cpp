@@ -88,7 +88,7 @@ TEST(DicomModification, Basic)
   {
     char b[1024];
     sprintf(b, "UnitTestsResults/anon%06d.dcm", i);
-    std::auto_ptr<ParsedDicomFile> f(o.Clone());
+    std::auto_ptr<ParsedDicomFile> f(o.Clone(false));
     if (i > 4)
       o.ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
     m.Apply(*f);
