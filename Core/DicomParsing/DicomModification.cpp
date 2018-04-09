@@ -125,13 +125,31 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& value)
     {
-      if ((tag == DICOM_TAG_FRAME_OF_REFERENCE_UID || 
-           tag == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID || 
-           tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID ||
-           tag == DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID) &&
-          IsEnabled(tag))
+      if (!IsEnabled(tag))
+      {
+        return Action_None;
+      }
+      else if (tag == DICOM_TAG_FRAME_OF_REFERENCE_UID || 
+               tag == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID || 
+               tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID ||
+               tag == DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID)
       {
         newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Instance);
+        return Action_Replace;
+      }
+      else if (parentTags.size() == 1 &&
+               parentTags[0] == DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE &&
+               tag == DICOM_TAG_STUDY_INSTANCE_UID)
+      {
+        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Study);
+        return Action_Replace;
+      }
+      else if (parentTags.size() == 2 &&
+               parentTags[0] == DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE &&
+               parentTags[1] == DICOM_TAG_REFERENCED_SERIES_SEQUENCE &&
+               tag == DICOM_TAG_SERIES_INSTANCE_UID)
+      {
+        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
         return Action_Replace;
       }
       else
