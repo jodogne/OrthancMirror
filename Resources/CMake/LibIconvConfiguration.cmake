@@ -50,8 +50,10 @@ else()
     unset(EILSEQ)
     unset(HAVE_WCHAR_T)
 
-    # Create an empty "config.h" for libiconv
-    file(WRITE ${LIBICONV_SOURCES_DIR}/include/config.h "")
+    if (NOT EXISTS ${LIBICONV_SOURCES_DIR}/include/config.h)
+      # Create an empty "config.h" for libiconv
+      file(WRITE ${LIBICONV_SOURCES_DIR}/include/config.h "")
+    endif()
 
     include_directories(
       ${LIBICONV_SOURCES_DIR}/include
