@@ -293,23 +293,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   endif()
 
 
-  if (USE_DCMTK_360)
-    # Removing this file is required with DCMTK 3.6.0
-    list(REMOVE_ITEM DCMTK_SOURCES 
-      
-      )
-  else()
-    if (ORTHANC_SANDBOXED)
-      configure_file(
-        ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
-        ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
-        COPYONLY)
-      
-      configure_file(
-        ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
-        ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
-        COPYONLY)
-    endif()
+  if (NOT USE_DCMTK_360 AND
+      ORTHANC_SANDBOXED)
+    configure_file(
+      ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
+      ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
+      COPYONLY)
+    
+    configure_file(
+      ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
+      ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
+      COPYONLY)
   endif()
 
   
