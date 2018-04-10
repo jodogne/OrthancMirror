@@ -2182,7 +2182,7 @@ namespace Orthanc
         case ITagVisitor::Action_Replace:
         {
           std::string s = Toolbox::ConvertFromUtf8(newValue, encoding);
-          if (element.putString(s.c_str(), s.size()) != EC_Normal)
+          if (element.putString(s.c_str()) != EC_Normal)
           {
             LOG(ERROR) << "Cannot replace value of tag: " << tag.Format();
             throw OrthancException(ErrorCode_InternalError);
