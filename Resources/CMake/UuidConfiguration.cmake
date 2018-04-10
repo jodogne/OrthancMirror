@@ -39,7 +39,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     check_include_file("sys/un.h"       HAVE_SYS_UN_H)
     check_include_file("unistd.h"       HAVE_UNISTD_H)
 
-    If (NOT HAVE_NET_IF_H)  # This is the case of OpenBSD
+    if (NOT HAVE_NET_IF_H)  # This is the case of OpenBSD
       unset(HAVE_NET_IF_H CACHE)
       check_include_files("sys/socket.h;net/if.h" HAVE_NET_IF_H)
     endif()
@@ -49,7 +49,8 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       check_include_files("sys/socket.h;netinet/tcp.h" HAVE_NETINET_TCP_H)
     endif()
 
-    file(WRITE ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h.cmake "
+    if (NOT EXISTS ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h)
+      file(WRITE ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h.cmake "
 #cmakedefine HAVE_NET_IF_H \@HAVE_NET_IF_H\@
 #cmakedefine HAVE_NET_IF_DL_H \@HAVE_NET_IF_DL_H\@
 #cmakedefine HAVE_NETINET_IN_H \@HAVE_NETINET_IN_H\@
@@ -64,26 +65,23 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 #cmakedefine HAVE_SYS_UN_H \@HAVE_SYS_UN_H\@
 #cmakedefine HAVE_UNISTD_H \@HAVE_UNISTD_H\@
 ")
-    
+    endif()
+      
     configure_file(
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h.cmake
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/config.h
       )
-    
-    
+      
     configure_file(
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h.in
       ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid.h
       )
 
-    file(WRITE
-      ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
-      "#include <stdint.h>\n")
-
-    #configure_file(
-    #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h.in
-    #  ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
-    #  )
+    if (NOT EXISTS ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h)
+      file(WRITE
+        ${E2FSPROGS_SOURCES_DIR}/lib/uuid/uuid_types.h
+        "#include <stdint.h>\n")
+    endif()
     
     source_group(ThirdParty\\uuid REGULAR_EXPRESSION ${E2FSPROGS_SOURCES_DIR}/.*)
 
