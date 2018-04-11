@@ -33,9 +33,31 @@ tar xfz ./boost_${BOOST_VERSION}.tar.gz
 echo "Generating the subset..."
 mkdir -p /tmp/bcp/boost_${BOOST_VERSION}
 bcp --boost=/tmp/boost_${BOOST_VERSION} thread system locale date_time filesystem math/special_functions algorithm uuid atomic iostreams program_options numeric/ublas geometry polygon /tmp/bcp/boost_${BOOST_VERSION}
-cd /tmp/bcp
+
+echo "Removing documentation..."
+rm -rf /tmp/bcp/boost_1_66_0/libs/locale/doc/html
+rm -rf /tmp/bcp/boost_1_66_0/libs/algorithm/doc/html
+rm -rf /tmp/bcp/boost_1_66_0/libs/geometry/doc/html
+rm -rf /tmp/bcp/boost_1_66_0/libs/geometry/doc/doxy/doxygen_output/html
+rm -rf /tmp/bcp/boost_1_66_0/libs/filesystem/example/
+
+# https://stackoverflow.com/questions/1655372/longest-line-in-a-file
+LONGEST_FILENAME=`find /tmp/bcp/ | awk '{print length, $0}' | sort -nr | head -1`
+LONGEST=`echo "$LONGEST_FILENAME" | cut -d ' ' -f 1`
+
+echo
+echo "Longest filename (${LONGEST} characters):"
+echo "${LONGEST_FILENAME}"
+echo
+
+if [ ${LONGEST} -ge 128 ]; then
+    echo "ERROR: Too long filename for Windows!"
+    echo
+    exit -1
+fi
 
 echo "Compressing the subset..."
+cd /tmp/bcp
 tar cfz boost_${BOOST_VERSION}_bcpdigest-${ORTHANC_VERSION}.tar.gz boost_${BOOST_VERSION}
 ls -l boost_${BOOST_VERSION}_bcpdigest-${ORTHANC_VERSION}.tar.gz
 md5sum boost_${BOOST_VERSION}_bcpdigest-${ORTHANC_VERSION}.tar.gz
