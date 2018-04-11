@@ -35,6 +35,7 @@ Maintenance
 * Possibility of using JsonCpp 0.10.6 if the compiler does not support C++11
   with the "-DUSE_LEGACY_JSONCPP=ON" CMake option
 * Upgraded dependencies for static and Windows builds:
+  - boost 1.66.0
   - curl 7.57.0
   - jsoncpp 1.8.4
   - zlib 1.2.11
