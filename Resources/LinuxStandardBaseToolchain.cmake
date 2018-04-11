@@ -1,4 +1,4 @@
-# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake
+# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_JSONCPP=ON
 
 INCLUDE(CMakeForceCompiler)
 
