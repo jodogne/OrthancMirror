@@ -211,7 +211,7 @@ namespace Orthanc
       locker->clear();
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-      LOG(WARNING) << "Loading the embedded dictionaries";
+      LOG(INFO) << "Loading the embedded dictionaries";
       /**
        * Do not load DICONDE dictionary, it breaks the other tags. The
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
@@ -2088,12 +2088,12 @@ namespace Orthanc
   void FromDcmtkBridge::InitializeCodecs()
   {
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
-    LOG(WARNING) << "Registering JPEG Lossless codecs in DCMTK";
+    LOG(INFO) << "Registering JPEG Lossless codecs in DCMTK";
     DJLSDecoderRegistration::registerCodecs();    
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    LOG(WARNING) << "Registering JPEG codecs in DCMTK";
+    LOG(INFO) << "Registering JPEG codecs in DCMTK";
     DJDecoderRegistration::registerCodecs(); 
 #endif
   }
