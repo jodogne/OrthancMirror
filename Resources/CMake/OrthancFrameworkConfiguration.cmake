@@ -283,6 +283,12 @@ if (ENABLE_ZLIB)
     ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
     ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
     )
+
+  if (NOT ORTHANC_SANDBOXED)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
+      )
+  endif()
 endif()
 
 
@@ -483,7 +489,6 @@ else()
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/Mutex.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/ReaderWriterLock.cpp
