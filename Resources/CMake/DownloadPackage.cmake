@@ -81,6 +81,11 @@ macro(DownloadPackage MD5 Url TargetDirectory)
         TIMEOUT 60 INACTIVITY_TIMEOUT 60)
     else()
       message("Using local copy of ${Url}")
+
+      file(MD5 ${TMP_PATH} ActualMD5)
+      if (NOT "${ActualMD5}" STREQUAL "${MD5}")
+        message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${TMP_PATH}")
+      endif()
     endif()
 
     GetUrlExtension(TMP_EXTENSION "${Url}")
