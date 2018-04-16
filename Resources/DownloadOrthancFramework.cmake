@@ -45,7 +45,8 @@ endif()
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
     ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
-  if (NOT ALLOW_DOWNLOADS)
+  if (NOT STATIC_BUILD AND
+      NOT ALLOW_DOWNLOADS)
     message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
   endif()
 endif()
