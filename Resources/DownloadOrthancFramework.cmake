@@ -58,6 +58,7 @@ endif()
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
+    ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
     ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
   if (NOT DEFINED ORTHANC_FRAMEWORK_VERSION)
     message(FATAL_ERROR "The variable ORTHANC_FRAMEWORK_VERSION must be set")
@@ -65,9 +66,12 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
 
   if (DEFINED ORTHANC_FRAMEWORK_MAJOR OR
       DEFINED ORTHANC_FRAMEWORK_MINOR OR
-      DEFINED ORTHANC_FRAMEWORK_REVISION)
+      DEFINED ORTHANC_FRAMEWORK_REVISION OR
+      DEFINED ORTHANC_FRAMEWORK_MD5)
     message(FATAL_ERROR "Some internal variable has been set")
   endif()
+
+  set(ORTHANC_FRAMEWORK_MD5 "")
 
   if (ORTHANC_FRAMEWORK_VERSION STREQUAL "mainline")
     set(ORTHANC_FRAMEWORK_BRANCH "default")
@@ -84,6 +88,10 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         NOT ORTHANC_FRAMEWORK_MINOR MATCHES "^[0-9]+$" OR
         NOT ORTHANC_FRAMEWORK_REVISION MATCHES "^[0-9]+$")
       message("Bad version of the Orthanc framework: ${ORTHANC_FRAMEWORK_VERSION}")
+    endif()
+
+    if (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.3.1")
+      set(ORTHANC_FRAMEWORK_MD5 "dac95bd6cf86fb19deaf4e612961f378")
     endif()
   endif()
 endif()
@@ -140,7 +148,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "path")
   endif()
   
   if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing a version of Orthanc: ${ORTHANC_FRAMEWORK_ROOT}")
+    message(FATAL_ERROR "Directory not containing the source code of Orthanc: ${ORTHANC_FRAMEWORK_ROOT}")
   endif()
   
   set(ORTHANC_ROOT ${ORTHANC_FRAMEWORK_ROOT})
@@ -193,20 +201,6 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive")
   if (NOT DEFINED ORTHANC_FRAMEWORK_ARCHIVE)
     message(FATAL_ERROR "The variable ORTHANC_FRAMEWORK_ARCHIVE must provide the path to the sources of Orthanc")
   endif()
-
-  set(RE "^.*/Orthanc-([0-9]+)\\.([0-9]+)\\.([0-9]+).tar.gz$")
-  string(REGEX REPLACE ${RE} "\\1" ORTHANC_FRAMEWORK_MAJOR ${ORTHANC_FRAMEWORK_ARCHIVE})
-  string(REGEX REPLACE ${RE} "\\2" ORTHANC_FRAMEWORK_MINOR ${ORTHANC_FRAMEWORK_ARCHIVE})
-  string(REGEX REPLACE ${RE} "\\3" ORTHANC_FRAMEWORK_REVISION ${ORTHANC_FRAMEWORK_ARCHIVE})
-
-  if (NOT ORTHANC_FRAMEWORK_MAJOR MATCHES "^[0-9]+$" OR
-      NOT ORTHANC_FRAMEWORK_MINOR MATCHES "^[0-9]+$" OR
-      NOT ORTHANC_FRAMEWORK_REVISION MATCHES "^[0-9]+$")
-    message("Cannot detect the version of this release of Orthanc: ${ORTHANC_FRAMEWORK_ARCHIVE}")
-  endif()
-
-  set(ORTHANC_FRAMEWORK_VERSION ${ORTHANC_FRAMEWORK_MAJOR}.${ORTHANC_FRAMEWORK_MINOR}.${ORTHANC_FRAMEWORK_REVISION})
-  message("Detected version of Orthanc: ${ORTHANC_FRAMEWORK_VERSION}")
 endif()
 
 
@@ -219,16 +213,10 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
   set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
   set(ORTHANC_FRAMEWORK_URL "https://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
 
-  if (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.3.1")
-    set(ORTHANC_FRAMEWORK_MD5 "dac95bd6cf86fb19deaf4e612961f378")
-  else()
-    message(FATAL_ERROR "Unknown release of Orthanc: ${ORTHANC_FRAMEWORK_VERSION}")
-  endif()
-
   set(ORTHANC_FRAMEWORK_ARCHIVE "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${ORTHANC_FRAMEMORK_FILENAME}")
 
   if (NOT EXISTS "${ORTHANC_FRAMEWORK_ARCHIVE}")
-    message("Downloading ${ORTHANC_FRAMEWORK_ARCHIVE}")
+    message("Downloading: ${ORTHANC_FRAMEWORK_ARCHIVE}")
 
     file(DOWNLOAD
       "${ORTHANC_FRAMEWORK_URL}" "${ORTHANC_FRAMEWORK_ARCHIVE}" 
@@ -237,12 +225,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
       INACTIVITY_TIMEOUT 60
       )
   else()
-    message("Using local copy of ${ORTHANC_FRAMEWORK_URL}")
-
-    file(MD5 ${ORTHANC_FRAMEWORK_ARCHIVE} ActualMD5)
-    if (NOT "${ActualMD5}" STREQUAL "${ORTHANC_FRAMEWORK_MD5}")
-      message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${ORTHANC_FRAMEWORK_ARCHIVE}")
-    endif()
+    message("Using local copy of: ${ORTHANC_FRAMEWORK_URL}")
   endif()  
 endif()
 
@@ -258,8 +241,19 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
     ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
 
   if (NOT DEFINED ORTHANC_FRAMEWORK_ARCHIVE OR
-      NOT DEFINED ORTHANC_FRAMEWORK_VERSION)
+      NOT DEFINED ORTHANC_FRAMEWORK_VERSION OR
+      NOT DEFINED ORTHANC_FRAMEWORK_MD5)
     message(FATAL_ERROR "Internal error")
+  endif()
+
+  if (ORTHANC_FRAMEWORK_MD5 STREQUAL "")
+    message(FATAL_ERROR "Unknown release of Orthanc: ${ORTHANC_FRAMEWORK_VERSION}")
+  endif()
+
+  file(MD5 ${ORTHANC_FRAMEWORK_ARCHIVE} ActualMD5)
+
+  if (NOT "${ActualMD5}" STREQUAL "${ORTHANC_FRAMEWORK_MD5}")
+    message(FATAL_ERROR "The MD5 hash of the Orthanc archive is invalid: ${ORTHANC_FRAMEWORK_ARCHIVE}")
   endif()
 
   set(ORTHANC_ROOT "${CMAKE_BINARY_DIR}/Orthanc-${ORTHANC_FRAMEWORK_VERSION}")
@@ -269,7 +263,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
       message(FATAL_ERROR "Archive should have the \".tar.gz\" extension: ${ORTHANC_FRAMEWORK_ARCHIVE}")
     endif()
     
-    message("Uncompressing ${ORTHANC_FRAMEWORK_ARCHIVE}")
+    message("Uncompressing: ${ORTHANC_FRAMEWORK_ARCHIVE}")
 
     if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
       # How to silently extract files using 7-zip
