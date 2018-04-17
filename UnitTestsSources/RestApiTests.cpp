@@ -288,7 +288,7 @@ namespace
                        const IHttpHandler::Arguments& components,
                        const UriComponents& trailing)
     {
-      return resource.Handle(*reinterpret_cast<RestApiGetCall*>(NULL));
+      return resource.Handle(*(RestApiGetCall*) NULL);
     }
   };
 }
