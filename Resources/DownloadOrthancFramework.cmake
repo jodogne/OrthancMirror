@@ -43,16 +43,6 @@ if (NOT DEFINED ORTHANC_FRAMEWORK_SOURCE OR
 endif()
 
 
-if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
-    ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
-  if (NOT STATIC_BUILD AND
-      NOT ALLOW_DOWNLOADS)
-    message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
-  endif()
-endif()
-
-
-
 ##
 ## Detection of the requested version
 ##
@@ -161,8 +151,12 @@ endif()
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg")
+  if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
+    message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
+  endif()
+
   set(ORTHANC_ROOT ${CMAKE_BINARY_DIR}/orthanc)
-  
+
   if (NOT EXISTS ${ORTHANC_ROOT})
     message("Forking the Orthanc source repository using Mercurial")
 
@@ -216,6 +210,10 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
   set(ORTHANC_FRAMEWORK_ARCHIVE "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${ORTHANC_FRAMEMORK_FILENAME}")
 
   if (NOT EXISTS "${ORTHANC_FRAMEWORK_ARCHIVE}")
+    if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
+      message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
+    endif()
+
     message("Downloading: ${ORTHANC_FRAMEWORK_ARCHIVE}")
 
     file(DOWNLOAD
