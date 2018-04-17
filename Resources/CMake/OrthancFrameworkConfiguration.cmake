@@ -458,6 +458,7 @@ add_definitions(
   -DORTHANC_ENABLE_MD5=1
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
+  -DHAS_ORTHANC_EXCEPTION=1
   )
 
 
@@ -488,7 +489,6 @@ else()
     add_definitions(
       -DORTHANC_ENABLE_LOGGING=1
       -DORTHANC_ENABLE_LOGGING_PLUGIN=1
-      -DHAS_ORTHANC_EXCEPTION=1
       )
   else()
     add_definitions(
