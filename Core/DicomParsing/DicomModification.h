@@ -53,6 +53,19 @@ namespace Orthanc
       TagOperation_Remove
     };
 
+    class IDicomIdentifierGenerator : public boost::noncopyable
+    {
+    public:
+      virtual ~IDicomIdentifierGenerator()
+      {
+      }
+
+      virtual bool Apply(std::string& target,
+                         const std::string& sourceIdentifier,
+                         ResourceType level,
+                         const DicomMap& sourceDicom) = 0;                       
+    };
+
   private:
     class RelationshipsVisitor;
 
@@ -71,6 +84,9 @@ namespace Orthanc
     bool keepStudyInstanceUid_;
     bool keepSeriesInstanceUid_;
     bool updateReferencedRelationships_;
+    DicomMap currentSource_;
+
+    IDicomIdentifierGenerator* identifierGenerator_;
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
@@ -151,5 +167,10 @@ namespace Orthanc
 
     void ParseAnonymizationRequest(bool& patientNameReplaced,
                                    const Json::Value& request);
+
+    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator)
+    {
+      identifierGenerator_ = &generator;
+    }
   };
 }

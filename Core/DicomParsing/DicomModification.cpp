@@ -247,7 +247,19 @@ namespace Orthanc
 
     if (previous == uidMap_.end())
     {
-      mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
+      if (identifierGenerator_ == NULL)
+      {
+        mapped = FromDcmtkBridge::GenerateUniqueIdentifier(level);
+      }
+      else
+      {
+        if (!identifierGenerator_->Apply(mapped, original, level, currentSource_))
+        {
+          LOG(ERROR) << "Unable to generate an anonymized ID";
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+        }
+      }
+
       uidMap_.insert(std::make_pair(std::make_pair(level, original), mapped));
     }
     else
@@ -302,7 +314,8 @@ namespace Orthanc
     allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
     keepSeriesInstanceUid_(false),
-    updateReferencedRelationships_(true)
+    updateReferencedRelationships_(true),
+    identifierGenerator_(NULL)
   {
   }
 
@@ -945,6 +958,14 @@ namespace Orthanc
     {
       LOG(ERROR) << "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified";
       throw OrthancException(ErrorCode_BadRequest);
+    }
+
+
+    // (0) Create a summary of the source file, if a custom generator
+    // is provided
+    if (identifierGenerator_ != NULL)
+    {
+      toModify.ExtractDicomSummary(currentSource_);
     }
 
 
