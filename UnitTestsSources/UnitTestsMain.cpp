@@ -701,6 +701,18 @@ TEST(Toolbox, Endianness)
 #if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+  
+  /**
+   * FreeBSD.
+   **/
+  
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#  if _BYTE_ORDER == _BIG_ENDIAN
+   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // _LITTLE_ENDIAN
+   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
 
   /**
    * Linux.
@@ -716,18 +728,6 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
 #  else // __LITTLE_ENDIAN
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
-#  endif
-
-  
-  /**
-   * FreeBSD.
-   **/
-  
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
-#  if _BYTE_ORDER == _BIG_ENDIAN
-   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
-#  else // _LITTLE_ENDIAN
-   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
 #else
