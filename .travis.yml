@@ -48,7 +48,7 @@ before_script:
     ..; fi
   - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
-    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake -DUSE_DCMTK_360=ON
+    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON
     ..; fi
   - if [ $TRAVIS_OS_NAME == osx ]; then cmake 
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
