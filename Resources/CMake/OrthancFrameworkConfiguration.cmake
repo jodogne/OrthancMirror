@@ -481,10 +481,20 @@ if (ORTHANC_SANDBOXED)
 else()
   add_definitions(
     -DORTHANC_SANDBOXED=0
-    -DORTHANC_ENABLE_LOGGING=1
-    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
     -DORTHANC_ENABLE_LOGGING_STDIO=0
     )
+
+  if (ORTHANC_FRAMEWORK_PLUGIN)
+    add_definitions(
+      -DORTHANC_ENABLE_LOGGING=1
+      -DORTHANC_ENABLE_LOGGING_PLUGIN=1
+      )
+  else()
+    add_definitions(
+      -DORTHANC_ENABLE_LOGGING=0
+      -DORTHANC_ENABLE_LOGGING_PLUGIN=0
+      )
+  endif()
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
