@@ -157,18 +157,24 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg")
 
   set(ORTHANC_ROOT ${CMAKE_BINARY_DIR}/orthanc)
 
-  if (NOT EXISTS ${ORTHANC_ROOT})
+  if (EXISTS ${ORTHANC_ROOT})
+    message("Updating the Orthanc source repository using Mercurial")
+    execute_process(
+      COMMAND ${ORTHANC_FRAMEWORK_HG} pull
+      WORKING_DIRECTORY ${ORTHANC_ROOT}
+      RESULT_VARIABLE Failure
+      )    
+  else()
     message("Forking the Orthanc source repository using Mercurial")
-
     execute_process(
       COMMAND ${ORTHANC_FRAMEWORK_HG} clone "https://bitbucket.org/sjodogne/orthanc"
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
-      )
-    
-    if (Failure OR NOT EXISTS ${ORTHANC_ROOT})
-      message(FATAL_ERROR "Cannot fork the Orthanc repository")
-    endif()
+      )    
+  endif()
+
+  if (Failure OR NOT EXISTS ${ORTHANC_ROOT})
+    message(FATAL_ERROR "Cannot fork the Orthanc repository")
   endif()
 
   message("Setting branch of the Orthanc repository to: ${ORTHANC_FRAMEWORK_BRANCH}")
