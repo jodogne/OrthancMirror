@@ -69,7 +69,7 @@
 #    define be32toh(x) __builtin_bswap32(x)
 #    define be64toh(x) __builtin_bswap64(x)
 #  else
-//   MinGW <= 4.2, we must manually implement the byte swapping
+//   MinGW <= 4.2, we must manually implement the byte swapping (*)
 #    define ORTHANC_HAS_BUILTIN_BYTE_SWAP 0
 #    define be16toh(x) __orthanc_bswap16(x)
 #    define be32toh(x) __orthanc_bswap32(x)
@@ -170,7 +170,9 @@ static inline uint64_t __orthanc_bswap64(uint64_t a)
           static_cast<uint64_t>(p[7]));
 }
 
-#if defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && defined(__BIG_ENDIAN)
+#if defined(_WIN32)
+// Implemented above (*)
+#elif defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && defined(__BIG_ENDIAN)
 #  if __BYTE_ORDER == __LITTLE_ENDIAN
 #    define be16toh(x) __orthanc_bswap16(x)
 #    define be32toh(x) __orthanc_bswap32(x)

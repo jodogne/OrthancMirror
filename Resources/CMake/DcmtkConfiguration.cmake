@@ -278,7 +278,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
 
     if (CMAKE_COMPILER_IS_GNUCXX AND
-        DCMTK_PATCH_MINGW64 AND
         USE_DCMTK_360)
       # This is a patch for MinGW64
       execute_process(

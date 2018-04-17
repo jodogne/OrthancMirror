@@ -95,18 +95,13 @@ NOTES:
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------
 
-To cross-compile Windows binaries under Linux using MinGW, please use
-the following command:
+To cross-compile Windows binaries under Linux using MinGW-W64, please
+use the following command:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON ~/Orthanc
+# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DUSE_DCMTK_360=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
+For older MinGW32, use the following CMake invokation:
 
-
-Native Windows build with MinGW (VERY SLOW)
--------------------------------------------
-
-# cd [...]\OrthancBuild
-# cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug [...]\Orthanc
-# mingw32-make
+# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON ~/Orthanc

@@ -6,7 +6,7 @@ diff -urEb dcmtk-3.6.0.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.0/ofstd
    {
      if (file_) fclose();
 -#ifdef _WIN32
-+#if 0
++#if defined(_WIN32) && !defined(__MINGW64_VERSION_MAJOR)
      file_ = _popen(command, modes);
  #else
      file_ = :: popen(command, modes);
@@ -15,8 +15,7 @@ diff -urEb dcmtk-3.6.0.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.0/ofstd
        if (popened_)
        {
 -#ifdef _WIN32
-+#if 0
++#if defined(_WIN32) && !defined(__MINGW64_VERSION_MAJOR)
          result = _pclose(file_);
  #else
          result = :: pclose(file_);
-Only in dcmtk-3.6.0/ofstd/include/dcmtk/ofstd: offile.h~
