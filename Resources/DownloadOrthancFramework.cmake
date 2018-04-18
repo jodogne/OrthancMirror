@@ -206,12 +206,17 @@ endif()
 
 
 ##
-## Case of the Orthanc framework downloaded from the official Web site
+## Case of the Orthanc framework downloaded from the Web
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
-  set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
-  set(ORTHANC_FRAMEWORK_URL "https://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
+  if (DEFINED ORTHANC_FRAMEWORK_URL)
+    string(REGEX REPLACE "^.*/" "" ORTHANC_FRAMEMORK_FILENAME "${ORTHANC_FRAMEWORK_URL}")
+  else()
+    # Default case: Download from the official Web site
+    set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
+    set(ORTHANC_FRAMEWORK_URL "https://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
+  endif()
 
   set(ORTHANC_FRAMEWORK_ARCHIVE "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${ORTHANC_FRAMEMORK_FILENAME}")
 
@@ -220,7 +225,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
       message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
     endif()
 
-    message("Downloading: ${ORTHANC_FRAMEWORK_ARCHIVE}")
+    message("Downloading: ${ORTHANC_FRAMEWORK_URL}")
 
     file(DOWNLOAD
       "${ORTHANC_FRAMEWORK_URL}" "${ORTHANC_FRAMEWORK_ARCHIVE}" 
