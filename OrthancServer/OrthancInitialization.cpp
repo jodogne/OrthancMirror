@@ -32,6 +32,12 @@
 
 
 #include "PrecompiledHeadersServer.h"
+
+#if defined(_WIN32)
+// "Please include winsock2.h before windows.h"
+#  include <winsock2.h>
+#endif
+
 #include "OrthancInitialization.h"
 
 #include "../Core/HttpClient.h"
