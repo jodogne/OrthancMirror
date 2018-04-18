@@ -95,13 +95,35 @@ NOTES:
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------
 
-To cross-compile Windows binaries under Linux using MinGW-W64, please
-use the following command:
+Some versions of MinGW-W64 might have problems with C++11 (notably
+those shipped in Ubuntu 16.04 LTS, in the "mingw-w64" package). Use
+the following command to disable C++11:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DUSE_DCMTK_360=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cmake ~/Orthanc \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake \
+        -DSTANDALONE_BUILD=ON \
+        -DSTATIC_BUILD=ON \
+        -DUSE_LEGACY_JSONCPP=ON
 # make
 
-For older MinGW32, use the following CMake invokation:
+NB: Use the toolchain "MinGW-W64-Toolchain64.cmake" to produce 64bit
+Windows binaries.
 
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON ~/Orthanc
+
+
+Legacy MinGW32 compilers (notably those shipped in Ubuntu 14.04 LTS,
+in the "mingw32" package) are incompatible with DCMTK 3.6.2 and
+C++11. Use the following command to force using DCMTK 3.6.0 and
+disable C++11:
+
+# cd ~/OrthancBuild
+# cmake ~/Orthanc \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake \
+        -DSTANDALONE_BUILD=ON \
+        -DSTATIC_BUILD=ON \
+        -DUSE_DCMTK_360=ON \
+        -DUSE_LEGACY_JSONCPP=ON
+# make
