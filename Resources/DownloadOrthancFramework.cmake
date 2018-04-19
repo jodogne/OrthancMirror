@@ -217,8 +217,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
   else()
     # Default case: Download from the official Web site
     set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
-    #set(ORTHANC_FRAMEWORK_URL "https://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
-    set(ORTHANC_FRAMEWORK_URL "https://www.orthanc-server.com/downloads/third-party/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
+    #set(ORTHANC_FRAMEWORK_URL "http://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
+    set(ORTHANC_FRAMEWORK_URL "http://www.orthanc-server.com/downloads/third-party/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
   endif()
 
   set(ORTHANC_FRAMEWORK_ARCHIVE "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${ORTHANC_FRAMEMORK_FILENAME}")
@@ -292,7 +292,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
         message(FATAL_ERROR "Error while running the uncompression tool")
       endif()
 
-      string(REGEX REPLACE ".gz$" "" TMP "${ORTHANC_FRAMEWORK_ARCHIVE}")
+      get_filename_component(TMP_FILENAME "${ORTHANC_FRAMEWORK_ARCHIVE}" NAME)
+      string(REGEX REPLACE ".gz$" "" TMP_FILENAME2 "${TMP_FILENAME}")
 
       execute_process(
         COMMAND ${ORTHANC_FRAMEWORK_7ZIP} x -y ${TMP_FILENAME2}
