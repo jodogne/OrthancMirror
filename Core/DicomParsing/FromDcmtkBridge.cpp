@@ -57,6 +57,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcdicent.h>
@@ -198,6 +199,56 @@ namespace Orthanc
         return &dictionary_;
       }
     };
+
+    
+#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter) \
+ \
+    struct converter \
+    { \
+      typedef cType CType; \
+ \
+      static bool Apply(CType& result, \
+                        DcmElement& element, \
+                        size_t i) \
+      { \
+        return dynamic_cast<dcmtkType&>(element).getter(result, i).good(); \
+      } \
+    };
+
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32)
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16)
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32)
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint16Converter, Uint16, DcmUnsignedShort, getUint16)
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat32Converter, Float32, DcmFloatingPointSingle, getFloat32)
+DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDouble, getFloat64)
+
+
+    template <typename F>
+    static DicomValue* ApplyDcmtkToCTypeConverter(DcmElement& element)
+    {
+      F f;
+      typename F::CType value;
+
+      if (element.getLength() > sizeof(typename F::CType)
+          && (element.getLength() % sizeof(typename F::CType)) == 0)
+      {
+        size_t count = element.getLength() / sizeof(typename F::CType);
+        std::vector<std::string> strings;
+        for (size_t i = 0; i < count; i++) {
+          if (f.Apply(value, element, i)) {
+            strings.push_back(boost::lexical_cast<std::string>(value));
+          }
+        }
+        return new DicomValue(boost::algorithm::join(strings, "\\"), false);
+      }
+      else if (f.Apply(value, element, 0)) {
+        return new DicomValue(boost::lexical_cast<std::string>(value), false);
+      }
+      else {
+        return new DicomValue;
+      }
+    }
+
   }
 
 
@@ -572,56 +623,32 @@ namespace Orthanc
       
         case EVR_SL:  // signed long
         {
-          Sint32 f;
-          if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToSint32Converter>(element);
         }
 
         case EVR_SS:  // signed short
         {
-          Sint16 f;
-          if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToSint16Converter>(element);
         }
 
         case EVR_UL:  // unsigned long
         {
-          Uint32 f;
-          if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToUint32Converter>(element);
         }
 
         case EVR_US:  // unsigned short
         {
-          Uint16 f;
-          if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToUint16Converter>(element);
         }
 
         case EVR_FL:  // float single-precision
         {
-          Float32 f;
-          if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToFloat32Converter>(element);
         }
 
         case EVR_FD:  // float double-precision
         {
-          Float64 f;
-          if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
-            return new DicomValue(boost::lexical_cast<std::string>(f), false);
-          else
-            return new DicomValue;
+          return ApplyDcmtkToCTypeConverter<DcmtkToFloat64Converter>(element);
         }
 
 
