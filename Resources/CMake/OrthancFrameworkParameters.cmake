@@ -17,7 +17,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "1.0")
+set(ORTHANC_API_VERSION "1.1")
 
 
 #####################################################################
