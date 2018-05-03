@@ -1,0 +1,23 @@
+// dot -Tpdf JobsEngineStates.dot -o JobsEngineStates.pdf
+
+digraph G
+{
+  rankdir="LR";
+  init [shape=point];
+  failure, success [shape=doublecircle];
+
+  // Internal transitions
+  init -> pending;
+  pending -> running;
+  running -> success;
+  running -> failure;
+  running -> retry;
+  retry -> pending [label="timeout"];
+
+  // External actions
+  failure -> pending  [label="Resubmit()" fontcolor="red"];
+  paused -> pending  [label="Resume()" fontcolor="red"];
+  pending -> paused  [label="Pause()" fontcolor="red"];
+  retry -> paused  [label="Pause()" fontcolor="red"];
+  running -> paused  [label="Pause()" fontcolor="red"];
+ }
