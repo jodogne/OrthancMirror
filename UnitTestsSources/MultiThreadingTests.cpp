@@ -259,3 +259,185 @@ TEST(MultiThreading, ServerScheduler)
     t.join();
   }
 }
+
+
+
+
+
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The job engine cannot be used in sandboxed environments
+#endif
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+namespace Orthanc
+{
+  enum JobState
+  {
+    JobState_Pending,
+    JobState_Running,
+    JobState_Success,
+    JobState_Failure,
+    JobState_Paused,
+    JobState_Retry
+  };
+  
+  enum JobStepStatus
+  {
+    JobStepStatus_Success,
+    JobStepStatus_Error,
+    JobStepStatus_Continue,
+    JobStepStatus_Retry
+  };
+
+
+  class IJobStepResult : public boost::noncopyable
+  {
+  private:
+    JobStepStatus status_;
+    
+  public:
+    explicit IJobStepResult(JobStepStatus status) :
+      status_(status)
+    {
+    }
+
+    virtual ~IJobStepResult()
+    {
+    }
+
+    JobStepStatus GetStatus() const
+    {
+      return status_;
+    }
+  };
+
+
+  class RetryResult : public IJobStepResult
+  {
+  private:
+    unsigned int  timeout_;   // Retry after "timeout_" milliseconds
+
+  public:
+    RetryResult(unsigned int timeout) :
+      IJobStepResult(JobStepStatus_Retry),
+      timeout_(timeout)
+    {
+    }
+
+    unsigned int  GetTimeout() const
+    {
+      return timeout_;
+    }
+  };
+
+  
+  class IJob : public boost::noncopyable
+  {
+  public:
+    virtual ~IJob()
+    {
+    }
+
+    virtual IJobStepResult* ExecuteStep() = 0;
+
+    virtual void ReleaseResources() = 0;   // For pausing jobs
+
+    virtual float GetProgress() = 0;
+
+    virtual void FormatStatus(Json::Value& value) = 0;
+  };
+
+
+  class JobsMonitor : public boost::noncopyable
+  {
+  private:
+    class JobHandler : public boost::noncopyable
+    {
+    private:
+      std::string               id_;
+      JobState                  state_;
+      std::auto_ptr<IJob>       job_;
+      int                       priority_;  // "+inf()" means highest priority
+      boost::posix_time::ptime  creationTime_;
+      boost::posix_time::ptime  lastUpdateTime_;
+      uint64_t                  runtime_;  // In milliseconds
+
+    public:
+      JobHandler(IJob* job,
+                 int priority) :
+        id_(Toolbox::GenerateUuid()),
+        state_(JobState_Pending),
+        job_(job),
+        priority_(priority),
+        creationTime_(boost::posix_time::microsec_clock::universal_time()),
+        lastUpdateTime_(creationTime_),
+        runtime_(0)
+      {
+        if (job == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+      }
+
+      const std::string& GetId() const
+      {
+        return id_;
+      }
+    };
+
+  public:
+    void Submit(std::string& id,
+                IJob* job,
+                int priority)
+    {
+      std::auto_ptr<JobHandler>  handler(new JobHandler(job, priority));
+      id = handler->GetId();
+    }
+
+    void SetPriority(const std::string& id,
+                     int priority)
+    {
+      // TODO
+    }
+
+    void Pause(const std::string& id)
+    {
+      // TODO
+    }
+
+    void Resume(const std::string& id)
+    {
+      // TODO
+    }
+
+    void Resubmit(const std::string& id)
+    {
+      // TODO
+    }
+
+    class JobToRun : public boost::noncopyable
+    {
+    private:
+      JobHandler*  handler_;
+      
+    public:
+      JobToRun(JobsMonitor& that,
+               unsigned int timeout) :
+        handler_(NULL)
+      {
+      }
+
+      bool IsValid() const
+      {
+        return handler_ != NULL;
+      }
+
+      
+    };
+  };
+}
