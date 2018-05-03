@@ -20,4 +20,4 @@ digraph G
   pending -> paused  [label="Pause()" fontcolor="red"];
   retry -> paused  [label="Pause()" fontcolor="red"];
   running -> paused  [label="Pause()" fontcolor="red"];
- }
+}
