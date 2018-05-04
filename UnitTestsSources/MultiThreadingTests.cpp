@@ -1291,6 +1291,7 @@ namespace Orthanc
         }
         else
         {
+          job_->ReleaseResources();
           targetState_ = JobState_Paused;
         }
       }
