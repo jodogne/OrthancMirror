@@ -77,6 +77,7 @@ namespace Orthanc
     RetryJobs                  retryJobs_;
 
     boost::condition_variable  pendingJobAvailable_;
+    boost::condition_variable  someJobComplete_;
     size_t                     maxCompletedJobs_;
 
 
@@ -99,6 +100,9 @@ namespace Orthanc
                             unsigned int timeout);
     
     void MarkRunningAsPaused(JobHandler& job);
+    
+    bool GetStateInternal(JobState& state,
+                          const std::string& id);
 
   public:
     JobsRegistry() :
@@ -122,6 +126,9 @@ namespace Orthanc
     
     void Submit(IJob* job,        // Takes ownership
                 int priority);
+
+    bool SubmitAndWait(IJob* job,        // Takes ownership
+                       int priority);
     
     void SetPriority(const std::string& id,
                      int priority);

@@ -102,6 +102,7 @@ namespace Orthanc
         return false;
 
       case JobStepCode_Retry:
+        running.GetJob().ReleaseResources();
         running.MarkRetry(dynamic_cast<JobStepRetry&>(*result).GetTimeout());
         return false;
 
@@ -190,11 +191,6 @@ namespace Orthanc
     
   void JobsEngine::SetWorkersCount(size_t count)
   {
-    if (count == 0)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-      
     boost::mutex::scoped_lock lock(stateMutex_);
       
     if (state_ != State_Setup)
@@ -218,6 +214,19 @@ namespace Orthanc
 
     retryHandler_ = boost::thread(RetryHandler, this);
 
+    if (workers_.size() == 0)
+    {
+      // Use all the available CPUs
+      size_t n = boost::thread::hardware_concurrency();
+      
+      if (n == 0)
+      {
+        n = 1;
+      }
+
+      workers_.resize(n);
+    }      
+
     for (size_t i = 0; i < workers_.size(); i++)
     {
       workers_[i] = boost::thread(Worker, this, i);
@@ -225,7 +234,7 @@ namespace Orthanc
 
     state_ = State_Running;
 
-    LOG(WARNING) << "The jobs engine has started";
+    LOG(WARNING) << "The jobs engine has started with " << workers_.size() << " threads";
   }
 
 
