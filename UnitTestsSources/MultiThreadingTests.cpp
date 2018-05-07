@@ -393,7 +393,7 @@ namespace Orthanc
 
   public:
     JobStatus() :
-      errorCode_(ErrorCode_Success),
+      errorCode_(ErrorCode_InternalError),
       progress_(0),
       description_(Json::objectValue)
     {
@@ -442,7 +442,9 @@ namespace Orthanc
     JobState                          state_;
     boost::posix_time::ptime          timestamp_;
     boost::posix_time::ptime          creationTime_;
+    boost::posix_time::ptime          lastStateChangeTime_;
     boost::posix_time::time_duration  runtime_;
+    bool                              hasEta_;
     boost::posix_time::ptime          eta_;
     JobStatus                         status_;
 
@@ -452,18 +454,30 @@ namespace Orthanc
             JobState state,
             const JobStatus& status,
             const boost::posix_time::ptime& creationTime,
+            const boost::posix_time::ptime& lastStateChangeTime,
             const boost::posix_time::time_duration& runtime) :
       id_(id),
       priority_(priority),
       state_(state),
       timestamp_(boost::posix_time::microsec_clock::universal_time()),
       creationTime_(creationTime),
+      lastStateChangeTime_(lastStateChangeTime),
       runtime_(runtime),
+      hasEta_(false),
       status_(status)
     {
-      float ms = static_cast<float>(runtime_.total_milliseconds());
-      float remaining = boost::math::llround(1.0f - status_.GetProgress()) * ms;
-      eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
+      if (state_ == JobState_Running)
+      {
+        float ms = static_cast<float>(runtime_.total_milliseconds());
+
+        if (status_.GetProgress() > 0.01f &&
+            ms > 0.01f)
+        {
+          float remaining = boost::math::llround(1.0f - status_.GetProgress()) * ms;
+          eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
+          hasEta_ = true;
+        }
+      }
     }
 
     JobInfo() :
@@ -471,8 +485,9 @@ namespace Orthanc
       state_(JobState_Failure),
       timestamp_(boost::posix_time::microsec_clock::universal_time()),
       creationTime_(timestamp_),
+      lastStateChangeTime_(timestamp_),
       runtime_(boost::posix_time::milliseconds(0)),
-      eta_(timestamp_)
+      hasEta_(false)
     {
     }
 
@@ -506,9 +521,39 @@ namespace Orthanc
       return runtime_;
     }
 
+    bool HasEstimatedTimeOfArrival() const
+    {
+      return hasEta_;
+    }
+
+    bool HasCompletionTime() const
+    {
+      return (state_ == JobState_Success ||
+              state_ == JobState_Failure);
+    }
+
     const boost::posix_time::ptime& GetEstimatedTimeOfArrival() const
     {
-      return eta_;
+      if (hasEta_)
+      {
+        return eta_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+    }
+
+    const boost::posix_time::ptime& GetCompletionTime() const
+    {
+      if (HasCompletionTime())
+      {
+        return lastStateChangeTime_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
     }
 
     const JobStatus& GetStatus() const
@@ -526,14 +571,24 @@ namespace Orthanc
       target = Json::objectValue;
       target["ID"] = id_;
       target["Priority"] = priority_;
-      target["ErrorCode"] = EnumerationToString(status_.GetErrorCode());
+      target["ErrorCode"] = static_cast<int>(status_.GetErrorCode());
+      target["ErrorDescription"] = EnumerationToString(status_.GetErrorCode());
       target["State"] = EnumerationToString(state_);
       target["Timestamp"] = boost::posix_time::to_iso_string(timestamp_);
       target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
-      target["Runtime"] = static_cast<uint32_t>(runtime_.total_milliseconds());
-      target["EstimatedTimeOfArrival"] = boost::posix_time::to_iso_string(eta_);
+      target["Runtime"] = static_cast<uint32_t>(runtime_.total_milliseconds());      
       target["Progress"] = boost::math::iround(status_.GetProgress() * 100.0f);
       target["Description"] = status_.GetDescription();
+
+      if (HasEstimatedTimeOfArrival())
+      {
+        target["EstimatedTimeOfArrival"] = boost::posix_time::to_iso_string(GetEstimatedTimeOfArrival());
+      }
+
+      if (HasCompletionTime())
+      {
+        target["CompletionTime"] = boost::posix_time::to_iso_string(GetCompletionTime());
+      }
     }
   };
 
@@ -552,7 +607,7 @@ namespace Orthanc
     bool                              pauseScheduled_;
     JobStatus                         lastStatus_;
 
-    void SetStateInternal(JobState state) 
+    void Touch()
     {
       const boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
 
@@ -561,9 +616,14 @@ namespace Orthanc
         runtime_ += (now - lastStateChangeTime_);
       }
 
-      state_ = state;
       lastStateChangeTime_ = now;
+    }
+
+    void SetStateInternal(JobState state) 
+    {
+      state_ = state;
       pauseScheduled_ = false;
+      Touch();
     }
 
   public:
@@ -583,6 +643,8 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NullPointer);
       }
+
+      lastStatus_ = JobStatus(ErrorCode_Success, *job);
     }
 
     const std::string& GetId() const
@@ -674,6 +736,11 @@ namespace Orthanc
       return creationTime_;
     }
 
+    const boost::posix_time::ptime& GetLastStateChangeTime() const
+    {
+      return lastStateChangeTime_;
+    }
+
     const boost::posix_time::time_duration& GetRuntime() const
     {
       return runtime_;
@@ -687,6 +754,7 @@ namespace Orthanc
     void SetLastStatus(const JobStatus& status)
     {
       lastStatus_ = status;
+      Touch();
     }
   };
 
@@ -943,6 +1011,7 @@ namespace Orthanc
                                     handler.GetState(),
                                     handler.GetLastStatus(),
                                     handler.GetCreationTime(),
+                                    handler.GetLastStateChangeTime(),
                                     handler.GetRuntime());
       }
     }
@@ -2035,22 +2104,45 @@ TEST(JobsEngine, Basic)
   engine.SetWorkersCount(3);
   engine.Start();
 
-  boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  {
+    typedef std::map<std::string, JobInfo> Jobs;
+
+    Jobs jobs;
+    engine.GetRegistry().GetJobsInfo(jobs);
+
+    Json::Value v;
+    for (Jobs::const_iterator it = jobs.begin(); it != jobs.end(); ++it)
+    {
+      Json::Value vv;
+      it->second.Format(vv);
+      v[it->first] = vv;
+    }
+
+    std::cout << v << std::endl;
+  }
+  std::cout << "====================================================" << std::endl;
+
+  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
   engine.Stop();
 
-  typedef std::map<std::string, JobInfo> Jobs;
 
-  Jobs jobs;
-  engine.GetRegistry().GetJobsInfo(jobs);
-
-  Json::Value v;
-  for (Jobs::const_iterator it = jobs.begin(); it != jobs.end(); ++it)
   {
-    Json::Value vv;
-    it->second.Format(vv);
-    v[it->first] = vv;
-  }
+    typedef std::map<std::string, JobInfo> Jobs;
 
-  std::cout << v << std::endl;
+    Jobs jobs;
+    engine.GetRegistry().GetJobsInfo(jobs);
+
+    Json::Value v;
+    for (Jobs::const_iterator it = jobs.begin(); it != jobs.end(); ++it)
+    {
+      Json::Value vv;
+      it->second.Format(vv);
+      v[it->first] = vv;
+    }
+
+    std::cout << v << std::endl;
+  }
 }
