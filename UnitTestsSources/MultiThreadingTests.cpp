@@ -39,8 +39,6 @@
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/MultiThreading/Locker.h"
-#include "../Core/MultiThreading/Mutex.h"
-#include "../Core/MultiThreading/ReaderWriterLock.h"
 
 using namespace Orthanc;
 
@@ -105,27 +103,6 @@ TEST(MultiThreading, SharedMessageQueueClean)
   }
 }
 
-
-TEST(MultiThreading, Mutex)
-{
-  Mutex mutex;
-  Locker locker(mutex);
-}
-
-
-TEST(MultiThreading, ReaderWriterLock)
-{
-  ReaderWriterLock lock;
-
-  {
-    Locker locker1(lock.ForReader());
-    Locker locker2(lock.ForReader());
-  }
-
-  {
-    Locker locker3(lock.ForWriter());
-  }
-}
 
 
 
