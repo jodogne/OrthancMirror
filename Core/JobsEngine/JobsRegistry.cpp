@@ -92,6 +92,7 @@ namespace Orthanc
       }
 
       lastStatus_ = JobStatus(ErrorCode_Success, *job);
+      job->Start();
     }
 
     const std::string& GetId() const
@@ -348,6 +349,8 @@ namespace Orthanc
     completedJobs_.push_back(&job);
     ForgetOldCompletedJobs();
 
+    someJobComplete_.notify_all();
+
     CheckInvariants();
   }
 
@@ -382,6 +385,24 @@ namespace Orthanc
   }
 
 
+  bool JobsRegistry::GetStateInternal(JobState& state,
+                                      const std::string& id)
+  {
+    CheckInvariants();
+
+    JobsIndex::const_iterator it = jobsIndex_.find(id);
+    if (it == jobsIndex_.end())
+    {
+      return false;
+    }
+    else
+    {
+      state = it->second->GetState();
+      return true;
+    }
+  }
+
+  
   JobsRegistry::~JobsRegistry()
   {
     for (JobsIndex::iterator it = jobsIndex_.begin(); it != jobsIndex_.end(); ++it)
@@ -471,6 +492,31 @@ namespace Orthanc
   {
     std::string id;
     Submit(id, job, priority);
+  }
+
+
+  bool JobsRegistry::SubmitAndWait(IJob* job,        // Takes ownership
+                                   int priority)
+  {
+    std::string id;
+    Submit(id, job, priority);
+
+    printf(">> %s\n", id.c_str()); fflush(stdout);
+
+    JobState state;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      while (GetStateInternal(state, id) &&
+             state != JobState_Success &&
+             state != JobState_Failure)
+      {
+        someJobComplete_.wait(lock);
+      }
+    }
+
+    return (state == JobState_Success);
   }
 
 
@@ -687,18 +733,7 @@ namespace Orthanc
                               const std::string& id)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    CheckInvariants();
-
-    JobsIndex::const_iterator it = jobsIndex_.find(id);
-    if (it == jobsIndex_.end())
-    {
-      return false;
-    }
-    else
-    {
-      state = it->second->GetState();
-      return true;
-    }
+    return GetStateInternal(state, id);
   }
 
   

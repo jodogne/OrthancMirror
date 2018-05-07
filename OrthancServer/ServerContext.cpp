@@ -134,6 +134,10 @@ namespace Orthanc
 
     listeners_.push_back(ServerListener(lua_, "Lua"));
 
+    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    //jobsEngine_.SetMaxCompleted   // TODO
+    jobsEngine_.Start();
+
     changeThread_ = boost::thread(ChangeThread, this);
   }
 
@@ -168,6 +172,7 @@ namespace Orthanc
       scu_.Finalize();
 
       // Do not change the order below!
+      jobsEngine_.Stop();
       scheduler_.Stop();
       index_.Stop();
     }
