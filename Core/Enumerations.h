@@ -542,6 +542,24 @@ namespace Orthanc
     TransferSyntax_Rle
   };
 
+  enum JobState
+  {
+    JobState_Pending,
+    JobState_Running,
+    JobState_Success,
+    JobState_Failure,
+    JobState_Paused,
+    JobState_Retry
+  };
+
+  enum JobStepCode
+  {
+    JobStepCode_Success,
+    JobStepCode_Failure,
+    JobStepCode_Continue,
+    JobStepCode_Retry
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -621,6 +639,8 @@ namespace Orthanc
   const char* EnumerationToString(DicomVersion version);
 
   const char* EnumerationToString(ValueRepresentation vr);
+
+  const char* EnumerationToString(JobState state);
 
   Encoding StringToEncoding(const char* encoding);
 

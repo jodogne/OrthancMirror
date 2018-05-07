@@ -984,6 +984,34 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(JobState state)
+  {
+    switch (state)
+    {
+      case JobState_Pending:
+        return "Pending";
+        
+      case JobState_Running:
+        return "Running";
+        
+      case JobState_Success:
+        return "Success";
+        
+      case JobState_Failure:
+        return "Failure";
+        
+      case JobState_Paused:
+        return "Paused";
+        
+      case JobState_Retry:
+        return "Retry";
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
