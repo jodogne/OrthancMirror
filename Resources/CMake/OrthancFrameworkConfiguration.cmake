@@ -498,9 +498,6 @@ else()
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/Mutex.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/ReaderWriterLock.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
