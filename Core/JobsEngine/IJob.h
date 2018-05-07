@@ -47,6 +47,9 @@ namespace Orthanc
     {
     }
 
+    // Method called once the job enters the jobs engine
+    virtual void Start() = 0;
+    
     virtual JobStepResult* ExecuteStep() = 0;
 
     virtual void ReleaseResources() = 0;   // For pausing jobs

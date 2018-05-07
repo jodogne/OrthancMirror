@@ -48,6 +48,7 @@
 #include "Scheduler/ServerScheduler.h"
 #include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
+#include "../Core/JobsEngine/JobsEngine.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -120,6 +121,7 @@ namespace Orthanc
     MemoryCache dicomCache_;
     ReusableDicomUserConnection scu_;
     ServerScheduler scheduler_;
+    JobsEngine jobsEngine_;
 
     LuaScripting lua_;
 
@@ -246,6 +248,11 @@ namespace Orthanc
     ServerScheduler& GetScheduler()
     {
       return scheduler_;
+    }
+
+    JobsEngine& GetJobsEngine()
+    {
+      return jobsEngine_;
     }
 
     bool DeleteResource(Json::Value& target,
