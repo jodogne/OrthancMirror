@@ -164,20 +164,23 @@ namespace Orthanc
                                 const DcmTagKey& key)
     {
       DcmElement* element = NULL;
+      result.clear();
 
       if (source.findAndGetElement(key, element).good())
       {
         char* s = NULL;
         if (element->isLeaf() &&
-            element->getString(s).good() &&
-            s != NULL)
+            element->getString(s).good())
         {
-          result = Toolbox::ConvertToUtf8(s, encoding);
+          if (s != NULL)
+          {
+            result = Toolbox::ConvertToUtf8(s, encoding);
+          }
+          
           return true;
         }
       }
 
-      result.clear();
       return false;
     }
 
