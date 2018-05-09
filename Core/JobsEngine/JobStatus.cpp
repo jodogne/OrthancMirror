@@ -39,7 +39,9 @@ namespace Orthanc
   JobStatus::JobStatus() :
     errorCode_(ErrorCode_InternalError),
     progress_(0),
-    description_(Json::objectValue)
+    jobType_("Invalid"),
+    publicContent_(Json::objectValue),
+    internalContent_(Json::objectValue)
   {
   }
 
@@ -47,7 +49,9 @@ namespace Orthanc
   JobStatus::JobStatus(ErrorCode code,
                        IJob& job) :
     errorCode_(code),
-    progress_(job.GetProgress())
+    progress_(job.GetProgress()),
+    publicContent_(Json::objectValue),
+    internalContent_(Json::objectValue)
   {
     if (progress_ < 0)
     {
@@ -59,6 +63,8 @@ namespace Orthanc
       progress_ = 1;
     }
 
-    job.GetDescription(description_);
+    job.GetJobType(jobType_);
+    job.GetPublicContent(publicContent_);
+    job.GetInternalContent(internalContent_);
   }
 }

@@ -1212,7 +1212,7 @@ namespace Orthanc
     ResourceType type;
     if (!db_.LookupResource(id, type, publicId))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     std::string patientId;

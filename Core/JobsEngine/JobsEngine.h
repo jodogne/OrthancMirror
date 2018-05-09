@@ -56,6 +56,8 @@ namespace Orthanc
     boost::thread               retryHandler_;
     std::vector<boost::thread>  workers_;
 
+    bool IsRunning();
+    
     bool ExecuteStep(JobsRegistry::RunningJob& running,
                      size_t workerIndex);
     

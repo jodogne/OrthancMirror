@@ -115,6 +115,6 @@ namespace Orthanc
       return status_;
     }
 
-    void Format(Json::Value& target) const;
+    void Serialize(Json::Value& target) const;
   };
 }

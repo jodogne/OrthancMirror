@@ -146,6 +146,24 @@ namespace Orthanc
   }
 
 
+  static void GetDefaultEncoding(RestApiGetCall& call)
+  {
+    Encoding encoding = GetDefaultDicomEncoding();
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  static void SetDefaultEncoding(RestApiPutCall& call)
+  {
+    Encoding encoding = StringToEncoding(call.GetBodyData());
+
+    Configuration::SetDefaultEncoding(encoding);
+
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  
   // Plugins information ------------------------------------------------------
 
   static void ListPlugins(RestApiGetCall& call)
@@ -251,23 +269,65 @@ namespace Orthanc
   }
 
 
-  static void GetDefaultEncoding(RestApiGetCall& call)
+
+
+  // Jobs information ------------------------------------------------------
+
+  static void ListJobs(RestApiGetCall& call)
   {
-    Encoding encoding = GetDefaultDicomEncoding();
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    bool expand = call.HasArgument("expand");
+
+    Json::Value v = Json::arrayValue;
+
+    std::set<std::string> jobs;
+    OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().ListJobs(jobs);
+
+    for (std::set<std::string>::const_iterator it = jobs.begin();
+         it != jobs.end(); ++it)
+    {
+      if (expand)
+      {
+        JobInfo info;
+        if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
+        {
+          Json::Value tmp;
+          info.Serialize(tmp);
+          v.append(tmp);
+        }
+      }
+      else
+      {
+        v.append(*it);
+      }
+    }
+    
+    call.GetOutput().AnswerJson(v);
   }
 
-
-  static void SetDefaultEncoding(RestApiPutCall& call)
+  static void GetJobInfo(RestApiGetCall& call)
   {
-    Encoding encoding = StringToEncoding(call.GetBodyData());
+    std::string id = call.GetUriComponent("id", "");
 
-    Configuration::SetDefaultEncoding(encoding);
-
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    JobInfo info;
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
+    {
+      Json::Value json;
+      info.Serialize(json);
+      call.GetOutput().AnswerJson(json);
+    }
   }
 
+  static void PauseJob(RestApiPostCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
 
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id))
+    {
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
+  
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -284,5 +344,9 @@ namespace Orthanc
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);
     Register("/plugins/explorer.js", GetOrthancExplorerPlugins);
+
+    Register("/jobs", ListJobs);
+    Register("/jobs/{id}", GetJobInfo);
+    Register("/jobs/{id}/pause", PauseJob);
   }
 }

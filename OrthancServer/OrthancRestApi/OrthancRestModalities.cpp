@@ -44,6 +44,352 @@
 #include "../QueryRetrieveHandler.h"
 #include "../ServerToolbox.h"
 
+
+
+namespace Orthanc
+{
+  class InstancesIteratorJob : public IJob
+  {
+  private:
+    bool                      started_;
+    std::vector<std::string>  instances_;
+    size_t                    position_;
+
+  public:
+    InstancesIteratorJob() :
+      started_(false),
+      position_(0)
+    {
+    }
+
+    void Reserve(size_t size)
+    {
+      if (started_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        instances_.reserve(size);
+      }
+    }
+
+    size_t GetInstancesCount() const
+    {
+      return instances_.size();
+    }
+    
+    void AddInstance(const std::string& instance)
+    {
+      if (started_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        instances_.push_back(instance);
+      }
+    }
+    
+    virtual void Start()
+    {
+      started_ = true;
+    }
+    
+    virtual float GetProgress()
+    {
+      if (instances_.size() == 0)
+      {
+        return 0;
+      }
+      else
+      {
+        return (static_cast<float>(position_) /
+                static_cast<float>(instances_.size()));
+      }
+    }
+
+    bool IsStarted() const
+    {
+      return started_;
+    }
+
+    bool IsDone() const
+    {
+      return (position_ >= instances_.size());
+    }
+
+    void Next()
+    {
+      if (IsDone())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        position_ += 1;
+      }
+    }
+
+    const std::string& GetCurrentInstance() const
+    {
+      if (IsDone())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        return instances_[position_];
+      }      
+    }
+  };
+
+
+  class StoreScuJob : public InstancesIteratorJob
+  {
+  private:
+    ServerContext&                      context_;
+    std::string                         localAet_;
+    RemoteModalityParameters            remote_;
+    bool                                permissive_;
+    std::string                         moveOriginatorAet_;
+    uint16_t                            moveOriginatorId_;
+    std::auto_ptr<DicomUserConnection>  connection_;
+    std::set<std::string>               failedInstances_;
+
+    void Open()
+    {
+      if (connection_.get() == NULL)
+      {
+        connection_.reset(new DicomUserConnection);
+        connection_->SetLocalApplicationEntityTitle(localAet_);
+        connection_->SetRemoteModality(remote_);
+        connection_->Open();
+      }
+    }
+    
+  public:
+    StoreScuJob(ServerContext& context) :
+      context_(context),
+      localAet_("ORTHANC"),
+      permissive_(false),
+      moveOriginatorId_(0)  // By default, not a C-MOVE
+    {
+    }
+
+    void AddResource(const std::string& publicId)
+    {
+      typedef std::list<std::string> Instances;
+
+      Instances instances;
+      context_.GetIndex().GetChildInstances(instances, publicId);
+
+      Reserve(GetInstancesCount() + instances.size());
+      
+      for (Instances::const_iterator it = instances.begin();
+           it != instances.end(); ++it)
+      {
+        AddInstance(*it);
+      }
+    }
+
+    const std::string& GetLocalAet() const
+    {
+      return localAet_;
+    }
+
+    void SetLocalAet(const std::string& aet)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        localAet_ = aet;
+      }
+    }
+
+    const RemoteModalityParameters& GetRemoteModality() const
+    {
+      return remote_;
+    }
+
+    void SetRemoteModality(const RemoteModalityParameters& remote)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        remote_ = remote;
+      }
+    }
+
+    bool IsPermissive() const
+    {
+      return permissive_;
+    }
+
+    void SetPermissive(bool permissive)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        permissive_ = permissive;
+      }
+    }
+
+    bool HasMoveOriginator() const
+    {
+      return moveOriginatorId_ != 0;
+    }
+    
+    const std::string& GetMoveOriginatorAet() const
+    {
+      if (HasMoveOriginator())
+      {
+        return moveOriginatorAet_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+    }
+    
+    uint16_t GetMoveOriginatorId() const
+    {
+      if (HasMoveOriginator())
+      {
+        return moveOriginatorId_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+    }
+
+    void SetMoveOriginator(const std::string& aet,
+                           int id)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else if (id < 0 || 
+               id >= 65536)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        moveOriginatorId_ = static_cast<uint16_t>(id);
+        moveOriginatorAet_ = aet;
+      }
+    }
+
+    virtual JobStepResult* ExecuteStep()
+    {
+      if (IsDone())
+      {
+        return new JobStepResult(JobStepCode_Success);
+      }
+
+      Open();
+
+      bool ok = false;
+      
+      try
+      {
+        std::string dicom;
+        context_.ReadDicom(dicom, GetCurrentInstance());
+
+        if (HasMoveOriginator())
+        {
+          connection_->Store(dicom, moveOriginatorAet_, moveOriginatorId_);
+        }
+        else
+        {
+          connection_->Store(dicom);
+        }
+
+        boost::this_thread::sleep(boost::posix_time::milliseconds(300));
+
+        ok = true;
+      }
+      catch (OrthancException& e)
+      {
+      }
+
+      if (!ok)
+      {
+        if (permissive_)
+        {
+          failedInstances_.insert(GetCurrentInstance());
+        }
+        else
+        {
+          return new JobStepResult(JobStepCode_Failure);
+        }
+      }
+
+      Next();
+
+      if (IsDone())
+      {
+        return new JobStepResult(JobStepCode_Success);
+      }
+      else
+      {
+        return new JobStepResult(JobStepCode_Continue);
+      }
+    }
+
+    virtual void ReleaseResources()   // For pausing jobs
+    {
+      connection_.reset(NULL);
+    }
+
+    virtual void GetJobType(std::string& target)
+    {
+      target = "C-Store";
+    }
+
+    virtual void GetPublicContent(Json::Value& value)
+    {
+      value["LocalAet"] = localAet_;
+      value["RemoteAet"] = remote_.GetApplicationEntityTitle();
+
+      if (HasMoveOriginator())
+      {
+        value["MoveOriginatorAET"] = GetMoveOriginatorAet();
+        value["MoveOriginatorID"] = GetMoveOriginatorId();
+      }
+
+      Json::Value v = Json::arrayValue;
+      for (std::set<std::string>::const_iterator it = failedInstances_.begin();
+           it != failedInstances_.end(); ++it)
+      {
+        v.append(*it);
+      }
+
+      value["FailedInstances"] = v;
+    }
+
+    virtual void GetInternalContent(Json::Value& value)
+    {
+      // TODO
+    }
+  };
+}
+
+
+
+
 namespace Orthanc
 {
   /***************************************************************************
@@ -689,6 +1035,7 @@ namespace Orthanc
     bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
     std::string moveOriginatorAET = Toolbox::GetJsonStringField(request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField(request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
     if (moveOriginatorID < 0 || 
         moveOriginatorID >= 65536)
@@ -698,6 +1045,44 @@ namespace Orthanc
     
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
 
+#if 1
+    std::auto_ptr<StoreScuJob> job(new StoreScuJob(context));
+    job->SetLocalAet(localAet);
+    job->SetRemoteModality(p);
+    job->SetPermissive(permissive);
+
+    if (moveOriginatorID != 0)
+    {
+      job->SetMoveOriginator(moveOriginatorAET, static_cast<uint16_t>(moveOriginatorID));
+    }
+
+    for (std::list<std::string>::const_iterator 
+           it = instances.begin(); it != instances.end(); ++it)
+    {
+      job->AddInstance(*it);
+    }
+
+    if (asynchronous)
+    {
+      // Asynchronous mode: Submit the job, but don't wait for its completion
+      std::string id;
+      context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
+
+      Json::Value v;
+      v["ID"] = id;
+      call.GetOutput().AnswerJson(v);
+    }
+    else if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), priority))
+    {
+      // Synchronous mode: We have submitted and waited for completion
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    }
+    
+#else
     ServerJob job;
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
@@ -729,6 +1114,7 @@ namespace Orthanc
     {
       call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
     }
+#endif
   }
 
 
