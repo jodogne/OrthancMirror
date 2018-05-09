@@ -1,9 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New advanced job engine
+
 REST API
 --------
 
+* "/jobs/..." to manage the jobs from the REST API
 * ".../tags" URI was returning only the first value of DicomTags containing 
   multiple numerical value.  It now returns all values in a string separated
   by \\ (i.e.: "1\\2\\3").  Note that, for data already in Orthanc, you'll need
