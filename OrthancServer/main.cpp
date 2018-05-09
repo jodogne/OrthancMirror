@@ -793,7 +793,9 @@ static bool StartHttpServer(ServerContext& context,
   }
 
   httpServer.Start();
-  LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
+  LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber()
+               << " (HTTPS encryption is "
+               << (httpServer.IsSslEnabled() ? "enabled" : "disabled") << ")";
   
   bool restart = WaitForExit(context, restApi);
 
