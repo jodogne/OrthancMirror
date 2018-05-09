@@ -3,11 +3,18 @@ Pending changes in the mainline
 
 REST API
 --------
+
 * ".../tags" URI was returning only the first value of DicomTags containing 
   multiple numerical value.  It now returns all values in a string separated
   by \\ (i.e.: "1\\2\\3").  Note that, for data already in Orthanc, you'll need
   to reconstruct the data by sending a POST request to the ".../reconstruct" URI.
   This change triggered an update of ORTHANC_API_VERSION from 1.0 to 1.1
+
+Maintenance
+-----------
+
+* Fix generation of DICOMDIR if PatientID is empty
+
 
 Version 1.3.2 (2018-04-18)
 ==========================

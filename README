@@ -47,16 +47,16 @@ Similarly, we ask open-source and closed-source products that make
 use of Orthanc to warn us about this use. You can cite our work
 using the following BibTeX entry:
 
-@inproceedings{Jodogne:ISBI2013,
-  author = {Jodogne, S. and Bernard, C. and Devillers, M. and Lenaerts, E. and Coucke, P.},
-  title = {Orthanc -- {A} Lightweight, {REST}ful {DICOM} Server for Healthcare and Medical Research},
-  booktitle={Biomedical Imaging ({ISBI}), {IEEE} 10th International Symposium on}, 
-  year={2013}, 
-  pages={190-193}, 
-  ISSN={1945-7928},
-  month=apr,
-  url={http://ieeexplore.ieee.org/xpl/articleDetails.jsp?tp=&arnumber=6556444},
-  address={San Francisco, {CA}, {USA}}
+@Article{Jodogne2018,
+  author="Jodogne, S{\'e}bastien",
+  title="The {O}rthanc Ecosystem for Medical Imaging",
+  journal="Journal of Digital Imaging",
+  year="2018",
+  month="May",
+  day="03",
+  issn="1618-727X",
+  doi="10.1007/s10278-018-0082-y",
+  url="https://doi.org/10.1007/s10278-018-0082-y"
 }
 
 
