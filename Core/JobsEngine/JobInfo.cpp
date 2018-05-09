@@ -62,7 +62,8 @@ namespace Orthanc
       if (status_.GetProgress() > 0.01f &&
           ms > 0.01f)
       {
-        float remaining = boost::math::llround(1.0f - status_.GetProgress()) * ms;
+        float ratio = static_cast<float>(1.0 - status_.GetProgress());
+        long long remaining = boost::math::llround(ratio * ms);
         eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
         hasEta_ = true;
       }
@@ -115,7 +116,7 @@ namespace Orthanc
   }
 
 
-  void JobInfo::Format(Json::Value& target) const
+  void JobInfo::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
     target["ID"] = id_;
@@ -125,9 +126,12 @@ namespace Orthanc
     target["State"] = EnumerationToString(state_);
     target["Timestamp"] = boost::posix_time::to_iso_string(timestamp_);
     target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
-    target["Runtime"] = static_cast<uint32_t>(runtime_.total_milliseconds());      
+    target["EffectiveRuntime"] = static_cast<double>(runtime_.total_milliseconds()) / 1000.0;
     target["Progress"] = boost::math::iround(status_.GetProgress() * 100.0f);
-    target["Description"] = status_.GetDescription();
+
+    target["Type"] = status_.GetJobType();
+    target["PublicContent"] = status_.GetPublicContent();
+    target["InternalContent"] = status_.GetInternalContent();
 
     if (HasEstimatedTimeOfArrival())
     {

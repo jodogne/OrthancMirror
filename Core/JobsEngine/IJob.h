@@ -56,6 +56,10 @@ namespace Orthanc
 
     virtual float GetProgress() = 0;
 
-    virtual void GetDescription(Json::Value& value) = 0;
+    virtual void GetJobType(std::string& target) = 0;
+    
+    virtual void GetPublicContent(Json::Value& value) = 0;
+
+    virtual void GetInternalContent(Json::Value& value) = 0;
   };
 }

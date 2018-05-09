@@ -520,7 +520,7 @@ namespace Orthanc
   }
 
 
-  void JobsRegistry::SetPriority(const std::string& id,
+  bool JobsRegistry::SetPriority(const std::string& id,
                                  int priority)
   {
     LOG(INFO) << "Changing priority to " << priority << " for job: " << id;
@@ -533,6 +533,7 @@ namespace Orthanc
     if (found == jobsIndex_.end())
     {
       LOG(WARNING) << "Unknown job: " << id;
+      return false;
     }
     else
     {
@@ -553,13 +554,14 @@ namespace Orthanc
           copy.pop();
         }
       }
-    }
 
-    CheckInvariants();
+      CheckInvariants();
+      return true;
+    }
   }
 
 
-  void JobsRegistry::Pause(const std::string& id)
+  bool JobsRegistry::Pause(const std::string& id)
   {
     LOG(INFO) << "Pausing job: " << id;
 
@@ -571,6 +573,7 @@ namespace Orthanc
     if (found == jobsIndex_.end())
     {
       LOG(WARNING) << "Unknown job: " << id;
+      return false;
     }
     else
     {
@@ -623,13 +626,14 @@ namespace Orthanc
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
-    }
 
-    CheckInvariants();
+      CheckInvariants();
+      return true;
+    }
   }
 
 
-  void JobsRegistry::Resume(const std::string& id)
+  bool JobsRegistry::Resume(const std::string& id)
   {
     LOG(INFO) << "Resuming job: " << id;
 
@@ -641,23 +645,25 @@ namespace Orthanc
     if (found == jobsIndex_.end())
     {
       LOG(WARNING) << "Unknown job: " << id;
+      return false;
     }
     else if (found->second->GetState() != JobState_Paused)
     {
       LOG(WARNING) << "Cannot resume a job that is not paused: " << id;
+      return false;
     }
     else
     {
       found->second->SetState(JobState_Pending);
       pendingJobs_.push(found->second);
       pendingJobAvailable_.notify_one();
+      CheckInvariants();
+      return true;      
     }
-
-    CheckInvariants();
   }
 
 
-  void JobsRegistry::Resubmit(const std::string& id)
+  bool JobsRegistry::Resubmit(const std::string& id)
   {
     LOG(INFO) << "Resubmitting failed job: " << id;
 
@@ -669,10 +675,12 @@ namespace Orthanc
     if (found == jobsIndex_.end())
     {
       LOG(WARNING) << "Unknown job: " << id;
+      return false;
     }
     else if (found->second->GetState() != JobState_Failure)
     {
       LOG(WARNING) << "Cannot resubmit a job that has not failed: " << id;
+      return false;
     }
     else
     {
@@ -693,9 +701,10 @@ namespace Orthanc
       found->second->SetState(JobState_Pending);
       pendingJobs_.push(found->second);
       pendingJobAvailable_.notify_one();
-    }
 
-    CheckInvariants();
+      CheckInvariants();
+      return true;
+    }
   }
 
 
