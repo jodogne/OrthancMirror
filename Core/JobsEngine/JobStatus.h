@@ -42,7 +42,9 @@ namespace Orthanc
   private:
     ErrorCode      errorCode_;
     float          progress_;
-    Json::Value    description_;
+    std::string    jobType_;
+    Json::Value    publicContent_;
+    Json::Value    internalContent_;
 
   public:
     JobStatus();
@@ -60,9 +62,19 @@ namespace Orthanc
       return progress_;
     }
 
-    const Json::Value& GetDescription() const
+    const std::string& GetJobType() const
     {
-      return description_;
+      return jobType_;
+    }
+
+    const Json::Value& GetPublicContent() const
+    {
+      return publicContent_;
+    }
+
+    const Json::Value& GetInternalContent() const
+    {
+      return internalContent_;
     }
   };
 }

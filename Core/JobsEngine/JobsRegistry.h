@@ -130,14 +130,14 @@ namespace Orthanc
     bool SubmitAndWait(IJob* job,        // Takes ownership
                        int priority);
     
-    void SetPriority(const std::string& id,
+    bool SetPriority(const std::string& id,
                      int priority);
 
-    void Pause(const std::string& id);
+    bool Pause(const std::string& id);
     
-    void Resume(const std::string& id);
+    bool Resume(const std::string& id);
 
-    void Resubmit(const std::string& id);
+    bool Resubmit(const std::string& id);
     
     void ScheduleRetries();
     

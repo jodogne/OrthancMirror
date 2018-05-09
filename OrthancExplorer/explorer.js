@@ -1104,3 +1104,140 @@ $('#plugins').live('pagebeforeshow', function() {
     }
   });
 });
+
+
+
+function ParseJobTime(s)
+{
+  var t = (s.substr(0, 4) + '-' +
+           s.substr(4, 2) + '-' +
+           s.substr(6, 5) + ':' +
+           s.substr(11, 2) + ':' +
+           s.substr(13));
+  var utc = new Date(t);
+
+  // Convert from UTC to local time
+  return new Date(utc.getTime() - utc.getTimezoneOffset() * 60000);
+}
+
+
+function AddJobField(target, description, field)
+{
+  if (!(typeof field === 'undefined')) {
+    target.append($('<p>')
+                  .text(description)
+                  .append($('<strong>').text(field)));
+  }
+}
+
+
+function AddJobDateField(target, description, field)
+{
+  if (!(typeof field === 'undefined')) {
+    target.append($('<p>')
+                  .text(description)
+                  .append($('<strong>').text(ParseJobTime(field))));
+  }
+}
+
+
+$('#jobs').live('pagebeforeshow', function() {
+  $.ajax({
+    url: '../jobs?expand',
+    dataType: 'json',
+    async: false,
+    cache: false,
+    success: function(jobs) {
+      var target = $('#all-jobs');
+      $('li', target).remove();
+
+      jobs.map(function(job) {
+        var li = $('<li>');
+        var item = $('<a>');
+        li.append(item);
+        item.attr('href', '#job?uuid=' + job.ID);
+        item.append($('<h1>').text(job.Type));
+        item.append($('<span>').addClass('ui-li-count').text(job.State));
+        AddJobField(item, 'ID: ', job.ID);
+        AddJobField(item, 'Local AET: ', job.PublicContent.LocalAet);
+        AddJobField(item, 'Remote AET: ', job.PublicContent.RemoteAet);
+        AddJobDateField(item, 'Creation time: ', job.CreationTime);
+        AddJobDateField(item, 'Completion time: ', job.CompletionTime);
+        AddJobDateField(item, 'ETA: ', job.EstimatedTimeOfArrival);
+        target.append(li);
+      });
+
+      target.listview('refresh');
+    }
+  });
+});
+
+
+$('#job').live('pagebeforeshow', function() {
+  if ($.mobile.pageData) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    $.ajax({
+      url: '../jobs/' + pageData.uuid,
+      dataType: 'json',
+      async: false,
+      cache: false,
+      success: function(job) {
+        var target = $('#job-info');
+        $('li', target).remove();
+
+        target.append($('<li>')
+                      .attr('data-role', 'list-divider')
+                      .text('General information about the job'));
+
+        var block = $('<li>');
+        for (var i in job) {
+          if (i == 'CreationTime' ||
+              i == 'CompletionTime' ||
+              i == 'EstimatedTimeOfArrival') {
+            AddJobDateField(block, i + ': ', job[i]);
+          } else if (i != 'InternalContent' &&
+                     i != 'PublicContent' &&
+                     i != 'Timestamp') {
+            AddJobField(block, i + ': ', job[i]);
+          }
+        }
+
+        target.append(block);
+        
+        target.append($('<li>')
+                      .attr('data-role', 'list-divider')
+                      .text('Detailed information'));
+
+        var block = $('<li>');
+        for (var i in job.PublicContent) {
+          AddJobField(block, i + ': ', JSON.stringify(job.PublicContent[i]));
+        }
+
+        target.append(block);
+        
+        target.listview('refresh');
+
+        $('#job-delete').closest('.ui-btn').show();
+        $('#job-retry').closest('.ui-btn').hide();
+        $('#job-resubmit').closest('.ui-btn').hide();
+        $('#job-pause').closest('.ui-btn').hide();
+        $('#job-resume').closest('.ui-btn').hide();
+
+        if (job.State == 'Running' ||
+            job.State == 'Pending' ||
+            job.State == 'Retry') {
+          $('#job-pause').closest('.ui-btn').show();
+        }
+        else if (job.State == 'Success') {
+        }
+        else if (job.State == 'Failure') {
+          $('#job-resubmit').closest('.ui-btn').show();
+        }
+        else if (job.State == 'Paused') {
+          $('#job-resume').closest('.ui-btn').show();
+        }
+      }
+    });
+  }
+});

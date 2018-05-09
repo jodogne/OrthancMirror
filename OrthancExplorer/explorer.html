@@ -37,7 +37,10 @@
     <div data-role="page" id="find-patients" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Find a patient</h1>
-        <a href="#plugins" data-icon="grid" class="ui-btn-left" data-direction="reverse">Plugins</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left"> 
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
+          <a href="#jobs" data-icon="refresh" data-role="button" data-direction="reverse">Jobs</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -418,6 +421,43 @@
       </div>
     </div>
 
+    
+    <div data-role="page" id="jobs" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>Jobs</h1>
+        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+      </div>
+      <div data-role="content">
+        <ul id="all-jobs" data-role="listview" data-inset="true" data-filter="true">
+        </ul>
+      </div>
+    </div>
+
+    <div data-role="page" id="job" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>Job</h1>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left"> 
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#jobs" data-icon="refresh" data-role="button" data-direction="reverse">Jobs</a>
+        </div>
+      </div>
+      <div data-role="content">
+        <ul data-role="listview" data-inset="true" data-filter="true" id="job-info">
+        </ul>
+
+        <fieldset class="ui-grid-b">
+          <div class="ui-block-a"></div>
+	  <div class="ui-block-b">
+            <button id="job-delete" data-theme="b">Delete job</button>         
+            <button id="job-retry" data-theme="b">Retry job</button>         
+            <button id="job-resubmit" data-theme="b">Resubmit job</button>         
+            <button id="job-pause" data-theme="b">Pause job</button>         
+            <button id="job-resume" data-theme="b">Resume job</button>         
+          </div>
+          <div class="ui-block-c"></div>
+	</fieldset>
+      </div>
+    </div>
 
     <div id="peer-store" style="display:none;" class="ui-body-c">
       <p align="center"><b>Sending to Orthanc peer...</b></p>

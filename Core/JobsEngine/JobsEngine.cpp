@@ -41,13 +41,17 @@
 
 namespace Orthanc
 {
+  bool JobsEngine::IsRunning()
+  {
+    boost::mutex::scoped_lock lock(stateMutex_);
+    return (state_ == State_Running);
+  }
+  
+  
   bool JobsEngine::ExecuteStep(JobsRegistry::RunningJob& running,
                                size_t workerIndex)
   {
     assert(running.IsValid());
-
-    LOG(INFO) << "Executing job with priority " << running.GetPriority()
-              << " in worker thread " << workerIndex << ": " << running.GetId();
 
     if (running.IsPauseScheduled())
     {
@@ -94,10 +98,12 @@ namespace Orthanc
     switch (result->GetCode())
     {
       case JobStepCode_Success:
+        running.GetJob().ReleaseResources();
         running.MarkSuccess();
         return false;
 
       case JobStepCode_Failure:
+        running.GetJob().ReleaseResources();
         running.MarkFailure();
         return false;
 
@@ -119,19 +125,9 @@ namespace Orthanc
   {
     assert(engine != NULL);
 
-    for (;;)
+    while (engine->IsRunning())
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-
-      {
-        boost::mutex::scoped_lock lock(engine->stateMutex_);
-
-        if (engine->state_ != State_Running)
-        {
-          return;
-        }
-      }
-
       engine->GetRegistry().ScheduleRetries();
     }
   }
@@ -144,22 +140,16 @@ namespace Orthanc
 
     LOG(INFO) << "Worker thread " << workerIndex << " has started";
 
-    for (;;)
+    while (engine->IsRunning())
     {
-      {
-        boost::mutex::scoped_lock lock(engine->stateMutex_);
-
-        if (engine->state_ != State_Running)
-        {
-          return;
-        }
-      }
-
       JobsRegistry::RunningJob running(engine->GetRegistry(), 100);
 
       if (running.IsValid())
       {
-        for (;;)
+        LOG(INFO) << "Executing job with priority " << running.GetPriority()
+                  << " in worker thread " << workerIndex << ": " << running.GetId();
+
+        while (engine->IsRunning())
         {
           if (!engine->ExecuteStep(running, workerIndex))
           {
