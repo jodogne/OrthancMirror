@@ -264,8 +264,6 @@ namespace Orthanc
                                          const std::string& moveOriginatorAET,
                                          uint16_t moveOriginatorID)
   {
-    CheckIsOpen();
-
     DcmFileFormat dcmff;
     Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength));
 
@@ -284,23 +282,36 @@ namespace Orthanc
     bool isGeneric = IsGenericTransferSyntax(syntax);
 
     bool renegotiate;
-    if (isGeneric)
+
+    if (!IsOpen())
+    {
+      renegotiate = true;
+    }
+    else if (isGeneric)
     {
       // Are we making a generic-to-specific or specific-to-generic change of
       // the transfer syntax? If this is the case, renegotiate the connection.
       renegotiate = !IsGenericTransferSyntax(connection.GetPreferredTransferSyntax());
+
+      if (renegotiate)
+      {
+        LOG(INFO) << "Use of non-generic transfer syntax: the C-Store associated must be renegotiated";
+      }
     }
     else
     {
       // We are using a specific transfer syntax. Renegotiate if the
       // current connection does not match this transfer syntax.
       renegotiate = (syntax != connection.GetPreferredTransferSyntax());
+
+      if (renegotiate)
+      {
+        LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
+      }
     }
 
     if (renegotiate)
     {
-      LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
-
       if (isGeneric)
       {
         connection.ResetPreferredTransferSyntax();
@@ -313,7 +324,6 @@ namespace Orthanc
 
     if (!connection.IsOpen())
     {
-      LOG(INFO) << "Renegotiating a C-Store association due to a change in the parameters";
       connection.Open();
     }
 

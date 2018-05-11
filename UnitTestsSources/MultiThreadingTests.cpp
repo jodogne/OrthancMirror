@@ -291,7 +291,16 @@ public:
     return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
   }
 
-  virtual void GetDescription(Json::Value& value)
+  virtual void GetJobType(std::string& type)
+  {
+    type = "DummyJob";
+  }
+
+  virtual void GetInternalContent(Json::Value& value)
+  {
+  }
+
+  virtual void GetPublicContent(Json::Value& value)
   {
     value["hello"] = "world";
   }
@@ -632,7 +641,7 @@ TEST(JobsEngine, Basic)
       if (engine.GetRegistry().GetJobInfo(info, *it))
       {
         Json::Value vv;
-        info.Format(vv);
+        info.Serialize(vv);
         v.append(vv);
       }
     }
@@ -668,7 +677,7 @@ TEST(JobsEngine, Basic)
       if (engine.GetRegistry().GetJobInfo(info, *it))
       {
         Json::Value vv;
-        info.Format(vv);
+        info.Serialize(vv);
         v.append(vv);
       }
     }
