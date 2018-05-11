@@ -60,6 +60,13 @@ namespace Orthanc
       return false;
     }
 
+    if (running.IsCancelScheduled())
+    {
+      running.GetJob().ReleaseResources();
+      running.MarkCanceled();
+      return false;
+    }
+
     std::auto_ptr<JobStepResult> result;
 
     {

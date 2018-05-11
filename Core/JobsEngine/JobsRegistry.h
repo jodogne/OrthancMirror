@@ -93,6 +93,9 @@ namespace Orthanc
 
     void ForgetOldCompletedJobs();
 
+    void SetCompletedJob(JobHandler& job,
+                         bool success);
+    
     void MarkRunningAsCompleted(JobHandler& job,
                                 bool success);
 
@@ -104,6 +107,10 @@ namespace Orthanc
     bool GetStateInternal(JobState& state,
                           const std::string& id);
 
+    void RemovePendingJob(const std::string& id);
+      
+    void RemoveRetryJob(JobHandler* handler);
+      
   public:
     JobsRegistry() :
       maxCompletedJobs_(10)
@@ -138,6 +145,8 @@ namespace Orthanc
     bool Resume(const std::string& id);
 
     bool Resubmit(const std::string& id);
+
+    bool Cancel(const std::string& id);
     
     void ScheduleRetries();
     
@@ -158,6 +167,7 @@ namespace Orthanc
       int            priority_;
       JobState       targetState_;
       unsigned int   targetRetryTimeout_;
+      bool           canceled_;
       
     public:
       RunningJob(JobsRegistry& registry,
@@ -175,11 +185,15 @@ namespace Orthanc
 
       bool IsPauseScheduled();
 
+      bool IsCancelScheduled();
+
       void MarkSuccess();
 
       void MarkFailure();
 
       void MarkPause();
+
+      void MarkCanceled();
 
       void MarkRetry(unsigned int timeout);
 

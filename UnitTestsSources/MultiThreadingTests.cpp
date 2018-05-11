@@ -323,6 +323,22 @@ static bool CheckState(Orthanc::JobsRegistry& registry,
 }
 
 
+static bool CheckErrorCode(Orthanc::JobsRegistry& registry,
+                           const std::string& id,
+                           Orthanc::ErrorCode code)
+{
+  Orthanc::JobInfo s;
+  if (registry.GetJobInfo(s, id))
+  {
+    return code == s.GetStatus().GetErrorCode();
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
 TEST(JobsRegistry, Priority)
 {
   JobsRegistry registry;
@@ -608,6 +624,99 @@ TEST(JobsRegistry, PauseRetry)
   }
 
   ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+}
+
+
+TEST(JobsRegistry, Cancel)
+{
+  JobsRegistry registry;
+
+  std::string id;
+  registry.Submit(id, new DummyJob(), 10);
+
+  ASSERT_FALSE(registry.Cancel("nope"));
+
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+            
+  ASSERT_TRUE(registry.Cancel(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+  
+  ASSERT_TRUE(registry.Cancel(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+  
+  ASSERT_TRUE(registry.Resubmit(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+  
+  {
+    JobsRegistry::RunningJob job(registry, 0);
+    ASSERT_TRUE(job.IsValid());
+
+    ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+
+    job.MarkSuccess();
+    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+  }
+
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+
+  ASSERT_TRUE(registry.Cancel(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+
+  registry.Submit(id, new DummyJob(), 10);
+
+  {
+    JobsRegistry::RunningJob job(registry, 0);
+    ASSERT_TRUE(job.IsValid());
+    ASSERT_EQ(id, job.GetId());
+
+    ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+
+    job.MarkCanceled();
+  }
+
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+
+  ASSERT_TRUE(registry.Resubmit(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+
+  ASSERT_TRUE(registry.Pause(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+
+  ASSERT_TRUE(registry.Cancel(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+
+  ASSERT_TRUE(registry.Resubmit(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
+
+  {
+    JobsRegistry::RunningJob job(registry, 0);
+    ASSERT_TRUE(job.IsValid());
+    ASSERT_EQ(id, job.GetId());
+
+    ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+
+    job.MarkRetry(500);
+  }
+
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Retry));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
+
+  ASSERT_TRUE(registry.Cancel(id));
+  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 }
 
 
