@@ -157,14 +157,13 @@ namespace Orthanc
     std::auto_ptr<DicomUserConnection>  connection_;
     std::set<std::string>               failedInstances_;
 
-    void Open()
+    void CreateConnection()
     {
       if (connection_.get() == NULL)
       {
         connection_.reset(new DicomUserConnection);
         connection_->SetLocalApplicationEntityTitle(localAet_);
         connection_->SetRemoteModality(remote_);
-        connection_->Open();
       }
     }
     
@@ -299,7 +298,7 @@ namespace Orthanc
         return new JobStepResult(JobStepCode_Success);
       }
 
-      Open();
+      CreateConnection();
 
       bool ok = false;
       
