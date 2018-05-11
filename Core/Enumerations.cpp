@@ -164,6 +164,9 @@ namespace Orthanc
       case ErrorCode_DatabaseUnavailable:
         return "The database is currently not available (probably a transient situation)";
 
+      case ErrorCode_CanceledJob:
+        return "This job was canceled";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 

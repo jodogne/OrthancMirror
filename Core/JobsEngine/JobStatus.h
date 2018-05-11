@@ -57,6 +57,11 @@ namespace Orthanc
       return errorCode_;
     }
 
+    void SetErrorCode(ErrorCode error)
+    {
+      errorCode_ = error;
+    }
+
     float GetProgress() const
     {
       return progress_;
