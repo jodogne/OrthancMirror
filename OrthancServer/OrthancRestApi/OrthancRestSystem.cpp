@@ -317,11 +317,45 @@ namespace Orthanc
     }
   }
 
-  static void PauseJob(RestApiPostCall& call)
+
+  enum JobAction
+  {
+    JobAction_Cancel,
+    JobAction_Pause,
+    JobAction_Resubmit,
+    JobAction_Resume
+  };
+
+  template <JobAction action>
+  static void ApplyJobAction(RestApiPostCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
 
-    if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id))
+    bool ok = false;
+
+    switch (action)
+    {
+      case JobAction_Cancel:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Cancel(id);
+        break;
+
+      case JobAction_Pause:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id);
+        break;
+ 
+      case JobAction_Resubmit:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resubmit(id);
+        break;
+
+      case JobAction_Resume:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resume(id);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    if (ok)
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
     }
@@ -347,6 +381,9 @@ namespace Orthanc
 
     Register("/jobs", ListJobs);
     Register("/jobs/{id}", GetJobInfo);
-    Register("/jobs/{id}/pause", PauseJob);
+    Register("/jobs/{id}/cancel", ApplyJobAction<JobAction_Cancel>);
+    Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
+    Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
+    Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
   }
 }

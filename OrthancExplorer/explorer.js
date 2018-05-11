@@ -1218,7 +1218,7 @@ $('#job').live('pagebeforeshow', function() {
         
         target.listview('refresh');
 
-        $('#job-delete').closest('.ui-btn').show();
+        $('#job-cancel').closest('.ui-btn').hide();
         $('#job-retry').closest('.ui-btn').hide();
         $('#job-resubmit').closest('.ui-btn').hide();
         $('#job-pause').closest('.ui-btn').hide();
@@ -1227,6 +1227,7 @@ $('#job').live('pagebeforeshow', function() {
         if (job.State == 'Running' ||
             job.State == 'Pending' ||
             job.State == 'Retry') {
+          $('#job-cancel').closest('.ui-btn').show();
           $('#job-pause').closest('.ui-btn').show();
         }
         else if (job.State == 'Success') {
@@ -1240,4 +1241,34 @@ $('#job').live('pagebeforeshow', function() {
       }
     });
   }
+});
+
+
+
+function TriggerJobAction(action)
+{
+  $.ajax({
+    url: '../jobs/' + $.mobile.pageData.uuid + '/' + action,
+    type: 'POST',
+    async: false,
+    complete: function(s) {
+      window.location.reload();
+    }
+  });
+}
+
+$('#job-cancel').live('click', function() {
+  TriggerJobAction('cancel');
+});
+
+$('#job-resubmit').live('click', function() {
+  TriggerJobAction('resubmit');
+});
+
+$('#job-pause').live('click', function() {
+  TriggerJobAction('pause');
+});
+
+$('#job-resume').live('click', function() {
+  TriggerJobAction('resume');
 });
