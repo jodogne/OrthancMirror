@@ -969,7 +969,7 @@ namespace Orthanc
         // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
         "enable_keep_alive", (keepAlive_ ? "yes" : "no"),
 
-if ORTHANC_ENABLE_CIVETWEB == 1
+#if ORTHANC_ENABLE_CIVETWEB == 1
         // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
         "keep_alive_timeout_ms", (keepAlive_ ? "500" : "0"),
 #endif
