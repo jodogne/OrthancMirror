@@ -795,13 +795,12 @@ namespace Orthanc
   }
 
 
-  DicomUserConnection::DicomUserConnection() : 
-    pimpl_(new PImpl),
-    preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
-    localAet_("STORESCU"),
-    remoteAet_("ANY-SCP"),
-    remoteHost_("127.0.0.1")
+  void DicomUserConnection::DefaultSetup()
   {
+    preferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
+    localAet_ = "STORESCU";
+    remoteAet_ = "ANY-SCP";
+    remoteHost_ = "127.0.0.1";
     remotePort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
@@ -819,6 +818,24 @@ namespace Orthanc
 
     ResetStorageSOPClasses();
   }
+   
+
+  DicomUserConnection::DicomUserConnection() : 
+    pimpl_(new PImpl)
+  {
+    DefaultSetup();
+  }
+  
+
+  DicomUserConnection::DicomUserConnection(const std::string& localAet,
+                                           const RemoteModalityParameters& remote) : 
+    pimpl_(new PImpl)
+  {
+    DefaultSetup();
+    SetLocalApplicationEntityTitle(localAet);
+    SetRemoteModality(remote);
+  }
+
 
   DicomUserConnection::~DicomUserConnection()
   {

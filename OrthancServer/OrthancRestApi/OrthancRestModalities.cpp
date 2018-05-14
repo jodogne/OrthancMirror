@@ -89,7 +89,7 @@ namespace Orthanc
         connection_->Store(dicom);
       }
 
-      boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+      //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
       return true;
     }
@@ -221,7 +221,7 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance)
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+      //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
       if (client_.get() == NULL)
       {
