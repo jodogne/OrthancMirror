@@ -266,6 +266,10 @@ public:
   virtual void Start()
   {
   }
+
+  virtual void SignalResubmit()
+  {
+  }
     
   virtual JobStepResult* ExecuteStep()
   {
