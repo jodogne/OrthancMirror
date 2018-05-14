@@ -48,13 +48,6 @@ namespace Orthanc
     size_t                    position_;
     std::set<std::string>     failedInstances_;
 
-    bool IsDone() const
-    {
-      return (position_ >= instances_.size());
-    }
-
-    void Next();
-
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
 
@@ -91,8 +84,6 @@ namespace Orthanc
       return started_;
     }
 
-    const std::string& GetCurrentInstance() const;
-    
     const std::vector<std::string>& GetInstances() const
     {
       return instances_;
