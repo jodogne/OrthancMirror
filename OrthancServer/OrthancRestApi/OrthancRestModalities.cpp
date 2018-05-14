@@ -78,7 +78,7 @@ namespace Orthanc
                 << remote_.GetApplicationEntityTitle() << "\"";
 
       std::string dicom;
-      context_.ReadDicom(dicom, GetCurrentInstance());
+      context_.ReadDicom(dicom, instance);
 
       if (HasMoveOriginator())
       {
@@ -232,7 +232,7 @@ namespace Orthanc
       LOG(INFO) << "Sending instance " << instance << " to peer \"" 
                 << peer_.GetUrl() << "\"";
 
-      context_.ReadDicom(client_->GetBody(), GetCurrentInstance());
+      context_.ReadDicom(client_->GetBody(), instance);
 
       std::string answer;
       if (client_->Apply(answer))
