@@ -1151,6 +1151,22 @@ $('#jobs').live('pagebeforeshow', function() {
       var target = $('#all-jobs');
       $('li', target).remove();
 
+      var running = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Currently running');
+
+      var pending = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Pending jobs');
+
+      var inactive = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Inactive jobs');
+
+      target.append(running);
+      target.append(pending);
+      target.append(inactive);
+
       jobs.map(function(job) {
         var li = $('<li>');
         var item = $('<a>');
@@ -1164,7 +1180,16 @@ $('#jobs').live('pagebeforeshow', function() {
         AddJobDateField(item, 'Creation time: ', job.CreationTime);
         AddJobDateField(item, 'Completion time: ', job.CompletionTime);
         AddJobDateField(item, 'ETA: ', job.EstimatedTimeOfArrival);
-        target.append(li);
+
+        if (job.State == 'Running') {
+          AddJobField(item, 'Progress: ', job.Progress);
+          li.insertAfter(running);
+        } else if (job.State == 'Pending' ||
+                   job.State == 'Paused') {
+          li.insertAfter(pending);
+        } else {
+          li.insertAfter(inactive);
+        }
       });
 
       target.listview('refresh');
@@ -1210,8 +1235,14 @@ $('#job').live('pagebeforeshow', function() {
                       .text('Detailed information'));
 
         var block = $('<li>');
-        for (var i in job.PublicContent) {
-          AddJobField(block, i + ': ', JSON.stringify(job.PublicContent[i]));
+
+        for (var item in job.PublicContent) {
+          var value = job.PublicContent[item];
+          if (typeof value !== 'string') {
+            value = JSON.stringify(value);
+          }
+          
+          AddJobField(block, item + ': ', value);
         }
 
         target.append(block);
@@ -1251,6 +1282,7 @@ function TriggerJobAction(action)
     url: '../jobs/' + $.mobile.pageData.uuid + '/' + action,
     type: 'POST',
     async: false,
+    cache: false,
     complete: function(s) {
       window.location.reload();
     }

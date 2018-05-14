@@ -52,7 +52,10 @@ namespace Orthanc
     
     virtual JobStepResult* ExecuteStep() = 0;
 
-    virtual void ReleaseResources() = 0;   // For pausing jobs
+    // Method called once the job is resubmitted after a failure
+    virtual void SignalResubmit() = 0;
+
+    virtual void ReleaseResources() = 0;   // For pausing/canceling jobs
 
     virtual float GetProgress() = 0;
 
