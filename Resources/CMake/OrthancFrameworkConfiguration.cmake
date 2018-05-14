@@ -502,6 +502,7 @@ else()
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsEngine.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
