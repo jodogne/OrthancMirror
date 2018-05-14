@@ -204,22 +204,27 @@ namespace Orthanc
       try
       {
         ok = HandleInstance(GetCurrentInstance());
+
+        if (!ok && !permissive_)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
       }
       catch (OrthancException& e)
       {
-        ok = false;
+        if (permissive_)
+        {
+          ok = false;
+        }
+        else
+        {
+          throw;
+        }
       }
 
       if (!ok)
       {
-        if (permissive_)
-        {
-          failedInstances_.insert(GetCurrentInstance());
-        }
-        else
-        {
-          return new JobStepResult(JobStepCode_Failure);
-        }
+        failedInstances_.insert(GetCurrentInstance());
       }
 
       Next();
@@ -431,6 +436,8 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance)
     {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+
       if (client_.get() == NULL)
       {
         client_.reset(new HttpClient(peer_, "instances"));
@@ -443,13 +450,32 @@ namespace Orthanc
       context_.ReadDicom(client_->GetBody(), GetCurrentInstance());
 
       std::string answer;
-      return client_->Apply(answer);
+      if (client_->Apply(answer))
+      {
+        return true;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol);
+      }
     }
     
   public:
     OrthancPeerStoreJob(ServerContext& context) :
       context_(context)
     {
+    }
+
+    void SetPeer(const WebServiceParameters& peer)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        peer_ = peer;
+      }
     }
 
     const WebServiceParameters& GetPeer() const
@@ -1109,46 +1135,33 @@ namespace Orthanc
   }
 
 
-  static void DicomStore(RestApiPostCall& call)
+  static void SubmitJob(RestApiPostCall& call,
+                        const Json::Value& request,
+                        const std::list<std::string>& instances,
+                        SetOfInstancesJob* jobRaw)
   {
+    std::auto_ptr<SetOfInstancesJob> job(jobRaw);
+    
+    if (job.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::string remote = call.GetUriComponent("id", "");
-
-    Json::Value request;
-    std::list<std::string> instances;
-    if (!GetInstancesToExport(request, instances, remote, call))
-    {
-      return;
-    }
-
-    std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
     bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
     bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
-    std::string moveOriginatorAET = Toolbox::GetJsonStringField(request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
-    int moveOriginatorID = Toolbox::GetJsonIntegerField(request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
     int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
-    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-
-    std::auto_ptr<DicomStoreJob> job(new DicomStoreJob(context));
-    job->SetLocalAet(localAet);
-    job->SetRemoteModality(p);
     job->SetPermissive(permissive);
-
-    if (moveOriginatorID != 0)
-    {
-      job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
-    }
-
     job->Reserve(instances.size());
-    
+
     for (std::list<std::string>::const_iterator 
            it = instances.begin(); it != instances.end(); ++it)
     {
       job->AddInstance(*it);
     }
-
+    
     if (asynchronous)
     {
       // Asynchronous mode: Submit the job, but don't wait for its completion
@@ -1168,6 +1181,41 @@ namespace Orthanc
     {
       call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
     }
+  }
+
+
+  static void DicomStore(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string remote = call.GetUriComponent("id", "");
+
+    Json::Value request;
+    std::list<std::string> instances;
+    if (!GetInstancesToExport(request, instances, remote, call))
+    {
+      return;
+    }
+
+    std::string localAet = Toolbox::GetJsonStringField
+      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string moveOriginatorAET = Toolbox::GetJsonStringField
+      (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
+    int moveOriginatorID = Toolbox::GetJsonIntegerField
+      (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+
+    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
+
+    std::auto_ptr<DicomStoreJob> job(new DicomStoreJob(context));
+    job->SetLocalAet(localAet);
+    job->SetRemoteModality(p);
+
+    if (moveOriginatorID != 0)
+    {
+      job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
+    }
+
+    SubmitJob(call, request, instances, job.release());
   }
 
 
@@ -1196,8 +1244,10 @@ namespace Orthanc
 
     ResourceType level = StringToResourceType(request["Level"].asCString());
     
-    std::string localAet = Toolbox::GetJsonStringField(request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
-    std::string targetAet = Toolbox::GetJsonStringField(request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string localAet = Toolbox::GetJsonStringField
+      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string targetAet = Toolbox::GetJsonStringField
+      (request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
 
     const RemoteModalityParameters source = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
       
@@ -1289,35 +1339,13 @@ namespace Orthanc
       return;
     }
 
-    bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
-
     WebServiceParameters peer;
     Configuration::GetOrthancPeer(peer, remote);
 
-    ServerJob job;
-    for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); ++it)
-    {
-      job.AddCommand(new StorePeerCommand(context, peer, false)).AddInput(*it);
-    }
+    std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
+    job->SetPeer(peer);    
 
-    job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
-
-    if (asynchronous)
-    {
-      // Asynchronous mode: Submit the job, but don't wait for its completion
-      context.GetScheduler().Submit(job);
-      call.GetOutput().AnswerBuffer("{}", "application/json");
-    }
-    else if (context.GetScheduler().SubmitAndWait(job))
-    {
-      // Synchronous mode: We have submitted and waited for completion
-      call.GetOutput().AnswerBuffer("{}", "application/json");
-    }
-    else
-    {
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-    }
+    SubmitJob(call, request, instances, job.release());
   }
 
 
