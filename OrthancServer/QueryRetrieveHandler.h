@@ -49,8 +49,11 @@ namespace Orthanc
     DicomFindAnswers           answers_;
     std::string                modalityName_;
 
+    std::auto_ptr<DicomUserConnection>  connection_;
+
     void Invalidate();
 
+    DicomUserConnection& GetConnection();
 
   public:
     QueryRetrieveHandler(ServerContext& context);

@@ -76,6 +76,19 @@ namespace Orthanc
   {
     done_ = false;
     answers_.Clear();
+    connection_.reset(NULL);
+  }
+
+
+  DicomUserConnection& QueryRetrieveHandler::GetConnection()
+  {
+    if (connection_.get() == NULL)
+    {
+      connection_.reset(new DicomUserConnection(localAet_, modality_));
+      connection_->Open();
+    }
+
+    return *connection_;
   }
 
 
@@ -91,11 +104,7 @@ namespace Orthanc
       // Secondly, possibly fix the query with the user-provider Lua callback
       FixQuery(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
-      {
-        // Finally, run the C-FIND SCU against the fixed query
-        ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-        locker.GetConnection().Find(answers_, level_, fixed);
-      }
+      GetConnection().Find(answers_, level_, fixed);
 
       done_ = true;
     }
@@ -155,11 +164,7 @@ namespace Orthanc
   {
     DicomMap map;
     GetAnswer(map, i);
-
-    {
-      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-      locker.GetConnection().Move(target, map);
-    }
+    GetConnection().Move(target, map);
   }
 
 

@@ -55,6 +55,7 @@ namespace Orthanc
       RemoteModalityParameters remote_;
       std::string originatorAet_;
       uint16_t originatorId_;
+      std::auto_ptr<DicomUserConnection> connection_;
 
     public:
       OrthancMoveRequestIterator(ServerContext& context,
@@ -99,11 +100,12 @@ namespace Orthanc
         std::string dicom;
         context_.ReadDicom(dicom, id);
 
+        if (connection_.get() == NULL)
         {
-          ReusableDicomUserConnection::Locker locker
-            (context_.GetReusableDicomUserConnection(), localAet_, remote_);
-          locker.GetConnection().Store(dicom, originatorAet_, originatorId_);
+          connection_.reset(new DicomUserConnection(localAet_, remote_));
         }
+
+        connection_->Store(dicom, originatorAet_, originatorId_);
 
         return Status_Success;
       }
