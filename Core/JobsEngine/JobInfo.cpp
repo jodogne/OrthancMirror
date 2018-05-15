@@ -116,7 +116,8 @@ namespace Orthanc
   }
 
 
-  void JobInfo::Serialize(Json::Value& target) const
+  void JobInfo::Serialize(Json::Value& target,
+                          bool includeInternalContent) const
   {
     target = Json::objectValue;
     target["ID"] = id_;
@@ -131,7 +132,11 @@ namespace Orthanc
 
     target["Type"] = status_.GetJobType();
     target["PublicContent"] = status_.GetPublicContent();
-    target["InternalContent"] = status_.GetInternalContent();
+
+    if (includeInternalContent)
+    {
+      target["InternalContent"] = status_.GetInternalContent();
+    }
 
     if (HasEstimatedTimeOfArrival())
     {

@@ -754,7 +754,7 @@ TEST(JobsEngine, Basic)
       if (engine.GetRegistry().GetJobInfo(info, *it))
       {
         Json::Value vv;
-        info.Serialize(vv);
+        info.Serialize(vv, true);
         v.append(vv);
       }
     }
@@ -790,7 +790,7 @@ TEST(JobsEngine, Basic)
       if (engine.GetRegistry().GetJobInfo(info, *it))
       {
         Json::Value vv;
-        info.Serialize(vv);
+        info.Serialize(vv, true);
         v.append(vv);
       }
     }
