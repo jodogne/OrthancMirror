@@ -1181,8 +1181,14 @@ $('#jobs').live('pagebeforeshow', function() {
         AddJobDateField(item, 'Completion time: ', job.CompletionTime);
         AddJobDateField(item, 'ETA: ', job.EstimatedTimeOfArrival);
 
-        if (job.State == 'Running') {
+        if (job.State == 'Running' ||
+            job.State == 'Pending' ||
+            job.State == 'Paused') {
+          AddJobField(item, 'Priority: ', job.Priority);
           AddJobField(item, 'Progress: ', job.Progress);
+        }
+        
+        if (job.State == 'Running') {
           li.insertAfter(running);
         } else if (job.State == 'Pending' ||
                    job.State == 'Paused') {

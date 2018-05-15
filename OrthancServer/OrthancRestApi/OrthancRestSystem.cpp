@@ -291,7 +291,7 @@ namespace Orthanc
         if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
         {
           Json::Value tmp;
-          info.Serialize(tmp);
+          info.Serialize(tmp, false);
           v.append(tmp);
         }
       }
@@ -312,7 +312,7 @@ namespace Orthanc
     if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
     {
       Json::Value json;
-      info.Serialize(json);
+      info.Serialize(json, false);
       call.GetOutput().AnswerJson(json);
     }
   }
