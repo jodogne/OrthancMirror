@@ -264,15 +264,29 @@ function FormatPatient(patient, link, isReverse)
 
 
 
-function FormatStudy(study, link, isReverse)
+function FormatStudy(study, link, isReverse, includePatient)
 {
-  var node = $('<div>').append($('<h3>').text(study.MainDicomTags.StudyDescription));
+  var label;
 
-  FormatMainDicomTags(node, study.MainDicomTags, [ 
-     "StudyDescription", 
-     "StudyTime" 
-  ]);
+  if (includePatient) {
+    label = study.Label;
+  } else {
+    label = study.MainDicomTags.StudyDescription;
+  }
+
+  var node = $('<div>').append($('<h3>').text(label));
+
+  if (includePatient) {
+    FormatMainDicomTags(node, study.PatientMainDicomTags, [ 
+      'PatientName'
+    ]);
+  }
     
+  FormatMainDicomTags(node, study.MainDicomTags, [ 
+     'StudyDescription', 
+     'StudyTime' 
+  ]);
+
   return CompleteFormatting(node, link, isReverse, study.Series.length);
 }
 
@@ -348,17 +362,55 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 $('#find-patients').live('pagebeforeshow', function() {
   GetResource('/patients?expand', function(patients) {
-      var target = $('#all-patients');
-      $('li', target).remove();
+    var target = $('#all-patients');
+    $('li', target).remove();
     
-      SortOnDicomTag(patients, 'PatientName', false, false);
+    SortOnDicomTag(patients, 'PatientName', false, false);
 
-      for (var i = 0; i < patients.length; i++) {
-        var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
-        target.append(p);
+    for (var i = 0; i < patients.length; i++) {
+      var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
+      target.append(p);
+    }
+
+    target.listview('refresh');
+  });
+});
+
+
+
+$('#find-studies').live('pagebeforeshow', function() {
+  GetResource('/studies?expand', function(studies) {
+    var target = $('#all-studies');
+    $('li', target).remove();
+
+    for (var i = 0; i < studies.length; i++) {
+      var patient = studies[i].PatientMainDicomTags.PatientName;
+      var study = studies[i].MainDicomTags.StudyDescription;
+
+      var s;
+      if (typeof patient === 'string') {
+        s = patient;
       }
 
-      target.listview('refresh');
+      if (typeof study === 'string') {
+        if (s.length > 0) {
+          s += ' - ';
+        }
+
+        s += study;
+      }
+
+      studies[i]['Label'] = s;
+    }
+
+    Sort(studies, function(a) { return a.Label }, false, false);
+
+    for (var i = 0; i < studies.length; i++) {
+      var p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
+      target.append(p);
+    }
+
+    target.listview('refresh');
   });
 });
 
