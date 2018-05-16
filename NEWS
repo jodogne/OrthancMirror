@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Orthanc Explorer
+----------------
+
+* New screen listing all the available studies
+
 REST API
 --------
 
