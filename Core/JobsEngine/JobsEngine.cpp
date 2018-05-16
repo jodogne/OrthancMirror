@@ -34,8 +34,6 @@
 #include "../PrecompiledHeaders.h"
 #include "JobsEngine.h"
 
-#include "JobStepRetry.h"
-
 #include "../Logging.h"
 #include "../OrthancException.h"
 
@@ -67,59 +65,47 @@ namespace Orthanc
       return false;
     }
 
-    std::auto_ptr<JobStepResult> result;
+    JobStepResult result;
 
+    try
     {
-      try
-      {
-        result.reset(running.GetJob().ExecuteStep());
-
-        if (result->GetCode() == JobStepCode_Failure)
-        {
-          running.UpdateStatus(ErrorCode_InternalError);
-        }
-        else
-        {
-          running.UpdateStatus(ErrorCode_Success);
-        }
-      }
-      catch (OrthancException& e)
-      {
-        running.UpdateStatus(e.GetErrorCode());
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        running.UpdateStatus(ErrorCode_BadFileFormat);
-      }
-      catch (...)
-      {
-        running.UpdateStatus(ErrorCode_InternalError);
-      }
-
-      if (result.get() == NULL)
-      {
-        result.reset(new JobStepResult(JobStepCode_Failure));
-      }
+      result = running.GetJob().ExecuteStep();
+    }
+    catch (OrthancException& e)
+    {
+      result = JobStepResult::Failure(e.GetErrorCode());
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      result = JobStepResult::Failure(ErrorCode_BadFileFormat);
+    }
+    catch (...)
+    {
+      result = JobStepResult::Failure(ErrorCode_InternalError);
     }
 
-    switch (result->GetCode())
+    switch (result.GetCode())
     {
       case JobStepCode_Success:
+        running.UpdateStatus(ErrorCode_Success);
         running.GetJob().ReleaseResources();
         running.MarkSuccess();
         return false;
 
       case JobStepCode_Failure:
         running.GetJob().ReleaseResources();
+        running.UpdateStatus(result.GetFailureCode());
         running.MarkFailure();
         return false;
 
       case JobStepCode_Retry:
         running.GetJob().ReleaseResources();
-        running.MarkRetry(dynamic_cast<JobStepRetry&>(*result).GetTimeout());
+        running.UpdateStatus(ErrorCode_Success);
+        running.MarkRetry(result.GetRetryTimeout());
         return false;
 
       case JobStepCode_Continue:
+        running.UpdateStatus(ErrorCode_Success);
         return true;
             
       default:

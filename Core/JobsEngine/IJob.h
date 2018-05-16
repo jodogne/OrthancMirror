@@ -50,7 +50,7 @@ namespace Orthanc
     // Method called once the job enters the jobs engine
     virtual void Start() = 0;
     
-    virtual JobStepResult* ExecuteStep() = 0;
+    virtual JobStepResult ExecuteStep() = 0;
 
     // Method called once the job is resubmitted after a failure
     virtual void SignalResubmit() = 0;

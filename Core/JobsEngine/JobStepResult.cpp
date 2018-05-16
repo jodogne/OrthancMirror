@@ -31,27 +31,51 @@
  **/
 
 
-#pragma once
-
+#include "../PrecompiledHeaders.h"
 #include "JobStepResult.h"
+
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  class JobStepRetry : public JobStepResult
+  JobStepResult JobStepResult::Retry(unsigned int timeout)
   {
-  private:
-    unsigned int  timeout_;   // Retry after "timeout_" milliseconds
+    JobStepResult result(JobStepCode_Retry);
+    result.timeout_ = timeout;
+    return result;
+  }
 
-  public:
-    JobStepRetry(unsigned int timeout) :
-      JobStepResult(JobStepCode_Retry),
-      timeout_(timeout)
-    {
-    }
 
-    unsigned int  GetTimeout() const
+  JobStepResult JobStepResult::Failure(const ErrorCode& error)
+  {
+    JobStepResult result(JobStepCode_Failure);
+    result.error_ = error;
+    return result;
+  }
+
+
+  unsigned int JobStepResult::GetRetryTimeout() const
+  {
+    if (code_ == JobStepCode_Retry)
     {
       return timeout_;
     }
-  };
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  ErrorCode JobStepResult::GetFailureCode() const
+  {
+    if (code_ == JobStepCode_Failure)
+    {
+      return error_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
 }

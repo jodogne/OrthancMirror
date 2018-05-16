@@ -500,6 +500,7 @@ else()
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsEngine.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
