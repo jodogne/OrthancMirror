@@ -226,7 +226,8 @@ namespace Orthanc
 
     for (size_t i = 0; i < workers_.size(); i++)
     {
-      workers_[i] = boost::thread(Worker, this, i);
+      assert(workers_[i] == NULL);
+      workers_[i] = new boost::thread(Worker, this, i);
     }
 
     state_ = State_Running;
@@ -257,10 +258,14 @@ namespace Orthanc
       
     for (size_t i = 0; i < workers_.size(); i++)
     {
-      if (workers_[i].joinable())
+      assert(workers_[i] != NULL);
+
+      if (workers_[i]->joinable())
       {
-        workers_[i].join();
+        workers_[i]->join();
       }
+
+      delete workers_[i];
     }
       
     {
