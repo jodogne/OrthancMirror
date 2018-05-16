@@ -113,7 +113,7 @@ namespace Orthanc
   }
 
 
-  JobStepResult* SetOfInstancesJob::ExecuteStep()
+  JobStepResult SetOfInstancesJob::ExecuteStep()
   {
     if (!started_)
     {
@@ -125,13 +125,13 @@ namespace Orthanc
     {
       // No instance to handle, we're done
       position_ = 1;
-      return new JobStepResult(JobStepCode_Success);
+      return JobStepResult::Success();
     }
 
     if (position_ >= instances_.size())
     {
       // Already done
-      return new JobStepResult(JobStepCode_Failure);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
     const std::string currentInstance = instances_[position_];
@@ -144,7 +144,7 @@ namespace Orthanc
 
       if (!ok && !permissive_)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        return JobStepResult::Failure(ErrorCode_InternalError);
       }
     }
     catch (OrthancException& e)
@@ -169,11 +169,11 @@ namespace Orthanc
     if (position_ == instances_.size())
     {
       // We're done
-      return new JobStepResult(JobStepCode_Success);
+      return JobStepResult::Success();
     }
     else
     {
-      return new JobStepResult(JobStepCode_Continue);
+      return JobStepResult::Continue();
     }
   }
 

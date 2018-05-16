@@ -40,21 +40,46 @@ namespace Orthanc
   class JobStepResult
   {
   private:
-    JobStepCode code_;
+    JobStepCode   code_;
+    unsigned int  timeout_;
+    ErrorCode     error_;
     
-  public:
     explicit JobStepResult(JobStepCode code) :
-      code_(code)
+      code_(code),
+      timeout_(0),
+      error_(ErrorCode_Success)
     {
     }
 
-    virtual ~JobStepResult()
+  public:
+    explicit JobStepResult() :
+      code_(JobStepCode_Failure),
+      timeout_(0),
+      error_(ErrorCode_InternalError)
     {
     }
+
+    static JobStepResult Success()
+    {
+      return JobStepResult(JobStepCode_Success);
+    }
+
+    static JobStepResult Continue()
+    {
+      return JobStepResult(JobStepCode_Continue);
+    }
+
+    static JobStepResult Retry(unsigned int timeout);
+
+    static JobStepResult Failure(const ErrorCode& error);
 
     JobStepCode GetCode() const
     {
       return code_;
     }
+
+    unsigned int GetRetryTimeout() const;
+
+    ErrorCode GetFailureCode() const;
   };
 }
