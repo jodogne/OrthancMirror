@@ -37,7 +37,10 @@
     <div data-role="page" id="find-patients" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Find a patient</h1>
-        <a href="#plugins" data-icon="grid" class="ui-btn-left" data-direction="reverse">Plugins</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -49,10 +52,31 @@
       </div>
     </div>
 
-    <div data-role="page" id="upload" >
+    <div data-role="page" id="find-studies" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>Find a study</h1>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+        </div>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+        </div>
+      </div>
+      <div data-role="content">
+        <ul id="all-studies" data-role="listview" data-inset="true" data-filter="true">
+        </ul>
+      </div>
+    </div>
+
+    <div data-role="page" id="upload">
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Upload DICOM files</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
       </div>
       <div data-role="content">
         <div style="display:none">
@@ -78,7 +102,10 @@
     <div data-role="page" id="patient" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Patient</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -135,7 +162,10 @@
           <a href="#" class="patient-link">Patient</a> &raquo; 
           Study
         </h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -186,8 +216,10 @@
           <a href="#" class="study-link">Study</a> &raquo; 
           Series
         </h1>
-
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -240,7 +272,10 @@
           <a href="#" class="series-link">Series</a> &raquo; 
           Instance
         </h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
           <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
@@ -292,7 +327,10 @@
     <div data-role="page" id="plugins" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Plugins</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
       </div>
       <div data-role="content">
         <ul id="all-plugins" data-role="listview" data-inset="true" data-filter="true">
@@ -303,7 +341,10 @@
     <div data-role="page" id="query-retrieve" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (1/4)</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
       </div>
       <div data-role="content">
         <form data-ajax="false">
@@ -370,7 +411,10 @@
     <div data-role="page" id="query-retrieve-2" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (2/4)</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
       <div data-role="content">
@@ -383,7 +427,10 @@
     <div data-role="page" id="query-retrieve-3" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (3/4)</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
       <div data-role="content">
@@ -396,7 +443,10 @@
     <div data-role="page" id="query-retrieve-4" >
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (4/4)</h1>
-        <a href="#find-patients" data-icon="home" class="ui-btn-left" data-direction="reverse">Patients</a>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+        </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
 
