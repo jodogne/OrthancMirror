@@ -36,6 +36,9 @@
 
 #include "../OrthancException.h"
 
+// This "include" is mandatory for Release builds using Linux Standard Base
+#include <boost/math/special_functions/round.hpp>
+
 namespace Orthanc
 {
   JobInfo::JobInfo(const std::string& id,
