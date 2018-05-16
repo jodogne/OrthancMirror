@@ -46,8 +46,21 @@
 #include <stdio.h>
 #include <algorithm>
 
-#if ORTHANC_SQLITE_STANDALONE != 1
-#include "../Logging.h"
+#if (ORTHANC_SQLITE_STANDALONE == 1)
+// Trace logging is disabled if this SQLite wrapper is used
+// independently of Orthanc
+#  define LOG_CREATE(message);
+#  define LOG_APPLY(message);
+#elif defined(NDEBUG)
+// Trace logging is disabled in release builds
+#  include "../Logging.h"
+#  define LOG_CREATE(message);
+#  define LOG_APPLY(message);
+#else
+// Trace logging is enabled in debug builds
+#  include "../Logging.h"
+#  define LOG_CREATE(message)  VLOG(1) << "SQLite::Statement create: " << message;
+#  define LOG_APPLY(message);  // VLOG(1) << "SQLite::Statement apply: " << message;
 #endif
 
 #include "sqlite3.h"
@@ -55,6 +68,7 @@
 #if defined(_MSC_VER)
 #define snprintf _snprintf
 #endif
+
 
 namespace Orthanc
 {
@@ -103,6 +117,7 @@ namespace Orthanc
       reference_(database.GetCachedStatement(id, sql.c_str()))
     {
       Reset(true);
+      LOG_CREATE(sql);
     }
 
 
@@ -112,6 +127,7 @@ namespace Orthanc
       reference_(database.GetCachedStatement(id, sql))
     {
       Reset(true);
+      LOG_CREATE(sql);
     }
 
 
@@ -119,6 +135,7 @@ namespace Orthanc
                          const std::string& sql) :
       reference_(database.GetWrappedObject(), sql.c_str())
     {
+      LOG_CREATE(sql);
     }
 
 
@@ -126,23 +143,20 @@ namespace Orthanc
                          const char* sql) :
       reference_(database.GetWrappedObject(), sql)
     {
+      LOG_CREATE(sql);
     }
 
 
     bool Statement::Run()
     {
-#if ORTHANC_SQLITE_STANDALONE != 1
-      VLOG(1) << "SQLite::Statement::Run " << sqlite3_sql(GetStatement());
-#endif
+      LOG_APPLY(sqlite3_sql(GetStatement()));
 
       return CheckError(sqlite3_step(GetStatement()), ErrorCode_SQLiteCannotRun) == SQLITE_DONE;
     }
 
     bool Statement::Step()
     {
-#if ORTHANC_SQLITE_STANDALONE != 1
-      VLOG(1) << "SQLite::Statement::Step " << sqlite3_sql(GetStatement());
-#endif
+      LOG_APPLY(sqlite3_sql(GetStatement()));
 
       return CheckError(sqlite3_step(GetStatement()), ErrorCode_SQLiteCannotStep) == SQLITE_ROW;
     }
