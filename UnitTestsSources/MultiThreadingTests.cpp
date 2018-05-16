@@ -34,7 +34,6 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/JobsEngine/JobStepRetry.h"
 #include "../Core/JobsEngine/JobsEngine.h"
 #include "../Core/MultiThreading/Locker.h"
 #include "../Core/OrthancException.h"
@@ -244,20 +243,20 @@ TEST(MultiThreading, ServerScheduler)
 class DummyJob : public Orthanc::IJob
 {
 private:
-  JobStepResult  result_;
+  bool         fails_;
   unsigned int count_;
   unsigned int steps_;
 
 public:
   DummyJob() :
-    result_(Orthanc::JobStepCode_Success),
+    fails_(false),
     count_(0),
     steps_(4)
   {
   }
 
-  explicit DummyJob(JobStepResult result) :
-    result_(result),
+  explicit DummyJob(bool fails) :
+  fails_(fails),
     count_(0),
     steps_(4)
   {
@@ -271,18 +270,22 @@ public:
   {
   }
     
-  virtual JobStepResult* ExecuteStep()
+  virtual JobStepResult ExecuteStep()
   {
     boost::this_thread::sleep(boost::posix_time::milliseconds(10));
 
-    if (count_ == steps_ - 1)
+    if (fails_)
     {
-      return new JobStepResult(result_);
+      return JobStepResult::Failure(ErrorCode_ParameterOutOfRange);
+    }
+    else if (count_ == steps_ - 1)
+    {
+      return JobStepResult::Success();
     }
     else
     {
       count_++;
-      return new JobStepResult(JobStepCode_Continue);
+      return JobStepResult::Continue();
     }
   }
 
@@ -767,7 +770,8 @@ TEST(JobsEngine, Basic)
 
   if (1)
   {
-    printf(">> %d\n", engine.GetRegistry().SubmitAndWait(new DummyJob(JobStepResult(Orthanc::JobStepCode_Failure)), rand() % 10));
+    ASSERT_TRUE(engine.GetRegistry().SubmitAndWait(new DummyJob(), rand() % 10));
+    ASSERT_FALSE(engine.GetRegistry().SubmitAndWait(new DummyJob(true), rand() % 10));
   }
 
   boost::this_thread::sleep(boost::posix_time::milliseconds(100));

@@ -94,7 +94,7 @@ namespace Orthanc
       return failedInstances_;
     }
   
-    virtual JobStepResult* ExecuteStep();
+    virtual JobStepResult ExecuteStep();
     
     virtual void GetInternalContent(Json::Value& value);
   };
