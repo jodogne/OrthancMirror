@@ -50,11 +50,11 @@ namespace Orthanc
       State_Done
     };
 
-    boost::mutex                stateMutex_;
-    State                       state_;
-    JobsRegistry                registry_;
-    boost::thread               retryHandler_;
-    std::vector<boost::thread>  workers_;
+    boost::mutex                 stateMutex_;
+    State                        state_;
+    JobsRegistry                 registry_;
+    boost::thread                retryHandler_;
+    std::vector<boost::thread*>  workers_;
 
     bool IsRunning();
     
