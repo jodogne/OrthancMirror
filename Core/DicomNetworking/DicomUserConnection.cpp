@@ -1238,7 +1238,7 @@ namespace Orthanc
   }
 
   
-  void SetDefaultTimeout(uint32_t seconds)
+  void DicomUserConnection::SetDefaultTimeout(uint32_t seconds)
   {
     LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
               << seconds << " seconds (0 = no timeout)";
