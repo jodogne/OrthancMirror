@@ -1238,10 +1238,21 @@ namespace Orthanc
   }
 
   
-  void DicomUserConnection::SetDefaultTimeout(uint32_t seconds)
+  void SetDefaultTimeout(uint32_t seconds)
   {
     LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
               << seconds << " seconds (0 = no timeout)";
     defaultTimeout_ = seconds;
   }  
+
+
+  bool DicomUserConnection::IsSameAssociation(const std::string& localAet,
+                                              const RemoteModalityParameters& remote) const
+  {
+    return (localAet_ == localAet &&
+            remoteAet_ == remote.GetApplicationEntityTitle() &&
+            remoteHost_ == remote.GetHost() &&
+            remotePort_ == remote.GetPort() &&
+            manufacturer_ == remote.GetManufacturer());
+  }
 }
