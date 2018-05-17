@@ -768,6 +768,7 @@ namespace Orthanc
     }
     else if (found->second->GetState() != JobState_Failure)
     {
+      printf("%s\n", EnumerationToString(found->second->GetState()));
       LOG(WARNING) << "Cannot resubmit a job that has not failed: " << id;
       return false;
     }

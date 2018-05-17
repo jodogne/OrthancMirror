@@ -208,5 +208,8 @@ namespace Orthanc
                       ParsedDicomFile& query);
 
     static void SetDefaultTimeout(uint32_t seconds);
+
+    bool IsSameAssociation(const std::string& localAet,
+                           const RemoteModalityParameters& remote) const;
   };
 }
