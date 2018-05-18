@@ -788,16 +788,20 @@ TEST(JobsEngine, Lua)
   engine.SetWorkersCount(2);
   engine.Start();
 
-  LuaJobManager lua(engine);
+  LuaJobManager lua;
   lua.SetMaxOperationsPerJob(5);
   lua.SetTrailingOperationTimeout(200);
 
   for (size_t i = 0; i < 30; i++)
   {
     boost::this_thread::sleep(boost::posix_time::milliseconds(150));
-    std::auto_ptr<LuaJobManager::Lock> lock(lua.Modify());
-    size_t a = lock->AddOperation(new LogJobOperation);
-    lock->AddInput(a, StringOperationValue(boost::lexical_cast<std::string>(i)));
+
+    LuaJobManager::Lock lock(lua, engine);
+    size_t a = lock.AddLogOperation();
+    size_t b = lock.AddLogOperation();
+    lock.AddStringInput(a, boost::lexical_cast<std::string>(i));
+    lock.AddNullInput(a);
+    lock.Connect(a, b);
   }
 
   boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
