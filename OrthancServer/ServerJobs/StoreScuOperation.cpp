@@ -31,66 +31,49 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "StoreScuOperation.h"
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "DicomInstanceOperationValue.h"
 
-#include "../ServerContext.h"
+#include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  void StoreScuOperation::Apply(JobOperationValues& outputs,
+                                const JobOperationValue& input)
   {
-  private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    std::auto_ptr<IDicomConnectionManager::IResource> resource
+      (manager_.AcquireConnection(localAet_, modality_));
 
-    void OpenConnection();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
-  public:
-    DicomModalityStoreJob(ServerContext& context);
-
-    const std::string& GetLocalAet() const
+    if (resource.get() == NULL)
     {
-      return localAet_;
+      LOG(ERROR) << "Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
+      return;
     }
 
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
+    if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
-      return remote_;
+      throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    void SetRemoteModality(const RemoteModalityParameters& remote);
+    const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
 
-    bool HasMoveOriginator() const
+    LOG(INFO) << "Sending instance " << instance.GetId() << " to modality \"" 
+              << modality_.GetApplicationEntityTitle() << "\"";
+
+    try
     {
-      return moveOriginatorId_ != 0;
+      std::string dicom;
+      instance.ReadContent(dicom);
+      resource->GetConnection().Store(dicom);
+      outputs.Append(instance.Clone());
     }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
-
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
-
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
+    catch (OrthancException& e)
     {
-      target = "DicomModalityStore";
+      LOG(ERROR) << "Unable to send instance " << instance.GetId() << " to modality \"" 
+                 << modality_.GetApplicationEntityTitle() << "\": " << e.What();
     }
-
-    virtual void GetPublicContent(Json::Value& value);
-  };
+  }
 }

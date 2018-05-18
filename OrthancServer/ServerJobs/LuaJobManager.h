@@ -33,64 +33,44 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
-
-#include "../ServerContext.h"
+#include "../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
+#include "../../Core/JobsEngine/JobsEngine.h"
+#include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class LuaJobManager : private SequenceOfOperationsJob::IObserver
   {
-  private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
-
-    void OpenConnection();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
   public:
-    DicomModalityStoreJob(ServerContext& context);
+    typedef SequenceOfOperationsJob::Lock  Lock;
 
-    const std::string& GetLocalAet() const
-    {
-      return localAet_;
-    }
+  private:
+    boost::mutex                   mutex_;
+    JobsEngine&                    engine_;
+    TimeoutDicomConnectionManager  connectionManager_;
+    std::string                    currentId_;
+    SequenceOfOperationsJob*       currentJob_;
+    size_t                         maxOperations_;
+    int                            priority_;
+    unsigned int                   trailingTimeout_;
+    bool                           continue_;
+    boost::thread                  connectionTimeoutThread_;
 
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
+    static void ConnectionTimeoutThread(LuaJobManager* manager);
     
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
+    virtual void SignalDone(const SequenceOfOperationsJob& job);
 
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
+  public:
+    LuaJobManager(JobsEngine&  engine);
 
-    virtual void ReleaseResources();
+    ~LuaJobManager();
 
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
-    }
+    void SetMaxOperationsPerJob(size_t count);
 
-    virtual void GetPublicContent(Json::Value& value);
+    void SetPriority(int priority);
+
+    void SetTrailingOperationTimeout(unsigned int timeout);
+
+    Lock* Modify();
   };
 }

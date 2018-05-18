@@ -31,66 +31,67 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "OrthancPeerStoreJob.h"
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/Logging.h"
 
-#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  bool OrthancPeerStoreJob::HandleInstance(const std::string& instance)
   {
-  private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
-    void OpenConnection();
+    if (client_.get() == NULL)
+    {
+      client_.reset(new HttpClient(peer_, "instances"));
+      client_->SetMethod(HttpMethod_Post);
+    }
+      
+    LOG(INFO) << "Sending instance " << instance << " to peer \"" 
+              << peer_.GetUrl() << "\"";
 
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
+    context_.ReadDicom(client_->GetBody(), instance);
+
+    std::string answer;
+    if (client_->Apply(answer))
+    {
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol);
+    }
+  }
     
-  public:
-    DicomModalityStoreJob(ServerContext& context);
 
-    const std::string& GetLocalAet() const
+  void OrthancPeerStoreJob::SetPeer(const WebServiceParameters& peer)
+  {
+    if (IsStarted())
     {
-      return localAet_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
+    else
     {
-      return remote_;
+      peer_ = peer;
     }
+  }
 
-    void SetRemoteModality(const RemoteModalityParameters& remote);
 
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
+  void OrthancPeerStoreJob::ReleaseResources()   // For pausing jobs
+  {
+    client_.reset(NULL);
+  }
 
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
 
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
-  };
+  void OrthancPeerStoreJob::GetPublicContent(Json::Value& value)
+  {
+    Json::Value v;
+    peer_.ToJson(v);
+    value["Peer"] = v;
+        
+    value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
+    value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
+  }
 }
