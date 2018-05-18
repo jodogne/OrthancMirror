@@ -34,6 +34,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LuaJobManager.h"
 
+#include "DeleteResourceOperation.h"
+#include "StoreScuOperation.h"
+#include "../../Core/JobsEngine/Operations/LogJobOperation.h"
+
+#include "DicomInstanceOperationValue.h"
+#include "../../Core/JobsEngine/Operations/NullOperationValue.h"
+#include "../../Core/JobsEngine/Operations/StringOperationValue.h"
 
 namespace Orthanc
 {
@@ -59,8 +66,7 @@ namespace Orthanc
   }
 
 
-  LuaJobManager::LuaJobManager(JobsEngine&  engine) :
-    engine_(engine),
+  LuaJobManager::LuaJobManager() :
     currentJob_(NULL),
     maxOperations_(1000),
     priority_(0),
@@ -102,30 +108,108 @@ namespace Orthanc
   }
 
 
-  LuaJobManager::Lock* LuaJobManager::Modify()
+  LuaJobManager::Lock::Lock(LuaJobManager& that,
+                            JobsEngine& engine) :
+    that_(that),
+    lock_(that.mutex_),
+    engine_(engine)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    if (currentJob_ != NULL)
+    if (that_.currentJob_ == NULL)
     {
-      std::auto_ptr<Lock> result(new Lock(*currentJob_));
+      isNewJob_ = true;
+    }
+    else
+    {
+      jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
 
-      if (!result->IsDone() &&
-          result->GetOperationsCount() < maxOperations_)
+      if (jobLock_->IsDone() ||
+          jobLock_->GetOperationsCount() >= that_.maxOperations_)
       {
-        return result.release();
+        jobLock_.reset(NULL);
+        isNewJob_ = true;
+      }
+      else
+      {
+        isNewJob_ = false;
       }
     }
 
-    // Need to create a new job, as the previous one is either
-    // finished, or is getting too long
-    currentJob_ = new SequenceOfOperationsJob;
+    if (isNewJob_)
+    {
+      // Need to create a new job, as the previous one is either
+      // finished, or is getting too long
+      that_.currentJob_ = new SequenceOfOperationsJob;
+      jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
+      jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
+    }
 
-    engine_.GetRegistry().Submit(currentId_, currentJob_, priority_);
+    assert(jobLock_.get() != NULL);
+  }
 
-    std::auto_ptr<Lock> result(new Lock(*currentJob_));
-    result->SetTrailingOperationTimeout(trailingTimeout_);
 
-    return result.release();
+  LuaJobManager::Lock::~Lock()
+  {
+    assert(jobLock_.get() != NULL);
+    jobLock_.reset(NULL);
+
+    if (isNewJob_)
+    {
+      engine_.GetRegistry().Submit(that_.currentId_, that_.currentJob_, that_.priority_);
+    }
+  }
+
+
+  size_t LuaJobManager::Lock::AddDeleteResourceOperation(ServerContext& context)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation(new DeleteResourceOperation(context));
+  }
+
+
+  size_t LuaJobManager::Lock::AddLogOperation()
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation(new LogJobOperation);
+  }
+
+
+  size_t LuaJobManager::Lock::AddStoreScuOperation(const std::string& localAet,
+                                                   const RemoteModalityParameters& modality,
+                                                   IDicomConnectionManager& manager)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation(new StoreScuOperation(localAet, modality, that_.connectionManager_));    
+  }
+
+
+  void LuaJobManager::Lock::AddNullInput(size_t operation)
+  {
+    assert(jobLock_.get() != NULL);
+    jobLock_->AddInput(operation, NullOperationValue());
+  }
+
+
+  void LuaJobManager::Lock::AddStringInput(size_t operation,
+                                           const std::string& content)
+  {
+    assert(jobLock_.get() != NULL);
+    jobLock_->AddInput(operation, StringOperationValue(content));
+  }
+
+
+  void LuaJobManager::Lock::AddDicomInstanceInput(size_t operation,
+                                                  ServerContext& context,
+                                                  const std::string& instanceId)
+  {
+    assert(jobLock_.get() != NULL);
+    jobLock_->AddInput(operation, DicomInstanceOperationValue(context, instanceId));
+  }
+
+
+  void LuaJobManager::Lock::Connect(size_t operation1,
+                                    size_t operation2)
+  {
+    assert(jobLock_.get() != NULL);
+    jobLock_->Connect(operation1, operation2);
   }
 }
