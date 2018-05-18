@@ -90,6 +90,11 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
+  OrthancServer/ServerJobs/DeleteResourceOperation.cpp
+  OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
+  OrthancServer/ServerJobs/LuaJobManager.cpp
+  OrthancServer/ServerJobs/OrthancPeerStoreJob.cpp
+  OrthancServer/ServerJobs/StoreScuOperation.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
   )

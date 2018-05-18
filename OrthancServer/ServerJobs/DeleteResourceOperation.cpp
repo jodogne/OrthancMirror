@@ -31,66 +31,41 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "DeleteResourceOperation.h"
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "DicomInstanceOperationValue.h"
 
-#include "../ServerContext.h"
+#include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  void DeleteResourceOperation::Apply(JobOperationValues& outputs,
+                                      const JobOperationValue& input)
   {
-  private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
-
-    void OpenConnection();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
-  public:
-    DicomModalityStoreJob(ServerContext& context);
-
-    const std::string& GetLocalAet() const
+    switch (input.GetType())
     {
-      return localAet_;
+      case JobOperationValue::Type_DicomInstance:
+      {
+        const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
+        LOG(INFO) << "Deleting instance: " << instance.GetId();
+
+        try
+        {
+          Json::Value tmp;
+          context_.DeleteResource(tmp, instance.GetId(), ResourceType_Instance);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Unable to delete instance " << instance.GetId() << ": " << e.What();
+        }
+
+        break;
+      }
+
+      default:
+        break;
     }
-
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
-
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
-
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
-  };
+  }
 }

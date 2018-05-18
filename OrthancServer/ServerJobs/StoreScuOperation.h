@@ -33,64 +33,31 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/JobsEngine/Operations/IJobOperation.h"
 
-#include "../ServerContext.h"
+#include "../../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../Core/DicomNetworking/IDicomConnectionManager.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class StoreScuOperation : public IJobOperation
   {
   private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
-
-    void OpenConnection();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
+    std::string               localAet_;
+    RemoteModalityParameters  modality_;
+    IDicomConnectionManager&  manager_;
   public:
-    DicomModalityStoreJob(ServerContext& context);
-
-    const std::string& GetLocalAet() const
+    StoreScuOperation(const std::string& localAet,
+                      const RemoteModalityParameters& modality,
+                      IDicomConnectionManager& manager) :
+      localAet_(localAet),
+      modality_(modality),
+      manager_(manager)
     {
-      return localAet_;
     }
 
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
-
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
-
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void Apply(JobOperationValues& outputs,
+                       const JobOperationValue& input);
   };
 }
+

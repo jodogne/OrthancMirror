@@ -36,6 +36,8 @@
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/HttpClient.h"
 
+#include "../ServerContext.h"
+
 
 namespace Orthanc
 {
@@ -47,31 +49,7 @@ namespace Orthanc
     std::auto_ptr<HttpClient>  client_;
 
   protected:
-    virtual bool HandleInstance(const std::string& instance)
-    {
-      //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
-
-      if (client_.get() == NULL)
-      {
-        client_.reset(new HttpClient(peer_, "instances"));
-        client_->SetMethod(HttpMethod_Post);
-      }
-      
-      LOG(INFO) << "Sending instance " << instance << " to peer \"" 
-                << peer_.GetUrl() << "\"";
-
-      context_.ReadDicom(client_->GetBody(), instance);
-
-      std::string answer;
-      if (client_->Apply(answer))
-      {
-        return true;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_NetworkProtocol);
-      }
-    }
+    virtual bool HandleInstance(const std::string& instance);
     
   public:
     OrthancPeerStoreJob(ServerContext& context) :
@@ -79,41 +57,20 @@ namespace Orthanc
     {
     }
 
-    void SetPeer(const WebServiceParameters& peer)
-    {
-      if (IsStarted())
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-      else
-      {
-        peer_ = peer;
-      }
-    }
+    void SetPeer(const WebServiceParameters& peer);
 
     const WebServiceParameters& GetPeer() const
     {
       return peer_;
     }
 
-    virtual void ReleaseResources()   // For pausing jobs
-    {
-      client_.reset(NULL);
-    }
+    virtual void ReleaseResources();   // For pausing jobs
 
     virtual void GetJobType(std::string& target)
     {
       target = "OrthancPeerStore";
     }
 
-    virtual void GetPublicContent(Json::Value& value)
-    {
-      Json::Value v;
-      peer_.ToJson(v);
-      value["Peer"] = v;
-        
-      value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
-      value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
-    }
+    virtual void GetPublicContent(Json::Value& value);
   };
 }
