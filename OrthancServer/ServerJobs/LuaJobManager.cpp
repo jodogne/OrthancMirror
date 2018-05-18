@@ -35,6 +35,7 @@
 #include "LuaJobManager.h"
 
 #include "DeleteResourceOperation.h"
+#include "StorePeerOperation.h"
 #include "StoreScuOperation.h"
 #include "../../Core/JobsEngine/Operations/LogJobOperation.h"
 
@@ -174,11 +175,17 @@ namespace Orthanc
 
 
   size_t LuaJobManager::Lock::AddStoreScuOperation(const std::string& localAet,
-                                                   const RemoteModalityParameters& modality,
-                                                   IDicomConnectionManager& manager)
+                                                   const RemoteModalityParameters& modality)
   {
     assert(jobLock_.get() != NULL);
     return jobLock_->AddOperation(new StoreScuOperation(localAet, modality, that_.connectionManager_));    
+  }
+
+
+  size_t LuaJobManager::Lock::AddStorePeerOperation(const WebServiceParameters& peer)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation(new StorePeerOperation(peer));    
   }
 
 

@@ -32,26 +32,22 @@
 
 
 #include "../PrecompiledHeadersServer.h"
-#include "StoreScuOperation.h"
+#include "StorePeerOperation.h"
 
 #include "DicomInstanceOperationValue.h"
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../../Core/HttpClient.h"
 
 namespace Orthanc
 {
-  void StoreScuOperation::Apply(JobOperationValues& outputs,
+  void StorePeerOperation::Apply(JobOperationValues& outputs,
                                 const JobOperationValue& input)
   {
-    std::auto_ptr<IDicomConnectionManager::IResource> resource
-      (manager_.AcquireConnection(localAet_, modality_));
-
-    if (resource.get() == NULL)
-    {
-      LOG(ERROR) << "Lua: Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
-      return;
-    }
+    // Configure the HTTP client
+    HttpClient client(peer_, "instances");
+    client.SetMethod(HttpMethod_Post);
 
     if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
@@ -60,20 +56,26 @@ namespace Orthanc
 
     const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
 
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
-              << modality_.GetApplicationEntityTitle() << "\"";
+    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
+              << peer_.GetUrl() << "\"";
 
     try
     {
-      std::string dicom;
-      instance.ReadContent(dicom);
-      resource->GetConnection().Store(dicom);
+      instance.ReadContent(client.GetBody());
+
+      std::string answer;
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
+                   << peer_.GetUrl();
+      }
+
       outputs.Append(instance.Clone());
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
-                 << modality_.GetApplicationEntityTitle() << "\": " << e.What();
+      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
+                 << peer_.GetUrl() << "\": " << e.What();
     }
   }
 }
