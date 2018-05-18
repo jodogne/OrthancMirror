@@ -37,16 +37,14 @@
 #include "../../Core/JobsEngine/JobsEngine.h"
 #include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
 
+#include "../ServerContext.h"
+
 namespace Orthanc
 {
   class LuaJobManager : private SequenceOfOperationsJob::IObserver
   {
-  public:
-    typedef SequenceOfOperationsJob::Lock  Lock;
-
   private:
     boost::mutex                   mutex_;
-    JobsEngine&                    engine_;
     TimeoutDicomConnectionManager  connectionManager_;
     std::string                    currentId_;
     SequenceOfOperationsJob*       currentJob_;
@@ -61,7 +59,7 @@ namespace Orthanc
     virtual void SignalDone(const SequenceOfOperationsJob& job);
 
   public:
-    LuaJobManager(JobsEngine&  engine);
+    LuaJobManager();
 
     ~LuaJobManager();
 
@@ -71,6 +69,40 @@ namespace Orthanc
 
     void SetTrailingOperationTimeout(unsigned int timeout);
 
-    Lock* Modify();
+    class Lock : public boost::noncopyable
+    {
+    private:
+      LuaJobManager&                                that_;
+      boost::mutex::scoped_lock                     lock_;
+      JobsEngine&                                   engine_;
+      std::auto_ptr<SequenceOfOperationsJob::Lock>  jobLock_;
+      bool                                          isNewJob_;
+
+    public:
+      Lock(LuaJobManager& that,
+           JobsEngine& engine);
+
+      ~Lock();
+
+      size_t AddLogOperation();
+
+      size_t AddDeleteResourceOperation(ServerContext& context);
+
+      size_t AddStoreScuOperation(const std::string& localAet,
+                                  const RemoteModalityParameters& modality,
+                                  IDicomConnectionManager& manager);
+
+      void AddNullInput(size_t operation); 
+
+      void AddStringInput(size_t operation,
+                          const std::string& content);
+
+      void AddDicomInstanceInput(size_t operation,
+                                 ServerContext& context,
+                                 const std::string& instanceId);
+
+      void Connect(size_t operation1,
+                   size_t operation2);
+    };
   };
 }
