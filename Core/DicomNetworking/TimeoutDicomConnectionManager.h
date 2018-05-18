@@ -33,64 +33,41 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "IDicomConnectionManager.h"
 
-#include "../ServerContext.h"
+#include <boost/thread/mutex.hpp>
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class TimeoutDicomConnectionManager : public IDicomConnectionManager
   {
   private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    class Resource;
 
-    void OpenConnection();
+    boost::mutex                         mutex_;
+    std::auto_ptr<DicomUserConnection>   connection_;
+    boost::posix_time::ptime             lastUse_;
+    boost::posix_time::time_duration     timeout_;
 
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
+    void Touch();
+
+    void CheckTimeoutInternal();
+
   public:
-    DicomModalityStoreJob(ServerContext& context);
-
-    const std::string& GetLocalAet() const
+    TimeoutDicomConnectionManager() :
+      timeout_(boost::posix_time::milliseconds(1000))
     {
-      return localAet_;
     }
 
-    void SetLocalAet(const std::string& aet);
+    void SetTimeout(unsigned int timeout);
 
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
+    unsigned int GetTimeout();
 
-    void SetRemoteModality(const RemoteModalityParameters& remote);
+    void Close();
 
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
+    void CheckTimeout();
 
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
-
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
+    virtual IResource* AcquireConnection(const std::string& localAet,
+                                         const RemoteModalityParameters& remote);
   };
 }

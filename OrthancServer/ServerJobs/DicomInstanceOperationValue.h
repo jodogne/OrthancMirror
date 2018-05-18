@@ -33,64 +33,40 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/JobsEngine/Operations/JobOperationValue.h"
 
 #include "../ServerContext.h"
 
 namespace Orthanc
 {
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class DicomInstanceOperationValue : public JobOperationValue
   {
   private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    ServerContext&   context_;
+    std::string      id_;
 
-    void OpenConnection();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
   public:
-    DicomModalityStoreJob(ServerContext& context);
-
-    const std::string& GetLocalAet() const
+    DicomInstanceOperationValue(ServerContext& context,
+                                const std::string& id) :
+      JobOperationValue(Type_DicomInstance),
+      context_(context),
+      id_(id)
     {
-      return localAet_;
     }
 
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
+    const std::string& GetId() const
     {
-      return remote_;
+      return id_;
     }
 
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    bool HasMoveOriginator() const
+    void ReadContent(std::string& dicom) const
     {
-      return moveOriginatorId_ != 0;
-    }
-    
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
-
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
-
-    virtual void ReleaseResources();
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomModalityStore";
+      context_.ReadDicom(dicom, id_);
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual JobOperationValue* Clone() const
+    {
+      return new DicomInstanceOperationValue(context_, id_);
+    }
   };
 }

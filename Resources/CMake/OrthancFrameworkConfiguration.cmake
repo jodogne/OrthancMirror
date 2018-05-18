@@ -497,6 +497,7 @@ else()
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
+    ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
@@ -505,6 +506,7 @@ else()
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
