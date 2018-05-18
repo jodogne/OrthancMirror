@@ -49,7 +49,7 @@ namespace Orthanc
       case JobOperationValue::Type_DicomInstance:
       {
         const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
-        LOG(INFO) << "Deleting instance: " << instance.GetId();
+        LOG(INFO) << "Lua: Deleting instance: " << instance.GetId();
 
         try
         {
@@ -58,7 +58,7 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Unable to delete instance " << instance.GetId() << ": " << e.What();
+          LOG(ERROR) << "Lua: Unable to delete instance " << instance.GetId() << ": " << e.What();
         }
 
         break;

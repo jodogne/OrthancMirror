@@ -31,49 +31,26 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "StoreScuOperation.h"
+#pragma once
 
-#include "DicomInstanceOperationValue.h"
-
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../Core/WebServiceParameters.h"
 
 namespace Orthanc
 {
-  void StoreScuOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input)
+  class StorePeerOperation : public IJobOperation
   {
-    std::auto_ptr<IDicomConnectionManager::IResource> resource
-      (manager_.AcquireConnection(localAet_, modality_));
+  private:
+    WebServiceParameters peer_;
 
-    if (resource.get() == NULL)
+  public:
+    StorePeerOperation(const WebServiceParameters& peer) :
+    peer_(peer)
     {
-      LOG(ERROR) << "Lua: Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
-      return;
     }
 
-    if (input.GetType() != JobOperationValue::Type_DicomInstance)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-
-    const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
-
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
-              << modality_.GetApplicationEntityTitle() << "\"";
-
-    try
-    {
-      std::string dicom;
-      instance.ReadContent(dicom);
-      resource->GetConnection().Store(dicom);
-      outputs.Append(instance.Clone());
-    }
-    catch (OrthancException& e)
-    {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
-                 << modality_.GetApplicationEntityTitle() << "\": " << e.What();
-    }
-  }
+    virtual void Apply(JobOperationValues& outputs,
+                       const JobOperationValue& input);
+  };
 }
+
