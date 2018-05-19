@@ -33,15 +33,16 @@
 
 #pragma once
 
-#include "../../Core/DicomParsing/DicomModification.h"
 #include "../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
+#include "../../Core/DicomParsing/DicomModification.h"
 #include "../../Core/JobsEngine/JobsEngine.h"
 #include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
-
-#include "../ServerContext.h"
+#include "../../Core/WebServiceParameters.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class LuaJobManager : private SequenceOfOperationsJob::IObserver
   {
   private:
