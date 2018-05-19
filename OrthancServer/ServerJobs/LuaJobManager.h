@@ -45,24 +45,17 @@ namespace Orthanc
   class LuaJobManager : private SequenceOfOperationsJob::IObserver
   {
   private:
-    boost::mutex                   mutex_;
-    TimeoutDicomConnectionManager  connectionManager_;
-    std::string                    currentId_;
-    SequenceOfOperationsJob*       currentJob_;
-    size_t                         maxOperations_;
-    int                            priority_;
-    unsigned int                   trailingTimeout_;
-    bool                           continue_;
-    boost::thread                  connectionTimeoutThread_;
+    boost::mutex              mutex_;
+    std::string               currentId_;
+    SequenceOfOperationsJob*  currentJob_;
+    size_t                    maxOperations_;
+    int                       priority_;
+    unsigned int              trailingTimeout_;
 
-    static void ConnectionTimeoutThread(LuaJobManager* manager);
-    
     virtual void SignalDone(const SequenceOfOperationsJob& job);
 
   public:
     LuaJobManager();
-
-    ~LuaJobManager();
 
     void SetMaxOperationsPerJob(size_t count);
 

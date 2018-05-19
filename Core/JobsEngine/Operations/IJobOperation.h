@@ -34,6 +34,7 @@
 #pragma once
 
 #include "JobOperationValues.h"
+#include "../../DicomNetworking/IDicomConnectionManager.h"
 
 namespace Orthanc
 {
@@ -45,6 +46,7 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input) = 0;
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& dicomConnection) = 0;
   };
 }
