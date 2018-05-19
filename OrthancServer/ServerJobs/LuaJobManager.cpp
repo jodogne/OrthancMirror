@@ -37,6 +37,7 @@
 #include "DeleteResourceOperation.h"
 #include "StorePeerOperation.h"
 #include "StoreScuOperation.h"
+#include "SystemCallOperation.h"
 #include "../../Core/JobsEngine/Operations/LogJobOperation.h"
 
 #include "DicomInstanceOperationValue.h"
@@ -178,7 +179,8 @@ namespace Orthanc
                                                    const RemoteModalityParameters& modality)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation(new StoreScuOperation(localAet, modality, that_.connectionManager_));    
+    return jobLock_->AddOperation
+      (new StoreScuOperation(localAet, modality, that_.connectionManager_));    
   }
 
 
@@ -186,6 +188,24 @@ namespace Orthanc
   {
     assert(jobLock_.get() != NULL);
     return jobLock_->AddOperation(new StorePeerOperation(peer));    
+  }
+
+
+  size_t LuaJobManager::Lock::AddSystemCallOperation(const std::string& command)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation(new SystemCallOperation(command));    
+  }
+    
+
+  size_t LuaJobManager::Lock::AddSystemCallOperation
+  (const std::string& command,
+   const std::vector<std::string>& preArguments,
+   const std::vector<std::string>& postArguments)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation
+      (new SystemCallOperation(command, preArguments, postArguments));
   }
 
 
