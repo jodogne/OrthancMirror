@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/DicomParsing/DicomModification.h"
 #include "../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
 #include "../../Core/JobsEngine/JobsEngine.h"
 #include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
@@ -98,6 +99,9 @@ namespace Orthanc
       size_t AddSystemCallOperation(const std::string& command,
                                     const std::vector<std::string>& preArguments,
                                     const std::vector<std::string>& postArguments);
+
+      size_t AddModifyInstanceOperation(ServerContext& context,
+                                        DicomModification* modification);
 
       void AddNullInput(size_t operation); 
 
