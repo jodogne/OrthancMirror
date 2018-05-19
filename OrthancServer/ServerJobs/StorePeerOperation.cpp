@@ -71,13 +71,13 @@ namespace Orthanc
         LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
                    << " to Orthanc peer \"" << peer_.GetUrl();
       }
-
-      outputs.Append(input.Clone());
     }
     catch (OrthancException& e)
     {
       LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
                  << " to Orthanc peer \"" << peer_.GetUrl() << "\": " << e.What();
     }
+
+    outputs.Append(input.Clone());
   }
 }

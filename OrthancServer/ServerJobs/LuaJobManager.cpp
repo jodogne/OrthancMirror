@@ -62,7 +62,8 @@ namespace Orthanc
   LuaJobManager::LuaJobManager() :
     currentJob_(NULL),
     maxOperations_(1000),
-    priority_(0)
+    priority_(0),
+    trailingTimeout_(5000)
   {
   }
 
@@ -118,7 +119,7 @@ namespace Orthanc
     {
       // Need to create a new job, as the previous one is either
       // finished, or is getting too long
-      that_.currentJob_ = new SequenceOfOperationsJob;
+      that_.currentJob_ = new SequenceOfOperationsJob("Lua");
       jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
       jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
     }

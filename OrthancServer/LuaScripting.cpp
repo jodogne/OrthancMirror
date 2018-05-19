@@ -34,18 +34,13 @@
 #include "PrecompiledHeadersServer.h"
 #include "LuaScripting.h"
 
-#include "ServerContext.h"
 #include "OrthancInitialization.h"
-#include "../Core/Lua/LuaFunctionCall.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "ServerContext.h"
+
 #include "../Core/HttpServer/StringHttpOutput.h"
 #include "../Core/Logging.h"
-
-#include "Scheduler/DeleteInstanceCommand.h"
-#include "Scheduler/StoreScuCommand.h"
-#include "Scheduler/StorePeerCommand.h"
-#include "Scheduler/ModifyInstanceCommand.h"
-#include "Scheduler/CallSystemCommand.h"
-#include "OrthancRestApi/OrthancRestApi.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 
 #include <EmbeddedResources.h>
 
@@ -229,13 +224,14 @@ namespace Orthanc
   }
 
 
-  IServerCommand* LuaScripting::ParseOperation(const std::string& operation,
-                                               const Json::Value& parameters)
+  size_t LuaScripting::ParseOperation(LuaJobManager::Lock& lock,
+                                      const std::string& operation,
+                                      const Json::Value& parameters)
   {
     if (operation == "delete")
     {
       LOG(INFO) << "Lua script to delete resource " << parameters["Resource"].asString();
-      return new DeleteInstanceCommand(context_);
+      return lock.AddDeleteResourceOperation(context_);
     }
 
     if (operation == "store-scu")
@@ -250,36 +246,29 @@ namespace Orthanc
         localAet = context_.GetDefaultLocalApplicationEntityTitle();
       }
 
-      std::string modality = parameters["Modality"].asString();
-      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
-                << " to modality " << modality << " using Store-SCU";
+      std::string name = parameters["Modality"].asString();
+      RemoteModalityParameters modality = Configuration::GetModalityUsingSymbolicName(name);
 
       // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
-      return new StoreScuCommand(context_, localAet,
-                                 Configuration::GetModalityUsingSymbolicName(modality), true);
+      return lock.AddStoreScuOperation(localAet, modality);
     }
 
     if (operation == "store-peer")
     {
-      std::string peer = parameters["Peer"].asString();
-      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
-                << " to peer " << peer << " using HTTP";
+      std::string name = parameters["Peer"].asString();
 
-      WebServiceParameters parameters;
-      Configuration::GetOrthancPeer(parameters, peer);
-      return new StorePeerCommand(context_, parameters, true);
+      WebServiceParameters peer;
+      Configuration::GetOrthancPeer(peer, name);
+
+      return lock.AddStorePeerOperation(peer);
     }
 
     if (operation == "modify")
     {
-      LOG(INFO) << "Lua script to modify resource " << parameters["Resource"].asString();
       std::auto_ptr<DicomModification> modification(new DicomModification);
       modification->ParseModifyRequest(parameters);
 
-      std::auto_ptr<ModifyInstanceCommand> command
-        (new ModifyInstanceCommand(context_, RequestOrigin_Lua, modification.release()));
-
-      return command.release();
+      return lock.AddModifyInstanceOperation(context_, modification.release());
     }
 
     if (operation == "call-system")
@@ -320,7 +309,10 @@ namespace Orthanc
         }
       }
 
-      return new CallSystemCommand(context_, parameters["Command"].asString(), args);
+      std::string command = parameters["Command"].asString();
+      std::vector<std::string> postArgs;
+
+      return lock.AddSystemCallOperation(command, args, postArgs);
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -344,8 +336,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    ServerJob job;
-    ServerCommandInstance* previousCommand = NULL;
+    LuaJobManager::Lock lock(jobManager_, context_.GetJobsEngine());
+
+    bool isFirst = true;
+    size_t previous;
 
     for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
     {
@@ -356,30 +350,27 @@ namespace Orthanc
       }
 
       const Json::Value& parameters = operations[i];
-      std::string operation = parameters["Operation"].asString();
-
-      ServerCommandInstance& command = job.AddCommand(ParseOperation(operation, operations[i]));
-        
       if (!parameters.isMember("Resource"))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
+      std::string operation = parameters["Operation"].asString();
+      size_t index = ParseOperation(lock, operation, operations[i]);
+        
       std::string resource = parameters["Resource"].asString();
-      if (resource.empty())
+      if (!resource.empty())
       {
-        previousCommand->ConnectOutput(command);
+        lock.AddDicomInstanceInput(index, context_, resource);
       }
-      else 
+      else if (!isFirst)
       {
-        command.AddInput(resource);
+        lock.Connect(previous, index);
       }
 
-      previousCommand = &command;
+      isFirst = false;
+      previous = index;
     }
-
-    job.SetDescription(description);
-    context_.GetScheduler().Submit(job);
   }
 
 

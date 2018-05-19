@@ -34,8 +34,10 @@
 #pragma once
 
 #include "IServerListener.h"
+
+#include "ServerJobs/LuaJobManager.h"
+
 #include "../Core/Lua/LuaContext.h"
-#include "Scheduler/IServerCommand.h"
 
 namespace Orthanc
 {
@@ -59,8 +61,9 @@ namespace Orthanc
                                const Json::Value& metadata,
                                const DicomInstanceToStore& instance);
 
-    IServerCommand* ParseOperation(const std::string& operation,
-                                   const Json::Value& parameters);
+    size_t ParseOperation(LuaJobManager::Lock& lock,
+                          const std::string& operation,
+                          const Json::Value& parameters);
 
     void InitializeJob();
 
@@ -68,9 +71,10 @@ namespace Orthanc
 
     void OnStableResource(const ServerIndexChange& change);
 
-    boost::recursive_mutex    mutex_;
-    LuaContext      lua_;
-    ServerContext&  context_;
+    boost::recursive_mutex   mutex_;
+    LuaContext               lua_;
+    ServerContext&           context_;
+    LuaJobManager            jobManager_;
 
   public:
     class Locker : public boost::noncopyable

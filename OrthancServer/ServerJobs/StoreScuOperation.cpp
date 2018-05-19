@@ -70,12 +70,13 @@ namespace Orthanc
       std::string dicom;
       instance.ReadContent(dicom);
       resource->GetConnection().Store(dicom);
-      outputs.Append(input.Clone());
     }
     catch (OrthancException& e)
     {
       LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
                  << modality_.GetApplicationEntityTitle() << "\": " << e.What();
     }
+
+    outputs.Append(input.Clone());
   }
 }

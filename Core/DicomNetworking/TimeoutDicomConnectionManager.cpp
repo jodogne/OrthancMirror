@@ -34,6 +34,7 @@
 #include "../PrecompiledHeaders.h"
 #include "TimeoutDicomConnectionManager.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 
 namespace Orthanc
@@ -82,7 +83,7 @@ namespace Orthanc
     if (connection_.get() != NULL &&
         (GetNow() - lastUse_) >= timeout_)
     {
-      connection_.reset(NULL);
+      Close();
     }
   }
 
@@ -102,7 +103,13 @@ namespace Orthanc
 
   void TimeoutDicomConnectionManager::Close()
   {
-    connection_.reset(NULL);
+    if (connection_.get() != NULL)
+    {
+      LOG(INFO) << "Closing inactive DICOM association with modality: "
+                << connection_->GetRemoteApplicationEntityTitle();
+
+      connection_.reset(NULL);
+    }
   }
 
 
