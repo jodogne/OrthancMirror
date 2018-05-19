@@ -34,15 +34,16 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LuaJobManager.h"
 
+#include "../../Core/JobsEngine/Operations/LogJobOperation.h"
 #include "DeleteResourceOperation.h"
+#include "ModifyInstanceOperation.h"
 #include "StorePeerOperation.h"
 #include "StoreScuOperation.h"
 #include "SystemCallOperation.h"
-#include "../../Core/JobsEngine/Operations/LogJobOperation.h"
 
-#include "DicomInstanceOperationValue.h"
 #include "../../Core/JobsEngine/Operations/NullOperationValue.h"
 #include "../../Core/JobsEngine/Operations/StringOperationValue.h"
+#include "DicomInstanceOperationValue.h"
 
 namespace Orthanc
 {
@@ -196,7 +197,7 @@ namespace Orthanc
     assert(jobLock_.get() != NULL);
     return jobLock_->AddOperation(new SystemCallOperation(command));    
   }
-    
+ 
 
   size_t LuaJobManager::Lock::AddSystemCallOperation
   (const std::string& command,
@@ -206,6 +207,15 @@ namespace Orthanc
     assert(jobLock_.get() != NULL);
     return jobLock_->AddOperation
       (new SystemCallOperation(command, preArguments, postArguments));
+  }
+
+
+  size_t LuaJobManager::Lock::AddModifyInstanceOperation(ServerContext& context,
+                                                         DicomModification* modification)
+  {
+    assert(jobLock_.get() != NULL);
+    return jobLock_->AddOperation
+      (new ModifyInstanceOperation(context, RequestOrigin_Lua, modification));
   }
 
 
