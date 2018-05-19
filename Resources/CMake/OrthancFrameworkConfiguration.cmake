@@ -423,13 +423,12 @@ if (ENABLE_DCMTK)
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/ReusableDicomUserConnection.cpp
-
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/StoreScp.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
@@ -497,7 +496,6 @@ else()
   
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
-    ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp

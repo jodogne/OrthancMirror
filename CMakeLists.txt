@@ -70,14 +70,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
-  OrthancServer/Scheduler/CallSystemCommand.cpp
-  OrthancServer/Scheduler/DeleteInstanceCommand.cpp
-  OrthancServer/Scheduler/ModifyInstanceCommand.cpp
-  OrthancServer/Scheduler/ServerCommandInstance.cpp
-  OrthancServer/Scheduler/ServerJob.cpp
-  OrthancServer/Scheduler/ServerScheduler.cpp
-  OrthancServer/Scheduler/StorePeerCommand.cpp
-  OrthancServer/Scheduler/StoreScuCommand.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
