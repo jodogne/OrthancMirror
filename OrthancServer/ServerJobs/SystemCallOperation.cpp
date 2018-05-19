@@ -96,7 +96,7 @@ namespace Orthanc
       info += " " + arguments[i];
     }
     
-    LOG(INFO) << "Lua: System call: " << info;
+    LOG(INFO) << "Lua: System call: \"" << info << "\"";
 
     try
     {
@@ -107,7 +107,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Failed system call - " << info << ": " << e.What();
+      LOG(ERROR) << "Lua: Failed system call - \"" << info << "\": " << e.What();
     }
   }
 }
