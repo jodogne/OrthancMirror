@@ -33,22 +33,21 @@
 
 #pragma once
 
-#include "../Core/MultiThreading/SharedMessageQueue.h"
-#include "../Core/Cache/MemoryCache.h"
-#include "../Core/Cache/SharedArchive.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/Lua/LuaContext.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 #include "DicomInstanceToStore.h"
-#include "../Core/DicomNetworking/ReusableDicomUserConnection.h"
 #include "IServerListener.h"
 #include "LuaScripting.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "Scheduler/ServerScheduler.h"
-#include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
+#include "ServerIndex.h"
+
+#include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
+#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/Lua/LuaContext.h"
+#include "../Core/MultiThreading/SharedMessageQueue.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -119,8 +118,6 @@ namespace Orthanc
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
-    ReusableDicomUserConnection scu_;
-    ServerScheduler scheduler_;
     JobsEngine jobsEngine_;
 
     LuaScripting lua_;
@@ -238,16 +235,6 @@ namespace Orthanc
     bool IsStoreMD5ForAttachments() const
     {
       return storeMD5_;
-    }
-
-    ReusableDicomUserConnection& GetReusableDicomUserConnection()
-    {
-      return scu_;
-    }
-
-    ServerScheduler& GetScheduler()
-    {
-      return scheduler_;
     }
 
     JobsEngine& GetJobsEngine()

@@ -45,12 +45,6 @@
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-
-#include "Scheduler/CallSystemCommand.h"
-#include "Scheduler/DeleteInstanceCommand.h"
-#include "Scheduler/ModifyInstanceCommand.h"
-#include "Scheduler/StoreScuCommand.h"
-#include "Scheduler/StorePeerCommand.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 #include "Search/LookupResource.h"
@@ -120,7 +114,6 @@ namespace Orthanc
     storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    scheduler_(Configuration::GetGlobalUnsignedIntegerParameter("LimitJobs", 10)),
     lua_(*this),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
@@ -129,9 +122,6 @@ namespace Orthanc
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    uint64_t s = Configuration::GetGlobalUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
-    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
-
     listeners_.push_back(ServerListener(lua_, "Lua"));
 
     jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
@@ -169,11 +159,8 @@ namespace Orthanc
         changeThread_.join();
       }
 
-      scu_.Finalize();
-
       // Do not change the order below!
       jobsEngine_.Stop();
-      scheduler_.Stop();
       index_.Stop();
     }
   }
