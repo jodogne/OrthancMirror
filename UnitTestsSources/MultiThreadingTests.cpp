@@ -799,9 +799,11 @@ TEST(JobsEngine, Lua)
     LuaJobManager::Lock lock(lua, engine);
     size_t a = lock.AddLogOperation();
     size_t b = lock.AddLogOperation();
+    size_t c = lock.AddSystemCallOperation("echo");
     lock.AddStringInput(a, boost::lexical_cast<std::string>(i));
     lock.AddNullInput(a);
     lock.Connect(a, b);
+    lock.Connect(a, c);
   }
 
   boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
