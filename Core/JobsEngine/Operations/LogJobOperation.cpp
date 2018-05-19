@@ -40,12 +40,14 @@
 namespace Orthanc
 {
   void LogJobOperation::Apply(JobOperationValues& outputs,
-                              const JobOperationValue& input)
+                              const JobOperationValue& input,
+                              IDicomConnectionManager& connectionManager)
   {
     switch (input.GetType())
     {
       case JobOperationValue::Type_String:
-        LOG(INFO) << "Job value: " << dynamic_cast<const StringOperationValue&>(input).GetContent();
+        LOG(INFO) << "Job value: "
+                  << dynamic_cast<const StringOperationValue&>(input).GetContent();
         break;
 
       case JobOperationValue::Type_Null:

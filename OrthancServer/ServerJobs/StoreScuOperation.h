@@ -36,7 +36,6 @@
 #include "../../Core/JobsEngine/Operations/IJobOperation.h"
 
 #include "../../Core/DicomNetworking/RemoteModalityParameters.h"
-#include "../../Core/DicomNetworking/IDicomConnectionManager.h"
 
 namespace Orthanc
 {
@@ -45,19 +44,18 @@ namespace Orthanc
   private:
     std::string               localAet_;
     RemoteModalityParameters  modality_;
-    IDicomConnectionManager&  manager_;
+    
   public:
     StoreScuOperation(const std::string& localAet,
-                      const RemoteModalityParameters& modality,
-                      IDicomConnectionManager& manager) :
+                      const RemoteModalityParameters& modality) :
       localAet_(localAet),
-      modality_(modality),
-      manager_(manager)
+      modality_(modality)
     {
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& manager);
   };
 }
 

@@ -44,7 +44,8 @@
 namespace Orthanc
 {
   void SystemCallOperation::Apply(JobOperationValues& outputs,
-                                  const JobOperationValue& input)
+                                  const JobOperationValue& input,
+                                  IDicomConnectionManager& connectionManager)
   {
     std::vector<std::string> arguments = preArguments_;
 

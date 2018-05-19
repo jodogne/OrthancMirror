@@ -47,13 +47,15 @@ namespace Orthanc
   {
   private:
     TimeoutDicomConnectionManager&  that_;
-    boost::mutex::scoped_lock        lock_;
 
   public:
     Resource(TimeoutDicomConnectionManager& that) : 
-    that_(that),
-    lock_(that.mutex_)
+      that_(that)
     {
+      if (that_.connection_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     ~Resource()
@@ -63,11 +65,7 @@ namespace Orthanc
 
     DicomUserConnection& GetConnection()
     {
-      if (that_.connection_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
+      assert(that_.connection_.get() != NULL);
       return *that_.connection_;
     }
   };
@@ -91,8 +89,6 @@ namespace Orthanc
 
   void TimeoutDicomConnectionManager::SetTimeout(unsigned int timeout)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     timeout_ = boost::posix_time::milliseconds(timeout);
     CheckTimeoutInternal();
   }
@@ -100,21 +96,18 @@ namespace Orthanc
 
   unsigned int TimeoutDicomConnectionManager::GetTimeout()
   {
-    boost::mutex::scoped_lock lock(mutex_);
     return timeout_.total_milliseconds();
   }
 
 
   void TimeoutDicomConnectionManager::Close()
   {
-    boost::mutex::scoped_lock lock(mutex_);
     connection_.reset(NULL);
   }
 
 
   void TimeoutDicomConnectionManager::CheckTimeout()
   {
-    boost::mutex::scoped_lock lock(mutex_);
     CheckTimeoutInternal();
   }
 
@@ -123,8 +116,6 @@ namespace Orthanc
   TimeoutDicomConnectionManager::AcquireConnection(const std::string& localAet,
                                                    const RemoteModalityParameters& remote)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     if (connection_.get() == NULL ||
         !connection_->IsSameAssociation(localAet, remote))
     {

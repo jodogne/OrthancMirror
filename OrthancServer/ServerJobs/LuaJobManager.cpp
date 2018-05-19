@@ -47,16 +47,6 @@
 
 namespace Orthanc
 {
-  void LuaJobManager::ConnectionTimeoutThread(LuaJobManager* manager)
-  {
-    while (manager->continue_)
-    {
-      manager->connectionManager_.CheckTimeout();
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    }
-  }
-
-    
   void LuaJobManager::SignalDone(const SequenceOfOperationsJob& job)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -72,21 +62,8 @@ namespace Orthanc
   LuaJobManager::LuaJobManager() :
     currentJob_(NULL),
     maxOperations_(1000),
-    priority_(0),
-    continue_(true)
+    priority_(0)
   {
-    connectionTimeoutThread_ = boost::thread(ConnectionTimeoutThread, this);
-  }
-
-
-  LuaJobManager::~LuaJobManager()
-  {
-    continue_ = false;
-
-    if (connectionTimeoutThread_.joinable())
-    {
-      connectionTimeoutThread_.join();
-    }
   }
 
 
@@ -180,8 +157,7 @@ namespace Orthanc
                                                    const RemoteModalityParameters& modality)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation
-      (new StoreScuOperation(localAet, modality, that_.connectionManager_));    
+    return jobLock_->AddOperation(new StoreScuOperation(localAet, modality));    
   }
 
 

@@ -72,7 +72,8 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& connectionManager);
   };
 }
 

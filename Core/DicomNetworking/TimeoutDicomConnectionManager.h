@@ -35,7 +35,7 @@
 
 #include "IDicomConnectionManager.h"
 
-#include <boost/thread/mutex.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
@@ -44,7 +44,6 @@ namespace Orthanc
   private:
     class Resource;
 
-    boost::mutex                         mutex_;
     std::auto_ptr<DicomUserConnection>   connection_;
     boost::posix_time::ptime             lastUse_;
     boost::posix_time::time_duration     timeout_;

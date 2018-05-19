@@ -42,10 +42,11 @@
 namespace Orthanc
 {
   void StoreScuOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input)
+                                const JobOperationValue& input,
+                                IDicomConnectionManager& connectionManager)
   {
     std::auto_ptr<IDicomConnectionManager::IResource> resource
-      (manager_.AcquireConnection(localAet_, modality_));
+      (connectionManager.AcquireConnection(localAet_, modality_));
 
     if (resource.get() == NULL)
     {
