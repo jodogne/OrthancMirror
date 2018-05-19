@@ -79,7 +79,8 @@ namespace Orthanc
   }
 
   void ModifyInstanceOperation::Apply(JobOperationValues& outputs,
-                                      const JobOperationValue& input)
+                                      const JobOperationValue& input,
+                                      IDicomConnectionManager& connectionManager)
   {
     if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {

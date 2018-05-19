@@ -101,7 +101,7 @@ namespace Orthanc
       return currentInput_ >= originalInputs_.GetSize() + workInputs_.GetSize();
     }
 
-    void Step()
+    void Step(IDicomConnectionManager& connectionManager)
     {
       if (IsDone())
       {
@@ -120,7 +120,7 @@ namespace Orthanc
       }
 
       JobOperationValues outputs;
-      operation_->Apply(outputs, *input);
+      operation_->Apply(outputs, *input, connectionManager);
 
       if (!nextOperations_.empty())
       {
@@ -173,6 +173,12 @@ namespace Orthanc
   void SequenceOfOperationsJob::Lock::SetTrailingOperationTimeout(unsigned int timeout)
   {
     that_.trailingTimeout_ = boost::posix_time::milliseconds(timeout);
+  }
+
+  
+  void SequenceOfOperationsJob::Lock::SetDicomConnectionTimeout(unsigned int timeout)
+  {
+    that_.connectionManager_.SetTimeout(timeout);
   }
 
 
@@ -255,6 +261,7 @@ namespace Orthanc
           (*it)->SignalDone(*this);
         }
 
+        connectionManager_.Close();
         return JobStepResult::Success();
       }
       else
@@ -273,8 +280,10 @@ namespace Orthanc
 
     if (current_ < operations_.size())
     {
-      operations_[current_]->Step();
+      operations_[current_]->Step(connectionManager_);
     }
+
+    connectionManager_.CheckTimeout();
 
     return JobStepResult::Continue();
   }
@@ -291,6 +300,13 @@ namespace Orthanc
     {
       operations_[i]->Reset();
     }
+  }
+
+
+  void SequenceOfOperationsJob::ReleaseResources()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    connectionManager_.Close();
   }
 
 

@@ -43,7 +43,8 @@
 namespace Orthanc
 {
   void StorePeerOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input)
+                                const JobOperationValue& input,
+                                 IDicomConnectionManager& connectionManager)
   {
     // Configure the HTTP client
     HttpClient client(peer_, "instances");
@@ -54,7 +55,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
+    const DicomInstanceOperationValue& instance =
+      dynamic_cast<const DicomInstanceOperationValue&>(input);
 
     LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
               << peer_.GetUrl() << "\"";
@@ -66,16 +68,16 @@ namespace Orthanc
       std::string answer;
       if (!client.Apply(answer))
       {
-        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
-                   << peer_.GetUrl();
+        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
+                   << " to Orthanc peer \"" << peer_.GetUrl();
       }
 
       outputs.Append(input.Clone());
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
-                 << peer_.GetUrl() << "\": " << e.What();
+      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
+                 << " to Orthanc peer \"" << peer_.GetUrl() << "\": " << e.What();
     }
   }
 }
