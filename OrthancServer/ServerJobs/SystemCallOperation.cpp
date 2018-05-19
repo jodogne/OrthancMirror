@@ -32,50 +32,83 @@
 
 
 #include "../PrecompiledHeadersServer.h"
-#include "StorePeerOperation.h"
+#include "SystemCallOperation.h"
 
 #include "DicomInstanceOperationValue.h"
 
+#include "../../Core/JobsEngine/Operations/StringOperationValue.h"
 #include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/HttpClient.h"
+#include "../../Core/TemporaryFile.h"
+#include "../../Core/Toolbox.h"
 
 namespace Orthanc
 {
-  void StorePeerOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input)
+  void SystemCallOperation::Apply(JobOperationValues& outputs,
+                                  const JobOperationValue& input)
   {
-    // Configure the HTTP client
-    HttpClient client(peer_, "instances");
-    client.SetMethod(HttpMethod_Post);
+    std::vector<std::string> arguments = preArguments_;
 
-    if (input.GetType() != JobOperationValue::Type_DicomInstance)
+    arguments.reserve(arguments.size() + postArguments_.size() + 1);
+
+    std::auto_ptr<TemporaryFile> tmp;
+    
+    switch (input.GetType())
     {
-      throw OrthancException(ErrorCode_BadParameterType);
+      case JobOperationValue::Type_DicomInstance:
+      {
+        const DicomInstanceOperationValue& instance =
+          dynamic_cast<const DicomInstanceOperationValue&>(input);
+
+        std::string dicom;
+        instance.ReadContent(dicom);
+
+        tmp.reset(new TemporaryFile);
+        tmp->Write(dicom);
+        
+        arguments.push_back(tmp->GetPath());
+        break;
+      }
+
+      case JobOperationValue::Type_String:
+      {
+        const StringOperationValue& value =
+          dynamic_cast<const StringOperationValue&>(input);
+
+        arguments.push_back(value.GetContent());
+        break;
+      }
+
+      case JobOperationValue::Type_Null:
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
+    for (size_t i = 0; i < postArguments_.size(); i++)
+    {
+      arguments.push_back(postArguments_[i]);
+    }
 
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
-              << peer_.GetUrl() << "\"";
+    std::string info = command_;
+    for (size_t i = 0; i < arguments.size(); i++)
+    {
+      info += " " + arguments[i];
+    }
+    
+    LOG(INFO) << "Lua: System call: " << info;
 
     try
     {
-      instance.ReadContent(client.GetBody());
+      SystemToolbox::ExecuteSystemCommand(command_, arguments);
 
-      std::string answer;
-      if (!client.Apply(answer))
-      {
-        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
-                   << peer_.GetUrl();
-      }
-
+      // Only chain with other commands if this operation succeeds
       outputs.Append(input.Clone());
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to Orthanc peer \"" 
-                 << peer_.GetUrl() << "\": " << e.What();
+      LOG(ERROR) << "Lua: Failed system call - " << info << ": " << e.What();
     }
   }
 }
+

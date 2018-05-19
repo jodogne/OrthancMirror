@@ -58,7 +58,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
+    const DicomInstanceOperationValue& instance =
+      dynamic_cast<const DicomInstanceOperationValue&>(input);
 
     LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
               << modality_.GetApplicationEntityTitle() << "\"";
@@ -68,7 +69,7 @@ namespace Orthanc
       std::string dicom;
       instance.ReadContent(dicom);
       resource->GetConnection().Store(dicom);
-      outputs.Append(instance.Clone());
+      outputs.Append(input.Clone());
     }
     catch (OrthancException& e)
     {

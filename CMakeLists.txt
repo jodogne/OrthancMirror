@@ -96,6 +96,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerJobs/OrthancPeerStoreJob.cpp
   OrthancServer/ServerJobs/StorePeerOperation.cpp
   OrthancServer/ServerJobs/StoreScuOperation.cpp
+  OrthancServer/ServerJobs/SystemCallOperation.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
   )

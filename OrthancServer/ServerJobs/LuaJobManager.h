@@ -93,6 +93,12 @@ namespace Orthanc
 
       size_t AddStorePeerOperation(const WebServiceParameters& peer);
 
+      size_t AddSystemCallOperation(const std::string& command);
+
+      size_t AddSystemCallOperation(const std::string& command,
+                                    const std::vector<std::string>& preArguments,
+                                    const std::vector<std::string>& postArguments);
+
       void AddNullInput(size_t operation); 
 
       void AddStringInput(size_t operation,
