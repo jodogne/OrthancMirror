@@ -46,7 +46,7 @@ namespace Orthanc
   {
     static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
 
-    LuaScripting::Locker locker(context.GetLua());
+    LuaScripting::Locker locker(context.GetLuaScripting());
     if (locker.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
       LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
