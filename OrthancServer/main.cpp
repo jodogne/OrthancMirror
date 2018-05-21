@@ -265,7 +265,7 @@ public:
     {
       std::string lua = "Is" + configuration;
 
-      LuaScripting::Locker locker(context_.GetLua());
+      LuaScripting::Locker locker(context_.GetLuaScripting());
       
       if (locker.GetLua().IsExistingFunction(lua.c_str()))
       {
@@ -290,7 +290,7 @@ public:
     {
       std::string lua = "Is" + std::string(configuration);
 
-      LuaScripting::Locker locker(context_.GetLua());
+      LuaScripting::Locker locker(context_.GetLuaScripting());
       
       if (locker.GetLua().IsExistingFunction(lua.c_str()))
       {
@@ -336,7 +336,7 @@ public:
 
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
-    LuaScripting::Locker locker(context_.GetLua());
+    LuaScripting::Locker locker(context_.GetLuaScripting());
 
     // Test if the instance must be filtered out
     if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
@@ -652,7 +652,7 @@ static void LoadLuaScripts(ServerContext& context)
     std::string script;
     SystemToolbox::ReadFile(script, path);
 
-    LuaScripting::Locker locker(context.GetLua());
+    LuaScripting::Locker locker(context.GetLuaScripting());
     locker.GetLua().Execute(script);
   }
 }
@@ -689,7 +689,7 @@ static bool WaitForExit(ServerContext& context,
   }
 #endif
 
-  context.GetLua().Execute("Initialize");
+  context.GetLuaScripting().Execute("Initialize");
 
   bool restart;
 
@@ -723,7 +723,7 @@ static bool WaitForExit(ServerContext& context,
     }
   }
 
-  context.GetLua().Execute("Finalize");
+  context.GetLuaScripting().Execute("Finalize");
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
