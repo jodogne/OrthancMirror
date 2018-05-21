@@ -52,8 +52,11 @@ using the following BibTeX entry:
   title="The {O}rthanc Ecosystem for Medical Imaging",
   journal="Journal of Digital Imaging",
   year="2018",
-  month="May",
-  day="03",
+  month="Jun",
+  day="01",
+  volume="31",
+  number="3",
+  pages="341--352",
   issn="1618-727X",
   doi="10.1007/s10278-018-0082-y",
   url="https://doi.org/10.1007/s10278-018-0082-y"
