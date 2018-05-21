@@ -44,7 +44,6 @@
 #include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
-#include "../Core/Lua/LuaContext.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -258,7 +257,7 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
-    LuaScripting& GetLua()
+    LuaScripting& GetLuaScripting()
     {
       return lua_;
     }
