@@ -70,13 +70,13 @@ namespace Orthanc
 
     void SubmitJob();
 
-    boost::mutex        mutex_;
-    LuaContext          lua_;
-    ServerContext&      context_;
-    LuaJobManager       jobManager_;
-    bool                continue_;
-    boost::thread       eventThread_;
-    SharedMessageQueue  pendingEvents_;
+    boost::recursive_mutex   mutex_;
+    LuaContext               lua_;
+    ServerContext&           context_;
+    LuaJobManager            jobManager_;
+    bool                     continue_;
+    boost::thread            eventThread_;
+    SharedMessageQueue       pendingEvents_;
 
     static void EventThread(LuaScripting* that);
 
@@ -84,8 +84,8 @@ namespace Orthanc
     class Lock : public boost::noncopyable
     {
     private:
-      LuaScripting&              that_;
-      boost::mutex::scoped_lock  lock_;
+      LuaScripting&                        that_;
+      boost::recursive_mutex::scoped_lock  lock_;
 
     public:
       explicit Lock(LuaScripting& that) : 
