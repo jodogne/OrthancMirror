@@ -167,19 +167,16 @@ public:
 class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 private:
-  LuaScripting  lua_;
-  bool          alwaysAllowEcho_;
-  bool          alwaysAllowStore_;
+  ServerContext&  context_;
+  bool            alwaysAllowEcho_;
+  bool            alwaysAllowStore_;
 
 public:
   OrthancApplicationEntityFilter(ServerContext& context) :
-    lua_(context)
+    context_(context)
   {
     alwaysAllowEcho_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowEcho", true);
     alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
-
-    LOG(INFO) << "Initializing Lua for OrthancApplicationEntityFilter";
-    lua_.LoadGlobalConfiguration();
   }
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
@@ -268,7 +265,7 @@ public:
     {
       std::string name = "Is" + configuration;
 
-      LuaScripting::Lock lock(lua_);
+      LuaScripting::Lock lock(context_.GetLuaScripting());
       
       if (lock.GetLua().IsExistingFunction(name.c_str()))
       {
@@ -293,7 +290,7 @@ public:
     {
       std::string lua = "Is" + std::string(configuration);
 
-      LuaScripting::Lock lock(lua_);
+      LuaScripting::Lock lock(context_.GetLuaScripting());
       
       if (lock.GetLua().IsExistingFunction(lua.c_str()))
       {
@@ -313,17 +310,15 @@ public:
 class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
 {
 private:
-  LuaScripting     lua_;
+  ServerContext&   context_;
   OrthancPlugins*  plugins_;
 
 public:
   MyIncomingHttpRequestFilter(ServerContext& context,
                               OrthancPlugins* plugins) : 
-    lua_(context),
+    context_(context),
     plugins_(plugins)
   {
-    LOG(INFO) << "Initializing Lua for MyIncomingHttpRequestFilter";
-    lua_.LoadGlobalConfiguration();
   }
 
   virtual bool IsAllowed(HttpMethod method,
@@ -341,7 +336,7 @@ public:
 
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
-    LuaScripting::Lock lock(lua_);
+    LuaScripting::Lock lock(context_.GetLuaScripting());
 
     // Test if the instance must be filtered out
     if (lock.GetLua().IsExistingFunction(HTTP_FILTER))
@@ -675,8 +670,8 @@ static bool WaitForExit(ServerContext& context,
   }
 #endif
 
-  context.GetLuaEventHandler().Start();
-  context.GetLuaEventHandler().Execute("Initialize");
+  context.GetLuaScripting().Start();
+  context.GetLuaScripting().Execute("Initialize");
 
   bool restart;
 
@@ -710,8 +705,8 @@ static bool WaitForExit(ServerContext& context,
     }
   }
 
-  context.GetLuaEventHandler().Execute("Finalize");
-  context.GetLuaEventHandler().Stop();
+  context.GetLuaScripting().Execute("Finalize");
+  context.GetLuaScripting().Stop();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
@@ -1000,7 +995,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 
   LOG(INFO) << "Initializing Lua for the event handler";
-  context.GetLuaEventHandler().LoadGlobalConfiguration();
+  context.GetLuaScripting().LoadGlobalConfiguration();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
