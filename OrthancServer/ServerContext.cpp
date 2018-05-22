@@ -114,7 +114,7 @@ namespace Orthanc
     storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    luaEventHandler_(*this),
+    lua_(*this),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
@@ -122,7 +122,7 @@ namespace Orthanc
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    listeners_.push_back(ServerListener(luaEventHandler_, "Lua"));
+    listeners_.push_back(ServerListener(lua_, "Lua"));
 
     jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
     //jobsEngine_.SetMaxCompleted   // TODO
@@ -580,7 +580,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(luaEventHandler_, "Lua"));
+    listeners_.push_back(ServerListener(lua_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
   }
 
@@ -593,7 +593,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(luaEventHandler_, "Lua"));
+    listeners_.push_back(ServerListener(lua_, "Lua"));
   }
 
 
