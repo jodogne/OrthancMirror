@@ -25,6 +25,7 @@ Maintenance
 -----------
 
 * Fix generation of DICOMDIR if PatientID is empty
+* Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
 
 
 Version 1.3.2 (2018-04-18)
