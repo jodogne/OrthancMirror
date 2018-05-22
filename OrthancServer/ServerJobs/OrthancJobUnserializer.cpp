@@ -31,59 +31,43 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "OrthancJobUnserializer.h"
 
-#include "JobOperationValue.h"
+#include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
 
-#include <vector>
+#include "DicomInstanceOperationValue.h"
 
 namespace Orthanc
 {
-  class IJobUnserializer;
-
-  class JobOperationValues : public boost::noncopyable
+  IJob* OrthancJobUnserializer::UnserializeJob(const Json::Value& source)
   {
-  private:
-    std::vector<JobOperationValue*>   values_;
+    const std::string type = GetString(source, "Type");
 
-    void Append(JobOperationValues& target,
-                bool clear);
+    return GenericJobUnserializer::UnserializeJob(source);
+  }
 
-  public:
-    ~JobOperationValues()
+
+  IJobOperation* OrthancJobUnserializer::UnserializeOperation(const Json::Value& source)
+  {
+    const std::string type = GetString(source, "Type");
+
+    return GenericJobUnserializer::UnserializeOperation(source);
+  }
+
+
+  JobOperationValue* OrthancJobUnserializer::UnserializeValue(const Json::Value& source)
+  {
+    const std::string type = GetString(source, "Type");
+
+    if (type == "DicomInstance")
     {
-      Clear();
+      return new DicomInstanceOperationValue(context_, GetString(source, "ID"));
     }
-
-    void Move(JobOperationValues& target)
+    else
     {
-      return Append(target, true);
+      return GenericJobUnserializer::UnserializeValue(source);
     }
-
-    void Copy(JobOperationValues& target)
-    {
-      return Append(target, false);
-    }
-
-    void Clear();
-
-    void Reserve(size_t count)
-    {
-      values_.reserve(count);
-    }
-
-    void Append(JobOperationValue* value);  // Takes ownership
-
-    size_t GetSize() const
-    {
-      return values_.size();
-    }
-
-    JobOperationValue& GetValue(size_t index) const;
-
-    void Serialize(Json::Value& target) const;
-
-    static JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                           const Json::Value& source);
-  };
+  }
 }

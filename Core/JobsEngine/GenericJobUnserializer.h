@@ -33,57 +33,17 @@
 
 #pragma once
 
-#include "JobOperationValue.h"
-
-#include <vector>
+#include "IJobUnserializer.h"
 
 namespace Orthanc
 {
-  class IJobUnserializer;
-
-  class JobOperationValues : public boost::noncopyable
+  class GenericJobUnserializer : public IJobUnserializer
   {
-  private:
-    std::vector<JobOperationValue*>   values_;
-
-    void Append(JobOperationValues& target,
-                bool clear);
-
   public:
-    ~JobOperationValues()
-    {
-      Clear();
-    }
+    virtual IJob* UnserializeJob(const Json::Value& source);
 
-    void Move(JobOperationValues& target)
-    {
-      return Append(target, true);
-    }
+    virtual IJobOperation* UnserializeOperation(const Json::Value& source);
 
-    void Copy(JobOperationValues& target)
-    {
-      return Append(target, false);
-    }
-
-    void Clear();
-
-    void Reserve(size_t count)
-    {
-      values_.reserve(count);
-    }
-
-    void Append(JobOperationValue* value);  // Takes ownership
-
-    size_t GetSize() const
-    {
-      return values_.size();
-    }
-
-    JobOperationValue& GetValue(size_t index) const;
-
-    void Serialize(Json::Value& target) const;
-
-    static JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                           const Json::Value& source);
+    virtual JobOperationValue* UnserializeValue(const Json::Value& source);
   };
 }

@@ -365,12 +365,17 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    value = Json::arrayValue;
+    Json::Value tmp = Json::arrayValue;
     for (size_t i = 0; i < operations_.size(); i++)
     {
       Json::Value operation = Json::objectValue;
       operations_[i]->Serialize(operation);
-      value.append(operation);
+      tmp.append(operation);
     }
+
+    value["Operations"] = tmp;
+    value["TrailingTimeout"] = static_cast<unsigned int>(trailingTimeout_.total_milliseconds());
+    value["DicomTimeout"] = connectionManager_.GetTimeout();
+    value["Current"] = static_cast<unsigned int>(current_);
   }
 }

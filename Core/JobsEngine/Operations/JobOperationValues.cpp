@@ -34,9 +34,11 @@
 #include "../../PrecompiledHeaders.h"
 #include "JobOperationValues.h"
 
+#include "../IJobUnserializer.h"
 #include "../../OrthancException.h"
 
 #include <cassert>
+#include <memory>
 
 namespace Orthanc
 {
@@ -116,5 +118,26 @@ namespace Orthanc
       values_[i]->Serialize(tmp);
       target.append(tmp);
     }
+  }
+
+
+  JobOperationValues* Unserialize(IJobUnserializer& unserializer,
+                                  const Json::Value& source)
+  {
+    if (source.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    std::auto_ptr<JobOperationValues> result(new JobOperationValues);
+
+    result->Reserve(source.size());
+    
+    for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
+    {
+      result->Append(unserializer.UnserializeValue(source[i]));
+    }
+    
+    return result.release();
   }
 }

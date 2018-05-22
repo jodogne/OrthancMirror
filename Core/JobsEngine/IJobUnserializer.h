@@ -33,57 +33,35 @@
 
 #pragma once
 
-#include "JobOperationValue.h"
-
-#include <vector>
+#include "IJob.h"
+#include "Operations/JobOperationValue.h"
+#include "Operations/IJobOperation.h"
 
 namespace Orthanc
 {
-  class IJobUnserializer;
-
-  class JobOperationValues : public boost::noncopyable
+  class IJobUnserializer : public boost::noncopyable
   {
-  private:
-    std::vector<JobOperationValue*>   values_;
-
-    void Append(JobOperationValues& target,
-                bool clear);
-
   public:
-    ~JobOperationValues()
+    virtual ~IJobUnserializer()
     {
-      Clear();
     }
 
-    void Move(JobOperationValues& target)
-    {
-      return Append(target, true);
-    }
+    virtual IJob* UnserializeJob(const Json::Value& source) = 0;
 
-    void Copy(JobOperationValues& target)
-    {
-      return Append(target, false);
-    }
+    virtual IJobOperation* UnserializeOperation(const Json::Value& source) = 0;
 
-    void Clear();
+    virtual JobOperationValue* UnserializeValue(const Json::Value& source) = 0;
 
-    void Reserve(size_t count)
-    {
-      values_.reserve(count);
-    }
+    static void CheckType(const Json::Value& source,
+                          const std::string& expectedType);
 
-    void Append(JobOperationValue* value);  // Takes ownership
+    static std::string GetString(const Json::Value& source,
+                                 const std::string& name);
 
-    size_t GetSize() const
-    {
-      return values_.size();
-    }
+    static int GetInteger(const Json::Value& source,
+                          const std::string& name);
 
-    JobOperationValue& GetValue(size_t index) const;
-
-    void Serialize(Json::Value& target) const;
-
-    static JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                           const Json::Value& source);
+    static unsigned int GetUnsignedInteger(const Json::Value& source,
+                                           const std::string& name);
   };
 }
