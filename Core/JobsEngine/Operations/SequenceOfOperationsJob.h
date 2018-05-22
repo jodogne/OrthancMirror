@@ -61,7 +61,7 @@ namespace Orthanc
   private:
     class Operation;
 
-    std::string                       jobType_;
+    std::string                       description_;
     bool                              done_;
     boost::mutex                      mutex_;
     std::vector<Operation*>           operations_;
@@ -71,22 +71,12 @@ namespace Orthanc
     std::list<IObserver*>             observers_;
     TimeoutDicomConnectionManager     connectionManager_;
 
-    void Setup();
-
   public:
-    SequenceOfOperationsJob() :
-      jobType_("SequenceOfOperations")
-    {
-      Setup();
-    }    
-
-    SequenceOfOperationsJob(const std::string& jobType) :
-      jobType_(jobType)
-    {
-      Setup();
-    }    
+    SequenceOfOperationsJob();
 
     virtual ~SequenceOfOperationsJob();
+
+    void SetDescription(const std::string& description);
 
     void Register(IObserver& observer);
 
@@ -143,14 +133,11 @@ namespace Orthanc
 
     virtual void GetJobType(std::string& target)
     {
-      target = jobType_;
+      target = "SequenceOfOperations";
     }
 
     virtual void GetPublicContent(Json::Value& value);
 
-    virtual void GetInternalContent(Json::Value& value)
-    {
-      // TODO
-    }
+    virtual void GetInternalContent(Json::Value& value);
   };
 }

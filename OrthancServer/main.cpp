@@ -167,16 +167,19 @@ public:
 class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 private:
-  ServerContext& context_;
-  bool           alwaysAllowEcho_;
-  bool           alwaysAllowStore_;
+  LuaScripting  lua_;
+  bool          alwaysAllowEcho_;
+  bool          alwaysAllowStore_;
 
 public:
   OrthancApplicationEntityFilter(ServerContext& context) :
-    context_(context)
+    lua_(context)
   {
     alwaysAllowEcho_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowEcho", true);
     alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
+
+    LOG(INFO) << "Initializing Lua for OrthancApplicationEntityFilter";
+    lua_.LoadGlobalConfiguration();
   }
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
@@ -263,13 +266,13 @@ public:
     }
 
     {
-      std::string lua = "Is" + configuration;
+      std::string name = "Is" + configuration;
 
-      LuaScripting::Locker locker(context_.GetLuaScripting());
+      LuaScripting::Lock lock(lua_);
       
-      if (locker.GetLua().IsExistingFunction(lua.c_str()))
+      if (lock.GetLua().IsExistingFunction(name.c_str()))
       {
-        LuaFunctionCall call(locker.GetLua(), lua.c_str());
+        LuaFunctionCall call(lock.GetLua(), name.c_str());
         call.PushString(remoteAet);
         call.PushString(remoteIp);
         call.PushString(calledAet);
@@ -290,11 +293,11 @@ public:
     {
       std::string lua = "Is" + std::string(configuration);
 
-      LuaScripting::Locker locker(context_.GetLuaScripting());
+      LuaScripting::Lock lock(lua_);
       
-      if (locker.GetLua().IsExistingFunction(lua.c_str()))
+      if (lock.GetLua().IsExistingFunction(lua.c_str()))
       {
-        LuaFunctionCall call(locker.GetLua(), lua.c_str());
+        LuaFunctionCall call(lock.GetLua(), lua.c_str());
         call.PushString(remoteAet);
         call.PushString(remoteIp);
         call.PushString(calledAet);
@@ -310,15 +313,17 @@ public:
 class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
 {
 private:
-  ServerContext& context_;
+  LuaScripting     lua_;
   OrthancPlugins*  plugins_;
 
 public:
   MyIncomingHttpRequestFilter(ServerContext& context,
                               OrthancPlugins* plugins) : 
-    context_(context),
+    lua_(context),
     plugins_(plugins)
   {
+    LOG(INFO) << "Initializing Lua for MyIncomingHttpRequestFilter";
+    lua_.LoadGlobalConfiguration();
   }
 
   virtual bool IsAllowed(HttpMethod method,
@@ -326,7 +331,7 @@ public:
                          const char* ip,
                          const char* username,
                          const IHttpHandler::Arguments& httpHeaders,
-                         const IHttpHandler::GetArguments& getArguments) const
+                         const IHttpHandler::GetArguments& getArguments)
   {
     if (plugins_ != NULL &&
         !plugins_->IsAllowed(method, uri, ip, username, httpHeaders, getArguments))
@@ -336,12 +341,12 @@ public:
 
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
-    LuaScripting::Locker locker(context_.GetLuaScripting());
+    LuaScripting::Lock lock(lua_);
 
     // Test if the instance must be filtered out
-    if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
+    if (lock.GetLua().IsExistingFunction(HTTP_FILTER))
     {
-      LuaFunctionCall call(locker.GetLua(), HTTP_FILTER);
+      LuaFunctionCall call(lock.GetLua(), HTTP_FILTER);
 
       switch (method)
       {
@@ -640,25 +645,6 @@ static void PrintErrors(const char* path)
 
 
 
-static void LoadLuaScripts(ServerContext& context)
-{
-  std::list<std::string> luaScripts;
-  Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
-  for (std::list<std::string>::const_iterator
-         it = luaScripts.begin(); it != luaScripts.end(); ++it)
-  {
-    std::string path = Configuration::InterpretStringParameterAsPath(*it);
-    LOG(WARNING) << "Installing the Lua scripts from: " << path;
-    std::string script;
-    SystemToolbox::ReadFile(script, path);
-
-    LuaScripting::Locker locker(context.GetLuaScripting());
-    locker.GetLua().Execute(script);
-  }
-}
-
-
-
 #if ORTHANC_ENABLE_PLUGINS == 1
 static void LoadPlugins(OrthancPlugins& plugins)
 {
@@ -689,7 +675,8 @@ static bool WaitForExit(ServerContext& context,
   }
 #endif
 
-  context.GetLuaScripting().Execute("Initialize");
+  context.GetLuaEventHandler().Start();
+  context.GetLuaEventHandler().Execute("Initialize");
 
   bool restart;
 
@@ -723,7 +710,8 @@ static bool WaitForExit(ServerContext& context,
     }
   }
 
-  context.GetLuaScripting().Execute("Finalize");
+  context.GetLuaEventHandler().Execute("Finalize");
+  context.GetLuaEventHandler().Stop();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
@@ -1011,7 +999,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.GetIndex().SetMaximumStorageSize(0);
   }
 
-  LoadLuaScripts(context);
+  LOG(INFO) << "Initializing Lua for the event handler";
+  context.GetLuaEventHandler().LoadGlobalConfiguration();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)

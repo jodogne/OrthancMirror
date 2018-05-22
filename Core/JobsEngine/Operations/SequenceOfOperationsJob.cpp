@@ -42,6 +42,7 @@ namespace Orthanc
   class SequenceOfOperationsJob::Operation : public boost::noncopyable
   {
   private:
+    size_t                        index_;
     JobOperationValues            originalInputs_;
     JobOperationValues            workInputs_;
     std::auto_ptr<IJobOperation>  operation_;
@@ -49,9 +50,11 @@ namespace Orthanc
     size_t                        currentInput_;
 
   public:
-    Operation(IJobOperation* operation) :
-    operation_(operation),
-    currentInput_(0)
+    Operation(size_t index,
+              IJobOperation* operation) :
+      index_(index),
+      operation_(operation),
+      currentInput_(0)
     {
       if (operation == NULL)
       {
@@ -85,6 +88,11 @@ namespace Orthanc
 
     void AddNextOperation(Operation& other)
     {
+      if (other.index_ <= index_)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
       if (currentInput_ != 0)
       {
         // Cannot add input after processing has started
@@ -139,15 +147,31 @@ namespace Orthanc
 
       currentInput_ += 1;
     }
+
+    void Serialize(Json::Value& target) const
+    {
+      target = Json::objectValue;
+      operation_->Serialize(target["Operation"]);
+      originalInputs_.Serialize(target["OriginalInputs"]);
+      workInputs_.Serialize(target["WorkInputs"]);      
+
+      Json::Value tmp = Json::arrayValue;
+      for (std::list<Operation*>::const_iterator it = nextOperations_.begin();
+           it != nextOperations_.end(); ++it)
+      {
+        tmp.append(static_cast<int>((*it)->index_));
+      }
+
+      target["NextOperations"] = tmp;
+    }
   };
 
 
-  // Invoked from constructors
-  void SequenceOfOperationsJob::Setup()
+  SequenceOfOperationsJob::SequenceOfOperationsJob() :
+    done_(false),
+    current_(0),
+    trailingTimeout_(boost::posix_time::milliseconds(1000))
   {
-    done_ = false;
-    current_ = 0;
-    trailingTimeout_ = boost::posix_time::milliseconds(1000); 
   }
 
 
@@ -160,6 +184,13 @@ namespace Orthanc
         delete operations_[i];
       }
     }
+  }
+
+
+  void SequenceOfOperationsJob::SetDescription(const std::string& description)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    description_ = description;
   }
 
 
@@ -189,10 +220,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    that_.operations_.push_back(new Operation(operation));
+    size_t index = that_.operations_.size();
+
+    that_.operations_.push_back(new Operation(index, operation));
     that_.operationAdded_.notify_one();
 
-    return that_.operations_.size() - 1;
+    return index;
   }
 
 
@@ -324,5 +357,20 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
 
     value["CountOperations"] = static_cast<unsigned int>(operations_.size());
+    value["Description"] = description_;
+  }
+
+
+  void SequenceOfOperationsJob::GetInternalContent(Json::Value& value)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    value = Json::arrayValue;
+    for (size_t i = 0; i < operations_.size(); i++)
+    {
+      Json::Value operation = Json::objectValue;
+      operations_[i]->Serialize(operation);
+      value.append(operation);
+    }
   }
 }

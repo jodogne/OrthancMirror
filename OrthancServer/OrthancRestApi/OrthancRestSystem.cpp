@@ -124,8 +124,8 @@ namespace Orthanc
     call.BodyToString(command);
 
     {
-      LuaScripting::Locker locker(context.GetLuaScripting());
-      locker.GetLua().Execute(result, command);
+      LuaScripting::Lock lock(context.GetLuaEventHandler());
+      lock.GetLua().Execute(result, command);
     }
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
@@ -276,6 +276,7 @@ namespace Orthanc
   static void ListJobs(RestApiGetCall& call)
   {
     bool expand = call.HasArgument("expand");
+    bool internal = call.HasArgument("internal");
 
     Json::Value v = Json::arrayValue;
 
@@ -291,7 +292,7 @@ namespace Orthanc
         if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
         {
           Json::Value tmp;
-          info.Serialize(tmp, false);
+          info.Serialize(tmp, internal);
           v.append(tmp);
         }
       }
@@ -307,12 +308,13 @@ namespace Orthanc
   static void GetJobInfo(RestApiGetCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
+    bool internal = call.HasArgument("internal");
 
     JobInfo info;
     if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
     {
       Json::Value json;
-      info.Serialize(json, false);
+      info.Serialize(json, internal);
       call.GetOutput().AnswerJson(json);
     }
   }

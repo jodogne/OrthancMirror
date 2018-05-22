@@ -78,5 +78,7 @@ namespace Orthanc
     }
 
     JobOperationValue& GetValue(size_t index) const;
+
+    void Serialize(Json::Value& target) const;
   };
 }
