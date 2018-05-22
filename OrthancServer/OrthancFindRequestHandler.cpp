@@ -47,6 +47,25 @@
 
 namespace Orthanc
 {
+  static LuaScripting& GetLuaScripting(ServerContext& context)
+  {
+    // Returns a singleton Lua context
+    static boost::mutex mutex_;
+    static std::auto_ptr<LuaScripting>  lua_;
+    
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (lua_.get() == NULL)
+    {
+      LOG(INFO) << "Initializing Lua for OrthancFindRequestHandler";
+      lua_.reset(new LuaScripting(context));
+      lua_->LoadGlobalConfiguration();
+    }
+
+    return *lua_;
+  }
+
+
   static void GetChildren(std::list<std::string>& target,
                           ServerIndex& index,
                           const std::list<std::string>& source)
@@ -485,9 +504,9 @@ namespace Orthanc
                                                  const std::string& calledAet)
   {
     static const char* LUA_CALLBACK = "IncomingFindRequestFilter";
-
-    LuaScripting::Locker locker(context_.GetLuaScripting());
-    if (!locker.GetLua().IsExistingFunction(LUA_CALLBACK))
+    
+    LuaScripting::Lock lock(GetLuaScripting(context_));
+    if (!lock.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
       return false;
     }
@@ -498,13 +517,21 @@ namespace Orthanc
       origin["RemoteAet"] = remoteAet;
       origin["CalledAet"] = calledAet;
 
-      LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
+      LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(source);
       call.PushJson(origin);
       FromDcmtkBridge::ExecuteToDicom(target, call);
 
       return true;
     }
+  }
+
+
+  OrthancFindRequestHandler::OrthancFindRequestHandler(ServerContext& context) :
+    context_(context),
+    maxResults_(0),
+    maxInstances_(0)
+  {
   }
 
 

@@ -172,5 +172,7 @@ namespace Orthanc
     {
       identifierGenerator_ = &generator;
     }
+
+    void Serialize(Json::Value& value) const;
   };
 }

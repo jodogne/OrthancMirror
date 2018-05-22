@@ -79,4 +79,12 @@ namespace Orthanc
 
     outputs.Append(input.Clone());
   }
+
+  
+  void StoreScuOperation::Serialize(Json::Value& result) const
+  {
+    result["Type"] = "StoreScu";
+    result["LocalAET"] = localAet_;
+    modality_.ToJson(result["Modality"]);
+  }
 }

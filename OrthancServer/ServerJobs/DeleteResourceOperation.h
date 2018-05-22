@@ -53,6 +53,11 @@ namespace Orthanc
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
                        IDicomConnectionManager& connectionManager);
+
+    virtual void Serialize(Json::Value& result) const
+    {
+      result["Type"] = "DeleteResource";
+    }
   };
 }
 

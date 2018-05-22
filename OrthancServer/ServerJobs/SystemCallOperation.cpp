@@ -111,5 +111,30 @@ namespace Orthanc
       LOG(ERROR) << "Lua: Failed system call - \"" << info << "\": " << e.What();
     }
   }
+
+
+  void SystemCallOperation::Serialize(Json::Value& result) const
+  {
+    result["Type"] = "SystemCall";
+    result["Command"] = command_;
+
+    Json::Value tmp;
+
+    tmp = Json::arrayValue;
+    for (size_t i = 0; i < preArguments_.size(); i++)
+    {
+      tmp.append(preArguments_[i]);
+    }
+
+    result["PreArguments"] = tmp;
+
+    tmp = Json::arrayValue;
+    for (size_t i = 0; i < postArguments_.size(); i++)
+    {
+      tmp.append(postArguments_[i]);
+    }
+
+    result["PostArguments"] = tmp;
+  }
 }
 

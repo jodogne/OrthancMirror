@@ -119,7 +119,7 @@ namespace Orthanc
     MemoryCache dicomCache_;
     JobsEngine jobsEngine_;
 
-    LuaScripting lua_;
+    LuaScripting luaEventHandler_;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
@@ -257,9 +257,9 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
-    LuaScripting& GetLuaScripting()
+    LuaScripting& GetLuaEventHandler()
     {
-      return lua_;
+      return luaEventHandler_;
     }
 
     OrthancHttpHandler& GetHttpHandler()
