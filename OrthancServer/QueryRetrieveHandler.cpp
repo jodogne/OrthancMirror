@@ -42,32 +42,13 @@
 
 namespace Orthanc
 {
-  static LuaScripting& GetLuaScripting(ServerContext& context)
-  {
-    // Returns a singleton Lua context
-    static boost::mutex mutex_;
-    static std::auto_ptr<LuaScripting>  lua_;
-    
-    boost::mutex::scoped_lock lock(mutex_);
-
-    if (lua_.get() == NULL)
-    {
-      LOG(INFO) << "Initializing Lua for QueryRetrieveHandler";
-      lua_.reset(new LuaScripting(context));
-      lua_->LoadGlobalConfiguration();
-    }
-
-    return *lua_;
-  }
-
-
   static void FixQueryLua(DicomMap& query,
                           ServerContext& context,
                           const std::string& modality)
   {
     static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
 
-    LuaScripting::Lock lock(GetLuaScripting(context));
+    LuaScripting::Lock lock(context.GetLuaScripting());
 
     if (lock.GetLua().IsExistingFunction(LUA_CALLBACK))
     {

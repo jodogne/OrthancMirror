@@ -88,7 +88,7 @@ namespace Orthanc
       boost::mutex::scoped_lock  lock_;
 
     public:
-      Lock(LuaScripting& that) : 
+      explicit Lock(LuaScripting& that) : 
         that_(that), 
         lock_(that.mutex_)
       {

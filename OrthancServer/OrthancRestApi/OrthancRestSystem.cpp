@@ -124,7 +124,7 @@ namespace Orthanc
     call.BodyToString(command);
 
     {
-      LuaScripting::Lock lock(context.GetLuaEventHandler());
+      LuaScripting::Lock lock(context.GetLuaScripting());
       lock.GetLua().Execute(result, command);
     }
 
