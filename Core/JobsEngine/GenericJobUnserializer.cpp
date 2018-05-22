@@ -31,59 +31,60 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "GenericJobUnserializer.h"
 
-#include "JobOperationValue.h"
+#include "../Logging.h"
+#include "../OrthancException.h"
 
-#include <vector>
+#include "Operations/LogJobOperation.h"
+#include "Operations/NullOperationValue.h"
+#include "Operations/StringOperationValue.h"
 
 namespace Orthanc
 {
-  class IJobUnserializer;
-
-  class JobOperationValues : public boost::noncopyable
+  IJob* GenericJobUnserializer::UnserializeJob(const Json::Value& source)
   {
-  private:
-    std::vector<JobOperationValue*>   values_;
+    const std::string type = GetString(source, "Type");
 
-    void Append(JobOperationValues& target,
-                bool clear);
+    LOG(ERROR) << "Cannot unserialize job of type: " << type;
+    throw OrthancException(ErrorCode_BadFileFormat);
+  }
 
-  public:
-    ~JobOperationValues()
+
+  IJobOperation* GenericJobUnserializer::UnserializeOperation(const Json::Value& source)
+  {
+    const std::string type = GetString(source, "Type");
+
+    if (type == "Log")
     {
-      Clear();
+      return new LogJobOperation;
     }
-
-    void Move(JobOperationValues& target)
+    else
     {
-      return Append(target, true);
+      LOG(ERROR) << "Cannot unserialize operation of type: " << type;
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
+  }
 
-    void Copy(JobOperationValues& target)
+
+  JobOperationValue* GenericJobUnserializer::UnserializeValue(const Json::Value& source)
+  {
+    const std::string type = GetString(source, "Type");
+
+    if (type == "String")
     {
-      return Append(target, false);
+      return new StringOperationValue(GetString(source, "Content"));
     }
-
-    void Clear();
-
-    void Reserve(size_t count)
+    else if (type == "Null")
     {
-      values_.reserve(count);
+      return new NullOperationValue;
     }
-
-    void Append(JobOperationValue* value);  // Takes ownership
-
-    size_t GetSize() const
+    else
     {
-      return values_.size();
+      LOG(ERROR) << "Cannot unserialize value of type: " << type;
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
-
-    JobOperationValue& GetValue(size_t index) const;
-
-    void Serialize(Json::Value& target) const;
-
-    static JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                           const Json::Value& source);
-  };
+  }
 }
+

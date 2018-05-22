@@ -648,7 +648,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 }
 
 
-TEST(JobsEngine, Lua)
+TEST(JobsEngine, DISABLED_Lua)
 {
   JobsEngine engine;
   engine.SetWorkersCount(2);
