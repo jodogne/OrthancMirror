@@ -103,7 +103,7 @@ namespace Orthanc
 
       void SetTrailingOperationTimeout(unsigned int timeout);
 
-      void SetDicomConnectionTimeout(unsigned int timeout);
+      void SetDicomAssociationTimeout(unsigned int timeout);
       
       size_t AddOperation(IJobOperation* operation);
 
@@ -139,5 +139,10 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value);
 
     virtual void GetInternalContent(Json::Value& value);
+
+    void AwakeTrailingSleep()
+    {
+      operationAdded_.notify_one();
+    }
   };
 }

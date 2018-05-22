@@ -315,10 +315,11 @@
   // this option might prevent the upgrade to newer versions of Orthanc.
   "StoreDicom" : true,
 
-  // DICOM associations are kept open as long as new DICOM commands
-  // are issued. This option sets the number of seconds of inactivity
-  // to wait before automatically closing a DICOM association. If set
-  // to 0, the connection is closed immediately.
+  // DICOM associations initiated by Lua scripts are kept open as long
+  // as new DICOM commands are issued. This option sets the number of
+  // seconds of inactivity to wait before automatically closing a
+  // DICOM association used by Lua. If set to 0, the connection is
+  // closed immediately.
   "DicomAssociationCloseDelay" : 5,
 
   // Maximum number of query/retrieve DICOM requests that are
@@ -376,5 +377,10 @@
     // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
     // "7053,1003" : [ "ST", "Original Image Filename", 1, 1, "Philips PET Private Group" ]
     // "2001,5f" : [ "SQ", "StackSequence", 1, 1, "Philips Imaging DD 001" ]
-  }
+  },
+
+  // Maximum number of completed jobs that are kept in memory. A
+  // processing job is considered as complete once it is tagged as
+  // "Success" or "Failure".
+  "JobsHistorySize" : 10
 }

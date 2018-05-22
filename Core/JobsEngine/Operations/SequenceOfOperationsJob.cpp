@@ -207,7 +207,7 @@ namespace Orthanc
   }
 
   
-  void SequenceOfOperationsJob::Lock::SetDicomConnectionTimeout(unsigned int timeout)
+  void SequenceOfOperationsJob::Lock::SetDicomAssociationTimeout(unsigned int timeout)
   {
     that_.connectionManager_.SetTimeout(timeout);
   }

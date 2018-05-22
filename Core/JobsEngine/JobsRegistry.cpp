@@ -446,12 +446,14 @@ namespace Orthanc
   }
 
 
-  void JobsRegistry::SetMaxCompletedJobs(size_t i)
+  void JobsRegistry::SetMaxCompletedJobs(size_t n)
   {
     boost::mutex::scoped_lock lock(mutex_);
     CheckInvariants();
 
-    maxCompletedJobs_ = i;
+    LOG(INFO) << "The size of the history of the jobs engine is set to: " << n << " job(s)";
+
+    maxCompletedJobs_ = n;
     ForgetOldCompletedJobs();
 
     CheckInvariants();

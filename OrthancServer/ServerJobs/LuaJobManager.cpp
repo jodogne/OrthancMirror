@@ -34,6 +34,9 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LuaJobManager.h"
 
+#include "../OrthancInitialization.h"
+#include "../../Core/Logging.h"
+
 #include "../../Core/JobsEngine/Operations/LogJobOperation.h"
 #include "DeleteResourceOperation.h"
 #include "ModifyInstanceOperation.h"
@@ -65,6 +68,9 @@ namespace Orthanc
     priority_(0),
     trailingTimeout_(5000)
   {
+    dicomTimeout_ = Configuration::GetGlobalUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
+    LOG(INFO) << "Lua: DICOM associations will be closed after "
+              << dicomTimeout_ << " seconds of inactivity";
   }
 
 
@@ -86,6 +92,19 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     trailingTimeout_ = timeout;
+  }
+
+
+  void LuaJobManager::AwakeTrailingSleep()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    LOG(INFO) << "Awaking trailing sleep";
+
+    if (currentJob_ != NULL)
+    {
+      currentJob_->AwakeTrailingSleep();
+    }
   }
 
 
@@ -125,6 +144,7 @@ namespace Orthanc
       {
         jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
         jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
+        jobLock_->SetDicomAssociationTimeout(that_.dicomTimeout_ * 1000);  // Milliseconds expected
       }
     }
 
