@@ -536,7 +536,7 @@ namespace Orthanc
       if (event.get() == NULL)
       {
         // The event queue is empty, check whether we should stop
-        boost::mutex::scoped_lock lock(that->mutex_);
+        boost::recursive_mutex::scoped_lock lock(that->mutex_);
 
         if (!that->continue_)
         {
@@ -560,7 +560,7 @@ namespace Orthanc
 
   void LuaScripting::Start()
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (!continue_ ||
         eventThread_.joinable()  /* already started */)
@@ -578,7 +578,7 @@ namespace Orthanc
   void LuaScripting::Stop()
   {
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      boost::recursive_mutex::scoped_lock lock(mutex_);
 
       if (!continue_)
       {
@@ -633,7 +633,7 @@ namespace Orthanc
   {
     static const char* NAME = "ReceivedInstanceFilter";
 
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (lua_.IsExistingFunction(NAME))
     {
