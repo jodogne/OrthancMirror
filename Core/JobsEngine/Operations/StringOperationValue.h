@@ -60,5 +60,11 @@ namespace Orthanc
     {
       return content_;
     }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target["Type"] = "String";
+      target["Content"] = content_;
+    }
   };
 }

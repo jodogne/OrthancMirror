@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <json/value.h>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
@@ -67,5 +68,7 @@ namespace Orthanc
     }
 
     virtual JobOperationValue* Clone() const = 0;
+
+    virtual void Serialize(Json::Value& target) const = 0;
   };
 }

@@ -284,7 +284,7 @@ namespace Orthanc
                            const char* ip,
                            const char* username,
                            const IHttpHandler::Arguments& httpHeaders,
-                           const IHttpHandler::GetArguments& getArguments) const;
+                           const IHttpHandler::GetArguments& getArguments);
 
     bool HasFindHandler();
 

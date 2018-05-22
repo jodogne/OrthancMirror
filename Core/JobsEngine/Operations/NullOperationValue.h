@@ -49,5 +49,10 @@ namespace Orthanc
     {
       return new NullOperationValue;
     }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target["Type"] = "Null";
+    }
   };
 }

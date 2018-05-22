@@ -104,4 +104,17 @@ namespace Orthanc
       return *values_[index];
     }
   }
+
+
+  void JobOperationValues::Serialize(Json::Value& target) const
+  {
+    target = Json::arrayValue;
+
+    for (size_t i = 0; i < values_.size(); i++)
+    {
+      Json::Value tmp;
+      values_[i]->Serialize(tmp);
+      target.append(tmp);
+    }
+  }
 }

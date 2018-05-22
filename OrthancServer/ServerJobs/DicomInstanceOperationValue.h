@@ -54,6 +54,11 @@ namespace Orthanc
     {
     }
 
+    ServerContext& GetServerContext() const
+    {
+      return context_;
+    }
+
     const std::string& GetId() const
     {
       return id_;
@@ -67,6 +72,12 @@ namespace Orthanc
     virtual JobOperationValue* Clone() const
     {
       return new DicomInstanceOperationValue(context_, id_);
+    }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target["Type"] = "DicomInstance";
+      target["ID"] = id_;
     }
   };
 }

@@ -115,13 +115,21 @@ namespace Orthanc
       context_.Store(modifiedId, toStore);
 
       // Only chain with other commands if this command succeeds
-      outputs.Append(input.Clone());
+      outputs.Append(new DicomInstanceOperationValue(instance.GetServerContext(), modifiedId));
     }
     catch (OrthancException& e)
     {
       LOG(ERROR) << "Lua: Unable to modify instance " << instance.GetId()
                  << ": " << e.What();
     }
+  }
+
+
+  void ModifyInstanceOperation::Serialize(Json::Value& target) const
+  {
+    target["Type"] = "ModifyInstance";
+    target["Origin"] = EnumerationToString(origin_);
+    modification_->Serialize(target["Modification"]);
   }
 }
 

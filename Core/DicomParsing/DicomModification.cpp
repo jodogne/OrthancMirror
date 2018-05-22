@@ -1237,4 +1237,11 @@ namespace Orthanc
     patientNameReplaced = (IsReplaced(DICOM_TAG_PATIENT_NAME) &&
                            GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
   }
+
+  
+  void DicomModification::Serialize(Json::Value& value) const
+  {
+    // TODO
+    value = "TODO";
+  }
 }

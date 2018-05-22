@@ -35,21 +35,43 @@
 #include "QueryRetrieveHandler.h"
 
 #include "OrthancInitialization.h"
+
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/Logging.h"
 
 
 namespace Orthanc
 {
-  static void FixQuery(DicomMap& query,
-                       ServerContext& context,
-                       const std::string& modality)
+  static LuaScripting& GetLuaScripting(ServerContext& context)
+  {
+    // Returns a singleton Lua context
+    static boost::mutex mutex_;
+    static std::auto_ptr<LuaScripting>  lua_;
+    
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (lua_.get() == NULL)
+    {
+      LOG(INFO) << "Initializing Lua for QueryRetrieveHandler";
+      lua_.reset(new LuaScripting(context));
+      lua_->LoadGlobalConfiguration();
+    }
+
+    return *lua_;
+  }
+
+
+  static void FixQueryLua(DicomMap& query,
+                          ServerContext& context,
+                          const std::string& modality)
   {
     static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
 
-    LuaScripting::Locker locker(context.GetLuaScripting());
-    if (locker.GetLua().IsExistingFunction(LUA_CALLBACK))
+    LuaScripting::Lock lock(GetLuaScripting(context));
+
+    if (lock.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
-      LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
+      LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(query);
       call.PushJson(modality);
       FromDcmtkBridge::ExecuteToDicom(query, call);
@@ -57,8 +79,8 @@ namespace Orthanc
   }
 
 
-  static void FixQuery(DicomMap& query,
-                       ModalityManufacturer manufacturer)
+  static void FixQueryBuiltin(DicomMap& query,
+                              ModalityManufacturer manufacturer)
   {
     /**
      * Introduce patches for specific manufacturers below.
@@ -99,10 +121,10 @@ namespace Orthanc
       // Firstly, fix the content of the query for specific manufacturers
       DicomMap fixed;
       fixed.Assign(query_);
-      FixQuery(fixed, modality_.GetManufacturer());
+      FixQueryBuiltin(fixed, modality_.GetManufacturer());
 
       // Secondly, possibly fix the query with the user-provider Lua callback
-      FixQuery(fixed, context_, modality_.GetApplicationEntityTitle()); 
+      FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
       GetConnection().Find(answers_, level_, fixed);
 

@@ -119,9 +119,13 @@ namespace Orthanc
     {
       // Need to create a new job, as the previous one is either
       // finished, or is getting too long
-      that_.currentJob_ = new SequenceOfOperationsJob("Lua");
-      jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
-      jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
+      that_.currentJob_ = new SequenceOfOperationsJob;
+      that_.currentJob_->SetDescription("Lua");
+
+      {
+        jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
+        jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
+      }
     }
 
     assert(jobLock_.get() != NULL);

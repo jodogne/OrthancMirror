@@ -80,4 +80,11 @@ namespace Orthanc
 
     outputs.Append(input.Clone());
   }
+
+  
+  void StorePeerOperation::Serialize(Json::Value& result) const
+  {
+    result["Type"] = "StorePeer";
+    peer_.ToJson(result["Remote"]);
+  }
 }
