@@ -588,6 +588,8 @@ namespace Orthanc
       continue_ = false;
     }
 
+    jobManager_.AwakeTrailingSleep();
+
     if (eventThread_.joinable())
     {
       LOG(INFO) << "Stopping the Lua engine";

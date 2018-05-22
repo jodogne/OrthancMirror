@@ -997,6 +997,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   LOG(INFO) << "Initializing Lua for the event handler";
   context.GetLuaScripting().LoadGlobalConfiguration();
 
+  context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
+    (Configuration::GetGlobalUnsignedIntegerParameter("JobsHistorySize", 10));
+
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
   {
