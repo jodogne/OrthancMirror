@@ -50,18 +50,42 @@ namespace Orthanc
 {
   static void AnswerDicomAsJson(RestApiCall& call,
                                 const Json::Value& dicom,
-                                bool simplify)
+                                DicomToJsonFormat mode)
   {
-    if (simplify)
+    if (mode != DicomToJsonFormat_Full)
     {
       Json::Value simplified;
-      ServerToolbox::SimplifyTags(simplified, dicom, DicomToJsonFormat_Human);
+      ServerToolbox::SimplifyTags(simplified, dicom, mode);
       call.GetOutput().AnswerJson(simplified);
     }
     else
     {
       call.GetOutput().AnswerJson(dicom);
     }
+  }
+
+
+  static DicomToJsonFormat GetDicomFormat(const RestApiGetCall& call)
+  {
+    if (call.HasArgument("simplify"))
+    {
+      return DicomToJsonFormat_Human;
+    }
+    else if (call.HasArgument("short"))
+    {
+      return DicomToJsonFormat_Short;
+    }
+    else
+    {
+      return DicomToJsonFormat_Full;
+    }
+  }
+
+
+  static void AnswerDicomAsJson(RestApiGetCall& call,
+                                const Json::Value& dicom)
+  {
+    AnswerDicomAsJson(call, dicom, GetDicomFormat(call));
   }
 
 
@@ -236,7 +260,7 @@ namespace Orthanc
   }
 
 
-  template <bool simplify>
+  template <DicomToJsonFormat format>
   static void GetInstanceTags(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -246,18 +270,18 @@ namespace Orthanc
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, "ignore-length");
     
-    if (simplify ||
+    if (format != DicomToJsonFormat_Full ||
         !ignoreTagLength.empty())
     {
       Json::Value full;
       context.ReadDicomAsJson(full, publicId, ignoreTagLength);
-      AnswerDicomAsJson(call, full, simplify);
+      AnswerDicomAsJson(call, full, format);
     }
     else
     {
       // This path allows to avoid the JSON decoding if no
-      // simplification is asked, or if no "ignore-length" argument is
-      // present
+      // simplification is asked, and if no "ignore-length" argument
+      // is present
       std::string full;
       context.ReadDicomAsJson(full, publicId);
       call.GetOutput().AnswerBuffer(full, "application/json");
@@ -267,15 +291,22 @@ namespace Orthanc
 
   static void GetInstanceTagsBis(RestApiGetCall& call)
   {
-    bool simplify = call.HasArgument("simplify");
+    switch (GetDicomFormat(call))
+    {
+      case DicomToJsonFormat_Human:
+        GetInstanceTags<DicomToJsonFormat_Human>(call);
+        break;
 
-    if (simplify)
-    {
-      GetInstanceTags<true>(call);
-    }
-    else
-    {
-      GetInstanceTags<false>(call);
+      case DicomToJsonFormat_Short:
+        GetInstanceTags<DicomToJsonFormat_Short>(call);
+        break;
+
+      case DicomToJsonFormat_Full:
+        GetInstanceTags<DicomToJsonFormat_Full>(call);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
   }
 
@@ -1044,13 +1075,12 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
 
     Json::Value sharedTags;
     if (ExtractSharedTags(sharedTags, context, publicId))
     {
       // Success: Send the value of the shared tags
-      AnswerDicomAsJson(call, sharedTags, simplify);
+      AnswerDicomAsJson(call, sharedTags);
     }
   }
 
@@ -1071,7 +1101,6 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
 
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, "ignore-length");
@@ -1111,7 +1140,7 @@ namespace Orthanc
       }      
     }
 
-    AnswerDicomAsJson(call, result, simplify);
+    AnswerDicomAsJson(call, result);
   }
     
 
@@ -1306,7 +1335,7 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
+    DicomToJsonFormat format = GetDicomFormat(call);
 
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, "ignore-length");
@@ -1325,10 +1354,10 @@ namespace Orthanc
       Json::Value full;
       context.ReadDicomAsJson(full, *it, ignoreTagLength);
 
-      if (simplify)
+      if (format != DicomToJsonFormat_Full)
       {
         Json::Value simplified;
-        ServerToolbox::SimplifyTags(simplified, full, DicomToJsonFormat_Human);
+        ServerToolbox::SimplifyTags(simplified, full, format);
         result[*it] = simplified;
       }
       else
@@ -1409,7 +1438,6 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
 
     std::string dicomContent;
     context.ReadDicom(dicomContent, publicId);
@@ -1422,7 +1450,7 @@ namespace Orthanc
     Json::Value header;
     dicom.HeaderToJson(header, DicomToJsonFormat_Full);
 
-    AnswerDicomAsJson(call, header, simplify);
+    AnswerDicomAsJson(call, header);
   }
 
 
@@ -1495,7 +1523,7 @@ namespace Orthanc
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTagsBis);
-    Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
+    Register("/instances/{id}/simplified-tags", GetInstanceTags<DicomToJsonFormat_Human>);
     Register("/instances/{id}/frames", ListFrames);
 
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
