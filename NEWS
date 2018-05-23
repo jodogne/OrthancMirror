@@ -15,11 +15,19 @@ REST API
 --------
 
 * "/jobs/..." to manage the jobs from the REST API
-* ".../tags" URI was returning only the first value of DicomTags containing 
-  multiple numerical value.  It now returns all values in a string separated
-  by \\ (i.e.: "1\\2\\3").  Note that, for data already in Orthanc, you'll need
-  to reconstruct the data by sending a POST request to the ".../reconstruct" URI.
-  This change triggered an update of ORTHANC_API_VERSION from 1.0 to 1.1
+* New option "?short" to list DICOM tags using their hexadecimal ID in:
+  - "/instances/.../tags?short"
+  - "/instances/.../header?short"
+  - "/{patients|studies|series}/.../instances-tags?short"
+  - "/{patients|studies|series}/.../shared-tags?short"
+  - "/{patients|studies|series|instances}/.../module?short"
+  - "/studies/.../module-patient?short"
+* "/instances/.../tags" URI was returning only the first value of
+  DicomTags containing multiple numerical value.  It now returns all
+  values in a string separated by \\ (i.e.: "1\\2\\3").  Note that,
+  for data already in Orthanc, you'll need to reconstruct the data by
+  sending a POST request to the ".../reconstruct" URI.  This change
+  triggered an update of ORTHANC_API_VERSION from 1.0 to 1.1
 
 Maintenance
 -----------
