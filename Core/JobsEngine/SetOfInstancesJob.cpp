@@ -188,7 +188,6 @@ namespace Orthanc
     }
 
     value["Instances"] = v;
-
       
     v = Json::arrayValue;
 

@@ -57,7 +57,16 @@ namespace Orthanc
               << remote_.GetApplicationEntityTitle() << "\"";
 
     std::string dicom;
-    context_.ReadDicom(dicom, instance);
+
+    try
+    {
+      context_.ReadDicom(dicom, instance);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
+      return false;
+    }
 
     if (HasMoveOriginator())
     {
@@ -161,6 +170,7 @@ namespace Orthanc
 
   void DicomModalityStoreJob::GetPublicContent(Json::Value& value)
   {
+    value["Description"] = GetDescription();
     value["LocalAet"] = localAet_;
     value["RemoteAet"] = remote_.GetApplicationEntityTitle();
 

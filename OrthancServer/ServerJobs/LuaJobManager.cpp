@@ -154,12 +154,27 @@ namespace Orthanc
 
   LuaJobManager::Lock::~Lock()
   {
+    bool isEmpty;
+    
     assert(jobLock_.get() != NULL);
+    isEmpty = (isNewJob_ &&
+               jobLock_->GetOperationsCount() == 0);
+    
     jobLock_.reset(NULL);
 
     if (isNewJob_)
     {
-      engine_.GetRegistry().Submit(that_.currentId_, that_.currentJob_, that_.priority_);
+      if (isEmpty)
+      {
+        // No operation was added, discard the newly created job
+        isNewJob_ = false;
+        delete that_.currentJob_;
+        that_.currentJob_ = NULL;
+      }
+      else
+      {
+        engine_.GetRegistry().Submit(that_.currentId_, that_.currentJob_, that_.priority_);
+      }
     }
   }
 
