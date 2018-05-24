@@ -47,12 +47,23 @@ namespace Orthanc
     bool                      permissive_;
     size_t                    position_;
     std::set<std::string>     failedInstances_;
+    std::string               description_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
 
   public:
     SetOfInstancesJob();
+
+    void SetDescription(const std::string& description)
+    {
+      description_ = description;
+    }
+
+    const std::string& GetDescription() const
+    {
+      return description_;
+    }
 
     void Reserve(size_t size);
 

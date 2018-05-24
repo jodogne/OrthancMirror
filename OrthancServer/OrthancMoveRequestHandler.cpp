@@ -38,6 +38,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "ServerJobs/DicomModalityStoreJob.h"
 
 namespace Orthanc
 {
@@ -45,7 +46,7 @@ namespace Orthanc
   {
     // Anonymous namespace to avoid clashes between compilation modules
 
-    class OrthancMoveRequestIterator : public IMoveRequestIterator
+    class SynchronousMove : public IMoveRequestIterator
     {
     private:
       ServerContext& context_;
@@ -58,11 +59,11 @@ namespace Orthanc
       std::auto_ptr<DicomUserConnection> connection_;
 
     public:
-      OrthancMoveRequestIterator(ServerContext& context,
-                                 const std::string& aet,
-                                 const std::string& publicId,
-                                 const std::string& originatorAet,
-                                 uint16_t originatorId) :
+      SynchronousMove(ServerContext& context,
+                      const std::string& aet,
+                      const std::string& publicId,
+                      const std::string& originatorAet,
+                      uint16_t originatorId) :
         context_(context),
         localAet_(context.GetDefaultLocalApplicationEntityTitle()),
         position_(0),
@@ -108,6 +109,66 @@ namespace Orthanc
         connection_->Store(dicom, originatorAet_, originatorId_);
 
         return Status_Success;
+      }
+    };
+
+
+    class AsynchronousMove : public IMoveRequestIterator
+    {
+    private:
+      ServerContext&                        context_;
+      std::auto_ptr<DicomModalityStoreJob>  job_;
+      size_t                                position_;
+      
+    public:
+      AsynchronousMove(ServerContext& context,
+                       const std::string& aet,
+                       const std::string& publicId,
+                       const std::string& originatorAet,
+                       uint16_t originatorId) :
+        context_(context),
+        job_(new DicomModalityStoreJob(context)),
+        position_(0)
+      {
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
+
+        job_->SetDescription("C-MOVE");
+        job_->SetPermissive(true);
+        job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
+        job_->SetRemoteModality(Configuration::GetModalityUsingAet(aet));
+
+        if (originatorId != 0)
+        {
+          job_->SetMoveOriginator(originatorAet, originatorId);
+        }
+        
+        std::list<std::string> tmp;
+        context_.GetIndex().GetChildInstances(tmp, publicId);
+
+        job_->Reserve(tmp.size());
+
+        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+        {
+          job_->AddInstance(*it);
+        }
+      }
+
+      virtual unsigned int GetSubOperationCount() const
+      {
+        return 1;
+      }
+
+      virtual Status DoNext()
+      {
+        if (position_ == 0)
+        {
+          context_.GetJobsEngine().GetRegistry().Submit(job_.release(), 0 /* priority */);
+          return Status_Success;
+        }
+        else
+        {
+          return Status_Failure;
+        }
       }
     };
   }
@@ -217,7 +278,8 @@ namespace Orthanc
           LookupIdentifier(publicId, ResourceType_Study, input) ||
           LookupIdentifier(publicId, ResourceType_Patient, input))
       {
-        return new OrthancMoveRequestIterator(context_, targetAet, publicId, originatorAet, originatorId);
+        return new AsynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
+        //return new SynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
       }
       else
       {
@@ -238,7 +300,8 @@ namespace Orthanc
 
     if (LookupIdentifier(publicId, level, input))
     {
-      return new OrthancMoveRequestIterator(context_, targetAet, publicId, originatorAet, originatorId);
+      return new AsynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
+      //return new SynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
     }
     else
     {

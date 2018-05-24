@@ -52,7 +52,15 @@ namespace Orthanc
     LOG(INFO) << "Sending instance " << instance << " to peer \"" 
               << peer_.GetUrl() << "\"";
 
-    context_.ReadDicom(client_->GetBody(), instance);
+    try
+    {
+      context_.ReadDicom(client_->GetBody(), instance);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
+      return false;
+    }
 
     std::string answer;
     if (client_->Apply(answer))
@@ -90,7 +98,8 @@ namespace Orthanc
     Json::Value v;
     peer_.ToJson(v);
     value["Peer"] = v;
-        
+
+    value["Description"] = GetDescription();
     value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
     value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
   }
