@@ -710,7 +710,7 @@ namespace Orthanc
     
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
+    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", true);
     bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
     int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
@@ -768,6 +768,7 @@ namespace Orthanc
     RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
 
     std::auto_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
+    job->SetDescription("REST API");
     job->SetLocalAet(localAet);
     job->SetRemoteModality(p);
 
@@ -907,6 +908,7 @@ namespace Orthanc
     Configuration::GetOrthancPeer(peer, remote);
 
     std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
+    job->SetDescription("REST API");
     job->SetPeer(peer);    
 
     SubmitJob(call, request, instances, job.release());
