@@ -54,7 +54,7 @@
  * @defgroup Callbacks Callbacks
  * @brief Functions to register and manage callbacks by the plugins.
  *
- * @defgroup DicomCallbaks DicomCallbaks
+ * @defgroup DicomCallbacks DicomCallbacks
  * @brief Functions to register and manage DICOM callbacks (worklists, C-Find, C-MOVE).
  *
  * @defgroup Orthanc Orthanc
