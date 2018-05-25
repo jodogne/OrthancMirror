@@ -535,7 +535,7 @@ namespace Orthanc
     
     
 
-    class ArchiveWriterVisitor : public IArchiveVisitor
+    class ArchiveIndexVisitor : public IArchiveVisitor
     {
     private:
       ArchiveCommands&  commands_;
@@ -560,8 +560,8 @@ namespace Orthanc
       }
 
     public:
-      ArchiveWriterVisitor(ArchiveCommands& commands,
-                           ServerContext& context) :
+      ArchiveIndexVisitor(ArchiveCommands& commands,
+                          ServerContext& context) :
         commands_(commands),
         context_(context),
         counter_(0)
@@ -646,47 +646,10 @@ namespace Orthanc
 
         commands_.AddWriteInstance(filename, instanceId, dicom);
       }
-
-      static void Apply(RestApiOutput& output,
-                        ServerContext& context,
-                        ArchiveIndex& archive,
-                        const std::string& filename)
-      {
-        ArchiveCommands commands;
-
-        {
-          ArchiveWriterVisitor visitor(commands, context);
-          archive.Expand(context.GetIndex());
-          archive.Apply(visitor);
-        }
-
-        // Create a RAII for the temporary file to manage the ZIP file
-        TemporaryFile tmp;
-
-        {
-          HierarchicalZipWriter writer(tmp.GetPath().c_str());
-          writer.SetZip64(commands.IsZip64());
-
-          for (size_t i = 0; i < commands.GetSize(); i++)
-          {
-            commands.Apply(writer, context, i);
-          }
-        }
-
-        // Prepare the sending of the ZIP file
-        FilesystemHttpSender sender(tmp.GetPath());
-        sender.SetContentType("application/zip");
-        sender.SetContentFilename(filename);
-
-        // Send the ZIP
-        output.AnswerStream(sender);
-
-        // The temporary file is automatically removed thanks to the RAII
-      }
     };
 
     
-    class MediaWriterVisitor : public IArchiveVisitor
+    class MediaIndexVisitor : public IArchiveVisitor
     {
     private:
       ArchiveCommands&  commands_;
@@ -694,8 +657,8 @@ namespace Orthanc
       unsigned int      counter_;
 
     public:
-      MediaWriterVisitor(ArchiveCommands& commands,
-                         ServerContext& context) :
+      MediaIndexVisitor(ArchiveCommands& commands,
+                        ServerContext& context) :
         commands_(commands),
         context_(context),
         counter_(0)
@@ -722,60 +685,81 @@ namespace Orthanc
 
         counter_ ++;
       }
-
-      static void Apply(RestApiOutput& output,
-                        ServerContext& context,
-                        ArchiveIndex& archive,
-                        const std::string& filename,
-                        bool enableExtendedSopClass)
-      {
-        static const char* IMAGES_FOLDER = "IMAGES"; 
-        
-        ArchiveCommands commands;
-
-        {
-          MediaWriterVisitor visitor(commands, context);
-          archive.Expand(context.GetIndex());
-
-          commands.AddOpenDirectory(IMAGES_FOLDER);        
-          archive.Apply(visitor);
-          commands.AddCloseDirectory();
-        }
-
-        // Create a RAII for the temporary file to manage the ZIP file
-        TemporaryFile tmp;
-
-        {
-          DicomDirWriter dicomDir;
-          dicomDir.EnableExtendedSopClass(enableExtendedSopClass);  
-
-          HierarchicalZipWriter writer(tmp.GetPath().c_str());
-          writer.SetZip64(commands.IsZip64());
-
-          for (size_t i = 0; i < commands.GetSize(); i++)
-          {
-            commands.Apply(writer, context, i, dicomDir, IMAGES_FOLDER);
-          }
-
-          // Add the DICOMDIR
-          writer.OpenFile("DICOMDIR");
-          std::string s;
-          dicomDir.Encode(s);
-          writer.Write(s);
-        }
-
-
-        // Prepare the sending of the ZIP file
-        FilesystemHttpSender sender(tmp.GetPath());
-        sender.SetContentType("application/zip");
-        sender.SetContentFilename(filename);
-
-        // Send the ZIP
-        output.AnswerStream(sender);
-
-        // The temporary file is automatically removed thanks to the RAII
-      }
     };
+
+
+    static void CreateArchive(TemporaryFile& tmp,
+                              ServerContext& context,
+                              ArchiveIndex& archive)
+    {
+      ArchiveCommands commands;
+
+      {
+        ArchiveIndexVisitor visitor(commands, context);
+        archive.Expand(context.GetIndex());
+        archive.Apply(visitor);
+      }
+
+      HierarchicalZipWriter writer(tmp.GetPath().c_str());
+      writer.SetZip64(commands.IsZip64());
+
+      for (size_t i = 0; i < commands.GetSize(); i++)
+      {
+        commands.Apply(writer, context, i);
+      }
+    }
+    
+
+    static void CreateMedia(TemporaryFile& tmp,
+                            ServerContext& context,
+                            ArchiveIndex& archive,
+                            bool enableExtendedSopClass)
+    {
+      static const char* IMAGES_FOLDER = "IMAGES"; 
+        
+      ArchiveCommands commands;
+
+      {
+        MediaIndexVisitor visitor(commands, context);
+        archive.Expand(context.GetIndex());
+
+        commands.AddOpenDirectory(IMAGES_FOLDER);        
+        archive.Apply(visitor);
+        commands.AddCloseDirectory();
+      }
+
+      DicomDirWriter dicomDir;
+      dicomDir.EnableExtendedSopClass(enableExtendedSopClass);  
+
+      HierarchicalZipWriter writer(tmp.GetPath().c_str());
+      writer.SetZip64(commands.IsZip64());
+
+      for (size_t i = 0; i < commands.GetSize(); i++)
+      {
+        commands.Apply(writer, context, i, dicomDir, IMAGES_FOLDER);
+      }
+
+      // Add the DICOMDIR
+      writer.OpenFile("DICOMDIR");
+      std::string s;
+      dicomDir.Encode(s);
+      writer.Write(s);
+    }
+
+
+    static void SendTemporaryFile(RestApiOutput& output,
+                                  TemporaryFile& tmp,
+                                  const std::string& filename)
+    {
+      // Prepare the sending of the ZIP file
+      FilesystemHttpSender sender(tmp.GetPath());
+      sender.SetContentType("application/zip");
+      sender.SetContentFilename(filename);
+
+      // Send the ZIP
+      output.AnswerStream(sender);
+    }
+
 
 
 #if 0
@@ -893,10 +877,9 @@ namespace Orthanc
 
     if (AddResourcesOfInterest(archive, call))
     {
-      ArchiveWriterVisitor::Apply(call.GetOutput(),
-                                  OrthancRestApi::GetContext(call),
-                                  archive,
-                                  "Archive.zip");
+      TemporaryFile tmp;
+      CreateArchive(tmp, OrthancRestApi::GetContext(call), archive);
+      SendTemporaryFile(call.GetOutput(), tmp, "Archive.zip");
     }
   }  
 
@@ -908,11 +891,9 @@ namespace Orthanc
 
     if (AddResourcesOfInterest(archive, call))
     {
-      MediaWriterVisitor::Apply(call.GetOutput(),
-                                OrthancRestApi::GetContext(call),
-                                archive,
-                                "Archive.zip",
-                                Extended);
+      TemporaryFile tmp;
+      CreateMedia(tmp, OrthancRestApi::GetContext(call), archive, Extended);
+      SendTemporaryFile(call.GetOutput(), tmp, "Archive.zip");
     }
   }  
 
@@ -927,10 +908,9 @@ namespace Orthanc
     ArchiveIndex archive(ResourceType_Patient);  // root
     archive.Add(OrthancRestApi::GetIndex(call), resource);
 
-    ArchiveWriterVisitor::Apply(call.GetOutput(),
-                                OrthancRestApi::GetContext(call),
-                                archive,
-                                id + ".zip");
+    TemporaryFile tmp;
+    CreateArchive(tmp, OrthancRestApi::GetContext(call), archive);
+    SendTemporaryFile(call.GetOutput(), tmp, id + ".zip");
   }
 
 
@@ -944,11 +924,9 @@ namespace Orthanc
     ArchiveIndex archive(ResourceType_Patient);  // root
     archive.Add(OrthancRestApi::GetIndex(call), resource);
 
-    MediaWriterVisitor::Apply(call.GetOutput(),
-                              OrthancRestApi::GetContext(call),
-                              archive,
-                              id + ".zip",
-                              call.HasArgument("extended"));
+    TemporaryFile tmp;
+    CreateMedia(tmp, OrthancRestApi::GetContext(call), archive, call.HasArgument("extended"));
+    SendTemporaryFile(call.GetOutput(), tmp, id + ".zip");
   }
 
 
