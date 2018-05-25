@@ -607,7 +607,7 @@ namespace Orthanc
    ***************************************************************************/
 
   static bool GetInstancesToExport(Json::Value& otherArguments,
-                                   std::list<std::string>& instances,
+                                   SetOfInstancesJob& job,
                                    const std::string& remote,
                                    RestApiPostCall& call)
   {
@@ -681,15 +681,8 @@ namespace Orthanc
       {
         context.GetIndex().LogExportedResource(stripped, remote);
       }
-       
-      std::list<std::string> tmp;
-      context.GetIndex().GetChildInstances(tmp, stripped);
 
-      for (std::list<std::string>::const_iterator
-             it = tmp.begin(); it != tmp.end(); ++it)
-      {
-        instances.push_back(*it);
-      }
+      context.AddChildInstances(job, stripped);
     }
 
     return true;
@@ -698,7 +691,6 @@ namespace Orthanc
 
   static void SubmitJob(RestApiPostCall& call,
                         const Json::Value& request,
-                        const std::list<std::string>& instances,
                         SetOfInstancesJob* jobRaw)
   {
     std::auto_ptr<SetOfInstancesJob> job(jobRaw);
@@ -715,13 +707,6 @@ namespace Orthanc
     int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
     job->SetPermissive(permissive);
-    job->Reserve(instances.size());
-
-    for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); ++it)
-    {
-      job->AddInstance(*it);
-    }
     
     if (asynchronous)
     {
@@ -752,32 +737,30 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::list<std::string> instances;
-    if (!GetInstancesToExport(request, instances, remote, call))
-    {
-      return;
-    }
-
-    std::string localAet = Toolbox::GetJsonStringField
-      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
-    std::string moveOriginatorAET = Toolbox::GetJsonStringField
-      (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
-    int moveOriginatorID = Toolbox::GetJsonIntegerField
-      (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
-
-    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-
     std::auto_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
-    job->SetDescription("REST API");
-    job->SetLocalAet(localAet);
-    job->SetRemoteModality(p);
 
-    if (moveOriginatorID != 0)
+    if (GetInstancesToExport(request, *job, remote, call))
     {
-      job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
-    }
+      std::string localAet = Toolbox::GetJsonStringField
+        (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+      std::string moveOriginatorAET = Toolbox::GetJsonStringField
+        (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
+      int moveOriginatorID = Toolbox::GetJsonIntegerField
+        (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
-    SubmitJob(call, request, instances, job.release());
+      RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
+
+      job->SetDescription("REST API");
+      job->SetLocalAet(localAet);
+      job->SetRemoteModality(p);
+
+      if (moveOriginatorID != 0)
+      {
+        job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
+      }
+
+      SubmitJob(call, request, job.release());
+    }
   }
 
 
@@ -898,20 +881,18 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::list<std::string> instances;
-    if (!GetInstancesToExport(request, instances, remote, call))
-    {
-      return;
-    }
-
-    WebServiceParameters peer;
-    Configuration::GetOrthancPeer(peer, remote);
-
     std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
-    job->SetDescription("REST API");
-    job->SetPeer(peer);    
 
-    SubmitJob(call, request, instances, job.release());
+    if (GetInstancesToExport(request, *job, remote, call))
+    {
+      WebServiceParameters peer;
+      Configuration::GetOrthancPeer(peer, remote);
+      
+      job->SetDescription("REST API");
+      job->SetPeer(peer);    
+      
+      SubmitJob(call, request, job.release());
+    }
   }
 
 

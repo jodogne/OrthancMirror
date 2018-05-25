@@ -671,4 +671,19 @@ namespace Orthanc
     }
   }
 
+
+  void ServerContext::AddChildInstances(SetOfInstancesJob& job,
+                                        const std::string& publicId)
+  {
+    std::list<std::string> instances;
+    GetIndex().GetChildInstances(instances, publicId);
+
+    job.Reserve(job.GetInstancesCount() + instances.size());
+
+    for (std::list<std::string>::const_iterator
+           it = instances.begin(); it != instances.end(); ++it)
+    {
+      job.AddInstance(*it);
+    }
+  }
 }
