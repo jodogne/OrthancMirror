@@ -44,6 +44,7 @@
 #include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/RestApi/RestApiOutput.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -290,5 +291,8 @@ namespace Orthanc
 #endif
 
     bool HasPlugins() const;
+
+    void AddChildInstances(SetOfInstancesJob& job,
+                           const std::string& publicId);
   };
 }
