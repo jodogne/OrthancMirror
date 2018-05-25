@@ -379,6 +379,12 @@
     // "2001,5f" : [ "SQ", "StackSequence", 1, 1, "Philips Imaging DD 001" ]
   },
 
+  // Whether to run DICOM C-Move operations synchronously. If set to
+  // "false" (the default), each incoming C-Move request results in
+  // creating a new background job. Until Orthanc 1.3.2, the default
+  // behavior was to use synchronous C-Move.
+  "SynchronousCMove" : false,
+
   // Maximum number of completed jobs that are kept in memory. A
   // processing job is considered as complete once it is tagged as
   // "Success" or "Failure".

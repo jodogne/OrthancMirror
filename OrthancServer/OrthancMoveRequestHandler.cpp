@@ -60,7 +60,7 @@ namespace Orthanc
 
     public:
       SynchronousMove(ServerContext& context,
-                      const std::string& aet,
+                      const std::string& targetAet,
                       const std::string& publicId,
                       const std::string& originatorAet,
                       uint16_t originatorId) :
@@ -70,7 +70,7 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
 
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
@@ -81,7 +81,7 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        remote_ = Configuration::GetModalityUsingAet(aet);
+        remote_ = Configuration::GetModalityUsingAet(targetAet);
       }
 
       virtual unsigned int GetSubOperationCount() const
@@ -122,7 +122,7 @@ namespace Orthanc
       
     public:
       AsynchronousMove(ServerContext& context,
-                       const std::string& aet,
+                       const std::string& targetAet,
                        const std::string& publicId,
                        const std::string& originatorAet,
                        uint16_t originatorId) :
@@ -130,12 +130,12 @@ namespace Orthanc
         job_(new DicomModalityStoreJob(context)),
         position_(0)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
 
         job_->SetDescription("C-MOVE");
         job_->SetPermissive(true);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
-        job_->SetRemoteModality(Configuration::GetModalityUsingAet(aet));
+        job_->SetRemoteModality(Configuration::GetModalityUsingAet(targetAet));
 
         if (originatorId != 0)
         {
@@ -232,6 +232,25 @@ namespace Orthanc
   }
 
 
+  static IMoveRequestIterator* CreateIterator(ServerContext& context,
+                                              const std::string& targetAet,
+                                              const std::string& publicId,
+                                              const std::string& originatorAet,
+                                              uint16_t originatorId)
+  {
+    bool synchronous = Configuration::GetGlobalBoolParameter("SynchronousCMove", false);
+
+    if (synchronous)
+    {
+      return new SynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+    }
+    else
+    {
+      return new AsynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+    }
+  }
+
+
   IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
                                                           const DicomMap& input,
                                                           const std::string& originatorIp,
@@ -253,7 +272,6 @@ namespace Orthanc
         }
       }
     }
-
 
     /**
      * Retrieve the query level.
@@ -278,8 +296,7 @@ namespace Orthanc
           LookupIdentifier(publicId, ResourceType_Study, input) ||
           LookupIdentifier(publicId, ResourceType_Patient, input))
       {
-        return new AsynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
-        //return new SynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
+        return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
       }
       else
       {
@@ -300,8 +317,7 @@ namespace Orthanc
 
     if (LookupIdentifier(publicId, level, input))
     {
-      return new AsynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
-      //return new SynchronousMove(context_, targetAet, publicId, originatorAet, originatorId);
+      return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
     }
     else
     {
