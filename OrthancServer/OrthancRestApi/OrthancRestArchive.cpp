@@ -773,74 +773,61 @@ namespace Orthanc
         }
       }
 
-      void RunAllSteps()
+      unsigned int GetInstancesCount() const
       {
-        for (size_t i = 0; i < GetStepsCount(); i++)
-        {
-          RunStep(i);
-        }
+        return commands_.GetInstancesCount();
+      }
+
+      uint64_t GetUncompressedSize() const
+      {
+        return commands_.GetUncompressedSize();
       }
     };
 
 
-    static void CreateArchive(TemporaryFile& tmp,
-                              ServerContext& context,
-                              ArchiveIndex& archive)
-    {
-      ZipWriterIterator writer(tmp, context, archive, false, false);
-      writer.RunAllSteps();
-    }
-    
-
-    static void CreateMedia(TemporaryFile& tmp,
-                            ServerContext& context,
-                            ArchiveIndex& archive,
-                            bool enableExtendedSopClass)
-    {
-      ZipWriterIterator writer(tmp, context, archive, true, enableExtendedSopClass);
-      writer.RunAllSteps();
-    }
-
-
-    static void SendTemporaryFile(RestApiOutput& output,
-                                  TemporaryFile& tmp,
-                                  const std::string& filename)
-    {
-      // Prepare the sending of the ZIP file
-      FilesystemHttpSender sender(tmp.GetPath());
-      sender.SetContentType("application/zip");
-      sender.SetContentFilename(filename);
-
-      // Send the ZIP
-      output.AnswerStream(sender);
-    }
-
-
-
-#if 0
     class ArchiveJob : public IJob
     {
     private:
-      ServerContext&                        context_;
-      ArchiveIndex                          archive_;
-      bool                                  isMedia_;
-      std::auto_ptr<TemporaryFile>          file_;
-      std::auto_ptr<HierarchicalZipWriter>  writer_;
-      std::auto_ptr<IArchiveVisitor>        visitor_;
-      std::string                           description_;
-      bool                                  started_;
-      unsigned int                          currentInstance_;
+      boost::shared_ptr<TemporaryFile>  target_;
+      ServerContext&                    context_;
+      ArchiveIndex                      archive_;
+      bool                              isMedia_;
+      bool                              enableExtendedSopClass_;
+      std::string                       description_;
+
+      std::auto_ptr<ZipWriterIterator>  writer_;
+      size_t                            currentStep_;
+      unsigned int                      instancesCount_;
+      uint64_t                          uncompressedSize_;
 
     public:
-      ArchiveJob(ServerContext& context,
-                 ResourceType level,
-                 bool isMedia) :
+      ArchiveJob(boost::shared_ptr<TemporaryFile>& target,
+                 ServerContext& context,
+                 bool isMedia,
+                 bool enableExtendedSopClass) :
+        target_(target),
         context_(context),
-        archive_(level),
+        archive_(ResourceType_Patient),  // root
         isMedia_(isMedia),
-        started_(false),
-        currentInstance_(0)
+        enableExtendedSopClass_(enableExtendedSopClass),
+        currentStep_(0),
+        instancesCount_(0),
+        uncompressedSize_(0)
       {
+        if (target.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+      }
+
+      ArchiveIndex& GetIndex()
+      {
+        if (writer_.get() != NULL)   // Already started
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        return archive_;
       }
 
       void SetDescription(const std::string& description)
@@ -855,7 +842,7 @@ namespace Orthanc
 
       void AddResource(const std::string& publicId)
       {
-        if (started_)
+        if (writer_.get() != NULL)   // Already started
         {
           throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
@@ -872,28 +859,91 @@ namespace Orthanc
 
       virtual void Start()
       {
-        if (started_)
+        if (writer_.get() != NULL)
         {
           throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
 
-        started_ = true;
+        writer_.reset(new ZipWriterIterator(*target_, context_, archive_, isMedia_, enableExtendedSopClass_));
 
-        archive_.Expand(context_.GetIndex());
+        instancesCount_ = writer_->GetInstancesCount();
+        uncompressedSize_ = writer_->GetUncompressedSize();
+      }
 
-        const bool isZip64 = IsZip64Required(stats_.GetUncompressedSize(), stats_.GetInstancesCount());
+      virtual JobStepResult ExecuteStep()
+      {
+        assert(writer_.get() != NULL);
 
-        file_.reset(new TemporaryFile);
-        writer_.reset(new HierarchicalZipWriter(file_->GetPath().c_str()));
-        writer_->SetZip64(isZip64);
-
-        if (isMedia_)
+        if (target_.unique())
         {
-          //visitor_.reset(new 
+          LOG(WARNING) << "A client has disconnected while creating an archive";
+          return JobStepResult::Failure(ErrorCode_NetworkProtocol);          
+        }
+        
+        if (writer_->GetStepsCount() == 0)
+        {
+          writer_.reset(NULL);  // Flush all the results
+          return JobStepResult::Success();
+        }
+        else
+        {
+          writer_->RunStep(currentStep_);
+
+          currentStep_ ++;
+
+          if (currentStep_ == writer_->GetStepsCount())
+          {
+            writer_.reset(NULL);  // Flush all the results
+            return JobStepResult::Success();
+          }
+          else
+          {
+            return JobStepResult::Continue();
+          }
         }
       }
+
+      virtual void ReleaseResources()
+      {
+      }
+
+      virtual float GetProgress()
+      {
+        if (writer_.get() == NULL ||
+            writer_->GetStepsCount() == 0)
+        {
+          return 1;
+        }
+        else
+        {
+          return (static_cast<float>(currentStep_) /
+                  static_cast<float>(writer_->GetStepsCount() - 1));
+        }
+      }
+
+      virtual void GetJobType(std::string& target)
+      {
+        if (isMedia_)
+        {
+          target = "Media";
+        }
+        else
+        {
+          target = "Archive";
+        }
+      }
+    
+      virtual void GetPublicContent(Json::Value& value)
+      {
+        value["Description"] = description_;
+        value["InstancesCount"] = instancesCount_;
+        value["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize_ / (1024llu * 1024llu));
+      }
+
+      virtual void GetInternalContent(Json::Value& value)
+      {
+      }
     };
-#endif
   }
 
 
@@ -926,15 +976,46 @@ namespace Orthanc
   }
 
 
+  static void SubmitJob(RestApiCall& call,
+                        boost::shared_ptr<TemporaryFile>& tmp,
+                        ServerContext& context,
+                        std::auto_ptr<ArchiveJob>& job,
+                        const std::string& filename)
+  {
+    if (job.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    job->SetDescription("REST API");
+
+    if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), 0 /* TODO priority */))
+    {
+      // The archive is now created: Prepare the sending of the ZIP file
+      FilesystemHttpSender sender(tmp->GetPath());
+      sender.SetContentType("application/zip");
+      sender.SetContentFilename(filename);
+
+      // Send the ZIP
+      call.GetOutput().AnswerStream(sender);
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    }      
+  }
+
+  
   static void CreateBatchArchive(RestApiPostCall& call)
   {
-    ArchiveIndex archive(ResourceType_Patient);  // root
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
-    if (AddResourcesOfInterest(archive, call))
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, false, false));
+
+    if (AddResourcesOfInterest(job->GetIndex(), call))
     {
-      TemporaryFile tmp;
-      CreateArchive(tmp, OrthancRestApi::GetContext(call), archive);
-      SendTemporaryFile(call.GetOutput(), tmp, "Archive.zip");
+      SubmitJob(call, tmp, context, job, "Archive.zip");
     }
   }  
 
@@ -942,46 +1023,45 @@ namespace Orthanc
   template <bool Extended>
   static void CreateBatchMedia(RestApiPostCall& call)
   {
-    ArchiveIndex archive(ResourceType_Patient);  // root
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
-    if (AddResourcesOfInterest(archive, call))
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, true, Extended));
+
+    if (AddResourcesOfInterest(job->GetIndex(), call))
     {
-      TemporaryFile tmp;
-      CreateMedia(tmp, OrthancRestApi::GetContext(call), archive, Extended);
-      SendTemporaryFile(call.GetOutput(), tmp, "Archive.zip");
+      SubmitJob(call, tmp, context, job, "Archive.zip");
     }
-  }  
-
+  }
+  
 
   static void CreateArchive(RestApiGetCall& call)
   {
-    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string id = call.GetUriComponent("id", "");
-    ResourceIdentifiers resource(index, id);
+    ResourceIdentifiers resource(context.GetIndex(), id);
 
-    ArchiveIndex archive(ResourceType_Patient);  // root
-    archive.Add(OrthancRestApi::GetIndex(call), resource);
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, false, false));
+    job->GetIndex().Add(OrthancRestApi::GetIndex(call), resource);
 
-    TemporaryFile tmp;
-    CreateArchive(tmp, OrthancRestApi::GetContext(call), archive);
-    SendTemporaryFile(call.GetOutput(), tmp, id + ".zip");
+    SubmitJob(call, tmp, context, job, id + ".zip");
   }
 
 
   static void CreateMedia(RestApiGetCall& call)
   {
-    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string id = call.GetUriComponent("id", "");
-    ResourceIdentifiers resource(index, id);
+    ResourceIdentifiers resource(context.GetIndex(), id);
 
-    ArchiveIndex archive(ResourceType_Patient);  // root
-    archive.Add(OrthancRestApi::GetIndex(call), resource);
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, true, call.HasArgument("extended")));
+    job->GetIndex().Add(OrthancRestApi::GetIndex(call), resource);
 
-    TemporaryFile tmp;
-    CreateMedia(tmp, OrthancRestApi::GetContext(call), archive, call.HasArgument("extended"));
-    SendTemporaryFile(call.GetOutput(), tmp, id + ".zip");
+    SubmitJob(call, tmp, context, job, id + ".zip");
   }
 
 

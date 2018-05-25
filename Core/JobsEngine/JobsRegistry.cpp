@@ -94,8 +94,9 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NullPointer);
       }
 
-      lastStatus_ = JobStatus(ErrorCode_Success, *job);
       job->Start();
+
+      lastStatus_ = JobStatus(ErrorCode_Success, *job);
     }
 
     const std::string& GetId() const
