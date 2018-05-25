@@ -997,6 +997,13 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_HttpPortInUse);
       }
+
+      LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()
+                   << " (HTTPS encryption is "
+                   << (IsSslEnabled() ? "enabled" : "disabled")
+                   << ", remote access is "
+                   << (IsRemoteAccessAllowed() ? "" : "not ")
+                   << "allowed)";
     }
   }
 
