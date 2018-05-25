@@ -349,7 +349,7 @@ namespace Orthanc
 
 
 
-    class ArchiveCommands : public boost::noncopyable
+    class ZipCommands : public boost::noncopyable
     {
     private:
       enum Type
@@ -461,13 +461,13 @@ namespace Orthanc
       }
       
     public:
-      ArchiveCommands() :
+      ZipCommands() :
         uncompressedSize_(0),
         instancesCount_(0)
       {
       }
       
-      ~ArchiveCommands()
+      ~ZipCommands()
       {
         for (std::deque<Command*>::iterator it = commands_.begin();
              it != commands_.end(); ++it)
@@ -538,10 +538,10 @@ namespace Orthanc
     class ArchiveIndexVisitor : public IArchiveVisitor
     {
     private:
-      ArchiveCommands&  commands_;
-      ServerContext&    context_;
-      char              instanceFormat_[24];
-      unsigned int      counter_;
+      ZipCommands&    commands_;
+      ServerContext&  context_;
+      char            instanceFormat_[24];
+      unsigned int    counter_;
 
       static std::string GetTag(const DicomMap& tags,
                                 const DicomTag& tag)
@@ -560,7 +560,7 @@ namespace Orthanc
       }
 
     public:
-      ArchiveIndexVisitor(ArchiveCommands& commands,
+      ArchiveIndexVisitor(ZipCommands& commands,
                           ServerContext& context) :
         commands_(commands),
         context_(context),
@@ -652,12 +652,12 @@ namespace Orthanc
     class MediaIndexVisitor : public IArchiveVisitor
     {
     private:
-      ArchiveCommands&  commands_;
-      ServerContext&    context_;
-      unsigned int      counter_;
+      ZipCommands&    commands_;
+      ServerContext&  context_;
+      unsigned int    counter_;
 
     public:
-      MediaIndexVisitor(ArchiveCommands& commands,
+      MediaIndexVisitor(ZipCommands& commands,
                         ServerContext& context) :
         commands_(commands),
         context_(context),
@@ -688,25 +688,107 @@ namespace Orthanc
     };
 
 
+    static const char* IMAGES_FOLDER = "IMAGES"; 
+
+
+    class ZipWriterIterator : public boost::noncopyable
+    {
+    private:
+      TemporaryFile&                        target_;
+      ServerContext&                        context_;
+      ZipCommands                           commands_;
+      std::auto_ptr<HierarchicalZipWriter>  zip_;
+      std::auto_ptr<DicomDirWriter>         dicomDir_;
+      bool                                  isMedia_;
+
+    public:
+      ZipWriterIterator(TemporaryFile& target,
+                        ServerContext& context,
+                        ArchiveIndex& archive,
+                        bool isMedia,
+                        bool enableExtendedSopClass) :
+        target_(target),
+        context_(context),
+        isMedia_(isMedia)
+      {
+        if (isMedia)
+        {
+          MediaIndexVisitor visitor(commands_, context);
+          archive.Expand(context.GetIndex());
+
+          commands_.AddOpenDirectory(IMAGES_FOLDER);        
+          archive.Apply(visitor);
+          commands_.AddCloseDirectory();
+
+          dicomDir_.reset(new DicomDirWriter);
+          dicomDir_->EnableExtendedSopClass(enableExtendedSopClass);
+        }
+        else
+        {
+          ArchiveIndexVisitor visitor(commands_, context);
+          archive.Expand(context.GetIndex());
+          archive.Apply(visitor);
+        }
+
+        zip_.reset(new HierarchicalZipWriter(target.GetPath().c_str()));
+        zip_->SetZip64(commands_.IsZip64());
+      }
+      
+      size_t GetStepsCount() const
+      {
+        return commands_.GetSize() + 1;
+      }
+
+      void RunStep(size_t index)
+      {
+        if (index > commands_.GetSize())
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else if (index == commands_.GetSize())
+        {
+          // Last step: Add the DICOMDIR
+          if (isMedia_)
+          {
+            assert(dicomDir_.get() != NULL);
+            std::string s;
+            dicomDir_->Encode(s);
+
+            zip_->OpenFile("DICOMDIR");
+            zip_->Write(s);
+          }
+        }
+        else
+        {
+          if (isMedia_)
+          {
+            assert(dicomDir_.get() != NULL);
+            commands_.Apply(*zip_, context_, index, *dicomDir_, IMAGES_FOLDER);
+          }
+          else
+          {
+            assert(dicomDir_.get() == NULL);
+            commands_.Apply(*zip_, context_, index);
+          }
+        }
+      }
+
+      void RunAllSteps()
+      {
+        for (size_t i = 0; i < GetStepsCount(); i++)
+        {
+          RunStep(i);
+        }
+      }
+    };
+
+
     static void CreateArchive(TemporaryFile& tmp,
                               ServerContext& context,
                               ArchiveIndex& archive)
     {
-      ArchiveCommands commands;
-
-      {
-        ArchiveIndexVisitor visitor(commands, context);
-        archive.Expand(context.GetIndex());
-        archive.Apply(visitor);
-      }
-
-      HierarchicalZipWriter writer(tmp.GetPath().c_str());
-      writer.SetZip64(commands.IsZip64());
-
-      for (size_t i = 0; i < commands.GetSize(); i++)
-      {
-        commands.Apply(writer, context, i);
-      }
+      ZipWriterIterator writer(tmp, context, archive, false, false);
+      writer.RunAllSteps();
     }
     
 
@@ -715,35 +797,8 @@ namespace Orthanc
                             ArchiveIndex& archive,
                             bool enableExtendedSopClass)
     {
-      static const char* IMAGES_FOLDER = "IMAGES"; 
-        
-      ArchiveCommands commands;
-
-      {
-        MediaIndexVisitor visitor(commands, context);
-        archive.Expand(context.GetIndex());
-
-        commands.AddOpenDirectory(IMAGES_FOLDER);        
-        archive.Apply(visitor);
-        commands.AddCloseDirectory();
-      }
-
-      DicomDirWriter dicomDir;
-      dicomDir.EnableExtendedSopClass(enableExtendedSopClass);  
-
-      HierarchicalZipWriter writer(tmp.GetPath().c_str());
-      writer.SetZip64(commands.IsZip64());
-
-      for (size_t i = 0; i < commands.GetSize(); i++)
-      {
-        commands.Apply(writer, context, i, dicomDir, IMAGES_FOLDER);
-      }
-
-      // Add the DICOMDIR
-      writer.OpenFile("DICOMDIR");
-      std::string s;
-      dicomDir.Encode(s);
-      writer.Write(s);
+      ZipWriterIterator writer(tmp, context, archive, true, enableExtendedSopClass);
+      writer.RunAllSteps();
     }
 
 
