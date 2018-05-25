@@ -58,7 +58,8 @@ namespace Orthanc
   static bool IsZip64Required(uint64_t uncompressedSize,
                               unsigned int countInstances)
   {
-    static const uint64_t  SAFETY_MARGIN = 64 * MEGA_BYTES;
+    static const uint64_t      SAFETY_MARGIN = 64 * MEGA_BYTES;  // Should be large enough to hold DICOMDIR
+    static const unsigned int  FILES_MARGIN = 10;
 
     /**
      * Determine whether ZIP64 is required. Original ZIP format can
@@ -68,7 +69,7 @@ namespace Orthanc
      **/
 
     const bool isZip64 = (uncompressedSize >= 2 * GIGA_BYTES - SAFETY_MARGIN ||
-                          countInstances >= 65535);
+                          countInstances >= 65535 - FILES_MARGIN);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
               << (uncompressedSize / MEGA_BYTES) << "MB using the "
@@ -80,7 +81,7 @@ namespace Orthanc
 
   namespace
   {
-    class ResourceIdentifiers
+    class ResourceIdentifiers : public boost::noncopyable
     {
     private:
       ResourceType   level_;
@@ -193,7 +194,7 @@ namespace Orthanc
     };
 
 
-    class ArchiveIndex
+    class ArchiveIndex : public boost::noncopyable
     {
     private:
       struct Instance
@@ -347,90 +348,200 @@ namespace Orthanc
     };
 
 
-    class StatisticsVisitor : public IArchiveVisitor
+
+    class ArchiveCommands : public boost::noncopyable
     {
     private:
-      uint64_t       size_;
-      unsigned int   instances_;
+      enum Type
+      {
+        Type_OpenDirectory,
+        Type_CloseDirectory,
+        Type_WriteInstance
+      };
+
+      class Command : public boost::noncopyable
+      {
+      private:
+        Type          type_;
+        std::string   filename_;
+        std::string   instanceId_;
+        FileInfo      info_;
+
+      public:
+        explicit Command(Type type) :
+          type_(type)
+        {
+          assert(type_ == Type_CloseDirectory);
+        }
+        
+        Command(Type type,
+                const std::string& filename) :
+          type_(type),
+          filename_(filename)
+        {
+          assert(type_ == Type_OpenDirectory);
+        }
+        
+        Command(Type type,
+                const std::string& filename,
+                const std::string& instanceId,
+                const FileInfo& info) :
+          type_(type),
+          filename_(filename),
+          instanceId_(instanceId),
+          info_(info)
+        {
+          assert(type_ == Type_WriteInstance);
+        }
+        
+        void Apply(HierarchicalZipWriter& writer,
+                   ServerContext& context,
+                   DicomDirWriter* dicomDir,
+                   const std::string& dicomDirFolder) const
+        {
+          switch (type_)
+          {
+            case Type_OpenDirectory:
+              writer.OpenDirectory(filename_.c_str());
+              break;
+
+            case Type_CloseDirectory:
+              writer.CloseDirectory();
+              break;
+
+            case Type_WriteInstance:
+            {
+              std::string content;
+
+              try
+              {
+                context.ReadAttachment(content, info_);
+              }
+              catch (OrthancException& e)
+              {
+                LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
+                return;
+              }
+            
+              writer.OpenFile(filename_.c_str());
+              writer.Write(content);
+
+              if (dicomDir != NULL)
+              {
+                ParsedDicomFile parsed(content);
+                dicomDir->Add(dicomDirFolder, filename_, parsed);
+              }
+              
+              break;
+            }
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+      };
+      
+      std::deque<Command*>  commands_;
+      uint64_t              uncompressedSize_;
+      unsigned int          instancesCount_;
+
+      
+      void ApplyInternal(HierarchicalZipWriter& writer,
+                         ServerContext& context,
+                         size_t index,
+                         DicomDirWriter* dicomDir,
+                         const std::string& dicomDirFolder) const
+      {
+        if (index >= commands_.size())
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        commands_[index]->Apply(writer, context, dicomDir, dicomDirFolder);
+      }
       
     public:
-      StatisticsVisitor() : size_(0), instances_(0)
+      ArchiveCommands() :
+        uncompressedSize_(0),
+        instancesCount_(0)
       {
       }
-
-      uint64_t GetUncompressedSize() const
+      
+      ~ArchiveCommands()
       {
-        return size_;
+        for (std::deque<Command*>::iterator it = commands_.begin();
+             it != commands_.end(); ++it)
+        {
+          assert(*it != NULL);
+          delete *it;
+        }
+      }
+
+      size_t GetSize() const
+      {
+        return commands_.size();
       }
 
       unsigned int GetInstancesCount() const
       {
-        return instances_;
+        return instancesCount_;
       }
 
-      virtual void Open(ResourceType level,
-                        const std::string& publicId)
+      uint64_t GetUncompressedSize() const
       {
+        return uncompressedSize_;
       }
 
-      virtual void Close()
+      void Apply(HierarchicalZipWriter& writer,
+                 ServerContext& context,
+                 size_t index,
+                 DicomDirWriter& dicomDir,
+                 const std::string& dicomDirFolder) const
       {
+        ApplyInternal(writer, context, index, &dicomDir, dicomDirFolder);
       }
 
-      virtual void AddInstance(const std::string& instanceId,
-                               const FileInfo& dicom)
+      void Apply(HierarchicalZipWriter& writer,
+                 ServerContext& context,
+                 size_t index) const
       {
-        instances_ ++;
-        size_ += dicom.GetUncompressedSize();
+        ApplyInternal(writer, context, index, NULL, "");
+      }
+      
+      void AddOpenDirectory(const std::string& filename)
+      {
+        commands_.push_back(new Command(Type_OpenDirectory, filename));
+      }
+
+      void AddCloseDirectory()
+      {
+        commands_.push_back(new Command(Type_CloseDirectory));
+      }
+
+      void AddWriteInstance(const std::string& filename,
+                            const std::string& instanceId,
+                            const FileInfo& info)
+      {
+        commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, info));
+        instancesCount_ ++;
+        uncompressedSize_ += info.GetUncompressedSize();
+      }
+
+      bool IsZip64() const
+      {
+        return IsZip64Required(GetUncompressedSize(), GetInstancesCount());
       }
     };
-
-
-    class PrintVisitor : public IArchiveVisitor
-    {
-    private:
-      std::ostream& out_;
-      std::string   indent_;
-
-    public:
-      PrintVisitor(std::ostream& out) : out_(out)
-      {
-      }
-
-      virtual void Open(ResourceType level,
-                        const std::string& publicId)
-      {
-        switch (level)
-        {
-          case ResourceType_Patient:  indent_ = "";       break;
-          case ResourceType_Study:    indent_ = "  ";     break;
-          case ResourceType_Series:   indent_ = "    ";   break;
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-
-        out_ << indent_ << publicId << std::endl;
-      }
-
-      virtual void Close()
-      {
-      }
-
-      virtual void AddInstance(const std::string& instanceId,
-                               const FileInfo& dicom)
-      {
-        out_ << "      " << instanceId << std::endl;
-      }
-    };
-
+    
+    
 
     class ArchiveWriterVisitor : public IArchiveVisitor
     {
     private:
-      HierarchicalZipWriter&  writer_;
-      ServerContext&            context_;
-      char                    instanceFormat_[24];
-      unsigned int            countInstances_;
+      ArchiveCommands&  commands_;
+      ServerContext&    context_;
+      char              instanceFormat_[24];
+      unsigned int      counter_;
 
       static std::string GetTag(const DicomMap& tags,
                                 const DicomTag& tag)
@@ -449,12 +560,17 @@ namespace Orthanc
       }
 
     public:
-      ArchiveWriterVisitor(HierarchicalZipWriter& writer,
+      ArchiveWriterVisitor(ArchiveCommands& commands,
                            ServerContext& context) :
-        writer_(writer),
+        commands_(commands),
         context_(context),
-        countInstances_(0)
+        counter_(0)
       {
+        if (commands.GetSize() != 0)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        
         snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
       }
 
@@ -496,7 +612,7 @@ namespace Orthanc
                          toupper(modality[0]), toupper(modality[1]));
               }
 
-              countInstances_ = 0;
+              counter_ = 0;
 
               break;
             }
@@ -513,26 +629,22 @@ namespace Orthanc
           path = std::string("Unknown ") + EnumerationToString(level);
         }
 
-        writer_.OpenDirectory(path.c_str());
+        commands_.AddOpenDirectory(path.c_str());
       }
 
       virtual void Close()
       {
-        writer_.CloseDirectory();
+        commands_.AddCloseDirectory();
       }
 
       virtual void AddInstance(const std::string& instanceId,
                                const FileInfo& dicom)
       {
-        std::string content;
-        context_.ReadAttachment(content, dicom);
-
         char filename[24];
-        snprintf(filename, sizeof(filename) - 1, instanceFormat_, countInstances_);
-        countInstances_ ++;
+        snprintf(filename, sizeof(filename) - 1, instanceFormat_, counter_);
+        counter_ ++;
 
-        writer_.OpenFile(filename);
-        writer_.Write(content);
+        commands_.AddWriteInstance(filename, instanceId, dicom);
       }
 
       static void Apply(RestApiOutput& output,
@@ -540,23 +652,25 @@ namespace Orthanc
                         ArchiveIndex& archive,
                         const std::string& filename)
       {
-        archive.Expand(context.GetIndex());
+        ArchiveCommands commands;
 
-        StatisticsVisitor stats;
-        archive.Apply(stats);
-
-        const bool isZip64 = IsZip64Required(stats.GetUncompressedSize(), stats.GetInstancesCount());
+        {
+          ArchiveWriterVisitor visitor(commands, context);
+          archive.Expand(context.GetIndex());
+          archive.Apply(visitor);
+        }
 
         // Create a RAII for the temporary file to manage the ZIP file
         TemporaryFile tmp;
 
         {
-          // Create a ZIP writer
           HierarchicalZipWriter writer(tmp.GetPath().c_str());
-          writer.SetZip64(isZip64);
+          writer.SetZip64(commands.IsZip64());
 
-          ArchiveWriterVisitor v(writer, context);
-          archive.Apply(v);
+          for (size_t i = 0; i < commands.GetSize(); i++)
+          {
+            commands.Apply(writer, context, i);
+          }
         }
 
         // Prepare the sending of the ZIP file
@@ -575,23 +689,17 @@ namespace Orthanc
     class MediaWriterVisitor : public IArchiveVisitor
     {
     private:
-      HierarchicalZipWriter&  writer_;
-      DicomDirWriter          dicomDir_;
-      ServerContext&          context_;
-      unsigned int            countInstances_;
+      ArchiveCommands&  commands_;
+      ServerContext&    context_;
+      unsigned int      counter_;
 
     public:
-      MediaWriterVisitor(HierarchicalZipWriter& writer,
+      MediaWriterVisitor(ArchiveCommands& commands,
                          ServerContext& context) :
-        writer_(writer),
+        commands_(commands),
         context_(context),
-        countInstances_(0)
+        counter_(0)
       {
-      }
-
-      void EncodeDicomDir(std::string& result)
-      {
-        dicomDir_.Encode(result);
       }
 
       virtual void Open(ResourceType level,
@@ -609,17 +717,10 @@ namespace Orthanc
         // "DICOM restricts the filenames on DICOM media to 8
         // characters (some systems wrongly use 8.3, but this does not
         // conform to the standard)."
-        std::string filename = "IM" + boost::lexical_cast<std::string>(countInstances_);
-        writer_.OpenFile(filename.c_str());
+        std::string filename = "IM" + boost::lexical_cast<std::string>(counter_);
+        commands_.AddWriteInstance(filename, instanceId, dicom);
 
-        std::string content;
-        context_.ReadAttachment(content, dicom);
-        writer_.Write(content);
-
-        ParsedDicomFile parsed(content);
-        dicomDir_.Add("IMAGES", filename, parsed);
-
-        countInstances_ ++;
+        counter_ ++;
       }
 
       static void Apply(RestApiOutput& output,
@@ -628,37 +729,41 @@ namespace Orthanc
                         const std::string& filename,
                         bool enableExtendedSopClass)
       {
-        archive.Expand(context.GetIndex());
+        static const char* IMAGES_FOLDER = "IMAGES"; 
+        
+        ArchiveCommands commands;
 
-        StatisticsVisitor stats;
-        archive.Apply(stats);
+        {
+          MediaWriterVisitor visitor(commands, context);
+          archive.Expand(context.GetIndex());
 
-        const bool isZip64 = IsZip64Required(stats.GetUncompressedSize(), stats.GetInstancesCount());
+          commands.AddOpenDirectory(IMAGES_FOLDER);        
+          archive.Apply(visitor);
+          commands.AddCloseDirectory();
+        }
 
         // Create a RAII for the temporary file to manage the ZIP file
         TemporaryFile tmp;
 
         {
-          // Create a ZIP writer
+          DicomDirWriter dicomDir;
+          dicomDir.EnableExtendedSopClass(enableExtendedSopClass);  
+
           HierarchicalZipWriter writer(tmp.GetPath().c_str());
-          writer.SetZip64(isZip64);
-          writer.OpenDirectory("IMAGES");
+          writer.SetZip64(commands.IsZip64());
 
-          // Create a DICOMDIR writer
-          MediaWriterVisitor v(writer, context);
-
-          // Request type-3 arguments to be added to the DICOMDIR
-          v.dicomDir_.EnableExtendedSopClass(enableExtendedSopClass);
-
-          archive.Apply(v);
+          for (size_t i = 0; i < commands.GetSize(); i++)
+          {
+            commands.Apply(writer, context, i, dicomDir, IMAGES_FOLDER);
+          }
 
           // Add the DICOMDIR
-          writer.CloseDirectory();
           writer.OpenFile("DICOMDIR");
           std::string s;
-          v.EncodeDicomDir(s);
+          dicomDir.Encode(s);
           writer.Write(s);
         }
+
 
         // Prepare the sending of the ZIP file
         FilesystemHttpSender sender(tmp.GetPath());
@@ -671,6 +776,85 @@ namespace Orthanc
         // The temporary file is automatically removed thanks to the RAII
       }
     };
+
+
+#if 0
+    class ArchiveJob : public IJob
+    {
+    private:
+      ServerContext&                        context_;
+      ArchiveIndex                          archive_;
+      bool                                  isMedia_;
+      std::auto_ptr<TemporaryFile>          file_;
+      std::auto_ptr<HierarchicalZipWriter>  writer_;
+      std::auto_ptr<IArchiveVisitor>        visitor_;
+      std::string                           description_;
+      bool                                  started_;
+      unsigned int                          currentInstance_;
+
+    public:
+      ArchiveJob(ServerContext& context,
+                 ResourceType level,
+                 bool isMedia) :
+        context_(context),
+        archive_(level),
+        isMedia_(isMedia),
+        started_(false),
+        currentInstance_(0)
+      {
+      }
+
+      void SetDescription(const std::string& description)
+      {
+        description_ = description;
+      }
+
+      const std::string& GetDescription() const
+      {
+        return description_;
+      }
+
+      void AddResource(const std::string& publicId)
+      {
+        if (started_)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        
+        ResourceIdentifiers resource(context_.GetIndex(), publicId);
+        archive_.Add(context_.GetIndex(), resource);
+      }
+
+      virtual void SignalResubmit()
+      {
+        LOG(ERROR) << "Cannot resubmit the creation of an archive";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      virtual void Start()
+      {
+        if (started_)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        started_ = true;
+
+        archive_.Expand(context_.GetIndex());
+
+        const bool isZip64 = IsZip64Required(stats_.GetUncompressedSize(), stats_.GetInstancesCount());
+
+        file_.reset(new TemporaryFile);
+        writer_.reset(new HierarchicalZipWriter(file_->GetPath().c_str()));
+        writer_->SetZip64(isZip64);
+
+        if (isMedia_)
+        {
+          //visitor_.reset(new 
+        }
+      }
+    };
+#endif
   }
 
 
