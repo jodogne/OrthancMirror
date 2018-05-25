@@ -5,6 +5,10 @@ General
 -------
 
 * New advanced job engine
+* New configuration options:
+  - "ConcurrentJobs": Max number of jobs that are simultanously running
+  - "SynchronousCMove": Whether to run DICOM C-Move operations synchronously
+  - "JobsHistorySize": Max number of completed jobs that are kept in memory
 
 Orthanc Explorer
 ----------------
