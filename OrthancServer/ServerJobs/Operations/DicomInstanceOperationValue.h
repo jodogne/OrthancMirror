@@ -33,31 +33,51 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../Core/JobsEngine/Operations/JobOperationValue.h"
 
-#include "../ServerContext.h"
+#include "../../ServerContext.h"
 
 namespace Orthanc
 {
-  class DeleteResourceOperation : public IJobOperation
+  class DicomInstanceOperationValue : public JobOperationValue
   {
   private:
-    ServerContext&  context_;
+    ServerContext&   context_;
+    std::string      id_;
 
   public:
-    DeleteResourceOperation(ServerContext& context) :
-    context_(context)
+    DicomInstanceOperationValue(ServerContext& context,
+                                const std::string& id) :
+      JobOperationValue(Type_DicomInstance),
+      context_(context),
+      id_(id)
     {
     }
 
-    virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       IDicomConnectionManager& connectionManager);
-
-    virtual void Serialize(Json::Value& result) const
+    ServerContext& GetServerContext() const
     {
-      result["Type"] = "DeleteResource";
+      return context_;
+    }
+
+    const std::string& GetId() const
+    {
+      return id_;
+    }
+
+    void ReadContent(std::string& dicom) const
+    {
+      context_.ReadDicom(dicom, id_);
+    }
+
+    virtual JobOperationValue* Clone() const
+    {
+      return new DicomInstanceOperationValue(context_, id_);
+    }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target["Type"] = "DicomInstance";
+      target["ID"] = id_;
     }
   };
 }
-

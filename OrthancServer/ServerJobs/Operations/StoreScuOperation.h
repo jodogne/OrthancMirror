@@ -33,51 +33,30 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/Operations/JobOperationValue.h"
-
-#include "../ServerContext.h"
+#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../Core/DicomNetworking/RemoteModalityParameters.h"
 
 namespace Orthanc
 {
-  class DicomInstanceOperationValue : public JobOperationValue
+  class StoreScuOperation : public IJobOperation
   {
   private:
-    ServerContext&   context_;
-    std::string      id_;
-
+    std::string               localAet_;
+    RemoteModalityParameters  modality_;
+    
   public:
-    DicomInstanceOperationValue(ServerContext& context,
-                                const std::string& id) :
-      JobOperationValue(Type_DicomInstance),
-      context_(context),
-      id_(id)
+    StoreScuOperation(const std::string& localAet,
+                      const RemoteModalityParameters& modality) :
+      localAet_(localAet),
+      modality_(modality)
     {
     }
 
-    ServerContext& GetServerContext() const
-    {
-      return context_;
-    }
+    virtual void Apply(JobOperationValues& outputs,
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& manager);
 
-    const std::string& GetId() const
-    {
-      return id_;
-    }
-
-    void ReadContent(std::string& dicom) const
-    {
-      context_.ReadDicom(dicom, id_);
-    }
-
-    virtual JobOperationValue* Clone() const
-    {
-      return new DicomInstanceOperationValue(context_, id_);
-    }
-
-    virtual void Serialize(Json::Value& target) const
-    {
-      target["Type"] = "DicomInstance";
-      target["ID"] = id_;
-    }
+    virtual void Serialize(Json::Value& result) const;
   };
 }
+

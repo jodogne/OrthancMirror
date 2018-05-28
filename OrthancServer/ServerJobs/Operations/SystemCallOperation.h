@@ -31,60 +31,51 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "StorePeerOperation.h"
+#pragma once
 
-#include "DicomInstanceOperationValue.h"
+#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/HttpClient.h"
+#include <string>
 
 namespace Orthanc
 {
-  void StorePeerOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input,
-                                 IDicomConnectionManager& connectionManager)
+  class SystemCallOperation : public IJobOperation
   {
-    // Configure the HTTP client
-    HttpClient client(peer_, "instances");
-    client.SetMethod(HttpMethod_Post);
-
-    if (input.GetType() != JobOperationValue::Type_DicomInstance)
+  private:
+    std::string               command_;
+    std::vector<std::string>  preArguments_;
+    std::vector<std::string>  postArguments_;
+    
+  public:
+    SystemCallOperation(const std::string& command) :
+      command_(command)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    const DicomInstanceOperationValue& instance =
-      dynamic_cast<const DicomInstanceOperationValue&>(input);
-
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
-              << peer_.GetUrl() << "\"";
-
-    try
+    SystemCallOperation(const std::string& command,
+                        const std::vector<std::string>& preArguments,
+                        const std::vector<std::string>& postArguments) :
+      command_(command),
+      preArguments_(preArguments),
+      postArguments_(postArguments)
     {
-      instance.ReadContent(client.GetBody());
-
-      std::string answer;
-      if (!client.Apply(answer))
-      {
-        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
-                   << " to Orthanc peer \"" << peer_.GetUrl();
-      }
-    }
-    catch (OrthancException& e)
-    {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
-                 << " to Orthanc peer \"" << peer_.GetUrl() << "\": " << e.What();
     }
 
-    outputs.Append(input.Clone());
-  }
+    void AddPreArgument(const std::string& argument)
+    {
+      preArguments_.push_back(argument);
+    }
 
-  
-  void StorePeerOperation::Serialize(Json::Value& result) const
-  {
-    result["Type"] = "StorePeer";
-    peer_.ToJson(result["Remote"]);
-  }
+    void AddPostArgument(const std::string& argument)
+    {
+      postArguments_.push_back(argument);
+    }
+
+    virtual void Apply(JobOperationValues& outputs,
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& connectionManager);
+
+    virtual void Serialize(Json::Value& result) const;
+  };
 }
+

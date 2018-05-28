@@ -31,42 +31,33 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "DeleteResourceOperation.h"
+#pragma once
 
-#include "DicomInstanceOperationValue.h"
+#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../../ServerContext.h"
 
 namespace Orthanc
 {
-  void DeleteResourceOperation::Apply(JobOperationValues& outputs,
-                                      const JobOperationValue& input,
-                                      IDicomConnectionManager& connectionManager)
+  class DeleteResourceOperation : public IJobOperation
   {
-    switch (input.GetType())
+  private:
+    ServerContext&  context_;
+
+  public:
+    DeleteResourceOperation(ServerContext& context) :
+    context_(context)
     {
-      case JobOperationValue::Type_DicomInstance:
-      {
-        const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
-        LOG(INFO) << "Lua: Deleting instance: " << instance.GetId();
-
-        try
-        {
-          Json::Value tmp;
-          context_.DeleteResource(tmp, instance.GetId(), ResourceType_Instance);
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Lua: Unable to delete instance " << instance.GetId() << ": " << e.What();
-        }
-
-        break;
-      }
-
-      default:
-        break;
     }
-  }
+
+    virtual void Apply(JobOperationValues& outputs,
+                       const JobOperationValue& input,
+                       IDicomConnectionManager& connectionManager);
+
+    virtual void Serialize(Json::Value& result) const
+    {
+      result["Type"] = "DeleteResource";
+    }
+  };
 }
+
