@@ -105,7 +105,7 @@ namespace Orthanc
 
       DicomInstanceToStore toStore;
       assert(origin_ == RequestOrigin_Lua);
-      toStore.SetLuaOrigin();
+      toStore.GetOrigin().SetLuaOrigin();
       toStore.SetParsedDicomFile(*modified);
 
       // TODO other metadata

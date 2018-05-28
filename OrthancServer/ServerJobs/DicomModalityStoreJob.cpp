@@ -51,6 +51,7 @@ namespace Orthanc
 
   bool DicomModalityStoreJob::HandleInstance(const std::string& instance)
   {
+    assert(IsStarted());
     OpenConnection();
 
     LOG(INFO) << "Sending instance " << instance << " to modality \"" 
@@ -170,7 +171,8 @@ namespace Orthanc
 
   void DicomModalityStoreJob::GetPublicContent(Json::Value& value)
   {
-    value["Description"] = GetDescription();
+    SetOfInstancesJob::GetPublicContent(value);
+    
     value["LocalAet"] = localAet_;
     value["RemoteAet"] = remote_.GetApplicationEntityTitle();
 
@@ -179,8 +181,5 @@ namespace Orthanc
       value["MoveOriginatorAET"] = GetMoveOriginatorAet();
       value["MoveOriginatorID"] = GetMoveOriginatorId();
     }
-
-    value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
-    value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
   }
 }

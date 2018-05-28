@@ -778,9 +778,10 @@ namespace Orthanc
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
-      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet, instanceToStore.GetRemoteAet());
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet,
+                          instanceToStore.GetOrigin().GetRemoteAet());
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
-                          EnumerationToString(instanceToStore.GetRequestOrigin()));
+                          EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
         
       {
         std::string s;
