@@ -154,6 +154,16 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
+      {
+        // Avoid unnecessary calls to the database if there's no Lua callback
+        LuaScripting::Lock lock(that);
+
+        if (!lock.GetLua().IsExistingFunction(name))
+        {
+          return;
+        }
+      }
+      
       Json::Value tags, metadata;
       if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()) &&
           that.context_.GetIndex().GetMetadata(metadata, change_.GetPublicId()))
