@@ -416,6 +416,8 @@ namespace Orthanc
               LOG(WARNING) << "An instance was removed after the job was issued: " << instanceId_;
               return;
             }
+
+            //boost::this_thread::sleep(boost::posix_time::milliseconds(300));
             
             writer.OpenFile(filename_.c_str());
             writer.Write(content);
