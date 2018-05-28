@@ -110,12 +110,18 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyResource(DicomModification& modification,
+  static void AnonymizeOrModifyResource(DicomModification* modificationRaw,  // Takes ownership
                                         MetadataType metadataType,
-                                        ChangeType changeType,
                                         ResourceType resourceType,
                                         RestApiPostCall& call)
   {
+    if (modificationRaw == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    
+    std::auto_ptr<DicomModification> modification(modificationRaw);
+    
     bool isFirst = true;
     Json::Value result(Json::objectValue);
 
@@ -163,7 +169,7 @@ namespace Orthanc
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone(true));
-      modification.Apply(*modified);
+      modification->Apply(*modified);
 
       DicomInstanceToStore toStore;
       toStore.SetRestOrigin(call);
@@ -289,30 +295,24 @@ namespace Orthanc
   }
 
 
-  template <enum ChangeType changeType,
-            enum ResourceType resourceType>
+  template <enum ResourceType resourceType>
   static void ModifyResource(RestApiPostCall& call)
   {
-    DicomModification modification;
+    std::auto_ptr<DicomModification> modification(new DicomModification);
+    ParseModifyRequest(*modification, call);
 
-    ParseModifyRequest(modification, call);
-
-    modification.SetLevel(resourceType);
-    AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom, 
-                              changeType, resourceType, call);
+    modification->SetLevel(resourceType);
+    AnonymizeOrModifyResource(modification.release(), MetadataType_ModifiedFrom, resourceType, call);
   }
 
 
-  template <enum ChangeType changeType,
-            enum ResourceType resourceType>
+  template <enum ResourceType resourceType>
   static void AnonymizeResource(RestApiPostCall& call)
   {
-    DicomModification modification;
+    std::auto_ptr<DicomModification> modification(new DicomModification);
+    ParseAnonymizationRequest(*modification, call);
 
-    ParseAnonymizationRequest(modification, call);
-
-    AnonymizeOrModifyResource(modification, MetadataType_AnonymizedFrom, 
-                              changeType, resourceType, call);
+    AnonymizeOrModifyResource(modification.release(), MetadataType_AnonymizedFrom, resourceType, call);
   }
 
 
@@ -729,14 +729,14 @@ namespace Orthanc
   void OrthancRestApi::RegisterAnonymizeModify()
   {
     Register("/instances/{id}/modify", ModifyInstance);
-    Register("/series/{id}/modify", ModifyResource<ChangeType_ModifiedSeries, ResourceType_Series>);
-    Register("/studies/{id}/modify", ModifyResource<ChangeType_ModifiedStudy, ResourceType_Study>);
-    Register("/patients/{id}/modify", ModifyResource<ChangeType_ModifiedPatient, ResourceType_Patient>);
+    Register("/series/{id}/modify", ModifyResource<ResourceType_Series>);
+    Register("/studies/{id}/modify", ModifyResource<ResourceType_Study>);
+    Register("/patients/{id}/modify", ModifyResource<ResourceType_Patient>);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
-    Register("/series/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedSeries, ResourceType_Series>);
-    Register("/studies/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedStudy, ResourceType_Study>);
-    Register("/patients/{id}/anonymize", AnonymizeResource<ChangeType_AnonymizedPatient, ResourceType_Patient>);
+    Register("/series/{id}/anonymize", AnonymizeResource<ResourceType_Series>);
+    Register("/studies/{id}/anonymize", AnonymizeResource<ResourceType_Study>);
+    Register("/patients/{id}/anonymize", AnonymizeResource<ResourceType_Patient>);
 
     Register("/tools/create-dicom", CreateDicom);
   }
