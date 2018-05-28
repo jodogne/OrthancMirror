@@ -71,7 +71,7 @@ namespace Orthanc
       simplifiedTags_(simplifiedTags),
       metadata_(metadata)
     {
-      instance.GetOriginInformation(origin_);
+      instance.GetOrigin().Format(origin_);
     }
 
     virtual void Apply(LuaScripting& that)
@@ -653,7 +653,7 @@ namespace Orthanc
       call.PushJson(simplified);
 
       Json::Value origin;
-      instance.GetOriginInformation(origin);
+      instance.GetOrigin().Format(origin);
       call.PushJson(origin);
 
       if (!call.ExecutePredicate())
