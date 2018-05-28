@@ -31,29 +31,42 @@
  **/
 
 
-#pragma once
+#include "../../PrecompiledHeadersServer.h"
+#include "DeleteResourceOperation.h"
 
-#include "../../Core/JobsEngine/Operations/IJobOperation.h"
-#include "../../Core/WebServiceParameters.h"
+#include "DicomInstanceOperationValue.h"
+
+#include "../../../Core/Logging.h"
+#include "../../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class StorePeerOperation : public IJobOperation
+  void DeleteResourceOperation::Apply(JobOperationValues& outputs,
+                                      const JobOperationValue& input,
+                                      IDicomConnectionManager& connectionManager)
   {
-  private:
-    WebServiceParameters peer_;
-
-  public:
-    StorePeerOperation(const WebServiceParameters& peer) :
-    peer_(peer)
+    switch (input.GetType())
     {
+      case JobOperationValue::Type_DicomInstance:
+      {
+        const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
+        LOG(INFO) << "Lua: Deleting instance: " << instance.GetId();
+
+        try
+        {
+          Json::Value tmp;
+          context_.DeleteResource(tmp, instance.GetId(), ResourceType_Instance);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Lua: Unable to delete instance " << instance.GetId() << ": " << e.What();
+        }
+
+        break;
+      }
+
+      default:
+        break;
     }
-
-    virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       IDicomConnectionManager& connectionManager);
-
-    virtual void Serialize(Json::Value& result) const;
-  };
+  }
 }
-

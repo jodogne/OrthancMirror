@@ -84,15 +84,15 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerJobs/ArchiveJob.cpp
-  OrthancServer/ServerJobs/DeleteResourceOperation.cpp
   OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
   OrthancServer/ServerJobs/LuaJobManager.cpp
-  OrthancServer/ServerJobs/ModifyInstanceOperation.cpp
+  OrthancServer/ServerJobs/Operations/DeleteResourceOperation.cpp
+  OrthancServer/ServerJobs/Operations/ModifyInstanceOperation.cpp
+  OrthancServer/ServerJobs/Operations/StorePeerOperation.cpp
+  OrthancServer/ServerJobs/Operations/StoreScuOperation.cpp
+  OrthancServer/ServerJobs/Operations/SystemCallOperation.cpp
   OrthancServer/ServerJobs/OrthancJobUnserializer.cpp
   OrthancServer/ServerJobs/OrthancPeerStoreJob.cpp
-  OrthancServer/ServerJobs/StorePeerOperation.cpp
-  OrthancServer/ServerJobs/StoreScuOperation.cpp
-  OrthancServer/ServerJobs/SystemCallOperation.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
   )

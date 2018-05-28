@@ -31,51 +31,60 @@
  **/
 
 
-#pragma once
+#include "../../PrecompiledHeadersServer.h"
+#include "StoreScuOperation.h"
 
-#include "../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "DicomInstanceOperationValue.h"
 
-#include <string>
+#include "../../../Core/Logging.h"
+#include "../../../Core/OrthancException.h"
 
 namespace Orthanc
 {
-  class SystemCallOperation : public IJobOperation
+  void StoreScuOperation::Apply(JobOperationValues& outputs,
+                                const JobOperationValue& input,
+                                IDicomConnectionManager& connectionManager)
   {
-  private:
-    std::string               command_;
-    std::vector<std::string>  preArguments_;
-    std::vector<std::string>  postArguments_;
-    
-  public:
-    SystemCallOperation(const std::string& command) :
-      command_(command)
+    std::auto_ptr<IDicomConnectionManager::IResource> resource
+      (connectionManager.AcquireConnection(localAet_, modality_));
+
+    if (resource.get() == NULL)
     {
+      LOG(ERROR) << "Lua: Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
+      return;
     }
 
-    SystemCallOperation(const std::string& command,
-                        const std::vector<std::string>& preArguments,
-                        const std::vector<std::string>& postArguments) :
-      command_(command),
-      preArguments_(preArguments),
-      postArguments_(postArguments)
+    if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
+      throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    void AddPreArgument(const std::string& argument)
+    const DicomInstanceOperationValue& instance =
+      dynamic_cast<const DicomInstanceOperationValue&>(input);
+
+    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
+              << modality_.GetApplicationEntityTitle() << "\"";
+
+    try
     {
-      preArguments_.push_back(argument);
+      std::string dicom;
+      instance.ReadContent(dicom);
+      resource->GetConnection().Store(dicom);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
+                 << modality_.GetApplicationEntityTitle() << "\": " << e.What();
     }
 
-    void AddPostArgument(const std::string& argument)
-    {
-      postArguments_.push_back(argument);
-    }
+    outputs.Append(input.Clone());
+  }
 
-    virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       IDicomConnectionManager& connectionManager);
-
-    virtual void Serialize(Json::Value& result) const;
-  };
+  
+  void StoreScuOperation::Serialize(Json::Value& result) const
+  {
+    result["Type"] = "StoreScu";
+    result["LocalAET"] = localAet_;
+    modality_.ToJson(result["Modality"]);
+  }
 }
-

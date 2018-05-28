@@ -37,7 +37,7 @@
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
-#include "DicomInstanceOperationValue.h"
+#include "Operations/DicomInstanceOperationValue.h"
 
 namespace Orthanc
 {

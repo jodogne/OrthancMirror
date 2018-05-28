@@ -31,15 +31,15 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeadersServer.h"
 #include "SystemCallOperation.h"
 
 #include "DicomInstanceOperationValue.h"
 
-#include "../../Core/JobsEngine/Operations/StringOperationValue.h"
-#include "../../Core/Logging.h"
-#include "../../Core/TemporaryFile.h"
-#include "../../Core/Toolbox.h"
+#include "../../../Core/JobsEngine/Operations/StringOperationValue.h"
+#include "../../../Core/Logging.h"
+#include "../../../Core/TemporaryFile.h"
+#include "../../../Core/Toolbox.h"
 
 namespace Orthanc
 {

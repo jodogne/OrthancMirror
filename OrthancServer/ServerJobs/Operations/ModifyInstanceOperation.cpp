@@ -31,12 +31,12 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../PrecompiledHeadersServer.h"
 #include "ModifyInstanceOperation.h"
 
 #include "DicomInstanceOperationValue.h"
 
-#include "../../Core/Logging.h"
+#include "../../../Core/Logging.h"
 
 namespace Orthanc
 {

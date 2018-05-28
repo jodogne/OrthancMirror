@@ -33,29 +33,25 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/Operations/IJobOperation.h"
-
-#include "../../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../Core/WebServiceParameters.h"
 
 namespace Orthanc
 {
-  class StoreScuOperation : public IJobOperation
+  class StorePeerOperation : public IJobOperation
   {
   private:
-    std::string               localAet_;
-    RemoteModalityParameters  modality_;
-    
+    WebServiceParameters peer_;
+
   public:
-    StoreScuOperation(const std::string& localAet,
-                      const RemoteModalityParameters& modality) :
-      localAet_(localAet),
-      modality_(modality)
+    StorePeerOperation(const WebServiceParameters& peer) :
+    peer_(peer)
     {
     }
 
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
-                       IDicomConnectionManager& manager);
+                       IDicomConnectionManager& connectionManager);
 
     virtual void Serialize(Json::Value& result) const;
   };
