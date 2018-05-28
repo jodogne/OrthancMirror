@@ -468,7 +468,15 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-
+    {
+      // Avoid unnecessary calls to the database if there's no Lua callback
+      boost::recursive_mutex::scoped_lock lock(mutex_);
+      if (!lua_.IsExistingFunction(name))
+      {
+        return;
+      }
+    }
+    
     Json::Value tags, metadata;
     if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()) &&
         context_.GetIndex().GetMetadata(metadata, change.GetPublicId()))
