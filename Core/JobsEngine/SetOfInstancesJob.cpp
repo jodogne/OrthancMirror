@@ -178,6 +178,14 @@ namespace Orthanc
   }
 
     
+  void SetOfInstancesJob::GetPublicContent(Json::Value& value)
+  {
+    value["Description"] = GetDescription();
+    value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
+    value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
+  }    
+
+
   void SetOfInstancesJob::GetInternalContent(Json::Value& value)
   {
     Json::Value v = Json::arrayValue;

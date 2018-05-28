@@ -33,82 +33,45 @@
 
 #pragma once
 
-#include "IJob.h"
-
-#include <set>
+#include "../Core/RestApi/RestApiCall.h"
 
 namespace Orthanc
 {
-  class SetOfInstancesJob : public IJob
+  class DicomInstanceOrigin
   {
   private:
-    bool                      started_;
-    std::vector<std::string>  instances_;
-    bool                      permissive_;
-    size_t                    position_;
-    std::set<std::string>     failedInstances_;
-    std::string               description_;
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance) = 0;
+    RequestOrigin origin_;
+    std::string   remoteIp_;
+    std::string   dicomRemoteAet_;
+    std::string   dicomCalledAet_;
+    std::string   httpUsername_;
 
   public:
-    SetOfInstancesJob();
-
-    void SetDescription(const std::string& description)
+    DicomInstanceOrigin() :
+      origin_(RequestOrigin_Unknown)
     {
-      description_ = description;
     }
 
-    const std::string& GetDescription() const
+    void SetDicomProtocolOrigin(const char* remoteIp,
+                                const char* remoteAet,
+                                const char* calledAet);
+
+    void SetRestOrigin(const RestApiCall& call);
+
+    void SetHttpOrigin(const char* remoteIp,
+                       const char* username);
+
+    void SetLuaOrigin();
+
+    void SetPluginsOrigin();
+
+    RequestOrigin GetRequestOrigin() const
     {
-      return description_;
+      return origin_;
     }
 
-    void Reserve(size_t size);
+    const char* GetRemoteAet() const; 
 
-    size_t GetInstancesCount() const
-    {
-      return instances_.size();
-    }
-    
-    void AddInstance(const std::string& instance);
-
-    bool IsPermissive() const
-    {
-      return permissive_;
-    }
-
-    void SetPermissive(bool permissive);
-
-    virtual void SignalResubmit();
-    
-    virtual void Start()
-    {
-      started_ = true;
-    }
-    
-    virtual float GetProgress();
-
-    bool IsStarted() const
-    {
-      return started_;
-    }
-
-    const std::vector<std::string>& GetInstances() const
-    {
-      return instances_;
-    }
-  
-    const std::set<std::string>& GetFailedInstances() const
-    {
-      return failedInstances_;
-    }
-  
-    virtual JobStepResult ExecuteStep();
-    
-    virtual void GetPublicContent(Json::Value& value);
-    
-    virtual void GetInternalContent(Json::Value& value);
+    void Format(Json::Value& result) const;
   };
 }

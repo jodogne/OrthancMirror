@@ -55,6 +55,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 set(ORTHANC_SERVER_SOURCES
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/DatabaseWrapperBase.cpp
+  OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp

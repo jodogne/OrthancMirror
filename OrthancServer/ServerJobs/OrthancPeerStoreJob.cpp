@@ -95,12 +95,10 @@ namespace Orthanc
 
   void OrthancPeerStoreJob::GetPublicContent(Json::Value& value)
   {
+    SetOfInstancesJob::GetPublicContent(value);
+    
     Json::Value v;
     peer_.ToJson(v);
     value["Peer"] = v;
-
-    value["Description"] = GetDescription();
-    value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
-    value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
   }
 }

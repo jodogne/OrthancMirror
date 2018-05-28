@@ -54,14 +54,39 @@ namespace Orthanc
   }
 
 
+  static int GetPriority(const Json::Value& request)
+  {
+    static const char* PRIORITY = "Priority";
+    
+    if (request.isMember(PRIORITY))
+    {
+      if (request[PRIORITY].type() == Json::intValue)
+      {
+        return request[PRIORITY].asInt();
+      }
+      else
+      {
+        LOG(ERROR) << "Field \"" << PRIORITY << "\" of a modification request should be an integer";
+        throw OrthancException(ErrorCode_BadFileFormat);        
+      }
+    }
+    else
+    {
+      return 0;   // Default priority
+    }
+  }
+
+
   static void ParseModifyRequest(DicomModification& target,
+                                 int& priority,
                                  const RestApiPostCall& call)
   {
-    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"}}'
+    // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"},"Priority":9}'
 
     Json::Value request;
     if (call.ParseJsonRequest(request))
     {
+      priority = GetPriority(request);
       target.ParseModifyRequest(request);
     }
     else
@@ -72,6 +97,7 @@ namespace Orthanc
 
 
   static void ParseAnonymizationRequest(DicomModification& target,
+                                        int& priority,
                                         RestApiPostCall& call)
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
@@ -80,6 +106,8 @@ namespace Orthanc
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
+      priority = GetPriority(request);
+
       bool patientNameReplaced;
       target.ParseAnonymizationRequest(patientNameReplaced, request);
 
@@ -110,53 +138,132 @@ namespace Orthanc
   }
 
 
-  static void AnonymizeOrModifyResource(DicomModification* modificationRaw,  // Takes ownership
-                                        MetadataType metadataType,
-                                        ResourceType resourceType,
-                                        RestApiPostCall& call)
+
+  class ResourceModificationJob : public SetOfInstancesJob
   {
-    if (modificationRaw == NULL)
+  public:
+    class Output : public boost::noncopyable
     {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
+    private:
+      boost::mutex  mutex_;
+      ResourceType  level_;
+      bool          isFirst_;
+      std::string   id_;
+      std::string   patientId_;
+
+    public:
+      Output(ResourceType  level) :
+        level_(level),
+        isFirst_(true)
+      {
+        if (level_ != ResourceType_Patient &&
+            level_ != ResourceType_Study &&
+            level_ != ResourceType_Series)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }            
+      }
+
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+
+      void Update(DicomInstanceHasher& hasher)
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        
+        if (isFirst_)
+        {
+          switch (level_)
+          {
+            case ResourceType_Series:
+              id_ = hasher.HashSeries();
+              break;
+
+            case ResourceType_Study:
+              id_ = hasher.HashStudy();
+              break;
+
+            case ResourceType_Patient:
+              id_ = hasher.HashPatient();
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+
+          patientId_ = hasher.HashPatient();
+          isFirst_ = false;
+        }
+      }
+
+      bool Format(Json::Value& target)
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        
+        if (isFirst_)
+        {
+          return false;
+        }
+        else
+        {
+          target = Json::objectValue;
+          target["Type"] = EnumerationToString(level_);
+          target["ID"] = id_;
+          target["Path"] = GetBasePath(level_, id_);
+          target["PatientID"] = patientId_;
+          return true;
+        }
+      }
+
+      bool GetIdentifier(std::string& id)
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        
+        if (isFirst_)
+        {
+          return false;
+        }
+        else
+        {
+          id = id_;
+          return true;
+        }
+      }
+    };
     
-    std::auto_ptr<DicomModification> modification(modificationRaw);
-    
-    bool isFirst = true;
-    Json::Value result(Json::objectValue);
+  private:
+    ServerContext&                    context_;
+    std::auto_ptr<DicomModification>  modification_;
+    boost::shared_ptr<Output>         output_;
+    bool                              isAnonymization_;
+    MetadataType                      metadataType_;
+    std::string                       description_;
+    DicomInstanceOrigin               origin_;
 
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    typedef std::list<std::string> Instances;
-    Instances instances;
-    std::string id = call.GetUriComponent("id", "");
-    context.GetIndex().GetChildInstances(instances, id);
-
-    if (instances.empty())
+  protected:
+    bool HandleInstance(const std::string& instance)
     {
-      return;
-    }
+      if (modification_.get() == NULL)
+      {
+        LOG(ERROR) << "No modification was provided for this job";
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
 
-
-    /**
-     * Loop over all the instances of the resource.
-     **/
-
-    for (Instances::const_iterator it = instances.begin(); 
-         it != instances.end(); ++it)
-    {
-      LOG(INFO) << "Modifying instance " << *it;
+      
+      LOG(INFO) << "Modifying instance in a job: " << instance;
 
       std::auto_ptr<ServerContext::DicomCacheLocker> locker;
 
       try
       {
-        locker.reset(new ServerContext::DicomCacheLocker(OrthancRestApi::GetContext(call), *it));
+        locker.reset(new ServerContext::DicomCacheLocker(context_, instance));
       }
       catch (OrthancException&)
       {
-        // This child instance has been removed in between
-        continue;
+        LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
+        return false;
       }
 
 
@@ -169,10 +276,10 @@ namespace Orthanc
        **/
 
       std::auto_ptr<ParsedDicomFile> modified(original.Clone(true));
-      modification->Apply(*modified);
+      modification_->Apply(*modified);
 
       DicomInstanceToStore toStore;
-      toStore.SetRestOrigin(call);
+      toStore.SetOrigin(origin_);
       toStore.SetParsedDicomFile(*modified);
 
 
@@ -182,6 +289,10 @@ namespace Orthanc
        **/
 
       DicomInstanceHasher modifiedHasher = modified->GetHasher();
+      
+      MetadataType metadataType = (isAnonymization_ ?
+                                   MetadataType_AnonymizedFrom :
+                                   MetadataType_ModifiedFrom);
 
       if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
       {
@@ -198,8 +309,8 @@ namespace Orthanc
         toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher.HashPatient());
       }
 
-      assert(*it == originalHasher.HashInstance());
-      toStore.AddMetadata(ResourceType_Instance, metadataType, *it);
+      assert(instance == originalHasher.HashInstance());
+      toStore.AddMetadata(ResourceType_Instance, metadataType, instance);
 
 
       /**
@@ -207,9 +318,9 @@ namespace Orthanc
        **/
 
       std::string modifiedInstance;
-      if (context.Store(modifiedInstance, toStore) != StoreStatus_Success)
+      if (context_.Store(modifiedInstance, toStore) != StoreStatus_Success)
       {
-        LOG(ERROR) << "Error while storing a modified instance " << *it;
+        LOG(ERROR) << "Error while storing a modified instance " << instance;
         throw OrthancException(ErrorCode_CannotStoreInstance);
       }
 
@@ -217,41 +328,127 @@ namespace Orthanc
       assert(modifiedInstance == modifiedHasher.HashInstance());
 
 
-      /**
-       * Compute the JSON object that is returned by the REST call.
-       **/
-
-      if (isFirst)
+      if (output_.get() != NULL)
       {
-        std::string newId;
+        output_->Update(modifiedHasher);
+      }
 
-        switch (resourceType)
-        {
-          case ResourceType_Series:
-            newId = modifiedHasher.HashSeries();
-            break;
+      return true;
+    }
+    
+  public:
+    ResourceModificationJob(ServerContext& context) :
+      context_(context),
+      isAnonymization_(false)
+    {
+    }
 
-          case ResourceType_Study:
-            newId = modifiedHasher.HashStudy();
-            break;
-
-          case ResourceType_Patient:
-            newId = modifiedHasher.HashPatient();
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-
-        result["Type"] = EnumerationToString(resourceType);
-        result["ID"] = newId;
-        result["Path"] = GetBasePath(resourceType, newId);
-        result["PatientID"] = modifiedHasher.HashPatient();
-        isFirst = false;
+    void SetModification(DicomModification* modification,   // Takes ownership
+                         bool isAnonymization)
+    {
+      if (modification == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        modification_.reset(modification);
+        isAnonymization_ = isAnonymization;
       }
     }
 
-    call.GetOutput().AnswerJson(result);
+    void SetOutput(boost::shared_ptr<Output>& output)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        output_ = output;
+      }
+    }
+
+    void SetOrigin(const DicomInstanceOrigin& origin)
+    {
+      if (IsStarted())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        origin_ = origin;
+      }
+    }
+
+    void SetOrigin(const RestApiCall& call)
+    {
+      DicomInstanceOrigin tmp;
+      tmp.SetRestOrigin(call);      
+      SetOrigin(tmp);
+    }
+
+    virtual void ReleaseResources()
+    {
+    }
+
+    virtual void GetJobType(std::string& target)
+    {
+      target = "ResourceModification";
+    }
+
+    virtual void GetPublicContent(Json::Value& value)
+    {
+      SetOfInstancesJob::GetPublicContent(value);
+
+      value["IsAnonymization"] = isAnonymization_;
+    }
+    
+    virtual void GetInternalContent(Json::Value& value)
+    {
+      SetOfInstancesJob::GetInternalContent(value);
+
+      Json::Value tmp;
+      modification_->Serialize(tmp);
+      value["Modification"] = tmp;
+    }
+  };
+  
+
+
+  static void SubmitJob(std::auto_ptr<DicomModification>& modification,
+                        bool isAnonymization,
+                        ResourceType level,
+                        int priority,
+                        RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::auto_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    
+    boost::shared_ptr<ResourceModificationJob::Output> output(new ResourceModificationJob::Output(level));
+    job->SetModification(modification.release(), isAnonymization);
+    job->SetOutput(output);
+    job->SetOrigin(call);
+    job->SetDescription("REST API");
+
+    context.AddChildInstances(*job, call.GetUriComponent("id", ""));
+    
+    if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), priority))
+    {
+      Json::Value json;
+      if (output->Format(json))
+      {
+        call.GetOutput().AnswerJson(json);
+        return;
+      }
+    }
+
+    call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
   }
 
 
@@ -261,7 +458,8 @@ namespace Orthanc
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    ParseModifyRequest(modification, call);
+    int priority;
+    ParseModifyRequest(modification, priority, call);
 
     if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
     {
@@ -289,7 +487,8 @@ namespace Orthanc
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    ParseAnonymizationRequest(modification, call);
+    int priority;
+    ParseAnonymizationRequest(modification, priority, call);
 
     AnonymizeOrModifyInstance(modification, call);
   }
@@ -299,10 +498,12 @@ namespace Orthanc
   static void ModifyResource(RestApiPostCall& call)
   {
     std::auto_ptr<DicomModification> modification(new DicomModification);
-    ParseModifyRequest(*modification, call);
+
+    int priority;
+    ParseModifyRequest(*modification, priority, call);
 
     modification->SetLevel(resourceType);
-    AnonymizeOrModifyResource(modification.release(), MetadataType_ModifiedFrom, resourceType, call);
+    SubmitJob(modification, false, resourceType, priority, call);
   }
 
 
@@ -310,9 +511,11 @@ namespace Orthanc
   static void AnonymizeResource(RestApiPostCall& call)
   {
     std::auto_ptr<DicomModification> modification(new DicomModification);
-    ParseAnonymizationRequest(*modification, call);
 
-    AnonymizeOrModifyResource(modification.release(), MetadataType_AnonymizedFrom, resourceType, call);
+    int priority;
+    ParseAnonymizationRequest(*modification, priority, call);
+
+    SubmitJob(modification, true, resourceType, priority, call);
   }
 
 
@@ -321,7 +524,7 @@ namespace Orthanc
                                    ParsedDicomFile& dicom)
   {
     DicomInstanceToStore toStore;
-    toStore.SetRestOrigin(call);
+    toStore.GetOrigin().SetRestOrigin(call);
     toStore.SetParsedDicomFile(dicom);
 
     ServerContext& context = OrthancRestApi::GetContext(call);

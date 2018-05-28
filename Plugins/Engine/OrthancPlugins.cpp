@@ -1544,7 +1544,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_GetInstanceRemoteAet:
-        *p.resultString = instance.GetRemoteAet();
+        *p.resultString = instance.GetOrigin().GetRemoteAet();
         return;
 
       case _OrthancPluginService_GetInstanceSize:
@@ -1585,7 +1585,7 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_GetInstanceOrigin:   // New in Orthanc 0.9.5
-        *p.resultOrigin = Plugins::Convert(instance.GetRequestOrigin());
+        *p.resultOrigin = Plugins::Convert(instance.GetOrigin().GetRequestOrigin());
         return;
 
       default:

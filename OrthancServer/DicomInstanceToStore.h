@@ -34,9 +34,9 @@
 #pragma once
 
 #include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "ServerIndex.h"
 #include "../Core/OrthancException.h"
-#include "../Core/RestApi/RestApiCall.h"
+#include "DicomInstanceOrigin.h"
+#include "ServerIndex.h"
 
 namespace Orthanc
 {
@@ -139,46 +139,31 @@ namespace Orthanc
       }
     };
 
-
-    SmartContainer<std::string>  buffer_;
+    DicomInstanceOrigin              origin_;
+    SmartContainer<std::string>      buffer_;
     SmartContainer<ParsedDicomFile>  parsed_;
-    SmartContainer<DicomMap>  summary_;
-    SmartContainer<Json::Value>  json_;
-
-    RequestOrigin origin_;
-    std::string remoteIp_;
-    std::string dicomRemoteAet_;
-    std::string dicomCalledAet_;
-    std::string httpUsername_;
-    ServerIndex::MetadataMap metadata_;
+    SmartContainer<DicomMap>         summary_;
+    SmartContainer<Json::Value>      json_;
+    ServerIndex::MetadataMap         metadata_;
 
     void ComputeMissingInformation();
 
   public:
-    DicomInstanceToStore() : origin_(RequestOrigin_Unknown)
+    void SetOrigin(const DicomInstanceOrigin& origin)
     {
+      origin_ = origin;
     }
-
-    void SetDicomProtocolOrigin(const char* remoteIp,
-                                const char* remoteAet,
-                                const char* calledAet);
-
-    void SetRestOrigin(const RestApiCall& call);
-
-    void SetHttpOrigin(const char* remoteIp,
-                       const char* username);
-
-    void SetLuaOrigin();
-
-    void SetPluginsOrigin();
-
-    RequestOrigin GetRequestOrigin() const
+    
+    DicomInstanceOrigin& GetOrigin()
     {
       return origin_;
     }
-
-    const char* GetRemoteAet() const; 
-
+    
+    const DicomInstanceOrigin& GetOrigin() const
+    {
+      return origin_;
+    }
+    
     void SetBuffer(const std::string& dicom)
     {
       buffer_.SetConstReference(dicom);
@@ -220,8 +205,6 @@ namespace Orthanc
     const DicomMap& GetSummary();
     
     const Json::Value& GetJson();
-
-    void GetOriginInformation(Json::Value& result) const;
 
     bool LookupTransferSyntax(std::string& result);
   };

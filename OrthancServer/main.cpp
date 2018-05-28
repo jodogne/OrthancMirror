@@ -75,7 +75,7 @@ public:
     if (dicomFile.size() > 0)
     {
       DicomInstanceToStore toStore;
-      toStore.SetDicomProtocolOrigin(remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str());
+      toStore.GetOrigin().SetDicomProtocolOrigin(remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str());
       toStore.SetBuffer(dicomFile);
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
