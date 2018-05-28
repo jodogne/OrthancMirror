@@ -31,28 +31,24 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "StoreScuOperation.h"
+#include "../../PrecompiledHeadersServer.h"
+#include "StorePeerOperation.h"
 
 #include "DicomInstanceOperationValue.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../../../Core/Logging.h"
+#include "../../../Core/OrthancException.h"
+#include "../../../Core/HttpClient.h"
 
 namespace Orthanc
 {
-  void StoreScuOperation::Apply(JobOperationValues& outputs,
+  void StorePeerOperation::Apply(JobOperationValues& outputs,
                                 const JobOperationValue& input,
-                                IDicomConnectionManager& connectionManager)
+                                 IDicomConnectionManager& connectionManager)
   {
-    std::auto_ptr<IDicomConnectionManager::IResource> resource
-      (connectionManager.AcquireConnection(localAet_, modality_));
-
-    if (resource.get() == NULL)
-    {
-      LOG(ERROR) << "Lua: Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
-      return;
-    }
+    // Configure the HTTP client
+    HttpClient client(peer_, "instances");
+    client.SetMethod(HttpMethod_Post);
 
     if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
@@ -62,29 +58,33 @@ namespace Orthanc
     const DicomInstanceOperationValue& instance =
       dynamic_cast<const DicomInstanceOperationValue&>(input);
 
-    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to modality \"" 
-              << modality_.GetApplicationEntityTitle() << "\"";
+    LOG(INFO) << "Lua: Sending instance " << instance.GetId() << " to Orthanc peer \"" 
+              << peer_.GetUrl() << "\"";
 
     try
     {
-      std::string dicom;
-      instance.ReadContent(dicom);
-      resource->GetConnection().Store(dicom);
+      instance.ReadContent(client.GetBody());
+
+      std::string answer;
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
+                   << " to Orthanc peer \"" << peer_.GetUrl();
+      }
     }
     catch (OrthancException& e)
     {
-      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId() << " to modality \"" 
-                 << modality_.GetApplicationEntityTitle() << "\": " << e.What();
+      LOG(ERROR) << "Lua: Unable to send instance " << instance.GetId()
+                 << " to Orthanc peer \"" << peer_.GetUrl() << "\": " << e.What();
     }
 
     outputs.Append(input.Clone());
   }
 
   
-  void StoreScuOperation::Serialize(Json::Value& result) const
+  void StorePeerOperation::Serialize(Json::Value& result) const
   {
-    result["Type"] = "StoreScu";
-    result["LocalAET"] = localAet_;
-    modality_.ToJson(result["Modality"]);
+    result["Type"] = "StorePeer";
+    peer_.ToJson(result["Remote"]);
   }
 }

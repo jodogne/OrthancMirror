@@ -38,15 +38,15 @@
 #include "../../Core/Logging.h"
 
 #include "../../Core/JobsEngine/Operations/LogJobOperation.h"
-#include "DeleteResourceOperation.h"
-#include "ModifyInstanceOperation.h"
-#include "StorePeerOperation.h"
-#include "StoreScuOperation.h"
-#include "SystemCallOperation.h"
+#include "Operations/DeleteResourceOperation.h"
+#include "Operations/ModifyInstanceOperation.h"
+#include "Operations/StorePeerOperation.h"
+#include "Operations/StoreScuOperation.h"
+#include "Operations/SystemCallOperation.h"
 
 #include "../../Core/JobsEngine/Operations/NullOperationValue.h"
 #include "../../Core/JobsEngine/Operations/StringOperationValue.h"
-#include "DicomInstanceOperationValue.h"
+#include "Operations/DicomInstanceOperationValue.h"
 
 namespace Orthanc
 {
