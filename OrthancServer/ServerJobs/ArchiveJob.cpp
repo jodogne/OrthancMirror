@@ -899,7 +899,7 @@ namespace Orthanc
     value["Description"] = description_;
     value["InstancesCount"] = instancesCount_;
     value["UncompressedSizeMB"] =
-      static_cast<unsigned int>(uncompressedSize_ / (1024llu * 1024llu));
+      static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
   }
 
   
