@@ -35,6 +35,34 @@
 
 #include "IDicomConnectionManager.h"
 
+#if ORTHANC_ENABLE_DCMTK_NETWORKING == 0
+
+namespace Orthanc
+{
+  class TimeoutDicomConnectionManager : public IDicomConnectionManager
+  {
+  public:
+    void SetTimeout(unsigned int timeout)
+    {
+    }
+
+    unsigned int GetTimeout()
+    {
+      return 0;
+    }
+
+    void Close()
+    {
+    }
+
+    void CheckTimeout()
+    {
+    }
+  };
+}
+
+#else
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
@@ -70,3 +98,5 @@ namespace Orthanc
                                          const RemoteModalityParameters& remote);
   };
 }
+
+#endif
