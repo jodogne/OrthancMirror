@@ -33,6 +33,26 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_DCMTK_NETWORKING)
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be defined
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_NETWORKING == 0
+
+namespace Orthanc
+{
+  // DICOM networking is disabled, this is just a void class
+  class IDicomConnectionManager : public boost::noncopyable
+  {
+  public:
+    virtual ~IDicomConnectionManager()
+    {
+    }
+  };
+}
+
+#else
+
 #include "DicomUserConnection.h"
 
 namespace Orthanc
@@ -58,3 +78,5 @@ namespace Orthanc
                                          const RemoteModalityParameters& remote) = 0;
   };
 }
+
+#endif
