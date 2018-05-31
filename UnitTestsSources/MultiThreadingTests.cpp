@@ -167,7 +167,7 @@ public:
     type = "DummyJob";
   }
 
-  virtual void GetInternalContent(Json::Value& value)
+  virtual void Serialize(Json::Value& value)
   {
   }
 

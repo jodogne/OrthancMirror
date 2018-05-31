@@ -361,7 +361,7 @@ namespace Orthanc
   }
 
 
-  void SequenceOfOperationsJob::GetInternalContent(Json::Value& value)
+  void SequenceOfOperationsJob::Serialize(Json::Value& value)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
