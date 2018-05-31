@@ -1227,8 +1227,8 @@ $('#jobs').live('pagebeforeshow', function() {
         item.append($('<h1>').text(job.Type));
         item.append($('<span>').addClass('ui-li-count').text(job.State));
         AddJobField(item, 'ID: ', job.ID);
-        AddJobField(item, 'Local AET: ', job.PublicContent.LocalAet);
-        AddJobField(item, 'Remote AET: ', job.PublicContent.RemoteAet);
+        AddJobField(item, 'Local AET: ', job.Content.LocalAet);
+        AddJobField(item, 'Remote AET: ', job.Content.RemoteAet);
         AddJobDateField(item, 'Creation time: ', job.CreationTime);
         AddJobDateField(item, 'Completion time: ', job.CompletionTime);
         AddJobDateField(item, 'ETA: ', job.EstimatedTimeOfArrival);
@@ -1280,7 +1280,7 @@ $('#job').live('pagebeforeshow', function() {
               i == 'EstimatedTimeOfArrival') {
             AddJobDateField(block, i + ': ', job[i]);
           } else if (i != 'InternalContent' &&
-                     i != 'PublicContent' &&
+                     i != 'Content' &&
                      i != 'Timestamp') {
             AddJobField(block, i + ': ', job[i]);
           }
@@ -1294,8 +1294,8 @@ $('#job').live('pagebeforeshow', function() {
 
         var block = $('<li>');
 
-        for (var item in job.PublicContent) {
-          var value = job.PublicContent[item];
+        for (var item in job.Content) {
+          var value = job.Content[item];
           if (typeof value !== 'string') {
             value = JSON.stringify(value);
           }
