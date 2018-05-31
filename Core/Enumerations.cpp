@@ -1464,6 +1464,39 @@ namespace Orthanc
   }
 
 
+  JobState StringToJobState(const std::string& state)
+  {
+    if (state == "Pending")
+    {
+      return JobState_Pending;
+    }
+    else if (state == "Running")
+    {
+      return JobState_Running;
+    }
+    else if (state == "Success")
+    {
+      return JobState_Success;
+    }
+    else if (state == "Failure")
+    {
+      return JobState_Failure;
+    }
+    else if (state == "Paused")
+    {
+      return JobState_Paused;
+    }
+    else if (state == "Retry")
+    {
+      return JobState_Retry;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   unsigned int GetBytesPerPixel(PixelFormat format)
   {
     switch (format)
