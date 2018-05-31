@@ -659,6 +659,8 @@ namespace Orthanc
   ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
 
   DicomVersion StringToDicomVersion(const std::string& version);
+
+  JobState StringToJobState(const std::string& state);
   
   unsigned int GetBytesPerPixel(PixelFormat format);
 
