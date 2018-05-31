@@ -109,6 +109,6 @@ namespace Orthanc
     
     virtual void GetPublicContent(Json::Value& value);
     
-    virtual void GetInternalContent(Json::Value& value);
+    virtual void Serialize(Json::Value& value);
   };
 }

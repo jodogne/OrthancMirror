@@ -44,6 +44,7 @@ namespace Orthanc
     float          progress_;
     std::string    jobType_;
     Json::Value    publicContent_;
+    Json::Value    serialized_;
 
   public:
     JobStatus();
@@ -74,6 +75,11 @@ namespace Orthanc
     const Json::Value& GetPublicContent() const
     {
       return publicContent_;
+    }
+
+    const Json::Value& GetSerialized() const
+    {
+      return serialized_;
     }
   };
 }

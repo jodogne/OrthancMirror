@@ -38,58 +38,43 @@
 
 namespace Orthanc
 {
-  void IJobUnserializer::CheckType(const Json::Value& source,
-                                   const std::string& expectedType)
-  {
-    static const char* TYPE = "Type";
-
-    if (source.type() != Json::objectValue ||
-        !source.isMember(TYPE) ||
-        source[TYPE].type() != Json::stringValue ||
-        source[TYPE].asString() != expectedType)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-  }
-
-
-  std::string IJobUnserializer::GetString(const Json::Value& source,
+  std::string IJobUnserializer::GetString(const Json::Value& value,
                                           const std::string& name)
   {
-    if (source.type() != Json::objectValue ||
-        !source.isMember(name.c_str()) ||
-        source[name.c_str()].type() != Json::stringValue)
+    if (value.type() != Json::objectValue ||
+        !value.isMember(name.c_str()) ||
+        value[name.c_str()].type() != Json::stringValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
-      return source[name.c_str()].asString();
+      return value[name.c_str()].asString();
     }
   }
 
 
-  int IJobUnserializer::GetInteger(const Json::Value& source,
+  int IJobUnserializer::GetInteger(const Json::Value& value,
                                    const std::string& name)
   {
-    if (source.type() != Json::objectValue ||
-        !source.isMember(name.c_str()) ||
-        (source[name.c_str()].type() != Json::intValue &&
-         source[name.c_str()].type() != Json::uintValue))
+    if (value.type() != Json::objectValue ||
+        !value.isMember(name.c_str()) ||
+        (value[name.c_str()].type() != Json::intValue &&
+         value[name.c_str()].type() != Json::uintValue))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
-      return source[name.c_str()].asInt();
+      return value[name.c_str()].asInt();
     }    
   }
 
 
-  unsigned int IJobUnserializer::GetUnsignedInteger(const Json::Value& source,
+  unsigned int IJobUnserializer::GetUnsignedInteger(const Json::Value& value,
                                                     const std::string& name)
   {
-    int tmp = GetInteger(source, name);
+    int tmp = GetInteger(value, name);
 
     if (tmp < 0)
     {

@@ -45,6 +45,7 @@ namespace Orthanc
   private:
     std::string                       id_;
     JobState                          state_;
+    std::string                       jobType_;
     std::auto_ptr<IJob>               job_;
     int                               priority_;  // "+inf()" means highest priority
     boost::posix_time::ptime          creationTime_;
@@ -94,9 +95,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NullPointer);
       }
 
+      job->GetJobType(jobType_);
       job->Start();
 
-      lastStatus_ = JobStatus(ErrorCode_Success, *job);
+      lastStatus_ = JobStatus(ErrorCode_Success, *job_);
     }
 
     const std::string& GetId() const
@@ -230,6 +232,65 @@ namespace Orthanc
     void SetLastErrorCode(ErrorCode code)
     {
       lastStatus_.SetErrorCode(code);
+    }
+
+    void Serialize(Json::Value& target) const
+    {
+      target["State"] = EnumerationToString(state_);
+      target["JobType"] = jobType_;
+      target["Priority"] = priority_;
+      target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
+      target["Runtime"] = static_cast<unsigned int>(runtime_.total_milliseconds());
+
+      if (state_ == JobState_Running)
+      {
+        // WARNING: Cannot directly access the "job_" member, as long
+        // as a "RunningJob" instance is running. We do not use a
+        // mutex at the "JobHandler" level, as serialization would be
+        // blocked while a step in the job is running. Instead, we
+        // save a snapshot of the serialized job.
+        target["Job"] = lastStatus_.GetSerialized();
+      }
+      else
+      {
+        job_->Serialize(target["Job"]);
+      }
+    }
+
+    JobHandler(IJobUnserializer& unserializer,
+               const std::string& id,
+               const Json::Value& serialized) :
+      id_(id),
+      lastStateChangeTime_(boost::posix_time::microsec_clock::universal_time()),
+      pauseScheduled_(false),
+      cancelScheduled_(false)
+    {
+      state_ = StringToJobState(IJobUnserializer::GetString(serialized, "State"));
+      jobType_ = IJobUnserializer::GetString(serialized, "Type");
+      priority_ = IJobUnserializer::GetInteger(serialized, "Priority");
+      creationTime_ = boost::posix_time::from_iso_string
+        (IJobUnserializer::GetString(serialized, "CreationTime"));
+      runtime_ = boost::posix_time::milliseconds(IJobUnserializer::GetInteger(serialized, "Runtime"));
+
+      retryTime_ = creationTime_;
+
+      if (state_ == JobState_Retry ||
+          state_ == JobState_Running) 
+      {
+        state_ = JobState_Pending;
+      }
+
+      job_.reset(unserializer.UnserializeJob(jobType_, serialized["Job"]));
+
+      std::string s;
+      job_->GetJobType(s);
+      if (s != jobType_)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      job_->Start();
+      lastStatus_ = JobStatus(ErrorCode_Success, *job_);
     }
   };
 
@@ -497,6 +558,22 @@ namespace Orthanc
                        handler.GetLastStateChangeTime(),
                        handler.GetRuntime());
       return true;
+    }
+  }
+
+
+  void JobsRegistry::Serialize(Json::Value& target)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    target = Json::objectValue;
+
+    for (JobsIndex::const_iterator it = jobsIndex_.begin(); 
+         it != jobsIndex_.end(); ++it)
+    {
+      Json::Value& v = target[it->first];
+      it->second->Serialize(v);
     }
   }
 

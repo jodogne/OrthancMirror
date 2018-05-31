@@ -40,7 +40,8 @@ namespace Orthanc
     errorCode_(ErrorCode_InternalError),
     progress_(0),
     jobType_("Invalid"),
-    publicContent_(Json::objectValue)
+    publicContent_(Json::objectValue),
+    serialized_(Json::objectValue)
   {
   }
 
@@ -63,5 +64,6 @@ namespace Orthanc
 
     job.GetJobType(jobType_);
     job.GetPublicContent(publicContent_);
+    job.Serialize(serialized_);
   }
 }

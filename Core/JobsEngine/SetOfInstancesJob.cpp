@@ -186,7 +186,7 @@ namespace Orthanc
   }    
 
 
-  void SetOfInstancesJob::GetInternalContent(Json::Value& value)
+  void SetOfInstancesJob::Serialize(Json::Value& value)
   {
     Json::Value v = Json::arrayValue;
       

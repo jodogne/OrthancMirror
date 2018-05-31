@@ -273,9 +273,9 @@ namespace Orthanc
   }
 
   
-  void ResourceModificationJob::GetInternalContent(Json::Value& value)
+  void ResourceModificationJob::Serialize(Json::Value& value)
   {
-    SetOfInstancesJob::GetInternalContent(value);
+    SetOfInstancesJob::Serialize(value);
 
     Json::Value tmp;
     modification_->Serialize(tmp);
