@@ -903,7 +903,7 @@ namespace Orthanc
   }
 
   
-  void ArchiveJob::GetInternalContent(Json::Value& value)
+  void ArchiveJob::Serialize(Json::Value& value)
   {
     // TODO
   }

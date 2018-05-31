@@ -63,6 +63,6 @@ namespace Orthanc
     
     virtual void GetPublicContent(Json::Value& value) = 0;
 
-    virtual void GetInternalContent(Json::Value& value) = 0;
+    virtual void Serialize(Json::Value& value) = 0;
   };
 }

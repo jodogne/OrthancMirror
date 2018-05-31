@@ -46,22 +46,20 @@ namespace Orthanc
     {
     }
 
-    virtual IJob* UnserializeJob(const Json::Value& source) = 0;
+    virtual IJob* UnserializeJob(const std::string& jobType,
+                                 const Json::Value& value) = 0;
 
-    virtual IJobOperation* UnserializeOperation(const Json::Value& source) = 0;
+    virtual IJobOperation* UnserializeOperation(const Json::Value& value) = 0;
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& source) = 0;
+    virtual JobOperationValue* UnserializeValue(const Json::Value& value) = 0;
 
-    static void CheckType(const Json::Value& source,
-                          const std::string& expectedType);
-
-    static std::string GetString(const Json::Value& source,
+    static std::string GetString(const Json::Value& value,
                                  const std::string& name);
 
-    static int GetInteger(const Json::Value& source,
+    static int GetInteger(const Json::Value& value,
                           const std::string& name);
 
-    static unsigned int GetUnsignedInteger(const Json::Value& source,
+    static unsigned int GetUnsignedInteger(const Json::Value& value,
                                            const std::string& name);
   };
 }

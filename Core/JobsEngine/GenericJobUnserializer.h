@@ -40,10 +40,11 @@ namespace Orthanc
   class GenericJobUnserializer : public IJobUnserializer
   {
   public:
-    virtual IJob* UnserializeJob(const Json::Value& source);
+    virtual IJob* UnserializeJob(const std::string& type,
+                                 const Json::Value& value);
 
-    virtual IJobOperation* UnserializeOperation(const Json::Value& source);
+    virtual IJobOperation* UnserializeOperation(const Json::Value& value);
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& source);
+    virtual JobOperationValue* UnserializeValue(const Json::Value& value);
   };
 }

@@ -42,6 +42,7 @@
 #endif
 
 #include "JobInfo.h"
+#include "IJobUnserializer.h"
 
 #include <list>
 #include <set>
@@ -126,6 +127,8 @@ namespace Orthanc
 
     bool GetJobInfo(JobInfo& target,
                     const std::string& id);
+
+    void Serialize(Json::Value& target);
     
     void Submit(std::string& id,
                 IJob* job,        // Takes ownership
