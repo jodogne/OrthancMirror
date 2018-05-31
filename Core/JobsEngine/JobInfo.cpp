@@ -119,8 +119,7 @@ namespace Orthanc
   }
 
 
-  void JobInfo::Serialize(Json::Value& target,
-                          bool includeInternalContent) const
+  void JobInfo::Format(Json::Value& target) const
   {
     target = Json::objectValue;
     target["ID"] = id_;
@@ -134,12 +133,7 @@ namespace Orthanc
     target["Progress"] = boost::math::iround(status_.GetProgress() * 100.0f);
 
     target["Type"] = status_.GetJobType();
-    target["PublicContent"] = status_.GetPublicContent();
-
-    if (includeInternalContent)
-    {
-      target["InternalContent"] = status_.GetInternalContent();
-    }
+    target["Content"] = status_.GetPublicContent();
 
     if (HasEstimatedTimeOfArrival())
     {

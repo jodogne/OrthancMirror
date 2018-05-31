@@ -276,7 +276,6 @@ namespace Orthanc
   static void ListJobs(RestApiGetCall& call)
   {
     bool expand = call.HasArgument("expand");
-    bool internal = call.HasArgument("internal");
 
     Json::Value v = Json::arrayValue;
 
@@ -292,7 +291,7 @@ namespace Orthanc
         if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
         {
           Json::Value tmp;
-          info.Serialize(tmp, internal);
+          info.Format(tmp);
           v.append(tmp);
         }
       }
@@ -308,13 +307,12 @@ namespace Orthanc
   static void GetJobInfo(RestApiGetCall& call)
   {
     std::string id = call.GetUriComponent("id", "");
-    bool internal = call.HasArgument("internal");
 
     JobInfo info;
     if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
     {
       Json::Value json;
-      info.Serialize(json, internal);
+      info.Format(json);
       call.GetOutput().AnswerJson(json);
     }
   }
