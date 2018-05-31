@@ -150,6 +150,20 @@ namespace Orthanc
 
 
   template <>
+  struct PixelTraits<PixelFormat_Grayscale32> :
+    public IntegerPixelTraits<PixelFormat_Grayscale32, uint32_t>
+  {
+  };
+
+
+  template <>
+  struct PixelTraits<PixelFormat_Grayscale64> :
+    public IntegerPixelTraits<PixelFormat_Grayscale64, uint64_t>
+  {
+  };
+
+
+  template <>
   struct PixelTraits<PixelFormat_RGB24>
   {
     struct PixelType
@@ -262,6 +276,59 @@ namespace Orthanc
       target.green_ = v;
       target.red_ = v;
       target.alpha_ = 255;      
+    }
+  };
+
+
+  template <>
+  struct PixelTraits<PixelFormat_Float32>
+  {
+    typedef float  PixelType;
+
+    ORTHANC_FORCE_INLINE
+    static PixelFormat GetPixelFormat()
+    {
+      return PixelFormat_Float32;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetZero(PixelType& target)
+    {
+      target = 0.0f;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void Copy(PixelType& target,
+                     const PixelType& source)
+    {
+      target = source;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static bool IsEqual(const PixelType& a,
+                        const PixelType& b)
+    {
+      float tmp = (a - b);
+
+      if (tmp < 0)
+      {
+        tmp = -tmp;
+      }
+
+      return tmp <= std::numeric_limits<float>::epsilon();
+    }
+    
+    ORTHANC_FORCE_INLINE
+    static void FloatToPixel(PixelType& target,
+                             float value)
+    {
+      target = value;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static float PixelToFloat(const PixelType& source)
+    {
+      return source;
     }
   };
 }
