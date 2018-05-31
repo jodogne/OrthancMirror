@@ -117,8 +117,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     3
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     4
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -612,6 +612,14 @@ extern "C"
      * consecutive bytes. The memory layout is BGRA.
      **/
     OrthancPluginPixelFormat_BGRA32 = 10,
+
+    /**
+     * @brief Graylevel, unsigned 64bpp image.
+     *
+     * The image is graylevel. Each pixel is unsigned and stored in
+     * eight bytes.
+     **/
+    OrthancPluginPixelFormat_Grayscale64 = 11,
 
     _OrthancPluginPixelFormat_INTERNAL = 0x7fffffff
   } OrthancPluginPixelFormat;
