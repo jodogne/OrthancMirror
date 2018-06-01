@@ -762,6 +762,9 @@ namespace Orthanc
       case PixelFormat_Grayscale32:
         return "Grayscale (unsigned 32bpp)";
 
+      case PixelFormat_Grayscale64:
+        return "Grayscale (unsigned 64bpp)";
+
       case PixelFormat_RGB48:
         return "RGB48";
 
@@ -1522,6 +1525,9 @@ namespace Orthanc
 
       case PixelFormat_RGB48:
         return 6;
+
+      case PixelFormat_Grayscale64:
+        return 8;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
