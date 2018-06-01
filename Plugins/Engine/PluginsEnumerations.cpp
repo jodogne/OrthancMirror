@@ -151,6 +151,9 @@ namespace Orthanc
         case PixelFormat_Grayscale32:
           return OrthancPluginPixelFormat_Grayscale32;
 
+        case PixelFormat_Grayscale64:
+          return OrthancPluginPixelFormat_Grayscale64;
+
         case PixelFormat_Grayscale8:
           return OrthancPluginPixelFormat_Grayscale8;
 
@@ -187,6 +190,9 @@ namespace Orthanc
 
         case OrthancPluginPixelFormat_Grayscale32:
           return PixelFormat_Grayscale32;
+
+        case OrthancPluginPixelFormat_Grayscale64:
+          return PixelFormat_Grayscale64;
 
         case OrthancPluginPixelFormat_Grayscale8:
           return PixelFormat_Grayscale8;
