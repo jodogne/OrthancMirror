@@ -550,7 +550,8 @@ namespace Orthanc
       return;
     }
 
-    if (target.GetFormat() == PixelFormat_RGBA32 &&
+    if ((target.GetFormat() == PixelFormat_RGBA32 ||
+         target.GetFormat() == PixelFormat_BGRA32) &&
         source.GetFormat() == PixelFormat_Grayscale8)
     {
       for (unsigned int y = 0; y < source.GetHeight(); y++)
