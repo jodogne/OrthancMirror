@@ -705,6 +705,17 @@ namespace Orthanc
         }
         return;
 
+      case PixelFormat_Grayscale64:
+        if (value == 0)
+        {
+          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
+        }
+        else
+        {
+          SetInternal<uint64_t>(image, value);
+        }
+        return;
+
       case PixelFormat_SignedGrayscale16:
         if (value == 0)
         {
