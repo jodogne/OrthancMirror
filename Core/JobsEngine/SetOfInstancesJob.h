@@ -55,6 +55,8 @@ namespace Orthanc
   public:
     SetOfInstancesJob();
 
+    SetOfInstancesJob(const Json::Value& s);  // Unserialization
+
     void SetDescription(const std::string& description)
     {
       description_ = description;

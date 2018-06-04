@@ -41,10 +41,9 @@
 
 namespace Orthanc
 {
-  IJob* OrthancJobUnserializer::UnserializeJob(const std::string& type,
-                                               const Json::Value& source)
+  IJob* OrthancJobUnserializer::UnserializeJob(const Json::Value& source)
   {
-    return GenericJobUnserializer::UnserializeJob(type, source);
+    return GenericJobUnserializer::UnserializeJob(source);
   }
 
 
