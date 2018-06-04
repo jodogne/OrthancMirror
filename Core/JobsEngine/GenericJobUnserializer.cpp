@@ -43,9 +43,9 @@
 
 namespace Orthanc
 {
-  IJob* GenericJobUnserializer::UnserializeJob(const std::string& type,
-                                               const Json::Value& source)
+  IJob* GenericJobUnserializer::UnserializeJob(const Json::Value& source)
   {
+    const std::string type = GetString(source, "Type");
 
     LOG(ERROR) << "Cannot unserialize job of type: " << type;
     throw OrthancException(ErrorCode_BadFileFormat);

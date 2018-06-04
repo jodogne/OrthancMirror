@@ -266,7 +266,6 @@ namespace Orthanc
       cancelScheduled_(false)
     {
       state_ = StringToJobState(IJobUnserializer::GetString(serialized, "State"));
-      jobType_ = IJobUnserializer::GetString(serialized, "Type");
       priority_ = IJobUnserializer::GetInteger(serialized, "Priority");
       creationTime_ = boost::posix_time::from_iso_string
         (IJobUnserializer::GetString(serialized, "CreationTime"));
@@ -280,16 +279,10 @@ namespace Orthanc
         state_ = JobState_Pending;
       }
 
-      job_.reset(unserializer.UnserializeJob(jobType_, serialized["Job"]));
-
-      std::string s;
-      job_->GetJobType(s);
-      if (s != jobType_)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
+      job_.reset(unserializer.UnserializeJob(serialized["Job"]));
+      job_->GetJobType(jobType_);
       job_->Start();
+
       lastStatus_ = JobStatus(ErrorCode_Success, *job_);
     }
   };

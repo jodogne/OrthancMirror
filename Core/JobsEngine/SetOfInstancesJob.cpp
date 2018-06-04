@@ -35,6 +35,7 @@
 #include "SetOfInstancesJob.h"
 
 #include "../OrthancException.h"
+#include "IJobUnserializer.h"
 
 namespace Orthanc
 {
@@ -188,6 +189,14 @@ namespace Orthanc
 
   void SetOfInstancesJob::Serialize(Json::Value& value)
   {
+    std::string type;
+    GetJobType(type);
+    value["Type"] = type;
+
+    value["Permissive"] = permissive_;
+    value["Position"] = static_cast<unsigned int>(position_);
+    value["Description"] = description_;
+    
     Json::Value v = Json::arrayValue;
       
     for (size_t i = 0; i < instances_.size(); i++)
@@ -207,4 +216,21 @@ namespace Orthanc
       
     value["FailedInstances"] = v;
   }
+
+
+  SetOfInstancesJob::SetOfInstancesJob(const Json::Value& value) :
+    started_(false),
+    permissive_(IJobUnserializer::GetBoolean(value, "Permissive")),
+    position_(IJobUnserializer::GetUnsignedInteger(value, "Position")),
+    description_(IJobUnserializer::GetString(value, "Description"))
+  {
+    IJobUnserializer::GetArrayOfStrings(instances_, value, "Instances");
+    IJobUnserializer::GetSetOfStrings(failedInstances_, value, "FailedInstances");
+
+    if (position_ > instances_.size())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
 }

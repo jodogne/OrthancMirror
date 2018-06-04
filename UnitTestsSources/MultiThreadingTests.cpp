@@ -53,6 +53,124 @@ using namespace Orthanc;
 
 namespace
 {
+  class DummyJob : public IJob
+  {
+  private:
+    bool         fails_;
+    unsigned int count_;
+    unsigned int steps_;
+
+  public:
+    DummyJob() :
+      fails_(false),
+      count_(0),
+      steps_(4)
+    {
+    }
+
+    explicit DummyJob(bool fails) :
+      fails_(fails),
+      count_(0),
+      steps_(4)
+    {
+    }
+
+    virtual void Start()
+    {
+    }
+
+    virtual void SignalResubmit()
+    {
+    }
+    
+    virtual JobStepResult ExecuteStep()
+    {
+      if (fails_)
+      {
+        return JobStepResult::Failure(ErrorCode_ParameterOutOfRange);
+      }
+      else if (count_ == steps_ - 1)
+      {
+        return JobStepResult::Success();
+      }
+      else
+      {
+        count_++;
+        return JobStepResult::Continue();
+      }
+    }
+
+    virtual void ReleaseResources()
+    {
+    }
+
+    virtual float GetProgress()
+    {
+      return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
+    }
+
+    virtual void GetJobType(std::string& type)
+    {
+      type = "DummyJob";
+    }
+
+    virtual void Serialize(Json::Value& value)
+    {
+    }
+
+    virtual void GetPublicContent(Json::Value& value)
+    {
+      value["hello"] = "world";
+    }
+  };
+
+
+  class DummyInstancesJob : public SetOfInstancesJob
+  {
+  protected:
+    virtual bool HandleInstance(const std::string& instance)
+    {
+      return (instance != "nope");
+    }
+
+  public:
+    DummyInstancesJob()
+    {
+    }
+    
+    DummyInstancesJob(const Json::Value& value) :
+      SetOfInstancesJob(value)
+    {
+    }
+    
+    virtual void ReleaseResources()
+    {
+    }
+
+    virtual void GetJobType(std::string& s)
+    {
+      s = "DummyInstancesJob";
+    }
+  };
+
+
+  class DummyUnserializer : public GenericJobUnserializer
+  {
+  public:
+    virtual IJob* UnserializeJob(const Json::Value& value)
+    {
+      if (GetString(value, "Type") == "DummyInstancesJob")
+      {
+        return new DummyInstancesJob(value);
+      }
+      else
+      {
+        return GenericJobUnserializer::UnserializeJob(value);
+      }
+    }
+  };
+
+    
   class DynamicInteger : public IDynamicObject
   {
   private:
@@ -115,83 +233,11 @@ TEST(MultiThreading, SharedMessageQueueClean)
 
 
 
-class DummyJob : public Orthanc::IJob
-{
-private:
-  bool         fails_;
-  unsigned int count_;
-  unsigned int steps_;
-
-public:
-  DummyJob() :
-    fails_(false),
-    count_(0),
-    steps_(4)
-  {
-  }
-
-  explicit DummyJob(bool fails) :
-  fails_(fails),
-    count_(0),
-    steps_(4)
-  {
-  }
-
-  virtual void Start()
-  {
-  }
-
-  virtual void SignalResubmit()
-  {
-  }
-    
-  virtual JobStepResult ExecuteStep()
-  {
-    if (fails_)
-    {
-      return JobStepResult::Failure(ErrorCode_ParameterOutOfRange);
-    }
-    else if (count_ == steps_ - 1)
-    {
-      return JobStepResult::Success();
-    }
-    else
-    {
-      count_++;
-      return JobStepResult::Continue();
-    }
-  }
-
-  virtual void ReleaseResources()
-  {
-  }
-
-  virtual float GetProgress()
-  {
-    return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
-  }
-
-  virtual void GetJobType(std::string& type)
-  {
-    type = "DummyJob";
-  }
-
-  virtual void Serialize(Json::Value& value)
-  {
-  }
-
-  virtual void GetPublicContent(Json::Value& value)
-  {
-    value["hello"] = "world";
-  }
-};
-
-
-static bool CheckState(Orthanc::JobsRegistry& registry,
+static bool CheckState(JobsRegistry& registry,
                        const std::string& id,
-                       Orthanc::JobState state)
+                       JobState state)
 {
-  Orthanc::JobState s;
+  JobState s;
   if (registry.GetState(s, id))
   {
     return state == s;
@@ -203,11 +249,11 @@ static bool CheckState(Orthanc::JobsRegistry& registry,
 }
 
 
-static bool CheckErrorCode(Orthanc::JobsRegistry& registry,
+static bool CheckErrorCode(JobsRegistry& registry,
                            const std::string& id,
-                           Orthanc::ErrorCode code)
+                           ErrorCode code)
 {
-  Orthanc::JobInfo s;
+  JobInfo s;
   if (registry.GetJobInfo(s, id))
   {
     return code == s.GetStatus().GetErrorCode();
@@ -240,7 +286,7 @@ TEST(JobsRegistry, Priority)
   ASSERT_TRUE(id.find(i3) != id.end());
   ASSERT_TRUE(id.find(i4) != id.end());
 
-  ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, i2, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
@@ -248,11 +294,11 @@ TEST(JobsRegistry, Priority)
     ASSERT_EQ(30, job.GetPriority());
     ASSERT_EQ(i2, job.GetId());
 
-    ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, i2, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Failure));
-  ASSERT_TRUE(CheckState(registry, i3, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, i2, JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, i3, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
@@ -262,10 +308,10 @@ TEST(JobsRegistry, Priority)
 
     job.MarkSuccess();
 
-    ASSERT_TRUE(CheckState(registry, i3, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, i3, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, i3, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, i3, JobState_Success));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
@@ -286,7 +332,7 @@ TEST(JobsRegistry, Priority)
     ASSERT_FALSE(job.IsValid());
   }
 
-  Orthanc::JobState s;
+  JobState s;
   ASSERT_TRUE(registry.GetState(s, i1));
   ASSERT_FALSE(registry.GetState(s, i2));  // Removed because oldest
   ASSERT_FALSE(registry.GetState(s, i3));  // Removed because second oldest
@@ -306,8 +352,8 @@ TEST(JobsRegistry, Simultaneous)
   registry.Submit(i1, new DummyJob(), 20);
   registry.Submit(i2, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, i1, Orthanc::JobState_Pending));
-  ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, i1, JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, i2, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job1(registry, 0);
@@ -319,12 +365,12 @@ TEST(JobsRegistry, Simultaneous)
     job1.MarkFailure();
     job2.MarkSuccess();
 
-    ASSERT_TRUE(CheckState(registry, i1, Orthanc::JobState_Running));
-    ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, i1, JobState_Running));
+    ASSERT_TRUE(CheckState(registry, i2, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, i1, Orthanc::JobState_Failure));
-  ASSERT_TRUE(CheckState(registry, i2, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, i1, JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, i2, JobState_Success));
 }
 
 
@@ -335,26 +381,26 @@ TEST(JobsRegistry, Resubmit)
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
     job.MarkFailure();
 
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
 
     registry.Resubmit(id);
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
@@ -362,13 +408,13 @@ TEST(JobsRegistry, Resubmit)
     ASSERT_EQ(id, job.GetId());
 
     job.MarkSuccess();
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
 }
 
 
@@ -379,33 +425,33 @@ TEST(JobsRegistry, Retry)
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
     job.MarkRetry(0);
 
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Retry));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Retry));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Retry));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Retry));
   
   registry.ScheduleRetries();
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
     job.MarkSuccess();
 
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
 }
 
 
@@ -416,19 +462,19 @@ TEST(JobsRegistry, PausePending)
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   registry.Pause(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Pause(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Resume(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 }
 
 
@@ -439,7 +485,7 @@ TEST(JobsRegistry, PauseRunning)
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
@@ -447,26 +493,26 @@ TEST(JobsRegistry, PauseRunning)
 
     registry.Resubmit(id);
     job.MarkPause();
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Resubmit(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Resume(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
 
     job.MarkSuccess();
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
 }
 
 
@@ -477,33 +523,33 @@ TEST(JobsRegistry, PauseRetry)
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
 
     job.MarkRetry(0);
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Retry));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Retry));
 
   registry.Pause(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
 
   registry.Resume(id);
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
 
   {
     JobsRegistry::RunningJob job(registry, 0);
     ASSERT_TRUE(job.IsValid());
 
     job.MarkSuccess();
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
 }
 
 
@@ -516,19 +562,19 @@ TEST(JobsRegistry, Cancel)
 
   ASSERT_FALSE(registry.Cancel("nope"));
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
             
   ASSERT_TRUE(registry.Cancel(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
   
   ASSERT_TRUE(registry.Cancel(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
   
   ASSERT_TRUE(registry.Resubmit(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
   
   {
@@ -538,14 +584,14 @@ TEST(JobsRegistry, Cancel)
     ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
 
     job.MarkSuccess();
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
 
   ASSERT_TRUE(registry.Cancel(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Success));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Success));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
 
   registry.Submit(id, new DummyJob(), 10);
@@ -556,28 +602,28 @@ TEST(JobsRegistry, Cancel)
     ASSERT_EQ(id, job.GetId());
 
     ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
 
     job.MarkCanceled();
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 
   ASSERT_TRUE(registry.Resubmit(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 
   ASSERT_TRUE(registry.Pause(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Paused));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Paused));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 
   ASSERT_TRUE(registry.Cancel(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 
   ASSERT_TRUE(registry.Resubmit(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Pending));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Pending));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 
   {
@@ -586,16 +632,16 @@ TEST(JobsRegistry, Cancel)
     ASSERT_EQ(id, job.GetId());
 
     ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
-    ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Running));
+    ASSERT_TRUE(CheckState(registry, id, JobState_Running));
 
     job.MarkRetry(500);
   }
 
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Retry));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Retry));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_Success));
 
   ASSERT_TRUE(registry.Cancel(id));
-  ASSERT_TRUE(CheckState(registry, id, Orthanc::JobState_Failure));
+  ASSERT_TRUE(CheckState(registry, id, JobState_Failure));
   ASSERT_TRUE(CheckErrorCode(registry, id, ErrorCode_CanceledJob));
 }
 
@@ -679,21 +725,22 @@ TEST(JobsEngine, DISABLED_Lua)
 }
 
 
-#include "../OrthancServer/ServerContext.h"
-
 TEST(JobsSerialization, GenericValues)
 {
   GenericJobUnserializer unserializer;
     
   Json::Value s;
-  std::auto_ptr<JobOperationValue> value;
 
   {
     NullOperationValue null;
     null.Serialize(s);
   }
 
+  std::auto_ptr<JobOperationValue> value;
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
   value.reset(unserializer.UnserializeValue(s));
+  
   ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
 
   {
@@ -701,9 +748,35 @@ TEST(JobsSerialization, GenericValues)
     str.Serialize(s);
   }
 
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
   value.reset(unserializer.UnserializeValue(s));
+
   ASSERT_EQ(JobOperationValue::Type_String, value->GetType());
   ASSERT_EQ("Hello", dynamic_cast<StringOperationValue&>(*value).GetContent());
+}
+
+
+TEST(JobsSerialization, GenericJobs)
+{
+  DummyUnserializer unserializer;
+    
+  Json::Value s;
+
+  {
+    DummyInstancesJob job;
+    job.SetDescription("description");
+    job.AddInstance("nope");
+    job.AddInstance("ok");
+    job.SetPermissive(true);
+    job.Serialize(s);
+  }
+
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+  std::auto_ptr<IJob> job;
+  job.reset(unserializer.UnserializeJob(s));
 }
 
 
@@ -730,13 +803,13 @@ TEST(JobsSerialization, OrthancValues)
     OrthancJobUnserializer unserializer(context);
     
     Json::Value s;
-    std::auto_ptr<JobOperationValue> value;
 
     {
       DicomInstanceOperationValue instance(context, id);
       instance.Serialize(s);
     }
 
+    std::auto_ptr<JobOperationValue> value;
     value.reset(unserializer.UnserializeValue(s));
     ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
     ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());

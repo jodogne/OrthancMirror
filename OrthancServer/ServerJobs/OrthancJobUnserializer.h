@@ -49,8 +49,7 @@ namespace Orthanc
     {
     }
 
-    virtual IJob* UnserializeJob(const std::string& type,
-                                 const Json::Value& value);
+    virtual IJob* UnserializeJob(const Json::Value& value);
 
     virtual IJobOperation* UnserializeOperation(const Json::Value& value);
 
