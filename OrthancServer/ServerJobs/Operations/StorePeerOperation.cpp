@@ -63,7 +63,7 @@ namespace Orthanc
 
     try
     {
-      instance.ReadContent(client.GetBody());
+      instance.ReadDicom(client.GetBody());
 
       std::string answer;
       if (!client.Apply(answer))

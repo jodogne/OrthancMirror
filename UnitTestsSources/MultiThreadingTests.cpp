@@ -34,11 +34,20 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/JobsEngine/Operations/LogJobOperation.h"
+#include "../Core/JobsEngine/Operations/NullOperationValue.h"
+#include "../Core/JobsEngine/Operations/StringOperationValue.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/OrthancException.h"
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
+#include "../OrthancServer/DatabaseWrapper.h"
+#include "../OrthancServer/ServerContext.h"
+#include "../OrthancServer/ServerJobs/LuaJobManager.h"
+#include "../OrthancServer/ServerJobs/Operations/DicomInstanceOperationValue.h"
+#include "../OrthancServer/ServerJobs/OrthancJobUnserializer.h"
 
 using namespace Orthanc;
 
@@ -605,14 +614,6 @@ TEST(JobsEngine, SubmitAndWait)
 }
 
 
-
-
-
-#include "../OrthancServer/ServerJobs/LuaJobManager.h"
-#include "../Core/JobsEngine/Operations/StringOperationValue.h"
-#include "../Core/JobsEngine/Operations/LogJobOperation.h"
-
-
 TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 {
   JobsEngine engine;
@@ -675,5 +676,80 @@ TEST(JobsEngine, DISABLED_Lua)
   boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
 
   engine.Stop();
+}
 
+
+#include "../OrthancServer/ServerContext.h"
+
+TEST(JobsSerialization, GenericValues)
+{
+  GenericJobUnserializer unserializer;
+    
+  Json::Value s;
+  std::auto_ptr<JobOperationValue> value;
+
+  {
+    NullOperationValue null;
+    null.Serialize(s);
+  }
+
+  value.reset(unserializer.UnserializeValue(s));
+  ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
+
+  {
+    StringOperationValue str("Hello");
+    str.Serialize(s);
+  }
+
+  value.reset(unserializer.UnserializeValue(s));
+  ASSERT_EQ(JobOperationValue::Type_String, value->GetType());
+  ASSERT_EQ("Hello", dynamic_cast<StringOperationValue&>(*value).GetContent());
+}
+
+
+TEST(JobsSerialization, OrthancValues)
+{
+  MemoryStorageArea storage;
+  DatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+  ServerContext context(db, storage);
+
+  std::string id;
+  
+  {
+    ParsedDicomFile dicom(true);
+    dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
+                  false, DicomReplaceMode_InsertIfAbsent);
+
+    DicomInstanceToStore toStore;
+    toStore.SetParsedDicomFile(dicom);
+    ASSERT_EQ(StoreStatus_Success, context.Store(id, toStore));
+  }
+
+  {
+    OrthancJobUnserializer unserializer(context);
+    
+    Json::Value s;
+    std::auto_ptr<JobOperationValue> value;
+
+    {
+      DicomInstanceOperationValue instance(context, id);
+      instance.Serialize(s);
+    }
+
+    value.reset(unserializer.UnserializeValue(s));
+    ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
+    ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
+
+    {
+      std::string content;
+      dynamic_cast<DicomInstanceOperationValue&>(*value).ReadDicom(content);
+
+      ParsedDicomFile dicom(content);
+      ASSERT_TRUE(dicom.GetTagValue(content, DICOM_TAG_PATIENT_NAME));
+      ASSERT_EQ("JODOGNE", content);
+    }
+  }
+
+  context.Stop();
 }

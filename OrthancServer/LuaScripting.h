@@ -47,6 +47,13 @@ namespace Orthanc
   class LuaScripting : public IServerListener
   {
   private:
+    enum State
+    {
+      State_Setup,
+      State_Running,
+      State_Done
+    };
+    
     class ExecuteEvent;
     class IEvent;
     class OnStoredInstanceEvent;
@@ -74,7 +81,7 @@ namespace Orthanc
     LuaContext               lua_;
     ServerContext&           context_;
     LuaJobManager            jobManager_;
-    bool                     continue_;
+    State                    state_;
     boost::thread            eventThread_;
     SharedMessageQueue       pendingEvents_;
 
