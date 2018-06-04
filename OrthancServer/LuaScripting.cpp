@@ -516,7 +516,7 @@ namespace Orthanc
 
   LuaScripting::LuaScripting(ServerContext& context) : 
     context_(context),
-    continue_(true)
+    state_(State_Setup)
   {
     lua_.SetGlobalVariable("_ServerContext", &context);
     lua_.RegisterFunction("RestApiGet", RestApiGet);
@@ -529,7 +529,7 @@ namespace Orthanc
 
   LuaScripting::~LuaScripting()
   {
-    if (continue_)
+    if (state_ == State_Running)
     {
       LOG(ERROR) << "INTERNAL ERROR: LuaScripting::Stop() should be invoked manually to avoid mess in the destruction order!";
       Stop();
@@ -548,7 +548,7 @@ namespace Orthanc
         // The event queue is empty, check whether we should stop
         boost::recursive_mutex::scoped_lock lock(that->mutex_);
 
-        if (!that->continue_)
+        if (that->state_ != State_Running)
         {
           return;
         }
@@ -572,7 +572,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
-    if (!continue_ ||
+    if (state_ != State_Setup ||
         eventThread_.joinable()  /* already started */)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -590,12 +590,12 @@ namespace Orthanc
     {
       boost::recursive_mutex::scoped_lock lock(mutex_);
 
-      if (!continue_)
+      if (state_ != State_Running)
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
-      continue_ = false;
+      state_ = State_Done;
     }
 
     jobManager_.AwakeTrailingSleep();

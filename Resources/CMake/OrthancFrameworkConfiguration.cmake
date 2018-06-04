@@ -130,6 +130,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomValue.cpp
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
+  ${ORTHANC_ROOT}/Core/FileStorage/MemoryStorageArea.cpp
   ${ORTHANC_ROOT}/Core/Images/Font.cpp
   ${ORTHANC_ROOT}/Core/Images/FontRegistry.cpp
   ${ORTHANC_ROOT}/Core/Images/IImageWriter.cpp

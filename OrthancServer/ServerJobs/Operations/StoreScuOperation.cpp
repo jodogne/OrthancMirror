@@ -68,7 +68,7 @@ namespace Orthanc
     try
     {
       std::string dicom;
-      instance.ReadContent(dicom);
+      instance.ReadDicom(dicom);
       resource->GetConnection().Store(dicom);
     }
     catch (OrthancException& e)

@@ -61,7 +61,7 @@ namespace Orthanc
           dynamic_cast<const DicomInstanceOperationValue&>(input);
 
         std::string dicom;
-        instance.ReadContent(dicom);
+        instance.ReadDicom(dicom);
 
         tmp.reset(new TemporaryFile);
         tmp->Write(dicom);

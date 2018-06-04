@@ -64,7 +64,7 @@ namespace Orthanc
       return id_;
     }
 
-    void ReadContent(std::string& dicom) const
+    void ReadDicom(std::string& dicom) const
     {
       context_.ReadDicom(dicom, id_);
     }
