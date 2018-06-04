@@ -85,4 +85,80 @@ namespace Orthanc
       return static_cast<unsigned int>(tmp);
     }
   }
+
+
+  bool IJobUnserializer::GetBoolean(const Json::Value& value,
+                                    const std::string& name)
+  {
+    if (value.type() != Json::objectValue ||
+        !value.isMember(name.c_str()) ||
+        value[name.c_str()].type() != Json::booleanValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    else
+    {
+      return value[name.c_str()].asBool();
+    }   
+  }
+
+  
+  void IJobUnserializer::GetArrayOfStrings(std::vector<std::string>& target,
+                                           const Json::Value& value,
+                                           const std::string& name)
+  {
+    if (value.type() != Json::objectValue ||
+        !value.isMember(name.c_str()) ||
+        value[name.c_str()].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    target.clear();
+    target.resize(value.size());
+
+    const Json::Value arr = value[name.c_str()];
+    
+    for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
+    {
+      if (arr[i].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);        
+      }
+      else
+      {
+        target[i] = arr[i].asString();
+      }
+    }
+  }
+
+
+  void IJobUnserializer::GetListOfStrings(std::list<std::string>& target,
+                                          const Json::Value& value,
+                                          const std::string& name)
+  {
+    std::vector<std::string> tmp;
+    GetArrayOfStrings(tmp, value, name);
+
+    target.clear();
+    for (size_t i = 0; i < tmp.size(); i++)
+    {
+      target.push_back(tmp[i]);
+    }
+  }
+  
+
+  void IJobUnserializer::GetSetOfStrings(std::set<std::string>& target,
+                                         const Json::Value& value,
+                                         const std::string& name)
+  {
+    std::vector<std::string> tmp;
+    GetArrayOfStrings(tmp, value, name);
+
+    target.clear();
+    for (size_t i = 0; i < tmp.size(); i++)
+    {
+      target.insert(tmp[i]);
+    }
+  }
 }

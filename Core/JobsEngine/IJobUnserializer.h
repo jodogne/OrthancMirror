@@ -37,6 +37,8 @@
 #include "Operations/JobOperationValue.h"
 #include "Operations/IJobOperation.h"
 
+#include <vector>
+
 namespace Orthanc
 {
   class IJobUnserializer : public boost::noncopyable
@@ -46,8 +48,7 @@ namespace Orthanc
     {
     }
 
-    virtual IJob* UnserializeJob(const std::string& jobType,
-                                 const Json::Value& value) = 0;
+    virtual IJob* UnserializeJob(const Json::Value& value) = 0;
 
     virtual IJobOperation* UnserializeOperation(const Json::Value& value) = 0;
 
@@ -61,5 +62,20 @@ namespace Orthanc
 
     static unsigned int GetUnsignedInteger(const Json::Value& value,
                                            const std::string& name);
+
+    static bool GetBoolean(const Json::Value& value,
+                           const std::string& name);
+
+    static void GetArrayOfStrings(std::vector<std::string>& target,
+                                  const Json::Value& value,
+                                  const std::string& name);
+
+    static void GetListOfStrings(std::list<std::string>& target,
+                                 const Json::Value& value,
+                                 const std::string& name);
+
+    static void GetSetOfStrings(std::set<std::string>& target,
+                                const Json::Value& value,
+                                const std::string& name);
   };
 }
