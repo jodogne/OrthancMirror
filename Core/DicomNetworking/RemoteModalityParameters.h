@@ -52,6 +52,8 @@ namespace Orthanc
   public:
     RemoteModalityParameters();
 
+    RemoteModalityParameters(const Json::Value& serialized);
+
     RemoteModalityParameters(const std::string& aet,
                              const std::string& host,
                              uint16_t port,
@@ -105,5 +107,7 @@ namespace Orthanc
     void FromJson(const Json::Value& modality);
 
     void ToJson(Json::Value& value) const;
+
+    void Serialize(Json::Value& target) const;
   };
 }

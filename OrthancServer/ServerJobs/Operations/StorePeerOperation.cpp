@@ -86,6 +86,18 @@ namespace Orthanc
   {
     result = Json::objectValue;
     result["Type"] = "StorePeer";
-    peer_.ToJson(result["Remote"]);
+    peer_.Serialize(result["Peer"]);
+  }
+
+
+  StorePeerOperation::StorePeerOperation(const Json::Value& serialized)
+  {
+    if (IJobUnserializer::ReadString(serialized, "Type") != "StorePeer" ||
+        !serialized.isMember("Peer"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    peer_ = WebServiceParameters(serialized["Peer"]);
   }
 }

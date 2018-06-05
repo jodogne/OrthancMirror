@@ -189,6 +189,8 @@ namespace Orthanc
 
   void SetOfInstancesJob::Serialize(Json::Value& value)
   {
+    value = Json::objectValue;
+
     std::string type;
     GetJobType(type);
     value["Type"] = type;
@@ -220,12 +222,12 @@ namespace Orthanc
 
   SetOfInstancesJob::SetOfInstancesJob(const Json::Value& value) :
     started_(false),
-    permissive_(IJobUnserializer::GetBoolean(value, "Permissive")),
-    position_(IJobUnserializer::GetUnsignedInteger(value, "Position")),
-    description_(IJobUnserializer::GetString(value, "Description"))
+    permissive_(IJobUnserializer::ReadBoolean(value, "Permissive")),
+    position_(IJobUnserializer::ReadUnsignedInteger(value, "Position")),
+    description_(IJobUnserializer::ReadString(value, "Description"))
   {
-    IJobUnserializer::GetArrayOfStrings(instances_, value, "Instances");
-    IJobUnserializer::GetSetOfStrings(failedInstances_, value, "FailedInstances");
+    IJobUnserializer::ReadArrayOfStrings(instances_, value, "Instances");
+    IJobUnserializer::ReadSetOfStrings(failedInstances_, value, "FailedInstances");
 
     if (position_ > instances_.size())
     {

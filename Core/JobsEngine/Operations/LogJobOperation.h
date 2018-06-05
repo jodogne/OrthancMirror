@@ -46,6 +46,7 @@ namespace Orthanc
 
     virtual void Serialize(Json::Value& result) const
     {
+      result = Json::objectValue;
       result["Type"] = "Log";
     }
   };

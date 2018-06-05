@@ -49,6 +49,8 @@ namespace Orthanc
     {
     }
 
+    StorePeerOperation(const Json::Value& serialized);
+
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
                        IDicomConnectionManager& connectionManager);

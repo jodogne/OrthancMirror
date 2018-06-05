@@ -52,6 +52,7 @@ namespace Orthanc
 
     virtual void Serialize(Json::Value& target) const
     {
+      target = Json::objectValue;
       target["Type"] = "Null";
     }
   };
