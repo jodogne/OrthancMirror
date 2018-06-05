@@ -37,6 +37,7 @@
 #include "DicomInstanceOperationValue.h"
 
 #include "../../../Core/Logging.h"
+#include "../../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -138,13 +139,13 @@ namespace Orthanc
                                                    const Json::Value& serialized) :
     context_(context)
   {
-    if (IJobUnserializer::ReadString(serialized, "Type") != "ModifyInstance" ||
+    if (SerializationToolbox::ReadString(serialized, "Type") != "ModifyInstance" ||
         !serialized.isMember("Modification"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    origin_ = StringToRequestOrigin(IJobUnserializer::ReadString(serialized, "Origin"));
+    origin_ = StringToRequestOrigin(SerializationToolbox::ReadString(serialized, "Origin"));
 
     modification_.reset(new DicomModification(serialized["Modification"]));
   }

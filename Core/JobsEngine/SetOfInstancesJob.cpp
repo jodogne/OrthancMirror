@@ -35,7 +35,7 @@
 #include "SetOfInstancesJob.h"
 
 #include "../OrthancException.h"
-#include "IJobUnserializer.h"
+#include "../SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -198,41 +198,24 @@ namespace Orthanc
     value["Permissive"] = permissive_;
     value["Position"] = static_cast<unsigned int>(position_);
     value["Description"] = description_;
-    
-    Json::Value v = Json::arrayValue;
-      
-    for (size_t i = 0; i < instances_.size(); i++)
-    {
-      v.append(instances_[i]);
-    }
 
-    value["Instances"] = v;
-      
-    v = Json::arrayValue;
-
-    for (std::set<std::string>::const_iterator it = failedInstances_.begin();
-         it != failedInstances_.end(); ++it)
-    {
-      v.append(*it);
-    }
-      
-    value["FailedInstances"] = v;
+    SerializationToolbox::WriteArrayOfStrings(value, instances_, "Instances");
+    SerializationToolbox::WriteSetOfStrings(value, failedInstances_, "FailedInstances");
   }
 
 
   SetOfInstancesJob::SetOfInstancesJob(const Json::Value& value) :
     started_(false),
-    permissive_(IJobUnserializer::ReadBoolean(value, "Permissive")),
-    position_(IJobUnserializer::ReadUnsignedInteger(value, "Position")),
-    description_(IJobUnserializer::ReadString(value, "Description"))
+    permissive_(SerializationToolbox::ReadBoolean(value, "Permissive")),
+    position_(SerializationToolbox::ReadUnsignedInteger(value, "Position")),
+    description_(SerializationToolbox::ReadString(value, "Description"))
   {
-    IJobUnserializer::ReadArrayOfStrings(instances_, value, "Instances");
-    IJobUnserializer::ReadSetOfStrings(failedInstances_, value, "FailedInstances");
+    SerializationToolbox::ReadArrayOfStrings(instances_, value, "Instances");
+    SerializationToolbox::ReadSetOfStrings(failedInstances_, value, "FailedInstances");
 
     if (position_ > instances_.size())
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
-
 }

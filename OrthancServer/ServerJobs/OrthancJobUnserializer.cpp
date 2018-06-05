@@ -36,6 +36,7 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../../Core/SerializationToolbox.h"
 
 #include "Operations/DeleteResourceOperation.h"
 #include "Operations/DicomInstanceOperationValue.h"
@@ -54,7 +55,7 @@ namespace Orthanc
 
   IJobOperation* OrthancJobUnserializer::UnserializeOperation(const Json::Value& source)
   {
-    const std::string type = ReadString(source, "Type");
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
 
     if (type == "DeleteResource")
     {
@@ -85,11 +86,11 @@ namespace Orthanc
 
   JobOperationValue* OrthancJobUnserializer::UnserializeValue(const Json::Value& source)
   {
-    const std::string type = ReadString(source, "Type");
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
 
     if (type == "DicomInstance")
     {
-      return new DicomInstanceOperationValue(context_, ReadString(source, "ID"));
+      return new DicomInstanceOperationValue(context_, SerializationToolbox::ReadString(source, "ID"));
     }
     else
     {
