@@ -115,6 +115,7 @@ namespace Orthanc
 
   void SystemCallOperation::Serialize(Json::Value& result) const
   {
+    result = Json::objectValue;
     result["Type"] = "SystemCall";
     result["Command"] = command_;
 

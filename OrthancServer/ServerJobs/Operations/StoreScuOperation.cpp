@@ -83,6 +83,7 @@ namespace Orthanc
   
   void StoreScuOperation::Serialize(Json::Value& result) const
   {
+    result = Json::objectValue;
     result["Type"] = "StoreScu";
     result["LocalAET"] = localAet_;
     modality_.ToJson(result["Modality"]);
