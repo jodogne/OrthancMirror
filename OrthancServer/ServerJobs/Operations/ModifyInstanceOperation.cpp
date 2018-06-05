@@ -127,6 +127,7 @@ namespace Orthanc
 
   void ModifyInstanceOperation::Serialize(Json::Value& target) const
   {
+    result = Json::objectValue;
     target["Type"] = "ModifyInstance";
     target["Origin"] = EnumerationToString(origin_);
     modification_->Serialize(target["Modification"]);
