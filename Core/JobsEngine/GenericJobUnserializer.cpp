@@ -36,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 
 #include "Operations/LogJobOperation.h"
 #include "Operations/NullOperationValue.h"
@@ -45,7 +46,7 @@ namespace Orthanc
 {
   IJob* GenericJobUnserializer::UnserializeJob(const Json::Value& source)
   {
-    const std::string type = ReadString(source, "Type");
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
 
     LOG(ERROR) << "Cannot unserialize job of type: " << type;
     throw OrthancException(ErrorCode_BadFileFormat);
@@ -54,7 +55,7 @@ namespace Orthanc
 
   IJobOperation* GenericJobUnserializer::UnserializeOperation(const Json::Value& source)
   {
-    const std::string type = ReadString(source, "Type");
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
 
     if (type == "Log")
     {
@@ -70,11 +71,11 @@ namespace Orthanc
 
   JobOperationValue* GenericJobUnserializer::UnserializeValue(const Json::Value& source)
   {
-    const std::string type = ReadString(source, "Type");
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
 
     if (type == "String")
     {
-      return new StringOperationValue(ReadString(source, "Content"));
+      return new StringOperationValue(SerializationToolbox::ReadString(source, "Content"));
     }
     else if (type == "Null")
     {
