@@ -54,28 +54,32 @@ namespace Orthanc
 
     virtual JobOperationValue* UnserializeValue(const Json::Value& value) = 0;
 
-    static std::string GetString(const Json::Value& value,
-                                 const std::string& name);
+    static std::string ReadString(const Json::Value& value,
+                                  const std::string& field);
 
-    static int GetInteger(const Json::Value& value,
-                          const std::string& name);
+    static int ReadInteger(const Json::Value& value,
+                           const std::string& field);
 
-    static unsigned int GetUnsignedInteger(const Json::Value& value,
-                                           const std::string& name);
+    static unsigned int ReadUnsignedInteger(const Json::Value& value,
+                                            const std::string& field);
 
-    static bool GetBoolean(const Json::Value& value,
-                           const std::string& name);
+    static bool ReadBoolean(const Json::Value& value,
+                            const std::string& field);
 
-    static void GetArrayOfStrings(std::vector<std::string>& target,
+    static void ReadArrayOfStrings(std::vector<std::string>& target,
+                                   const Json::Value& value,
+                                   const std::string& field);
+
+    static void ReadListOfStrings(std::list<std::string>& target,
                                   const Json::Value& value,
-                                  const std::string& name);
+                                  const std::string& field);
 
-    static void GetListOfStrings(std::list<std::string>& target,
+    static void ReadSetOfStrings(std::set<std::string>& target,
                                  const Json::Value& value,
-                                 const std::string& name);
+                                 const std::string& field);
 
-    static void GetSetOfStrings(std::set<std::string>& target,
-                                const Json::Value& value,
-                                const std::string& name);
+    static void WriteArrayOfStrings(Json::Value& target,
+                                    const std::vector<std::string>& values,
+                                    const std::string& field);
   };
 }

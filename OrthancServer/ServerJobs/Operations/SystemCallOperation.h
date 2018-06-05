@@ -52,6 +52,8 @@ namespace Orthanc
     {
     }
 
+    SystemCallOperation(const Json::Value& serialized);
+
     SystemCallOperation(const std::string& command,
                         const std::vector<std::string>& preArguments,
                         const std::vector<std::string>& postArguments) :

@@ -36,9 +36,6 @@
 
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
-#include "../Core/JobsEngine/Operations/LogJobOperation.h"
-#include "../Core/JobsEngine/Operations/NullOperationValue.h"
-#include "../Core/JobsEngine/Operations/StringOperationValue.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/OrthancException.h"
 #include "../Core/SystemToolbox.h"
@@ -46,8 +43,21 @@
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerJobs/LuaJobManager.h"
-#include "../OrthancServer/ServerJobs/Operations/DicomInstanceOperationValue.h"
 #include "../OrthancServer/ServerJobs/OrthancJobUnserializer.h"
+
+#include "../Core/JobsEngine/Operations/JobOperationValues.h"
+#include "../Core/JobsEngine/Operations/NullOperationValue.h"
+#include "../Core/JobsEngine/Operations/StringOperationValue.h"
+#include "../OrthancServer/ServerJobs/Operations/DicomInstanceOperationValue.h"
+
+#include "../Core/JobsEngine/Operations/LogJobOperation.h"
+#include "../OrthancServer/ServerJobs/Operations/DeleteResourceOperation.h"
+#include "../OrthancServer/ServerJobs/Operations/ModifyInstanceOperation.h"
+#include "../OrthancServer/ServerJobs/Operations/StorePeerOperation.h"
+#include "../OrthancServer/ServerJobs/Operations/StoreScuOperation.h"
+#include "../OrthancServer/ServerJobs/Operations/SystemCallOperation.h"
+
+
 
 using namespace Orthanc;
 
@@ -159,7 +169,7 @@ namespace
   public:
     virtual IJob* UnserializeJob(const Json::Value& value)
     {
-      if (GetString(value, "Type") == "DummyInstancesJob")
+      if (ReadString(value, "Type") == "DummyInstancesJob")
       {
         return new DummyInstancesJob(value);
       }
@@ -725,10 +735,36 @@ TEST(JobsEngine, DISABLED_Lua)
 }
 
 
-TEST(JobsSerialization, GenericValues)
+TEST(JobsSerialization, BadFileFormat)
 {
   GenericJobUnserializer unserializer;
-    
+
+  Json::Value s;
+
+  s = Json::objectValue;
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+  s = Json::arrayValue;
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+  s = "hello";
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+  s = 42;
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+}
+
+
+TEST(JobsSerialization, GenericValues)
+{
   Json::Value s;
 
   {
@@ -736,9 +772,11 @@ TEST(JobsSerialization, GenericValues)
     null.Serialize(s);
   }
 
-  std::auto_ptr<JobOperationValue> value;
+  GenericJobUnserializer unserializer;
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+  std::auto_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   
   ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
@@ -757,10 +795,60 @@ TEST(JobsSerialization, GenericValues)
 }
 
 
-TEST(JobsSerialization, GenericJobs)
+TEST(JobsSerialization, JobOperationValues)
 {
+  Json::Value s;
+
+  {
+    JobOperationValues values;
+    values.Append(new NullOperationValue);
+    values.Append(new StringOperationValue("hello"));
+    values.Append(new StringOperationValue("world"));
+    values.Serialize(s);
+  }
+
+  {
+    GenericJobUnserializer unserializer;
+    std::auto_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
+    ASSERT_EQ(3u, values->GetSize());
+    ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
+    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
+    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(2).GetType());
+
+    ASSERT_EQ("hello", dynamic_cast<const StringOperationValue&>(values->GetValue(1)).GetContent());
+    ASSERT_EQ("world", dynamic_cast<const StringOperationValue&>(values->GetValue(2)).GetContent());
+  }
+}
+
+
+TEST(JobsSerialization, GenericOperations)
+{   
+  Json::Value s;
+
+  {
+    LogJobOperation operation;
+    operation.Serialize(s);
+  }
+
   DummyUnserializer unserializer;
+  ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
+  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+
+  {
+    std::auto_ptr<IJobOperation> operation;
+    operation.reset(unserializer.UnserializeOperation(s));
     
+  }
+
+  {
+    
+  }
+}
+
+
+
+TEST(JobsSerialization, GenericJobs)
+{   
   Json::Value s;
 
   {
@@ -772,59 +860,108 @@ TEST(JobsSerialization, GenericJobs)
     job.Serialize(s);
   }
 
-  ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
-  ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+  {
+    DummyUnserializer unserializer;
+    ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+    ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-  std::auto_ptr<IJob> job;
-  job.reset(unserializer.UnserializeJob(s));
-  ASSERT_EQ("description", dynamic_cast<DummyInstancesJob&>(*job).GetDescription());
-  //ASSERT_EQ("nope", dynamic_cast<DummyInstancesJob&>(*job).GetInstance(0));
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+    ASSERT_EQ("description", dynamic_cast<DummyInstancesJob&>(*job).GetDescription());
+    //ASSERT_EQ("nope", dynamic_cast<DummyInstancesJob&>(*job).GetInstance(0));
+  }
 }
 
 
-TEST(JobsSerialization, OrthancValues)
+namespace
 {
-  MemoryStorageArea storage;
-  DatabaseWrapper db;   // The SQLite DB is in memory
-  db.Open();
-  ServerContext context(db, storage);
+  class OrthancJobsSerialization : public testing::Test
+  {
+  private:
+    MemoryStorageArea              storage_;
+    DatabaseWrapper                db_;   // The SQLite DB is in memory
+    std::auto_ptr<ServerContext>   context_;
+    TimeoutDicomConnectionManager  manager_;
 
+  public:
+    OrthancJobsSerialization()
+    {
+      db_.Open();
+      context_.reset(new ServerContext(db_, storage_));
+    }
+
+    virtual ~OrthancJobsSerialization()
+    {
+      context_->Stop();
+      context_.reset(NULL);
+      db_.Close();
+    }
+
+    ServerContext& GetContext() 
+    {
+      return *context_;
+    }
+
+    bool CreateInstance(std::string& id)
+    {
+      // Create a sample DICOM file
+      ParsedDicomFile dicom(true);
+      dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
+                    false, DicomReplaceMode_InsertIfAbsent);
+
+      DicomInstanceToStore toStore;
+      toStore.SetParsedDicomFile(dicom);
+
+      return (context_->Store(id, toStore) == StoreStatus_Success);
+    }
+  };
+}
+
+
+TEST_F(OrthancJobsSerialization, Values)
+{
   std::string id;
-  
-  {
-    ParsedDicomFile dicom(true);
-    dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
-                  false, DicomReplaceMode_InsertIfAbsent);
+  ASSERT_TRUE(CreateInstance(id));
 
-    DicomInstanceToStore toStore;
-    toStore.SetParsedDicomFile(dicom);
-    ASSERT_EQ(StoreStatus_Success, context.Store(id, toStore));
+  Json::Value s;
+
+  {
+    DicomInstanceOperationValue instance(GetContext(), id);
+    instance.Serialize(s);
   }
 
-  {
-    OrthancJobUnserializer unserializer(context);
+  OrthancJobUnserializer unserializer(GetContext());
     
-    Json::Value s;
+  std::auto_ptr<JobOperationValue> value;
+  value.reset(unserializer.UnserializeValue(s));
+  ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
+  ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
 
-    {
-      DicomInstanceOperationValue instance(context, id);
-      instance.Serialize(s);
-    }
+  {
+    std::string content;
+    dynamic_cast<DicomInstanceOperationValue&>(*value).ReadDicom(content);
 
-    std::auto_ptr<JobOperationValue> value;
-    value.reset(unserializer.UnserializeValue(s));
-    ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
-    ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
+    ParsedDicomFile dicom(content);
+    ASSERT_TRUE(dicom.GetTagValue(content, DICOM_TAG_PATIENT_NAME));
+    ASSERT_EQ("JODOGNE", content);
+  }
+}
 
-    {
-      std::string content;
-      dynamic_cast<DicomInstanceOperationValue&>(*value).ReadDicom(content);
 
-      ParsedDicomFile dicom(content);
-      ASSERT_TRUE(dicom.GetTagValue(content, DICOM_TAG_PATIENT_NAME));
-      ASSERT_EQ("JODOGNE", content);
-    }
+TEST_F(OrthancJobsSerialization, Operations)
+{
+  std::string id;
+  ASSERT_TRUE(CreateInstance(id));
+
+  Json::Value s;
+
+  {
+    DeleteResourceOperation operation(GetContext());
+    operation.Serialize(s);
   }
 
-  context.Stop();
+  OrthancJobUnserializer unserializer(GetContext());
+    
+  std::auto_ptr<IJobOperation> operation;
+  operation.reset(unserializer.UnserializeOperation(s));
 }

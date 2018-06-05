@@ -38,43 +38,43 @@
 
 namespace Orthanc
 {
-  std::string IJobUnserializer::GetString(const Json::Value& value,
-                                          const std::string& name)
+  std::string IJobUnserializer::ReadString(const Json::Value& value,
+                                           const std::string& field)
   {
     if (value.type() != Json::objectValue ||
-        !value.isMember(name.c_str()) ||
-        value[name.c_str()].type() != Json::stringValue)
+        !value.isMember(field.c_str()) ||
+        value[field.c_str()].type() != Json::stringValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
-      return value[name.c_str()].asString();
+      return value[field.c_str()].asString();
     }
   }
 
 
-  int IJobUnserializer::GetInteger(const Json::Value& value,
-                                   const std::string& name)
+  int IJobUnserializer::ReadInteger(const Json::Value& value,
+                                    const std::string& field)
   {
     if (value.type() != Json::objectValue ||
-        !value.isMember(name.c_str()) ||
-        (value[name.c_str()].type() != Json::intValue &&
-         value[name.c_str()].type() != Json::uintValue))
+        !value.isMember(field.c_str()) ||
+        (value[field.c_str()].type() != Json::intValue &&
+         value[field.c_str()].type() != Json::uintValue))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
-      return value[name.c_str()].asInt();
+      return value[field.c_str()].asInt();
     }    
   }
 
 
-  unsigned int IJobUnserializer::GetUnsignedInteger(const Json::Value& value,
-                                                    const std::string& name)
+  unsigned int IJobUnserializer::ReadUnsignedInteger(const Json::Value& value,
+                                                     const std::string& field)
   {
-    int tmp = GetInteger(value, name);
+    int tmp = ReadInteger(value, field);
 
     if (tmp < 0)
     {
@@ -87,29 +87,29 @@ namespace Orthanc
   }
 
 
-  bool IJobUnserializer::GetBoolean(const Json::Value& value,
-                                    const std::string& name)
+  bool IJobUnserializer::ReadBoolean(const Json::Value& value,
+                                     const std::string& field)
   {
     if (value.type() != Json::objectValue ||
-        !value.isMember(name.c_str()) ||
-        value[name.c_str()].type() != Json::booleanValue)
+        !value.isMember(field.c_str()) ||
+        value[field.c_str()].type() != Json::booleanValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     else
     {
-      return value[name.c_str()].asBool();
+      return value[field.c_str()].asBool();
     }   
   }
 
   
-  void IJobUnserializer::GetArrayOfStrings(std::vector<std::string>& target,
-                                           const Json::Value& value,
-                                           const std::string& name)
+  void IJobUnserializer::ReadArrayOfStrings(std::vector<std::string>& target,
+                                            const Json::Value& value,
+                                            const std::string& field)
   {
     if (value.type() != Json::objectValue ||
-        !value.isMember(name.c_str()) ||
-        value[name.c_str()].type() != Json::arrayValue)
+        !value.isMember(field.c_str()) ||
+        value[field.c_str()].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
@@ -117,7 +117,7 @@ namespace Orthanc
     target.clear();
     target.resize(value.size());
 
-    const Json::Value arr = value[name.c_str()];
+    const Json::Value arr = value[field.c_str()];
     
     for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
     {
@@ -133,12 +133,12 @@ namespace Orthanc
   }
 
 
-  void IJobUnserializer::GetListOfStrings(std::list<std::string>& target,
-                                          const Json::Value& value,
-                                          const std::string& name)
+  void IJobUnserializer::ReadListOfStrings(std::list<std::string>& target,
+                                           const Json::Value& value,
+                                           const std::string& field)
   {
     std::vector<std::string> tmp;
-    GetArrayOfStrings(tmp, value, name);
+    ReadArrayOfStrings(tmp, value, field);
 
     target.clear();
     for (size_t i = 0; i < tmp.size(); i++)
@@ -148,17 +148,39 @@ namespace Orthanc
   }
   
 
-  void IJobUnserializer::GetSetOfStrings(std::set<std::string>& target,
-                                         const Json::Value& value,
-                                         const std::string& name)
+  void IJobUnserializer::ReadSetOfStrings(std::set<std::string>& target,
+                                          const Json::Value& value,
+                                          const std::string& field)
   {
     std::vector<std::string> tmp;
-    GetArrayOfStrings(tmp, value, name);
+    ReadArrayOfStrings(tmp, value, field);
 
     target.clear();
     for (size_t i = 0; i < tmp.size(); i++)
     {
       target.insert(tmp[i]);
     }
+  }
+
+
+  void IJobUnserializer::WriteArrayOfStrings(Json::Value& target,
+                                             const std::vector<std::string>& values,
+                                             const std::string& field)
+  {
+    if (target.type() != Json::objectValue ||
+        target.isMember(field.c_str()))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value tmp;
+
+    tmp = Json::arrayValue;
+    for (size_t i = 0; i < values.size(); i++)
+    {
+      tmp.append(values[i]);
+    }
+
+    target[field] = tmp;
   }
 }

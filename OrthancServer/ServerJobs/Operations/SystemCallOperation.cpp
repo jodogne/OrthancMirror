@@ -118,24 +118,20 @@ namespace Orthanc
     result = Json::objectValue;
     result["Type"] = "SystemCall";
     result["Command"] = command_;
+    IJobUnserializer::WriteArrayOfStrings(result, preArguments_, "PreArguments");
+    IJobUnserializer::WriteArrayOfStrings(result, postArguments_, "PostArguments");
+  }
 
-    Json::Value tmp;
 
-    tmp = Json::arrayValue;
-    for (size_t i = 0; i < preArguments_.size(); i++)
+  SystemCallOperation::SystemCallOperation(const Json::Value& serialized)
+  {
+    if (IJobUnserializer::ReadString(serialized, "Type") != "SystemCall")
     {
-      tmp.append(preArguments_[i]);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    result["PreArguments"] = tmp;
-
-    tmp = Json::arrayValue;
-    for (size_t i = 0; i < postArguments_.size(); i++)
-    {
-      tmp.append(postArguments_[i]);
-    }
-
-    result["PostArguments"] = tmp;
+    command_ = IJobUnserializer::ReadString(serialized, "Command");
+    IJobUnserializer::ReadArrayOfStrings(preArguments_, serialized, "PreArguments");
+    IJobUnserializer::ReadArrayOfStrings(postArguments_, serialized, "PostArguments");
   }
 }
-

@@ -270,4 +270,16 @@ namespace Orthanc
       }
     }
   }
+
+  
+  void WebServiceParameters::Serialize(Json::Value& target) const
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+  
+  WebServiceParameters::WebServiceParameters(const Json::Value& serialized)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
 }

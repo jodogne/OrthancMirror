@@ -1241,7 +1241,12 @@ namespace Orthanc
   
   void DicomModification::Serialize(Json::Value& value) const
   {
-    // TODO
-    value = "TODO";
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+  
+  DicomModification::DicomModification(const Json::Value& serialized)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 }

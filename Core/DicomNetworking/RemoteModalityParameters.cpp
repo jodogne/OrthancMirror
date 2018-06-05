@@ -125,4 +125,17 @@ namespace Orthanc
     value.append(GetPort());
     value.append(EnumerationToString(GetManufacturer()));
   }
+
+
+  
+  void RemoteModalityParameters::Serialize(Json::Value& target) const
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+  
+  RemoteModalityParameters::RemoteModalityParameters(const Json::Value& serialized)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
 }

@@ -37,7 +37,12 @@
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
+#include "Operations/DeleteResourceOperation.h"
 #include "Operations/DicomInstanceOperationValue.h"
+#include "Operations/ModifyInstanceOperation.h"
+#include "Operations/StorePeerOperation.h"
+#include "Operations/StoreScuOperation.h"
+#include "Operations/SystemCallOperation.h"
 
 namespace Orthanc
 {
@@ -49,19 +54,42 @@ namespace Orthanc
 
   IJobOperation* OrthancJobUnserializer::UnserializeOperation(const Json::Value& source)
   {
-    const std::string type = GetString(source, "Type");
+    const std::string type = ReadString(source, "Type");
 
-    return GenericJobUnserializer::UnserializeOperation(source);
+    if (type == "DeleteResource")
+    {
+      return new DeleteResourceOperation(context_);
+    }
+    else if (type == "ModifyInstance")
+    {
+      return new ModifyInstanceOperation(context_, source);
+    }
+    else if (type == "StorePeer")
+    {
+      return new StorePeerOperation(source);
+    }
+    else if (type == "StoreScu")
+    {
+      return new StoreScuOperation(source);
+    }
+    else if (type == "SystemCall")
+    {
+      return new SystemCallOperation(source);
+    }
+    else
+    {
+      return GenericJobUnserializer::UnserializeOperation(source);
+    }
   }
 
 
   JobOperationValue* OrthancJobUnserializer::UnserializeValue(const Json::Value& source)
   {
-    const std::string type = GetString(source, "Type");
+    const std::string type = ReadString(source, "Type");
 
     if (type == "DicomInstance")
     {
-      return new DicomInstanceOperationValue(context_, GetString(source, "ID"));
+      return new DicomInstanceOperationValue(context_, ReadString(source, "ID"));
     }
     else
     {
