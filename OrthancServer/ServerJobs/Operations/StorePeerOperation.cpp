@@ -39,6 +39,7 @@
 #include "../../../Core/Logging.h"
 #include "../../../Core/OrthancException.h"
 #include "../../../Core/HttpClient.h"
+#include "../../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -92,7 +93,7 @@ namespace Orthanc
 
   StorePeerOperation::StorePeerOperation(const Json::Value& serialized)
   {
-    if (IJobUnserializer::ReadString(serialized, "Type") != "StorePeer" ||
+    if (SerializationToolbox::ReadString(serialized, "Type") != "StorePeer" ||
         !serialized.isMember("Peer"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);

@@ -38,6 +38,7 @@
 
 #include "../../../Core/JobsEngine/Operations/StringOperationValue.h"
 #include "../../../Core/Logging.h"
+#include "../../../Core/SerializationToolbox.h"
 #include "../../../Core/TemporaryFile.h"
 #include "../../../Core/Toolbox.h"
 
@@ -118,20 +119,20 @@ namespace Orthanc
     result = Json::objectValue;
     result["Type"] = "SystemCall";
     result["Command"] = command_;
-    IJobUnserializer::WriteArrayOfStrings(result, preArguments_, "PreArguments");
-    IJobUnserializer::WriteArrayOfStrings(result, postArguments_, "PostArguments");
+    SerializationToolbox::WriteArrayOfStrings(result, preArguments_, "PreArguments");
+    SerializationToolbox::WriteArrayOfStrings(result, postArguments_, "PostArguments");
   }
 
 
   SystemCallOperation::SystemCallOperation(const Json::Value& serialized)
   {
-    if (IJobUnserializer::ReadString(serialized, "Type") != "SystemCall")
+    if (SerializationToolbox::ReadString(serialized, "Type") != "SystemCall")
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    command_ = IJobUnserializer::ReadString(serialized, "Command");
-    IJobUnserializer::ReadArrayOfStrings(preArguments_, serialized, "PreArguments");
-    IJobUnserializer::ReadArrayOfStrings(postArguments_, serialized, "PostArguments");
+    command_ = SerializationToolbox::ReadString(serialized, "Command");
+    SerializationToolbox::ReadArrayOfStrings(preArguments_, serialized, "PreArguments");
+    SerializationToolbox::ReadArrayOfStrings(postArguments_, serialized, "PostArguments");
   }
 }

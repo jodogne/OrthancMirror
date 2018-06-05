@@ -38,6 +38,7 @@
 #include "../Core/JobsEngine/JobsEngine.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/OrthancException.h"
+#include "../Core/SerializationToolbox.h"
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../OrthancServer/DatabaseWrapper.h"
@@ -169,7 +170,7 @@ namespace
   public:
     virtual IJob* UnserializeJob(const Json::Value& value)
     {
-      if (ReadString(value, "Type") == "DummyInstancesJob")
+      if (SerializationToolbox::ReadString(value, "Type") == "DummyInstancesJob")
       {
         return new DummyInstancesJob(value);
       }

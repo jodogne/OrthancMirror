@@ -38,6 +38,7 @@
 
 #include "../../../Core/Logging.h"
 #include "../../../Core/OrthancException.h"
+#include "../../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -92,7 +93,7 @@ namespace Orthanc
 
   StoreScuOperation::StoreScuOperation(const Json::Value& serialized)
   {
-    if (IJobUnserializer::ReadString(serialized, "Type") != "StoreScu" ||
+    if (SerializationToolbox::ReadString(serialized, "Type") != "StoreScu" ||
         !serialized.isMember("LocalAET"))
     {
       throw OrthancException(ErrorCode_BadFileFormat);

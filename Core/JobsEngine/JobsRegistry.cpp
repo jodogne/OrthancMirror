@@ -37,6 +37,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -265,12 +266,12 @@ namespace Orthanc
       pauseScheduled_(false),
       cancelScheduled_(false)
     {
-      id_ = StringToJobState(IJobUnserializer::ReadString(serialized, "ID"));
-      state_ = StringToJobState(IJobUnserializer::ReadString(serialized, "State"));
-      priority_ = IJobUnserializer::ReadInteger(serialized, "Priority");
+      id_ = StringToJobState(SerializationToolbox::ReadString(serialized, "ID"));
+      state_ = StringToJobState(SerializationToolbox::ReadString(serialized, "State"));
+      priority_ = SerializationToolbox::ReadInteger(serialized, "Priority");
       creationTime_ = boost::posix_time::from_iso_string
-        (IJobUnserializer::ReadString(serialized, "CreationTime"));
-      runtime_ = boost::posix_time::milliseconds(IJobUnserializer::ReadInteger(serialized, "Runtime"));
+        (SerializationToolbox::ReadString(serialized, "CreationTime"));
+      runtime_ = boost::posix_time::milliseconds(SerializationToolbox::ReadInteger(serialized, "Runtime"));
 
       retryTime_ = creationTime_;
 

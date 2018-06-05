@@ -139,6 +139,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
+  ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Core/WebServiceParameters.cpp
   )
@@ -499,7 +500,6 @@ else()
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/IJobUnserializer.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp

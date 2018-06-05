@@ -33,25 +33,44 @@
 
 #pragma once
 
-#include "IJob.h"
-#include "Operations/JobOperationValue.h"
-#include "Operations/IJobOperation.h"
-
-#include <vector>
+#include <json/value.h>
+#include <list>
+#include <set>
 
 namespace Orthanc
 {
-  class IJobUnserializer : public boost::noncopyable
+  namespace SerializationToolbox
   {
-  public:
-    virtual ~IJobUnserializer()
-    {
-    }
+    std::string ReadString(const Json::Value& value,
+                           const std::string& field);
 
-    virtual IJob* UnserializeJob(const Json::Value& value) = 0;
+    int ReadInteger(const Json::Value& value,
+                    const std::string& field);
 
-    virtual IJobOperation* UnserializeOperation(const Json::Value& value) = 0;
+    unsigned int ReadUnsignedInteger(const Json::Value& value,
+                                     const std::string& field);
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& value) = 0;
-  };
+    bool ReadBoolean(const Json::Value& value,
+                     const std::string& field);
+
+    void ReadArrayOfStrings(std::vector<std::string>& target,
+                            const Json::Value& value,
+                            const std::string& field);
+
+    void ReadListOfStrings(std::list<std::string>& target,
+                           const Json::Value& value,
+                           const std::string& field);
+
+    void ReadSetOfStrings(std::set<std::string>& target,
+                          const Json::Value& value,
+                          const std::string& field);
+
+    void WriteArrayOfStrings(Json::Value& target,
+                             const std::vector<std::string>& values,
+                             const std::string& field);
+
+    void WriteSetOfStrings(Json::Value& target,
+                           const std::set<std::string>& values,
+                           const std::string& field);
+  }
 }
