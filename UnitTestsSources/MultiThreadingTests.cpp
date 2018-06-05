@@ -130,7 +130,7 @@ namespace
   protected:
     virtual bool HandleInstance(const std::string& instance)
     {
-      return (instance != "nope");
+      return true;
     }
 
   public:
@@ -777,6 +777,8 @@ TEST(JobsSerialization, GenericJobs)
 
   std::auto_ptr<IJob> job;
   job.reset(unserializer.UnserializeJob(s));
+  ASSERT_EQ("description", dynamic_cast<DummyInstancesJob&>(*job).GetDescription());
+  //ASSERT_EQ("nope", dynamic_cast<DummyInstancesJob&>(*job).GetInstance(0));
 }
 
 
