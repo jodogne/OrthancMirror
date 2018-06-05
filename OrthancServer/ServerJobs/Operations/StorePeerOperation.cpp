@@ -84,6 +84,7 @@ namespace Orthanc
   
   void StorePeerOperation::Serialize(Json::Value& result) const
   {
+    result = Json::objectValue;
     result["Type"] = "StorePeer";
     peer_.ToJson(result["Remote"]);
   }
