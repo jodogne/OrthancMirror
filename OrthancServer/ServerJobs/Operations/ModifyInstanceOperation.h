@@ -52,6 +52,9 @@ namespace Orthanc
                             RequestOrigin origin,
                             DicomModification* modification);  // Takes ownership
 
+    ModifyInstanceOperation(ServerContext& context,
+                            const Json::Value& serialized);
+
     const DicomModification& GetModification() const
     {
       return *modification_;

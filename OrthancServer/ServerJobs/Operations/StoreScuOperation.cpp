@@ -86,6 +86,18 @@ namespace Orthanc
     result = Json::objectValue;
     result["Type"] = "StoreScu";
     result["LocalAET"] = localAet_;
-    modality_.ToJson(result["Modality"]);
+    modality_.Serialize(result["Modality"]);
+  }
+
+
+  StoreScuOperation::StoreScuOperation(const Json::Value& serialized)
+  {
+    if (IJobUnserializer::ReadString(serialized, "Type") != "StoreScu" ||
+        !serialized.isMember("LocalAET"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    modality_ = RemoteModalityParameters(serialized["Modality"]);
   }
 }

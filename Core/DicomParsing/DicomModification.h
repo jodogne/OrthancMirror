@@ -110,6 +110,8 @@ namespace Orthanc
   public:
     DicomModification();
 
+    DicomModification(const Json::Value& serialized);
+
     ~DicomModification();
 
     void Keep(const DicomTag& tag);

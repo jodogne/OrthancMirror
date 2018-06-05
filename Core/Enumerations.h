@@ -668,6 +668,8 @@ namespace Orthanc
 
   JobState StringToJobState(const std::string& state);
   
+  RequestOrigin StringToRequestOrigin(const std::string& origin);
+  
   unsigned int GetBytesPerPixel(PixelFormat format);
 
   bool GetDicomEncoding(Encoding& encoding,

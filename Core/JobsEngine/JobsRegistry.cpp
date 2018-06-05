@@ -236,6 +236,8 @@ namespace Orthanc
 
     void Serialize(Json::Value& target) const
     {
+      target = Json::objectValue;
+      target["ID"] = id_;
       target["State"] = EnumerationToString(state_);
       target["JobType"] = jobType_;
       target["Priority"] = priority_;
@@ -258,18 +260,17 @@ namespace Orthanc
     }
 
     JobHandler(IJobUnserializer& unserializer,
-               const std::string& id,
                const Json::Value& serialized) :
-      id_(id),
       lastStateChangeTime_(boost::posix_time::microsec_clock::universal_time()),
       pauseScheduled_(false),
       cancelScheduled_(false)
     {
-      state_ = StringToJobState(IJobUnserializer::GetString(serialized, "State"));
-      priority_ = IJobUnserializer::GetInteger(serialized, "Priority");
+      id_ = StringToJobState(IJobUnserializer::ReadString(serialized, "ID"));
+      state_ = StringToJobState(IJobUnserializer::ReadString(serialized, "State"));
+      priority_ = IJobUnserializer::ReadInteger(serialized, "Priority");
       creationTime_ = boost::posix_time::from_iso_string
-        (IJobUnserializer::GetString(serialized, "CreationTime"));
-      runtime_ = boost::posix_time::milliseconds(IJobUnserializer::GetInteger(serialized, "Runtime"));
+        (IJobUnserializer::ReadString(serialized, "CreationTime"));
+      runtime_ = boost::posix_time::milliseconds(IJobUnserializer::ReadInteger(serialized, "Runtime"));
 
       retryTime_ = creationTime_;
 
@@ -560,13 +561,14 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(mutex_);
     CheckInvariants();
 
-    target = Json::objectValue;
+    target = Json::arrayValue;
 
     for (JobsIndex::const_iterator it = jobsIndex_.begin(); 
          it != jobsIndex_.end(); ++it)
     {
-      Json::Value& v = target[it->first];
+      Json::Value v;
       it->second->Serialize(v);
+      target.append(v);
     }
   }
 

@@ -127,10 +127,26 @@ namespace Orthanc
 
   void ModifyInstanceOperation::Serialize(Json::Value& target) const
   {
-    result = Json::objectValue;
+    target = Json::objectValue;
     target["Type"] = "ModifyInstance";
     target["Origin"] = EnumerationToString(origin_);
     modification_->Serialize(target["Modification"]);
+  }
+
+
+  ModifyInstanceOperation::ModifyInstanceOperation(ServerContext& context,
+                                                   const Json::Value& serialized) :
+    context_(context)
+  {
+    if (IJobUnserializer::ReadString(serialized, "Type") != "ModifyInstance" ||
+        !serialized.isMember("Modification"))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    origin_ = StringToRequestOrigin(IJobUnserializer::ReadString(serialized, "Origin"));
+
+    modification_.reset(new DicomModification(serialized["Modification"]));
   }
 }
 

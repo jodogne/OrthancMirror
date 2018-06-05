@@ -1500,6 +1500,35 @@ namespace Orthanc
   }
 
 
+  RequestOrigin StringToRequestOrigin(const std::string& origin)
+  {
+    if (origin == "Unknown")
+    {
+      return RequestOrigin_Unknown;
+    }
+    else if (origin == "DicomProtocol")
+    {
+      return RequestOrigin_DicomProtocol;
+    }
+    else if (origin == "RestApi")
+    {
+      return RequestOrigin_RestApi;
+    }
+    else if (origin == "Plugins")
+    {
+      return RequestOrigin_Plugins;
+    }
+    else if (origin == "Lua")
+    {
+      return RequestOrigin_Lua;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   unsigned int GetBytesPerPixel(PixelFormat format)
   {
     switch (format)

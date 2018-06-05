@@ -121,8 +121,8 @@ namespace Orthanc
   }
 
 
-  JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                  const Json::Value& source)
+  JobOperationValues* JobOperationValues::Unserialize(IJobUnserializer& unserializer,
+                                                      const Json::Value& source)
   {
     if (source.type() != Json::arrayValue)
     {
