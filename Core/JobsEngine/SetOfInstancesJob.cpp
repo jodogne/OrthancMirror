@@ -114,6 +114,19 @@ namespace Orthanc
   }
 
 
+  const std::string& SetOfInstancesJob::GetInstance(size_t index) const
+  {
+    if (index > instances_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return instances_[index];
+    }
+  }
+      
+
   JobStepResult SetOfInstancesJob::ExecuteStep()
   {
     if (!started_)
@@ -182,8 +195,8 @@ namespace Orthanc
   void SetOfInstancesJob::GetPublicContent(Json::Value& value)
   {
     value["Description"] = GetDescription();
-    value["InstancesCount"] = static_cast<uint32_t>(GetInstances().size());
-    value["FailedInstancesCount"] = static_cast<uint32_t>(GetFailedInstances().size());
+    value["InstancesCount"] = static_cast<uint32_t>(instances_.size());
+    value["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
   }    
 
 
