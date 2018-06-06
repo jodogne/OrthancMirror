@@ -850,6 +850,8 @@ TEST(JobsSerialization, GenericJobs)
 {   
   Json::Value s;
 
+  // This tests SetOfInstancesJob
+  
   {
     DummyInstancesJob job;
     job.SetDescription("description");
@@ -884,6 +886,14 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_EQ("world", tmp.GetInstance(2));
     ASSERT_TRUE(tmp.IsFailedInstance("nope"));
   }
+
+  // TODO : Test SequenceOfOperationsJob.h
+}
+
+
+TEST(JobsSerialization, Registry)
+{   
+  // TODO : Test serialization of JobsRegistry
 }
 
 
@@ -978,4 +988,24 @@ TEST_F(OrthancJobsSerialization, Operations)
     
   std::auto_ptr<IJobOperation> operation;
   operation.reset(unserializer.UnserializeOperation(s));
+
+  // TODO : StorePeerOperation
+
+  // TODO : StoreScuOperation
+
+  // TODO : SystemCallOperation
+
+  // TODO : ModifyInstanceOperation
+}
+
+
+TEST_F(OrthancJobsSerialization, Jobs)
+{
+  // TODO : ArchiveJob
+
+  // TODO : DicomModalityStoreJob
+
+  // TODO : OrthancPeerStoreJob
+
+  // TODO : ResourceModificationJob
 }
