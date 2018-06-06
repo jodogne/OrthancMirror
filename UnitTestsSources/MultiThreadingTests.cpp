@@ -141,7 +141,7 @@ namespace
   protected:
     virtual bool HandleInstance(const std::string& instance)
     {
-      return true;
+      return (instance != "nope");
     }
 
   public:
@@ -764,6 +764,32 @@ TEST(JobsSerialization, BadFileFormat)
 }
 
 
+TEST(JobsSerialization, JobOperationValues)
+{
+  Json::Value s;
+
+  {
+    JobOperationValues values;
+    values.Append(new NullOperationValue);
+    values.Append(new StringOperationValue("hello"));
+    values.Append(new StringOperationValue("world"));
+    values.Serialize(s);
+  }
+
+  {
+    GenericJobUnserializer unserializer;
+    std::auto_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
+    ASSERT_EQ(3u, values->GetSize());
+    ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
+    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
+    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(2).GetType());
+
+    ASSERT_EQ("hello", dynamic_cast<const StringOperationValue&>(values->GetValue(1)).GetContent());
+    ASSERT_EQ("world", dynamic_cast<const StringOperationValue&>(values->GetValue(2)).GetContent());
+  }
+}
+
+
 TEST(JobsSerialization, GenericValues)
 {
   Json::Value s;
@@ -796,32 +822,6 @@ TEST(JobsSerialization, GenericValues)
 }
 
 
-TEST(JobsSerialization, JobOperationValues)
-{
-  Json::Value s;
-
-  {
-    JobOperationValues values;
-    values.Append(new NullOperationValue);
-    values.Append(new StringOperationValue("hello"));
-    values.Append(new StringOperationValue("world"));
-    values.Serialize(s);
-  }
-
-  {
-    GenericJobUnserializer unserializer;
-    std::auto_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
-    ASSERT_EQ(3u, values->GetSize());
-    ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
-    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
-    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(2).GetType());
-
-    ASSERT_EQ("hello", dynamic_cast<const StringOperationValue&>(values->GetValue(1)).GetContent());
-    ASSERT_EQ("world", dynamic_cast<const StringOperationValue&>(values->GetValue(2)).GetContent());
-  }
-}
-
-
 TEST(JobsSerialization, GenericOperations)
 {   
   Json::Value s;
@@ -838,14 +838,12 @@ TEST(JobsSerialization, GenericOperations)
   {
     std::auto_ptr<IJobOperation> operation;
     operation.reset(unserializer.UnserializeOperation(s));
-    
-  }
 
-  {
-    
+    // Make sure that we have indeed unserialized a log operation
+    ASSERT_THROW(dynamic_cast<DeleteResourceOperation&>(*operation), std::bad_cast);
+    dynamic_cast<LogJobOperation&>(*operation);
   }
 }
-
 
 
 TEST(JobsSerialization, GenericJobs)
@@ -855,9 +853,14 @@ TEST(JobsSerialization, GenericJobs)
   {
     DummyInstancesJob job;
     job.SetDescription("description");
+    job.AddInstance("hello");
     job.AddInstance("nope");
-    job.AddInstance("ok");
+    job.AddInstance("world");
     job.SetPermissive(true);
+    ASSERT_THROW(job.ExecuteStep(), OrthancException);  // Not started yet
+    job.Start();
+    job.ExecuteStep();
+    job.ExecuteStep();
     job.Serialize(s);
   }
 
@@ -868,8 +871,18 @@ TEST(JobsSerialization, GenericJobs)
 
     std::auto_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
-    ASSERT_EQ("description", dynamic_cast<DummyInstancesJob&>(*job).GetDescription());
-    //ASSERT_EQ("nope", dynamic_cast<DummyInstancesJob&>(*job).GetInstance(0));
+
+    const DummyInstancesJob& tmp = dynamic_cast<const DummyInstancesJob&>(*job);
+    ASSERT_FALSE(tmp.IsStarted());
+    ASSERT_TRUE(tmp.IsPermissive());
+    ASSERT_EQ("description", tmp.GetDescription());
+    ASSERT_EQ(3u, tmp.GetInstancesCount());
+    ASSERT_EQ(2u, tmp.GetPosition());
+    ASSERT_EQ(1u, tmp.GetFailedInstances().size());
+    ASSERT_EQ("hello", tmp.GetInstance(0));
+    ASSERT_EQ("nope", tmp.GetInstance(1));
+    ASSERT_EQ("world", tmp.GetInstance(2));
+    ASSERT_TRUE(tmp.IsFailedInstance("nope"));
   }
 }
 
