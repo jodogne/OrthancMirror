@@ -57,6 +57,11 @@ namespace Orthanc
 
     SetOfInstancesJob(const Json::Value& s);  // Unserialization
 
+    size_t GetPosition() const
+    {
+      return position_;
+    }
+
     void SetDescription(const std::string& description)
     {
       description_ = description;
@@ -97,16 +102,18 @@ namespace Orthanc
       return started_;
     }
 
-    const std::vector<std::string>& GetInstances() const
-    {
-      return instances_;
-    }
-  
+    const std::string& GetInstance(size_t index) const;
+      
     const std::set<std::string>& GetFailedInstances() const
     {
       return failedInstances_;
     }
-  
+
+    bool IsFailedInstance(const std::string& instance) const
+    {
+      return failedInstances_.find(instance) != failedInstances_.end();
+    }
+    
     virtual JobStepResult ExecuteStep();
     
     virtual void GetPublicContent(Json::Value& value);

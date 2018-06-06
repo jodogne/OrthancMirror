@@ -116,11 +116,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      target.clear();
-      target.resize(value.size());
+      const Json::Value& arr = value[field.c_str()];
 
-      const Json::Value arr = value[field.c_str()];
-    
+      target.resize(arr.size());
+
       for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
       {
         if (arr[i].type() != Json::stringValue)

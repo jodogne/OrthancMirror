@@ -138,6 +138,14 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Images/ImageAccessor.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
   ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
@@ -499,16 +507,8 @@ else()
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsEngine.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
     ${ORTHANC_ROOT}/Core/SharedLibrary.cpp
