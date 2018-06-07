@@ -273,12 +273,14 @@ namespace Orthanc
   }
 
   
-  void ResourceModificationJob::Serialize(Json::Value& value)
+  bool ResourceModificationJob::Serialize(Json::Value& value)
   {
     SetOfInstancesJob::Serialize(value);
 
     Json::Value tmp;
     modification_->Serialize(tmp);
     value["Modification"] = tmp;
+
+    return true;
   }
 }
