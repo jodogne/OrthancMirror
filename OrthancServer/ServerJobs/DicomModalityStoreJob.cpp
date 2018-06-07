@@ -35,6 +35,7 @@
 #include "DicomModalityStoreJob.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -182,4 +183,40 @@ namespace Orthanc
       value["MoveOriginatorID"] = GetMoveOriginatorId();
     }
   }
+
+
+  static const char* LOCAL_AET = "LocalAet";
+  static const char* REMOTE = "Remote";
+  static const char* MOVE_ORIGINATOR_AET = "MoveOriginatorAet";
+  static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorId";
+  
+
+  DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context,
+                                               const Json::Value& serialized) :
+    SetOfInstancesJob(serialized),
+    context_(context)
+  {
+    localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
+    remote_ = RemoteModalityParameters(serialized[REMOTE]);
+    moveOriginatorAet_ = SerializationToolbox::ReadString(serialized, MOVE_ORIGINATOR_AET);
+    moveOriginatorId_ = static_cast<uint16_t>
+      (SerializationToolbox::ReadUnsignedInteger(serialized, MOVE_ORIGINATOR_ID));
+  }
+
+
+  bool DicomModalityStoreJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[LOCAL_AET] = localAet_;
+      remote_.Serialize(target[REMOTE]);
+      target[MOVE_ORIGINATOR_AET] = moveOriginatorAet_;
+      target[MOVE_ORIGINATOR_ID] = moveOriginatorId_;
+      return true;
+    }
+  }  
 }
