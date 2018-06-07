@@ -891,9 +891,60 @@ TEST(JobsSerialization, GenericJobs)
 }
 
 
+static bool IsSameTagValue(ParsedDicomFile& dicom1,
+                           ParsedDicomFile& dicom2,
+                           DicomTag tag)
+{
+  std::string a, b;
+  return (dicom1.GetTagValue(a, tag) &&
+          dicom2.GetTagValue(b, tag) &&
+          (a == b));
+}
+                       
+
+
 TEST(JobsSerialization, DicomModification)
 {   
-  // TODO : Test serialization of DicomModification
+  Json::Value s;
+
+  ParsedDicomFile source(true);
+  source.Insert(DICOM_TAG_STUDY_DESCRIPTION, "Test 1", false);
+  source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false);
+  source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false);
+
+  std::auto_ptr<ParsedDicomFile> modified(source.Clone(true));
+
+  {
+    DicomModification modification;
+    modification.SetLevel(ResourceType_Series);
+    modification.Clear(DICOM_TAG_STUDY_DESCRIPTION);
+    modification.Remove(DICOM_TAG_SERIES_DESCRIPTION);
+    modification.Replace(DICOM_TAG_PATIENT_NAME, "Test 4", true);
+
+    modification.Apply(*modified);
+    modification.Serialize(s);
+  }
+
+  {
+    DicomModification modification(s);
+    ASSERT_EQ(ResourceType_Series, modification.GetLevel());
+    
+    std::auto_ptr<ParsedDicomFile> second(source.Clone(true));
+    modification.Apply(*second);
+
+    std::string s;
+    ASSERT_TRUE(second->GetTagValue(s, DICOM_TAG_STUDY_DESCRIPTION));
+    ASSERT_TRUE(s.empty());
+    ASSERT_FALSE(second->GetTagValue(s, DICOM_TAG_SERIES_DESCRIPTION));
+    ASSERT_TRUE(second->GetTagValue(s, DICOM_TAG_PATIENT_NAME));
+    ASSERT_EQ("Test 4", s);
+
+    ASSERT_TRUE(IsSameTagValue(source, *modified, DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(IsSameTagValue(source, *second, DICOM_TAG_STUDY_INSTANCE_UID));
+
+    ASSERT_FALSE(IsSameTagValue(source, *second, DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(IsSameTagValue(*modified, *second, DICOM_TAG_SERIES_INSTANCE_UID));
+  }
 }
 
 
@@ -1071,11 +1122,11 @@ TEST_F(OrthancJobsSerialization, Operations)
     ASSERT_EQ("c", tmp.GetPostArgument(0));
   }
 
-  // TODO : ModifyInstanceOperation
+  // ModifyInstanceOperation
 
-  /*
   {
     std::auto_ptr<DicomModification> modification(new DicomModification);
+    modification->SetupAnonymization(DicomVersion_2008);
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
     operation.Serialize(s);
@@ -1086,7 +1137,8 @@ TEST_F(OrthancJobsSerialization, Operations)
 
     const ModifyInstanceOperation& tmp = dynamic_cast<ModifyInstanceOperation&>(*operation);
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetRequestOrigin());
-    }*/
+    ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+  }
 }
 
 
