@@ -36,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ITagVisitor.h"
 
@@ -1238,15 +1239,164 @@ namespace Orthanc
                            GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
   }
 
+
+
+
+  static const char* REMOVE_PRIVATE_TAGS = "RemovePrivateTags";
+  static const char* LEVEL = "Level";
+  static const char* ALLOW_MANUAL_IDENTIFIERS = "AllowManualIdentifiers";
+  static const char* KEEP_STUDY_INSTANCE_UID = "KeepStudyInstanceUID";
+  static const char* KEEP_SERIES_INSTANCE_UID = "KeepSeriesInstanceUID";
+  static const char* UPDATE_REFERENCED_RELATIONSHIPS = "UpdateReferencedRelationships";
+  static const char* REMOVALS = "Removals";
+  static const char* CLEARINGS = "Clearings";
+  static const char* PRIVATE_TAGS_TO_KEEP = "PrivateTagsToKeep";
+  static const char* REPLACEMENTS = "Replacements";
+  static const char* MAP_PATIENTS = "MapPatients";
+  static const char* MAP_STUDIES = "MapStudies";
+  static const char* MAP_SERIES = "MapSeries";
+  static const char* MAP_INSTANCES = "MapInstances";
   
   void DicomModification::Serialize(Json::Value& value) const
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    if (identifierGenerator_ != NULL)
+    {
+      LOG(ERROR) << "Cannot serialize a DicomModification with a custom identifier generator";
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    value = Json::objectValue;
+    value[REMOVE_PRIVATE_TAGS] = removePrivateTags_;
+    value[LEVEL] = EnumerationToString(level_);
+    value[ALLOW_MANUAL_IDENTIFIERS] = allowManualIdentifiers_;
+    value[KEEP_STUDY_INSTANCE_UID] = keepStudyInstanceUid_;
+    value[KEEP_SERIES_INSTANCE_UID] = keepSeriesInstanceUid_;
+    value[UPDATE_REFERENCED_RELATIONSHIPS] = updateReferencedRelationships_;
+
+    SerializationToolbox::WriteSetOfTags(value, removals_, REMOVALS);
+    SerializationToolbox::WriteSetOfTags(value, clearings_, CLEARINGS);
+    SerializationToolbox::WriteSetOfTags(value, privateTagsToKeep_, PRIVATE_TAGS_TO_KEEP);
+
+    Json::Value& tmp = value[REPLACEMENTS];
+
+    tmp = Json::objectValue;
+
+    for (Replacements::const_iterator it = replacements_.begin();
+         it != replacements_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      tmp[it->first.Format()] = *it->second;
+    }
+
+    Json::Value& mapPatients = value[MAP_PATIENTS];
+    Json::Value& mapStudies = value[MAP_STUDIES];
+    Json::Value& mapSeries = value[MAP_SERIES];
+    Json::Value& mapInstances = value[MAP_INSTANCES];
+
+    mapPatients = Json::objectValue;
+    mapStudies = Json::objectValue;
+    mapSeries = Json::objectValue;
+    mapInstances = Json::objectValue;
+
+    for (UidMap::const_iterator it = uidMap_.begin(); it != uidMap_.end(); ++it)
+    {
+      Json::Value* tmp = NULL;
+
+      switch (it->first.first)
+      {
+        case ResourceType_Patient:
+          tmp = &mapPatients;
+          break;
+
+        case ResourceType_Study:
+          tmp = &mapStudies;
+          break;
+
+        case ResourceType_Series:
+          tmp = &mapSeries;
+          break;
+
+        case ResourceType_Instance:
+          tmp = &mapInstances;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      assert(tmp != NULL);
+      (*tmp) [it->first.second] = it->second;
+    }
+  }
+
+
+  void DicomModification::UnserializeUidMap(ResourceType level,
+                                            const Json::Value& serialized,
+                                            const char* field)
+  {
+    if (!serialized.isMember(field) ||
+        serialized[field].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value::Members names = serialized[field].getMemberNames();
+    
+    for (Json::Value::Members::const_iterator it = names.begin(); it != names.end(); ++it)
+    {
+      const Json::Value& value = serialized[field][*it];
+
+      if (value.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        uidMap_[std::make_pair(level, *it)] = value.asString();
+      }
+    }
   }
 
   
   DicomModification::DicomModification(const Json::Value& serialized)
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
+    level_ = StringToResourceType(SerializationToolbox::ReadString(serialized, LEVEL).c_str());
+    allowManualIdentifiers_ = SerializationToolbox::ReadBoolean(serialized, ALLOW_MANUAL_IDENTIFIERS);
+    keepStudyInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_STUDY_INSTANCE_UID);
+    keepSeriesInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SERIES_INSTANCE_UID);
+    updateReferencedRelationships_ = SerializationToolbox::ReadBoolean
+      (serialized, UPDATE_REFERENCED_RELATIONSHIPS);
+
+    SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
+    SerializationToolbox::ReadSetOfTags(clearings_, serialized, CLEARINGS);
+    SerializationToolbox::ReadSetOfTags(privateTagsToKeep_, serialized, PRIVATE_TAGS_TO_KEEP);
+
+    if (!serialized.isMember(REPLACEMENTS) ||
+        serialized[REPLACEMENTS].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value::Members names = serialized[REPLACEMENTS].getMemberNames();
+
+    for (Json::Value::Members::const_iterator it = names.begin(); it != names.end(); ++it)
+    {
+      DicomTag tag(0, 0);
+      if (!DicomTag::ParseHexadecimal(tag, it->c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        const Json::Value& value = serialized[REPLACEMENTS][*it];
+        replacements_.insert(std::make_pair(tag, new Json::Value(value)));
+      }
+    }
+
+    UnserializeUidMap(ResourceType_Patient, serialized, MAP_PATIENTS);
+    UnserializeUidMap(ResourceType_Study, serialized, MAP_STUDIES);
+    UnserializeUidMap(ResourceType_Series, serialized, MAP_SERIES);
+    UnserializeUidMap(ResourceType_Instance, serialized, MAP_INSTANCES);
   }
 }

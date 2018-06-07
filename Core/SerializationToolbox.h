@@ -33,9 +33,10 @@
 
 #pragma once
 
+#include "DicomFormat/DicomTag.h"
+
 #include <json/value.h>
 #include <list>
-#include <set>
 
 namespace Orthanc
 {
@@ -65,6 +66,10 @@ namespace Orthanc
                           const Json::Value& value,
                           const std::string& field);
 
+    void ReadSetOfTags(std::set<DicomTag>& target,
+                       const Json::Value& value,
+                       const std::string& field);
+
     void WriteArrayOfStrings(Json::Value& target,
                              const std::vector<std::string>& values,
                              const std::string& field);
@@ -72,5 +77,9 @@ namespace Orthanc
     void WriteSetOfStrings(Json::Value& target,
                            const std::set<std::string>& values,
                            const std::string& field);
+
+    void WriteSetOfTags(Json::Value& target,
+                        const std::set<DicomTag>& tags,
+                        const std::string& field);
   }
 }
