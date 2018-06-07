@@ -979,23 +979,108 @@ TEST_F(OrthancJobsSerialization, Operations)
 
   Json::Value s;
 
+  // DeleteResourceOperation
+  
   {
     DeleteResourceOperation operation(GetContext());
     operation.Serialize(s);
   }
 
-  OrthancJobUnserializer unserializer(GetContext());
-    
+  OrthancJobUnserializer unserializer(GetContext()); 
   std::auto_ptr<IJobOperation> operation;
-  operation.reset(unserializer.UnserializeOperation(s));
 
-  // TODO : StorePeerOperation
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
 
-  // TODO : StoreScuOperation
+    ASSERT_THROW(dynamic_cast<LogJobOperation&>(*operation), std::bad_cast);
+    dynamic_cast<DeleteResourceOperation&>(*operation);
+  }
 
-  // TODO : SystemCallOperation
+  // StorePeerOperation
+
+  {
+    WebServiceParameters peer;
+    peer.SetUrl("http://localhost/");
+    peer.SetUsername("username");
+    peer.SetPassword("password");
+    peer.SetPkcs11Enabled(true);
+
+    StorePeerOperation operation(peer);
+    operation.Serialize(s);
+  }
+
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
+
+    const StorePeerOperation& tmp = dynamic_cast<StorePeerOperation&>(*operation);
+    ASSERT_EQ("http://localhost/", tmp.GetPeer().GetUrl());
+    ASSERT_EQ("username", tmp.GetPeer().GetUsername());
+    ASSERT_EQ("password", tmp.GetPeer().GetPassword());
+    ASSERT_TRUE(tmp.GetPeer().IsPkcs11Enabled());
+  }
+
+  // StoreScuOperation
+
+  {
+    RemoteModalityParameters modality;
+    modality.SetApplicationEntityTitle("REMOTE");
+    modality.SetHost("192.168.1.1");
+    modality.SetPort(1000);
+    modality.SetManufacturer(ModalityManufacturer_StoreScp);
+
+    StoreScuOperation operation("TEST", modality);
+    operation.Serialize(s);
+  }
+
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
+
+    const StoreScuOperation& tmp = dynamic_cast<StoreScuOperation&>(*operation);
+    ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
+    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPort());
+    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+    ASSERT_EQ("TEST", tmp.GetLocalAet());
+  }
+
+  // SystemCallOperation
+
+  {
+    SystemCallOperation operation(std::string("echo"));
+    operation.AddPreArgument("a");
+    operation.AddPreArgument("b");
+    operation.AddPostArgument("c");
+    operation.Serialize(s);
+  }
+
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
+
+    const SystemCallOperation& tmp = dynamic_cast<SystemCallOperation&>(*operation);
+    ASSERT_EQ("echo", tmp.GetCommand());
+    ASSERT_EQ(2u, tmp.GetPreArgumentsCount());
+    ASSERT_EQ(1u, tmp.GetPostArgumentsCount());
+    ASSERT_EQ("a", tmp.GetPreArgument(0));
+    ASSERT_EQ("b", tmp.GetPreArgument(1));
+    ASSERT_EQ("c", tmp.GetPostArgument(0));
+  }
 
   // TODO : ModifyInstanceOperation
+
+  /*
+  {
+    std::auto_ptr<DicomModification> modification(new DicomModification);
+    
+    ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
+    operation.Serialize(s);
+  }
+
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
+
+    const ModifyInstanceOperation& tmp = dynamic_cast<ModifyInstanceOperation&>(*operation);
+    ASSERT_EQ(RequestOrigin_Lua, tmp.GetRequestOrigin());
+    }*/
 }
 
 

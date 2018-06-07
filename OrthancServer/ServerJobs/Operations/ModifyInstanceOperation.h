@@ -55,6 +55,11 @@ namespace Orthanc
     ModifyInstanceOperation(ServerContext& context,
                             const Json::Value& serialized);
 
+    const RequestOrigin& GetRequestOrigin() const
+    {
+      return origin_;
+    }
+    
     const DicomModification& GetModification() const
     {
       return *modification_;

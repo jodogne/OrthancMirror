@@ -99,6 +99,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
+    localAet_ = SerializationToolbox::ReadString(serialized, "LocalAET");
     modality_ = RemoteModalityParameters(serialized["Modality"]);
   }
 }
