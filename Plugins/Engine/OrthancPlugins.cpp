@@ -1544,7 +1544,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_GetInstanceRemoteAet:
-        *p.resultString = instance.GetOrigin().GetRemoteAet();
+        *p.resultString = instance.GetOrigin().GetRemoteAetC();
         return;
 
       case _OrthancPluginService_GetInstanceSize:

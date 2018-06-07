@@ -243,7 +243,7 @@ namespace Orthanc
                                    ParsedDicomFile& dicom)
   {
     DicomInstanceToStore toStore;
-    toStore.GetOrigin().SetRestOrigin(call);
+    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
     toStore.SetParsedDicomFile(dicom);
 
     ServerContext& context = OrthancRestApi::GetContext(call);

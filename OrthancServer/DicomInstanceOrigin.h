@@ -46,32 +46,53 @@ namespace Orthanc
     std::string   dicomCalledAet_;
     std::string   httpUsername_;
 
+    DicomInstanceOrigin(RequestOrigin origin) :
+      origin_(origin)
+    {
+    }
+
   public:
     DicomInstanceOrigin() :
       origin_(RequestOrigin_Unknown)
     {
     }
 
-    void SetDicomProtocolOrigin(const char* remoteIp,
-                                const char* remoteAet,
-                                const char* calledAet);
+    DicomInstanceOrigin(const Json::Value& serialized);
 
-    void SetRestOrigin(const RestApiCall& call);
+    static DicomInstanceOrigin FromDicomProtocol(const char* remoteIp,
+                                                 const char* remoteAet,
+                                                 const char* calledAet);
 
-    void SetHttpOrigin(const char* remoteIp,
-                       const char* username);
+    static DicomInstanceOrigin FromRest(const RestApiCall& call);
 
-    void SetLuaOrigin();
+    static DicomInstanceOrigin FromHttp(const char* remoteIp,
+                                        const char* username);
 
-    void SetPluginsOrigin();
+    static DicomInstanceOrigin FromLua()
+    {
+      return DicomInstanceOrigin(RequestOrigin_Lua);
+    }
+
+    static DicomInstanceOrigin FromPlugins()
+    {
+      return DicomInstanceOrigin(RequestOrigin_Plugins);
+    }
 
     RequestOrigin GetRequestOrigin() const
     {
       return origin_;
     }
 
-    const char* GetRemoteAet() const; 
+    const char* GetRemoteAetC() const; 
+
+    const std::string& GetRemoteIp() const;
+    
+    const std::string& GetCalledAet() const; 
+
+    const std::string& GetHttpUsername() const; 
 
     void Format(Json::Value& result) const;
+
+    void Serialize(Json::Value& result) const;
   };
 }

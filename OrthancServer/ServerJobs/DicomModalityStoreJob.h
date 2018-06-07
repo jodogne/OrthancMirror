@@ -58,6 +58,9 @@ namespace Orthanc
   public:
     DicomModalityStoreJob(ServerContext& context);
 
+    DicomModalityStoreJob(ServerContext& context,
+                          const Json::Value& serialized);
+
     const std::string& GetLocalAet() const
     {
       return localAet_;
@@ -92,5 +95,7 @@ namespace Orthanc
     }
 
     virtual void GetPublicContent(Json::Value& value);
+
+    virtual bool Serialize(Json::Value& target);
   };
 }

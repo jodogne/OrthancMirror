@@ -59,7 +59,9 @@
 #include "../OrthancServer/ServerJobs/Operations/SystemCallOperation.h"
 
 #include "../OrthancServer/ServerJobs/ArchiveJob.h"
-
+#include "../OrthancServer/ServerJobs/DicomModalityStoreJob.h"
+#include "../OrthancServer/ServerJobs/OrthancPeerStoreJob.h"
+#include "../OrthancServer/ServerJobs/ResourceModificationJob.h"
 
 
 using namespace Orthanc;
@@ -951,6 +953,74 @@ TEST(JobsSerialization, DicomModification)
 }
 
 
+TEST(JobsSerialization, DicomInstanceOrigin)
+{   
+  Json::Value s;
+
+  {
+    DicomInstanceOrigin origin;
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_Unknown, origin.GetRequestOrigin());
+    ASSERT_THROW(origin.GetRemoteIp(), OrthancException);
+    ASSERT_EQ("", std::string(origin.GetRemoteAetC()));
+    ASSERT_THROW(origin.GetCalledAet(), OrthancException);
+    ASSERT_THROW(origin.GetHttpUsername(), OrthancException);
+  }
+
+  {
+    DicomInstanceOrigin origin(DicomInstanceOrigin::FromDicomProtocol("host", "aet", "called"));
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_DicomProtocol, origin.GetRequestOrigin());
+    ASSERT_EQ("host", origin.GetRemoteIp());
+    ASSERT_EQ("aet", std::string(origin.GetRemoteAetC()));
+    ASSERT_EQ("called", origin.GetCalledAet());
+    ASSERT_THROW(origin.GetHttpUsername(), OrthancException);
+  }
+
+  {
+    DicomInstanceOrigin origin(DicomInstanceOrigin::FromHttp("host", "username"));
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_RestApi, origin.GetRequestOrigin());
+    ASSERT_EQ("host", origin.GetRemoteIp());
+    ASSERT_EQ("", std::string(origin.GetRemoteAetC()));
+    ASSERT_THROW(origin.GetCalledAet(), OrthancException);
+    ASSERT_EQ("username", origin.GetHttpUsername());
+  }
+
+  {
+    DicomInstanceOrigin origin(DicomInstanceOrigin::FromLua());
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_Lua, origin.GetRequestOrigin());
+  }
+
+  {
+    DicomInstanceOrigin origin(DicomInstanceOrigin::FromPlugins());
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_Plugins, origin.GetRequestOrigin());
+  }
+}
+
+
 TEST(JobsSerialization, Registry)
 {   
   // TODO : Test serialization of JobsRegistry
@@ -1154,12 +1224,89 @@ TEST_F(OrthancJobsSerialization, Jobs)
   {
     boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
     ArchiveJob job(tmp, GetContext(), false, false);
-    ASSERT_FALSE(job.Serialize(s));
+    ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
   }
 
-  // TODO : DicomModalityStoreJob
+  // DicomModalityStoreJob
 
-  // TODO : OrthancPeerStoreJob
+  {
+    RemoteModalityParameters modality;
+    modality.SetApplicationEntityTitle("REMOTE");
+    modality.SetHost("192.168.1.1");
+    modality.SetPort(1000);
+    modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
-  // TODO : ResourceModificationJob
+    DicomModalityStoreJob job(GetContext());
+    job.SetLocalAet("LOCAL");
+    job.SetRemoteModality(modality);
+    job.SetMoveOriginator("MOVESCU", 42);
+    
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  OrthancJobUnserializer unserializer(GetContext()); 
+
+  {
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    DicomModalityStoreJob& tmp = dynamic_cast<DicomModalityStoreJob&>(*job);
+    ASSERT_EQ("LOCAL", tmp.GetLocalAet());
+    ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
+    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPort());
+    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+    ASSERT_TRUE(tmp.HasMoveOriginator());
+    ASSERT_EQ("MOVESCU", tmp.GetMoveOriginatorAet());
+    ASSERT_EQ(42, tmp.GetMoveOriginatorId());
+  }
+
+  // OrthancPeerStoreJob
+
+  {
+    WebServiceParameters peer;
+    peer.SetUrl("http://localhost/");
+    peer.SetUsername("username");
+    peer.SetPassword("password");
+    peer.SetPkcs11Enabled(true);
+
+    OrthancPeerStoreJob job(GetContext());
+    job.SetPeer(peer);
+    
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    OrthancPeerStoreJob& tmp = dynamic_cast<OrthancPeerStoreJob&>(*job);
+    ASSERT_EQ("http://localhost/", tmp.GetPeer().GetUrl());
+    ASSERT_EQ("username", tmp.GetPeer().GetUsername());
+    ASSERT_EQ("password", tmp.GetPeer().GetPassword());
+    ASSERT_TRUE(tmp.GetPeer().IsPkcs11Enabled());
+  }
+
+  // ResourceModificationJob
+
+  {
+    std::auto_ptr<DicomModification> modification(new DicomModification);
+    modification->SetupAnonymization(DicomVersion_2008);    
+
+    ResourceModificationJob job(GetContext());
+    job.SetModification(modification.release(), true);
+    job.SetOrigin(DicomInstanceOrigin::FromLua());
+    
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+    ASSERT_TRUE(tmp.IsAnonymization());
+    ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
+    ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+  }
 }
