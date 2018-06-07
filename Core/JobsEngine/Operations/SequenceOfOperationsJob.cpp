@@ -361,7 +361,7 @@ namespace Orthanc
   }
 
 
-  void SequenceOfOperationsJob::Serialize(Json::Value& value)
+  bool SequenceOfOperationsJob::Serialize(Json::Value& value)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -377,5 +377,7 @@ namespace Orthanc
     value["TrailingTimeout"] = static_cast<unsigned int>(trailingTimeout_.total_milliseconds());
     value["DicomTimeout"] = connectionManager_.GetTimeout();
     value["Current"] = static_cast<unsigned int>(current_);
+
+    return true;
   }
 }

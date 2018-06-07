@@ -45,6 +45,7 @@ namespace Orthanc
     std::string    jobType_;
     Json::Value    publicContent_;
     Json::Value    serialized_;
+    bool           hasSerialized_;
 
   public:
     JobStatus();
@@ -77,9 +78,11 @@ namespace Orthanc
       return publicContent_;
     }
 
-    const Json::Value& GetSerialized() const
+    const Json::Value& GetSerialized() const;
+
+    bool HasSerialized() const
     {
-      return serialized_;
+      return hasSerialized_;
     }
   };
 }

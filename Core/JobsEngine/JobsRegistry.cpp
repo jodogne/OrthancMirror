@@ -235,15 +235,11 @@ namespace Orthanc
       lastStatus_.SetErrorCode(code);
     }
 
-    void Serialize(Json::Value& target) const
+    bool Serialize(Json::Value& target) const
     {
       target = Json::objectValue;
-      target["ID"] = id_;
-      target["State"] = EnumerationToString(state_);
-      target["JobType"] = jobType_;
-      target["Priority"] = priority_;
-      target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
-      target["Runtime"] = static_cast<unsigned int>(runtime_.total_milliseconds());
+
+      bool ok;
 
       if (state_ == JobState_Running)
       {
@@ -252,11 +248,36 @@ namespace Orthanc
         // mutex at the "JobHandler" level, as serialization would be
         // blocked while a step in the job is running. Instead, we
         // save a snapshot of the serialized job.
-        target["Job"] = lastStatus_.GetSerialized();
+
+        if (lastStatus_.HasSerialized())
+        {
+          target["Job"] = lastStatus_.GetSerialized();
+          ok = true;
+        }
+        else
+        {
+          ok = false;
+        }
+      }
+      else 
+      {
+        ok = job_->Serialize(target["Job"]);
+      }
+
+      if (ok)
+      {
+        target["ID"] = id_;
+        target["State"] = EnumerationToString(state_);
+        target["JobType"] = jobType_;
+        target["Priority"] = priority_;
+        target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
+        target["Runtime"] = static_cast<unsigned int>(runtime_.total_milliseconds());
+        return true;
       }
       else
       {
-        job_->Serialize(target["Job"]);
+        LOG(WARNING) << "Job backup is not supported for job of type: " << jobType_;
+        return false;
       }
     }
 
@@ -568,8 +589,10 @@ namespace Orthanc
          it != jobsIndex_.end(); ++it)
     {
       Json::Value v;
-      it->second->Serialize(v);
-      target.append(v);
+      if (it->second->Serialize(v))
+      {
+        target.append(v);
+      }
     }
   }
 
