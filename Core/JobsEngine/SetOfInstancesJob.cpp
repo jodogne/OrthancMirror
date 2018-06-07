@@ -200,7 +200,7 @@ namespace Orthanc
   }    
 
 
-  void SetOfInstancesJob::Serialize(Json::Value& value)
+  bool SetOfInstancesJob::Serialize(Json::Value& value)
   {
     value = Json::objectValue;
 
@@ -214,6 +214,8 @@ namespace Orthanc
 
     SerializationToolbox::WriteArrayOfStrings(value, instances_, "Instances");
     SerializationToolbox::WriteSetOfStrings(value, failedInstances_, "FailedInstances");
+
+    return true;
   }
 
 

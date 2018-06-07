@@ -97,6 +97,9 @@ namespace Orthanc
     
     virtual void GetPublicContent(Json::Value& value);
 
-    virtual void Serialize(Json::Value& value);
+    virtual bool Serialize(Json::Value& value)
+    {
+      return false;  // Cannot serialize this kind of job
+    }
   };
 }

@@ -58,6 +58,8 @@
 #include "../OrthancServer/ServerJobs/Operations/StoreScuOperation.h"
 #include "../OrthancServer/ServerJobs/Operations/SystemCallOperation.h"
 
+#include "../OrthancServer/ServerJobs/ArchiveJob.h"
+
 
 
 using namespace Orthanc;
@@ -125,8 +127,9 @@ namespace
       type = "DummyJob";
     }
 
-    virtual void Serialize(Json::Value& value)
+    virtual bool Serialize(Json::Value& value)
     {
+      return true;
     }
 
     virtual void GetPublicContent(Json::Value& value)
@@ -863,7 +866,7 @@ TEST(JobsSerialization, GenericJobs)
     job.Start();
     job.ExecuteStep();
     job.ExecuteStep();
-    job.Serialize(s);
+    ASSERT_TRUE(job.Serialize(s));
   }
 
   {
@@ -1144,7 +1147,15 @@ TEST_F(OrthancJobsSerialization, Operations)
 
 TEST_F(OrthancJobsSerialization, Jobs)
 {
-  // TODO : ArchiveJob
+  // ArchiveJob
+
+  Json::Value s;
+
+  {
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    ArchiveJob job(tmp, GetContext(), false, false);
+    ASSERT_FALSE(job.Serialize(s));
+  }
 
   // TODO : DicomModalityStoreJob
 

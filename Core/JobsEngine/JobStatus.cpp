@@ -34,6 +34,8 @@
 #include "../PrecompiledHeaders.h"
 #include "JobStatus.h"
 
+#include "../OrthancException.h"
+
 namespace Orthanc
 {
   JobStatus::JobStatus() :
@@ -41,7 +43,7 @@ namespace Orthanc
     progress_(0),
     jobType_("Invalid"),
     publicContent_(Json::objectValue),
-    serialized_(Json::objectValue)
+    hasSerialized_(false)
   {
   }
 
@@ -64,6 +66,20 @@ namespace Orthanc
 
     job.GetJobType(jobType_);
     job.GetPublicContent(publicContent_);
-    job.Serialize(serialized_);
+
+    hasSerialized_ = job.Serialize(serialized_);
+  }
+
+
+  const Json::Value& JobStatus::GetSerialized() const
+  {
+    if (!hasSerialized_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return serialized_;
+    }
   }
 }

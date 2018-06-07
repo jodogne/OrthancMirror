@@ -901,10 +901,4 @@ namespace Orthanc
     value["UncompressedSizeMB"] =
       static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
   }
-
-  
-  void ArchiveJob::Serialize(Json::Value& value)
-  {
-    // TODO
-  }
 }
