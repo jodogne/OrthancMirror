@@ -34,8 +34,9 @@
 #include "PrecompiledHeaders.h"
 #include "WebServiceParameters.h"
 
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
+#include "Logging.h"
+#include "OrthancException.h"
+#include "SerializationToolbox.h"
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../Core/SystemToolbox.h"
@@ -274,12 +275,34 @@ namespace Orthanc
   
   void WebServiceParameters::Serialize(Json::Value& target) const
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    target = Json::objectValue;
+    target["URL"] = url_;
+    target["Username"] = username_;
+    target["Password"] = password_;
+    target["CertificateFile"] = certificateFile_;
+    target["CertificateKeyFile"] = certificateKeyFile_;
+    target["CertificateKeyPassword"] = certificateKeyPassword_;
+    target["PKCS11"] = pkcs11Enabled_;
   }
 
   
-  WebServiceParameters::WebServiceParameters(const Json::Value& serialized)
+  WebServiceParameters::WebServiceParameters(const Json::Value& serialized) :
+    advancedFormat_(true)
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    url_ = SerializationToolbox::ReadString(serialized, "URL");
+    username_ = SerializationToolbox::ReadString(serialized, "Username");
+    password_ = SerializationToolbox::ReadString(serialized, "Password");
+
+    std::string a, b, c;
+    a = SerializationToolbox::ReadString(serialized, "CertificateFile");
+    b = SerializationToolbox::ReadString(serialized, "CertificateKeyFile");
+    c = SerializationToolbox::ReadString(serialized, "CertificateKeyPassword");
+
+    if (!a.empty())
+    {
+      SetClientCertificate(a, b, c);
+    }
+    
+    pkcs11Enabled_ = SerializationToolbox::ReadBoolean(serialized, "PKCS11");
   }
 }

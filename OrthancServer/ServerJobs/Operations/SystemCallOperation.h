@@ -73,6 +73,25 @@ namespace Orthanc
       postArguments_.push_back(argument);
     }
 
+    const std::string& GetCommand() const
+    {
+      return command_;
+    }
+
+    size_t GetPreArgumentsCount() const
+    {
+      return preArguments_.size();
+    }
+
+    size_t GetPostArgumentsCount() const
+    {
+      return postArguments_.size();
+    }
+
+    const std::string& GetPreArgument(size_t i) const;
+
+    const std::string& GetPostArgument(size_t i) const;
+
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
                        IDicomConnectionManager& connectionManager);
