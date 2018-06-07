@@ -891,6 +891,12 @@ TEST(JobsSerialization, GenericJobs)
 }
 
 
+TEST(JobsSerialization, DicomModification)
+{   
+  // TODO : Test serialization of DicomModification
+}
+
+
 TEST(JobsSerialization, Registry)
 {   
   // TODO : Test serialization of JobsRegistry
