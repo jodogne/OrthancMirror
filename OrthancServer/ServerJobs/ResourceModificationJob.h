@@ -70,8 +70,6 @@ namespace Orthanc
     std::auto_ptr<DicomModification>  modification_;
     boost::shared_ptr<Output>         output_;
     bool                              isAnonymization_;
-    MetadataType                      metadataType_;
-    std::string                       description_;
     DicomInstanceOrigin               origin_;
 
   protected:
@@ -84,6 +82,9 @@ namespace Orthanc
     {
     }
 
+    ResourceModificationJob(ServerContext& context,
+                            const Json::Value& serialized);
+
     void SetModification(DicomModification* modification,   // Takes ownership
                          bool isAnonymization);
 
@@ -92,6 +93,18 @@ namespace Orthanc
     void SetOrigin(const DicomInstanceOrigin& origin);
 
     void SetOrigin(const RestApiCall& call);
+
+    const DicomModification& GetModification() const;
+
+    bool IsAnonymization() const
+    {
+      return isAnonymization_;
+    }
+
+    const DicomInstanceOrigin& GetOrigin() const
+    {
+      return origin_;
+    }
 
     virtual void ReleaseResources()
     {

@@ -35,6 +35,7 @@
 #include "DicomInstanceOrigin.h"
 
 #include "../Core/OrthancException.h"
+#include "../Core/SerializationToolbox.h"
 
 
 namespace Orthanc
@@ -81,46 +82,40 @@ namespace Orthanc
   }
 
 
-  void DicomInstanceOrigin::SetDicomProtocolOrigin(const char* remoteIp,
-                                                   const char* remoteAet,
-                                                   const char* calledAet)
+  DicomInstanceOrigin DicomInstanceOrigin::FromDicomProtocol(const char* remoteIp,
+                                                             const char* remoteAet,
+                                                             const char* calledAet)
   {
-    origin_ = RequestOrigin_DicomProtocol;
-    remoteIp_ = remoteIp;
-    dicomRemoteAet_ = remoteAet;
-    dicomCalledAet_ = calledAet;
+    DicomInstanceOrigin result(RequestOrigin_DicomProtocol);
+    result.remoteIp_ = remoteIp;
+    result.dicomRemoteAet_ = remoteAet;
+    result.dicomCalledAet_ = calledAet;
+    return result;
   }
 
-  void DicomInstanceOrigin::SetRestOrigin(const RestApiCall& call)
+  DicomInstanceOrigin DicomInstanceOrigin::FromRest(const RestApiCall& call)
   {
-    origin_ = call.GetRequestOrigin();
+    DicomInstanceOrigin result(call.GetRequestOrigin());
 
-    if (origin_ == RequestOrigin_RestApi)
+    if (result.origin_ == RequestOrigin_RestApi)
     {
-      remoteIp_ = call.GetRemoteIp();
-      httpUsername_ = call.GetUsername();
+      result.remoteIp_ = call.GetRemoteIp();
+      result.httpUsername_ = call.GetUsername();
     }
+
+    return result;
   }
 
-  void DicomInstanceOrigin::SetHttpOrigin(const char* remoteIp,
-                                          const char* username)
+  DicomInstanceOrigin DicomInstanceOrigin::FromHttp(const char* remoteIp,
+                                                    const char* username)
   {
-    origin_ = RequestOrigin_RestApi;
-    remoteIp_ = remoteIp;
-    httpUsername_ = username;
+    DicomInstanceOrigin result(RequestOrigin_RestApi);
+    result.remoteIp_ = remoteIp;
+    result.httpUsername_ = username;
+    return result;
   }
 
-  void DicomInstanceOrigin::SetLuaOrigin()
-  {
-    origin_ = RequestOrigin_Lua;
-  }
-
-  void DicomInstanceOrigin::SetPluginsOrigin()
-  {
-    origin_ = RequestOrigin_Plugins;
-  }
-
-  const char* DicomInstanceOrigin::GetRemoteAet() const
+  const char* DicomInstanceOrigin::GetRemoteAetC() const
   {
     if (origin_ == RequestOrigin_DicomProtocol)
     {
@@ -130,5 +125,71 @@ namespace Orthanc
     {
       return "";
     }
+  }
+
+  const std::string& DicomInstanceOrigin::GetRemoteIp() const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol ||
+        origin_ == RequestOrigin_RestApi)
+    {
+      return remoteIp_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  const std::string& DicomInstanceOrigin::GetCalledAet() const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol)
+    {
+      return dicomCalledAet_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  const std::string& DicomInstanceOrigin::GetHttpUsername() const
+  {
+    if (origin_ == RequestOrigin_RestApi)
+    {
+      return httpUsername_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+
+  static const char* ORIGIN = "Origin";
+  static const char* REMOTE_IP = "RemoteIP";
+  static const char* DICOM_REMOTE_AET = "RemoteAET";
+  static const char* DICOM_CALLED_AET = "CalledAET";
+  static const char* HTTP_USERNAME = "Username";
+  
+
+  DicomInstanceOrigin::DicomInstanceOrigin(const Json::Value& serialized)
+  {
+    origin_ = StringToRequestOrigin(SerializationToolbox::ReadString(serialized, ORIGIN));
+    remoteIp_ = SerializationToolbox::ReadString(serialized, REMOTE_IP);
+    dicomRemoteAet_ = SerializationToolbox::ReadString(serialized, DICOM_REMOTE_AET);
+    dicomCalledAet_ = SerializationToolbox::ReadString(serialized, DICOM_CALLED_AET);
+    httpUsername_ = SerializationToolbox::ReadString(serialized, HTTP_USERNAME);
+  }
+  
+  
+  void DicomInstanceOrigin::Serialize(Json::Value& result) const
+  {
+    result = Json::objectValue;
+    result[ORIGIN] = EnumerationToString(origin_);
+    result[REMOTE_IP] = remoteIp_;
+    result[DICOM_REMOTE_AET] = dicomRemoteAet_;
+    result[DICOM_CALLED_AET] = dicomCalledAet_;
+    result[HTTP_USERNAME] = httpUsername_;
   }
 }

@@ -779,7 +779,7 @@ namespace Orthanc
       // reflecting these additions into the input metadata map
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet,
-                          instanceToStore.GetOrigin().GetRemoteAet());
+                          instanceToStore.GetOrigin().GetRemoteAetC());
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
                           EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
         

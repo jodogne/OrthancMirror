@@ -35,6 +35,7 @@
 #include "ResourceModificationJob.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -259,9 +260,20 @@ namespace Orthanc
   
   void ResourceModificationJob::SetOrigin(const RestApiCall& call)
   {
-    DicomInstanceOrigin tmp;
-    tmp.SetRestOrigin(call);      
-    SetOrigin(tmp);
+    SetOrigin(DicomInstanceOrigin::FromRest(call));
+  }
+
+
+  const DicomModification& ResourceModificationJob::GetModification() const
+  {
+    if (modification_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *modification_;
+    }
   }
 
 
@@ -272,15 +284,38 @@ namespace Orthanc
     value["IsAnonymization"] = isAnonymization_;
   }
 
+
+  static const char* MODIFICATION = "Modification";
+  static const char* ORIGIN = "Origin";
+  static const char* IS_ANONYMIZATION = "IsAnonymization";
+  
+
+  ResourceModificationJob::ResourceModificationJob(ServerContext& context,
+                                                   const Json::Value& serialized) :
+    SetOfInstancesJob(serialized),
+    context_(context)
+  {
+    isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
+    origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
+    modification_.reset(new DicomModification(serialized[MODIFICATION]));
+  }
   
   bool ResourceModificationJob::Serialize(Json::Value& value)
   {
-    SetOfInstancesJob::Serialize(value);
+    if (!SetOfInstancesJob::Serialize(value))
+    {
+      return false;
+    }
+    else
+    {
+      value[IS_ANONYMIZATION] = isAnonymization_;
+      origin_.Serialize(value[ORIGIN]);
+      
+      Json::Value tmp;
+      modification_->Serialize(tmp);
+      value[MODIFICATION] = tmp;
 
-    Json::Value tmp;
-    modification_->Serialize(tmp);
-    value["Modification"] = tmp;
-
-    return true;
+      return true;
+    }
   }
 }

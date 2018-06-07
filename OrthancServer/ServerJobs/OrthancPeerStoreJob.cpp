@@ -101,4 +101,29 @@ namespace Orthanc
     peer_.ToJson(v);
     value["Peer"] = v;
   }
+
+
+  static const char* PEER = "Peer";
+
+  OrthancPeerStoreJob::OrthancPeerStoreJob(ServerContext& context,
+                                           const Json::Value& serialized) :
+    SetOfInstancesJob(serialized),
+    context_(context)
+  {
+    peer_ = WebServiceParameters(serialized[PEER]);
+  }
+
+
+  bool OrthancPeerStoreJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      peer_.Serialize(target[PEER]);
+      return true;
+    }
+  }  
 }

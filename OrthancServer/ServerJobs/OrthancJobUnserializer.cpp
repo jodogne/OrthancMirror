@@ -45,11 +45,32 @@
 #include "Operations/StoreScuOperation.h"
 #include "Operations/SystemCallOperation.h"
 
+#include "DicomModalityStoreJob.h"
+#include "OrthancPeerStoreJob.h"
+#include "ResourceModificationJob.h"
+
 namespace Orthanc
 {
   IJob* OrthancJobUnserializer::UnserializeJob(const Json::Value& source)
   {
-    return GenericJobUnserializer::UnserializeJob(source);
+    const std::string type = SerializationToolbox::ReadString(source, "Type");
+
+    if (type == "DicomModalityStore")
+    {
+      return new DicomModalityStoreJob(context_, source);
+    }
+    else if (type == "OrthancPeerStore")
+    {
+      return new OrthancPeerStoreJob(context_, source);
+    }
+    else if (type == "ResourceModification")
+    {
+      return new ResourceModificationJob(context_, source);
+    }
+    else
+    {
+      return GenericJobUnserializer::UnserializeJob(source);
+    }
   }
 
 

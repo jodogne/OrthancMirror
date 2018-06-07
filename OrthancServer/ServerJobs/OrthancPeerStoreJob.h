@@ -57,6 +57,9 @@ namespace Orthanc
     {
     }
 
+    OrthancPeerStoreJob(ServerContext& context,
+                        const Json::Value& serialize);
+
     void SetPeer(const WebServiceParameters& peer);
 
     const WebServiceParameters& GetPeer() const
@@ -72,5 +75,7 @@ namespace Orthanc
     }
 
     virtual void GetPublicContent(Json::Value& value);
+
+    virtual bool Serialize(Json::Value& target);
   };
 }

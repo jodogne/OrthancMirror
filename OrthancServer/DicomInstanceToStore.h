@@ -154,11 +154,6 @@ namespace Orthanc
       origin_ = origin;
     }
     
-    DicomInstanceOrigin& GetOrigin()
-    {
-      return origin_;
-    }
-    
     const DicomInstanceOrigin& GetOrigin() const
     {
       return origin_;

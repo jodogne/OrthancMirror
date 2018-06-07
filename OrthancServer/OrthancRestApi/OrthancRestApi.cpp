@@ -93,7 +93,7 @@ namespace Orthanc
     std::string postData(call.GetBodyData(), call.GetBodySize());
 
     DicomInstanceToStore toStore;
-    toStore.GetOrigin().SetRestOrigin(call);
+    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
     toStore.SetBuffer(postData);
 
     std::string publicId;
