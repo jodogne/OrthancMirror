@@ -16,11 +16,14 @@ file.
 Supported Platforms
 -------------------
 
-Currently, the officially supported platforms are:
+Currently, the officially validated platforms are:
 
 * GNU/Linux (32bit and 64bit).
-* Windows 32bit.
+* Windows (32bit and 64bit).
 * Apple OS X (32bit and 64bit).
+
+Orthanc is known to work on other UNIX-like platforms (such as FreeBSD
+and OpenBSD).
 
 
 Supported Toolchains
