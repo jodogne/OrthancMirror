@@ -38,12 +38,39 @@
 
 #include "../../../Core/JobsEngine/Operations/StringOperationValue.h"
 #include "../../../Core/Logging.h"
+#include "../../../Core/OrthancException.h"
 #include "../../../Core/SerializationToolbox.h"
 #include "../../../Core/TemporaryFile.h"
 #include "../../../Core/Toolbox.h"
 
 namespace Orthanc
 {
+  const std::string& SystemCallOperation::GetPreArgument(size_t i) const
+  {
+    if (i >= preArguments_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return preArguments_[i];
+    }
+  }
+
+  
+  const std::string& SystemCallOperation::GetPostArgument(size_t i) const
+  {
+    if (i >= postArguments_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return postArguments_[i];
+    }
+  }
+
+
   void SystemCallOperation::Apply(JobOperationValues& outputs,
                                   const JobOperationValue& input,
                                   IDicomConnectionManager& connectionManager)

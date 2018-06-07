@@ -54,6 +54,16 @@ namespace Orthanc
 
     StoreScuOperation(const Json::Value& serialized);
 
+    const std::string& GetLocalAet() const
+    {
+      return localAet_;
+    }
+
+    const RemoteModalityParameters& GetRemoteModality() const
+    {
+      return modality_;
+    }
+
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
                        IDicomConnectionManager& manager);

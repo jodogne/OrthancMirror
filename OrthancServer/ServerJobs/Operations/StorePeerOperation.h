@@ -51,6 +51,11 @@ namespace Orthanc
 
     StorePeerOperation(const Json::Value& serialized);
 
+    const WebServiceParameters& GetPeer() const
+    {
+      return peer_;
+    }
+
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
                        IDicomConnectionManager& connectionManager);
