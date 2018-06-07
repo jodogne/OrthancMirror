@@ -164,6 +164,38 @@ namespace Orthanc
     }
 
 
+    void ReadSetOfTags(std::set<DicomTag>& target,
+                       const Json::Value& value,
+                       const std::string& field)
+    {
+      if (value.type() != Json::objectValue ||
+          !value.isMember(field.c_str()) ||
+          value[field.c_str()].type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      const Json::Value& arr = value[field.c_str()];
+
+      target.clear();
+
+      for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
+      {
+        DicomTag tag(0, 0);
+
+        if (arr[i].type() != Json::stringValue ||
+            !DicomTag::ParseHexadecimal(tag, arr[i].asCString()))
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);        
+        }
+        else
+        {
+          target.insert(tag);
+        }
+      }
+    }
+
+
     void WriteArrayOfStrings(Json::Value& target,
                              const std::vector<std::string>& values,
                              const std::string& field)
@@ -174,15 +206,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      Json::Value tmp;
+      Json::Value& value = target[field];
 
-      tmp = Json::arrayValue;
+      value = Json::arrayValue;
       for (size_t i = 0; i < values.size(); i++)
       {
-        tmp.append(values[i]);
+        value.append(values[i]);
       }
-
-      target[field] = tmp;
     }
 
 
@@ -190,15 +220,43 @@ namespace Orthanc
                            const std::set<std::string>& values,
                            const std::string& field)
     {
-      Json::Value v = Json::arrayValue;
+      if (target.type() != Json::objectValue ||
+          target.isMember(field.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& value = target[field];
+
+      value = Json::arrayValue;
 
       for (std::set<std::string>::const_iterator it = values.begin();
            it != values.end(); ++it)
       {
-        v.append(*it);
+        value.append(*it);
       }
-      
-      target[field] = v;
+    }
+
+
+    void WriteSetOfTags(Json::Value& target,
+                        const std::set<DicomTag>& tags,
+                        const std::string& field)
+    {
+      if (target.type() != Json::objectValue ||
+          target.isMember(field.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& value = target[field];
+
+      value = Json::arrayValue;
+
+      for (std::set<DicomTag>::const_iterator it = tags.begin();
+           it != tags.end(); ++it)
+      {
+        value.append(it->Format());
+      }
     }
   }
 }

@@ -106,27 +106,6 @@
 
 namespace Orthanc
 {
-  static inline uint16_t GetCharValue(char c)
-  {
-    if (c >= '0' && c <= '9')
-      return c - '0';
-    else if (c >= 'a' && c <= 'f')
-      return c - 'a' + 10;
-    else if (c >= 'A' && c <= 'F')
-      return c - 'A' + 10;
-    else
-      return 0;
-  }
-
-  static inline uint16_t GetTagValue(const char* c)
-  {
-    return ((GetCharValue(c[0]) << 12) + 
-            (GetCharValue(c[1]) << 8) + 
-            (GetCharValue(c[2]) << 4) + 
-            GetCharValue(c[3]));
-  }
-
-
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
                                      EmbeddedResources::FileResourceId resource)
@@ -1061,35 +1040,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
   DicomTag FromDcmtkBridge::ParseTag(const char* name)
   {
-    if (strlen(name) == 9 &&
-        isxdigit(name[0]) &&
-        isxdigit(name[1]) &&
-        isxdigit(name[2]) &&
-        isxdigit(name[3]) &&
-        (name[4] == '-' || name[4] == ',') &&
-        isxdigit(name[5]) &&
-        isxdigit(name[6]) &&
-        isxdigit(name[7]) &&
-        isxdigit(name[8]))        
+    DicomTag parsed(0, 0);
+    if (DicomTag::ParseHexadecimal(parsed, name))
     {
-      uint16_t group = GetTagValue(name);
-      uint16_t element = GetTagValue(name + 5);
-      return DicomTag(group, element);
-    }
-
-    if (strlen(name) == 8 &&
-        isxdigit(name[0]) &&
-        isxdigit(name[1]) &&
-        isxdigit(name[2]) &&
-        isxdigit(name[3]) &&
-        isxdigit(name[4]) &&
-        isxdigit(name[5]) &&
-        isxdigit(name[6]) &&
-        isxdigit(name[7]))        
-    {
-      uint16_t group = GetTagValue(name);
-      uint16_t element = GetTagValue(name + 4);
-      return DicomTag(group, element);
+      return parsed;
     }
 
 #if 0
