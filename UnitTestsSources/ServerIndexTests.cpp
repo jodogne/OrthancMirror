@@ -675,7 +675,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage);
+  ServerContext context(db, storage, true /* running unit tests */);
   ServerIndex& index = context.GetIndex();
 
   ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
@@ -773,7 +773,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage);
+  ServerContext context(db, storage, true /* running unit tests */);
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);

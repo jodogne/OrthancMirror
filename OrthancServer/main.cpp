@@ -969,7 +969,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
 
-  ServerContext context(database, storageArea);
+  ServerContext context(database, storageArea, false /* not running unit tests */);
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 

@@ -107,8 +107,9 @@ namespace Orthanc
 
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
-                               IStorageArea& area) :
-    index_(*this, database),
+                               IStorageArea& area,
+                               bool unitTesting) :
+    index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
     storeMD5_(true),
@@ -126,6 +127,7 @@ namespace Orthanc
 
     jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
     //jobsEngine_.SetMaxCompleted   // TODO
+    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
     jobsEngine_.Start();
 
     changeThread_ = boost::thread(ChangeThread, this);

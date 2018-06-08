@@ -54,6 +54,7 @@ namespace Orthanc
     State                        state_;
     JobsRegistry                 registry_;
     boost::thread                retryHandler_;
+    unsigned int                 threadSleep_;
     std::vector<boost::thread*>  workers_;
 
     bool IsRunning();
@@ -72,6 +73,8 @@ namespace Orthanc
     ~JobsEngine();
 
     void SetWorkersCount(size_t count);
+
+    void SetThreadSleep(unsigned int sleep);
     
     JobsRegistry& GetRegistry()
     {

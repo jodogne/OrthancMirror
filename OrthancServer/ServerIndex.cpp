@@ -342,7 +342,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::FlushThread(ServerIndex* that)
+  void ServerIndex::FlushThread(ServerIndex* that,
+                                unsigned int threadSleep)
   {
     // By default, wait for 10 seconds before flushing
     unsigned int sleep = 10;
@@ -368,7 +369,7 @@ namespace Orthanc
 
     while (!that->done_)
     {
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
       count++;
       if (count < sleep)
       {
@@ -538,7 +539,8 @@ namespace Orthanc
 
 
   ServerIndex::ServerIndex(ServerContext& context,
-                           IDatabaseWrapper& db) : 
+                           IDatabaseWrapper& db,
+                           unsigned int threadSleep) : 
     done_(false),
     db_(db),
     maximumStorageSize_(0),
@@ -555,10 +557,11 @@ namespace Orthanc
 
     if (db.HasFlushToDisk())
     {
-      flushThread_ = boost::thread(FlushThread, this);
+      flushThread_ = boost::thread(FlushThread, this, threadSleep);
     }
 
-    unstableResourcesMonitorThread_ = boost::thread(UnstableResourcesMonitorThread, this);
+    unstableResourcesMonitorThread_ = boost::thread
+      (UnstableResourcesMonitorThread, this, threadSleep);
   }
 
 
@@ -1878,7 +1881,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that)
+  void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
+                                                   unsigned int threadSleep)
   {
     int stableAge = Configuration::GetGlobalUnsignedIntegerParameter("StableAge", 60);
     if (stableAge <= 0)
@@ -1890,8 +1894,8 @@ namespace Orthanc
 
     while (!that->done_)
     {
-      // Check for stable resources each second
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      // Check for stable resources each few seconds
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
 
       boost::mutex::scoped_lock lock(that->mutex_);
 
