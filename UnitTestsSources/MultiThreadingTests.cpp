@@ -132,6 +132,8 @@ namespace
 
     virtual bool Serialize(Json::Value& value)
     {
+      value = Json::objectValue;
+      value["Type"] = "DummyJob";
       return true;
     }
 
@@ -179,6 +181,10 @@ namespace
       if (SerializationToolbox::ReadString(value, "Type") == "DummyInstancesJob")
       {
         return new DummyInstancesJob(value);
+      }
+      else if (SerializationToolbox::ReadString(value, "Type") == "DummyJob")
+      {
+        return new DummyJob;
       }
       else
       {
@@ -1465,5 +1471,22 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
 TEST(JobsSerialization, Registry)
 {   
-  // TODO : Test serialization of JobsRegistry
+  Json::Value s;
+  std::string i1, i2;
+
+  {
+    JobsRegistry registry;
+    registry.Submit(i1, new DummyJob(), 10);
+    registry.Submit(i2, new SequenceOfOperationsJob(), 30);
+    registry.Serialize(s);
+  }
+
+  {
+    DummyUnserializer unserializer;
+    JobsRegistry registry(unserializer, s);
+
+    Json::Value t;
+    registry.Serialize(t);
+    ASSERT_TRUE(CheckSameJson(s, t));
+  }
 }
