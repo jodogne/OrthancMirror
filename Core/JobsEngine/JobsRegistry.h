@@ -112,12 +112,17 @@ namespace Orthanc
       
     void RemoveRetryJob(JobHandler* handler);
       
+    void SubmitInternal(std::string& id,
+                        JobHandler* handler);
+    
   public:
     JobsRegistry() :
       maxCompletedJobs_(10)
     {
     }
 
+    JobsRegistry(IJobUnserializer& unserializer,
+                 const Json::Value& s);
 
     ~JobsRegistry();
 
