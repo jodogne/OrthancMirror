@@ -109,6 +109,7 @@ namespace Orthanc
       }
 
       job->GetJobType(jobType_);
+      job->Start();
 
       lastStatus_ = JobStatus(ErrorCode_Success, *job_);
     }
@@ -592,6 +593,11 @@ namespace Orthanc
   void JobsRegistry::SubmitInternal(std::string& id,
                                     JobHandler* handlerRaw)
   {
+    if (handlerRaw == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    
     std::auto_ptr<JobHandler>  handler(handlerRaw);
 
     boost::mutex::scoped_lock lock(mutex_);
@@ -600,8 +606,32 @@ namespace Orthanc
     id = handler->GetId();
     int priority = handler->GetPriority();
 
-    pendingJobs_.push(handler.get());
-    pendingJobAvailable_.notify_one();
+    switch (handler->GetState())
+    {
+      case JobState_Pending:
+      case JobState_Retry:
+      case JobState_Running:
+        handler->SetState(JobState_Pending);
+        pendingJobs_.push(handler.get());
+        pendingJobAvailable_.notify_one();
+        break;
+ 
+      case JobState_Success:
+        SetCompletedJob(*handler, true);
+        break;
+        
+      case JobState_Failure:
+        SetCompletedJob(*handler, false);
+        break;
+
+      case JobState_Paused:
+        break;
+        
+      default:
+        LOG(ERROR) << "A job should not be loaded from state: "
+                   << EnumerationToString(handler->GetState());
+        throw OrthancException(ErrorCode_InternalError);
+    }
 
     jobsIndex_.insert(std::make_pair(id, handler.release()));
 
