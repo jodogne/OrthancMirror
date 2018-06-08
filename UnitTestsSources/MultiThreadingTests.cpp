@@ -666,6 +666,7 @@ TEST(JobsRegistry, Cancel)
 TEST(JobsEngine, SubmitAndWait)
 {
   JobsEngine engine;
+  engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
 
@@ -679,6 +680,7 @@ TEST(JobsEngine, SubmitAndWait)
 TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 {
   JobsEngine engine;
+  engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
 
@@ -714,6 +716,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 TEST(JobsEngine, DISABLED_Lua)
 {
   JobsEngine engine;
+  engine.SetThreadSleep(10);
   engine.SetWorkersCount(2);
   engine.Start();
 
@@ -778,6 +781,8 @@ TEST(JobsSerialization, JobOperationValues)
     values.Append(new NullOperationValue);
     values.Append(new StringOperationValue("hello"));
     values.Append(new StringOperationValue("world"));
+
+    s = 42;
     values.Serialize(s);
   }
 
@@ -801,6 +806,8 @@ TEST(JobsSerialization, GenericValues)
 
   {
     NullOperationValue null;
+
+    s = 42;
     null.Serialize(s);
   }
 
@@ -815,6 +822,8 @@ TEST(JobsSerialization, GenericValues)
 
   {
     StringOperationValue str("Hello");
+
+    s = 42;
     str.Serialize(s);
   }
 
@@ -833,6 +842,8 @@ TEST(JobsSerialization, GenericOperations)
 
   {
     LogJobOperation operation;
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -868,6 +879,8 @@ TEST(JobsSerialization, GenericJobs)
     job.Start();
     job.ExecuteStep();
     job.ExecuteStep();
+
+    s = 42;
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -891,8 +904,6 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_EQ("world", tmp.GetInstance(2));
     ASSERT_TRUE(tmp.IsFailedInstance("nope"));
   }
-
-  // TODO : Test SequenceOfOperationsJob.h
 }
 
 
@@ -927,6 +938,8 @@ TEST(JobsSerialization, DicomModification)
     modification.Replace(DICOM_TAG_PATIENT_NAME, "Test 4", true);
 
     modification.Apply(*modified);
+
+    s = 42;
     modification.Serialize(s);
   }
 
@@ -959,6 +972,8 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 
   {
     DicomInstanceOrigin origin;
+
+    s = 42;
     origin.Serialize(s);
   }
 
@@ -973,6 +988,8 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 
   {
     DicomInstanceOrigin origin(DicomInstanceOrigin::FromDicomProtocol("host", "aet", "called"));
+
+    s = 42;
     origin.Serialize(s);
   }
 
@@ -987,6 +1004,8 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 
   {
     DicomInstanceOrigin origin(DicomInstanceOrigin::FromHttp("host", "username"));
+
+    s = 42;
     origin.Serialize(s);
   }
 
@@ -1001,6 +1020,8 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 
   {
     DicomInstanceOrigin origin(DicomInstanceOrigin::FromLua());
+
+    s = 42;
     origin.Serialize(s);
   }
 
@@ -1011,6 +1032,8 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 
   {
     DicomInstanceOrigin origin(DicomInstanceOrigin::FromPlugins());
+
+    s = 42;
     origin.Serialize(s);
   }
 
@@ -1041,7 +1064,7 @@ namespace
     OrthancJobsSerialization()
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_));
+      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */));
     }
 
     virtual ~OrthancJobsSerialization()
@@ -1081,6 +1104,8 @@ TEST_F(OrthancJobsSerialization, Values)
 
   {
     DicomInstanceOperationValue instance(GetContext(), id);
+
+    s = 42;
     instance.Serialize(s);
   }
 
@@ -1113,6 +1138,8 @@ TEST_F(OrthancJobsSerialization, Operations)
   
   {
     DeleteResourceOperation operation(GetContext());
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -1136,6 +1163,8 @@ TEST_F(OrthancJobsSerialization, Operations)
     peer.SetPkcs11Enabled(true);
 
     StorePeerOperation operation(peer);
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -1159,6 +1188,8 @@ TEST_F(OrthancJobsSerialization, Operations)
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
     StoreScuOperation operation("TEST", modality);
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -1180,6 +1211,8 @@ TEST_F(OrthancJobsSerialization, Operations)
     operation.AddPreArgument("a");
     operation.AddPreArgument("b");
     operation.AddPostArgument("c");
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -1202,6 +1235,8 @@ TEST_F(OrthancJobsSerialization, Operations)
     modification->SetupAnonymization(DicomVersion_2008);
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
+
+    s = 42;
     operation.Serialize(s);
   }
 
@@ -1240,7 +1275,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetLocalAet("LOCAL");
     job.SetRemoteModality(modality);
     job.SetMoveOriginator("MOVESCU", 42);
-    
+
+    s = 42;
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1273,6 +1309,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     OrthancPeerStoreJob job(GetContext());
     job.SetPeer(peer);
     
+    s = 42;
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1297,6 +1334,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetModification(modification.release(), true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
     
+    s = 42;
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1309,4 +1347,15 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
   }
+
+  // SequenceOfOperationsJob.h
+
+  {
+    SequenceOfOperationsJob job;
+    
+    s = 42;
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  std::cout << s;
 }
