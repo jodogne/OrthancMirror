@@ -74,9 +74,14 @@ namespace Orthanc
   public:
     SequenceOfOperationsJob();
 
+    SequenceOfOperationsJob(IJobUnserializer& unserializer,
+                            const Json::Value& serialized);
+
     virtual ~SequenceOfOperationsJob();
 
     void SetDescription(const std::string& description);
+
+    void GetDescription(std::string& description);
 
     void Register(IObserver& observer);
 

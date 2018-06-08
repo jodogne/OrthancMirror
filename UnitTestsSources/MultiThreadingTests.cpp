@@ -36,6 +36,7 @@
 
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/Logging.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/OrthancException.h"
 #include "../Core/SerializationToolbox.h"
@@ -744,6 +745,81 @@ TEST(JobsEngine, DISABLED_Lua)
 }
 
 
+static bool CheckSameJson(const Json::Value& a,
+                          const Json::Value& b)
+{
+  std::string s = a.toStyledString();
+  std::string t = b.toStyledString();
+
+  if (s == t)
+  {
+    return true;
+  }
+  else
+  {
+    LOG(ERROR) << "Expected serialization: " << s;
+    LOG(ERROR) << "Actual serialization: " << t;
+    return false;
+  }
+}
+
+
+static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
+                                         IJob& job)
+{
+  Json::Value a = 42;
+  
+  if (!job.Serialize(a))
+  {
+    return false;
+  }
+  else
+  {
+    std::auto_ptr<IJob> unserialized(unserializer.UnserializeJob(a));
+  
+    Json::Value b = 43;
+    if (unserialized->Serialize(b))
+    {
+      return CheckSameJson(a, b);
+    }
+    else
+    {
+      return false;
+    }
+  }
+}
+
+
+static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
+                                         IJobOperation& operation)
+{
+  Json::Value a = 42;
+  operation.Serialize(a);
+  
+  std::auto_ptr<IJobOperation> unserialized(unserializer.UnserializeOperation(a));
+  
+  Json::Value b = 43;
+  unserialized->Serialize(b);
+
+  return CheckSameJson(a, b);
+}
+
+
+static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
+                                         JobOperationValue& value)
+{
+  Json::Value a = 42;
+  value.Serialize(a);
+  
+  std::auto_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
+  
+  Json::Value b = 43;
+  unserialized->Serialize(b);
+
+  return CheckSameJson(a, b);
+}
+
+
 TEST(JobsSerialization, BadFileFormat)
 {
   GenericJobUnserializer unserializer;
@@ -802,16 +878,16 @@ TEST(JobsSerialization, JobOperationValues)
 
 TEST(JobsSerialization, GenericValues)
 {
+  GenericJobUnserializer unserializer;
   Json::Value s;
 
   {
     NullOperationValue null;
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, null));
     null.Serialize(s);
   }
 
-  GenericJobUnserializer unserializer;
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
@@ -823,7 +899,7 @@ TEST(JobsSerialization, GenericValues)
   {
     StringOperationValue str("Hello");
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, str));
     str.Serialize(s);
   }
 
@@ -838,16 +914,16 @@ TEST(JobsSerialization, GenericValues)
 
 TEST(JobsSerialization, GenericOperations)
 {   
+  DummyUnserializer unserializer;
   Json::Value s;
 
   {
     LogJobOperation operation;
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
-  DummyUnserializer unserializer;
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
 
@@ -880,7 +956,11 @@ TEST(JobsSerialization, GenericJobs)
     job.ExecuteStep();
     job.ExecuteStep();
 
-    s = 42;
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+    }
+    
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -904,6 +984,46 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_EQ("world", tmp.GetInstance(2));
     ASSERT_TRUE(tmp.IsFailedInstance("nope"));
   }
+
+  // SequenceOfOperationsJob
+
+  {
+    SequenceOfOperationsJob job;
+    job.SetDescription("hello");
+
+    {
+      SequenceOfOperationsJob::Lock lock(job);
+      size_t a = lock.AddOperation(new LogJobOperation);
+      size_t b = lock.AddOperation(new LogJobOperation);
+      lock.Connect(a, b);
+      lock.AddInput(a, StringOperationValue("hello"));
+      lock.AddInput(a, StringOperationValue("world"));
+      lock.SetDicomAssociationTimeout(200);
+      lock.SetTrailingOperationTimeout(300);
+    }
+
+    ASSERT_EQ(JobStepCode_Continue, job.ExecuteStep().GetCode());
+
+    {
+      GenericJobUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+    }
+    
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    GenericJobUnserializer unserializer;
+    ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
+    ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
+
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    std::string tmp;
+    dynamic_cast<SequenceOfOperationsJob&>(*job).GetDescription(tmp);
+    ASSERT_EQ("hello", tmp);
+  }  
 }
 
 
@@ -1044,12 +1164,6 @@ TEST(JobsSerialization, DicomInstanceOrigin)
 }
 
 
-TEST(JobsSerialization, Registry)
-{   
-  // TODO : Test serialization of JobsRegistry
-}
-
-
 namespace
 {
   class OrthancJobsSerialization : public testing::Test
@@ -1101,16 +1215,15 @@ TEST_F(OrthancJobsSerialization, Values)
   ASSERT_TRUE(CreateInstance(id));
 
   Json::Value s;
-
+  OrthancJobUnserializer unserializer(GetContext());
+    
   {
     DicomInstanceOperationValue instance(GetContext(), id);
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, instance));
     instance.Serialize(s);
   }
 
-  OrthancJobUnserializer unserializer(GetContext());
-    
   std::auto_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
@@ -1133,17 +1246,17 @@ TEST_F(OrthancJobsSerialization, Operations)
   ASSERT_TRUE(CreateInstance(id));
 
   Json::Value s;
+  OrthancJobUnserializer unserializer(GetContext()); 
 
   // DeleteResourceOperation
   
   {
     DeleteResourceOperation operation(GetContext());
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
-  OrthancJobUnserializer unserializer(GetContext()); 
   std::auto_ptr<IJobOperation> operation;
 
   {
@@ -1164,7 +1277,7 @@ TEST_F(OrthancJobsSerialization, Operations)
 
     StorePeerOperation operation(peer);
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
@@ -1189,7 +1302,7 @@ TEST_F(OrthancJobsSerialization, Operations)
 
     StoreScuOperation operation("TEST", modality);
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
@@ -1212,7 +1325,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     operation.AddPreArgument("b");
     operation.AddPostArgument("c");
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
@@ -1236,7 +1349,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
     operation.Serialize(s);
   }
 
@@ -1264,6 +1377,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
   // DicomModalityStoreJob
 
+  OrthancJobUnserializer unserializer(GetContext()); 
+
   {
     RemoteModalityParameters modality;
     modality.SetApplicationEntityTitle("REMOTE");
@@ -1276,11 +1391,9 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetRemoteModality(modality);
     job.SetMoveOriginator("MOVESCU", 42);
 
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
-
-  OrthancJobUnserializer unserializer(GetContext()); 
 
   {
     std::auto_ptr<IJob> job;
@@ -1309,7 +1422,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     OrthancPeerStoreJob job(GetContext());
     job.SetPeer(peer);
     
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1334,7 +1447,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetModification(modification.release(), true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
     
-    s = 42;
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1347,15 +1460,10 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
   }
+}
 
-  // SequenceOfOperationsJob.h
 
-  {
-    SequenceOfOperationsJob job;
-    
-    s = 42;
-    ASSERT_TRUE(job.Serialize(s));
-  }
-
-  std::cout << s;
+TEST(JobsSerialization, Registry)
+{   
+  // TODO : Test serialization of JobsRegistry
 }
