@@ -581,6 +581,7 @@ namespace Orthanc
     {
       LOG(INFO) << "Starting the Lua engine";
       eventThread_ = boost::thread(EventThread, this);
+      state_ = State_Running;
     }
   }
 

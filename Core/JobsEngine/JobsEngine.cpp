@@ -120,7 +120,7 @@ namespace Orthanc
 
     while (engine->IsRunning())
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(engine->threadSleep_));
       engine->GetRegistry().ScheduleRetries();
     }
   }
@@ -135,7 +135,7 @@ namespace Orthanc
 
     while (engine->IsRunning())
     {
-      JobsRegistry::RunningJob running(engine->GetRegistry(), 100);
+      JobsRegistry::RunningJob running(engine->GetRegistry(), engine->threadSleep_);
 
       if (running.IsValid())
       {
@@ -156,6 +156,7 @@ namespace Orthanc
 
   JobsEngine::JobsEngine() :
     state_(State_Setup),
+    threadSleep_(200),
     workers_(1)
   {
   }
@@ -184,7 +185,21 @@ namespace Orthanc
 
     workers_.resize(count);
   }
-    
+
+
+  void JobsEngine::SetThreadSleep(unsigned int sleep)
+  {
+    boost::mutex::scoped_lock lock(stateMutex_);
+      
+    if (state_ != State_Setup)
+    {
+      // Can only be invoked before calling "Start()"
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    threadSleep_ = sleep;
+  }
+
 
   void JobsEngine::Start()
   {

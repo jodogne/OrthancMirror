@@ -158,7 +158,8 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database,
-                  IStorageArea& area);
+                  IStorageArea& area,
+                  bool unitTesting);
 
     ~ServerContext();
 

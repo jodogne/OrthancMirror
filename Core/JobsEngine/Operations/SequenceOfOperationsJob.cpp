@@ -365,6 +365,8 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
+    value = Json::objectValue;
+    
     Json::Value tmp = Json::arrayValue;
     for (size_t i = 0; i < operations_.size(); i++)
     {
