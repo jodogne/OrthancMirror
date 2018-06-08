@@ -52,7 +52,7 @@ namespace Orthanc
 
     boost::mutex                 stateMutex_;
     State                        state_;
-    JobsRegistry                 registry_;
+    std::auto_ptr<JobsRegistry>  registry_;
     boost::thread                retryHandler_;
     unsigned int                 threadSleep_;
     std::vector<boost::thread*>  workers_;
@@ -72,14 +72,17 @@ namespace Orthanc
 
     ~JobsEngine();
 
+    JobsRegistry& GetRegistry();
+
+    void LoadRegistryFromJson(IJobUnserializer& unserializer,
+                              const Json::Value& serialized);
+
+    void LoadRegistryFromString(IJobUnserializer& unserializer,
+                                const std::string& serialized);
+
     void SetWorkersCount(size_t count);
 
     void SetThreadSleep(unsigned int sleep);
-    
-    JobsRegistry& GetRegistry()
-    {
-      return registry_;
-    }
 
     void Start();
 

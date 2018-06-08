@@ -37,6 +37,8 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <json/reader.h>
+
 namespace Orthanc
 {
   bool JobsEngine::IsRunning()
@@ -156,6 +158,7 @@ namespace Orthanc
 
   JobsEngine::JobsEngine() :
     state_(State_Setup),
+    registry_(new JobsRegistry),
     threadSleep_(200),
     workers_(1)
   {
@@ -172,7 +175,49 @@ namespace Orthanc
     }
   }
 
-    
+ 
+  JobsRegistry& JobsEngine::GetRegistry()
+  {
+    if (registry_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    return *registry_;
+  }
+  
+   
+  void JobsEngine::LoadRegistryFromJson(IJobUnserializer& unserializer,
+                                        const Json::Value& serialized)
+  {
+    boost::mutex::scoped_lock lock(stateMutex_);
+      
+    if (state_ != State_Setup)
+    {
+      // Can only be invoked before calling "Start()"
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    registry_.reset(new JobsRegistry(unserializer, serialized));
+  }
+
+
+  void JobsEngine::LoadRegistryFromString(IJobUnserializer& unserializer,
+                                          const std::string& serialized)
+  {
+    Json::Value value;
+    Json::Reader reader;
+    if (reader.parse(serialized, value))
+    {
+      LoadRegistryFromJson(unserializer, value);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
   void JobsEngine::SetWorkersCount(size_t count)
   {
     boost::mutex::scoped_lock lock(stateMutex_);
