@@ -258,6 +258,9 @@ namespace Orthanc
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
 
+    bool LookupGlobalProperty(std::string& value,
+                              GlobalProperty property);
+
     std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue);
 

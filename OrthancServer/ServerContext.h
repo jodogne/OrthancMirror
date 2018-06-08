@@ -104,10 +104,15 @@ namespace Orthanc
     typedef std::list<ServerListener>  ServerListeners;
 
 
-    static void ChangeThread(ServerContext* that);
+    static void ChangeThread(ServerContext* that,
+                             unsigned int sleepDelay);
 
     void ReadDicomAsJsonInternal(std::string& result,
                                  const std::string& instancePublicId);
+
+    void SetupJobsEngine(bool unitTesting);
+
+    void SaveJobsEngine();
 
     ServerIndex index_;
     IStorageArea& area_;

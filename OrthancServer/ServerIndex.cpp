@@ -2096,13 +2096,20 @@ namespace Orthanc
   }
 
 
+  bool ServerIndex::LookupGlobalProperty(std::string& value,
+                                         GlobalProperty property)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return db_.LookupGlobalProperty(value, property);
+  }
+  
+
   std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
                                              const std::string& defaultValue)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     std::string value;
-    if (db_.LookupGlobalProperty(value, property))
+
+    if (LookupGlobalProperty(value, property))
     {
       return value;
     }

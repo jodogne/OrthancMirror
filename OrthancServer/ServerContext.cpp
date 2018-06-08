@@ -34,20 +34,21 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "ServerToolbox.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 #include "OrthancInitialization.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "Search/LookupResource.h"
+#include "ServerJobs/OrthancJobUnserializer.h"
+#include "ServerToolbox.h"
 
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "OrthancRestApi/OrthancRestApi.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
-#include "Search/LookupResource.h"
 
 
 #define ENABLE_DICOM_CACHE  1
@@ -65,11 +66,12 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  void ServerContext::ChangeThread(ServerContext* that)
+  void ServerContext::ChangeThread(ServerContext* that,
+                                   unsigned int sleepDelay)
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(100));
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
         
       if (obj.get() != NULL)
       {
@@ -106,6 +108,58 @@ namespace Orthanc
   }
 
 
+  void ServerContext::SetupJobsEngine(bool unitTesting)
+  {
+    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
+
+    std::string serialized;
+    if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+    {
+      LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
+      OrthancJobUnserializer unserializer(*this);
+
+      try
+      {
+        jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
+        throw;
+      }
+    }
+    else
+    {
+      LOG(INFO) << "The last execution of Orthanc has archived no job";
+      //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
+    }
+
+    jobsEngine_.Start();
+  }
+
+
+  void ServerContext::SaveJobsEngine()
+  {
+    LOG(INFO) << "Serializing the content of the jobs engine";
+    
+    try
+    {
+      Json::Value value;
+      jobsEngine_.GetRegistry().Serialize(value);
+
+      Json::FastWriter writer;
+      std::string serialized = writer.write(value);
+
+      index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+    }
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
                                bool unitTesting) :
@@ -125,12 +179,9 @@ namespace Orthanc
   {
     listeners_.push_back(ServerListener(lua_, "Lua"));
 
-    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
-    //jobsEngine_.SetMaxCompleted   // TODO
-    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
-    jobsEngine_.Start();
+    SetupJobsEngine(unitTesting);
 
-    changeThread_ = boost::thread(ChangeThread, this);
+    changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -160,6 +211,8 @@ namespace Orthanc
       {
         changeThread_.join();
       }
+
+      SaveJobsEngine();
 
       // Do not change the order below!
       jobsEngine_.Stop();
