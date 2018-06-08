@@ -1358,7 +1358,8 @@ namespace Orthanc
   }
 
   
-  DicomModification::DicomModification(const Json::Value& serialized)
+  DicomModification::DicomModification(const Json::Value& serialized) :
+    identifierGenerator_(NULL)
   {
     removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
     level_ = StringToResourceType(SerializationToolbox::ReadString(serialized, LEVEL).c_str());

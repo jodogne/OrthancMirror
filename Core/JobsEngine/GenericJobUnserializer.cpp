@@ -40,6 +40,7 @@
 
 #include "Operations/LogJobOperation.h"
 #include "Operations/NullOperationValue.h"
+#include "Operations/SequenceOfOperationsJob.h"
 #include "Operations/StringOperationValue.h"
 
 namespace Orthanc
@@ -48,8 +49,15 @@ namespace Orthanc
   {
     const std::string type = SerializationToolbox::ReadString(source, "Type");
 
-    LOG(ERROR) << "Cannot unserialize job of type: " << type;
-    throw OrthancException(ErrorCode_BadFileFormat);
+    if (type == "SequenceOfOperations")
+    {
+      return new SequenceOfOperationsJob(*this, source);
+    }
+    else
+    {
+      LOG(ERROR) << "Cannot unserialize job of type: " << type;
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
 
 
