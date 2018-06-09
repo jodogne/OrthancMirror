@@ -98,7 +98,7 @@ namespace Orthanc
     SetOfInstancesJob::GetPublicContent(value);
     
     Json::Value v;
-    peer_.ToJson(v);
+    peer_.ToJson(v, false /* don't include passwords */);
     value["Peer"] = v;
   }
 

@@ -128,7 +128,8 @@ namespace Orthanc
 
     void FromJson(const Json::Value& peer);
 
-    void ToJson(Json::Value& value) const;
+    void ToJson(Json::Value& value,
+                bool includePasswords) const;
 
     void Serialize(Json::Value& target) const;
   };

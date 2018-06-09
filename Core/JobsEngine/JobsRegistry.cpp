@@ -50,6 +50,7 @@ namespace Orthanc
   static const char* JOBS_REGISTRY = "JobsRegistry";
   static const char* MAX_COMPLETED_JOBS = "MaxCompletedJobs";
   static const char* CREATION_TIME = "CreationTime";
+  static const char* LAST_CHANGE_TIME = "LastChangeTime";
   static const char* RUNTIME = "Runtime";
   
 
@@ -226,6 +227,11 @@ namespace Orthanc
       return lastStateChangeTime_;
     }
 
+    void SetLastStateChangeTime(const boost::posix_time::ptime& time)
+    {
+      lastStateChangeTime_ = time;
+    }
+
     const boost::posix_time::time_duration& GetRuntime() const
     {
       return runtime_;
@@ -282,6 +288,7 @@ namespace Orthanc
         target[STATE] = EnumerationToString(state_);
         target[PRIORITY] = priority_;
         target[CREATION_TIME] = boost::posix_time::to_iso_string(creationTime_);
+        target[LAST_CHANGE_TIME] = boost::posix_time::to_iso_string(lastStateChangeTime_);
         target[RUNTIME] = static_cast<unsigned int>(runtime_.total_milliseconds());
         return true;
       }
@@ -294,7 +301,6 @@ namespace Orthanc
 
     JobHandler(IJobUnserializer& unserializer,
                const Json::Value& serialized) :
-      lastStateChangeTime_(boost::posix_time::microsec_clock::universal_time()),
       pauseScheduled_(false),
       cancelScheduled_(false)
     {
@@ -303,16 +309,12 @@ namespace Orthanc
       priority_ = SerializationToolbox::ReadInteger(serialized, PRIORITY);
       creationTime_ = boost::posix_time::from_iso_string
         (SerializationToolbox::ReadString(serialized, CREATION_TIME));
+      lastStateChangeTime_ = boost::posix_time::from_iso_string
+        (SerializationToolbox::ReadString(serialized, LAST_CHANGE_TIME));
       runtime_ = boost::posix_time::milliseconds
         (SerializationToolbox::ReadInteger(serialized, RUNTIME));
 
       retryTime_ = creationTime_;
-
-      if (state_ == JobState_Retry ||
-          state_ == JobState_Running) 
-      {
-        state_ = JobState_Pending;
-      }
 
       job_.reset(unserializer.UnserializeJob(serialized[JOB]));
       job_->GetJobType(jobType_);
@@ -591,7 +593,8 @@ namespace Orthanc
 
 
   void JobsRegistry::SubmitInternal(std::string& id,
-                                    JobHandler* handlerRaw)
+                                    JobHandler* handlerRaw,
+                                    bool keepLastChangeTime)
   {
     if (handlerRaw == NULL)
     {
@@ -599,6 +602,8 @@ namespace Orthanc
     }
     
     std::auto_ptr<JobHandler>  handler(handlerRaw);
+
+    boost::posix_time::ptime lastChangeTime = handler->GetLastStateChangeTime();
 
     boost::mutex::scoped_lock lock(mutex_);
     CheckInvariants();
@@ -633,6 +638,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
+    if (keepLastChangeTime)
+    {
+      handler->SetLastStateChangeTime(lastChangeTime);
+    }
+    
     jobsIndex_.insert(std::make_pair(id, handler.release()));
 
     LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
@@ -645,7 +655,7 @@ namespace Orthanc
                             IJob* job,        // Takes ownership
                             int priority)
   {
-    SubmitInternal(id, new JobHandler(job, priority));
+    SubmitInternal(id, new JobHandler(job, priority), false);
   }
 
 
@@ -653,7 +663,7 @@ namespace Orthanc
                             int priority)
   {
     std::string id;
-    SubmitInternal(id, new JobHandler(job, priority));
+    SubmitInternal(id, new JobHandler(job, priority), false);
   }
 
 
@@ -1250,9 +1260,9 @@ namespace Orthanc
     for (Json::Value::ArrayIndex i = 0; i < s[JOBS].size(); i++)
     {
       std::auto_ptr<JobHandler> job(new JobHandler(unserializer, s[JOBS][i]));
-
+      
       std::string id;
-      SubmitInternal(id, job.release());
+      SubmitInternal(id, job.release(), true);
     }
   }
 }
