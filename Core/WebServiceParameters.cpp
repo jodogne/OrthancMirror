@@ -130,6 +130,11 @@ namespace Orthanc
       SetUsername("");
       SetPassword("");
     }
+    else if (peer.size() == 2)
+    {
+      LOG(ERROR) << "The HTTP password is not provided";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
     else if (peer.size() == 3)
     {
       SetUsername(peer.get(1u, "").asString());
@@ -178,12 +183,25 @@ namespace Orthanc
     SetUsername(GetStringMember(peer, "Username", ""));
     SetPassword(GetStringMember(peer, "Password", ""));
 
+    if (!username_.empty() &&
+        !peer.isMember("Password"))
+    {
+      LOG(ERROR) << "The HTTP password is not provided";
+      throw OrthancException(ErrorCode_BadFileFormat);      
+    }
+
 #if ORTHANC_SANDBOXED == 0
     if (peer.isMember("CertificateFile"))
     {
       SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
                            GetStringMember(peer, "CertificateKeyFile", ""),
                            GetStringMember(peer, "CertificateKeyPassword", ""));
+
+      if (!peer.isMember("CertificateKeyPassword"))
+      {
+        LOG(ERROR) << "The password for the HTTPS certificate is not provided";
+        throw OrthancException(ErrorCode_BadFileFormat);      
+      }
     }
 #endif
 
@@ -229,7 +247,8 @@ namespace Orthanc
   }
 
 
-  void WebServiceParameters::ToJson(Json::Value& value) const
+  void WebServiceParameters::ToJson(Json::Value& value,
+                                    bool includePasswords) const
   {
     if (advancedFormat_)
     {
@@ -240,7 +259,11 @@ namespace Orthanc
           !password_.empty())
       {
         value["Username"] = username_;
-        value["Password"] = password_;
+
+        if (includePasswords)
+        {
+          value["Password"] = password_;
+        }
       }
 
       if (!certificateFile_.empty())
@@ -253,7 +276,8 @@ namespace Orthanc
         value["CertificateKeyFile"] = certificateKeyFile_;
       }
 
-      if (!certificateKeyPassword_.empty())
+      if (!certificateKeyPassword_.empty() &&
+          includePasswords)
       {
         value["CertificateKeyPassword"] = certificateKeyPassword_;
       }
@@ -267,7 +291,11 @@ namespace Orthanc
           !password_.empty())
       {
         value.append(username_);
-        value.append(password_);
+
+        if (includePasswords)
+        {
+          value.append(password_);
+        }
       }
     }
   }
@@ -283,6 +311,7 @@ namespace Orthanc
     target["CertificateKeyFile"] = certificateKeyFile_;
     target["CertificateKeyPassword"] = certificateKeyPassword_;
     target["PKCS11"] = pkcs11Enabled_;
+    target["AdvancedFormat"] = advancedFormat_;
   }
 
   
@@ -304,5 +333,6 @@ namespace Orthanc
     }
     
     pkcs11Enabled_ = SerializationToolbox::ReadBoolean(serialized, "PKCS11");
+    advancedFormat_ = SerializationToolbox::ReadBoolean(serialized, "AdvancedFormat");
   }
 }

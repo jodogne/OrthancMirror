@@ -960,7 +960,7 @@ namespace Orthanc
     peers.removeMember(symbolicName);
 
     Json::Value v;
-    peer.ToJson(v);
+    peer.ToJson(v, true);
     peers[symbolicName] = v;
   }
   
