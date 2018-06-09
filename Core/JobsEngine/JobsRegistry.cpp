@@ -41,7 +41,6 @@
 
 namespace Orthanc
 {
-  static const char* ID = "ID";
   static const char* STATE = "State";
   static const char* TYPE = "Type";
   static const char* PRIORITY = "Priority";
@@ -284,7 +283,6 @@ namespace Orthanc
 
       if (ok)
       {
-        target[ID] = id_;
         target[STATE] = EnumerationToString(state_);
         target[PRIORITY] = priority_;
         target[CREATION_TIME] = boost::posix_time::to_iso_string(creationTime_);
@@ -300,11 +298,12 @@ namespace Orthanc
     }
 
     JobHandler(IJobUnserializer& unserializer,
-               const Json::Value& serialized) :
+               const Json::Value& serialized,
+               const std::string& id) :
+      id_(id),
       pauseScheduled_(false),
       cancelScheduled_(false)
     {
-      id_ = SerializationToolbox::ReadString(serialized, ID);
       state_ = StringToJobState(SerializationToolbox::ReadString(serialized, STATE));
       priority_ = SerializationToolbox::ReadInteger(serialized, PRIORITY);
       creationTime_ = boost::posix_time::from_iso_string
@@ -1231,7 +1230,7 @@ namespace Orthanc
     target = Json::objectValue;
     target[TYPE] = JOBS_REGISTRY;
     target[MAX_COMPLETED_JOBS] = static_cast<unsigned int>(maxCompletedJobs_);
-    target[JOBS] = Json::arrayValue;
+    target[JOBS] = Json::objectValue;
     
     for (JobsIndex::const_iterator it = jobsIndex_.begin(); 
          it != jobsIndex_.end(); ++it)
@@ -1239,7 +1238,7 @@ namespace Orthanc
       Json::Value v;
       if (it->second->Serialize(v))
       {
-        target[JOBS].append(v);
+        target[JOBS][it->first] = v;
       }
     }
   }
@@ -1250,16 +1249,19 @@ namespace Orthanc
   {
     if (SerializationToolbox::ReadString(s, TYPE) != JOBS_REGISTRY ||
         !s.isMember(JOBS) ||
-        s[JOBS].type() != Json::arrayValue)
+        s[JOBS].type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     maxCompletedJobs_ = SerializationToolbox::ReadUnsignedInteger(s, MAX_COMPLETED_JOBS);
 
-    for (Json::Value::ArrayIndex i = 0; i < s[JOBS].size(); i++)
+    Json::Value::Members members = s[JOBS].getMemberNames();
+
+    for (Json::Value::Members::const_iterator it = members.begin();
+         it != members.end(); ++it)
     {
-      std::auto_ptr<JobHandler> job(new JobHandler(unserializer, s[JOBS][i]));
+      std::auto_ptr<JobHandler> job(new JobHandler(unserializer, s[JOBS][*it], *it));
       
       std::string id;
       SubmitInternal(id, job.release(), true);
