@@ -292,7 +292,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "Job backup is not supported for job of type: " << jobType_;
+        LOG(INFO) << "Job backup is not supported for job of type: " << jobType_;
         return false;
       }
     }
@@ -475,6 +475,18 @@ namespace Orthanc
     assert(job.GetState() == JobState_Running);
     SetCompletedJob(job, success);
 
+    if (observer_ != NULL)
+    {
+      if (success)
+      {
+        observer_->SignalJobSuccess(job.GetId());
+      }
+      else
+      {
+        observer_->SignalJobFailure(job.GetId());
+      }
+    }
+
     CheckInvariants();
   }
 
@@ -604,49 +616,56 @@ namespace Orthanc
 
     boost::posix_time::ptime lastChangeTime = handler->GetLastStateChangeTime();
 
-    boost::mutex::scoped_lock lock(mutex_);
-    CheckInvariants();
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      CheckInvariants();
       
-    id = handler->GetId();
-    int priority = handler->GetPriority();
+      id = handler->GetId();
+      int priority = handler->GetPriority();
 
-    switch (handler->GetState())
-    {
-      case JobState_Pending:
-      case JobState_Retry:
-      case JobState_Running:
-        handler->SetState(JobState_Pending);
-        pendingJobs_.push(handler.get());
-        pendingJobAvailable_.notify_one();
-        break;
+      switch (handler->GetState())
+      {
+        case JobState_Pending:
+        case JobState_Retry:
+        case JobState_Running:
+          handler->SetState(JobState_Pending);
+          pendingJobs_.push(handler.get());
+          pendingJobAvailable_.notify_one();
+          break;
  
-      case JobState_Success:
-        SetCompletedJob(*handler, true);
-        break;
+        case JobState_Success:
+          SetCompletedJob(*handler, true);
+          break;
         
-      case JobState_Failure:
-        SetCompletedJob(*handler, false);
-        break;
+        case JobState_Failure:
+          SetCompletedJob(*handler, false);
+          break;
 
-      case JobState_Paused:
-        break;
+        case JobState_Paused:
+          break;
         
-      default:
-        LOG(ERROR) << "A job should not be loaded from state: "
-                   << EnumerationToString(handler->GetState());
-        throw OrthancException(ErrorCode_InternalError);
-    }
+        default:
+          LOG(ERROR) << "A job should not be loaded from state: "
+                     << EnumerationToString(handler->GetState());
+          throw OrthancException(ErrorCode_InternalError);
+      }
 
-    if (keepLastChangeTime)
-    {
-      handler->SetLastStateChangeTime(lastChangeTime);
-    }
+      if (keepLastChangeTime)
+      {
+        handler->SetLastStateChangeTime(lastChangeTime);
+      }
     
-    jobsIndex_.insert(std::make_pair(id, handler.release()));
+      jobsIndex_.insert(std::make_pair(id, handler.release()));
 
-    LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
+      LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
 
-    CheckInvariants();
+      if (observer_ != NULL)
+      {
+        observer_->SignalJobSubmitted(id);
+      }
+
+      CheckInvariants();
+    }
   }
 
 
@@ -974,6 +993,20 @@ namespace Orthanc
     return GetStateInternal(state, id);
   }
 
+
+  void JobsRegistry::SetObserver(JobsRegistry::IObserver& observer)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    observer_ = &observer;
+  }
+
+  
+  void JobsRegistry::ResetObserver()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    observer_ = NULL;
+  }
+
   
   JobsRegistry::RunningJob::RunningJob(JobsRegistry& registry,
                                        unsigned int timeout) :
@@ -1245,7 +1278,8 @@ namespace Orthanc
 
 
   JobsRegistry::JobsRegistry(IJobUnserializer& unserializer,
-                             const Json::Value& s)
+                             const Json::Value& s) :
+    observer_(NULL)
   {
     if (SerializationToolbox::ReadString(s, TYPE) != JOBS_REGISTRY ||
         !s.isMember(JOBS) ||

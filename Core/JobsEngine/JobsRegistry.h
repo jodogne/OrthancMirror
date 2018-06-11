@@ -55,6 +55,21 @@ namespace Orthanc
   // This class handles the state machine of the jobs engine
   class JobsRegistry : public boost::noncopyable
   {
+  public:
+    class IObserver : public boost::noncopyable
+    {
+    public:
+      virtual ~IObserver()
+      {
+      }
+
+      virtual void SignalJobSubmitted(const std::string& jobId) = 0;
+
+      virtual void SignalJobSuccess(const std::string& jobId) = 0;
+
+      virtual void SignalJobFailure(const std::string& jobId) = 0;
+    };
+    
   private:
     class JobHandler;
 
@@ -80,6 +95,8 @@ namespace Orthanc
     boost::condition_variable  pendingJobAvailable_;
     boost::condition_variable  someJobComplete_;
     size_t                     maxCompletedJobs_;
+
+    IObserver*                 observer_;
 
 
 #ifndef NDEBUG
@@ -118,7 +135,8 @@ namespace Orthanc
     
   public:
     JobsRegistry() :
-      maxCompletedJobs_(10)
+      maxCompletedJobs_(10),
+      observer_(NULL)
     {
     }
 
@@ -161,6 +179,10 @@ namespace Orthanc
     
     bool GetState(JobState& state,
                   const std::string& id);
+
+    void SetObserver(IObserver& observer);
+
+    void ResetObserver();
 
     class RunningJob : public boost::noncopyable
     {
