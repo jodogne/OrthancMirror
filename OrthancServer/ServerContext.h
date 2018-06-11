@@ -110,7 +110,8 @@ namespace Orthanc
     void ReadDicomAsJsonInternal(std::string& result,
                                  const std::string& instancePublicId);
 
-    void SetupJobsEngine(bool unitTesting);
+    void SetupJobsEngine(bool unitTesting,
+                         bool loadJobsFromDatabase);
 
     void SaveJobsEngine();
 
@@ -164,7 +165,8 @@ namespace Orthanc
 
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
-                  bool unitTesting);
+                  bool unitTesting,
+                  bool loadJobsFromDatabase);
 
     ~ServerContext();
 
