@@ -107,6 +107,9 @@ namespace Orthanc
     static void ChangeThread(ServerContext* that,
                              unsigned int sleepDelay);
 
+    static void SaveJobsThread(ServerContext* that,
+                               unsigned int sleepDelay);
+
     void ReadDicomAsJsonInternal(std::string& result,
                                  const std::string& instancePublicId);
 
@@ -138,6 +141,7 @@ namespace Orthanc
     bool done_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
+    boost::thread  saveJobsThread_;
         
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;

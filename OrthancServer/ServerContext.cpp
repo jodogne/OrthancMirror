@@ -108,6 +108,28 @@ namespace Orthanc
   }
 
 
+  void ServerContext::SaveJobsThread(ServerContext* that,
+                                     unsigned int sleepDelay)
+  {
+    static const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(10);
+    
+    boost::posix_time::ptime next =
+      boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+    
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+
+      if (boost::posix_time::microsec_clock::universal_time() >= next)
+      {
+        that->SaveJobsEngine();        
+        next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+      }
+    }
+  }
+
+  
   void ServerContext::SetupJobsEngine(bool unitTesting,
                                       bool loadJobsFromDatabase)
   {
@@ -192,6 +214,7 @@ namespace Orthanc
     SetupJobsEngine(unitTesting, loadJobsFromDatabase);
 
     changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+    saveJobsThread_ = boost::thread(SaveJobsThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -220,6 +243,11 @@ namespace Orthanc
       if (changeThread_.joinable())
       {
         changeThread_.join();
+      }
+
+      if (saveJobsThread_.joinable())
+      {
+        saveJobsThread_.join();
       }
 
       SaveJobsEngine();
