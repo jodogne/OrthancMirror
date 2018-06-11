@@ -488,6 +488,8 @@ static void PrintHelp(const char* path)
     << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
     << "\t\t\tdatabase (beware that the database will become" << std::endl
     << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
+    << "  --no-jobs\t\tDon't restart the jobs that were stored during" << std::endl
+    << "\t\t\tthe last execution of Orthanc" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Exit status:" << std::endl
@@ -956,7 +958,8 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
-                                   OrthancPlugins *plugins)
+                                   OrthancPlugins *plugins,
+                                   bool loadJobsFromDatabase)
 {
   // These configuration options must be set before creating the
   // ServerContext, otherwise the possible Lua scripts will not be
@@ -969,7 +972,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
 
-  ServerContext context(database, storageArea, false /* not running unit tests */);
+  ServerContext context(database, storageArea, false /* not running unit tests */, loadJobsFromDatabase);
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
@@ -1040,7 +1043,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 static bool ConfigureDatabase(IDatabaseWrapper& database,
                               IStorageArea& storageArea,
                               OrthancPlugins *plugins,
-                              bool upgradeDatabase)
+                              bool upgradeDatabase,
+                              bool loadJobsFromDatabase)
 {
   database.Open();
 
@@ -1059,7 +1063,8 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
 
-  bool success = ConfigureServerContext(database, storageArea, plugins);
+  bool success = ConfigureServerContext
+    (database, storageArea, plugins, loadJobsFromDatabase);
 
   database.Close();
 
@@ -1069,7 +1074,8 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 
 static bool ConfigurePlugins(int argc, 
                              char* argv[],
-                             bool upgradeDatabase)
+                             bool upgradeDatabase,
+                             bool loadJobsFromDatabase)
 {
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
@@ -1104,14 +1110,16 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureDatabase(*database, *storage, &plugins, upgradeDatabase);
+  return ConfigureDatabase(*database, *storage, &plugins,
+                           upgradeDatabase, loadJobsFromDatabase);
 
 #elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureDatabase(*databasePtr, *storage, NULL, upgradeDatabase);
+  return ConfigureDatabase(*databasePtr, *storage, NULL,
+                           upgradeDatabase, loadJobsFromDatabase);
 
 #else
 #  error The macro ORTHANC_ENABLE_PLUGINS must be set to 0 or 1
@@ -1121,9 +1129,10 @@ static bool ConfigurePlugins(int argc,
 
 static bool StartOrthanc(int argc, 
                          char* argv[],
-                         bool upgradeDatabase)
+                         bool upgradeDatabase,
+                         bool loadJobsFromDatabase)
 {
-  return ConfigurePlugins(argc, argv, upgradeDatabase);
+  return ConfigurePlugins(argc, argv, upgradeDatabase, loadJobsFromDatabase);
 }
 
 
@@ -1140,6 +1149,7 @@ int main(int argc, char* argv[])
   Logging::Initialize();
 
   bool upgradeDatabase = false;
+  bool loadJobsFromDatabase = true;
   const char* configurationFile = NULL;
 
 
@@ -1230,6 +1240,10 @@ int main(int argc, char* argv[])
     {
       upgradeDatabase = true;
     }
+    else if (argument == "--no-jobs")
+    {
+      loadJobsFromDatabase = false;
+    }
     else if (boost::starts_with(argument, "--config="))
     {
       // TODO WHAT IS THE ENCODING?
@@ -1293,7 +1307,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv, upgradeDatabase);
+      bool restart = StartOrthanc(argc, argv, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
       {
         OrthancFinalize();
