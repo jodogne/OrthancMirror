@@ -135,24 +135,21 @@ namespace Orthanc
   void ServerContext::SignalJobSubmitted(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    
-    // TODO: Call Lua
+    lua_.SignalJobSubmitted(jobId);
   }
   
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    
-    // TODO: Call Lua
+    lua_.SignalJobSuccess(jobId);
   }
 
   
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    
-    // TODO: Call Lua
+    lua_.SignalJobFailure(jobId);
   }
 
 
