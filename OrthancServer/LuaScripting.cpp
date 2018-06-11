@@ -187,6 +187,64 @@ namespace Orthanc
   };
 
 
+  class LuaScripting::JobEvent : public LuaScripting::IEvent
+  {
+  public:
+    enum Type
+    {
+      Type_Failure,
+      Type_Submitted,
+      Type_Success
+    };
+    
+  private:
+    Type         type_;
+    std::string  jobId_;
+
+  public:
+    JobEvent(Type type,
+             const std::string& jobId) :
+      type_(type),
+      jobId_(jobId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (type_)
+      {
+        case Type_Failure:
+          functionName = "OnJobFailure";
+          break;
+
+        case Type_Submitted:
+          functionName = "OnJobSubmitted";
+          break;
+
+        case Type_Success:
+          functionName = "OnJobSuccess";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(jobId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
   ServerContext* LuaScripting::GetServerContext(lua_State *state)
   {
     const void* value = LuaContext::GetGlobalVariable(state, "_ServerContext");
@@ -692,5 +750,23 @@ namespace Orthanc
 
       lock.GetLua().Execute(script);
     }
+  }
+
+  
+  void LuaScripting::SignalJobSubmitted(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Submitted, jobId));
+  }
+  
+
+  void LuaScripting::SignalJobSuccess(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Success, jobId));
+  }
+  
+
+  void LuaScripting::SignalJobFailure(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Failure, jobId));
   }
 }
