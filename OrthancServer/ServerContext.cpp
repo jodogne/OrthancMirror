@@ -108,32 +108,41 @@ namespace Orthanc
   }
 
 
-  void ServerContext::SetupJobsEngine(bool unitTesting)
+  void ServerContext::SetupJobsEngine(bool unitTesting,
+                                      bool loadJobsFromDatabase)
   {
     jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
 
-    std::string serialized;
-    if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+    if (loadJobsFromDatabase)
     {
-      LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
-      OrthancJobUnserializer unserializer(*this);
+      std::string serialized;
+      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+      {
+        LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
+        OrthancJobUnserializer unserializer(*this);
 
-      try
-      {
-        jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+        try
+        {
+          jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
+          throw;
+        }
       }
-      catch (OrthancException& e)
+      else
       {
-        LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
-        throw;
+        LOG(INFO) << "The last execution of Orthanc has archived no job";
       }
     }
     else
     {
-      LOG(INFO) << "The last execution of Orthanc has archived no job";
-      //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
+      LOG(WARNING) << "Not reloading the jobs from the last execution of Orthanc";
     }
+
+    //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
 
     jobsEngine_.Start();
   }
@@ -162,7 +171,8 @@ namespace Orthanc
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
-                               bool unitTesting) :
+                               bool unitTesting,
+                               bool loadJobsFromDatabase) :
     index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
@@ -179,7 +189,7 @@ namespace Orthanc
   {
     listeners_.push_back(ServerListener(lua_, "Lua"));
 
-    SetupJobsEngine(unitTesting);
+    SetupJobsEngine(unitTesting, loadJobsFromDatabase);
 
     changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
   }
