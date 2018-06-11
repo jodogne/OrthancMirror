@@ -58,6 +58,7 @@ namespace Orthanc
     class IEvent;
     class OnStoredInstanceEvent;
     class StableResourceEvent;
+    class JobEvent;
 
     static ServerContext* GetServerContext(lua_State *state);
 
@@ -127,5 +128,11 @@ namespace Orthanc
     void Execute(const std::string& command);
 
     void LoadGlobalConfiguration();
+
+    void SignalJobSubmitted(const std::string& jobId);
+
+    void SignalJobSuccess(const std::string& jobId);
+
+    void SignalJobFailure(const std::string& jobId);
   };
 }

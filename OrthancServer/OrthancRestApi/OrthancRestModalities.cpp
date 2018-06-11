@@ -702,7 +702,7 @@ namespace Orthanc
     
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", true);
+    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
     bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
     int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
