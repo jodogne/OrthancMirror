@@ -60,7 +60,7 @@ namespace Orthanc
    * filesystem (including compression), as well as the index of the
    * DICOM store. It implements the required locking mechanisms.
    **/
-  class ServerContext
+  class ServerContext : private JobsRegistry::IObserver
   {
   private:
     class DicomCacheProvider : public ICachePageProvider
@@ -118,6 +118,12 @@ namespace Orthanc
 
     void SaveJobsEngine();
 
+    virtual void SignalJobSubmitted(const std::string& jobId);
+
+    virtual void SignalJobSuccess(const std::string& jobId);
+
+    virtual void SignalJobFailure(const std::string& jobId);
+
     ServerIndex index_;
     IStorageArea& area_;
 
@@ -139,6 +145,7 @@ namespace Orthanc
     boost::recursive_mutex listenersMutex_;
 
     bool done_;
+    bool haveJobsChanged_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;

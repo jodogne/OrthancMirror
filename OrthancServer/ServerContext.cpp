@@ -121,15 +121,41 @@ namespace Orthanc
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
 
-      if (boost::posix_time::microsec_clock::universal_time() >= next)
+      if (that->haveJobsChanged_ ||
+          boost::posix_time::microsec_clock::universal_time() >= next)
       {
-        that->SaveJobsEngine();        
+        that->haveJobsChanged_ = false;
+        that->SaveJobsEngine();
         next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
       }
     }
   }
+  
+
+  void ServerContext::SignalJobSubmitted(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    
+    // TODO: Call Lua
+  }
+  
+
+  void ServerContext::SignalJobSuccess(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    
+    // TODO: Call Lua
+  }
 
   
+  void ServerContext::SignalJobFailure(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    
+    // TODO: Call Lua
+  }
+
+
   void ServerContext::SetupJobsEngine(bool unitTesting,
                                       bool loadJobsFromDatabase)
   {
@@ -166,6 +192,7 @@ namespace Orthanc
 
     //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
 
+    jobsEngine_.GetRegistry().SetObserver(*this);
     jobsEngine_.Start();
   }
 
@@ -206,6 +233,7 @@ namespace Orthanc
     plugins_(NULL),
 #endif
     done_(false),
+    haveJobsChanged_(false),
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
@@ -250,6 +278,7 @@ namespace Orthanc
         saveJobsThread_.join();
       }
 
+      jobsEngine_.GetRegistry().ResetObserver();
       SaveJobsEngine();
 
       // Do not change the order below!
