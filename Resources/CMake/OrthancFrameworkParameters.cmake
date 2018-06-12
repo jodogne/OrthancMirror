@@ -98,6 +98,7 @@ set(ENABLE_WEB_CLIENT OFF CACHE INTERNAL "Enable Web client")
 set(ENABLE_WEB_SERVER OFF CACHE INTERNAL "Enable embedded Web server")
 set(ENABLE_DCMTK OFF CACHE INTERNAL "Enable DCMTK")
 set(ENABLE_DCMTK_NETWORKING OFF CACHE INTERNAL "Enable DICOM networking in DCMTK")
+set(ENABLE_OPENSSL_ENGINES OFF CACHE INTERNAL "Enable support of engines in OpenSSL")
 
 set(HAS_EMBEDDED_RESOURCES OFF CACHE INTERNAL
   "Whether resources are auto-generated using EmbedResources.py")
