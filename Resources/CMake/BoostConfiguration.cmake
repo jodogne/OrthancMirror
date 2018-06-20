@@ -53,9 +53,10 @@ if (BOOST_STATIC)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_66_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.3.2)
-  set(BOOST_MD5 "e509e66140e8f2fd4d326b0052825f52")
+  set(BOOST_NAME boost_1_67_0)
+  set(BOOST_VERSION 1.67.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.4.0)
+  set(BOOST_MD5 "fb3535a88e72c3d4c4d06b047b8e57fe")
   set(BOOST_URL "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
@@ -103,7 +104,7 @@ if (BOOST_STATIC)
     
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/boost-1.66.0-linux-standard-base.patch
+      ${ORTHANC_ROOT}/Resources/Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
