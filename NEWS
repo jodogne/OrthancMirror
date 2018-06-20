@@ -38,6 +38,8 @@ Maintenance
 
 * Fix generation of DICOMDIR if PatientID is empty
 * Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
+* Upgraded dependencies for static and Windows builds:
+  - boost 1.67.0
 
 
 Version 1.3.2 (2018-04-18)
