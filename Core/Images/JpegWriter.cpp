@@ -96,8 +96,12 @@ namespace Orthanc
     }
 
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, quality, TRUE);
-    jpeg_start_compress(&cinfo, TRUE);
+
+    // The "static_cast" is necessary on OS X:
+    // https://github.com/simonfuhrmann/mve/issues/371
+    jpeg_set_quality(&cinfo, quality, static_cast<boolean>(true));
+    jpeg_start_compress(&cinfo, static_cast<boolean>(true));
+    
     jpeg_write_scanlines(&cinfo, &lines[0], height);
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
