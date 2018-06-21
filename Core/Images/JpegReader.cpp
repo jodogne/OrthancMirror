@@ -49,7 +49,10 @@ namespace Orthanc
                          std::string& content,
                          ImageAccessor& accessor)
   {
-    jpeg_read_header(&cinfo, TRUE);
+    // The "static_cast" is necessary on OS X:
+    // https://github.com/simonfuhrmann/mve/issues/371
+    jpeg_read_header(&cinfo, static_cast<boolean>(true));
+
     jpeg_start_decompress(&cinfo);
 
     PixelFormat format;
