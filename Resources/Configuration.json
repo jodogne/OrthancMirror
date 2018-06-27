@@ -300,11 +300,13 @@
   // some job finishes.
   "LimitJobs" : 10,
 
-  // If this option is set to "false", Orthanc will not log the
-  // resources that are exported to other DICOM modalities of Orthanc
-  // peers in the URI "/exports". This is useful to prevent the index
-  // to grow indefinitely in auto-routing tasks.
-  "LogExportedResources" : true,
+  // If this option is set to "true" (default behavior until Orthanc
+  // 1.3.2), Orthanc will log the resources that are exported to other
+  // DICOM modalities or Orthanc peers, inside the URI
+  // "/exports". Setting this option to "false" is useful to prevent
+  // the index to grow indefinitely in auto-routing tasks (this is the
+  // default behavior since Orthanc 1.4.0).
+  "LogExportedResources" : false,
 
   // Enable or disable HTTP Keep-Alive (deprecated). Set this option
   // to "true" only in the case of high HTTP loads.

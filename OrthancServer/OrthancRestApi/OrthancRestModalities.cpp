@@ -677,7 +677,7 @@ namespace Orthanc
         return false;
       }
 
-      if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
+      if (Configuration::GetGlobalBoolParameter("LogExportedResources", false))
       {
         context.GetIndex().LogExportedResource(stripped, remote);
       }
