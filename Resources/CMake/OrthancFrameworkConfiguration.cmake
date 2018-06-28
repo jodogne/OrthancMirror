@@ -524,9 +524,11 @@ endif()
 if (HAS_EMBEDDED_RESOURCES)
   add_definitions(-DORTHANC_HAS_EMBEDDED_RESOURCES=1)
 
-  list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
-    )
+  if (ENABLE_WEB_SERVER)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
+      )
+  endif()
 else()
   add_definitions(-DORTHANC_HAS_EMBEDDED_RESOURCES=0)
 endif()
