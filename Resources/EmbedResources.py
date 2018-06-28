@@ -40,8 +40,8 @@ import re
 UPCASE_CHECK = True
 USE_SYSTEM_EXCEPTION = False
 EXCEPTION_CLASS = 'OrthancException'
-OUT_OF_RANGE_EXCEPTION = 'OrthancException(ErrorCode_ParameterOutOfRange)'
-INEXISTENT_PATH_EXCEPTION = 'OrthancException(ErrorCode_InexistentItem)'
+OUT_OF_RANGE_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_ParameterOutOfRange)'
+INEXISTENT_PATH_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_InexistentItem)'
 NAMESPACE = 'Orthanc'
 
 ARGS = []
