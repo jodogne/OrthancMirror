@@ -39,6 +39,7 @@ Maintenance
 * Fix generation of DICOMDIR if PatientID is empty
 * Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
 * Configuration option "LogExportedResources" is now "false" by default
+* Header "OrthancCppDatabasePlugin.h" is now part of the "orthanc-databases" project
 * Upgraded dependencies for static and Windows builds:
   - boost 1.67.0
 
