@@ -634,6 +634,34 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::LookupIdentifierRange(std::list<int64_t>& result,
+                                                    ResourceType level,
+                                                    const DicomTag& tag,
+                                                    const std::string& start,
+                                                    const std::string& end)
+  {
+    if (extensions_.lookupIdentifierRange == NULL)
+    {
+      // Default implementation, for plugins using Orthanc SDK <= 1.3.2
+
+      LookupIdentifier(result, level, tag, IdentifierConstraintType_GreaterOrEqual, start);
+
+      std::list<int64_t> b;
+      LookupIdentifier(result, level, tag, IdentifierConstraintType_SmallerOrEqual, end);
+
+      result.splice(result.end(), b);
+    }
+    else
+    {
+      ResetAnswers();
+      CheckSuccess(extensions_.lookupIdentifierRange(GetContext(), payload_, Plugins::Convert(level),
+                                                     tag.GetGroup(), tag.GetElement(),
+                                                     start.c_str(), end.c_str()));
+      ForwardAnswers(result);
+    }
+  }
+
+
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)

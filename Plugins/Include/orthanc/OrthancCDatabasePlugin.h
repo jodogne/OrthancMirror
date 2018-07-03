@@ -682,6 +682,18 @@ extern "C"
       OrthancPluginResourceType resourceType,
       const OrthancPluginDicomTag* tag,
       OrthancPluginIdentifierConstraint constraint);
+
+    /* Output: Use OrthancPluginDatabaseAnswerInt64() */
+    OrthancPluginErrorCode  (*lookupIdentifierRange) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      OrthancPluginResourceType resourceType,
+      uint16_t group,
+      uint16_t element,
+      const char* start,
+      const char* end);
    } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
