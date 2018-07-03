@@ -46,9 +46,9 @@ namespace Orthanc
 {
   LookupIdentifierQuery::Disjunction::~Disjunction()
   {
-    for (size_t i = 0; i < disjunction_.size(); i++)
+    for (size_t i = 0; i < constraints_.size(); i++)
     {
-      delete disjunction_[i];
+      delete constraints_[i];
     }
   }
 
@@ -57,14 +57,14 @@ namespace Orthanc
                                                IdentifierConstraintType type,
                                                const std::string& value)
   {
-    disjunction_.push_back(new Constraint(tag, type, value));
+    constraints_.push_back(new Constraint(tag, type, value));
   }
 
 
   LookupIdentifierQuery::~LookupIdentifierQuery()
   {
-    for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
+    for (Disjuntions::iterator it = disjuntions_.begin();
+         it != disjuntions_.end(); ++it)
     {
       delete *it;
     }
@@ -76,15 +76,15 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
-    constraints_.push_back(new Disjunction);
-    constraints_.back()->Add(tag, type, value);
+    disjuntions_.push_back(new Disjunction);
+    disjuntions_.back()->Add(tag, type, value);
   }
 
 
   LookupIdentifierQuery::Disjunction& LookupIdentifierQuery::AddDisjunction()
   {
-    constraints_.push_back(new Disjunction);
-    return *constraints_.back();
+    disjuntions_.push_back(new Disjunction);
+    return *disjuntions_.back();
   }
 
 
@@ -105,9 +105,9 @@ namespace Orthanc
     {
       std::list<int64_t> a;
 
-      for (size_t j = 0; j < constraints_[i]->GetSize(); j++)
+      for (size_t j = 0; j < disjuntions_[i]->GetSize(); j++)
       {
-        const Constraint& constraint = constraints_[i]->GetConstraint(j);
+        const Constraint& constraint = disjuntions_[i]->GetConstraint(j);
         std::list<int64_t> b;
         database.LookupIdentifier(b, level_, constraint.GetTag(), constraint.GetType(), constraint.GetValue());
 
@@ -122,10 +122,10 @@ namespace Orthanc
   void LookupIdentifierQuery::Print(std::ostream& s) const
   {
     s << "Constraint: " << std::endl;
-    for (Constraints::const_iterator
-           it = constraints_.begin(); it != constraints_.end(); ++it)
+    for (Disjuntions::const_iterator
+           it = disjuntions_.begin(); it != disjuntions_.end(); ++it)
     {
-      if (it == constraints_.begin())
+      if (it == disjuntions_.begin())
         s << "   ";
       else
         s << "OR ";
