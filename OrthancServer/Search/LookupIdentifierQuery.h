@@ -103,7 +103,7 @@ namespace Orthanc
     class Disjunction : public boost::noncopyable
     {
     private:
-      std::vector<Constraint*>  disjunction_;
+      std::vector<Constraint*>  constraints_;
 
     public:
       ~Disjunction();
@@ -114,21 +114,21 @@ namespace Orthanc
 
       size_t GetSize() const
       {
-        return disjunction_.size();
+        return constraints_.size();
       }
 
       const Constraint&  GetConstraint(size_t i) const
       {
-        return *disjunction_[i];
+        return *constraints_[i];
       }
     };
 
 
   private:
-    typedef std::vector<Disjunction*>  Constraints;
+    typedef std::vector<Disjunction*>  Disjuntions;
 
     ResourceType  level_;
-    Constraints   constraints_;
+    Disjuntions   disjuntions_;
 
   public:
     LookupIdentifierQuery(ResourceType level) : level_(level)
@@ -155,7 +155,7 @@ namespace Orthanc
 
     size_t GetSize() const
     {
-      return constraints_.size();
+      return disjuntions_.size();
     }
 
     // The database must be locked
