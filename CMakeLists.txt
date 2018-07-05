@@ -502,7 +502,6 @@ if (ENABLE_PLUGINS)
     FILES
     Plugins/Include/orthanc/OrthancCPlugin.h 
     Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
-    Plugins/Include/orthanc/OrthancCppDatabasePlugin.h 
     DESTINATION include/orthanc
     )
 endif()
