@@ -364,6 +364,12 @@ namespace Orthanc
         DicomImageDecoder::ExtractPngImage(answer_, image_, mode_, invert_);
       }
 
+      void EncodeUsingPam()
+      {
+        format_ = "image/pam";
+        DicomImageDecoder::ExtractPamImage(answer_, image_, mode_, invert_);
+      }
+
       void EncodeUsingJpeg(uint8_t quality)
       {
         format_ = "image/jpeg";
@@ -387,6 +393,25 @@ namespace Orthanc
         assert(type == "image");
         assert(subtype == "png");
         image_.EncodeUsingPng();
+      }
+    };
+
+    class EncodePam : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+
+    public:
+      EncodePam(ImageToEncode& image) : image_(image)
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "pam");
+        image_.EncodeUsingPam();
       }
     };
 
@@ -526,6 +551,7 @@ namespace Orthanc
     HttpContentNegociation negociation;
     EncodePng png(image);          negociation.Register("image/png", png);
     EncodeJpeg jpeg(image, call);  negociation.Register("image/jpeg", jpeg);
+    EncodePam pam(image);          negociation.Register("image/pam", pam);
 
     if (negociation.Apply(call.GetHttpHeaders()))
     {
