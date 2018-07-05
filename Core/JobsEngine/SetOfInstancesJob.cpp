@@ -161,7 +161,7 @@ namespace Orthanc
         return JobStepResult::Failure(ErrorCode_InternalError);
       }
     }
-    catch (OrthancException& e)
+    catch (OrthancException&)
     {
       if (permissive_)
       {
