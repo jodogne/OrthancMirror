@@ -101,6 +101,11 @@ namespace Orthanc
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 
+    static void ExtractPamImage(std::string& result,
+                                std::auto_ptr<ImageAccessor>& image,
+                                ImageExtractionMode mode,
+                                bool invert);
+
 #if ORTHANC_ENABLE_PNG == 1
     static void ExtractPngImage(std::string& result,
                                 std::auto_ptr<ImageAccessor>& image,
