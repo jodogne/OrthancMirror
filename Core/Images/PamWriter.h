@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -33,21 +33,12 @@
 
 #pragma once
 
-#if !defined(ORTHANC_ENABLE_PNG)
-#  error The macro ORTHANC_ENABLE_PNG must be defined
-#endif
-
-#if ORTHANC_ENABLE_PNG != 1
-#  error PNG support must be enabled to include this file
-#endif
-
 #include "IImageWriter.h"
-
-#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class PngWriter : public IImageWriter
+  // https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format
+  class PamWriter : public IImageWriter
   {
   protected:
 #if ORTHANC_SANDBOXED == 0
@@ -66,24 +57,9 @@ namespace Orthanc
                                        PixelFormat format,
                                        const void* buffer);
 
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
-
   public:
-    PngWriter();
+    PamWriter() {}
 
-    ~PngWriter();
+    virtual ~PamWriter() {}
   };
 }

@@ -1057,7 +1057,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
   database.Open();
 
   unsigned int currentVersion = database.GetDatabaseVersion();
-  
+
   if (upgradeDatabase)
   {
     UpgradeDatabase(database, storageArea);

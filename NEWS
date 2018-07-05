@@ -22,6 +22,9 @@ REST API
   for data already in Orthanc, you'll need to reconstruct the data by
   sending a POST request to the ".../reconstruct" URI.  This change
   triggered an update of ORTHANC_API_VERSION from 1.0 to 1.1
+* "/instances/.../frame/../image-uint8 and friends now accepts a 
+  "image/pam" MIME type to retrieve images in PAM format
+  (https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format)
 
 Maintenance
 -----------

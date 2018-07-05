@@ -48,21 +48,21 @@ namespace Orthanc
   class JpegWriter : public IImageWriter
   {
   protected:
+#if ORTHANC_SANDBOXED == 0
     virtual void WriteToFileInternal(const std::string& filename,
                                      unsigned int width,
                                      unsigned int height,
                                      unsigned int pitch,
                                      PixelFormat format,
                                      const void* buffer);
+#endif
 
-#if ORTHANC_SANDBOXED == 0
     virtual void WriteToMemoryInternal(std::string& jpeg,
                                        unsigned int width,
                                        unsigned int height,
                                        unsigned int pitch,
                                        PixelFormat format,
                                        const void* buffer);
-#endif
 
   private:
     uint8_t  quality_;

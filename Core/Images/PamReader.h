@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -41,49 +41,43 @@
 #  error PNG support must be enabled to include this file
 #endif
 
-#include "IImageWriter.h"
+#include "ImageAccessor.h"
 
+#include "../Enumerations.h"
+
+#include <vector>
+#include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
+#include <istream>
+
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
 
 namespace Orthanc
 {
-  class PngWriter : public IImageWriter
+  class PamReader :
+      public ImageAccessor,
+      public boost::noncopyable
   {
-  protected:
-#if ORTHANC_SANDBOXED == 0
-    virtual void WriteToFileInternal(const std::string& filename,
-                                     unsigned int width,
-                                     unsigned int height,
-                                     unsigned int pitch,
-                                     PixelFormat format,
-                                     const void* buffer);
-#endif
-
-    virtual void WriteToMemoryInternal(std::string& png,
-                                       unsigned int width,
-                                       unsigned int height,
-                                       unsigned int pitch,
-                                       PixelFormat format,
-                                       const void* buffer);
-
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
+    std::vector<char> data_;
 
   public:
-    PngWriter();
+    PamReader() {}
+    virtual ~PamReader() {}
 
-    ~PngWriter();
+#if ORTHANC_SANDBOXED == 0
+    void ReadFromFile(const std::string& filename);
+#endif
+
+    void ReadFromMemory(const void* buffer,
+                        size_t size);
+
+    void ReadFromMemory(const std::string& buffer);
+
+  protected:
+    void ReadFromStream(std::istream& input);
   };
 }
