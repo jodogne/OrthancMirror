@@ -34,15 +34,16 @@
 #include "../PrecompiledHeaders.h"
 #include "PamWriter.h"
 
+#include "../ChunkedBuffer.h"
+#include "../Endianness.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
+
 #include <vector>
 #include <stdint.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <endian.h>
-#include "../OrthancException.h"
-#include "../ChunkedBuffer.h"
-#include "../Toolbox.h"
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../SystemToolbox.h"

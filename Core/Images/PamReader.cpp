@@ -34,12 +34,14 @@
 #include "../PrecompiledHeaders.h"
 #include "PamReader.h"
 
+#include "../Endianness.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+
 #include <istream>
 #include <sstream>
 #include <fstream>
-#include <endian.h>
+
 #if ORTHANC_SANDBOXED == 0
 #  include "../SystemToolbox.h"
 #endif
