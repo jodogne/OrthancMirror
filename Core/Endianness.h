@@ -146,8 +146,8 @@
 static inline uint16_t __orthanc_bswap16(uint16_t a)
 {
   const uint8_t* p = reinterpret_cast<const uint8_t*>(&a);
-  return (static_cast<uint32_t>(p[0]) << 8 |
-          static_cast<uint32_t>(p[1]));
+  return (static_cast<uint16_t>(p[0]) << 8 |
+          static_cast<uint16_t>(p[1]));
 
   // WARNING: The implementation below makes LSB (Linux Standard
   // Base) segfault in release builds. Don't use it!!!
