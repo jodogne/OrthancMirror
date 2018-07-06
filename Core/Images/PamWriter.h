@@ -41,25 +41,11 @@ namespace Orthanc
   class PamWriter : public IImageWriter
   {
   protected:
-#if ORTHANC_SANDBOXED == 0
-    virtual void WriteToFileInternal(const std::string& filename,
-                                     unsigned int width,
-                                     unsigned int height,
-                                     unsigned int pitch,
-                                     PixelFormat format,
-                                     const void* buffer);
-#endif
-
-    virtual void WriteToMemoryInternal(std::string& png,
+    virtual void WriteToMemoryInternal(std::string& target,
                                        unsigned int width,
                                        unsigned int height,
                                        unsigned int pitch,
                                        PixelFormat format,
                                        const void* buffer);
-
-  public:
-    PamWriter() {}
-
-    virtual ~PamWriter() {}
   };
 }
