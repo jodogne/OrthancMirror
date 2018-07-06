@@ -38,149 +38,204 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
-#include <istream>
-#include <sstream>
-#include <fstream>
-
 #if ORTHANC_SANDBOXED == 0
 #  include "../SystemToolbox.h"
 #endif
 
-#include <string.h>
+#include <boost/algorithm/string/find.hpp>
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {
-  namespace
+  static void GetPixelFormat(PixelFormat& format,
+                             unsigned int& bytesPerChannel,
+                             const unsigned int& maxValue,
+                             const unsigned int& channelCount,
+                             const std::string& tupleType)
   {
-    void GetPixelFormat(PixelFormat& format, unsigned int& bytesPerChannel, const unsigned int& maxValue, const unsigned int& channelCount, const char* tupleType)
+    if (tupleType == "GRAYSCALE" &&
+        channelCount == 1)
     {
-      if (strcmp(tupleType, "GRAYSCALE") == 0 && channelCount == 1)
+      switch (maxValue)
       {
-        if (maxValue == 255)
-        {
+        case 255:
           format = PixelFormat_Grayscale8;
           bytesPerChannel = 1;
           return;
-        }
-        else if (maxValue == 65535)
-        {
+
+        case 65535:
           format = PixelFormat_Grayscale16;
           bytesPerChannel = 2;
           return;
-        }
+
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
       }
-      else if (strcmp(tupleType, "RGB") == 0 && channelCount == 3)
+    }
+    else if (tupleType == "RGB" &&
+             channelCount == 3)
+    {
+      switch (maxValue)
       {
-        if (maxValue == 255)
-        {
+        case 255:
           format = PixelFormat_RGB24;
           bytesPerChannel = 1;
           return;
-        }
-        else if (maxValue == 65535)
-        {
+
+        case 65535:
           format = PixelFormat_RGB48;
           bytesPerChannel = 2;
           return;
-        }
+
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
       }
+    }
+    else
+    {
       throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-    void ReadDelimiter(std::istream& input, const char* expectedDelimiter)
-    {
-      std::string delimiter;
-      input >> delimiter;
-      if (delimiter != expectedDelimiter)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
-
-    unsigned int ReadKeyValueUint(std::istream& input, const char* expectedKey)
-    {
-      std::string key;
-      unsigned int value;
-      input >> key >> value;
-      if (key != expectedKey)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-      return value;
-    }
-
-    std::string ReadKeyValueString(std::istream& input, const char* expectedKey)
-    {
-      std::string key;
-      std::string value;
-      input >> key >> value;
-      if (key != expectedKey)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-      return value;
     }
   }
 
-  void PamReader::ReadFromStream(std::istream& input)
+  
+  typedef std::map<std::string, std::string>  Parameters;
+
+  
+  static std::string LookupStringParameter(const Parameters& parameters,
+                                           const std::string& key)
   {
-    ReadDelimiter(input, "P7");
-    unsigned int width = ReadKeyValueUint(input, "WIDTH");
-    unsigned int height = ReadKeyValueUint(input, "HEIGHT");
-    unsigned int channelCount = ReadKeyValueUint(input, "DEPTH");
-    unsigned int maxValue = ReadKeyValueUint(input, "MAXVAL");
-    std::string tupleType = ReadKeyValueString(input, "TUPLTYPE");
-    ReadDelimiter(input, "ENDHDR");
-    // skip last EOL
-    char tmp[16];
-    input.getline(tmp, 16);
+    Parameters::const_iterator found = parameters.find(key);
+
+    if (found == parameters.end())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    else
+    {
+      return found->second;
+    }
+  }
+  
+
+  static unsigned int LookupIntegerParameter(const Parameters& parameters,
+                                             const std::string& key)
+  {
+    try
+    {
+      int value = boost::lexical_cast<int>(LookupStringParameter(parameters, key));
+
+      if (value < 0)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        return static_cast<unsigned int>(value);
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+  
+
+  void PamReader::ParseContent()
+  {
+    static const std::string headerDelimiter = "ENDHDR\n";
+    
+    boost::iterator_range<std::string::const_iterator> headerRange =
+      boost::algorithm::find_first(content_, headerDelimiter);
+
+    if (!headerRange)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    std::string header(static_cast<const std::string&>(content_).begin(), headerRange.begin());
+
+    std::vector<std::string> lines;
+    Toolbox::TokenizeString(lines, header, '\n');
+
+    if (lines.size() < 2 ||
+        lines.front() != "P7" ||
+        !lines.back().empty())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Parameters parameters;
+    
+    for (size_t i = 1; i + 1 < lines.size(); i++)
+    {
+      std::vector<std::string> tokens;
+      Toolbox::TokenizeString(tokens, lines[i], ' ');
+
+      if (tokens.size() != 2)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        parameters[tokens[0]] = tokens[1];
+      }
+    }
+
+    const unsigned int width = LookupIntegerParameter(parameters, "WIDTH");
+    const unsigned int height = LookupIntegerParameter(parameters, "HEIGHT");
+    const unsigned int channelCount = LookupIntegerParameter(parameters, "DEPTH");
+    const unsigned int maxValue = LookupIntegerParameter(parameters, "MAXVAL");
+    const std::string tupleType = LookupStringParameter(parameters, "TUPLTYPE");
 
     unsigned int bytesPerChannel;
     PixelFormat format;
     GetPixelFormat(format, bytesPerChannel, maxValue, channelCount, tupleType.c_str());
 
-    // read the pixels data
-    unsigned int sizeInBytes = width * height * channelCount * bytesPerChannel;
-    data_.reserve(sizeInBytes);
-    input.read(data_.data(), sizeInBytes);
+    unsigned int pitch = width * channelCount * bytesPerChannel;
 
-    AssignWritable(format, width, height, width * channelCount * bytesPerChannel, data_.data());
+    if (content_.size() != header.size() + headerDelimiter.size() + pitch * height)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
 
-    // swap bytes
+    size_t offset = content_.size() - pitch * height;
+    AssignWritable(format, width, height, pitch, &content_[offset]);
+
+    // Byte swapping if needed
+    if (bytesPerChannel != 1 &&
+        bytesPerChannel != 2)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+    
     if (Toolbox::DetectEndianness() == Endianness_Little && bytesPerChannel == 2)
     {
-      uint16_t* pixel = NULL;
       for (unsigned int h = 0; h < height; ++h)
       {
-        pixel = reinterpret_cast<uint16_t*> (data_.data() + h * width * channelCount * bytesPerChannel);
-        for (unsigned int w = 0; w < (width * channelCount); ++w, ++pixel)
+        uint16_t* pixel = reinterpret_cast<uint16_t*>(GetRow(h));
+        
+        for (unsigned int w = 0; w < GetWidth(); ++w, ++pixel)
         {
           *pixel = htobe16(*pixel);
         }
       }
     }
-
   }
 
+  
 #if ORTHANC_SANDBOXED == 0
   void PamReader::ReadFromFile(const std::string& filename)
   {
-    std::ifstream inputStream(filename, std::ofstream::binary);
-    ReadFromStream(inputStream);
+    SystemToolbox::ReadFile(content_, filename);
+    ParseContent();
   }
 #endif
-
-  void PamReader::ReadFromMemory(const void* buffer,
-                                 size_t size)
-  {
-    std::istringstream inputStream(std::string(reinterpret_cast<const char*>(buffer), size));
-    ReadFromStream(inputStream);
-  }
+  
 
   void PamReader::ReadFromMemory(const std::string& buffer)
   {
-    std::istringstream inputStream(buffer);
-    ReadFromStream(inputStream);
+    content_ = buffer;
+    ParseContent();
   }
-
 }

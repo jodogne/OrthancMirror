@@ -34,136 +34,120 @@
 #include "../PrecompiledHeaders.h"
 #include "PamWriter.h"
 
-#include "../ChunkedBuffer.h"
 #include "../Endianness.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
-#include <vector>
-#include <stdint.h>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-
-#if ORTHANC_SANDBOXED == 0
-#  include "../SystemToolbox.h"
-#endif
+#include <boost/lexical_cast.hpp>
 
 
 namespace Orthanc
 {
-  namespace
+  static void GetPixelFormatInfo(const PixelFormat& format,
+                                 unsigned int& maxValue,
+                                 unsigned int& channelCount,
+                                 unsigned int& bytesPerChannel,
+                                 std::string& tupleType)
   {
-    void GetPixelFormatInfo(const PixelFormat& format, unsigned int& maxValue, unsigned int& channelCount, unsigned int& bytesPerChannel, const char*& tupleType) {
-      maxValue = 255;
-      channelCount = 1;
-      bytesPerChannel = 1;
-      tupleType = NULL;
-
-      switch (format) {
+    switch (format)
+    {
       case PixelFormat_Grayscale8:
         maxValue = 255;
         channelCount = 1;
         bytesPerChannel = 1;
         tupleType = "GRAYSCALE";
         break;
+          
       case PixelFormat_Grayscale16:
         maxValue = 65535;
         channelCount = 1;
         bytesPerChannel = 2;
         tupleType = "GRAYSCALE";
         break;
+
       case PixelFormat_RGB24:
         maxValue = 255;
         channelCount = 3;
         bytesPerChannel = 1;
         tupleType = "RGB";
         break;
+
       case PixelFormat_RGB48:
         maxValue = 255;
         channelCount = 3;
         bytesPerChannel = 2;
         tupleType = "RGB";
         break;
+
       default:
         throw OrthancException(ErrorCode_NotImplemented);
-      }
-
     }
-
-    void WriteToStream(std::ostream& output,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer)
-    {
-      unsigned int maxValue = 255;
-      unsigned int channelCount = 1;
-      unsigned int bytesPerChannel = 1;
-      const char* tupleType = "GRAYSCALE";
-      GetPixelFormatInfo(format, maxValue, channelCount, bytesPerChannel, tupleType);
-
-      output << "P7" << "\n";
-      output << "WIDTH " << width << "\n";
-      output << "HEIGHT " << height << "\n";
-      output << "DEPTH " << channelCount << "\n";
-      output << "MAXVAL " << maxValue << "\n";
-      output << "TUPLTYPE " << tupleType << "\n";
-      output << "ENDHDR" << "\n";
-
-      if (Toolbox::DetectEndianness() == Endianness_Little && bytesPerChannel == 2)
-      {
-        uint16_t tmp;
-        const uint16_t* pixel = NULL;
-        for (unsigned int h = 0; h < height; ++h)
-        {
-          pixel = reinterpret_cast<const uint16_t*> (reinterpret_cast<const uint8_t*>(buffer) + h * pitch);
-          for (unsigned int w = 0; w < (width * channelCount); ++w, ++pixel)
-          {
-            tmp = htobe16(*pixel);
-            output.write(reinterpret_cast<const char*>(&tmp), 2);
-          }
-        }
-      }
-      else
-      {
-        for (unsigned int h = 0; h < height; ++h)
-        {
-          output.write(reinterpret_cast<const char*>(reinterpret_cast<const uint8_t*>(buffer) + h * pitch), channelCount * bytesPerChannel * width);
-        }
-      }
-
-    }
-
   }
 
-#if ORTHANC_SANDBOXED == 0
-  void PamWriter::WriteToFileInternal(const std::string& filename,
-                                      unsigned int width,
-                                      unsigned int height,
-                                      unsigned int pitch,
-                                      PixelFormat format,
-                                      const void* buffer)
-  {
-    std::ofstream outfile (filename, std::ofstream::binary);
-
-    WriteToStream(outfile, width, height, pitch, format, buffer);
-    outfile.close();
-  }
-#endif
-
-
-  void PamWriter::WriteToMemoryInternal(std::string& output,
+      
+  void PamWriter::WriteToMemoryInternal(std::string& target,
                                         unsigned int width,
                                         unsigned int height,
-                                        unsigned int pitch,
+                                        unsigned int sourcePitch,
                                         PixelFormat format,
                                         const void* buffer)
   {
-    std::ostringstream outStream;  // todo: try to write directly in output and avoid copy
+    unsigned int maxValue, channelCount, bytesPerChannel;
+    std::string tupleType;
+    GetPixelFormatInfo(format, maxValue, channelCount, bytesPerChannel, tupleType);
 
-    WriteToStream(outStream, width, height, pitch, format, buffer);
-    output = outStream.str();
+    target = (std::string("P7") +
+              std::string("\nWIDTH ")  + boost::lexical_cast<std::string>(width) + 
+              std::string("\nHEIGHT ") + boost::lexical_cast<std::string>(height) + 
+              std::string("\nDEPTH ")  + boost::lexical_cast<std::string>(channelCount) + 
+              std::string("\nMAXVAL ") + boost::lexical_cast<std::string>(maxValue) + 
+              std::string("\nTUPLTYPE ") + tupleType + 
+              std::string("\nENDHDR\n"));
+
+    if (bytesPerChannel != 1 &&
+        bytesPerChannel != 2)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    size_t targetPitch = channelCount * bytesPerChannel * width;
+    size_t offset = target.size();
+
+    target.resize(offset + targetPitch * height);
+
+    assert(target.size() != 0);
+
+    if (Toolbox::DetectEndianness() == Endianness_Little &&
+        bytesPerChannel == 2)
+    {
+      // Byte swapping
+      for (unsigned int h = 0; h < height; ++h)
+      {
+        const uint16_t* p = reinterpret_cast<const uint16_t*>
+          (reinterpret_cast<const uint8_t*>(buffer) + h * sourcePitch);
+        uint16_t* q = reinterpret_cast<uint16_t*>
+          (reinterpret_cast<uint8_t*>(&target[offset]) + h * targetPitch);
+        
+        for (unsigned int w = 0; w < width * channelCount; ++w)
+        {
+          *q = htobe16(*p);
+          p++;
+          q++;
+        }
+      }
+    }
+    else
+    {
+      // Either "bytesPerChannel == 1" (and endianness is not
+      // relevant), or we run on a big endian architecture (and no
+      // byte swapping is necessary, as PAM uses big endian)
+      
+      for (unsigned int h = 0; h < height; ++h)
+      {
+        const void* p = reinterpret_cast<const uint8_t*>(buffer) + h * sourcePitch;
+        void* q = reinterpret_cast<uint8_t*>(&target[offset]) + h * targetPitch;
+        memcpy(q, p, targetPitch);
+      }
+    }
   }
 }
