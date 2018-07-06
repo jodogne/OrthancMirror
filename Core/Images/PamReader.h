@@ -35,17 +35,11 @@
 
 #include "ImageAccessor.h"
 
-#include "../Enumerations.h"
-
-#include <vector>
-#include <stdint.h>
-#include <boost/shared_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <istream>
-
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
+
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -54,22 +48,15 @@ namespace Orthanc
       public boost::noncopyable
   {
   private:
-    std::vector<char> data_;
+    void ParseContent();
+    
+    std::string content_;
 
   public:
-    PamReader() {}
-    virtual ~PamReader() {}
-
 #if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
 #endif
 
-    void ReadFromMemory(const void* buffer,
-                        size_t size);
-
     void ReadFromMemory(const std::string& buffer);
-
-  protected:
-    void ReadFromStream(std::istream& input);
   };
 }
