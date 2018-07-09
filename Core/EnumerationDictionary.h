@@ -84,13 +84,10 @@ namespace Orthanc
 
       Enumeration Translate(const std::string& str) const
       {
-        try
+        int value;
+        if (boost::conversion::try_lexical_convert<int>(str, value))
         {
-          int value = boost::lexical_cast<int>(str);
           return static_cast<Enumeration>(value);
-        }
-        catch (boost::bad_lexical_cast)
-        {
         }
 
         typename StringToEnumeration::const_iterator
