@@ -41,6 +41,8 @@
 #include "../Core/Images/JpegWriter.h"
 #include "../Core/Images/PngReader.h"
 #include "../Core/Images/PngWriter.h"
+#include "../Core/Images/PamReader.h"
+#include "../Core/Images/PamWriter.h"
 #include "../Core/Toolbox.h"
 #include "../Core/TemporaryFile.h"
 #include "../OrthancServer/OrthancInitialization.h"  // For the FontRegistry
@@ -267,5 +269,163 @@ TEST(Font, Basic)
 
   Orthanc::PngWriter w;
   w.WriteToFile("UnitTestsResults/font.png", s);
+}
+
+TEST(PamWriter, ColorPattern)
+{
+  Orthanc::PamWriter w;
+  unsigned int width = 17;
+  unsigned int height = 61;
+  unsigned int pitch = width * 3;
+
+  std::vector<uint8_t> image(height * pitch);
+  for (unsigned int y = 0; y < height; y++)
+  {
+    uint8_t *p = &image[0] + y * pitch;
+    for (unsigned int x = 0; x < width; x++, p += 3)
+    {
+      p[0] = (y % 3 == 0) ? 255 : 0;
+      p[1] = (y % 3 == 1) ? 255 : 0;
+      p[2] = (y % 3 == 2) ? 255 : 0;
+    }
+  }
+
+  Orthanc::ImageAccessor accessor;
+  accessor.AssignReadOnly(Orthanc::PixelFormat_RGB24, width, height, pitch, &image[0]);
+
+  w.WriteToFile("UnitTestsResults/ColorPattern.pam", accessor);
+
+  std::string f, md5;
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.pam");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("81a3441754e88969ebbe53e69891e841", md5);
+}
+
+TEST(PamWriter, Gray8Pattern)
+{
+  Orthanc::PamWriter w;
+  int width = 17;
+  int height = 256;
+  int pitch = width;
+
+  std::vector<uint8_t> image(height * pitch);
+  for (int y = 0; y < height; y++)
+  {
+    uint8_t *p = &image[0] + y * pitch;
+    for (int x = 0; x < width; x++, p++)
+    {
+      *p = y;
+    }
+  }
+
+  Orthanc::ImageAccessor accessor;
+  accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
+
+  w.WriteToFile("UnitTestsResults/Gray8Pattern.pam", accessor);
+
+  std::string f, md5;
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.pam");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("7873c408d26a9d11dd1c1de5e69cc0a3", md5);
+}
+
+TEST(PamWriter, Gray16Pattern)
+{
+  Orthanc::PamWriter w;
+  int width = 256;
+  int height = 256;
+  int pitch = width * 2 + 16;
+
+  std::vector<uint8_t> image(height * pitch);
+
+  int v = 0;
+  for (int y = 0; y < height; y++)
+  {
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    for (int x = 0; x < width; x++, p++, v++)
+    {
+      *p = v;
+    }
+  }
+
+  Orthanc::ImageAccessor accessor;
+  accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
+  w.WriteToFile("UnitTestsResults/Gray16Pattern.pam", accessor);
+
+  std::string f, md5;
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.pam");
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("b268772bf28f3b2b8520ff21c5e3dcb6", md5);
+}
+
+TEST(PamWriter, EndToEnd)
+{
+  Orthanc::PamWriter w;
+  unsigned int width = 256;
+  unsigned int height = 256;
+  unsigned int pitch = width * 2 + 16;
+
+  std::vector<uint8_t> image(height * pitch);
+
+  int v = 0;
+  for (unsigned int y = 0; y < height; y++)
+  {
+    uint16_t *p = reinterpret_cast<uint16_t*>(&image[0] + y * pitch);
+    for (unsigned int x = 0; x < width; x++, p++, v++)
+    {
+      *p = v;
+    }
+  }
+
+  Orthanc::ImageAccessor accessor;
+  accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
+
+  std::string s;
+  w.WriteToMemory(s, accessor);
+
+  {
+    Orthanc::PamReader r;
+    r.ReadFromMemory(s);
+
+    ASSERT_EQ(r.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r.GetWidth(), width);
+    ASSERT_EQ(r.GetHeight(), height);
+
+    v = 0;
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const uint16_t *p = reinterpret_cast<const uint16_t*>
+        ((const uint8_t*) r.GetConstBuffer() + y * r.GetPitch());
+      ASSERT_EQ(p, r.GetConstRow(y));
+      for (unsigned int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(v, *p);
+      }
+    }
+  }
+
+  {
+    Orthanc::TemporaryFile tmp;
+    Orthanc::SystemToolbox::WriteFile(s, tmp.GetPath());
+
+    Orthanc::PamReader r2;
+    r2.ReadFromFile(tmp.GetPath());
+
+    ASSERT_EQ(r2.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r2.GetWidth(), width);
+    ASSERT_EQ(r2.GetHeight(), height);
+
+    v = 0;
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const uint16_t *p = reinterpret_cast<const uint16_t*>
+        ((const uint8_t*) r2.GetConstBuffer() + y * r2.GetPitch());
+      ASSERT_EQ(p, r2.GetConstRow(y));
+      for (unsigned int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(*p, v);
+      }
+    }
+  }
 }
 

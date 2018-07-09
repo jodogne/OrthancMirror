@@ -364,6 +364,20 @@ namespace Orthanc
         DicomImageDecoder::ExtractPngImage(answer_, image_, mode_, invert_);
       }
 
+      void EncodeUsingPam()
+      {
+        /**
+         * "No Internet Media Type (aka MIME type, content type) for
+         * PBM has been registered with IANA, but the unofficial value
+         * image/x-portable-arbitrarymap is assigned by this
+         * specification, to be consistent with conventional values
+         * for the older Netpbm formats."
+         * http://netpbm.sourceforge.net/doc/pam.html
+         **/
+        format_ = "image/x-portable-arbitrarymap";
+        DicomImageDecoder::ExtractPamImage(answer_, image_, mode_, invert_);
+      }
+
       void EncodeUsingJpeg(uint8_t quality)
       {
         format_ = "image/jpeg";
@@ -387,6 +401,25 @@ namespace Orthanc
         assert(type == "image");
         assert(subtype == "png");
         image_.EncodeUsingPng();
+      }
+    };
+
+    class EncodePam : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+
+    public:
+      EncodePam(ImageToEncode& image) : image_(image)
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "pam");
+        image_.EncodeUsingPam();
       }
     };
 
@@ -524,8 +557,14 @@ namespace Orthanc
     ImageToEncode image(decoded, mode, invert);
 
     HttpContentNegociation negociation;
-    EncodePng png(image);          negociation.Register("image/png", png);
-    EncodeJpeg jpeg(image, call);  negociation.Register("image/jpeg", jpeg);
+    EncodePng png(image);
+    negociation.Register("image/png", png);
+
+    EncodeJpeg jpeg(image, call);
+    negociation.Register("image/jpeg", jpeg);
+
+    EncodePam pam(image);
+    negociation.Register("image/x-portable-arbitrarymap", pam);
 
     if (negociation.Apply(call.GetHttpHeaders()))
     {
