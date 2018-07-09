@@ -1,11 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  # WARNING - We had to repack the upstream ".tar.gz" file to a ZIP
-  # file, as the upstream distribution ships symbolic links that are
-  # not always properly handled when uncompressing on Windows.
-
-  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
-  SET(OPENSSL_URL "http://www.orthanc-server.com/downloads/third-party/openssl-1.0.2d.zip")
-  SET(OPENSSL_MD5 "4b2ac15fc6db17f3dadc54482d3eee85")
+  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2o)
+  SET(OPENSSL_URL "http://www.orthanc-server.com/downloads/third-party/openssl-1.0.2o.tar.gz")
+  SET(OPENSSL_MD5 "44279b8557c3247cbe324e2322ecd114")
 
   if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -15,6 +11,94 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   DownloadPackage(${OPENSSL_MD5} ${OPENSSL_URL} "${OPENSSL_SOURCES_DIR}")
 
+  if (FirstRun)
+    file(MAKE_DIRECTORY ${OPENSSL_SOURCES_DIR}/include/openssl)
+
+    foreach(header
+      ${OPENSSL_SOURCES_DIR}/crypto/aes/aes.h
+      ${OPENSSL_SOURCES_DIR}/crypto/asn1/asn1.h
+      ${OPENSSL_SOURCES_DIR}/crypto/asn1/asn1_mac.h
+      ${OPENSSL_SOURCES_DIR}/crypto/asn1/asn1t.h
+      ${OPENSSL_SOURCES_DIR}/crypto/bf/blowfish.h
+      ${OPENSSL_SOURCES_DIR}/crypto/bio/bio.h
+      ${OPENSSL_SOURCES_DIR}/crypto/bn/bn.h
+      ${OPENSSL_SOURCES_DIR}/crypto/buffer/buffer.h
+      ${OPENSSL_SOURCES_DIR}/crypto/camellia/camellia.h
+      ${OPENSSL_SOURCES_DIR}/crypto/cast/cast.h
+      ${OPENSSL_SOURCES_DIR}/crypto/cmac/cmac.h
+      ${OPENSSL_SOURCES_DIR}/crypto/cms/cms.h
+      ${OPENSSL_SOURCES_DIR}/crypto/comp/comp.h
+      ${OPENSSL_SOURCES_DIR}/crypto/conf/conf.h
+      ${OPENSSL_SOURCES_DIR}/crypto/conf/conf_api.h
+      ${OPENSSL_SOURCES_DIR}/crypto/crypto.h
+      ${OPENSSL_SOURCES_DIR}/crypto/des/des.h
+      ${OPENSSL_SOURCES_DIR}/crypto/des/des_old.h
+      ${OPENSSL_SOURCES_DIR}/crypto/dh/dh.h
+      ${OPENSSL_SOURCES_DIR}/crypto/dsa/dsa.h
+      ${OPENSSL_SOURCES_DIR}/crypto/dso/dso.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ebcdic.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ec/ec.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ecdh/ecdh.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ecdsa/ecdsa.h
+      ${OPENSSL_SOURCES_DIR}/crypto/engine/engine.h
+      ${OPENSSL_SOURCES_DIR}/crypto/err/err.h
+      ${OPENSSL_SOURCES_DIR}/crypto/evp/evp.h
+      ${OPENSSL_SOURCES_DIR}/crypto/hmac/hmac.h
+      ${OPENSSL_SOURCES_DIR}/crypto/idea/idea.h
+      ${OPENSSL_SOURCES_DIR}/crypto/jpake/jpake.h
+      ${OPENSSL_SOURCES_DIR}/crypto/krb5/krb5_asn.h
+      ${OPENSSL_SOURCES_DIR}/crypto/lhash/lhash.h
+      ${OPENSSL_SOURCES_DIR}/crypto/md2/md2.h
+      ${OPENSSL_SOURCES_DIR}/crypto/md4/md4.h
+      ${OPENSSL_SOURCES_DIR}/crypto/md5/md5.h
+      ${OPENSSL_SOURCES_DIR}/crypto/mdc2/mdc2.h
+      ${OPENSSL_SOURCES_DIR}/crypto/modes/modes.h
+      ${OPENSSL_SOURCES_DIR}/crypto/objects/obj_mac.h
+      ${OPENSSL_SOURCES_DIR}/crypto/objects/objects.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ocsp/ocsp.h
+      ${OPENSSL_SOURCES_DIR}/crypto/opensslconf.h
+      ${OPENSSL_SOURCES_DIR}/crypto/opensslv.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ossl_typ.h
+      ${OPENSSL_SOURCES_DIR}/crypto/pem/pem.h
+      ${OPENSSL_SOURCES_DIR}/crypto/pem/pem2.h
+      ${OPENSSL_SOURCES_DIR}/crypto/pkcs12/pkcs12.h
+      ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/pkcs7.h
+      ${OPENSSL_SOURCES_DIR}/crypto/pqueue/pqueue.h
+      ${OPENSSL_SOURCES_DIR}/crypto/rand/rand.h
+      ${OPENSSL_SOURCES_DIR}/crypto/rc2/rc2.h
+      ${OPENSSL_SOURCES_DIR}/crypto/rc4/rc4.h
+      ${OPENSSL_SOURCES_DIR}/crypto/rc5/rc5.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ripemd/ripemd.h
+      ${OPENSSL_SOURCES_DIR}/crypto/rsa/rsa.h
+      ${OPENSSL_SOURCES_DIR}/crypto/seed/seed.h
+      ${OPENSSL_SOURCES_DIR}/crypto/sha/sha.h
+      ${OPENSSL_SOURCES_DIR}/crypto/srp/srp.h
+      ${OPENSSL_SOURCES_DIR}/crypto/stack/safestack.h
+      ${OPENSSL_SOURCES_DIR}/crypto/stack/stack.h
+      ${OPENSSL_SOURCES_DIR}/crypto/store/store.h
+      ${OPENSSL_SOURCES_DIR}/crypto/symhacks.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ts/ts.h
+      ${OPENSSL_SOURCES_DIR}/crypto/txt_db/txt_db.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ui/ui.h
+      ${OPENSSL_SOURCES_DIR}/crypto/ui/ui_compat.h
+      ${OPENSSL_SOURCES_DIR}/crypto/whrlpool/whrlpool.h
+      ${OPENSSL_SOURCES_DIR}/crypto/x509/x509.h
+      ${OPENSSL_SOURCES_DIR}/crypto/x509/x509_vfy.h
+      ${OPENSSL_SOURCES_DIR}/crypto/x509v3/x509v3.h
+      ${OPENSSL_SOURCES_DIR}/e_os2.h
+      ${OPENSSL_SOURCES_DIR}/ssl/dtls1.h
+      ${OPENSSL_SOURCES_DIR}/ssl/kssl.h
+      ${OPENSSL_SOURCES_DIR}/ssl/srtp.h
+      ${OPENSSL_SOURCES_DIR}/ssl/ssl.h
+      ${OPENSSL_SOURCES_DIR}/ssl/ssl2.h
+      ${OPENSSL_SOURCES_DIR}/ssl/ssl23.h
+      ${OPENSSL_SOURCES_DIR}/ssl/ssl3.h
+      ${OPENSSL_SOURCES_DIR}/ssl/tls1.h
+      )
+    file(COPY ${header} DESTINATION ${OPENSSL_SOURCES_DIR}/include/openssl)
+    endforeach()
+  endif()
+  
   add_definitions(
     -DOPENSSL_THREADS
     -DOPENSSL_IA32_SSE2
@@ -192,9 +276,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3prin.c
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3/v3nametest.c
     ${OPENSSL_SOURCES_DIR}/crypto/constant_time_test.c
-    ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
 
     ${OPENSSL_SOURCES_DIR}/ssl/heartbeat_test.c
+    ${OPENSSL_SOURCES_DIR}/ssl/fatalerrtest.c
+    ${OPENSSL_SOURCES_DIR}/ssl/dtlstest.c
     )
 
 
