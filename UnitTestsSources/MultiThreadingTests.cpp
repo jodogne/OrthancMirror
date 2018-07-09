@@ -1304,7 +1304,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     RemoteModalityParameters modality;
     modality.SetApplicationEntityTitle("REMOTE");
     modality.SetHost("192.168.1.1");
-    modality.SetPort(1000);
+    modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
     StoreScuOperation operation("TEST", modality);
@@ -1319,7 +1319,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     const StoreScuOperation& tmp = dynamic_cast<StoreScuOperation&>(*operation);
     ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
     ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
-    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPort());
+    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
     ASSERT_EQ("TEST", tmp.GetLocalAet());
   }
@@ -1390,7 +1390,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     RemoteModalityParameters modality;
     modality.SetApplicationEntityTitle("REMOTE");
     modality.SetHost("192.168.1.1");
-    modality.SetPort(1000);
+    modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
     DicomModalityStoreJob job(GetContext());
@@ -1410,7 +1410,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_EQ("LOCAL", tmp.GetLocalAet());
     ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
     ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
-    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPort());
+    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
     ASSERT_TRUE(tmp.HasMoveOriginator());
     ASSERT_EQ("MOVESCU", tmp.GetMoveOriginatorAet());

@@ -847,7 +847,7 @@ namespace Orthanc
   {
     SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
     SetRemoteHost(parameters.GetHost());
-    SetRemotePort(parameters.GetPort());
+    SetRemotePort(parameters.GetPortNumber());
     SetRemoteManufacturer(parameters.GetManufacturer());
   }
 
@@ -1252,7 +1252,7 @@ namespace Orthanc
     return (localAet_ == localAet &&
             remoteAet_ == remote.GetApplicationEntityTitle() &&
             remoteHost_ == remote.GetHost() &&
-            remotePort_ == remote.GetPort() &&
+            remotePort_ == remote.GetPortNumber() &&
             manufacturer_ == remote.GetManufacturer());
   }
 }
