@@ -440,7 +440,7 @@ Maintenance
 * If error while calling the REST API, the answer body contains description of the error
   (this feature can be disabled with the "HttpDescribeErrors" option)
 * Upgrade to curl 7.44.0 for static and Windows builds
-* Upgrade to libcurl 1.0.2d for static and Windows builds
+* Upgrade to openssl 1.0.2d for static and Windows builds
 * Depends on libjpeg 9a
 * Bypass zlib uncompression if "StorageCompression" is enabled and HTTP client supports deflate
 

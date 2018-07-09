@@ -88,6 +88,7 @@ SUPPORTED - Debian Jessie/Sid
 	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 Note: Have also a look at the official package:
@@ -109,6 +110,7 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 	-DUSE_SYSTEM_JSONCPP=OFF \
 	-DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 
@@ -126,6 +128,7 @@ SUPPORTED - Ubuntu 14.04 LTS
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
 
 
@@ -144,6 +147,7 @@ You will also have to install "gflags-devel" on Fedora 21&22:
 
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
+         -DCMAKE_BUILD_TYPE=Release \
          ~/Orthanc
        
 Note: Have also a look at the official package:
@@ -160,6 +164,7 @@ SUPPORTED - FreeBSD 10.1
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 
@@ -180,6 +185,7 @@ SUPPORTED - CentOS 6
         -DUSE_SYSTEM_DCMTK=OFF \
         -DUSE_SYSTEM_GOOGLE_TEST=OFF \
         -DUSE_SYSTEM_LIBJPEG=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
 
 
