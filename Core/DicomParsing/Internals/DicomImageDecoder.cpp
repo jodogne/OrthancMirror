@@ -93,6 +93,7 @@
 #if ORTHANC_ENABLE_JPEG == 1
 #  include "../../Images/JpegWriter.h"
 #endif
+#include "../../Images/PamWriter.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -951,6 +952,17 @@ namespace Orthanc
     }
   }
 
+
+  void DicomImageDecoder::ExtractPamImage(std::string& result,
+                                          std::auto_ptr<ImageAccessor>& image,
+                                          ImageExtractionMode mode,
+                                          bool invert)
+  {
+    ApplyExtractionMode(image, mode, invert);
+
+    PamWriter writer;
+    writer.WriteToMemory(result, *image);
+  }
 
 #if ORTHANC_ENABLE_PNG == 1
   void DicomImageDecoder::ExtractPngImage(std::string& result,

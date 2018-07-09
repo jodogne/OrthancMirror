@@ -140,6 +140,8 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Images/ImageAccessor.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
   ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
+  ${ORTHANC_ROOT}/Core/Images/PamReader.cpp
+  ${ORTHANC_ROOT}/Core/Images/PamWriter.cpp
   ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
   ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
   ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
