@@ -290,6 +290,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/ssl/heartbeat_test.c
     ${OPENSSL_SOURCES_DIR}/ssl/fatalerrtest.c
     ${OPENSSL_SOURCES_DIR}/ssl/dtlstest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
     )
 
 
