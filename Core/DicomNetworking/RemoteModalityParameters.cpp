@@ -58,7 +58,7 @@ namespace Orthanc
   {
     SetApplicationEntityTitle(aet);
     SetHost(host);
-    SetPort(port);
+    SetPortNumber(port);
     SetManufacturer(manufacturer);
   }
 
@@ -84,13 +84,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      SetPort(static_cast<uint16_t>(tmp));
+      SetPortNumber(static_cast<uint16_t>(tmp));
     }
     catch (std::runtime_error /* error inside JsonCpp */)
     {
       try
       {
-        SetPort(boost::lexical_cast<uint16_t>(portValue.asString()));
+        SetPortNumber(boost::lexical_cast<uint16_t>(portValue.asString()));
       }
       catch (boost::bad_lexical_cast)
       {
@@ -118,15 +118,15 @@ namespace Orthanc
     }
   }
 
+  
   void RemoteModalityParameters::ToJson(Json::Value& value) const
   {
     value = Json::arrayValue;
     value.append(GetApplicationEntityTitle());
     value.append(GetHost());
-    value.append(GetPort());
+    value.append(GetPortNumber());
     value.append(EnumerationToString(GetManufacturer()));
   }
-
 
   
   void RemoteModalityParameters::Serialize(Json::Value& target) const

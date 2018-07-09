@@ -95,8 +95,30 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       ${OPENSSL_SOURCES_DIR}/ssl/ssl3.h
       ${OPENSSL_SOURCES_DIR}/ssl/tls1.h
       )
-    file(COPY ${header} DESTINATION ${OPENSSL_SOURCES_DIR}/include/openssl)
+      file(COPY ${header} DESTINATION ${OPENSSL_SOURCES_DIR}/include/openssl)
     endforeach()
+
+    file(RENAME
+      ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h
+      ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2_source.h)
+
+    # The following patch of "e_os2.h" prevents from building OpenSSL
+    # as a DLL under Windows. Otherwise, symbols have inconsistent
+    # linkage if ${OPENSSL_SOURCES} is used to create a DLL (notably
+    # if building an Orthanc plugin such as MySQL).
+    file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h "
+#include \"e_os2_source.h\"
+#if defined(_WIN32)
+#  undef OPENSSL_EXPORT
+#  undef OPENSSL_IMPORT
+#  undef OPENSSL_EXTERN
+#  undef OPENSSL_GLOBAL
+#  define OPENSSL_EXPORT
+#  define OPENSSL_IMPORT
+#  define OPENSSL_EXTERN extern
+#  define OPENSSL_GLOBAL
+#endif
+")
   endif()
   
   add_definitions(

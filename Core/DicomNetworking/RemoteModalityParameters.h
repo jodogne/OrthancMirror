@@ -79,12 +79,12 @@ namespace Orthanc
       host_ = host;
     }
     
-    uint16_t GetPort() const
+    uint16_t GetPortNumber() const
     {
       return port_;
     }
 
-    void SetPort(uint16_t port)
+    void SetPortNumber(uint16_t port)
     {
       port_ = port;
     }
