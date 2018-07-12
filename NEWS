@@ -45,11 +45,12 @@ Plugins
 Maintenance
 -----------
 
+* Configuration option "LogExportedResources" is now "false" by default
+* Header "OrthancCppDatabasePlugin.h" is now part of the "orthanc-databases" project
 * Fix generation of DICOMDIR if PatientID is empty
 * Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
 * Fix issue 94 (Instance modification should not modify FrameOfReferenceUID)
-* Configuration option "LogExportedResources" is now "false" by default
-* Header "OrthancCppDatabasePlugin.h" is now part of the "orthanc-databases" project
+* Fix issue 77 (Lua access to REST-API is null terminated)
 * Upgraded dependencies for static and Windows builds:
   - boost 1.67.0
   - openssl 1.0.2o
