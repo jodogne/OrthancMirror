@@ -196,7 +196,7 @@ namespace Orthanc
 
   void ServerContext::SaveJobsEngine()
   {
-    LOG(INFO) << "Serializing the content of the jobs engine";
+    VLOG(1) << "Serializing the content of the jobs engine";
     
     try
     {
