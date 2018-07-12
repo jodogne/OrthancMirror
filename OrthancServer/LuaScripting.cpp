@@ -537,7 +537,7 @@ namespace Orthanc
     LuaJobManager::Lock lock(jobManager_, context_.GetJobsEngine());
 
     bool isFirst = true;
-    size_t previous;
+    size_t previous = 0;  // Dummy initialization to avoid warning
 
     for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
     {
