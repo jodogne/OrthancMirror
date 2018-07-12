@@ -785,12 +785,32 @@ namespace Orthanc
                           instanceToStore.GetOrigin().GetRemoteAetC());
       SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
                           EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
-        
+
       {
         std::string s;
+
         if (instanceToStore.LookupTransferSyntax(s))
         {
+          // New in Orthanc 1.2.0
           SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_TransferSyntax, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupRemoteIp(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteIp, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupCalledAet(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_CalledAet, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupHttpUsername(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_HttpUsername, s);
         }
       }
 

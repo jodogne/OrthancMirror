@@ -673,12 +673,33 @@ namespace Orthanc
     std::list<MetadataType> metadata;
 
     OrthancRestApi::GetIndex(call).ListAvailableMetadata(metadata, publicId);
-    Json::Value result = Json::arrayValue;
 
-    for (std::list<MetadataType>::const_iterator 
-           it = metadata.begin(); it != metadata.end(); ++it)
+    Json::Value result;
+
+    if (call.HasArgument("expand"))
     {
-      result.append(EnumerationToString(*it));
+      result = Json::objectValue;
+      
+      for (std::list<MetadataType>::const_iterator 
+             it = metadata.begin(); it != metadata.end(); ++it)
+      {
+        std::string value;
+        if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, *it))
+        {
+          std::string key = EnumerationToString(*it);
+          result[key] = value;
+        }
+      }      
+    }
+    else
+    {
+      result = Json::arrayValue;
+      
+      for (std::list<MetadataType>::const_iterator 
+             it = metadata.begin(); it != metadata.end(); ++it)
+      {       
+        result.append(EnumerationToString(*it));
+      }
     }
 
     call.GetOutput().AnswerJson(result);

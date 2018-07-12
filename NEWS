@@ -9,6 +9,8 @@ General
   - "ConcurrentJobs": Max number of jobs that are simultanously running
   - "SynchronousCMove": Whether to run DICOM C-Move operations synchronously
   - "JobsHistorySize": Max number of completed jobs that are kept in memory
+* New metadata automatically computed at the instance level: 
+  "RemoteIp", "CalledAet" and "HttpUsername"
 
 Orthanc Explorer
 ----------------
@@ -35,6 +37,7 @@ REST API
 * "/instances/.../frame/../image-uint8 and friends now accepts a 
   "image/pam" MIME type to retrieve images in PAM format
   (https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format)
+* New option "?expand" to "/instances/.../metadata"
 
 Plugins
 -------
