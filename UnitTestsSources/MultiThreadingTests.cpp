@@ -1095,6 +1095,7 @@ TEST(JobsSerialization, DicomModification)
 TEST(JobsSerialization, DicomInstanceOrigin)
 {   
   Json::Value s;
+  std::string t;
 
   {
     DicomInstanceOrigin origin;
@@ -1106,10 +1107,11 @@ TEST(JobsSerialization, DicomInstanceOrigin)
   {
     DicomInstanceOrigin origin(s);
     ASSERT_EQ(RequestOrigin_Unknown, origin.GetRequestOrigin());
-    ASSERT_THROW(origin.GetRemoteIp(), OrthancException);
     ASSERT_EQ("", std::string(origin.GetRemoteAetC()));
-    ASSERT_THROW(origin.GetCalledAet(), OrthancException);
-    ASSERT_THROW(origin.GetHttpUsername(), OrthancException);
+    ASSERT_FALSE(origin.LookupRemoteIp(t));
+    ASSERT_FALSE(origin.LookupRemoteAet(t));
+    ASSERT_FALSE(origin.LookupCalledAet(t));
+    ASSERT_FALSE(origin.LookupHttpUsername(t));
   }
 
   {
@@ -1122,10 +1124,11 @@ TEST(JobsSerialization, DicomInstanceOrigin)
   {
     DicomInstanceOrigin origin(s);
     ASSERT_EQ(RequestOrigin_DicomProtocol, origin.GetRequestOrigin());
-    ASSERT_EQ("host", origin.GetRemoteIp());
     ASSERT_EQ("aet", std::string(origin.GetRemoteAetC()));
-    ASSERT_EQ("called", origin.GetCalledAet());
-    ASSERT_THROW(origin.GetHttpUsername(), OrthancException);
+    ASSERT_TRUE(origin.LookupRemoteIp(t));   ASSERT_EQ("host", t);
+    ASSERT_TRUE(origin.LookupRemoteAet(t));  ASSERT_EQ("aet", t);
+    ASSERT_TRUE(origin.LookupCalledAet(t));  ASSERT_EQ("called", t);
+    ASSERT_FALSE(origin.LookupHttpUsername(t));
   }
 
   {
@@ -1138,10 +1141,11 @@ TEST(JobsSerialization, DicomInstanceOrigin)
   {
     DicomInstanceOrigin origin(s);
     ASSERT_EQ(RequestOrigin_RestApi, origin.GetRequestOrigin());
-    ASSERT_EQ("host", origin.GetRemoteIp());
     ASSERT_EQ("", std::string(origin.GetRemoteAetC()));
-    ASSERT_THROW(origin.GetCalledAet(), OrthancException);
-    ASSERT_EQ("username", origin.GetHttpUsername());
+    ASSERT_TRUE(origin.LookupRemoteIp(t));     ASSERT_EQ("host", t);
+    ASSERT_FALSE(origin.LookupRemoteAet(t));
+    ASSERT_FALSE(origin.LookupCalledAet(t));
+    ASSERT_TRUE(origin.LookupHttpUsername(t)); ASSERT_EQ("username", t);
   }
 
   {
@@ -1154,6 +1158,10 @@ TEST(JobsSerialization, DicomInstanceOrigin)
   {
     DicomInstanceOrigin origin(s);
     ASSERT_EQ(RequestOrigin_Lua, origin.GetRequestOrigin());
+    ASSERT_FALSE(origin.LookupRemoteIp(t));
+    ASSERT_FALSE(origin.LookupRemoteAet(t));
+    ASSERT_FALSE(origin.LookupCalledAet(t));
+    ASSERT_FALSE(origin.LookupHttpUsername(t));
   }
 
   {
@@ -1166,6 +1174,10 @@ TEST(JobsSerialization, DicomInstanceOrigin)
   {
     DicomInstanceOrigin origin(s);
     ASSERT_EQ(RequestOrigin_Plugins, origin.GetRequestOrigin());
+    ASSERT_FALSE(origin.LookupRemoteIp(t));
+    ASSERT_FALSE(origin.LookupRemoteAet(t));
+    ASSERT_FALSE(origin.LookupCalledAet(t));
+    ASSERT_FALSE(origin.LookupHttpUsername(t));
   }
 }
 

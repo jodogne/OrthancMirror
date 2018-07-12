@@ -127,40 +127,56 @@ namespace Orthanc
     }
   }
 
-  const std::string& DicomInstanceOrigin::GetRemoteIp() const
+  bool DicomInstanceOrigin::LookupRemoteAet(std::string& result) const
+  {
+    if (origin_ == RequestOrigin_DicomProtocol)
+    {
+      result = dicomRemoteAet_.c_str();
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool DicomInstanceOrigin::LookupRemoteIp(std::string& result) const
   {
     if (origin_ == RequestOrigin_DicomProtocol ||
         origin_ == RequestOrigin_RestApi)
     {
-      return remoteIp_;
+      result = remoteIp_;
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      return false;
     }
   }
 
-  const std::string& DicomInstanceOrigin::GetCalledAet() const
+  bool DicomInstanceOrigin::LookupCalledAet(std::string& result) const
   {
     if (origin_ == RequestOrigin_DicomProtocol)
     {
-      return dicomCalledAet_;
+      result = dicomCalledAet_;
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      return false;
     }
   }
 
-  const std::string& DicomInstanceOrigin::GetHttpUsername() const
+  bool DicomInstanceOrigin::LookupHttpUsername(std::string& result) const
   {
     if (origin_ == RequestOrigin_RestApi)
     {
-      return httpUsername_;
+      result = httpUsername_;
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      return false;
     }
   }
 

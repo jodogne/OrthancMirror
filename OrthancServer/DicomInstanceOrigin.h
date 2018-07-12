@@ -85,11 +85,13 @@ namespace Orthanc
 
     const char* GetRemoteAetC() const; 
 
-    const std::string& GetRemoteIp() const;
-    
-    const std::string& GetCalledAet() const; 
+    bool LookupRemoteAet(std::string& result) const;
 
-    const std::string& GetHttpUsername() const; 
+    bool LookupRemoteIp(std::string& result) const;
+
+    bool LookupCalledAet(std::string& result) const;
+
+    bool LookupHttpUsername(std::string& result) const;
 
     void Format(Json::Value& result) const;
 
