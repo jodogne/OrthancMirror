@@ -1274,20 +1274,26 @@ extern "C"
 
 
   /**
-   * @brief Check the compatibility of the plugin wrt. the version of its hosting Orthanc.
+   * @brief Check that the version of the hosting Orthanc is above a given version.
    * 
-   * This function checks whether the version of this C header is
-   * compatible with the current version of Orthanc. The result of
-   * this function should always be checked in the
-   * OrthancPluginInitialize() entry point of the plugin.
+   * This function checks whether the version of the Orthanc server
+   * running this plugin, is above the given version. Contrarily to
+   * OrthancPluginCheckVersion(), it is up to the developer of the
+   * plugin to make sure that all the Orthanc SDK services called by
+   * the plugin are actually implemented in the given version of
+   * Orthanc.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return 1 if and only if the versions are compatible. If the
    * result is 0, the initialization of the plugin should fail.
+   * @see OrthancPluginCheckVersion
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
-    OrthancPluginContext* context)
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersionAdvanced(
+    OrthancPluginContext* context,
+    int expectedMajor,
+    int expectedMinor,
+    int expectedRevision)
   {
     int major, minor, revision;
 
@@ -1332,31 +1338,31 @@ extern "C"
 
     /* Check the major number of the version */
 
-    if (major > ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER)
+    if (major > expectedMajor)
     {
       return 1;
     }
 
-    if (major < ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER)
+    if (major < expectedMajor)
     {
       return 0;
     }
 
     /* Check the minor number of the version */
 
-    if (minor > ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    if (minor > expectedMinor)
     {
       return 1;
     }
 
-    if (minor < ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER)
+    if (minor < expectedMinor)
     {
       return 0;
     }
 
     /* Check the revision number of the version */
 
-    if (revision >= ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER)
+    if (revision >= expectedRevision)
     {
       return 1;
     }
@@ -1364,6 +1370,33 @@ extern "C"
     {
       return 0;
     }
+  }
+
+
+  /**
+   * @brief Check the compatibility of the plugin wrt. the version of its hosting Orthanc.
+   * 
+   * This function checks whether the version of the Orthanc server
+   * running this plugin, is above the version of the current Orthanc
+   * SDK header. This guarantees that the plugin is compatible with
+   * the hosting Orthanc (i.e. it will not call unavailable services).
+   * The result of this function should always be checked in the
+   * OrthancPluginInitialize() entry point of the plugin.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return 1 if and only if the versions are compatible. If the
+   * result is 0, the initialization of the plugin should fail.
+   * @see OrthancPluginCheckVersionAdvanced
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
+    OrthancPluginContext* context)
+  {
+    return OrthancPluginCheckVersionAdvanced(
+      context,
+      ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
+      ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
+      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
   }
 
 
