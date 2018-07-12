@@ -1186,7 +1186,12 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
+
+      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
+      // "GetLastChange()" involves calls to "GetPublicId()"
+      Transaction transaction(*this);
       db_.GetChanges(changes, done, since, maxResults);
+      transaction.Commit(0);
     }
 
     FormatLog(target, changes, "Changes", done, since);
@@ -1199,7 +1204,12 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
+
+      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
+      // "GetLastChange()" involves calls to "GetPublicId()"
+      Transaction transaction(*this);
       db_.GetLastChange(changes);
+      transaction.Commit(0);
     }
 
     FormatLog(target, changes, "Changes", true, 0);
