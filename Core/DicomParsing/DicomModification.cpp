@@ -316,6 +316,7 @@ namespace Orthanc
     keepStudyInstanceUid_(false),
     keepSeriesInstanceUid_(false),
     updateReferencedRelationships_(true),
+    isAnonymization_(false),
     identifierGenerator_(NULL)
   {
   }
@@ -820,6 +821,8 @@ namespace Orthanc
 
   void DicomModification::SetupAnonymization(DicomVersion version)
   {
+    isAnonymization_ = true;
+    
     removals_.clear();
     clearings_.clear();
     ClearReplacements();
@@ -1030,7 +1033,8 @@ namespace Orthanc
       MapDicomTags(toModify, ResourceType_Instance);
     }
 
-    // (6) Update the "referenced" relationships
+    // (6) Update the "referenced" relationships in the case of an anonymization
+    if (isAnonymization_)
     {
       RelationshipsVisitor visitor(*this);
 
@@ -1248,6 +1252,7 @@ namespace Orthanc
   static const char* KEEP_STUDY_INSTANCE_UID = "KeepStudyInstanceUID";
   static const char* KEEP_SERIES_INSTANCE_UID = "KeepSeriesInstanceUID";
   static const char* UPDATE_REFERENCED_RELATIONSHIPS = "UpdateReferencedRelationships";
+  static const char* IS_ANONYMIZATION = "IsAnonymization";
   static const char* REMOVALS = "Removals";
   static const char* CLEARINGS = "Clearings";
   static const char* PRIVATE_TAGS_TO_KEEP = "PrivateTagsToKeep";
@@ -1272,6 +1277,7 @@ namespace Orthanc
     value[KEEP_STUDY_INSTANCE_UID] = keepStudyInstanceUid_;
     value[KEEP_SERIES_INSTANCE_UID] = keepSeriesInstanceUid_;
     value[UPDATE_REFERENCED_RELATIONSHIPS] = updateReferencedRelationships_;
+    value[IS_ANONYMIZATION] = isAnonymization_;
 
     SerializationToolbox::WriteSetOfTags(value, removals_, REMOVALS);
     SerializationToolbox::WriteSetOfTags(value, clearings_, CLEARINGS);
@@ -1368,6 +1374,7 @@ namespace Orthanc
     keepSeriesInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SERIES_INSTANCE_UID);
     updateReferencedRelationships_ = SerializationToolbox::ReadBoolean
       (serialized, UPDATE_REFERENCED_RELATIONSHIPS);
+    isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
 
     SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
     SerializationToolbox::ReadSetOfTags(clearings_, serialized, CLEARINGS);
