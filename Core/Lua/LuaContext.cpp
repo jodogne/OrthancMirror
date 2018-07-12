@@ -287,7 +287,17 @@ namespace Orthanc
 
     if (nArgs >= 2 && !lua_isnil(state, 2))
     {
-      that.httpClient_.SetBody(lua_tostring(state, 2));
+      size_t bodySize = 0;
+      const char* bodyData = lua_tolstring(state, 2, &bodySize);
+
+      if (bodySize == 0)
+      {
+        that.httpClient_.GetBody().clear();
+      }
+      else
+      {
+        that.httpClient_.GetBody().assign(bodyData, bodySize);
+      }
     }
     else
     {
