@@ -707,8 +707,12 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
     size_t i = lock.AddOperation(new LogJobOperation);
     size_t j = lock.AddOperation(new LogJobOperation);
     size_t k = lock.AddOperation(new LogJobOperation);
-    lock.AddInput(i, StringOperationValue("Hello"));
-    lock.AddInput(i, StringOperationValue("World"));
+
+    StringOperationValue a("Hello");
+    StringOperationValue b("World");
+    lock.AddInput(i, a);
+    lock.AddInput(i, b);
+    
     lock.Connect(i, j);
     lock.Connect(j, k);
   }
@@ -1002,8 +1006,11 @@ TEST(JobsSerialization, GenericJobs)
       size_t a = lock.AddOperation(new LogJobOperation);
       size_t b = lock.AddOperation(new LogJobOperation);
       lock.Connect(a, b);
-      lock.AddInput(a, StringOperationValue("hello"));
-      lock.AddInput(a, StringOperationValue("world"));
+
+      StringOperationValue s1("hello");
+      StringOperationValue s2("world");
+      lock.AddInput(a, s1);
+      lock.AddInput(a, s2);
       lock.SetDicomAssociationTimeout(200);
       lock.SetTrailingOperationTimeout(300);
     }
