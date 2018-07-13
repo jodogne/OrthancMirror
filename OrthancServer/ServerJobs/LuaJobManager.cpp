@@ -238,7 +238,8 @@ namespace Orthanc
   void LuaJobManager::Lock::AddNullInput(size_t operation)
   {
     assert(jobLock_.get() != NULL);
-    jobLock_->AddInput(operation, NullOperationValue());
+    NullOperationValue null;
+    jobLock_->AddInput(operation, null);
   }
 
 
@@ -246,7 +247,8 @@ namespace Orthanc
                                            const std::string& content)
   {
     assert(jobLock_.get() != NULL);
-    jobLock_->AddInput(operation, StringOperationValue(content));
+    StringOperationValue value(content);
+    jobLock_->AddInput(operation, value);
   }
 
 
@@ -255,7 +257,8 @@ namespace Orthanc
                                                   const std::string& instanceId)
   {
     assert(jobLock_.get() != NULL);
-    jobLock_->AddInput(operation, DicomInstanceOperationValue(context, instanceId));
+    DicomInstanceOperationValue value(context, instanceId);
+    jobLock_->AddInput(operation, value);
   }
 
 

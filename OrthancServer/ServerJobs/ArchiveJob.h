@@ -51,17 +51,17 @@ namespace Orthanc
     class ZipWriterIterator;
     class ZipWriterIterator;
     
-    boost::shared_ptr<TemporaryFile>  target_;
-    ServerContext&                    context_;
-    std::auto_ptr<ArchiveIndex>       archive_;
-    bool                              isMedia_;
-    bool                              enableExtendedSopClass_;
-    std::string                       description_;
+    boost::shared_ptr<TemporaryFile>      target_;
+    ServerContext&                        context_;
+    boost::shared_ptr<ArchiveIndex>       archive_;
+    bool                                  isMedia_;
+    bool                                  enableExtendedSopClass_;
+    std::string                           description_;
 
-    std::auto_ptr<ZipWriterIterator>  writer_;
-    size_t                            currentStep_;
-    unsigned int                      instancesCount_;
-    uint64_t                          uncompressedSize_;
+    boost::shared_ptr<ZipWriterIterator>  writer_;
+    size_t                                currentStep_;
+    unsigned int                          instancesCount_;
+    uint64_t                              uncompressedSize_;
 
   public:
     ArchiveJob(boost::shared_ptr<TemporaryFile>& target,
