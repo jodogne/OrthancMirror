@@ -49,7 +49,6 @@ namespace Orthanc
     class ResourceIdentifiers;
     class ZipCommands;
     class ZipWriterIterator;
-    class ZipWriterIterator;
     
     boost::shared_ptr<TemporaryFile>      target_;
     ServerContext&                        context_;
