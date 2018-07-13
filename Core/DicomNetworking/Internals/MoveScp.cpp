@@ -93,6 +93,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 
 
+/**
+ * Macro specifying whether to apply the patch suggested in issue 66:
+ * "Orthanc responses C-MOVE with zero Move Originator Message ID"
+ * https://bitbucket.org/sjodogne/orthanc/issues/66/
+ **/
+
+#define APPLY_FIX_ISSUE_66   1
+
+
 namespace Orthanc
 {
   namespace
@@ -112,7 +121,7 @@ namespace Orthanc
     };
 
 
-
+#if APPLY_FIX_ISSUE_66 != 1
     static uint16_t GetMessageId(const DicomMap& message)
     {
       /**
@@ -145,7 +154,7 @@ namespace Orthanc
 
       return 0;
     }
-
+#endif
 
 
     void MoveScpCallback(
@@ -172,8 +181,15 @@ namespace Orthanc
 
         try
         {
+#if APPLY_FIX_ISSUE_66 == 1
+          uint16_t messageId = request->MessageID;
+#else
+          // The line below was the implementation for Orthanc <= 1.3.2
+          uint16_t messageId = GetMessageId(input);
+#endif
+
           data.iterator_.reset(data.handler_->Handle(data.target_, input, *data.remoteIp_, *data.remoteAet_,
-                                                     *data.calledAet_, GetMessageId(input)));
+                                                     *data.calledAet_, messageId));
 
           if (data.iterator_.get() == NULL)
           {

@@ -84,6 +84,7 @@ namespace Orthanc
     bool keepStudyInstanceUid_;
     bool keepSeriesInstanceUid_;
     bool updateReferencedRelationships_;
+    bool isAnonymization_;
     DicomMap currentSource_;
 
     IDicomIdentifierGenerator* identifierGenerator_;
@@ -107,8 +108,14 @@ namespace Orthanc
 
     void SetupAnonymization2017c();
 
+    void UnserializeUidMap(ResourceType level,
+                           const Json::Value& serialized,
+                           const char* field);
+
   public:
     DicomModification();
+
+    DicomModification(const Json::Value& serialized);
 
     ~DicomModification();
 
@@ -172,5 +179,7 @@ namespace Orthanc
     {
       identifierGenerator_ = &generator;
     }
+
+    void Serialize(Json::Value& value) const;
   };
 }

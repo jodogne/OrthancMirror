@@ -35,21 +35,24 @@
 #include "QueryRetrieveHandler.h"
 
 #include "OrthancInitialization.h"
+
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/Logging.h"
 
 
 namespace Orthanc
 {
-  static void FixQuery(DicomMap& query,
-                       ServerContext& context,
-                       const std::string& modality)
+  static void FixQueryLua(DicomMap& query,
+                          ServerContext& context,
+                          const std::string& modality)
   {
     static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
 
-    LuaScripting::Locker locker(context.GetLua());
-    if (locker.GetLua().IsExistingFunction(LUA_CALLBACK))
+    LuaScripting::Lock lock(context.GetLuaScripting());
+
+    if (lock.GetLua().IsExistingFunction(LUA_CALLBACK))
     {
-      LuaFunctionCall call(locker.GetLua(), LUA_CALLBACK);
+      LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(query);
       call.PushJson(modality);
       FromDcmtkBridge::ExecuteToDicom(query, call);
@@ -57,8 +60,8 @@ namespace Orthanc
   }
 
 
-  static void FixQuery(DicomMap& query,
-                       ModalityManufacturer manufacturer)
+  static void FixQueryBuiltin(DicomMap& query,
+                              ModalityManufacturer manufacturer)
   {
     /**
      * Introduce patches for specific manufacturers below.
@@ -76,6 +79,19 @@ namespace Orthanc
   {
     done_ = false;
     answers_.Clear();
+    connection_.reset(NULL);
+  }
+
+
+  DicomUserConnection& QueryRetrieveHandler::GetConnection()
+  {
+    if (connection_.get() == NULL)
+    {
+      connection_.reset(new DicomUserConnection(localAet_, modality_));
+      connection_->Open();
+    }
+
+    return *connection_;
   }
 
 
@@ -86,16 +102,12 @@ namespace Orthanc
       // Firstly, fix the content of the query for specific manufacturers
       DicomMap fixed;
       fixed.Assign(query_);
-      FixQuery(fixed, modality_.GetManufacturer());
+      FixQueryBuiltin(fixed, modality_.GetManufacturer());
 
       // Secondly, possibly fix the query with the user-provider Lua callback
-      FixQuery(fixed, context_, modality_.GetApplicationEntityTitle()); 
+      FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
-      {
-        // Finally, run the C-FIND SCU against the fixed query
-        ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-        locker.GetConnection().Find(answers_, level_, fixed);
-      }
+      GetConnection().Find(answers_, level_, fixed);
 
       done_ = true;
     }
@@ -155,11 +167,7 @@ namespace Orthanc
   {
     DicomMap map;
     GetAnswer(map, i);
-
-    {
-      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-      locker.GetConnection().Move(target, map);
-    }
+    GetConnection().Move(target, map);
   }
 
 

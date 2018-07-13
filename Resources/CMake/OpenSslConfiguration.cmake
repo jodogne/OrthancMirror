@@ -95,8 +95,30 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       ${OPENSSL_SOURCES_DIR}/ssl/ssl3.h
       ${OPENSSL_SOURCES_DIR}/ssl/tls1.h
       )
-    file(COPY ${header} DESTINATION ${OPENSSL_SOURCES_DIR}/include/openssl)
+      file(COPY ${header} DESTINATION ${OPENSSL_SOURCES_DIR}/include/openssl)
     endforeach()
+
+    file(RENAME
+      ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h
+      ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2_source.h)
+
+    # The following patch of "e_os2.h" prevents from building OpenSSL
+    # as a DLL under Windows. Otherwise, symbols have inconsistent
+    # linkage if ${OPENSSL_SOURCES} is used to create a DLL (notably
+    # if building an Orthanc plugin such as MySQL).
+    file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h "
+#include \"e_os2_source.h\"
+#if defined(_WIN32)
+#  undef OPENSSL_EXPORT
+#  undef OPENSSL_IMPORT
+#  undef OPENSSL_EXTERN
+#  undef OPENSSL_GLOBAL
+#  define OPENSSL_EXPORT
+#  define OPENSSL_IMPORT
+#  define OPENSSL_EXTERN extern
+#  define OPENSSL_GLOBAL
+#endif
+")
   endif()
   
   add_definitions(
@@ -118,7 +140,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     -DOPENSSL_NO_KRB5 
     -DOPENSSL_NO_MD2 
     -DOPENSSL_NO_MDC2 
-    -DOPENSSL_NO_MD4
+    #-DOPENSSL_NO_MD4   # MD4 is necessary for MariaDB/MySQL client
     -DOPENSSL_NO_RC2 
     -DOPENSSL_NO_RC4 
     -DOPENSSL_NO_RC5 
@@ -159,6 +181,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/evp
     ${OPENSSL_SOURCES_DIR}/crypto/hmac
     ${OPENSSL_SOURCES_DIR}/crypto/lhash
+    ${OPENSSL_SOURCES_DIR}/crypto/md4
     ${OPENSSL_SOURCES_DIR}/crypto/md5
     ${OPENSSL_SOURCES_DIR}/crypto/modes
     ${OPENSSL_SOURCES_DIR}/crypto/objects
@@ -179,6 +202,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/x509v3
     ${OPENSSL_SOURCES_DIR}/ssl
     )
+
+  if (ENABLE_OPENSSL_ENGINES)
+    list(APPEND OPENSSL_SOURCES_SUBDIRS
+      ${OPENSSL_SOURCES_DIR}/engines
+      )
+  endif()
 
   if (ENABLE_PKCS11)
     list(APPEND OPENSSL_SOURCES_SUBDIRS
@@ -220,6 +249,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/crypto/evp/e_dsa.c
     ${OPENSSL_SOURCES_DIR}/crypto/evp/m_ripemd.c
     ${OPENSSL_SOURCES_DIR}/crypto/lhash/lh_test.c
+    ${OPENSSL_SOURCES_DIR}/crypto/md4/md4.c
+    ${OPENSSL_SOURCES_DIR}/crypto/md4/md4s.cpp
+    ${OPENSSL_SOURCES_DIR}/crypto/md4/md4test.c
     ${OPENSSL_SOURCES_DIR}/crypto/md5/md5s.cpp
     ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/bio_ber.c
     ${OPENSSL_SOURCES_DIR}/crypto/pkcs7/pk7_enc.c
@@ -280,6 +312,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/ssl/heartbeat_test.c
     ${OPENSSL_SOURCES_DIR}/ssl/fatalerrtest.c
     ${OPENSSL_SOURCES_DIR}/ssl/dtlstest.c
+    ${OPENSSL_SOURCES_DIR}/ssl/bad_dtls_test.c
+    ${OPENSSL_SOURCES_DIR}/ssl/clienthellotest.c
+    ${OPENSSL_SOURCES_DIR}/ssl/sslv2conftest.c
     ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
     )
 
@@ -289,6 +324,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       ${OPENSSL_SOURCES}
       PROPERTIES COMPILE_DEFINITIONS
       "OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
+
+    if (ENABLE_OPENSSL_ENGINES)
+      link_libraries(crypt32)
+    endif()
   endif()
 
   source_group(ThirdParty\\OpenSSL REGULAR_EXPRESSION ${OPENSSL_SOURCES_DIR}/.*)

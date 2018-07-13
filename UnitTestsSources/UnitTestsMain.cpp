@@ -677,6 +677,14 @@ TEST(Toolbox, Enumerations)
   }
 
   ASSERT_THROW(StringToValueRepresentation("nope", true), OrthancException);
+
+  ASSERT_EQ(JobState_Pending, StringToJobState(EnumerationToString(JobState_Pending)));
+  ASSERT_EQ(JobState_Running, StringToJobState(EnumerationToString(JobState_Running)));
+  ASSERT_EQ(JobState_Success, StringToJobState(EnumerationToString(JobState_Success)));
+  ASSERT_EQ(JobState_Failure, StringToJobState(EnumerationToString(JobState_Failure)));
+  ASSERT_EQ(JobState_Paused, StringToJobState(EnumerationToString(JobState_Paused)));
+  ASSERT_EQ(JobState_Retry, StringToJobState(EnumerationToString(JobState_Retry)));
+  ASSERT_THROW(StringToJobState("nope"), OrthancException);
 }
 
 

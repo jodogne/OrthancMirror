@@ -55,6 +55,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 set(ORTHANC_SERVER_SOURCES
   OrthancServer/DatabaseWrapper.cpp
   OrthancServer/DatabaseWrapperBase.cpp
+  OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp
@@ -70,14 +71,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
-  OrthancServer/Scheduler/CallSystemCommand.cpp
-  OrthancServer/Scheduler/DeleteInstanceCommand.cpp
-  OrthancServer/Scheduler/ModifyInstanceCommand.cpp
-  OrthancServer/Scheduler/ServerCommandInstance.cpp
-  OrthancServer/Scheduler/ServerJob.cpp
-  OrthancServer/Scheduler/ServerScheduler.cpp
-  OrthancServer/Scheduler/StorePeerCommand.cpp
-  OrthancServer/Scheduler/StoreScuCommand.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
@@ -90,6 +83,17 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
+  OrthancServer/ServerJobs/ArchiveJob.cpp
+  OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
+  OrthancServer/ServerJobs/LuaJobManager.cpp
+  OrthancServer/ServerJobs/Operations/DeleteResourceOperation.cpp
+  OrthancServer/ServerJobs/Operations/ModifyInstanceOperation.cpp
+  OrthancServer/ServerJobs/Operations/StorePeerOperation.cpp
+  OrthancServer/ServerJobs/Operations/StoreScuOperation.cpp
+  OrthancServer/ServerJobs/Operations/SystemCallOperation.cpp
+  OrthancServer/ServerJobs/OrthancJobUnserializer.cpp
+  OrthancServer/ServerJobs/OrthancPeerStoreJob.cpp
+  OrthancServer/ServerJobs/ResourceModificationJob.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
   )
@@ -224,6 +228,7 @@ include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1
+  -DORTHANC_ENABLE_LOGGING_PLUGIN=0
   
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0
@@ -497,7 +502,6 @@ if (ENABLE_PLUGINS)
     FILES
     Plugins/Include/orthanc/OrthancCPlugin.h 
     Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
-    Plugins/Include/orthanc/OrthancCppDatabasePlugin.h 
     DESTINATION include/orthanc
     )
 endif()

@@ -676,7 +676,7 @@ namespace Orthanc
 
     std::string username = GetAuthenticatedUsername(headers);
 
-    const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+    IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
       if (!filter->IsAllowed(method, request->uri, remoteIp,

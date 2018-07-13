@@ -43,6 +43,7 @@ endif()
 if (NOT ENABLE_CRYPTO_OPTIONS)
   unset(ENABLE_SSL CACHE)
   unset(ENABLE_PKCS11 CACHE)
+  unset(ENABLE_OPENSSL_ENGINES CACHE)
   unset(USE_SYSTEM_OPENSSL CACHE)
   unset(USE_SYSTEM_LIBP11 CACHE)
   add_definitions(
@@ -83,6 +84,7 @@ endif()
 
 if (NOT ENABLE_LUA)
   unset(USE_SYSTEM_LUA CACHE)
+  unset(ENABLE_LUA_MODULES CACHE)
   add_definitions(-DORTHANC_ENABLE_LUA=0)
 endif()
 
@@ -130,6 +132,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomValue.cpp
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
+  ${ORTHANC_ROOT}/Core/FileStorage/MemoryStorageArea.cpp
   ${ORTHANC_ROOT}/Core/Images/Font.cpp
   ${ORTHANC_ROOT}/Core/Images/FontRegistry.cpp
   ${ORTHANC_ROOT}/Core/Images/IImageWriter.cpp
@@ -139,7 +142,16 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
   ${ORTHANC_ROOT}/Core/Images/PamReader.cpp
   ${ORTHANC_ROOT}/Core/Images/PamWriter.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+  ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
+  ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Core/WebServiceParameters.cpp
   )
@@ -179,6 +191,7 @@ if (ENABLE_CRYPTO_OPTIONS)
     include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfiguration.cmake)
     add_definitions(-DORTHANC_ENABLE_SSL=1)
   else()
+    unset(ENABLE_OPENSSL_ENGINES CACHE)
     unset(USE_SYSTEM_OPENSSL CACHE)
     add_definitions(-DORTHANC_ENABLE_SSL=0)
   endif()
@@ -425,13 +438,12 @@ if (ENABLE_DCMTK)
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/ReusableDicomUserConnection.cpp
-
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/StoreScp.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
@@ -487,24 +499,12 @@ else()
     -DORTHANC_SANDBOXED=0
     )
 
-  if (ORTHANC_FRAMEWORK_PLUGIN)
-    add_definitions(
-      -DORTHANC_ENABLE_LOGGING_PLUGIN=1
-      )
-  else()
-    add_definitions(
-      -DORTHANC_ENABLE_LOGGING_PLUGIN=0
-      )
-  endif()
-  
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/BagOfTasksProcessor.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/Mutex.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/ReaderWriterLock.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/JobsEngine.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
     ${ORTHANC_ROOT}/Core/SharedLibrary.cpp
     ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
@@ -516,9 +516,11 @@ endif()
 if (HAS_EMBEDDED_RESOURCES)
   add_definitions(-DORTHANC_HAS_EMBEDDED_RESOURCES=1)
 
-  list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
-    )
+  if (ENABLE_WEB_SERVER)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
+      )
+  endif()
 else()
   add_definitions(-DORTHANC_HAS_EMBEDDED_RESOURCES=0)
 endif()

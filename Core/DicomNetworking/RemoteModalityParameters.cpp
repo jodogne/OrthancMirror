@@ -36,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>
@@ -57,7 +58,7 @@ namespace Orthanc
   {
     SetApplicationEntityTitle(aet);
     SetHost(host);
-    SetPort(port);
+    SetPortNumber(port);
     SetManufacturer(manufacturer);
   }
 
@@ -83,13 +84,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      SetPort(static_cast<uint16_t>(tmp));
+      SetPortNumber(static_cast<uint16_t>(tmp));
     }
     catch (std::runtime_error /* error inside JsonCpp */)
     {
       try
       {
-        SetPort(boost::lexical_cast<uint16_t>(portValue.asString()));
+        SetPortNumber(boost::lexical_cast<uint16_t>(portValue.asString()));
       }
       catch (boost::bad_lexical_cast)
       {
@@ -117,12 +118,34 @@ namespace Orthanc
     }
   }
 
+  
   void RemoteModalityParameters::ToJson(Json::Value& value) const
   {
     value = Json::arrayValue;
     value.append(GetApplicationEntityTitle());
     value.append(GetHost());
-    value.append(GetPort());
+    value.append(GetPortNumber());
     value.append(EnumerationToString(GetManufacturer()));
+  }
+
+  
+  void RemoteModalityParameters::Serialize(Json::Value& target) const
+  {
+    target = Json::objectValue;
+    target["AET"] = aet_;
+    target["Host"] = host_;
+    target["Port"] = port_;
+    target["Manufacturer"] = EnumerationToString(manufacturer_);
+  }
+
+  
+  RemoteModalityParameters::RemoteModalityParameters(const Json::Value& serialized)
+  {
+    aet_ = SerializationToolbox::ReadString(serialized, "AET");
+    host_ = SerializationToolbox::ReadString(serialized, "Host");
+    port_ = static_cast<uint16_t>
+      (SerializationToolbox::ReadUnsignedInteger(serialized, "Port"));
+    manufacturer_ = StringToModalityManufacturer
+      (SerializationToolbox::ReadString(serialized, "Manufacturer"));
   }
 }

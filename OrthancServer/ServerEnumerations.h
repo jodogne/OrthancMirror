@@ -76,7 +76,20 @@ namespace Orthanc
     GlobalProperty_DatabaseSchemaVersion = 1,   // Unused in the Orthanc core as of Orthanc 0.9.5
     GlobalProperty_FlushSleep = 2,
     GlobalProperty_AnonymizationSequence = 3,
-    GlobalProperty_DatabasePatchLevel = 4       // Reserved for internal use of the database plugins
+    GlobalProperty_JobsRegistry = 5,
+
+    // Reserved values for internal use by the database plugins
+    GlobalProperty_DatabasePatchLevel = 4,
+    GlobalProperty_DatabaseInternal0 = 10,
+    GlobalProperty_DatabaseInternal1 = 11,
+    GlobalProperty_DatabaseInternal2 = 12,
+    GlobalProperty_DatabaseInternal3 = 13,
+    GlobalProperty_DatabaseInternal4 = 14,
+    GlobalProperty_DatabaseInternal5 = 15,
+    GlobalProperty_DatabaseInternal6 = 16,
+    GlobalProperty_DatabaseInternal7 = 17,
+    GlobalProperty_DatabaseInternal8 = 18,
+    GlobalProperty_DatabaseInternal9 = 19
   };
 
   enum MetadataType
@@ -91,6 +104,9 @@ namespace Orthanc
     MetadataType_Instance_Origin = 8,          // New in Orthanc 0.9.5
     MetadataType_Instance_TransferSyntax = 9,  // New in Orthanc 1.2.0
     MetadataType_Instance_SopClassUid = 10,    // New in Orthanc 1.2.0
+    MetadataType_Instance_RemoteIp = 11,       // New in Orthanc 1.4.0
+    MetadataType_Instance_CalledAet = 12,      // New in Orthanc 1.4.0
+    MetadataType_Instance_HttpUsername = 13,   // New in Orthanc 1.4.0
 
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,

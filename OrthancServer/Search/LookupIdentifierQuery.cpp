@@ -46,9 +46,14 @@ namespace Orthanc
 {
   LookupIdentifierQuery::Disjunction::~Disjunction()
   {
-    for (size_t i = 0; i < disjunction_.size(); i++)
+    for (size_t i = 0; i < singleConstraints_.size(); i++)
     {
-      delete disjunction_[i];
+      delete singleConstraints_[i];
+    }
+
+    for (size_t i = 0; i < rangeConstraints_.size(); i++)
+    {
+      delete rangeConstraints_[i];
     }
   }
 
@@ -57,14 +62,22 @@ namespace Orthanc
                                                IdentifierConstraintType type,
                                                const std::string& value)
   {
-    disjunction_.push_back(new Constraint(tag, type, value));
+    singleConstraints_.push_back(new SingleConstraint(tag, type, value));
+  }
+
+
+  void LookupIdentifierQuery::Disjunction::AddRange(const DicomTag& tag,
+                                                    const std::string& start,
+                                                    const std::string& end)
+  {
+    rangeConstraints_.push_back(new RangeConstraint(tag, start, end));
   }
 
 
   LookupIdentifierQuery::~LookupIdentifierQuery()
   {
-    for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
+    for (Disjunctions::iterator it = disjunctions_.begin();
+         it != disjunctions_.end(); ++it)
     {
       delete *it;
     }
@@ -76,15 +89,25 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
-    constraints_.push_back(new Disjunction);
-    constraints_.back()->Add(tag, type, value);
+    disjunctions_.push_back(new Disjunction);
+    disjunctions_.back()->Add(tag, type, value);
+  }
+
+
+  void LookupIdentifierQuery::AddRange(DicomTag tag,
+                                       const std::string& start,
+                                       const std::string& end)
+  {
+    assert(IsIdentifier(tag));
+    disjunctions_.push_back(new Disjunction);
+    disjunctions_.back()->AddRange(tag, start, end);
   }
 
 
   LookupIdentifierQuery::Disjunction& LookupIdentifierQuery::AddDisjunction()
   {
-    constraints_.push_back(new Disjunction);
-    return *constraints_.back();
+    disjunctions_.push_back(new Disjunction);
+    return *disjunctions_.back();
   }
 
 
@@ -101,15 +124,26 @@ namespace Orthanc
   void LookupIdentifierQuery::Apply(SetOfResources& result,
                                     IDatabaseWrapper& database)
   {
-    for (size_t i = 0; i < GetSize(); i++)
+    for (size_t i = 0; i < disjunctions_.size(); i++)
     {
       std::list<int64_t> a;
 
-      for (size_t j = 0; j < constraints_[i]->GetSize(); j++)
+      for (size_t j = 0; j < disjunctions_[i]->GetSingleConstraintsCount(); j++)
       {
-        const Constraint& constraint = constraints_[i]->GetConstraint(j);
+        const SingleConstraint& constraint = disjunctions_[i]->GetSingleConstraint(j);
         std::list<int64_t> b;
-        database.LookupIdentifier(b, level_, constraint.GetTag(), constraint.GetType(), constraint.GetValue());
+        database.LookupIdentifier(b, level_, constraint.GetTag(), 
+                                  constraint.GetType(), constraint.GetValue());
+
+        a.splice(a.end(), b);
+      }
+
+      for (size_t j = 0; j < disjunctions_[i]->GetRangeConstraintsCount(); j++)
+      {
+        const RangeConstraint& constraint = disjunctions_[i]->GetRangeConstraint(j);
+        std::list<int64_t> b;
+        database.LookupIdentifierRange(b, level_, constraint.GetTag(), 
+                                       constraint.GetStart(), constraint.GetEnd());
 
         a.splice(a.end(), b);
       }
@@ -122,17 +156,17 @@ namespace Orthanc
   void LookupIdentifierQuery::Print(std::ostream& s) const
   {
     s << "Constraint: " << std::endl;
-    for (Constraints::const_iterator
-           it = constraints_.begin(); it != constraints_.end(); ++it)
+    for (Disjunctions::const_iterator
+           it = disjunctions_.begin(); it != disjunctions_.end(); ++it)
     {
-      if (it == constraints_.begin())
+      if (it == disjunctions_.begin())
         s << "   ";
       else
         s << "OR ";
 
-      for (size_t j = 0; j < (*it)->GetSize(); j++)
+      for (size_t j = 0; j < (*it)->GetSingleConstraintsCount(); j++)
       {
-        const Constraint& c = (*it)->GetConstraint(j);
+        const SingleConstraint& c = (*it)->GetSingleConstraint(j);
         s << FromDcmtkBridge::GetTagName(c.GetTag(), "");
 
         switch (c.GetType())

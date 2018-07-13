@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IServerListener
+  class IServerListener : public boost::noncopyable
   {
   public:
     virtual ~IServerListener()

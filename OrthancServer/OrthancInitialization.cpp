@@ -458,7 +458,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
-    HttpClient::InitializeOpenSsl();
+    Toolbox::InitializeOpenSsl();
 
     InitializeServerEnumerations();
 
@@ -514,7 +514,7 @@ namespace Orthanc
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
     HttpClient::GlobalFinalize();
     FromDcmtkBridge::FinalizeCodecs();
-    HttpClient::FinalizeOpenSsl();
+    Toolbox::FinalizeOpenSsl();
     Toolbox::FinalizeGlobalLocale();
   }
 
@@ -960,7 +960,7 @@ namespace Orthanc
     peers.removeMember(symbolicName);
 
     Json::Value v;
-    peer.ToJson(v);
+    peer.ToJson(v, true);
     peers[symbolicName] = v;
   }
   

@@ -67,6 +67,9 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_Instance_Origin, "Origin");
     dictMetadataType_.Add(MetadataType_Instance_TransferSyntax, "TransferSyntax");
     dictMetadataType_.Add(MetadataType_Instance_SopClassUid, "SopClassUid");
+    dictMetadataType_.Add(MetadataType_Instance_RemoteIp, "RemoteIP");
+    dictMetadataType_.Add(MetadataType_Instance_CalledAet, "CalledAET");
+    dictMetadataType_.Add(MetadataType_Instance_HttpUsername, "HttpUsername");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");

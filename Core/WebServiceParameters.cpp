@@ -34,8 +34,9 @@
 #include "PrecompiledHeaders.h"
 #include "WebServiceParameters.h"
 
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
+#include "Logging.h"
+#include "OrthancException.h"
+#include "SerializationToolbox.h"
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../Core/SystemToolbox.h"
@@ -129,6 +130,11 @@ namespace Orthanc
       SetUsername("");
       SetPassword("");
     }
+    else if (peer.size() == 2)
+    {
+      LOG(ERROR) << "The HTTP password is not provided";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
     else if (peer.size() == 3)
     {
       SetUsername(peer.get(1u, "").asString());
@@ -177,12 +183,25 @@ namespace Orthanc
     SetUsername(GetStringMember(peer, "Username", ""));
     SetPassword(GetStringMember(peer, "Password", ""));
 
+    if (!username_.empty() &&
+        !peer.isMember("Password"))
+    {
+      LOG(ERROR) << "The HTTP password is not provided";
+      throw OrthancException(ErrorCode_BadFileFormat);      
+    }
+
 #if ORTHANC_SANDBOXED == 0
     if (peer.isMember("CertificateFile"))
     {
       SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
                            GetStringMember(peer, "CertificateKeyFile", ""),
                            GetStringMember(peer, "CertificateKeyPassword", ""));
+
+      if (!peer.isMember("CertificateKeyPassword"))
+      {
+        LOG(ERROR) << "The password for the HTTPS certificate is not provided";
+        throw OrthancException(ErrorCode_BadFileFormat);      
+      }
     }
 #endif
 
@@ -228,7 +247,8 @@ namespace Orthanc
   }
 
 
-  void WebServiceParameters::ToJson(Json::Value& value) const
+  void WebServiceParameters::ToJson(Json::Value& value,
+                                    bool includePasswords) const
   {
     if (advancedFormat_)
     {
@@ -239,7 +259,11 @@ namespace Orthanc
           !password_.empty())
       {
         value["Username"] = username_;
-        value["Password"] = password_;
+
+        if (includePasswords)
+        {
+          value["Password"] = password_;
+        }
       }
 
       if (!certificateFile_.empty())
@@ -252,7 +276,8 @@ namespace Orthanc
         value["CertificateKeyFile"] = certificateKeyFile_;
       }
 
-      if (!certificateKeyPassword_.empty())
+      if (!certificateKeyPassword_.empty() &&
+          includePasswords)
       {
         value["CertificateKeyPassword"] = certificateKeyPassword_;
       }
@@ -266,8 +291,48 @@ namespace Orthanc
           !password_.empty())
       {
         value.append(username_);
-        value.append(password_);
+
+        if (includePasswords)
+        {
+          value.append(password_);
+        }
       }
     }
+  }
+
+  
+  void WebServiceParameters::Serialize(Json::Value& target) const
+  {
+    target = Json::objectValue;
+    target["URL"] = url_;
+    target["Username"] = username_;
+    target["Password"] = password_;
+    target["CertificateFile"] = certificateFile_;
+    target["CertificateKeyFile"] = certificateKeyFile_;
+    target["CertificateKeyPassword"] = certificateKeyPassword_;
+    target["PKCS11"] = pkcs11Enabled_;
+    target["AdvancedFormat"] = advancedFormat_;
+  }
+
+  
+  WebServiceParameters::WebServiceParameters(const Json::Value& serialized) :
+    advancedFormat_(true)
+  {
+    url_ = SerializationToolbox::ReadString(serialized, "URL");
+    username_ = SerializationToolbox::ReadString(serialized, "Username");
+    password_ = SerializationToolbox::ReadString(serialized, "Password");
+
+    std::string a, b, c;
+    a = SerializationToolbox::ReadString(serialized, "CertificateFile");
+    b = SerializationToolbox::ReadString(serialized, "CertificateKeyFile");
+    c = SerializationToolbox::ReadString(serialized, "CertificateKeyPassword");
+
+    if (!a.empty())
+    {
+      SetClientCertificate(a, b, c);
+    }
+    
+    pkcs11Enabled_ = SerializationToolbox::ReadBoolean(serialized, "PKCS11");
+    advancedFormat_ = SerializationToolbox::ReadBoolean(serialized, "AdvancedFormat");
   }
 }

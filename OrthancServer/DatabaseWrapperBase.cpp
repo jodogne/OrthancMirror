@@ -728,4 +728,30 @@ namespace Orthanc
       target.push_back(s->ColumnInt64(0));
     }    
   }
+
+
+  void DatabaseWrapperBase::LookupIdentifierRange(std::list<int64_t>& target,
+                                                  ResourceType level,
+                                                  const DicomTag& tag,
+                                                  const std::string& start,
+                                                  const std::string& end)
+  {
+    SQLite::Statement statement(db_, SQLITE_FROM_HERE,
+                                "SELECT d.id FROM DicomIdentifiers AS d, Resources AS r WHERE "
+                                "d.id = r.internalId AND r.resourceType=? AND "
+                                "d.tagGroup=? AND d.tagElement=? AND d.value>=? AND d.value<=?");
+
+    statement.BindInt(0, level);
+    statement.BindInt(1, tag.GetGroup());
+    statement.BindInt(2, tag.GetElement());
+    statement.BindString(3, start);
+    statement.BindString(4, end);
+
+    target.clear();
+
+    while (statement.Step())
+    {
+      target.push_back(statement.ColumnInt64(0));
+    }    
+  }
 }

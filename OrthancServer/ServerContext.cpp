@@ -34,26 +34,21 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "ServerToolbox.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 #include "OrthancInitialization.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "Search/LookupResource.h"
+#include "ServerJobs/OrthancJobUnserializer.h"
+#include "ServerToolbox.h"
 
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-
-#include "Scheduler/CallSystemCommand.h"
-#include "Scheduler/DeleteInstanceCommand.h"
-#include "Scheduler/ModifyInstanceCommand.h"
-#include "Scheduler/StoreScuCommand.h"
-#include "Scheduler/StorePeerCommand.h"
-#include "OrthancRestApi/OrthancRestApi.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
-#include "Search/LookupResource.h"
 
 
 #define ENABLE_DICOM_CACHE  1
@@ -71,11 +66,12 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  void ServerContext::ChangeThread(ServerContext* that)
+  void ServerContext::ChangeThread(ServerContext* that,
+                                   unsigned int sleepDelay)
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(100));
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
         
       if (obj.get() != NULL)
       {
@@ -112,29 +108,138 @@ namespace Orthanc
   }
 
 
+  void ServerContext::SaveJobsThread(ServerContext* that,
+                                     unsigned int sleepDelay)
+  {
+    static const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(10);
+    
+    boost::posix_time::ptime next =
+      boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+    
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+
+      if (that->haveJobsChanged_ ||
+          boost::posix_time::microsec_clock::universal_time() >= next)
+      {
+        that->haveJobsChanged_ = false;
+        that->SaveJobsEngine();
+        next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+      }
+    }
+  }
+  
+
+  void ServerContext::SignalJobSubmitted(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    lua_.SignalJobSubmitted(jobId);
+  }
+  
+
+  void ServerContext::SignalJobSuccess(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    lua_.SignalJobSuccess(jobId);
+  }
+
+  
+  void ServerContext::SignalJobFailure(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    lua_.SignalJobFailure(jobId);
+  }
+
+
+  void ServerContext::SetupJobsEngine(bool unitTesting,
+                                      bool loadJobsFromDatabase)
+  {
+    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
+
+    if (loadJobsFromDatabase)
+    {
+      std::string serialized;
+      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+      {
+        LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
+        OrthancJobUnserializer unserializer(*this);
+
+        try
+        {
+          jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
+          throw;
+        }
+      }
+      else
+      {
+        LOG(INFO) << "The last execution of Orthanc has archived no job";
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "Not reloading the jobs from the last execution of Orthanc";
+    }
+
+    //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
+
+    jobsEngine_.GetRegistry().SetObserver(*this);
+    jobsEngine_.Start();
+  }
+
+
+  void ServerContext::SaveJobsEngine()
+  {
+    VLOG(1) << "Serializing the content of the jobs engine";
+    
+    try
+    {
+      Json::Value value;
+      jobsEngine_.GetRegistry().Serialize(value);
+
+      Json::FastWriter writer;
+      std::string serialized = writer.write(value);
+
+      index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+    }
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database,
-                               IStorageArea& area) :
-    index_(*this, database),
+                               IStorageArea& area,
+                               bool unitTesting,
+                               bool loadJobsFromDatabase) :
+    index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
     storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    scheduler_(Configuration::GetGlobalUnsignedIntegerParameter("LimitJobs", 10)),
     lua_(*this),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
     done_(false),
+    haveJobsChanged_(false),
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    uint64_t s = Configuration::GetGlobalUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
-    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
-
     listeners_.push_back(ServerListener(lua_, "Lua"));
 
-    changeThread_ = boost::thread(ChangeThread, this);
+    SetupJobsEngine(unitTesting, loadJobsFromDatabase);
+
+    changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+    saveJobsThread_ = boost::thread(SaveJobsThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -165,10 +270,16 @@ namespace Orthanc
         changeThread_.join();
       }
 
-      scu_.Finalize();
+      if (saveJobsThread_.joinable())
+      {
+        saveJobsThread_.join();
+      }
+
+      jobsEngine_.GetRegistry().ResetObserver();
+      SaveJobsEngine();
 
       // Do not change the order below!
-      scheduler_.Stop();
+      jobsEngine_.Stop();
       index_.Stop();
     }
   }
@@ -679,4 +790,19 @@ namespace Orthanc
     }
   }
 
+
+  void ServerContext::AddChildInstances(SetOfInstancesJob& job,
+                                        const std::string& publicId)
+  {
+    std::list<std::string> instances;
+    GetIndex().GetChildInstances(instances, publicId);
+
+    job.Reserve(job.GetInstancesCount() + instances.size());
+
+    for (std::list<std::string>::const_iterator
+           it = instances.begin(); it != instances.end(); ++it)
+    {
+      job.AddInstance(*it);
+    }
+  }
 }

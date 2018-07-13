@@ -51,35 +51,38 @@ using namespace Orthanc::SQLite;
  ** http://src.chromium.org/viewvc/chrome/trunk/src/sql/connection_unittest.cc
  ********************************************************************/
 
-class SQLConnectionTest : public testing::Test 
+namespace
 {
-public:
-  SQLConnectionTest()
+  class SQLConnectionTest : public testing::Test 
   {
-  }
+  public:
+    SQLConnectionTest()
+    {
+    }
 
-  virtual ~SQLConnectionTest()
-  {
-  }
+    virtual ~SQLConnectionTest()
+    {
+    }
 
-  virtual void SetUp() 
-  {
-    db_.OpenInMemory();
-  }
+    virtual void SetUp() 
+    {
+      db_.OpenInMemory();
+    }
 
-  virtual void TearDown() 
-  {
-    db_.Close();
-  }
+    virtual void TearDown() 
+    {
+      db_.Close();
+    }
 
-  Connection& db() 
-  { 
-    return db_; 
-  }
+    Connection& db() 
+    { 
+      return db_; 
+    }
 
-private:
-  Connection db_;
-};
+  private:
+    Connection db_;
+  };
+}
 
 
 
@@ -266,23 +269,26 @@ namespace Orthanc
  ** http://src.chromium.org/viewvc/chrome/trunk/src/sql/transaction_unittest.cc
  ********************************************************************/
 
-class SQLTransactionTest : public SQLConnectionTest
+namespace
 {
-public:
-  virtual void SetUp()
+  class SQLTransactionTest : public SQLConnectionTest
   {
-    SQLConnectionTest::SetUp();
-    ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
-  }
+  public:
+    virtual void SetUp()
+    {
+      SQLConnectionTest::SetUp();
+      ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));
+    }
 
-  // Returns the number of rows in table "foo".
-  int CountFoo() 
-  {
-    Statement count(db(), "SELECT count(*) FROM foo");
-    count.Step();
-    return count.ColumnInt(0);
-  }
-};
+    // Returns the number of rows in table "foo".
+    int CountFoo() 
+    {
+      Statement count(db(), "SELECT count(*) FROM foo");
+      count.Step();
+      return count.ColumnInt(0);
+    }
+  };
+}
 
 
 TEST_F(SQLTransactionTest, Commit) {

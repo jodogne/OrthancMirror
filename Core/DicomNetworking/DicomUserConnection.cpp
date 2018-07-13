@@ -264,8 +264,6 @@ namespace Orthanc
                                          const std::string& moveOriginatorAET,
                                          uint16_t moveOriginatorID)
   {
-    CheckIsOpen();
-
     DcmFileFormat dcmff;
     Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength));
 
@@ -284,23 +282,36 @@ namespace Orthanc
     bool isGeneric = IsGenericTransferSyntax(syntax);
 
     bool renegotiate;
-    if (isGeneric)
+
+    if (!IsOpen())
+    {
+      renegotiate = true;
+    }
+    else if (isGeneric)
     {
       // Are we making a generic-to-specific or specific-to-generic change of
       // the transfer syntax? If this is the case, renegotiate the connection.
       renegotiate = !IsGenericTransferSyntax(connection.GetPreferredTransferSyntax());
+
+      if (renegotiate)
+      {
+        LOG(INFO) << "Use of non-generic transfer syntax: the C-Store associated must be renegotiated";
+      }
     }
     else
     {
       // We are using a specific transfer syntax. Renegotiate if the
       // current connection does not match this transfer syntax.
       renegotiate = (syntax != connection.GetPreferredTransferSyntax());
+
+      if (renegotiate)
+      {
+        LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
+      }
     }
 
     if (renegotiate)
     {
-      LOG(INFO) << "Change in the transfer syntax: the C-Store associated must be renegotiated";
-
       if (isGeneric)
       {
         connection.ResetPreferredTransferSyntax();
@@ -313,7 +324,6 @@ namespace Orthanc
 
     if (!connection.IsOpen())
     {
-      LOG(INFO) << "Renegotiating a C-Store association due to a change in the parameters";
       connection.Open();
     }
 
@@ -785,13 +795,12 @@ namespace Orthanc
   }
 
 
-  DicomUserConnection::DicomUserConnection() : 
-    pimpl_(new PImpl),
-    preferredTransferSyntax_(DEFAULT_PREFERRED_TRANSFER_SYNTAX),
-    localAet_("STORESCU"),
-    remoteAet_("ANY-SCP"),
-    remoteHost_("127.0.0.1")
+  void DicomUserConnection::DefaultSetup()
   {
+    preferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
+    localAet_ = "STORESCU";
+    remoteAet_ = "ANY-SCP";
+    remoteHost_ = "127.0.0.1";
     remotePort_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
 
@@ -809,6 +818,24 @@ namespace Orthanc
 
     ResetStorageSOPClasses();
   }
+   
+
+  DicomUserConnection::DicomUserConnection() : 
+    pimpl_(new PImpl)
+  {
+    DefaultSetup();
+  }
+  
+
+  DicomUserConnection::DicomUserConnection(const std::string& localAet,
+                                           const RemoteModalityParameters& remote) : 
+    pimpl_(new PImpl)
+  {
+    DefaultSetup();
+    SetLocalApplicationEntityTitle(localAet);
+    SetRemoteModality(remote);
+  }
+
 
   DicomUserConnection::~DicomUserConnection()
   {
@@ -820,7 +847,7 @@ namespace Orthanc
   {
     SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
     SetRemoteHost(parameters.GetHost());
-    SetRemotePort(parameters.GetPort());
+    SetRemotePort(parameters.GetPortNumber());
     SetRemoteManufacturer(parameters.GetManufacturer());
   }
 
@@ -1217,4 +1244,15 @@ namespace Orthanc
               << seconds << " seconds (0 = no timeout)";
     defaultTimeout_ = seconds;
   }  
+
+
+  bool DicomUserConnection::IsSameAssociation(const std::string& localAet,
+                                              const RemoteModalityParameters& remote) const
+  {
+    return (localAet_ == localAet &&
+            remoteAet_ == remote.GetApplicationEntityTitle() &&
+            remoteHost_ == remote.GetHost() &&
+            remotePort_ == remote.GetPortNumber() &&
+            manufacturer_ == remote.GetManufacturer());
+  }
 }
