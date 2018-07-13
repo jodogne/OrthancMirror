@@ -162,7 +162,7 @@ namespace Orthanc
 
     void SetHttpCompressionEnabled(bool enabled);
 
-    const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
+    IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {
       return filter_;
     }

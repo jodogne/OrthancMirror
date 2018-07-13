@@ -34,8 +34,11 @@
 #pragma once
 
 #include "IServerListener.h"
+
+#include "ServerJobs/LuaJobManager.h"
+
+#include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/Lua/LuaContext.h"
-#include "Scheduler/IServerCommand.h"
 
 namespace Orthanc
 {
@@ -44,6 +47,19 @@ namespace Orthanc
   class LuaScripting : public IServerListener
   {
   private:
+    enum State
+    {
+      State_Setup,
+      State_Running,
+      State_Done
+    };
+    
+    class ExecuteEvent;
+    class IEvent;
+    class OnStoredInstanceEvent;
+    class StableResourceEvent;
+    class JobEvent;
+
     static ServerContext* GetServerContext(lua_State *state);
 
     static int RestApiPostOrPut(lua_State *state,
@@ -54,33 +70,33 @@ namespace Orthanc
     static int RestApiDelete(lua_State *state);
     static int GetOrthancConfiguration(lua_State *state);
 
-    void ApplyOnStoredInstance(const std::string& instanceId,
-                               const Json::Value& simplifiedDicom,
-                               const Json::Value& metadata,
-                               const DicomInstanceToStore& instance);
-
-    IServerCommand* ParseOperation(const std::string& operation,
-                                   const Json::Value& parameters);
+    size_t ParseOperation(LuaJobManager::Lock& lock,
+                          const std::string& operation,
+                          const Json::Value& parameters);
 
     void InitializeJob();
 
-    void SubmitJob(const std::string& description);
+    void SubmitJob();
 
-    void OnStableResource(const ServerIndexChange& change);
+    boost::recursive_mutex   mutex_;
+    LuaContext               lua_;
+    ServerContext&           context_;
+    LuaJobManager            jobManager_;
+    State                    state_;
+    boost::thread            eventThread_;
+    SharedMessageQueue       pendingEvents_;
 
-    boost::recursive_mutex    mutex_;
-    LuaContext      lua_;
-    ServerContext&  context_;
+    static void EventThread(LuaScripting* that);
 
   public:
-    class Locker : public boost::noncopyable
+    class Lock : public boost::noncopyable
     {
     private:
-      LuaScripting& that_;
-      boost::recursive_mutex::scoped_lock lock_;
+      LuaScripting&                        that_;
+      boost::recursive_mutex::scoped_lock  lock_;
 
     public:
-      Locker(LuaScripting& that) : 
+      explicit Lock(LuaScripting& that) : 
         that_(that), 
         lock_(that.mutex_)
       {
@@ -93,6 +109,12 @@ namespace Orthanc
     };
 
     LuaScripting(ServerContext& context);
+
+    ~LuaScripting();
+
+    void Start();
+
+    void Stop();
     
     virtual void SignalStoredInstance(const std::string& publicId,
                                       DicomInstanceToStore& instance,
@@ -104,5 +126,13 @@ namespace Orthanc
                                         const Json::Value& simplifiedTags);
 
     void Execute(const std::string& command);
+
+    void LoadGlobalConfiguration();
+
+    void SignalJobSubmitted(const std::string& jobId);
+
+    void SignalJobSuccess(const std::string& jobId);
+
+    void SignalJobFailure(const std::string& jobId);
   };
 }

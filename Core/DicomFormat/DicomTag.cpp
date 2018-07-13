@@ -39,9 +39,32 @@
 #include <iostream>
 #include <iomanip>
 #include <stdio.h>
+#include <string.h>
 
 namespace Orthanc
-{
+{ 
+  static inline uint16_t GetCharValue(char c)
+  {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    else if (c >= 'a' && c <= 'f')
+      return c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+      return c - 'A' + 10;
+    else
+      return 0;
+  }
+
+
+  static inline uint16_t GetTagValue(const char* c)
+  {
+    return ((GetCharValue(c[0]) << 12) + 
+            (GetCharValue(c[1]) << 8) + 
+            (GetCharValue(c[2]) << 4) + 
+            GetCharValue(c[3]));
+  }
+
+
   bool DicomTag::operator< (const DicomTag& other) const
   {
     if (group_ < other.group_)
@@ -71,6 +94,49 @@ namespace Orthanc
     char b[16];
     sprintf(b, "%04x,%04x", group_, element_);
     return std::string(b);
+  }
+
+
+  bool DicomTag::ParseHexadecimal(DicomTag& tag,
+                                  const char* value)
+  {
+    size_t length = strlen(value);
+
+    if (length == 9 &&
+        isxdigit(value[0]) &&
+        isxdigit(value[1]) &&
+        isxdigit(value[2]) &&
+        isxdigit(value[3]) &&
+        (value[4] == '-' || value[4] == ',') &&
+        isxdigit(value[5]) &&
+        isxdigit(value[6]) &&
+        isxdigit(value[7]) &&
+        isxdigit(value[8]))        
+    {
+      uint16_t group = GetTagValue(value);
+      uint16_t element = GetTagValue(value + 5);
+      tag = DicomTag(group, element);
+      return true;
+    }
+    else if (length == 8 &&
+             isxdigit(value[0]) &&
+             isxdigit(value[1]) &&
+             isxdigit(value[2]) &&
+             isxdigit(value[3]) &&
+             isxdigit(value[4]) &&
+             isxdigit(value[5]) &&
+             isxdigit(value[6]) &&
+             isxdigit(value[7])) 
+    {
+      uint16_t group = GetTagValue(value);
+      uint16_t element = GetTagValue(value + 4);
+      tag = DicomTag(group, element);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
 

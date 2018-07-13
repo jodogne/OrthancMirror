@@ -124,8 +124,8 @@ namespace Orthanc
     call.BodyToString(command);
 
     {
-      LuaScripting::Locker locker(context.GetLua());
-      locker.GetLua().Execute(result, command);
+      LuaScripting::Lock lock(context.GetLuaScripting());
+      lock.GetLua().Execute(result, command);
     }
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
@@ -146,6 +146,24 @@ namespace Orthanc
   }
 
 
+  static void GetDefaultEncoding(RestApiGetCall& call)
+  {
+    Encoding encoding = GetDefaultDicomEncoding();
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  static void SetDefaultEncoding(RestApiPutCall& call)
+  {
+    Encoding encoding = StringToEncoding(call.GetBodyData());
+
+    Configuration::SetDefaultEncoding(encoding);
+
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  
   // Plugins information ------------------------------------------------------
 
   static void ListPlugins(RestApiGetCall& call)
@@ -251,23 +269,99 @@ namespace Orthanc
   }
 
 
-  static void GetDefaultEncoding(RestApiGetCall& call)
+
+
+  // Jobs information ------------------------------------------------------
+
+  static void ListJobs(RestApiGetCall& call)
   {
-    Encoding encoding = GetDefaultDicomEncoding();
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    bool expand = call.HasArgument("expand");
+
+    Json::Value v = Json::arrayValue;
+
+    std::set<std::string> jobs;
+    OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().ListJobs(jobs);
+
+    for (std::set<std::string>::const_iterator it = jobs.begin();
+         it != jobs.end(); ++it)
+    {
+      if (expand)
+      {
+        JobInfo info;
+        if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
+        {
+          Json::Value tmp;
+          info.Format(tmp);
+          v.append(tmp);
+        }
+      }
+      else
+      {
+        v.append(*it);
+      }
+    }
+    
+    call.GetOutput().AnswerJson(v);
+  }
+
+  static void GetJobInfo(RestApiGetCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
+
+    JobInfo info;
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
+    {
+      Json::Value json;
+      info.Format(json);
+      call.GetOutput().AnswerJson(json);
+    }
   }
 
 
-  static void SetDefaultEncoding(RestApiPutCall& call)
+  enum JobAction
   {
-    Encoding encoding = StringToEncoding(call.GetBodyData());
+    JobAction_Cancel,
+    JobAction_Pause,
+    JobAction_Resubmit,
+    JobAction_Resume
+  };
 
-    Configuration::SetDefaultEncoding(encoding);
+  template <JobAction action>
+  static void ApplyJobAction(RestApiPostCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
 
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    bool ok = false;
+
+    switch (action)
+    {
+      case JobAction_Cancel:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Cancel(id);
+        break;
+
+      case JobAction_Pause:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id);
+        break;
+ 
+      case JobAction_Resubmit:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resubmit(id);
+        break;
+
+      case JobAction_Resume:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resume(id);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    if (ok)
+    {
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
   }
 
-
+  
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -284,5 +378,12 @@ namespace Orthanc
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);
     Register("/plugins/explorer.js", GetOrthancExplorerPlugins);
+
+    Register("/jobs", ListJobs);
+    Register("/jobs/{id}", GetJobInfo);
+    Register("/jobs/{id}/cancel", ApplyJobAction<JobAction_Cancel>);
+    Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
+    Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
+    Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
   }
 }
