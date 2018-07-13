@@ -10,7 +10,7 @@ General
 
 * New advanced job engine
 * New configuration options:
-  - "ConcurrentJobs": Max number of jobs that are simultanously running
+  - "ConcurrentJobs": Max number of jobs that are simultaneously running
   - "SynchronousCMove": Whether to run DICOM C-Move operations synchronously
   - "JobsHistorySize": Max number of completed jobs that are kept in memory
 * New metadata automatically computed at the instance level: 
