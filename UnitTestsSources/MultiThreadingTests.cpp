@@ -942,8 +942,9 @@ TEST(JobsSerialization, GenericOperations)
     operation.reset(unserializer.UnserializeOperation(s));
 
     // Make sure that we have indeed unserialized a log operation
-    ASSERT_THROW(dynamic_cast<DeleteResourceOperation&>(*operation), std::bad_cast);
-    dynamic_cast<LogJobOperation&>(*operation);
+    Json::Value dummy;
+    ASSERT_THROW(dynamic_cast<DeleteResourceOperation&>(*operation).Serialize(dummy), std::bad_cast);
+    dynamic_cast<LogJobOperation&>(*operation).Serialize(dummy);
   }
 }
 
@@ -1288,8 +1289,9 @@ TEST_F(OrthancJobsSerialization, Operations)
   {
     operation.reset(unserializer.UnserializeOperation(s));
 
-    ASSERT_THROW(dynamic_cast<LogJobOperation&>(*operation), std::bad_cast);
-    dynamic_cast<DeleteResourceOperation&>(*operation);
+    Json::Value dummy;
+    ASSERT_THROW(dynamic_cast<LogJobOperation&>(*operation).Serialize(dummy), std::bad_cast);
+    dynamic_cast<DeleteResourceOperation&>(*operation).Serialize(dummy);
   }
 
   // StorePeerOperation
