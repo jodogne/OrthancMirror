@@ -844,7 +844,7 @@ namespace Orthanc
         
     if (writer_->GetStepsCount() == 0)
     {
-      writer_.reset(NULL);  // Flush all the results
+      writer_.reset();  // Flush all the results
       return JobStepResult::Success();
     }
     else
@@ -855,7 +855,7 @@ namespace Orthanc
 
       if (currentStep_ == writer_->GetStepsCount())
       {
-        writer_.reset(NULL);  // Flush all the results
+        writer_.reset();  // Flush all the results
         return JobStepResult::Success();
       }
       else
