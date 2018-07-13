@@ -33,21 +33,21 @@
 
 #pragma once
 
-#include "../Core/MultiThreading/SharedMessageQueue.h"
-#include "../Core/Cache/MemoryCache.h"
-#include "../Core/Cache/SharedArchive.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/Lua/LuaContext.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 #include "DicomInstanceToStore.h"
-#include "../Core/DicomNetworking/ReusableDicomUserConnection.h"
 #include "IServerListener.h"
 #include "LuaScripting.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "Scheduler/ServerScheduler.h"
-#include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
+#include "ServerIndex.h"
+
+#include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
+#include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/JobsEngine/SetOfInstancesJob.h"
+#include "../Core/MultiThreading/SharedMessageQueue.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -60,7 +60,7 @@ namespace Orthanc
    * filesystem (including compression), as well as the index of the
    * DICOM store. It implements the required locking mechanisms.
    **/
-  class ServerContext
+  class ServerContext : private JobsRegistry::IObserver
   {
   private:
     class DicomCacheProvider : public ICachePageProvider
@@ -104,10 +104,25 @@ namespace Orthanc
     typedef std::list<ServerListener>  ServerListeners;
 
 
-    static void ChangeThread(ServerContext* that);
+    static void ChangeThread(ServerContext* that,
+                             unsigned int sleepDelay);
+
+    static void SaveJobsThread(ServerContext* that,
+                               unsigned int sleepDelay);
 
     void ReadDicomAsJsonInternal(std::string& result,
                                  const std::string& instancePublicId);
+
+    void SetupJobsEngine(bool unitTesting,
+                         bool loadJobsFromDatabase);
+
+    void SaveJobsEngine();
+
+    virtual void SignalJobSubmitted(const std::string& jobId);
+
+    virtual void SignalJobSuccess(const std::string& jobId);
+
+    virtual void SignalJobFailure(const std::string& jobId);
 
     ServerIndex index_;
     IStorageArea& area_;
@@ -118,8 +133,7 @@ namespace Orthanc
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
-    ReusableDicomUserConnection scu_;
-    ServerScheduler scheduler_;
+    JobsEngine jobsEngine_;
 
     LuaScripting lua_;
 
@@ -131,8 +145,10 @@ namespace Orthanc
     boost::recursive_mutex listenersMutex_;
 
     bool done_;
+    bool haveJobsChanged_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
+    boost::thread  saveJobsThread_;
         
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;
@@ -159,7 +175,9 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database,
-                  IStorageArea& area);
+                  IStorageArea& area,
+                  bool unitTesting,
+                  bool loadJobsFromDatabase);
 
     ~ServerContext();
 
@@ -238,14 +256,9 @@ namespace Orthanc
       return storeMD5_;
     }
 
-    ReusableDicomUserConnection& GetReusableDicomUserConnection()
+    JobsEngine& GetJobsEngine()
     {
-      return scu_;
-    }
-
-    ServerScheduler& GetScheduler()
-    {
-      return scheduler_;
+      return jobsEngine_;
     }
 
     bool DeleteResource(Json::Value& target,
@@ -264,7 +277,7 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
-    LuaScripting& GetLua()
+    LuaScripting& GetLuaScripting()
     {
       return lua_;
     }
@@ -297,5 +310,8 @@ namespace Orthanc
 #endif
 
     bool HasPlugins() const;
+
+    void AddChildInstances(SetOfInstancesJob& job,
+                           const std::string& publicId);
   };
 }

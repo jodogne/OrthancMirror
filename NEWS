@@ -1,6 +1,17 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New advanced job engine
+* New configuration options:
+  - "ConcurrentJobs": Max number of jobs that are simultanously running
+  - "SynchronousCMove": Whether to run DICOM C-Move operations synchronously
+  - "JobsHistorySize": Max number of completed jobs that are kept in memory
+* New metadata automatically computed at the instance level: 
+  "RemoteIp", "CalledAet" and "HttpUsername"
+
 Orthanc Explorer
 ----------------
 
@@ -9,6 +20,7 @@ Orthanc Explorer
 REST API
 --------
 
+* "/jobs/..." to manage the jobs from the REST API
 * New option "?short" to list DICOM tags using their hexadecimal ID in:
   - "/instances/.../tags?short"
   - "/instances/.../header?short"
@@ -25,11 +37,24 @@ REST API
 * "/instances/.../frame/../image-uint8 and friends now accepts a 
   "image/pam" MIME type to retrieve images in PAM format
   (https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format)
+* New option "?expand" to "/instances/.../metadata"
+
+Plugins
+-------
+
+* New primitive in database SDK: "lookupIdentifierRange" to speed up range searches
+* New function in the SDK: "OrthancPluginCheckVersionAdvanced()"
 
 Maintenance
 -----------
 
+* Configuration option "LogExportedResources" is now "false" by default
+* Header "OrthancCppDatabasePlugin.h" is now part of the "orthanc-databases" project
 * Fix generation of DICOMDIR if PatientID is empty
+* Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
+* Fix issue 94 (Instance modification should not modify FrameOfReferenceUID)
+* Fix issue 77 (Lua access to REST-API is null terminated)
+* Fix memory leak introduced by changeset #99116ed6f38c in Orthanc 1.3.2
 * Upgraded dependencies for static and Windows builds:
   - boost 1.67.0
   - openssl 1.0.2o

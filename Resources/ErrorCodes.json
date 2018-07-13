@@ -207,6 +207,11 @@
     "Name": "DatabaseUnavailable", 
     "Description": "The database is currently not available (probably a transient situation)"
   }, 
+  {
+    "Code": 37, 
+    "Name": "CanceledJob", 
+    "Description": "This job was canceled"
+  }, 
 
 
 

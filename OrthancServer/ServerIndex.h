@@ -74,9 +74,11 @@ namespace Orthanc
     uint64_t maximumStorageSize_;
     unsigned int maximumPatients_;
 
-    static void FlushThread(ServerIndex* that);
+    static void FlushThread(ServerIndex* that,
+                            unsigned int threadSleep);
 
-    static void UnstableResourcesMonitorThread(ServerIndex* that);
+    static void UnstableResourcesMonitorThread(ServerIndex* that,
+                                               unsigned int threadSleep);
 
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId,
@@ -124,7 +126,8 @@ namespace Orthanc
 
   public:
     ServerIndex(ServerContext& context,
-                IDatabaseWrapper& database);
+                IDatabaseWrapper& database,
+                unsigned int threadSleep);
 
     ~ServerIndex();
 
@@ -254,6 +257,9 @@ namespace Orthanc
 
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
+
+    bool LookupGlobalProperty(std::string& value,
+                              GlobalProperty property);
 
     std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue);

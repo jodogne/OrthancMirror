@@ -65,8 +65,11 @@ namespace Orthanc
 
   class LookupIdentifierQuery : public boost::noncopyable
   {
+    // This class encodes a conjunction ("AND") of disjunctions. Each
+    // disjunction represents an "OR" of several constraints.
+
   public:
-    class Constraint
+    class SingleConstraint
     {
     private:
       DicomTag                  tag_;
@@ -74,9 +77,9 @@ namespace Orthanc
       std::string               value_;
 
     public:
-      Constraint(const DicomTag& tag,
-                 IdentifierConstraintType type,
-                 const std::string& value) : 
+      SingleConstraint(const DicomTag& tag,
+                       IdentifierConstraintType type,
+                       const std::string& value) : 
         tag_(tag),
         type_(type),
         value_(ServerToolbox::NormalizeIdentifier(value))
@@ -100,10 +103,45 @@ namespace Orthanc
     };
 
 
+    class RangeConstraint
+    {
+    private:
+      DicomTag     tag_;
+      std::string  start_;
+      std::string  end_;
+
+    public:
+      RangeConstraint(const DicomTag& tag,
+                      const std::string& start,
+                      const std::string& end) : 
+        tag_(tag),
+        start_(ServerToolbox::NormalizeIdentifier(start)),
+        end_(ServerToolbox::NormalizeIdentifier(end))
+      {
+      }
+
+      const DicomTag& GetTag() const
+      {
+        return tag_;
+      }
+
+      const std::string& GetStart() const
+      {
+        return start_;
+      }
+
+      const std::string& GetEnd() const
+      {
+        return end_;
+      }
+    };
+
+
     class Disjunction : public boost::noncopyable
     {
     private:
-      std::vector<Constraint*>  disjunction_;
+      std::vector<SingleConstraint*>  singleConstraints_;
+      std::vector<RangeConstraint*>   rangeConstraints_;
 
     public:
       ~Disjunction();
@@ -112,23 +150,37 @@ namespace Orthanc
                IdentifierConstraintType type,
                const std::string& value);
 
-      size_t GetSize() const
+      void AddRange(const DicomTag& tag,
+                    const std::string& start,
+                    const std::string& end);
+
+      size_t GetSingleConstraintsCount() const
       {
-        return disjunction_.size();
+        return singleConstraints_.size();
       }
 
-      const Constraint&  GetConstraint(size_t i) const
+      const SingleConstraint&  GetSingleConstraint(size_t i) const
       {
-        return *disjunction_[i];
+        return *singleConstraints_[i];
+      }
+
+      size_t GetRangeConstraintsCount() const
+      {
+        return rangeConstraints_.size();
+      }
+
+      const RangeConstraint&  GetRangeConstraint(size_t i) const
+      {
+        return *rangeConstraints_[i];
       }
     };
 
 
   private:
-    typedef std::vector<Disjunction*>  Constraints;
+    typedef std::vector<Disjunction*>  Disjunctions;
 
     ResourceType  level_;
-    Constraints   constraints_;
+    Disjunctions  disjunctions_;
 
   public:
     LookupIdentifierQuery(ResourceType level) : level_(level)
@@ -146,16 +198,15 @@ namespace Orthanc
                        IdentifierConstraintType type,
                        const std::string& value);
 
+    void AddRange(DicomTag tag,
+                  const std::string& start,
+                  const std::string& end);
+
     Disjunction& AddDisjunction();
 
     ResourceType GetLevel() const
     {
       return level_;
-    }
-
-    size_t GetSize() const
-    {
-      return constraints_.size();
     }
 
     // The database must be locked

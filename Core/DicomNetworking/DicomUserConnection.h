@@ -77,10 +77,17 @@ namespace Orthanc
 
     void CheckStorageSOPClassesInvariant() const;
 
+    void DefaultSetup();
+
   public:
     DicomUserConnection();
 
     ~DicomUserConnection();
+
+    // This constructor corresponds to behavior of the old class
+    // "ReusableDicomUserConnection", without the call to "Open()"
+    DicomUserConnection(const std::string& localAet,
+                        const RemoteModalityParameters& remote);
 
     void SetRemoteModality(const RemoteModalityParameters& parameters);
 
@@ -201,5 +208,8 @@ namespace Orthanc
                       ParsedDicomFile& query);
 
     static void SetDefaultTimeout(uint32_t seconds);
+
+    bool IsSameAssociation(const std::string& localAet,
+                           const RemoteModalityParameters& remote) const;
   };
 }

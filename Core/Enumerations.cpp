@@ -164,6 +164,9 @@ namespace Orthanc
       case ErrorCode_DatabaseUnavailable:
         return "The database is currently not available (probably a transient situation)";
 
+      case ErrorCode_CanceledJob:
+        return "This job was canceled";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -987,6 +990,34 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(JobState state)
+  {
+    switch (state)
+    {
+      case JobState_Pending:
+        return "Pending";
+        
+      case JobState_Running:
+        return "Running";
+        
+      case JobState_Success:
+        return "Success";
+        
+      case JobState_Failure:
+        return "Failure";
+        
+      case JobState_Paused:
+        return "Paused";
+        
+      case JobState_Retry:
+        return "Retry";
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
@@ -1435,6 +1466,68 @@ namespace Orthanc
     }
   }
 
+
+  JobState StringToJobState(const std::string& state)
+  {
+    if (state == "Pending")
+    {
+      return JobState_Pending;
+    }
+    else if (state == "Running")
+    {
+      return JobState_Running;
+    }
+    else if (state == "Success")
+    {
+      return JobState_Success;
+    }
+    else if (state == "Failure")
+    {
+      return JobState_Failure;
+    }
+    else if (state == "Paused")
+    {
+      return JobState_Paused;
+    }
+    else if (state == "Retry")
+    {
+      return JobState_Retry;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  RequestOrigin StringToRequestOrigin(const std::string& origin)
+  {
+    if (origin == "Unknown")
+    {
+      return RequestOrigin_Unknown;
+    }
+    else if (origin == "DicomProtocol")
+    {
+      return RequestOrigin_DicomProtocol;
+    }
+    else if (origin == "RestApi")
+    {
+      return RequestOrigin_RestApi;
+    }
+    else if (origin == "Plugins")
+    {
+      return RequestOrigin_Plugins;
+    }
+    else if (origin == "Lua")
+    {
+      return RequestOrigin_Lua;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
 
   unsigned int GetBytesPerPixel(PixelFormat format)
   {

@@ -233,6 +233,10 @@ namespace Orthanc
     std::string ToUpperCaseWithAccents(const std::string& source);
 #endif
 
+    void InitializeOpenSsl();
+    
+    void FinalizeOpenSsl();
+
     std::string GenerateUuid();
   }
 }
