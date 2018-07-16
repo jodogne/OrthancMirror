@@ -582,6 +582,9 @@ namespace Orthanc
     lua_.RegisterFunction("RestApiPut", RestApiPut);
     lua_.RegisterFunction("RestApiDelete", RestApiDelete);
     lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
+
+    LOG(INFO) << "Initializing Lua for the event handler";
+    LoadGlobalConfiguration();
   }
 
 

@@ -995,9 +995,6 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.GetIndex().SetMaximumStorageSize(0);
   }
 
-  LOG(INFO) << "Initializing Lua for the event handler";
-  context.GetLuaScripting().LoadGlobalConfiguration();
-
   context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
     (Configuration::GetGlobalUnsignedIntegerParameter("JobsHistorySize", 10));
 
