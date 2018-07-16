@@ -135,21 +135,21 @@ namespace Orthanc
   void ServerContext::SignalJobSubmitted(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    lua_.SignalJobSubmitted(jobId);
+    mainLua_.SignalJobSubmitted(jobId);
   }
   
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    lua_.SignalJobSuccess(jobId);
+    mainLua_.SignalJobSuccess(jobId);
   }
 
   
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    lua_.SignalJobFailure(jobId);
+    mainLua_.SignalJobFailure(jobId);
   }
 
 
@@ -225,7 +225,9 @@ namespace Orthanc
     storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    lua_(*this),
+    mainLua_(*this),
+    filterLua_(*this),
+    luaListener_(*this),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
@@ -234,7 +236,7 @@ namespace Orthanc
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
 
     SetupJobsEngine(unitTesting, loadJobsFromDatabase);
 
@@ -699,7 +701,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
   }
 
@@ -712,7 +714,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
   }
 
 

@@ -63,6 +63,36 @@ namespace Orthanc
   class ServerContext : private JobsRegistry::IObserver
   {
   private:
+    class LuaServerListener : public IServerListener
+    {
+    private:
+      ServerContext& context_;
+
+    public:
+      LuaServerListener(ServerContext& context) :
+        context_(context)
+      {
+      }
+
+      virtual void SignalStoredInstance(const std::string& publicId,
+                                        DicomInstanceToStore& instance,
+                                        const Json::Value& simplifiedTags)
+      {
+        context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);
+      }
+    
+      virtual void SignalChange(const ServerIndexChange& change)
+      {
+        context_.mainLua_.SignalChange(change);
+      }
+
+      virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                          const Json::Value& simplified)
+      {
+        return context_.filterLua_.FilterIncomingInstance(instance, simplified);
+      }
+    };
+    
     class DicomCacheProvider : public ICachePageProvider
     {
     private:
@@ -135,7 +165,9 @@ namespace Orthanc
     MemoryCache dicomCache_;
     JobsEngine jobsEngine_;
 
-    LuaScripting lua_;
+    LuaScripting mainLua_;
+    LuaScripting filterLua_;
+    LuaServerListener  luaListener_;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
@@ -279,7 +311,7 @@ namespace Orthanc
 
     LuaScripting& GetLuaScripting()
     {
-      return lua_;
+      return mainLua_;
     }
 
     OrthancHttpHandler& GetHttpHandler()

@@ -33,8 +33,7 @@
 
 #pragma once
 
-#include "IServerListener.h"
-
+#include "DicomInstanceToStore.h"
 #include "ServerJobs/LuaJobManager.h"
 
 #include "../Core/MultiThreading/SharedMessageQueue.h"
@@ -44,7 +43,7 @@ namespace Orthanc
 {
   class ServerContext;
 
-  class LuaScripting : public IServerListener
+  class LuaScripting : public boost::noncopyable
   {
   private:
     enum State
@@ -88,6 +87,8 @@ namespace Orthanc
 
     static void EventThread(LuaScripting* that);
 
+    void LoadGlobalConfiguration();
+
   public:
     class Lock : public boost::noncopyable
     {
@@ -116,18 +117,16 @@ namespace Orthanc
 
     void Stop();
     
-    virtual void SignalStoredInstance(const std::string& publicId,
-                                      DicomInstanceToStore& instance,
-                                      const Json::Value& simplifiedTags);
+    void SignalStoredInstance(const std::string& publicId,
+                              DicomInstanceToStore& instance,
+                              const Json::Value& simplifiedTags);
 
-    virtual void SignalChange(const ServerIndexChange& change);
+    void SignalChange(const ServerIndexChange& change);
 
-    virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
-                                        const Json::Value& simplifiedTags);
+    bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                const Json::Value& simplifiedTags);
 
     void Execute(const std::string& command);
-
-    void LoadGlobalConfiguration();
 
     void SignalJobSubmitted(const std::string& jobId);
 
