@@ -37,7 +37,6 @@
 
 #include "../Core/SQLite/Connection.h"
 #include "../Core/SQLite/Transaction.h"
-#include "DatabaseWrapperBase.h"
 
 namespace Orthanc
 {
@@ -56,9 +55,18 @@ namespace Orthanc
   private:
     IDatabaseListener* listener_;
     SQLite::Connection db_;
-    DatabaseWrapperBase base_;
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
     unsigned int version_;
+
+    void GetChangesInternal(std::list<ServerIndexChange>& target,
+                            bool& done,
+                            SQLite::Statement& s,
+                            uint32_t maxResults);
+
+    void GetExportedResourcesInternal(std::list<ExportedResource>& target,
+                                      bool& done,
+                                      SQLite::Statement& s,
+                                      uint32_t maxResults);
 
     void ClearTable(const std::string& tableName);
 
@@ -155,229 +163,118 @@ namespace Orthanc
      **/
 
     virtual void SetGlobalProperty(GlobalProperty property,
-                                   const std::string& value)
-    {
-      base_.SetGlobalProperty(property, value);
-    }
+                                   const std::string& value);
 
     virtual bool LookupGlobalProperty(std::string& target,
-                                      GlobalProperty property)
-    {
-      return base_.LookupGlobalProperty(target, property);
-    }
+                                      GlobalProperty property);
 
     virtual int64_t CreateResource(const std::string& publicId,
-                                   ResourceType type)
-    {
-      return base_.CreateResource(publicId, type);
-    }
+                                   ResourceType type);
 
     virtual bool LookupResource(int64_t& id,
                                 ResourceType& type,
-                                const std::string& publicId)
-    {
-      return base_.LookupResource(id, type, publicId);
-    }
+                                const std::string& publicId);
 
     virtual void AttachChild(int64_t parent,
-                             int64_t child)
-    {
-      base_.AttachChild(parent, child);
-    }
+                             int64_t child);
 
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
-                             const std::string& value)
-    {
-      base_.SetMetadata(id, type, value);
-    }
+                             const std::string& value);
 
     virtual void DeleteMetadata(int64_t id,
-                                MetadataType type)
-    {
-      base_.DeleteMetadata(id, type);
-    }
+                                MetadataType type);
 
     virtual bool LookupMetadata(std::string& target,
                                 int64_t id,
-                                MetadataType type)
-    {
-      return base_.LookupMetadata(target, id, type);
-    }
+                                MetadataType type);
 
     virtual void ListAvailableMetadata(std::list<MetadataType>& target,
-                                       int64_t id)
-    {
-      base_.ListAvailableMetadata(target, id);
-    }
+                                       int64_t id);
 
     virtual void AddAttachment(int64_t id,
-                               const FileInfo& attachment)
-    {
-      base_.AddAttachment(id, attachment);
-    }
+                               const FileInfo& attachment);
 
     virtual void DeleteAttachment(int64_t id,
-                                  FileContentType attachment)
-    {
-      base_.DeleteAttachment(id, attachment);
-    }
+                                  FileContentType attachment);
 
     virtual void ListAvailableAttachments(std::list<FileContentType>& target,
-                                          int64_t id)
-    {
-      return base_.ListAvailableAttachments(target, id);
-    }
+                                          int64_t id);
 
     virtual bool LookupAttachment(FileInfo& attachment,
                                   int64_t id,
-                                  FileContentType contentType)
-    {
-      return base_.LookupAttachment(attachment, id, contentType);
-    }
+                                  FileContentType contentType);
 
-    virtual void ClearMainDicomTags(int64_t id)
-    {
-      base_.ClearMainDicomTags(id);
-    }
+    virtual void ClearMainDicomTags(int64_t id);
 
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,
-                                 const std::string& value)
-    {
-      base_.SetMainDicomTag(id, tag, value);
-    }
+                                 const std::string& value);
 
     virtual void SetIdentifierTag(int64_t id,
-                                 const DicomTag& tag,
-                                 const std::string& value)
-    {
-      base_.SetIdentifierTag(id, tag, value);
-    }
+                                  const DicomTag& tag,
+                                  const std::string& value);
 
     virtual void GetMainDicomTags(DicomMap& map,
-                                  int64_t id)
-    {
-      base_.GetMainDicomTags(map, id);
-    }
+                                  int64_t id);
 
     virtual void GetChildrenPublicId(std::list<std::string>& target,
-                                     int64_t id)
-    {
-      base_.GetChildrenPublicId(target, id);
-    }
+                                     int64_t id);
 
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
-                                       int64_t id)
-    {
-      base_.GetChildrenInternalId(target, id);
-    }
+                                       int64_t id);
 
     virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change)
-    {
-      base_.LogChange(internalId, change);
-    }
+                           const ServerIndexChange& change);
 
-    virtual void LogExportedResource(const ExportedResource& resource)
-    {
-      base_.LogExportedResource(resource);
-    }
+    virtual void LogExportedResource(const ExportedResource& resource);
     
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults)
-    {
-      base_.GetExportedResources(target, done, since, maxResults);
-    }
+                                      uint32_t maxResults);
 
-    virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/)
-    {
-      base_.GetLastExportedResource(target);
-    }
+    virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/);
 
-    virtual uint64_t GetTotalCompressedSize()
-    {
-      return base_.GetTotalCompressedSize();
-    }
+    virtual uint64_t GetTotalCompressedSize();
     
-    virtual uint64_t GetTotalUncompressedSize()
-    {
-      return base_.GetTotalUncompressedSize();
-    }
+    virtual uint64_t GetTotalUncompressedSize();
 
-    virtual uint64_t GetResourceCount(ResourceType resourceType)
-    {
-      return base_.GetResourceCount(resourceType);
-    }
+    virtual uint64_t GetResourceCount(ResourceType resourceType);
 
     virtual void GetAllInternalIds(std::list<int64_t>& target,
-                                   ResourceType resourceType)
-    {
-      base_.GetAllInternalIds(target, resourceType);
-    }
+                                   ResourceType resourceType);
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType)
-    {
-      base_.GetAllPublicIds(target, resourceType);
-    }
+                                 ResourceType resourceType);
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
                                  size_t since,
-                                 size_t limit)
-    {
-      base_.GetAllPublicIds(target, resourceType, since, limit);
-    }
+                                 size_t limit);
 
-    virtual bool SelectPatientToRecycle(int64_t& internalId)
-    {
-      return base_.SelectPatientToRecycle(internalId);
-    }
+    virtual bool SelectPatientToRecycle(int64_t& internalId);
 
     virtual bool SelectPatientToRecycle(int64_t& internalId,
-                                        int64_t patientIdToAvoid)
-    {
-      return base_.SelectPatientToRecycle(internalId, patientIdToAvoid);
-    }
+                                        int64_t patientIdToAvoid);
 
-    virtual bool IsProtectedPatient(int64_t internalId)
-    {
-      return base_.IsProtectedPatient(internalId);
-    }
+    virtual bool IsProtectedPatient(int64_t internalId);
 
     virtual void SetProtectedPatient(int64_t internalId, 
-                                     bool isProtected)
-    {
-      base_.SetProtectedPatient(internalId, isProtected);
-    }
+                                     bool isProtected);
 
-    virtual bool IsExistingResource(int64_t internalId)
-    {
-      return base_.IsExistingResource(internalId);
-    }
+    virtual bool IsExistingResource(int64_t internalId);
 
     virtual void LookupIdentifier(std::list<int64_t>& result,
                                   ResourceType level,
                                   const DicomTag& tag,
                                   IdentifierConstraintType type,
-                                  const std::string& value)
-    {
-      base_.LookupIdentifier(result, level, tag, type, value);
-    }
-
+                                  const std::string& value);
 
     virtual void LookupIdentifierRange(std::list<int64_t>& result,
                                        ResourceType level,
                                        const DicomTag& tag,
                                        const std::string& start,
-                                       const std::string& end)
-    {
-      base_.LookupIdentifierRange(result, level, tag, start, end);
-    }
-
-
+                                       const std::string& end);
   };
 }
