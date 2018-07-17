@@ -3,7 +3,7 @@
 #####################################################################
 
 # Version of the build, should always be "mainline" except in release branches
-set(ORTHANC_VERSION "1.4.1")
+set(ORTHANC_VERSION "mainline")
 
 # Version of the database schema. History:
 #   * Orthanc 0.1.0 -> Orthanc 0.3.0 = no versioning
