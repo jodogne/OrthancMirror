@@ -418,7 +418,7 @@ namespace Orthanc
                           const std::string& subtype)
       {
         assert(type == "image");
-        assert(subtype == "pam");
+        assert(subtype == "x-portable-arbitrarymap");
         image_.EncodeUsingPam();
       }
     };
