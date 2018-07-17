@@ -315,6 +315,7 @@ namespace Orthanc
   }
 
   
+#if ORTHANC_SANDBOXED == 0
   WebServiceParameters::WebServiceParameters(const Json::Value& serialized) :
     advancedFormat_(true)
   {
@@ -335,4 +336,5 @@ namespace Orthanc
     pkcs11Enabled_ = SerializationToolbox::ReadBoolean(serialized, "PKCS11");
     advancedFormat_ = SerializationToolbox::ReadBoolean(serialized, "AdvancedFormat");
   }
+#endif
 }

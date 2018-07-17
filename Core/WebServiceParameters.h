@@ -61,7 +61,9 @@ namespace Orthanc
   public:
     WebServiceParameters();
 
+#if ORTHANC_SANDBOXED == 0
     WebServiceParameters(const Json::Value& serialized);
+#endif
 
     const std::string& GetUrl() const
     {
