@@ -76,6 +76,84 @@ namespace Orthanc
 
     virtual void SetListener(IDatabaseListener& listener);
 
+    virtual bool LookupParent(int64_t& parentId,
+                              int64_t resourceId);
+
+    virtual std::string GetPublicId(int64_t resourceId);
+
+    virtual ResourceType GetResourceType(int64_t resourceId);
+
+    virtual void DeleteResource(int64_t id);
+
+    virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
+                            bool& done /*out*/,
+                            int64_t since,
+                            uint32_t maxResults);
+
+    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
+
+    virtual SQLite::ITransaction* StartTransaction()
+    {
+      return new SQLite::Transaction(db_);
+    }
+
+    virtual void FlushToDisk()
+    {
+      db_.FlushToDisk();
+    }
+
+    virtual bool HasFlushToDisk() const
+    {
+      return true;
+    }
+
+    virtual void ClearChanges()
+    {
+      ClearTable("Changes");
+    }
+
+    virtual void ClearExportedResources()
+    {
+      ClearTable("ExportedResources");
+    }
+
+    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                                int64_t id);
+
+    virtual unsigned int GetDatabaseVersion()
+    {
+      return version_;
+    }
+
+    virtual void Upgrade(unsigned int targetVersion,
+                         IStorageArea& storageArea);
+
+
+    /**
+     * The methods declared below are for unit testing only!
+     **/
+
+    const char* GetErrorMessage() const
+    {
+      return db_.GetErrorMessage();
+    }
+
+    void GetChildren(std::list<std::string>& childrenPublicIds,
+                     int64_t id);
+
+    int64_t GetTableRecordCount(const std::string& table);
+    
+    bool GetParentPublicId(std::string& target,
+                           int64_t id);
+
+
+
+    /**
+     * Until Orthanc 1.4.0, the methods below were part of the
+     * "DatabaseWrapperBase" class, that is now placed in the
+     * graveyard.
+     **/
+
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value)
     {
@@ -101,20 +179,11 @@ namespace Orthanc
       return base_.LookupResource(id, type, publicId);
     }
 
-    virtual bool LookupParent(int64_t& parentId,
-                              int64_t resourceId);
-
-    virtual std::string GetPublicId(int64_t resourceId);
-
-    virtual ResourceType GetResourceType(int64_t resourceId);
-
     virtual void AttachChild(int64_t parent,
                              int64_t child)
     {
       base_.AttachChild(parent, child);
     }
-
-    virtual void DeleteResource(int64_t id);
 
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
@@ -210,13 +279,6 @@ namespace Orthanc
       base_.LogChange(internalId, change);
     }
 
-    virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
-                            bool& done /*out*/,
-                            int64_t since,
-                            uint32_t maxResults);
-
-    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
-
     virtual void LogExportedResource(const ExportedResource& resource)
     {
       base_.LogExportedResource(resource);
@@ -292,31 +354,6 @@ namespace Orthanc
       base_.SetProtectedPatient(internalId, isProtected);
     }
 
-    virtual SQLite::ITransaction* StartTransaction()
-    {
-      return new SQLite::Transaction(db_);
-    }
-
-    virtual void FlushToDisk()
-    {
-      db_.FlushToDisk();
-    }
-
-    virtual bool HasFlushToDisk() const
-    {
-      return true;
-    }
-
-    virtual void ClearChanges()
-    {
-      ClearTable("Changes");
-    }
-
-    virtual void ClearExportedResources()
-    {
-      ClearTable("ExportedResources");
-    }
-
     virtual bool IsExistingResource(int64_t internalId)
     {
       return base_.IsExistingResource(internalId);
@@ -341,36 +378,6 @@ namespace Orthanc
       base_.LookupIdentifierRange(result, level, tag, start, end);
     }
 
-
-    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
-                                int64_t id);
-
-    virtual unsigned int GetDatabaseVersion()
-    {
-      return version_;
-    }
-
-    virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea);
-
-
-
-    /**
-     * The methods declared below are for unit testing only!
-     **/
-
-    const char* GetErrorMessage() const
-    {
-      return db_.GetErrorMessage();
-    }
-
-    void GetChildren(std::list<std::string>& childrenPublicIds,
-                     int64_t id);
-
-    int64_t GetTableRecordCount(const std::string& table);
-    
-    bool GetParentPublicId(std::string& target,
-                           int64_t id);
 
   };
 }
