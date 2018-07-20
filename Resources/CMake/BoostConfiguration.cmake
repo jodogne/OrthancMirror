@@ -97,7 +97,8 @@ if (BOOST_STATIC)
     ${BOOST_SOURCES_DIR}/libs/system/src/error_code.cpp
     )
 
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase" OR
+      "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
     add_definitions(
       -DBOOST_SYSTEM_USE_STRERROR=1
       )
@@ -148,7 +149,10 @@ if (BOOST_STATIC)
       )
 
   elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    # No support for threads in WebAssembly
+    # No support for threads in asm.js/WebAssembly
+
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
+    # No support for threads in Android
 
   else()
     message(FATAL_ERROR "Support your platform here")
@@ -181,7 +185,8 @@ if (BOOST_STATIC)
 
   if (CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
       CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
-      CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl64" OR
+      CMAKE_SYSTEM_NAME STREQUAL "Android")
     # boost::filesystem is not available on PNaCl
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
