@@ -17,7 +17,7 @@ diff -urEb boost_1_67_0.orig/boost/thread/detail/config.hpp boost_1_67_0/boost/t
    #define BOOST_THREAD_INTERNAL_CLOCK_IS_MONO
  #elif defined(BOOST_THREAD_CHRONO_MAC_API)
    #define BOOST_THREAD_HAS_MONO_CLOCK
-+#elif defined(__LSB_VERSION__)
++#elif defined(__LSB_VERSION__) || defined(__ANDROID__)
 +  #define BOOST_THREAD_HAS_MONO_CLOCK
  #else
    #include <time.h> // check for CLOCK_MONOTONIC
