@@ -180,7 +180,10 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # cannot be properly catched by "try {} catch (...)" constructions.
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' -s BINARYEN_TRAP_MODE='\"clamp\"'")
 
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
+
 else()
+  message("Unknown target platform: ${CMAKE_SYSTEM_NAME}")
   message(FATAL_ERROR "Support your platform here")
 endif()
 
