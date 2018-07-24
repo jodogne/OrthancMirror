@@ -127,7 +127,8 @@ if (BOOST_STATIC)
       CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
       CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
       CMAKE_SYSTEM_NAME STREQUAL "NaCl32" OR
-      CMAKE_SYSTEM_NAME STREQUAL "NaCl64")
+      CMAKE_SYSTEM_NAME STREQUAL "NaCl64" OR
+      CMAKE_SYSTEM_NAME STREQUAL "Android")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/atomic/src/lockpool.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
@@ -150,9 +151,6 @@ if (BOOST_STATIC)
 
   elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # No support for threads in asm.js/WebAssembly
-
-  elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
-    # No support for threads in Android
 
   else()
     message(FATAL_ERROR "Support your platform here")

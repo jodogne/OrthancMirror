@@ -26,6 +26,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
     ${JSONCPP_SOURCES_DIR}/include
     )
 
+  if (NOT ENABLE_LOCALE)
+    add_definitions(-DJSONCPP_NO_LOCALE_SUPPORT=1)
+  endif()
+    
   source_group(ThirdParty\\JsonCpp REGULAR_EXPRESSION ${JSONCPP_SOURCES_DIR}/.*)
 
 else()
