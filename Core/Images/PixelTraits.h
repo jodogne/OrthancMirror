@@ -281,6 +281,67 @@ namespace Orthanc
 
 
   template <>
+  struct PixelTraits<PixelFormat_RGBA32>
+  {
+    struct PixelType
+    {
+      uint8_t  red_;
+      uint8_t  green_;
+      uint8_t  blue_;
+      uint8_t  alpha_;
+    };
+
+    ORTHANC_FORCE_INLINE
+    static PixelFormat GetPixelFormat()
+    {
+      return PixelFormat_RGBA32;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetZero(PixelType& target)
+    {
+      target.red_ = 0;
+      target.green_ = 0;
+      target.blue_ = 0;
+      target.alpha_ = 0;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void Copy(PixelType& target,
+                     const PixelType& source)
+    {
+      target.red_ = source.red_;
+      target.green_ = source.green_;
+      target.blue_ = source.blue_;
+      target.alpha_ = source.alpha_;
+    }
+
+    ORTHANC_FORCE_INLINE
+    static bool IsEqual(const PixelType& a,
+                        const PixelType& b)
+    {
+      return (a.red_ == b.red_ &&
+              a.green_ == b.green_ &&
+              a.blue_ == b.blue_ &&
+              a.alpha_ == b.alpha_);
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void FloatToPixel(PixelType& target,
+                             float value)
+    {
+      uint8_t v;
+      PixelTraits<PixelFormat_Grayscale8>::FloatToPixel(v, value);
+
+      target.red_ = v;
+      target.green_ = v;
+      target.blue_ = v;
+      target.alpha_ = 255;      
+    }
+  };
+
+
+  template <>
   struct PixelTraits<PixelFormat_Float32>
   {
     typedef float  PixelType;

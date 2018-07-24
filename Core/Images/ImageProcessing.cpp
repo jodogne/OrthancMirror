@@ -1219,6 +1219,19 @@ namespace Orthanc
         break;
       }
         
+      case Orthanc::PixelFormat_RGBA32:
+      {
+        PixelTraits<Orthanc::PixelFormat_RGBA32>::PixelType pixel;
+        pixel.red_ = red;
+        pixel.green_ = green;
+        pixel.blue_ = blue;
+        pixel.alpha_ = alpha;
+
+        BresenhamPixelWriter<Orthanc::PixelFormat_RGBA32> writer(image, pixel);
+        writer.DrawSegment(x0, y0, x1, y1);
+        break;
+      }
+        
       case Orthanc::PixelFormat_RGB24:
       {
         PixelTraits<Orthanc::PixelFormat_RGB24>::PixelType pixel;
