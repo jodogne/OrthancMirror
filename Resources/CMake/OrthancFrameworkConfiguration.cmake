@@ -302,9 +302,7 @@ if (ENABLE_ZLIB)
       ${ORTHANC_ROOT}/Core/Compression/HierarchicalZipWriter.cpp
       ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
       ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
-      )
 
-    list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
       # This is the minizip distribution to create ZIP files using zlib
       ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
       ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
