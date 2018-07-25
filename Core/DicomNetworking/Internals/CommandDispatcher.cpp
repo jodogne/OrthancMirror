@@ -527,8 +527,6 @@ namespace Orthanc
         transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
         transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
         transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
@@ -536,15 +534,17 @@ namespace Orthanc
       {
         transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
         transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
           server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
       {
-        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
