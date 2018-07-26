@@ -96,6 +96,7 @@ namespace Orthanc
     bool keepAlive_;
     bool httpCompression_;
     IHttpExceptionFormatter* exceptionFormatter_;
+    std::string realm_;
   
     bool IsRunning() const;
 
@@ -187,6 +188,16 @@ namespace Orthanc
     IHttpExceptionFormatter* GetExceptionFormatter()
     {
       return exceptionFormatter_;
+    }
+
+    const std::string& GetRealm() const
+    {
+      return realm_;
+    }
+
+    void SetRealm(const std::string& realm)
+    {
+      realm_ = realm;
     }
   };
 }

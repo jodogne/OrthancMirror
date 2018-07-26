@@ -611,7 +611,7 @@ namespace Orthanc
     if (!server.IsRemoteAccessAllowed() &&
         !localhost)
     {
-      output.SendUnauthorized(ORTHANC_REALM);
+      output.SendUnauthorized(server.GetRealm());
       return;
     }
 
@@ -655,7 +655,7 @@ namespace Orthanc
     if (server.IsAuthenticationEnabled() && 
         !IsAccessGranted(server, headers))
     {
-      output.SendUnauthorized(ORTHANC_REALM);
+      output.SendUnauthorized(server.GetRealm());
       return;
     }
 
@@ -682,7 +682,7 @@ namespace Orthanc
       if (!filter->IsAllowed(method, request->uri, remoteIp,
                              username.c_str(), headers, argumentsGET))
       {
-        //output.SendUnauthorized(ORTHANC_REALM);
+        //output.SendUnauthorized(server.GetRealm());
         output.SendStatus(HttpStatus_403_Forbidden);
         return;
       }
@@ -917,6 +917,7 @@ namespace Orthanc
     keepAlive_ = false;
     httpCompression_ = true;
     exceptionFormatter_ = NULL;
+    realm_ = ORTHANC_REALM;
 
 #if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
