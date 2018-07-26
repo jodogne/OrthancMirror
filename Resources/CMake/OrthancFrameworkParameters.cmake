@@ -105,3 +105,14 @@ set(HAS_EMBEDDED_RESOURCES OFF CACHE INTERNAL
 
 set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
   "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
+
+
+#
+# These options can be used to turn off some modules of the Orthanc
+# framework, in order to speed up the compilation time of third-party
+# projects.
+#
+
+set(ENABLE_MODULE_IMAGES ON CACHE INTERNAL "Enable module for image processing")
+set(ENABLE_MODULE_JOBS ON CACHE INTERNAL "Enable module for jobs")
+set(ENABLE_MODULE_DICOM ON CACHE INTERNAL "Enable module for DICOM handling")
