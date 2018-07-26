@@ -107,6 +107,17 @@ namespace OrthancPlugins
   }
 
 
+  OrthancPluginMemoryBuffer MemoryBuffer::Release()
+  {
+    OrthancPluginMemoryBuffer result = buffer_;
+
+    buffer_.data = NULL;
+    buffer_.size = 0;
+    
+    return result;
+  }
+
+
   void MemoryBuffer::ToString(std::string& target) const
   {
     if (buffer_.size == 0)

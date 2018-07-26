@@ -312,6 +312,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
     ${OPENSSL_SOURCES_DIR}/ssl/bad_dtls_test.c
     ${OPENSSL_SOURCES_DIR}/ssl/clienthellotest.c
     ${OPENSSL_SOURCES_DIR}/ssl/sslv2conftest.c
+    ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256.c
     ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
     )
 
