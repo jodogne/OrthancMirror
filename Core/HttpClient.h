@@ -288,5 +288,7 @@ namespace Orthanc
 
     void ApplyAndThrowException(Json::Value& answerBody,
                                 HttpHeaders& answerHeaders);
+
+    static void ThrowException(HttpStatus status);
   };
 }
