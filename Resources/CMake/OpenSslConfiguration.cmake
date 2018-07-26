@@ -208,21 +208,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
       ${OPENSSL_SOURCES_DIR}/engines
       )
   endif()
-
-  if (ENABLE_PKCS11)
-    list(APPEND OPENSSL_SOURCES_SUBDIRS
-      # EC, ECDH and ECDSA are necessary for PKCS11
-      ${OPENSSL_SOURCES_DIR}/crypto/ec
-      ${OPENSSL_SOURCES_DIR}/crypto/ecdh
-      ${OPENSSL_SOURCES_DIR}/crypto/ecdsa
-      )
-  else()
-    add_definitions(
-      -DOPENSSL_NO_EC
-      -DOPENSSL_NO_ECDH
-      -DOPENSSL_NO_ECDSA
-      )
-  endif()
+  
+  list(APPEND OPENSSL_SOURCES_SUBDIRS
+    # EC, ECDH and ECDSA are necessary for PKCS11, and for contacting
+    # HTTPS servers that use TLS certificate encrypted with ECDSA
+    # (check the output of a recent version of the "sslscan"
+    # command). Until Orthanc <= 1.4.1, these features were only
+    # enabled if ENABLE_PKCS11 support was set to "ON".
+    # https://groups.google.com/d/msg/orthanc-users/2l-bhYIMEWg/oMmK33bYBgAJ
+    ${OPENSSL_SOURCES_DIR}/crypto/ec
+    ${OPENSSL_SOURCES_DIR}/crypto/ecdh
+    ${OPENSSL_SOURCES_DIR}/crypto/ecdsa
+    )
 
   foreach(d ${OPENSSL_SOURCES_SUBDIRS})
     AUX_SOURCE_DIRECTORY(${d} OPENSSL_SOURCES)

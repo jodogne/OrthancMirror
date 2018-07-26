@@ -4,6 +4,7 @@ Pending changes in the mainline
 * New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors
+* Fix HTTPS requests to sites using a certificate encrypted with ECDSA
 
 
 Version 1.4.1 (2018-07-17)
