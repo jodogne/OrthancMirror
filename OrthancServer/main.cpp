@@ -967,6 +967,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
                            Configuration::InterpretStringParameterAsPath
                            (Configuration::GetGlobalStringParameter("HttpsCACertificates", "")));
+  HttpClient::SetDefaultVerbose(Configuration::GetGlobalBoolParameter("HttpVerbose", false));
   HttpClient::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("HttpTimeout", 0));
   HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
 

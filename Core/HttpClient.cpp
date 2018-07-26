@@ -95,10 +95,12 @@ namespace Orthanc
     std::string     httpsCACertificates_;
     std::string     proxy_;
     long            timeout_;
+    bool            verbose_;
 
     GlobalParameters() : 
       httpsVerifyPeers_(true),
-      timeout_(0)
+      timeout_(0),
+      verbose_(false)
     {
     }
 
@@ -173,6 +175,16 @@ namespace Orthanc
       Pkcs11::Initialize(module, pin, verbose);
     }
 #endif
+
+    bool IsDefaultVerbose() const
+    {
+      return verbose_;
+    }
+
+    void SetDefaultVerbose(bool verbose) 
+    {
+      verbose_ = verbose;
+    }
   };
 
 
@@ -238,6 +250,36 @@ namespace Orthanc
       return length;
     }
   }
+
+
+  /*static int CurlDebugCallback(CURL *handle,
+                               curl_infotype type,
+                               char *data,
+                               size_t size,
+                               void *userptr)
+  {
+    switch (type)
+    {
+      case CURLINFO_TEXT:
+      case CURLINFO_HEADER_IN:
+      case CURLINFO_HEADER_OUT:
+      case CURLINFO_SSL_DATA_IN:
+      case CURLINFO_SSL_DATA_OUT:
+      case CURLINFO_END:
+      case CURLINFO_DATA_IN:
+      case CURLINFO_DATA_OUT:
+      {
+        std::string s(data, size);
+        LOG(INFO) << "libcurl: " << s;
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    return 0;
+    }*/
 
 
   struct CurlHeaderParameters
@@ -314,7 +356,7 @@ namespace Orthanc
     url_ = "";
     method_ = HttpMethod_Get;
     lastStatus_ = HttpStatus_200_Ok;
-    SetVerbose(false);
+    SetVerbose(GlobalParameters::GetInstance().IsDefaultVerbose());
     timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
     GlobalParameters::GetInstance().GetDefaultProxy(proxy_);
     GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);    
@@ -376,6 +418,7 @@ namespace Orthanc
     if (isVerbose_)
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_VERBOSE, 1));
+      //CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_DEBUGFUNCTION, &CurlDebugCallback));
     }
     else
     {
@@ -613,6 +656,14 @@ namespace Orthanc
       code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
     }
 
+    LOG(INFO) << "HTTP status code " << status << " after "
+              << EnumerationToString(method_) << " request on: " << url_;
+
+    if (isVerbose_)
+    {
+      LOG(INFO) << "cURL status code: " << code;
+    }
+
     CheckCode(code);
 
     if (status == 0)
@@ -710,6 +761,12 @@ namespace Orthanc
 #endif
   }
   
+
+  void HttpClient::SetDefaultVerbose(bool verbose)
+  {
+    GlobalParameters::GetInstance().SetDefaultVerbose(verbose);
+  }
+
 
   void HttpClient::SetDefaultProxy(const std::string& proxy)
   {

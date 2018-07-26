@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors
 
