@@ -184,7 +184,7 @@ namespace Orthanc
   };
 
 
-  static void ThrowException(HttpStatus status)
+  void HttpClient::ThrowException(HttpStatus status)
   {
     switch (status)
     {

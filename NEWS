@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
+* Fix OrthancPluginHttpClient() to return the HTTP status on errors
 
 
 Version 1.4.1 (2018-07-17)
