@@ -231,6 +231,11 @@
   //   "HttpProxy" : "proxyUser:proxyPassword@192.168.0.1:3128"
   "HttpProxy" : "",
 
+  // If set to "true", debug messages from libcurl will be issued
+  // whenever Orthanc makes an outgoing HTTP request. This is notably
+  // useful to debug HTTPS-related problems.
+  "HttpVerbose" : false,
+
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
   "HttpTimeout" : 10,
 

@@ -275,6 +275,8 @@ namespace Orthanc
     static void ConfigureSsl(bool httpsVerifyPeers,
                              const std::string& httpsCACertificates);
 
+    static void SetDefaultVerbose(bool verbose);
+
     static void SetDefaultProxy(const std::string& proxy);
 
     static void SetDefaultTimeout(long timeout);
