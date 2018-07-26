@@ -1865,10 +1865,15 @@ namespace Orthanc
     std::string body;
     HttpClient::HttpHeaders headers;
 
-    client.ApplyAndThrowException(body, headers);
+    bool success = client.Apply(body, headers);
 
     // The HTTP request has succeeded
     *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+
+    if (!success)
+    {
+      HttpClient::ThrowException(client.GetLastStatus());
+    }
 
     // Copy the HTTP headers of the answer, if the plugin requested them
     if (p.answerHeaders != NULL)
