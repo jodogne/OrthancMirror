@@ -98,5 +98,7 @@ namespace Orthanc
     void GetNowDicom(std::string& date,
                      std::string& time,
                      bool utc);
+
+    unsigned int GetHardwareConcurrency();
   }
 }
