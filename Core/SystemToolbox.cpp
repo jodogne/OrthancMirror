@@ -69,6 +69,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 
 
 namespace Orthanc
@@ -559,5 +560,22 @@ namespace Orthanc
     // TODO milliseconds
     sprintf(s, "%02d%02d%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
     time.assign(s);
+  }
+
+  
+  unsigned int SystemToolbox::GetHardwareConcurrency()
+  {
+    // Get the number of available hardware threads (e.g. number of
+    // CPUs or cores or hyperthreading units)
+    unsigned int threads = boost::thread::hardware_concurrency();
+    
+    if (threads <= 0)
+    {
+      return 1;
+    }
+    else
+    {
+      return threads;
+    }
   }
 }

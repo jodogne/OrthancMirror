@@ -44,13 +44,13 @@ namespace Orthanc
     unsigned int count_;
     boost::mutex mutex_;
     boost::condition_variable condition_;
-
-  public:
-    explicit Semaphore(unsigned int count);
-
+    
     void Release();
 
     void Acquire();
+
+  public:
+    explicit Semaphore(unsigned int count);
 
     class Locker : public boost::noncopyable
     {

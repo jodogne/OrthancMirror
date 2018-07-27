@@ -531,6 +531,7 @@ else()
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
+    ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
     ${ORTHANC_ROOT}/Core/SharedLibrary.cpp
     ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
