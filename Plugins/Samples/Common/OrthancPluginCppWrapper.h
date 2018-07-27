@@ -180,6 +180,8 @@ namespace OrthancPlugins
                  const std::string& body,
                  const std::string& username,
                  const std::string& password);
+
+    void GetDicomInstance(const std::string& instanceId);
   };
 
 

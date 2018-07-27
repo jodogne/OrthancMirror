@@ -348,7 +348,14 @@ namespace OrthancPlugins
                                           password.empty() ? NULL : password.c_str()));
   }
   
- 
+
+  void MemoryBuffer::GetDicomInstance(const std::string& instanceId)
+  {
+    Clear();
+    Check(OrthancPluginGetDicomForInstance(context_, &buffer_, instanceId.c_str()));
+  }
+
+  
   bool HttpDelete(OrthancPluginContext* context_,
                   const std::string& url,
                   const std::string& username,
