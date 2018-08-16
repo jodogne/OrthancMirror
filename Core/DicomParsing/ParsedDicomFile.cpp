@@ -525,6 +525,13 @@ namespace Orthanc
   void ParsedDicomFile::Clear(const DicomTag& tag,
                               bool onlyIfExists)
   {
+    if (tag.GetElement() == 0x0000)
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+
     InvalidateCache();
 
     DcmItem* dicom = pimpl_->file_->getDataset();
@@ -612,6 +619,13 @@ namespace Orthanc
                                const Json::Value& value,
                                bool decodeDataUriScheme)
   {
+    if (tag.GetElement() == 0x0000)
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+
     if (pimpl_->file_->getDataset()->tagExists(ToDcmtkBridge::Convert(tag)))
     {
       throw OrthancException(ErrorCode_AlreadyExistingTag);
@@ -724,6 +738,13 @@ namespace Orthanc
                                 bool decodeDataUriScheme,
                                 DicomReplaceMode mode)
   {
+    if (tag.GetElement() == 0x0000)
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+
     InvalidateCache();
 
     DcmDataset& dicom = *pimpl_->file_->getDataset();
@@ -756,6 +777,13 @@ namespace Orthanc
                                 bool decodeDataUriScheme,
                                 DicomReplaceMode mode)
   {
+    if (tag.GetElement() == 0x0000)
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+
     InvalidateCache();
 
     DcmDataset& dicom = *pimpl_->file_->getDataset();
