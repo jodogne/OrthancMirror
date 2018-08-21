@@ -302,6 +302,8 @@ namespace OrthancPlugins
   {
     switch (interpretation)
     {
+      case gdcm::PhotometricInterpretation::MONOCHROME1:
+      case gdcm::PhotometricInterpretation::MONOCHROME2:
       case gdcm::PhotometricInterpretation::RGB:
         return;
 
