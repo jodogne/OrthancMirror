@@ -836,16 +836,18 @@ namespace Orthanc
              it = peers.begin(); it != peers.end(); ++it)
       {
         WebServiceParameters peer;
-        Configuration::GetOrthancPeer(peer, *it);
-
-        Json::Value jsonPeer = Json::objectValue;
-        // only return the minimum information to identify the destination, do not include "security" information like passwords
-        jsonPeer["Url"] = peer.GetUrl();
-        if (!peer.GetUsername().empty())
+        
+        if (Configuration::GetOrthancPeer(peer, *it))
         {
-          jsonPeer["Username"] = peer.GetUsername();
+          Json::Value jsonPeer = Json::objectValue;
+          // only return the minimum information to identify the destination, do not include "security" information like passwords
+          jsonPeer["Url"] = peer.GetUrl();
+          if (!peer.GetUsername().empty())
+          {
+            jsonPeer["Username"] = peer.GetUsername();
+          }
+          result[*it] = jsonPeer;
         }
-        result[*it] = jsonPeer;
       }
       call.GetOutput().AnswerJson(result);
     }
@@ -886,12 +888,17 @@ namespace Orthanc
     if (GetInstancesToExport(request, *job, remote, call))
     {
       WebServiceParameters peer;
-      Configuration::GetOrthancPeer(peer, remote);
-      
-      job->SetDescription("REST API");
-      job->SetPeer(peer);    
-      
-      SubmitJob(call, request, job.release());
+      if (Configuration::GetOrthancPeer(peer, remote))
+      {
+        job->SetDescription("REST API");
+        job->SetPeer(peer);    
+        SubmitJob(call, request, job.release());
+      }
+      else
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << remote;
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
   }
 
