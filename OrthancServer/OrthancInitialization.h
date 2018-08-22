@@ -78,7 +78,7 @@ namespace Orthanc
     static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
                                                 const std::string& aet);
 
-    static void GetOrthancPeer(WebServiceParameters& peer,
+    static bool GetOrthancPeer(WebServiceParameters& peer,
                                const std::string& name);
 
     static void GetListOfDicomModalities(std::set<std::string>& target);

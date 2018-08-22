@@ -608,16 +608,14 @@ namespace Orthanc
   }
 
 
-
-  void Configuration::GetOrthancPeer(WebServiceParameters& peer,
+  bool Configuration::GetOrthancPeer(WebServiceParameters& peer,
                                      const std::string& name)
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("OrthancPeers"))
     {
-      LOG(ERROR) << "No peer with symbolic name: " << name;
-      throw OrthancException(ErrorCode_InexistentItem);
+      return false;
     }
 
     try
@@ -626,11 +624,13 @@ namespace Orthanc
       if (modalities.type() != Json::objectValue ||
           !modalities.isMember(name))
       {
-        LOG(ERROR) << "No peer with symbolic name: " << name;
-        throw OrthancException(ErrorCode_InexistentItem);
+        return false;
       }
-
-      peer.FromJson(modalities[name]);
+      else
+      {
+        peer.FromJson(modalities[name]);
+        return true;
+      }
     }
     catch (OrthancException&)
     {

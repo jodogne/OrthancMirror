@@ -1,6 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+
+Plugins
+-------
+
+* New primitives to access Orthanc peers from plugins
+
+
+Maintenance
+-----------
+
 * New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors

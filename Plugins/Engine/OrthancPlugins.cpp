@@ -248,6 +248,61 @@ namespace Orthanc
         return new PluginStorageArea(callbacks_, errorDictionary_);
       }
     };
+
+
+    class OrthancPeers : public boost::noncopyable
+    {
+    private:
+      std::vector<std::string>           names_;
+      std::vector<WebServiceParameters>  parameters_;
+
+      void CheckIndex(size_t i) const
+      {
+        assert(names_.size() == parameters_.size());
+        if (i >= names_.size())
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+      
+    public:
+      OrthancPeers()
+      {
+        std::set<std::string> peers;
+        Configuration::GetListOfOrthancPeers(peers);
+
+        names_.reserve(peers.size());
+        parameters_.reserve(peers.size());
+        
+        for (std::set<std::string>::const_iterator
+               it = peers.begin(); it != peers.end(); ++it)
+        {
+          WebServiceParameters peer;
+          if (Configuration::GetOrthancPeer(peer, *it))
+          {
+            names_.push_back(*it);
+            parameters_.push_back(peer);
+          }
+        }
+      }
+
+      size_t GetPeersCount() const
+      {
+        return names_.size();
+      }
+
+      const std::string& GetPeerName(size_t i) const
+      {
+        CheckIndex(i);
+        return names_[i];
+      }
+
+      const WebServiceParameters& GetPeerParameters(size_t i) const
+      {
+        CheckIndex(i);
+        return parameters_[i];
+      }
+    };
   }
 
 
@@ -1832,10 +1887,94 @@ namespace Orthanc
       if (p.headersKeys[i] == NULL ||
           p.headersValues[i] == NULL)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_NullPointer);
       }
 
       client.AddHeader(p.headersKeys[i], p.headersValues[i]);
+    }
+
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        client.SetMethod(HttpMethod_Get);
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        client.SetMethod(HttpMethod_Post);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        client.SetMethod(HttpMethod_Put);
+        client.GetBody().assign(p.body, p.bodySize);
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        client.SetMethod(HttpMethod_Delete);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    std::string body;
+    HttpClient::HttpHeaders headers;
+
+    bool success = client.Apply(body, headers);
+
+    // The HTTP request has succeeded
+    *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+
+    if (!success)
+    {
+      HttpClient::ThrowException(client.GetLastStatus());
+    }
+
+    // Copy the HTTP headers of the answer, if the plugin requested them
+    if (p.answerHeaders != NULL)
+    {
+      Json::Value json = Json::objectValue;
+
+      for (HttpClient::HttpHeaders::const_iterator 
+             it = headers.begin(); it != headers.end(); ++it)
+      {
+        json[it->first] = it->second;
+      }
+        
+      std::string s = json.toStyledString();
+      CopyToMemoryBuffer(*p.answerHeaders, s);
+    }
+
+    // Copy the body of the answer if it makes sense
+    if (p.method != OrthancPluginHttpMethod_Delete)
+    {
+      CopyToMemoryBuffer(*p.answerBody, body);
+    }
+  }
+
+
+  void OrthancPlugins::CallPeerApi(const void* parameters)
+  {
+    const _OrthancPluginCallPeerApi& p = *reinterpret_cast<const _OrthancPluginCallPeerApi*>(parameters);
+    const OrthancPeers& peers = *reinterpret_cast<const OrthancPeers*>(p.peers);
+
+    HttpClient client(peers.GetPeerParameters(p.peerIndex), p.uri);
+    client.SetConvertHeadersToLowerCase(false);
+
+    if (p.timeout != 0)
+    {
+      client.SetTimeout(p.timeout);
+    }
+
+    for (uint32_t i = 0; i < p.additionalHeadersCount; i++)
+    {
+      if (p.additionalHeadersKeys[i] == NULL ||
+          p.additionalHeadersValues[i] == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+
+      client.AddHeader(p.additionalHeadersKeys[i], p.additionalHeadersValues[i]);
     }
 
     switch (p.method)
@@ -1959,7 +2098,7 @@ namespace Orthanc
     {
       if (p.instanceId == NULL)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_NullPointer);
       }
 
       std::string content;
@@ -2127,7 +2266,6 @@ namespace Orthanc
   }
 
 
-
   namespace
   {
     class DictionaryReadLocker
@@ -2177,7 +2315,6 @@ namespace Orthanc
       p.target->maxMultiplicity = (entry->getVMMax() == DcmVariableVM ? 0 : static_cast<uint32_t>(entry->getVMMax()));
     }
   }
-
 
 
   bool OrthancPlugins::InvokeSafeService(SharedLibrary& plugin,
@@ -2444,15 +2581,13 @@ namespace Orthanc
       case _OrthancPluginService_FreeImage:
       {
         const _OrthancPluginFreeImage& p = *reinterpret_cast<const _OrthancPluginFreeImage*>(parameters);
-        if (p.image == NULL)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
+
+        if (p.image != NULL)
         {
           delete reinterpret_cast<ImageAccessor*>(p.image);
-          return true;
         }
+
+        return true;
       }
 
       case _OrthancPluginService_UncompressImage:
@@ -2624,15 +2759,12 @@ namespace Orthanc
         const _OrthancPluginFreeFindMatcher& p =
           *reinterpret_cast<const _OrthancPluginFreeFindMatcher*>(parameters);
 
-        if (p.matcher == NULL)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
+        if (p.matcher != NULL)
         {
           delete reinterpret_cast<HierarchicalMatcher*>(p.matcher);
-          return true;
         }
+
+        return true;
       }
 
       case _OrthancPluginService_FindMatcherIsMatch:
@@ -2642,7 +2774,7 @@ namespace Orthanc
 
         if (p.matcher == NULL)
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+          throw OrthancException(ErrorCode_NullPointer);
         }
         else
         {
@@ -2651,6 +2783,79 @@ namespace Orthanc
           return true;
         }
       }
+
+      case _OrthancPluginService_GetPeers:
+      {
+        const _OrthancPluginGetPeers& p =
+          *reinterpret_cast<const _OrthancPluginGetPeers*>(parameters);
+        *(p.peers) = reinterpret_cast<OrthancPluginPeers*>(new OrthancPeers);
+        return true;
+      }
+
+      case _OrthancPluginService_FreePeers:
+      {
+        const _OrthancPluginFreePeers& p =
+          *reinterpret_cast<const _OrthancPluginFreePeers*>(parameters);
+
+        if (p.peers != NULL)
+        {
+          delete reinterpret_cast<OrthancPeers*>(p.peers);
+        }
+        
+        return true;
+      }
+
+      case _OrthancPluginService_GetPeersCount:
+      {
+        const _OrthancPluginGetPeersCount& p =
+          *reinterpret_cast<const _OrthancPluginGetPeersCount*>(parameters);
+
+        if (p.peers == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+          *(p.target) = reinterpret_cast<const OrthancPeers*>(p.peers)->GetPeersCount();
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_GetPeerName:
+      {
+        const _OrthancPluginGetPeerProperty& p =
+          *reinterpret_cast<const _OrthancPluginGetPeerProperty*>(parameters);
+
+        if (p.peers == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+          *(p.target) = reinterpret_cast<const OrthancPeers*>(p.peers)->GetPeerName(p.peerIndex).c_str();
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_GetPeerUrl:
+      {
+        const _OrthancPluginGetPeerProperty& p =
+          *reinterpret_cast<const _OrthancPluginGetPeerProperty*>(parameters);
+
+        if (p.peers == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+          *(p.target) = reinterpret_cast<const OrthancPeers*>(p.peers)->GetPeerParameters(p.peerIndex).GetUrl().c_str();
+          return true;
+        }
+      }
+
+      case _OrthancPluginService_CallPeerApi:
+        CallPeerApi(parameters);
+        return true;
 
       default:
         return false;

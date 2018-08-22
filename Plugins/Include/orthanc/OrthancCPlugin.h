@@ -118,7 +118,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     4
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -519,6 +519,14 @@ extern "C"
     _OrthancPluginService_FreeFindMatcher = 7011,
     _OrthancPluginService_FindMatcherIsMatch = 7012,
 
+    /* Primitives for accessing Orthanc Peers (new in 1.4.2) */
+    _OrthancPluginService_GetPeers = 8000,
+    _OrthancPluginService_FreePeers = 8001,
+    _OrthancPluginService_GetPeersCount = 8003,
+    _OrthancPluginService_GetPeerName = 8004,
+    _OrthancPluginService_GetPeerUrl = 8005,
+    _OrthancPluginService_CallPeerApi = 8006,
+    
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 
@@ -921,6 +929,14 @@ extern "C"
   typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindMatcher;
 
 
+  
+  /**
+   * @brief Opaque structure to the set of remote Orthanc Peers that are known to the local Orthanc server.
+   * @ingroup Toolbox
+   **/
+  typedef struct _OrthancPluginPeers_t OrthancPluginPeers;
+
+
 
   /**
    * @brief Signature of a callback function that answers to a REST request.
@@ -1284,6 +1300,9 @@ extern "C"
    * Orthanc.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param expectedMajor Expected major version.
+   * @param expectedMinor Expected minor version.
+   * @param expectedRevision Expected revision.
    * @return 1 if and only if the versions are compatible. If the
    * result is 0, the initialization of the plugin should fail.
    * @see OrthancPluginCheckVersion
@@ -5177,7 +5196,7 @@ extern "C"
    * @param headersValues Array containing the values of the HTTP headers (can be <tt>NULL</tt> if no header).
    * @param username The username (can be <tt>NULL</tt> if no password protection).
    * @param password The password (can be <tt>NULL</tt> if no password protection).
-   * @param body The body of the POST request.
+   * @param body The HTTP body for a POST or PUT request.
    * @param bodySize The size of the body.
    * @param timeout Timeout in seconds (0 for default timeout).
    * @param certificateFile Path to the client certificate for HTTPS, in PEM format
@@ -5188,6 +5207,7 @@ extern "C"
    * (can be <tt>NULL</tt> if no client certificate or if not using HTTPS).
    * @param pkcs11 Enable PKCS#11 client authentication for hardware security modules and smart cards.
    * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginCallPeerApi()
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClient(
     OrthancPluginContext*       context,
@@ -5690,6 +5710,278 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RegisterIncomingHttpRequestFilter2, &params);
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginPeers**  peers;
+  } _OrthancPluginGetPeers;
+
+  /**
+   * @brief Return the list of available Orthanc peers.
+   *
+   * This function returns the parameters of the Orthanc peers that are known to
+   * the Orthanc server hosting the plugin.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return NULL if error, or a newly allocated opaque data structure containing the peers.
+   * This structure must be freed with OrthancPluginFreePeers().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginPeers* OrthancPluginGetPeers(
+    OrthancPluginContext*  context)
+  {
+    OrthancPluginPeers* peers = NULL;
+
+    _OrthancPluginGetPeers params;
+    memset(&params, 0, sizeof(params));
+    params.peers = &peers;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetPeers, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return peers;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginPeers*   peers;
+  } _OrthancPluginFreePeers;
+
+  /**
+   * @brief Free the list of available Orthanc peers.
+   *
+   * This function frees the data structure returned by OrthancPluginGetPeers().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param peers The data structure describing the Orthanc peers.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreePeers(
+    OrthancPluginContext*     context, 
+    OrthancPluginPeers* peers)
+  {
+    _OrthancPluginFreePeers params;
+    params.peers = peers;
+
+    context->InvokeService(context, _OrthancPluginService_FreePeers, &params);
+  }
+
+
+  typedef struct
+  {
+    uint32_t*                  target;
+    const OrthancPluginPeers*  peers;
+  } _OrthancPluginGetPeersCount;
+
+  /**
+   * @brief Get the number of Orthanc peers.
+   *
+   * This function returns the number of Orthanc peers.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param peers The data structure describing the Orthanc peers.
+   * @result The number of peers. 
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetPeersCount(
+    OrthancPluginContext*      context,
+    const OrthancPluginPeers*  peers)
+  {
+    uint32_t target = 0;
+
+    _OrthancPluginGetPeersCount params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.peers = peers;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetPeersCount, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  typedef struct
+  {
+    const char**               target;
+    const OrthancPluginPeers*  peers;
+    uint32_t                   peerIndex;
+  } _OrthancPluginGetPeerProperty;
+
+  /**
+   * @brief Get the symbolic name of an Orthanc peer.
+   *
+   * This function returns the symbolic name of the Orthanc peer,
+   * which corresponds to the key of the "OrthancPeers" configuration
+   * option of Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param peers The data structure describing the Orthanc peers.
+   * @param peerIndex The index of the peer of interest.
+   * This value must be lower than OrthancPluginGetPeersCount().
+   * @result The symbolic name, or NULL in the case of an error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetPeerName(
+    OrthancPluginContext*      context,
+    const OrthancPluginPeers*  peers,
+    uint32_t                   peerIndex)
+  {
+    const char* target = NULL;
+
+    _OrthancPluginGetPeerProperty params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.peers = peers;
+    params.peerIndex = peerIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetPeerName, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  /**
+   * @brief Get the base URL of an Orthanc peer.
+   *
+   * This function returns the base URL to the REST API of some Orthanc peer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param peers The data structure describing the Orthanc peers.
+   * @param peerIndex The index of the peer of interest.
+   * This value must be lower than OrthancPluginGetPeersCount().
+   * @result The URL, or NULL in the case of an error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetPeerUrl(
+    OrthancPluginContext*      context,
+    const OrthancPluginPeers*  peers,
+    uint32_t                   peerIndex)
+  {
+    const char* target = NULL;
+
+    _OrthancPluginGetPeerProperty params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.peers = peers;
+    params.peerIndex = peerIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetPeerUrl, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  answerBody;
+    OrthancPluginMemoryBuffer*  answerHeaders;
+    uint16_t*                   httpStatus;
+    const OrthancPluginPeers*   peers;
+    uint32_t                    peerIndex;
+    OrthancPluginHttpMethod     method;
+    const char*                 uri;
+    uint32_t                    additionalHeadersCount;
+    const char* const*          additionalHeadersKeys;
+    const char* const*          additionalHeadersValues;
+    const char*                 body;
+    uint32_t                    bodySize;
+    uint32_t                    timeout;
+  } _OrthancPluginCallPeerApi;
+
+  /**
+   * @brief Call the REST API of an Orthanc peer.
+   * 
+   * Make a REST call to the given URI in the REST API of a remote
+   * Orthanc peer. The result to the query is stored into a newly
+   * allocated memory buffer. The HTTP request will be done according
+   * to the "OrthancPeers" configuration option of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answerBody The target memory buffer (out argument).
+   *        It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param answerHeaders The target memory buffer for the HTTP headers in the answers (out argument). 
+   *        The answer headers are formatted as a JSON object (associative array).
+   *        The buffer must be freed with OrthancPluginFreeMemoryBuffer().
+   *        This argument can be set to NULL if the plugin has no interest in the HTTP headers.
+   * @param httpStatus The HTTP status after the execution of the request (out argument).
+   * @param peers The data structure describing the Orthanc peers.
+   * @param peerIndex The index of the peer of interest.
+   * This value must be lower than OrthancPluginGetPeersCount().
+   * @param method HTTP method to be used.
+   * @param uri The URI of interest in the REST API.
+   * @param additionalHeadersCount The number of HTTP headers to be added to the
+   * HTTP headers provided in the global configuration of Orthanc.
+   * @param additionalHeadersKeys Array containing the keys of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param additionalHeadersValues Array containing the values of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param body The HTTP body for a POST or PUT request.
+   * @param bodySize The size of the body.
+   * @param timeout Timeout in seconds (0 for default timeout).
+   * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginHttpClient()
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginCallPeerApi(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  answerBody,
+    OrthancPluginMemoryBuffer*  answerHeaders,
+    uint16_t*                   httpStatus,
+    const OrthancPluginPeers*   peers,
+    uint32_t                    peerIndex,
+    OrthancPluginHttpMethod     method,
+    const char*                 uri,
+    uint32_t                    additionalHeadersCount,
+    const char* const*          additionalHeadersKeys,
+    const char* const*          additionalHeadersValues,
+    const char*                 body,
+    uint32_t                    bodySize,
+    uint32_t                    timeout)
+  {
+    _OrthancPluginCallPeerApi params;
+    memset(&params, 0, sizeof(params));
+
+    params.answerBody = answerBody;
+    params.answerHeaders = answerHeaders;
+    params.httpStatus = httpStatus;
+    params.peers = peers;
+    params.peerIndex = peerIndex;
+    params.method = method;
+    params.uri = uri;
+    params.additionalHeadersCount = additionalHeadersCount;
+    params.additionalHeadersKeys = additionalHeadersKeys;
+    params.additionalHeadersValues = additionalHeadersValues;
+    params.body = body;
+    params.bodySize = bodySize;
+    params.timeout = timeout;
+
+    return context->InvokeService(context, _OrthancPluginService_CallPeerApi, &params);
+  }
+  
 
 #ifdef  __cplusplus
 }

@@ -456,9 +456,15 @@ namespace Orthanc
       std::string name = parameters["Peer"].asString();
 
       WebServiceParameters peer;
-      Configuration::GetOrthancPeer(peer, name);
-
-      return lock.AddStorePeerOperation(peer);
+      if (Configuration::GetOrthancPeer(peer, name))
+      {
+        return lock.AddStorePeerOperation(peer);
+      }
+      else
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << name;
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
 
     if (operation == "modify")
