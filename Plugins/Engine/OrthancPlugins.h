@@ -157,6 +157,8 @@ namespace Orthanc
 
     void CallHttpClient2(const void* parameters);
 
+    void CallPeerApi(const void* parameters);
+  
     void GetFontInfo(const void* parameters);
 
     void DrawText(const void* parameters);
