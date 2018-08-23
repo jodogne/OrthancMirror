@@ -957,13 +957,15 @@ namespace Orthanc
 
   static void UpdateModality(RestApiPutCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     Json::Value json;
     Json::Reader reader;
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       RemoteModalityParameters modality;
       modality.FromJson(json);
-      Configuration::UpdateModality(call.GetUriComponent("id", ""), modality);
+      Configuration::UpdateModality(context, call.GetUriComponent("id", ""), modality);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -971,20 +973,24 @@ namespace Orthanc
 
   static void DeleteModality(RestApiDeleteCall& call)
   {
-    Configuration::RemoveModality(call.GetUriComponent("id", ""));
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Configuration::RemoveModality(context, call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
   static void UpdatePeer(RestApiPutCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     Json::Value json;
     Json::Reader reader;
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       WebServiceParameters peer;
       peer.Unserialize(json);
-      Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
+      Configuration::UpdatePeer(context, call.GetUriComponent("id", ""), peer);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -992,7 +998,9 @@ namespace Orthanc
 
   static void DeletePeer(RestApiDeleteCall& call)
   {
-    Configuration::RemovePeer(call.GetUriComponent("id", ""));
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Configuration::RemovePeer(context, call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 

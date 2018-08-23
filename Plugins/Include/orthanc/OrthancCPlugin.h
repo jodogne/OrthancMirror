@@ -685,6 +685,8 @@ extern "C"
     OrthancPluginChangeType_OrthancStopped = 11,    /*!< Orthanc is stopping */
     OrthancPluginChangeType_UpdatedAttachment = 12, /*!< Some user-defined attachment has changed for this resource */
     OrthancPluginChangeType_UpdatedMetadata = 13,   /*!< Some user-defined metadata has changed for this resource */
+    OrthancPluginChangeType_UpdatedPeers = 14,      /*!< The list of Orthanc peers has changed */
+    OrthancPluginChangeType_UpdatedModalities = 15, /*!< The list of DICOM modalities has changed */
 
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;

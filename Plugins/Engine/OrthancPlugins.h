@@ -264,6 +264,16 @@ namespace Orthanc
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
     }
 
+    void SignalUpdatedPeers()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_UpdatedPeers, OrthancPluginResourceType_None, NULL);
+    }
+
+    void SignalUpdatedModalities()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_UpdatedModalities, OrthancPluginResourceType_None, NULL);
+    }
+
     bool HasWorklistHandler();
 
     virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
