@@ -98,7 +98,9 @@ namespace Orthanc
     SetOfInstancesJob::GetPublicContent(value);
     
     Json::Value v;
-    peer_.ToJson(v, false /* don't include passwords */);
+    peer_.Serialize(v, 
+                    false /* allow simple format if possible */,
+                    false /* don't include passwords */);
     value["Peer"] = v;
   }
 
@@ -122,7 +124,9 @@ namespace Orthanc
     }
     else
     {
-      peer_.Serialize(target[PEER]);
+      peer_.Serialize(target[PEER],
+                      true /* force advanced format */,
+                      true /* include passwords */);
       return true;
     }
   }  

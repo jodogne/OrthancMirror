@@ -37,20 +37,31 @@
 #include "Logging.h"
 #include "OrthancException.h"
 #include "SerializationToolbox.h"
+#include "Toolbox.h"
 
 #if ORTHANC_SANDBOXED == 0
-#  include "../Core/SystemToolbox.h"
+#  include "SystemToolbox.h"
 #endif
 
 #include <cassert>
 
 namespace Orthanc
 {
+  static const char* KEY_CERTIFICATE_FILE = "CertificateFile";
+  static const char* KEY_CERTIFICATE_KEY_FILE = "CertificateKeyFile";
+  static const char* KEY_CERTIFICATE_KEY_PASSWORD = "CertificateKeyPassword";
+  static const char* KEY_HTTP_HEADERS = "HttpHeaders";
+  static const char* KEY_PASSWORD = "Password";
+  static const char* KEY_PKCS11 = "Pkcs11";
+  static const char* KEY_URL = "Url";
+  static const char* KEY_URL_2 = "URL";
+  static const char* KEY_USERNAME = "Username";
+
+
   WebServiceParameters::WebServiceParameters() : 
-    advancedFormat_(false),
-    url_("http://127.0.0.1:8042/"),
     pkcs11Enabled_(false)
   {
+    SetUrl("http://127.0.0.1:8042/");
   }
 
 
@@ -62,7 +73,50 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_SANDBOXED == 0
+  void WebServiceParameters::SetUrl(const std::string& url)
+  {
+    if (!Toolbox::StartsWith(url, "http://") &&
+        !Toolbox::StartsWith(url, "https://"))
+    {
+      LOG(ERROR) << "Bad URL: " << url;
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    // Add trailing slash if needed
+    if (url[url.size() - 1] == '/')
+    {
+      url_ = url;
+    }
+    else
+    {
+      url_ = url + '/';
+    }
+  }
+
+
+  void WebServiceParameters::ClearCredentials()
+  {
+    username_.clear();
+    password_.clear();
+  }
+
+
+  void WebServiceParameters::SetCredentials(const std::string& username,
+                                            const std::string& password)
+  {
+    if (username.empty() && 
+        !password.empty())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    else
+    {
+      username_ = username;
+      password_ = password;
+    }
+  }
+
+
   void WebServiceParameters::SetClientCertificate(const std::string& certificateFile,
                                                   const std::string& certificateKeyFile,
                                                   const std::string& certificateKeyPassword)
@@ -72,43 +126,24 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (!SystemToolbox::IsRegularFile(certificateFile))
+    if (certificateKeyPassword.empty())
     {
-      LOG(ERROR) << "Cannot open certificate file: " << certificateFile;
-      throw OrthancException(ErrorCode_InexistentFile);
+      LOG(ERROR) << "The password for the HTTPS certificate is not provided: " << certificateFile;
+      throw OrthancException(ErrorCode_BadFileFormat);      
     }
 
-    if (!certificateKeyFile.empty() && 
-        !SystemToolbox::IsRegularFile(certificateKeyFile))
-    {
-      LOG(ERROR) << "Cannot open key file: " << certificateKeyFile;
-      throw OrthancException(ErrorCode_InexistentFile);
-    }
-
-    advancedFormat_ = true;
     certificateFile_ = certificateFile;
     certificateKeyFile_ = certificateKeyFile;
     certificateKeyPassword_ = certificateKeyPassword;
   }
-#endif
 
 
-  static void AddTrailingSlash(std::string& url)
-  {
-    if (url.size() != 0 && 
-        url[url.size() - 1] != '/')
-    {
-      url += '/';
-    }
-  }
-
-
-  void WebServiceParameters::FromJsonArray(const Json::Value& peer)
+  void WebServiceParameters::FromSimpleFormat(const Json::Value& peer)
   {
     assert(peer.isArray());
 
-    advancedFormat_ = false;
     pkcs11Enabled_ = false;
+    ClearClientCertificate();
 
     if (peer.size() != 1 && 
         peer.size() != 3)
@@ -116,19 +151,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    std::string url = peer.get(0u, "").asString();
-    if (url.empty())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    AddTrailingSlash(url);
-    SetUrl(url);
+    SetUrl(peer.get(0u, "").asString());
 
     if (peer.size() == 1)
     {
-      SetUsername("");
-      SetPassword("");
+      ClearCredentials();
     }
     else if (peer.size() == 2)
     {
@@ -137,8 +164,8 @@ namespace Orthanc
     }
     else if (peer.size() == 3)
     {
-      SetUsername(peer.get(1u, "").asString());
-      SetPassword(peer.get(2u, "").asString());
+      SetCredentials(peer.get(1u, "").asString(),
+                     peer.get(2u, "").asString());
     }
     else
     {
@@ -166,70 +193,90 @@ namespace Orthanc
   }
 
 
-  void WebServiceParameters::FromJsonObject(const Json::Value& peer)
+  void WebServiceParameters::FromAdvancedFormat(const Json::Value& peer)
   {
     assert(peer.isObject());
-    advancedFormat_ = true;
 
-    std::string url = GetStringMember(peer, "Url", "");
+    std::string url = GetStringMember(peer, KEY_URL, "");
     if (url.empty())
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      SetUrl(GetStringMember(peer, KEY_URL_2, ""));
+    }
+    else
+    {
+      SetUrl(url);
     }
 
-    AddTrailingSlash(url);
-    SetUrl(url);
+    SetCredentials(GetStringMember(peer, KEY_USERNAME, ""),
+                   GetStringMember(peer, KEY_PASSWORD, ""));
 
-    SetUsername(GetStringMember(peer, "Username", ""));
-    SetPassword(GetStringMember(peer, "Password", ""));
-
-    if (!username_.empty() &&
-        !peer.isMember("Password"))
+    std::string file = GetStringMember(peer, KEY_CERTIFICATE_FILE, "");
+    if (!file.empty())
     {
-      LOG(ERROR) << "The HTTP password is not provided";
-      throw OrthancException(ErrorCode_BadFileFormat);      
+      SetClientCertificate(file, GetStringMember(peer, KEY_CERTIFICATE_KEY_FILE, ""),
+                           GetStringMember(peer, KEY_CERTIFICATE_KEY_PASSWORD, ""));
+    }
+    else
+    {
+      ClearClientCertificate();
     }
 
-#if ORTHANC_SANDBOXED == 0
-    if (peer.isMember("CertificateFile"))
+    if (peer.isMember(KEY_PKCS11))
     {
-      SetClientCertificate(GetStringMember(peer, "CertificateFile", ""),
-                           GetStringMember(peer, "CertificateKeyFile", ""),
-                           GetStringMember(peer, "CertificateKeyPassword", ""));
-
-      if (!peer.isMember("CertificateKeyPassword"))
+      if (peer[KEY_PKCS11].type() == Json::booleanValue)
       {
-        LOG(ERROR) << "The password for the HTTPS certificate is not provided";
-        throw OrthancException(ErrorCode_BadFileFormat);      
-      }
-    }
-#endif
-
-    if (peer.isMember("Pkcs11"))
-    {
-      if (peer["Pkcs11"].type() == Json::booleanValue)
-      {
-        pkcs11Enabled_ = peer["Pkcs11"].asBool();
+        pkcs11Enabled_ = peer[KEY_PKCS11].asBool();
       }
       else
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
     }
+    else
+    {
+      pkcs11Enabled_ = false;
+    }
+
+    headers_.clear();
+
+    if (peer.isMember(KEY_HTTP_HEADERS))
+    {
+      const Json::Value& h = peer[KEY_HTTP_HEADERS];
+      if (h.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        Json::Value::Members keys = h.getMemberNames();
+        for (size_t i = 0; i < keys.size(); i++)
+        {
+          const Json::Value& value = h[keys[i]];
+          if (value.type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            headers_[keys[i]] = value.asString();
+          }
+        }
+      }
+    }
   }
 
 
-  void WebServiceParameters::FromJson(const Json::Value& peer)
+  void WebServiceParameters::Unserialize(const Json::Value& peer)
   {
     try
     {
       if (peer.isArray())
       {
-        FromJsonArray(peer);
+        FromSimpleFormat(peer);
       }
       else if (peer.isObject())
       {
-        FromJsonObject(peer);
+        FromAdvancedFormat(peer);
       }
       else
       {
@@ -247,39 +294,89 @@ namespace Orthanc
   }
 
 
-  void WebServiceParameters::ToJson(Json::Value& value,
-                                    bool includePasswords) const
+  void WebServiceParameters::ListHttpHeaders(std::set<std::string>& target) const
   {
-    if (advancedFormat_)
+    target.clear();
+
+    for (HttpHeaders::const_iterator it = headers_.begin();
+         it != headers_.end(); ++it)
+    {
+      target.insert(it->first);
+    }
+  }
+
+
+  bool WebServiceParameters::LookupHttpHeader(std::string& value,
+                                              const std::string& key) const
+  {
+    HttpHeaders::const_iterator found = headers_.find(key);
+
+    if (found == headers_.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second;
+      return true;
+    }
+  }
+
+
+  bool WebServiceParameters::IsAdvancedFormatNeeded() const
+  {
+    return (!certificateFile_.empty() ||
+            !certificateKeyFile_.empty() ||
+            !certificateKeyPassword_.empty() ||
+            pkcs11Enabled_ ||
+            !headers_.empty());
+  }
+
+
+  void WebServiceParameters::Serialize(Json::Value& value,
+                                       bool forceAdvancedFormat,
+                                       bool includePasswords) const
+  {
+    if (forceAdvancedFormat ||
+        IsAdvancedFormatNeeded())
     {
       value = Json::objectValue;
-      value["Url"] = url_;
+      value[KEY_URL] = url_;
 
       if (!username_.empty() ||
           !password_.empty())
       {
-        value["Username"] = username_;
+        value[KEY_USERNAME] = username_;
 
         if (includePasswords)
         {
-          value["Password"] = password_;
+          value[KEY_PASSWORD] = password_;
         }
       }
 
       if (!certificateFile_.empty())
       {
-        value["CertificateFile"] = certificateFile_;
+        value[KEY_CERTIFICATE_FILE] = certificateFile_;
       }
 
       if (!certificateKeyFile_.empty())
       {
-        value["CertificateKeyFile"] = certificateKeyFile_;
+        value[KEY_CERTIFICATE_KEY_FILE] = certificateKeyFile_;
       }
 
       if (!certificateKeyPassword_.empty() &&
           includePasswords)
       {
-        value["CertificateKeyPassword"] = certificateKeyPassword_;
+        value[KEY_CERTIFICATE_KEY_PASSWORD] = certificateKeyPassword_;
+      }
+
+      value[KEY_PKCS11] = pkcs11Enabled_;
+
+      value[KEY_HTTP_HEADERS] = Json::objectValue;
+      for (HttpHeaders::const_iterator it = headers_.begin();
+           it != headers_.end(); ++it)
+      {
+        value[KEY_HTTP_HEADERS][it->first] = it->second;
       }
     }
     else
@@ -291,50 +388,30 @@ namespace Orthanc
           !password_.empty())
       {
         value.append(username_);
-
-        if (includePasswords)
-        {
-          value.append(password_);
-        }
+        value.append(includePasswords ? password_ : "");
       }
     }
   }
 
-  
-  void WebServiceParameters::Serialize(Json::Value& target) const
-  {
-    target = Json::objectValue;
-    target["URL"] = url_;
-    target["Username"] = username_;
-    target["Password"] = password_;
-    target["CertificateFile"] = certificateFile_;
-    target["CertificateKeyFile"] = certificateKeyFile_;
-    target["CertificateKeyPassword"] = certificateKeyPassword_;
-    target["PKCS11"] = pkcs11Enabled_;
-    target["AdvancedFormat"] = advancedFormat_;
-  }
 
-  
 #if ORTHANC_SANDBOXED == 0
-  WebServiceParameters::WebServiceParameters(const Json::Value& serialized) :
-    advancedFormat_(true)
+  void WebServiceParameters::CheckClientCertificate() const
   {
-    url_ = SerializationToolbox::ReadString(serialized, "URL");
-    username_ = SerializationToolbox::ReadString(serialized, "Username");
-    password_ = SerializationToolbox::ReadString(serialized, "Password");
-
-    std::string a, b, c;
-    a = SerializationToolbox::ReadString(serialized, "CertificateFile");
-    b = SerializationToolbox::ReadString(serialized, "CertificateKeyFile");
-    c = SerializationToolbox::ReadString(serialized, "CertificateKeyPassword");
-
-    if (!a.empty())
+    if (!certificateFile_.empty())
     {
-      SetClientCertificate(a, b, c);
+      if (!SystemToolbox::IsRegularFile(certificateFile_))
+      {
+        LOG(ERROR) << "Cannot open certificate file: " << certificateFile_;
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
+
+      if (!certificateKeyFile_.empty() && 
+          !SystemToolbox::IsRegularFile(certificateKeyFile_))
+      {
+        LOG(ERROR) << "Cannot open key file: " << certificateKeyFile_;
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
     }
-    
-    pkcs11Enabled_ = SerializationToolbox::ReadBoolean(serialized, "PKCS11");
-    advancedFormat_ = SerializationToolbox::ReadBoolean(serialized, "AdvancedFormat");
   }
 #endif
 }

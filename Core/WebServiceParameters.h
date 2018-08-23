@@ -37,6 +37,8 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
+#include <map>
+#include <set>
 #include <string>
 #include <json/json.h>
 
@@ -44,64 +46,58 @@ namespace Orthanc
 {
   class WebServiceParameters
   {
+  public:
+    typedef std::map<std::string, std::string>  HttpHeaders;
+
   private:
-    bool        advancedFormat_;
-    std::string url_;
-    std::string username_;
-    std::string password_;
-    std::string certificateFile_;
-    std::string certificateKeyFile_;
-    std::string certificateKeyPassword_;
-    bool        pkcs11Enabled_;
+    std::string  url_;
+    std::string  username_;
+    std::string  password_;
+    std::string  certificateFile_;
+    std::string  certificateKeyFile_;
+    std::string  certificateKeyPassword_;
+    bool         pkcs11Enabled_;
+    HttpHeaders  headers_;
 
-    void FromJsonArray(const Json::Value& peer);
+    void FromSimpleFormat(const Json::Value& peer);
 
-    void FromJsonObject(const Json::Value& peer);
+    void FromAdvancedFormat(const Json::Value& peer);
 
   public:
     WebServiceParameters();
 
-#if ORTHANC_SANDBOXED == 0
-    WebServiceParameters(const Json::Value& serialized);
-#endif
+    WebServiceParameters(const Json::Value& serialized)
+    {
+      Unserialize(serialized);
+    }
 
     const std::string& GetUrl() const
     {
       return url_;
     }
 
-    void SetUrl(const std::string& url)
-    {
-      url_ = url;
-    }
+    void SetUrl(const std::string& url);
 
+    void ClearCredentials();
+
+    void SetCredentials(const std::string& username,
+                        const std::string& password);
+    
     const std::string& GetUsername() const
     {
       return username_;
     }
 
-    void SetUsername(const std::string& username)
-    {
-      username_ = username;
-    }
-    
     const std::string& GetPassword() const
     {
       return password_;
     }
 
-    void SetPassword(const std::string& password)
-    {
-      password_ = password;
-    }
-
     void ClearClientCertificate();
 
-#if ORTHANC_SANDBOXED == 0
     void SetClientCertificate(const std::string& certificateFile,
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
-#endif
 
     const std::string& GetCertificateFile() const
     {
@@ -118,9 +114,9 @@ namespace Orthanc
       return certificateKeyPassword_;
     }
 
-    void SetPkcs11Enabled(bool pkcs11Enabled)
+    void SetPkcs11Enabled(bool enabled)
     {
-      pkcs11Enabled_ = pkcs11Enabled;
+      pkcs11Enabled_ = enabled;
     }
 
     bool IsPkcs11Enabled() const
@@ -128,11 +124,37 @@ namespace Orthanc
       return pkcs11Enabled_;
     }
 
-    void FromJson(const Json::Value& peer);
+    void AddHttpHeader(const std::string& key,
+                       const std::string& value)
+    {
+      headers_[key] = value;
+    }
 
-    void ToJson(Json::Value& value,
-                bool includePasswords) const;
+    void ClearHttpHeaders()
+    {
+      headers_.clear();
+    }
 
-    void Serialize(Json::Value& target) const;
+    const HttpHeaders& GetHttpHeaders() const
+    {
+      return headers_;
+    }
+
+    void ListHttpHeaders(std::set<std::string>& target) const; 
+
+    bool LookupHttpHeader(std::string& value,
+                          const std::string& key) const; 
+
+    bool IsAdvancedFormatNeeded() const;
+
+    void Unserialize(const Json::Value& peer);
+
+    void Serialize(Json::Value& value,
+                   bool forceAdvancedFormat,
+                   bool includePasswords) const;
+
+#if ORTHANC_SANDBOXED == 0
+    void CheckClientCertificate() const;
+#endif
   };
 }
