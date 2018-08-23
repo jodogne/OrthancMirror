@@ -277,6 +277,7 @@ namespace Orthanc
     {
       WebServiceParameters peer;
       Configuration::GetOrthancPeer(peer, *it);
+      peer.CheckClientCertificate();
     }
 
     Configuration::GetListOfDicomModalities(ids);
@@ -628,7 +629,7 @@ namespace Orthanc
       }
       else
       {
-        peer.FromJson(modalities[name]);
+        peer.Unserialize(modalities[name]);
         return true;
       }
     }
@@ -942,6 +943,8 @@ namespace Orthanc
   void Configuration::UpdatePeer(const std::string& symbolicName,
                                  const WebServiceParameters& peer)
   {
+    peer.CheckClientCertificate();
+
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
 
     if (!configuration_.isMember("OrthancPeers"))
@@ -960,7 +963,9 @@ namespace Orthanc
     peers.removeMember(symbolicName);
 
     Json::Value v;
-    peer.ToJson(v, true);
+    peer.Serialize(v, 
+                   false /* use simple format if possible */, 
+                   true  /* include passwords */);
     peers[symbolicName] = v;
   }
   

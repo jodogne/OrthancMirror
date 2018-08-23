@@ -87,7 +87,9 @@ namespace Orthanc
   {
     result = Json::objectValue;
     result["Type"] = "StorePeer";
-    peer_.Serialize(result["Peer"]);
+    peer_.Serialize(result["Peer"], 
+                    true /* force advanced format */,
+                    true /* include passwords */);
   }
 
 

@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* "OrthancPeers" configuration option now allows to specify HTTP headers
 
 Plugins
 -------

@@ -400,6 +400,13 @@ namespace Orthanc
     SetPkcs11Enabled(service.IsPkcs11Enabled());
 
     SetUrl(service.GetUrl() + uri);
+
+    for (WebServiceParameters::HttpHeaders::const_iterator 
+           it = service.GetHttpHeaders().begin();
+         it != service.GetHttpHeaders().end(); ++it)
+    {
+      AddHeader(it->first, it->second);
+    }
   }
 
 
