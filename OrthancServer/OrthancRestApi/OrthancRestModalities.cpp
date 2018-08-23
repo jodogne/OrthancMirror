@@ -983,7 +983,7 @@ namespace Orthanc
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       WebServiceParameters peer;
-      peer.FromJson(json);
+      peer.Unserialize(json);
       Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }

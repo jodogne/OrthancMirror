@@ -469,3 +469,137 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ("plain", h.GetSubType());
   }
 }
+
+
+TEST(WebServiceParameters, Serialization)
+{
+  {
+    Json::Value v = Json::arrayValue;
+    v.append("http://localhost:8042/");
+
+    WebServiceParameters p(v);
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+
+    Json::Value v2;
+    p.Serialize(v2, false, true);
+    ASSERT_EQ(v, v2);
+
+    WebServiceParameters p2(v2);
+    ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
+    ASSERT_TRUE(p2.GetUsername().empty());
+    ASSERT_TRUE(p2.GetPassword().empty());
+    ASSERT_TRUE(p2.GetCertificateFile().empty());
+    ASSERT_TRUE(p2.GetCertificateKeyFile().empty());
+    ASSERT_TRUE(p2.GetCertificateKeyPassword().empty());
+    ASSERT_FALSE(p2.IsPkcs11Enabled());
+  }
+
+  {
+    Json::Value v = Json::arrayValue;
+    v.append("http://localhost:8042/");
+    v.append("user");
+    v.append("pass");
+
+    WebServiceParameters p(v);
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+    ASSERT_EQ("http://localhost:8042/", p.GetUrl());
+    ASSERT_EQ("user", p.GetUsername());
+    ASSERT_EQ("pass", p.GetPassword());
+    ASSERT_TRUE(p.GetCertificateFile().empty());
+    ASSERT_TRUE(p.GetCertificateKeyFile().empty());
+    ASSERT_TRUE(p.GetCertificateKeyPassword().empty());
+    ASSERT_FALSE(p.IsPkcs11Enabled());
+
+    Json::Value v2;
+    p.Serialize(v2, false, true);
+    ASSERT_EQ(v, v2);
+
+    p.Serialize(v2, false, false /* no password */);
+    WebServiceParameters p2(v2);
+    ASSERT_EQ(Json::arrayValue, v2.type());
+    ASSERT_EQ(3u, v2.size());
+    ASSERT_EQ("http://localhost:8042/", v2[0u].asString());
+    ASSERT_EQ("user", v2[1u].asString());
+    ASSERT_TRUE(v2[2u].asString().empty());
+  }
+
+  {
+    Json::Value v = Json::arrayValue;
+    v.append("http://localhost:8042/");
+
+    WebServiceParameters p(v);
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+    p.SetPkcs11Enabled(true);
+    ASSERT_TRUE(p.IsAdvancedFormatNeeded());
+
+    Json::Value v2;
+    p.Serialize(v2, false, true);
+    WebServiceParameters p2(v2);
+
+    ASSERT_EQ(Json::objectValue, v2.type());
+    ASSERT_EQ(3u, v2.size());
+    ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
+    ASSERT_TRUE(v2["Pkcs11"].asBool());
+    ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
+    ASSERT_EQ(0u, v2["HttpHeaders"].size());
+  }
+
+  {
+    Json::Value v = Json::arrayValue;
+    v.append("http://localhost:8042/");
+
+    WebServiceParameters p(v);
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+    p.SetClientCertificate("a", "b", "c");
+    ASSERT_TRUE(p.IsAdvancedFormatNeeded());
+
+    Json::Value v2;
+    p.Serialize(v2, false, true);
+    WebServiceParameters p2(v2);
+
+    ASSERT_EQ(Json::objectValue, v2.type());
+    ASSERT_EQ(6u, v2.size());
+    ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
+    ASSERT_EQ("a", v2["CertificateFile"].asString());
+    ASSERT_EQ("b", v2["CertificateKeyFile"].asString());
+    ASSERT_EQ("c", v2["CertificateKeyPassword"].asString());
+    ASSERT_FALSE(v2["Pkcs11"].asBool());
+    ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
+    ASSERT_EQ(0u, v2["HttpHeaders"].size());
+  }
+
+  {
+    Json::Value v = Json::arrayValue;
+    v.append("http://localhost:8042/");
+
+    WebServiceParameters p(v);
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+    p.AddHttpHeader("a", "b");
+    p.AddHttpHeader("c", "d");
+    ASSERT_TRUE(p.IsAdvancedFormatNeeded());
+
+    Json::Value v2;
+    p.Serialize(v2, false, true);
+    WebServiceParameters p2(v2);
+
+    ASSERT_EQ(Json::objectValue, v2.type());
+    ASSERT_EQ(3u, v2.size());
+    ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
+    ASSERT_FALSE(v2["Pkcs11"].asBool());
+    ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
+    ASSERT_EQ(2u, v2["HttpHeaders"].size());
+    ASSERT_EQ("b", v2["HttpHeaders"]["a"].asString());
+    ASSERT_EQ("d", v2["HttpHeaders"]["c"].asString());
+
+    std::set<std::string> a;
+    p2.ListHttpHeaders(a);
+    ASSERT_EQ(2u, a.size());
+    ASSERT_TRUE(a.find("a") != a.end());
+    ASSERT_TRUE(a.find("c") != a.end());
+
+    std::string s;
+    ASSERT_TRUE(p2.LookupHttpHeader(s, "a")); ASSERT_EQ("b", s);
+    ASSERT_TRUE(p2.LookupHttpHeader(s, "c")); ASSERT_EQ("d", s);
+    ASSERT_FALSE(p2.LookupHttpHeader(s, "nope"));
+  }
+}

@@ -1299,8 +1299,7 @@ TEST_F(OrthancJobsSerialization, Operations)
   {
     WebServiceParameters peer;
     peer.SetUrl("http://localhost/");
-    peer.SetUsername("username");
-    peer.SetPassword("password");
+    peer.SetCredentials("username", "password");
     peer.SetPkcs11Enabled(true);
 
     StorePeerOperation operation(peer);
@@ -1443,8 +1442,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   {
     WebServiceParameters peer;
     peer.SetUrl("http://localhost/");
-    peer.SetUsername("username");
-    peer.SetPassword("password");
+    peer.SetCredentials("username", "password");
     peer.SetPkcs11Enabled(true);
 
     OrthancPeerStoreJob job(GetContext());
