@@ -5787,6 +5787,9 @@ extern "C"
    *
    * This function returns the number of Orthanc peers.
    *
+   * This function is thread-safe: Several threads sharing the same
+   * OrthancPluginPeers object can simultaneously call this function.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param peers The data structure describing the Orthanc peers.
    * @result The number of peers. 
@@ -5829,6 +5832,9 @@ extern "C"
    * which corresponds to the key of the "OrthancPeers" configuration
    * option of Orthanc.
    *
+   * This function is thread-safe: Several threads sharing the same
+   * OrthancPluginPeers object can simultaneously call this function.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param peers The data structure describing the Orthanc peers.
    * @param peerIndex The index of the peer of interest.
@@ -5865,6 +5871,9 @@ extern "C"
    * @brief Get the base URL of an Orthanc peer.
    *
    * This function returns the base URL to the REST API of some Orthanc peer.
+   *
+   * This function is thread-safe: Several threads sharing the same
+   * OrthancPluginPeers object can simultaneously call this function.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param peers The data structure describing the Orthanc peers.
@@ -5923,6 +5932,9 @@ extern "C"
    * Orthanc peer. The result to the query is stored into a newly
    * allocated memory buffer. The HTTP request will be done according
    * to the "OrthancPeers" configuration option of Orthanc.
+   *
+   * This function is thread-safe: Several threads sharing the same
+   * OrthancPluginPeers object can simultaneously call this function.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param answerBody The target memory buffer (out argument).
