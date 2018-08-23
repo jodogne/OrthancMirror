@@ -39,6 +39,7 @@
 #endif
 
 #include "OrthancInitialization.h"
+#include "ServerContext.h"
 
 #include "../Core/HttpClient.h"
 #include "../Core/Logging.h"
@@ -894,100 +895,140 @@ namespace Orthanc
   }
 
 
-  void Configuration::UpdateModality(const std::string& symbolicName,
+  void Configuration::UpdateModality(ServerContext& context,
+                                     const std::string& symbolicName,
                                      const RemoteModalityParameters& modality)
   {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("DicomModalities"))
     {
-      configuration_["DicomModalities"] = Json::objectValue;
+      boost::recursive_mutex::scoped_lock lock(globalMutex_);
+
+      if (!configuration_.isMember("DicomModalities"))
+      {
+        configuration_["DicomModalities"] = Json::objectValue;
+      }
+
+      Json::Value& modalities = configuration_["DicomModalities"];
+      if (modalities.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "Bad file format for modality: " << symbolicName;
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      modalities.removeMember(symbolicName);
+
+      Json::Value v;
+      modality.ToJson(v);
+      modalities[symbolicName] = v;
     }
 
-    Json::Value& modalities = configuration_["DicomModalities"];
-    if (modalities.type() != Json::objectValue)
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (context.HasPlugins())
     {
-      LOG(ERROR) << "Bad file format for modality: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      context.GetPlugins().SignalUpdatedModalities();
     }
-
-    modalities.removeMember(symbolicName);
-
-    Json::Value v;
-    modality.ToJson(v);
-    modalities[symbolicName] = v;
+#endif
   }
   
 
-  void Configuration::RemoveModality(const std::string& symbolicName)
+  void Configuration::RemoveModality(ServerContext& context,
+                                     const std::string& symbolicName)
   {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("DicomModalities"))
     {
-      LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      boost::recursive_mutex::scoped_lock lock(globalMutex_);
+
+      if (!configuration_.isMember("DicomModalities"))
+      {
+        LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& modalities = configuration_["DicomModalities"];
+      if (modalities.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      modalities.removeMember(symbolicName.c_str());
     }
 
-    Json::Value& modalities = configuration_["DicomModalities"];
-    if (modalities.type() != Json::objectValue)
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (context.HasPlugins())
     {
-      LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      context.GetPlugins().SignalUpdatedModalities();
     }
-
-    modalities.removeMember(symbolicName.c_str());
+#endif
   }
 
 
-  void Configuration::UpdatePeer(const std::string& symbolicName,
+  void Configuration::UpdatePeer(ServerContext& context,
+                                 const std::string& symbolicName,
                                  const WebServiceParameters& peer)
   {
     peer.CheckClientCertificate();
 
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("OrthancPeers"))
     {
-      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-      configuration_["OrthancPeers"] = Json::objectValue;
+      boost::recursive_mutex::scoped_lock lock(globalMutex_);
+
+      if (!configuration_.isMember("OrthancPeers"))
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
+        configuration_["OrthancPeers"] = Json::objectValue;
+      }
+
+      Json::Value& peers = configuration_["OrthancPeers"];
+      if (peers.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      peers.removeMember(symbolicName);
+
+      Json::Value v;
+      peer.Serialize(v, 
+                     false /* use simple format if possible */, 
+                     true  /* include passwords */);
+      peers[symbolicName] = v;
     }
 
-    Json::Value& peers = configuration_["OrthancPeers"];
-    if (peers.type() != Json::objectValue)
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (context.HasPlugins())
     {
-      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      context.GetPlugins().SignalUpdatedPeers();
     }
-
-    peers.removeMember(symbolicName);
-
-    Json::Value v;
-    peer.Serialize(v, 
-                   false /* use simple format if possible */, 
-                   true  /* include passwords */);
-    peers[symbolicName] = v;
+#endif
   }
   
 
-  void Configuration::RemovePeer(const std::string& symbolicName)
+  void Configuration::RemovePeer(ServerContext& context,
+                                 const std::string& symbolicName)
   {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("OrthancPeers"))
     {
-      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      boost::recursive_mutex::scoped_lock lock(globalMutex_);
+
+      if (!configuration_.isMember("OrthancPeers"))
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& peers = configuration_["OrthancPeers"];
+      if (peers.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      peers.removeMember(symbolicName.c_str());
     }
 
-    Json::Value& peers = configuration_["OrthancPeers"];
-    if (peers.type() != Json::objectValue)
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (context.HasPlugins())
     {
-      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      context.GetPlugins().SignalUpdatedPeers();
     }
-
-    peers.removeMember(symbolicName.c_str());
+#endif
   }
 
 

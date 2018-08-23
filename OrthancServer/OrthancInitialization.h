@@ -50,6 +50,8 @@
 
 namespace Orthanc
 {
+  class ServerContext;
+
   void OrthancInitialize(const char* configurationFile = NULL);
 
   void OrthancFinalize();
@@ -105,15 +107,19 @@ namespace Orthanc
 
     static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 
-    static void UpdateModality(const std::string& symbolicName,
+    static void UpdateModality(ServerContext& context,
+                               const std::string& symbolicName,
                                const RemoteModalityParameters& modality);
 
-    static void RemoveModality(const std::string& symbolicName);
+    static void RemoveModality(ServerContext& context,
+                               const std::string& symbolicName);
 
-    static void UpdatePeer(const std::string& symbolicName,
+    static void UpdatePeer(ServerContext& context,
+                           const std::string& symbolicName,
                            const WebServiceParameters& peer);
 
-    static void RemovePeer(const std::string& symbolicName);
+    static void RemovePeer(ServerContext& context,
+                           const std::string& symbolicName);
 
     static const std::string& GetConfigurationAbsolutePath();
 
