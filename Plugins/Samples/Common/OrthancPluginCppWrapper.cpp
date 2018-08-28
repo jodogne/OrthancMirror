@@ -779,6 +779,53 @@ namespace OrthancPlugins
   }
 
 
+  void OrthancConfiguration::GetDictionary(std::map<std::string, std::string>& target,
+                                           const std::string& key) const
+  {
+    assert(configuration_.type() == Json::objectValue);
+
+    target.clear();
+
+    if (!configuration_.isMember(key))
+    {
+      return;
+    }
+
+    if (configuration_[key].type() != Json::objectValue)
+    {
+      if (context_ != NULL)
+      {
+        std::string s = "The configuration option \"" + GetPath(key) + "\" is not a string as expected";
+        OrthancPluginLogError(context_, s.c_str());
+      }
+
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+
+    Json::Value::Members members = configuration_[key].getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const Json::Value& value = configuration_[key][members[i]];
+
+      if (value.type() == Json::stringValue)
+      {
+        target[members[i]] = value.asString();
+      }
+      else
+      {
+        if (context_ != NULL)
+        {
+          std::string s = "The configuration option \"" + GetPath(key) + "\" is not a dictionary mapping strings to strings";
+          OrthancPluginLogError(context_, s.c_str());
+        }
+
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+      }
+    }
+  }
+
+
   void OrthancImage::Clear()
   {
     if (image_ != NULL)

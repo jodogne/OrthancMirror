@@ -41,6 +41,7 @@
 #include <json/value.h>
 #include <list>
 #include <set>
+#include <map>
 
 
 
@@ -285,6 +286,9 @@ namespace OrthancPlugins
 
     float GetFloatValue(const std::string& key,
                         float defaultValue) const;
+
+    void GetDictionary(std::map<std::string, std::string>& target,
+                       const std::string& key) const;
   };
 
   class OrthancImage : public boost::noncopyable
