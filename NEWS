@@ -5,6 +5,13 @@ General
 -------
 
 * "OrthancPeers" configuration option now allows to specify HTTP headers
+* Fix "/series/.../ordered-slices" in the presence of non-parallel slices
+
+REST API
+--------
+
+* "/tools/reconstruct" to reconstruct the main DICOM tags, the JSON summary and
+  the metadata of all the instances stored in Orthanc. This is a slow operation!
 
 Plugins
 -------
@@ -15,6 +22,7 @@ Plugins
 Maintenance
 -----------
 
+* New main DICOM tag: "ImageOrientationPatient" at the instance level
 * New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors

@@ -95,12 +95,69 @@ namespace Orthanc
   }
 
 
+  static bool IsCloseToZero(double x)
+  {
+    return fabs(x) < 10.0 * std::numeric_limits<float>::epsilon();
+  }
+
+  
+  bool SliceOrdering::ComputeNormal(Vector& normal,
+                                    const DicomMap& dicom)
+  {
+    std::vector<float> cosines;
+
+    if (TokenizeVector(cosines, dicom, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6))
+    {
+      assert(cosines.size() == 6);
+      normal[0] = cosines[1] * cosines[5] - cosines[2] * cosines[4];
+      normal[1] = cosines[2] * cosines[3] - cosines[0] * cosines[5];
+      normal[2] = cosines[0] * cosines[4] - cosines[1] * cosines[3];
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool SliceOrdering::IsParallelOrOpposite(const Vector& u,
+                                           const Vector& v)
+  {
+    // Check out "GeometryToolbox::IsParallelOrOpposite()" in Stone of
+    // Orthanc for explanations
+    const double u1 = u[0];
+    const double u2 = u[1];
+    const double u3 = u[2];
+    const double normU = sqrt(u1 * u1 + u2 * u2 + u3 * u3);
+
+    const double v1 = v[0];
+    const double v2 = v[1];
+    const double v3 = v[2];
+    const double normV = sqrt(v1 * v1 + v2 * v2 + v3 * v3);
+
+    if (IsCloseToZero(normU * normV))
+    {
+      return false;
+    }
+    else
+    {
+      const double cosAngle = (u1 * v1 + u2 * v2 + u3 * v3) / (normU * normV);
+
+      return (IsCloseToZero(cosAngle - 1.0) ||      // Close to +1: Parallel, non-opposite
+              IsCloseToZero(fabs(cosAngle) - 1.0)); // Close to -1: Parallel, opposite
+    }
+  }
+
+  
   struct SliceOrdering::Instance : public boost::noncopyable
   {
   private:
     std::string   instanceId_;
     bool          hasPosition_;
     Vector        position_;   
+    bool          hasNormal_;
+    Vector        normal_;   
     bool          hasIndexInSeries_;
     size_t        indexInSeries_;
     unsigned int  framesCount_;
@@ -140,6 +197,8 @@ namespace Orthanc
         position_[1] = tmp[1];
         position_[2] = tmp[2];
       }
+
+      hasNormal_ = ComputeNormal(normal_, instance);
 
       std::string s;
       hasIndexInSeries_ = false;
@@ -190,6 +249,17 @@ namespace Orthanc
     {
       return framesCount_;
     }
+
+    bool HasNormal() const
+    {
+      return hasNormal_;
+    }
+
+    const Vector& GetNormal() const
+    {
+      assert(hasNormal_);
+      return normal_;
+    }
   };
 
 
@@ -226,15 +296,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    std::vector<float> cosines;
-    hasNormal_ = TokenizeVector(cosines, series, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6);
-
-    if (hasNormal_)
-    {
-      normal_[0] = cosines[1] * cosines[5] - cosines[2] * cosines[4];
-      normal_[1] = cosines[2] * cosines[3] - cosines[0] * cosines[5];
-      normal_[2] = cosines[0] * cosines[4] - cosines[1] * cosines[3];
-    }
+    hasNormal_ = ComputeNormal(normal_, series);
   }
 
 
@@ -268,7 +330,10 @@ namespace Orthanc
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (!instances_[i]->HasPosition())
+
+      if (!instances_[i]->HasPosition() ||
+          (instances_[i]->HasNormal() &&
+           !IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
       {
         return false;
       }

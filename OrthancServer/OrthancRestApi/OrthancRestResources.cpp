@@ -1549,6 +1549,23 @@ namespace Orthanc
   }
 
 
+  static void ReconstructAllResources(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::list<std::string> studies;
+    context.GetIndex().GetAllUuids(studies, ResourceType_Study);
+
+    for (std::list<std::string>::const_iterator 
+           study = studies.begin(); study != studies.end(); ++study)
+    {
+      ServerToolbox::ReconstructResource(context, *study);
+    }
+    
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1654,5 +1671,6 @@ namespace Orthanc
     Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
     Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
     Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
+    Register("/tools/reconstruct", ReconstructAllResources);
   }
 }
