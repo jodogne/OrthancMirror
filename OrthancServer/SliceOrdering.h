@@ -52,6 +52,12 @@ namespace Orthanc
     std::vector<Instance*>   instances_;
     bool                     isVolume_;
 
+    static bool ComputeNormal(Vector& normal,
+                              const DicomMap& dicom);
+
+    static bool IsParallelOrOpposite(const Vector& a,
+                                     const Vector& b);
+
     static bool IndexInSeriesComparator(const SliceOrdering::Instance* a,
                                         const SliceOrdering::Instance* b);
 

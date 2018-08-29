@@ -109,7 +109,16 @@ namespace Orthanc
     DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER,
     DICOM_TAG_SOP_INSTANCE_UID,
     DICOM_TAG_IMAGE_POSITION_PATIENT,    // New in db v6
-    DICOM_TAG_IMAGE_COMMENTS             // New in db v6
+    DICOM_TAG_IMAGE_COMMENTS,            // New in db v6
+
+    /**
+     * Main DICOM tags that are not part of any release of the
+     * database schema yet, and that will be part of future db v7. In
+     * the meantime, the user must call "/tools/reconstruct" once to
+     * access these tags if the corresponding DICOM files where
+     * indexed in the database by an older version of Orthanc.
+     **/
+    DICOM_TAG_IMAGE_ORIENTATION_PATIENT  // New in Orthanc 1.4.2
   };
 
 
