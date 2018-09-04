@@ -29,6 +29,7 @@ Maintenance
 * Fix HTTPS requests to sites using a certificate encrypted with ECDSA
 * Fix handling of incoming C-FIND queries containing Generic Group Length (*, 0x0000)
 * Fix issue 54 (quoting multipart answers), for OsiriX compatibility through DICOMweb
+* Fix issue 98 (DCMTK configuration fails with GCC 6.4.0 on Alpine)
 
 
 Version 1.4.1 (2018-07-17)
