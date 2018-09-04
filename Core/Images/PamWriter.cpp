@@ -130,7 +130,13 @@ namespace Orthanc
         
         for (unsigned int w = 0; w < width * channelCount; ++w)
         {
-          *q = htobe16(*p);
+          // memcpy() is necessary to avoid segmentation fault if the
+          // "pixel" pointer is not 16-bit aligned (which is the case
+          // if "offset" is an odd number). Check out issue #99:
+          // https://bitbucket.org/sjodogne/orthanc/issues/99
+          uint16_t v = htobe16(*p);
+          memcpy(q, &v, sizeof(uint16_t));
+
           p++;
           q++;
         }
