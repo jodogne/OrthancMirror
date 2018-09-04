@@ -5,7 +5,8 @@ General
 -------
 
 * "OrthancPeers" configuration option now allows to specify HTTP headers
-* Fix "/series/.../ordered-slices" in the presence of non-parallel slices
+* New main DICOM tag: "ImageOrientationPatient" at the instance level
+* New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 
 REST API
 --------
@@ -22,14 +23,14 @@ Plugins
 Maintenance
 -----------
 
-* New main DICOM tag: "ImageOrientationPatient" at the instance level
-* New configuration option: "HttpVerbose" to debug outgoing HTTP connections
+* Fix "/series/.../ordered-slices" in the presence of non-parallel slices
 * Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors
 * Fix HTTPS requests to sites using a certificate encrypted with ECDSA
 * Fix handling of incoming C-FIND queries containing Generic Group Length (*, 0x0000)
 * Fix issue 54 (quoting multipart answers), for OsiriX compatibility through DICOMweb
 * Fix issue 98 (DCMTK configuration fails with GCC 6.4.0 on Alpine)
+* Fix issue 99 (PamWriter test segfaults on alpine linux with gcc 6.4.0)
 
 
 Version 1.4.1 (2018-07-17)

@@ -145,13 +145,18 @@
 
 static inline uint16_t __orthanc_bswap16(uint16_t a)
 {
-  const uint8_t* p = reinterpret_cast<const uint8_t*>(&a);
-  return (static_cast<uint16_t>(p[0]) << 8 |
-          static_cast<uint16_t>(p[1]));
-
-  // WARNING: The implementation below makes LSB (Linux Standard
-  // Base) segfault in release builds. Don't use it!!!
-  // return (a << 8) | (a >> 8);
+  /**
+   * Note that an alternative implementation was included in Orthanc
+   * 1.4.0 and 1.4.1:
+   * 
+   *  # hg log -p -r 2706
+   *
+   * This alternative implementation only hid an underlying problem
+   * with pointer alignment on some architectures, and was thus
+   * reverted. Check out issue #99:
+   * https://bitbucket.org/sjodogne/orthanc/issues/99
+   **/
+  return (a << 8) | (a >> 8);
 }
 
 static inline uint32_t __orthanc_bswap32(uint32_t a)

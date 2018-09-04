@@ -209,7 +209,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
     
-    if (Toolbox::DetectEndianness() == Endianness_Little && bytesPerChannel == 2)
+    if (Toolbox::DetectEndianness() == Endianness_Little &&
+        bytesPerChannel == 2)
     {
       for (unsigned int h = 0; h < height; ++h)
       {
@@ -217,7 +218,12 @@ namespace Orthanc
         
         for (unsigned int w = 0; w < GetWidth(); ++w, ++pixel)
         {
-          *pixel = htobe16(*pixel);
+          // memcpy() is necessary to avoid segmentation fault if the
+          // "pixel" pointer is not 16-bit aligned (which is the case
+          // if "offset" is an odd number). Check out issue #99:
+          // https://bitbucket.org/sjodogne/orthanc/issues/99
+          uint16_t v = htobe16(*pixel);
+          memcpy(pixel, &v, sizeof(v));
         }
       }
     }
