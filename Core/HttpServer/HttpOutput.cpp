@@ -432,16 +432,44 @@ namespace Orthanc
     {
       if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
       {
-        LOG(ERROR) << "The only headers that can be set in multipart answers are Set-Cookie (here: " << *it << " is set)";
+        LOG(ERROR) << "The only headers that can be set in multipart answers "
+                   << "are Set-Cookie (here: " << *it << " is set)";
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
       header += *it;
     }
 
+    /**
+     * Fix for issue 54 ("Decide what to do wrt. quoting of multipart
+     * answers"). The "type" parameter in the "Content-Type" HTTP
+     * header must be quoted if it contains a forward slash "/". This
+     * is necessary for DICOMweb compatibility with OsiriX, but breaks
+     * compatibility with old releases of the client in the Orthanc
+     * DICOMweb plugin <= 0.3 (releases >= 0.4 work fine).
+     *
+     * Full history is available at the following locations:
+     * - In changeset 2248:69b0f4e8a49b:
+     *   # hg history -v -r 2248
+     * - https://bitbucket.org/sjodogne/orthanc/issues/54/
+     * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
+     **/
+    std::string tmp;
+    if (contentType.find('/') == std::string::npos)
+    {
+      // No forward slash in the content type
+      tmp = contentType;
+    }
+    else
+    {
+      // Quote the content type because of the forward slash
+      tmp = "\"" + contentType + "\"";
+    }
+
     multipartBoundary_ = Toolbox::GenerateUuid();
     multipartContentType_ = contentType;
-    header += "Content-Type: multipart/" + subType + "; type=" + contentType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
+    header += ("Content-Type: multipart/" + subType + "; type=" +
+               tmp + "; boundary=" + multipartBoundary_ + "\r\n\r\n");
 
     stream_.Send(true, header.c_str(), header.size());
     state_ = State_WritingMultipart;

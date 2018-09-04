@@ -28,6 +28,7 @@ Maintenance
 * Fix OrthancPluginHttpClient() to return the HTTP status on errors
 * Fix HTTPS requests to sites using a certificate encrypted with ECDSA
 * Fix handling of incoming C-FIND queries containing Generic Group Length (*, 0x0000)
+* Fix issue 54 (quoting multipart answers), for OsiriX compatibility through DICOMweb
 
 
 Version 1.4.1 (2018-07-17)
