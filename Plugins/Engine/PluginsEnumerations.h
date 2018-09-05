@@ -69,6 +69,10 @@ namespace Orthanc
     ValueRepresentation Convert(OrthancPluginValueRepresentation vr);
 
     OrthancPluginValueRepresentation Convert(ValueRepresentation vr);
+
+    OrthancPluginJobStepStatus Convert(JobStepCode step);
+
+    JobStepCode Convert(OrthancPluginJobStepStatus step);
   }
 }
 
