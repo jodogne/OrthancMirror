@@ -553,5 +553,42 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    OrthancPluginJobStepStatus Convert(JobStepCode step)
+    {
+      switch (step)
+      {
+        case JobStepCode_Success:
+          return OrthancPluginJobStepStatus_Success;
+          
+        case JobStepCode_Failure:
+          return OrthancPluginJobStepStatus_Failure;
+          
+        case JobStepCode_Continue:
+          return OrthancPluginJobStepStatus_Continue;
+        
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    JobStepCode Convert(OrthancPluginJobStepStatus step)
+    {
+      switch (step)
+      {
+        case OrthancPluginJobStepStatus_Success:
+          return JobStepCode_Success;
+        
+        case OrthancPluginJobStepStatus_Failure:
+          return JobStepCode_Failure;
+        
+        case OrthancPluginJobStepStatus_Continue:
+          return JobStepCode_Continue;
+        
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
   }
 }

@@ -125,6 +125,7 @@ if (ENABLE_PLUGINS)
     Plugins/Engine/OrthancPlugins.cpp
     Plugins/Engine/PluginsEnumerations.cpp
     Plugins/Engine/PluginsErrorDictionary.cpp
+    Plugins/Engine/PluginsJob.cpp
     Plugins/Engine/PluginsManager.cpp
     )
 

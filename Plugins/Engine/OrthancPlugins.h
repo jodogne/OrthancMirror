@@ -104,6 +104,8 @@ namespace Orthanc
 
     void RegisterDecodeImageCallback(const void* parameters);
 
+    void RegisterJobsUnserializer(const void* parameters);
+
     void RegisterIncomingHttpRequestFilter(const void* parameters);
 
     void RegisterIncomingHttpRequestFilter2(const void* parameters);
@@ -305,6 +307,8 @@ namespace Orthanc
     bool HasMoveHandler();
 
     virtual IMoveRequestHandler* ConstructMoveRequestHandler();
+
+    bool UnserializeJob(const Json::Value& value);
   };
 }
 

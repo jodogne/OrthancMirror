@@ -165,11 +165,24 @@ namespace Orthanc
       if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
       {
         LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
-        OrthancJobUnserializer unserializer(*this);
 
         try
         {
-          jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+          bool plugin = false;
+        
+#if ORTHANC_ENABLE_PLUGINS == 1
+          if (HasPlugins() &&
+              plugins_->UnserializeJob(serialized))
+          {
+            plugin = true;
+          }
+#endif
+
+          if (!plugin)
+          {
+            OrthancJobUnserializer unserializer(*this);
+            jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+          }
         }
         catch (OrthancException& e)
         {

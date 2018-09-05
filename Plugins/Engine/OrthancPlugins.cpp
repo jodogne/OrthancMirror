@@ -44,6 +44,7 @@
 #include "../../Core/HttpServer/HttpToolbox.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../../Core/Toolbox.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
@@ -62,6 +63,7 @@
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../OrthancServer/DefaultDicomImageDecoder.h"
 #include "PluginsEnumerations.h"
+#include "PluginsJob.h"
 
 #include <boost/regex.hpp> 
 #include <dcmtk/dcmdata/dcdict.h>
@@ -402,6 +404,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
+    typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -412,6 +415,7 @@ namespace Orthanc
     OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
     DecodeImageCallbacks  decodeImageCallbacks_;
+    JobsUnserializers  jobsUnserializers_;
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
@@ -423,6 +427,7 @@ namespace Orthanc
     boost::mutex findCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
     boost::mutex decodeImageCallbackMutex_;
+    boost::mutex jobsUnserializersMutex_;
     boost::recursive_mutex invokeServiceMutex_;
 
     Properties properties_;
@@ -809,6 +814,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
+        sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -1165,6 +1171,19 @@ namespace Orthanc
     pimpl_->decodeImageCallbacks_.push_back(p.callback);
     LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
               << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
+  }
+
+
+  void OrthancPlugins::RegisterJobsUnserializer(const void* parameters)
+  {
+    const _OrthancPluginJobsUnserializer& p = 
+      *reinterpret_cast<const _OrthancPluginJobsUnserializer*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->jobsUnserializersMutex_);
+
+    pimpl_->jobsUnserializers_.push_back(p.unserializer);
+    LOG(INFO) << "Plugin has registered a callback to unserialize jobs (" 
+              << pimpl_->jobsUnserializers_.size() << " unserializer(s) now active)";
   }
 
 
@@ -2857,6 +2876,19 @@ namespace Orthanc
         CallPeerApi(parameters);
         return true;
 
+      case _OrthancPluginService_SubmitJob:
+      {
+        const _OrthancPluginSubmitJob& p =
+          *reinterpret_cast<const _OrthancPluginSubmitJob*>(parameters);
+
+        std::string uuid;
+
+        PImpl::ServerContextLock lock(*pimpl_);
+        lock.GetContext().GetJobsEngine().GetRegistry().Submit(uuid, new PluginsJob(p), p.priority_);
+        
+        return true;
+      }
+
       default:
         return false;
     }
@@ -2904,6 +2936,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDecodeImageCallback:
         RegisterDecodeImageCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterJobsUnserializer:
+        RegisterJobsUnserializer(parameters);
         return true;
 
       case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
@@ -3319,7 +3355,7 @@ namespace Orthanc
     }
   }
 
-
+  
   bool OrthancPlugins::IsAllowed(HttpMethod method,
                                  const char* uri,
                                  const char* ip,
@@ -3393,5 +3429,26 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  bool OrthancPlugins::UnserializeJob(const Json::Value& value)
+  {
+    const std::string type = SerializationToolbox::ReadString(value, "Type");
+    const std::string serialized = value.toStyledString();
+
+    boost::mutex::scoped_lock lock(pimpl_->jobsUnserializersMutex_);
+
+    for (PImpl::JobsUnserializers::iterator 
+           unserializer = pimpl_->jobsUnserializers_.begin();
+         unserializer != pimpl_->jobsUnserializers_.end(); ++unserializer)
+    {
+      if ((*unserializer) (type.c_str(), serialized.c_str()) == OrthancPluginErrorCode_Success)
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
