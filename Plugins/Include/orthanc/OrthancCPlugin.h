@@ -23,6 +23,7 @@
  *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter2().
+ *    - Possibly register a callback to unserialize jobs using OrthancPluginRegisterJobsUnserializer().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -422,6 +423,7 @@ extern "C"
     _OrthancPluginService_CallHttpClient2 = 27,
     _OrthancPluginService_GenerateUuid = 28,
     _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
+    _OrthancPluginService_SubmitJob = 30,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -435,6 +437,7 @@ extern "C"
     _OrthancPluginService_RegisterFindCallback = 1008,
     _OrthancPluginService_RegisterMoveCallback = 1009,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
+    _OrthancPluginService_RegisterJobsUnserializer = 1011,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -836,6 +839,17 @@ extern "C"
 
     _OrthancPluginInstanceOrigin_INTERNAL = 0x7fffffff
   } OrthancPluginInstanceOrigin;
+
+
+  /**
+   * The possible status for one single step of a job.
+   **/
+  typedef enum
+  {
+    OrthancPluginJobStepStatus_Success,   /*!< The job has successfully executed all its steps */
+    OrthancPluginJobStepStatus_Failure,   /*!< The job has failed while executing this step */
+    OrthancPluginJobStepStatus_Continue   /*!< The job has still data to process after this step */
+  } OrthancPluginJobStepStatus;
 
 
   /**
@@ -1243,6 +1257,16 @@ extern "C"
 
 
 
+  typedef void (*OrthancPluginJobFree) (void* job);
+  typedef float (*OrthancPluginJobGetProgress) (void* job);
+  typedef OrthancPluginJobStepStatus (*OrthancPluginJobStep) (void* job);
+  typedef OrthancPluginErrorCode (*OrthancPluginJobReleaseResources) (void* job);
+  typedef OrthancPluginErrorCode (*OrthancPluginJobReset) (void* job);
+  typedef OrthancPluginErrorCode (*OrthancPluginJobsUnserializer) (const char* jobType,
+                                                                   const char* serialized);
+  
+
+
   /**
    * @brief Data structure that contains information about the Orthanc core.
    **/
@@ -1333,7 +1357,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginCreateDicomFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
-        sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin))
+        sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
+        sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -5995,7 +6020,83 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_CallPeerApi, &params);
   }
+
+
+
+  typedef struct
+  {
+    char**                            resultId_;
+    void                             *job_;
+    int                               priority_;
+    const char                       *type_;
+    const char                       *content_;
+    const char                       *serialized_;
+    OrthancPluginJobFree              free_;
+    OrthancPluginJobGetProgress       getProgress_;
+    OrthancPluginJobStep              step_;
+    OrthancPluginJobReleaseResources  releaseResources_;
+    OrthancPluginJobReset             reset_;
+  } _OrthancPluginSubmitJob;
+
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
+    OrthancPluginContext             *context,
+    void                             *job,
+    int                               priority,
+    const char                       *type,
+    const char                       *content,
+    const char                       *serialized,
+    OrthancPluginJobFree              freeJob,
+    OrthancPluginJobGetProgress       getProgress,
+    OrthancPluginJobStep              step,
+    OrthancPluginJobReleaseResources  releaseResources,
+    OrthancPluginJobReset             reset)
+  {
+    char* resultId = NULL;
+
+    _OrthancPluginSubmitJob params;
+    memset(&params, 0, sizeof(params));
+
+    params.resultId_ = &resultId;
+    params.job_ = job;
+    params.priority_ = priority;
+    params.free_ = freeJob;
+    params.type_ = type;
+    params.content_ = content;
+    params.serialized_ = serialized;
+    params.getProgress_ = getProgress;
+    params.step_ = step;
+    params.releaseResources_ = releaseResources;
+    params.reset_ = reset;
+
+    if (context->InvokeService(context, _OrthancPluginService_SubmitJob, &params) != OrthancPluginErrorCode_Success ||
+        resultId == NULL)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return resultId;
+    }
+  }
   
+
+
+  typedef struct
+  {
+    OrthancPluginJobsUnserializer unserializer;
+  } _OrthancPluginJobsUnserializer;
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterJobsUnserializer(
+    OrthancPluginContext*          context,
+    OrthancPluginJobsUnserializer  unserializer)
+  {
+    _OrthancPluginJobsUnserializer params;
+    params.unserializer = unserializer;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterJobsUnserializer, &params);
+  }
+
 
 #ifdef  __cplusplus
 }
