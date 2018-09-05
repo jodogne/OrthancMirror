@@ -19,6 +19,8 @@ Plugins
 
 * New primitives to access Orthanc peers from plugins
 * New events in change callbacks: "UpdatedPeers" and "UpdatedModalities"
+* New primitives to create jobs from plugins: "OrthancPluginSubmitJob()"
+  and "OrthancPluginRegisterJobsUnserializer()"
 
 Maintenance
 -----------
