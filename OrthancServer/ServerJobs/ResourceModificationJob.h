@@ -106,7 +106,7 @@ namespace Orthanc
       return origin_;
     }
 
-    virtual void ReleaseResources()
+    virtual void ReleaseResources(JobReleaseReason reason)
     {
     }
 

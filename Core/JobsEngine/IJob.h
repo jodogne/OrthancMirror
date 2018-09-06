@@ -55,7 +55,8 @@ namespace Orthanc
     // Method called once the job is resubmitted after a failure
     virtual void SignalResubmit() = 0;
 
-    virtual void ReleaseResources() = 0;   // For pausing/canceling jobs
+    // For pausing/canceling jobs
+    virtual void ReleaseResources(JobReleaseReason reason) = 0;
 
     virtual float GetProgress() = 0;
 

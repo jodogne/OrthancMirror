@@ -86,7 +86,7 @@ namespace Orthanc
 
     virtual JobStepResult ExecuteStep();
 
-    virtual void ReleaseResources()
+    virtual void ReleaseResources(JobReleaseReason reason)
     {
     }
 
