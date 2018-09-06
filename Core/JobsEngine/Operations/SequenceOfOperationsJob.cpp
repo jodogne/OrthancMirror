@@ -383,7 +383,7 @@ namespace Orthanc
   }
 
 
-  void SequenceOfOperationsJob::ReleaseResources()
+  void SequenceOfOperationsJob::ReleaseResources(JobReleaseReason reason)
   {
     boost::mutex::scoped_lock lock(mutex_);
     connectionManager_.Close();

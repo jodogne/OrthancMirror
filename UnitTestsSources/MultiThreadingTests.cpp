@@ -116,7 +116,7 @@ namespace
       }
     }
 
-    virtual void ReleaseResources()
+    virtual void ReleaseResources(JobReleaseReason reason)
     {
     }
 
@@ -162,7 +162,7 @@ namespace
     {
     }
     
-    virtual void ReleaseResources()
+    virtual void ReleaseResources(JobReleaseReason reason)
     {
     }
 

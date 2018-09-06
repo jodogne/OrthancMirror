@@ -132,7 +132,7 @@ namespace Orthanc
 
     virtual void SignalResubmit();
 
-    virtual void ReleaseResources();
+    virtual void ReleaseResources(JobReleaseReason reason);
 
     virtual float GetProgress();
 
