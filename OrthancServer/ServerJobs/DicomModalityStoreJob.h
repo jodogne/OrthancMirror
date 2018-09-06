@@ -87,7 +87,7 @@ namespace Orthanc
     void SetMoveOriginator(const std::string& aet,
                            int id);
 
-    virtual void ReleaseResources();
+    virtual void ReleaseResources(JobReleaseReason reason);
 
     virtual void GetJobType(std::string& target)
     {

@@ -110,7 +110,22 @@ namespace Orthanc
 
   JobStepResult PluginsJob::ExecuteStep()
   {
-    
+    OrthancPluginJobStepStatus status = step_(job_);
+
+    switch (status)
+    {
+      case OrthancPluginJobStepStatus_Success:
+        return JobStepResult::Success();
+
+      case OrthancPluginJobStepStatus_Failure:
+        return JobStepResult::Failure(ErrorCode_Plugin);
+
+      case OrthancPluginJobStepStatus_Continue:
+        return JobStepResult::Continue();
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
   void PluginsJob::SignalResubmit()
@@ -118,9 +133,29 @@ namespace Orthanc
     reset_(job_);
   }
 
-  void PluginsJob::ReleaseResources()
+  void PluginsJob::ReleaseResources(JobReleaseReason reason)
   {
-    releaseResources_(job_);
+    switch (reason)
+    {
+      case JobReleaseReason_Success:
+        releaseResources_(job_, OrthancPluginJobReleaseReason_Success);
+        break;
+
+      case JobReleaseReason_Failure:
+        releaseResources_(job_, OrthancPluginJobReleaseReason_Failure);
+        break;
+
+      case JobReleaseReason_Canceled:
+        releaseResources_(job_, OrthancPluginJobReleaseReason_Canceled);
+        break;
+
+      case JobReleaseReason_Paused:
+        releaseResources_(job_, OrthancPluginJobReleaseReason_Paused);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
   float PluginsJob::GetProgress()

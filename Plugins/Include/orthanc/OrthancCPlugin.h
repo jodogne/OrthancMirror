@@ -846,10 +846,25 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginJobStepStatus_Success,   /*!< The job has successfully executed all its steps */
-    OrthancPluginJobStepStatus_Failure,   /*!< The job has failed while executing this step */
-    OrthancPluginJobStepStatus_Continue   /*!< The job has still data to process after this step */
+    OrthancPluginJobStepStatus_Success = 1,   /*!< The job has successfully executed all its steps */
+    OrthancPluginJobStepStatus_Failure = 2,   /*!< The job has failed while executing this step */
+    OrthancPluginJobStepStatus_Continue = 3   /*!< The job has still data to process after this step */
   } OrthancPluginJobStepStatus;
+
+
+  /**
+   * Explains why the job should release its resources. This is
+   * especially important to disambiguate between the "paused"
+   * condition and the "final" conditions (success, failure, or
+   * canceled).
+   **/
+  typedef enum
+  {
+    OrthancPluginJobReleaseReason_Success = 1,  /*!< The job has succeeded */
+    OrthancPluginJobReleaseReason_Paused = 2,   /*!< The job was paused, and will be resumed later */
+    OrthancPluginJobReleaseReason_Failure = 3,  /*!< The job has failed, and might be resubmitted later */
+    OrthancPluginJobReleaseReason_Canceled = 4  /*!< The job was canceled, and might be resubmitted later */
+  } OrthancPluginJobReleaseReason;
 
 
   /**
@@ -1260,7 +1275,8 @@ extern "C"
   typedef void (*OrthancPluginJobFree) (void* job);
   typedef float (*OrthancPluginJobGetProgress) (void* job);
   typedef OrthancPluginJobStepStatus (*OrthancPluginJobStep) (void* job);
-  typedef OrthancPluginErrorCode (*OrthancPluginJobReleaseResources) (void* job);
+  typedef OrthancPluginErrorCode (*OrthancPluginJobReleaseResources) (void* job, 
+                                                                      OrthancPluginJobReleaseReason reason);
   typedef OrthancPluginErrorCode (*OrthancPluginJobReset) (void* job);
   typedef OrthancPluginErrorCode (*OrthancPluginJobsUnserializer) (const char* jobType,
                                                                    const char* serialized);
