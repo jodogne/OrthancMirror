@@ -95,11 +95,11 @@ namespace
     {
     }
 
-    virtual void SignalResubmit()
+    virtual void Reset()
     {
     }
     
-    virtual JobStepResult ExecuteStep()
+    virtual JobStepResult Step()
     {
       if (fails_)
       {
@@ -116,7 +116,7 @@ namespace
       }
     }
 
-    virtual void ReleaseResources(JobReleaseReason reason)
+    virtual void Stop(JobStopReason reason)
     {
     }
 
@@ -162,7 +162,7 @@ namespace
     {
     }
     
-    virtual void ReleaseResources(JobReleaseReason reason)
+    virtual void Stop(JobStopReason reason)
     {
     }
 
@@ -962,10 +962,10 @@ TEST(JobsSerialization, GenericJobs)
     job.AddInstance("nope");
     job.AddInstance("world");
     job.SetPermissive(true);
-    ASSERT_THROW(job.ExecuteStep(), OrthancException);  // Not started yet
+    ASSERT_THROW(job.Step(), OrthancException);  // Not started yet
     job.Start();
-    job.ExecuteStep();
-    job.ExecuteStep();
+    job.Step();
+    job.Step();
 
     {
       DummyUnserializer unserializer;
@@ -1016,7 +1016,7 @@ TEST(JobsSerialization, GenericJobs)
       lock.SetTrailingOperationTimeout(300);
     }
 
-    ASSERT_EQ(JobStepCode_Continue, job.ExecuteStep().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
 
     {
       GenericJobUnserializer unserializer;

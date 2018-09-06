@@ -810,7 +810,7 @@ namespace Orthanc
   }
 
   
-  void ArchiveJob::SignalResubmit()
+  void ArchiveJob::Reset()
   {
     LOG(ERROR) << "Cannot resubmit the creation of an archive";
     throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -832,7 +832,7 @@ namespace Orthanc
   }
 
   
-  JobStepResult ArchiveJob::ExecuteStep()
+  JobStepResult ArchiveJob::Step()
   {
     assert(writer_.get() != NULL);
 

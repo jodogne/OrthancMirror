@@ -51,7 +51,7 @@ namespace Orthanc
     free_(parameters.free_),
     getProgress_(parameters.getProgress_),
     step_(parameters.step_),
-    releaseResources_(parameters.releaseResources_),
+    stop_(parameters.stop_),
     reset_(parameters.reset_)
   {
     if (job_ == NULL ||
@@ -59,7 +59,7 @@ namespace Orthanc
         free_ == NULL ||
         getProgress_ == NULL ||
         step_ == NULL ||
-        releaseResources_ == NULL ||
+        stop_ == NULL ||
         reset_ == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
@@ -108,7 +108,7 @@ namespace Orthanc
     free_(job_);
   }
 
-  JobStepResult PluginsJob::ExecuteStep()
+  JobStepResult PluginsJob::Step()
   {
     OrthancPluginJobStepStatus status = step_(job_);
 
@@ -128,29 +128,29 @@ namespace Orthanc
     }
   }
 
-  void PluginsJob::SignalResubmit()
+  void PluginsJob::Reset()
   {
     reset_(job_);
   }
 
-  void PluginsJob::ReleaseResources(JobReleaseReason reason)
+  void PluginsJob::Stop(JobStopReason reason)
   {
     switch (reason)
     {
-      case JobReleaseReason_Success:
-        releaseResources_(job_, OrthancPluginJobReleaseReason_Success);
+      case JobStopReason_Success:
+        stop_(job_, OrthancPluginJobStopReason_Success);
         break;
 
-      case JobReleaseReason_Failure:
-        releaseResources_(job_, OrthancPluginJobReleaseReason_Failure);
+      case JobStopReason_Failure:
+        stop_(job_, OrthancPluginJobStopReason_Failure);
         break;
 
-      case JobReleaseReason_Canceled:
-        releaseResources_(job_, OrthancPluginJobReleaseReason_Canceled);
+      case JobStopReason_Canceled:
+        stop_(job_, OrthancPluginJobStopReason_Canceled);
         break;
 
-      case JobReleaseReason_Paused:
-        releaseResources_(job_, OrthancPluginJobReleaseReason_Paused);
+      case JobStopReason_Paused:
+        stop_(job_, OrthancPluginJobStopReason_Paused);
         break;
 
       default:

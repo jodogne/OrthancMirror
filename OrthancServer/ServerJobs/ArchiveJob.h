@@ -80,13 +80,13 @@ namespace Orthanc
 
     void AddResource(const std::string& publicId);
 
-    virtual void SignalResubmit();
+    virtual void Reset();
 
     virtual void Start();
 
-    virtual JobStepResult ExecuteStep();
+    virtual JobStepResult Step();
 
-    virtual void ReleaseResources(JobReleaseReason reason)
+    virtual void Stop(JobStopReason reason)
     {
     }
 

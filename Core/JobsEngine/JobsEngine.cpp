@@ -55,14 +55,14 @@ namespace Orthanc
 
     if (running.IsPauseScheduled())
     {
-      running.GetJob().ReleaseResources(JobReleaseReason_Paused);
+      running.GetJob().Stop(JobStopReason_Paused);
       running.MarkPause();
       return false;
     }
 
     if (running.IsCancelScheduled())
     {
-      running.GetJob().ReleaseResources(JobReleaseReason_Canceled);
+      running.GetJob().Stop(JobStopReason_Canceled);
       running.MarkCanceled();
       return false;
     }
@@ -71,7 +71,7 @@ namespace Orthanc
 
     try
     {
-      result = running.GetJob().ExecuteStep();
+      result = running.GetJob().Step();
     }
     catch (OrthancException& e)
     {
@@ -89,19 +89,19 @@ namespace Orthanc
     switch (result.GetCode())
     {
       case JobStepCode_Success:
-        running.GetJob().ReleaseResources(JobReleaseReason_Success);
+        running.GetJob().Stop(JobStopReason_Success);
         running.UpdateStatus(ErrorCode_Success);
         running.MarkSuccess();
         return false;
 
       case JobStepCode_Failure:
-        running.GetJob().ReleaseResources(JobReleaseReason_Failure);
+        running.GetJob().Stop(JobStopReason_Failure);
         running.UpdateStatus(result.GetFailureCode());
         running.MarkFailure();
         return false;
 
       case JobStepCode_Retry:
-        running.GetJob().ReleaseResources(JobReleaseReason_Retry);
+        running.GetJob().Stop(JobStopReason_Retry);
         running.UpdateStatus(ErrorCode_Success);
         running.MarkRetry(result.GetRetryTimeout());
         return false;

@@ -567,13 +567,13 @@ namespace Orthanc
     JobStepCode_Retry
   };
 
-  enum JobReleaseReason
+  enum JobStopReason
   {
-    JobReleaseReason_Paused,
-    JobReleaseReason_Canceled,
-    JobReleaseReason_Success,
-    JobReleaseReason_Failure,
-    JobReleaseReason_Retry
+    JobStopReason_Paused,
+    JobStopReason_Canceled,
+    JobStopReason_Success,
+    JobStopReason_Failure,
+    JobStopReason_Retry
   };
 
 

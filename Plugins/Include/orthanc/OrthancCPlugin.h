@@ -853,18 +853,18 @@ extern "C"
 
 
   /**
-   * Explains why the job should release its resources. This is
-   * especially important to disambiguate between the "paused"
+   * Explains why the job should stop and release its resources. This
+   * is especially important to disambiguate between the "paused"
    * condition and the "final" conditions (success, failure, or
    * canceled).
    **/
   typedef enum
   {
-    OrthancPluginJobReleaseReason_Success = 1,  /*!< The job has succeeded */
-    OrthancPluginJobReleaseReason_Paused = 2,   /*!< The job was paused, and will be resumed later */
-    OrthancPluginJobReleaseReason_Failure = 3,  /*!< The job has failed, and might be resubmitted later */
-    OrthancPluginJobReleaseReason_Canceled = 4  /*!< The job was canceled, and might be resubmitted later */
-  } OrthancPluginJobReleaseReason;
+    OrthancPluginJobStopReason_Success = 1,  /*!< The job has succeeded */
+    OrthancPluginJobStopReason_Paused = 2,   /*!< The job was paused, and will be resumed later */
+    OrthancPluginJobStopReason_Failure = 3,  /*!< The job has failed, and might be resubmitted later */
+    OrthancPluginJobStopReason_Canceled = 4  /*!< The job was canceled, and might be resubmitted later */
+  } OrthancPluginJobStopReason;
 
 
   /**
@@ -1275,8 +1275,8 @@ extern "C"
   typedef void (*OrthancPluginJobFree) (void* job);
   typedef float (*OrthancPluginJobGetProgress) (void* job);
   typedef OrthancPluginJobStepStatus (*OrthancPluginJobStep) (void* job);
-  typedef OrthancPluginErrorCode (*OrthancPluginJobReleaseResources) (void* job, 
-                                                                      OrthancPluginJobReleaseReason reason);
+  typedef OrthancPluginErrorCode (*OrthancPluginJobStop) (void* job, 
+                                                          OrthancPluginJobStopReason reason);
   typedef OrthancPluginErrorCode (*OrthancPluginJobReset) (void* job);
   typedef OrthancPluginErrorCode (*OrthancPluginJobsUnserializer) (const char* jobType,
                                                                    const char* serialized);
@@ -6041,31 +6041,31 @@ extern "C"
 
   typedef struct
   {
-    char**                            resultId_;
-    void                             *job_;
-    int                               priority_;
-    const char                       *type_;
-    const char                       *content_;
-    const char                       *serialized_;
-    OrthancPluginJobFree              free_;
-    OrthancPluginJobGetProgress       getProgress_;
-    OrthancPluginJobStep              step_;
-    OrthancPluginJobReleaseResources  releaseResources_;
-    OrthancPluginJobReset             reset_;
+    char**                        resultId_;
+    void                         *job_;
+    int                           priority_;
+    const char                   *type_;
+    const char                   *content_;
+    const char                   *serialized_;
+    OrthancPluginJobFree          free_;
+    OrthancPluginJobGetProgress   getProgress_;
+    OrthancPluginJobStep          step_;
+    OrthancPluginJobStop          stop_;
+    OrthancPluginJobReset         reset_;
   } _OrthancPluginSubmitJob;
 
   ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
-    OrthancPluginContext             *context,
-    void                             *job,
-    int                               priority,
-    const char                       *type,
-    const char                       *content,
-    const char                       *serialized,
-    OrthancPluginJobFree              freeJob,
-    OrthancPluginJobGetProgress       getProgress,
-    OrthancPluginJobStep              step,
-    OrthancPluginJobReleaseResources  releaseResources,
-    OrthancPluginJobReset             reset)
+    OrthancPluginContext         *context,
+    void                         *job,
+    int                           priority,
+    const char                   *type,
+    const char                   *content,
+    const char                   *serialized,
+    OrthancPluginJobFree          freeJob,
+    OrthancPluginJobGetProgress   getProgress,
+    OrthancPluginJobStep          step,
+    OrthancPluginJobStop          stop,
+    OrthancPluginJobReset         reset)
   {
     char* resultId = NULL;
 
@@ -6081,7 +6081,7 @@ extern "C"
     params.serialized_ = serialized;
     params.getProgress_ = getProgress;
     params.step_ = step;
-    params.releaseResources_ = releaseResources;
+    params.stop_ = stop;
     params.reset_ = reset;
 
     if (context->InvokeService(context, _OrthancPluginService_SubmitJob, &params) != OrthancPluginErrorCode_Success ||

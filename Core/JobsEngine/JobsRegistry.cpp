@@ -930,7 +930,7 @@ namespace Orthanc
     }
     else
     {
-      found->second->GetJob().SignalResubmit();
+      found->second->GetJob().Reset();
       
       bool ok = false;
       for (CompletedJobs::iterator it = completedJobs_.begin(); 

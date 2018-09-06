@@ -50,13 +50,13 @@ namespace Orthanc
     // Method called once the job enters the jobs engine
     virtual void Start() = 0;
     
-    virtual JobStepResult ExecuteStep() = 0;
+    virtual JobStepResult Step() = 0;
 
     // Method called once the job is resubmitted after a failure
-    virtual void SignalResubmit() = 0;
+    virtual void Reset() = 0;
 
-    // For pausing/canceling jobs
-    virtual void ReleaseResources(JobReleaseReason reason) = 0;
+    // For pausing/canceling/ending jobs: This method must release allocated resources
+    virtual void Stop(JobStopReason reason) = 0;
 
     virtual float GetProgress() = 0;
 
