@@ -86,7 +86,7 @@ namespace Orthanc
   }
 
 
-  void SetOfInstancesJob::SignalResubmit()
+  void SetOfInstancesJob::Reset()
   {
     if (started_)
     {
@@ -127,7 +127,7 @@ namespace Orthanc
   }
       
 
-  JobStepResult SetOfInstancesJob::ExecuteStep()
+  JobStepResult SetOfInstancesJob::Step()
   {
     if (!started_)
     {
