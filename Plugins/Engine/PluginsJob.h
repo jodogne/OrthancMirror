@@ -43,16 +43,16 @@ namespace Orthanc
   class PluginsJob : public IJob
   {
   private:
-    void                             *job_;
-    std::string                       type_;
-    Json::Value                       publicContent_;
-    bool                              hasSerialized_;
-    Json::Value                       serialized_;
-    OrthancPluginJobFree              free_;
-    OrthancPluginJobGetProgress       getProgress_;
-    OrthancPluginJobStep              step_;
-    OrthancPluginJobReleaseResources  releaseResources_;
-    OrthancPluginJobReset             reset_;
+    void                        *job_;
+    std::string                  type_;
+    Json::Value                  publicContent_;
+    bool                         hasSerialized_;
+    Json::Value                  serialized_;
+    OrthancPluginJobFree         free_;
+    OrthancPluginJobGetProgress  getProgress_;
+    OrthancPluginJobStep         step_;
+    OrthancPluginJobStop         stop_;
+    OrthancPluginJobReset        reset_;
 
   public:
     PluginsJob(const _OrthancPluginSubmitJob& parameters);
@@ -63,11 +63,11 @@ namespace Orthanc
     {
     }
     
-    virtual JobStepResult ExecuteStep();
+    virtual JobStepResult Step();
 
-    virtual void SignalResubmit();
+    virtual void Reset();
 
-    virtual void ReleaseResources(JobReleaseReason reason);
+    virtual void Stop(JobStopReason reason);
 
     virtual float GetProgress();
 

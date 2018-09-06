@@ -319,7 +319,7 @@ namespace Orthanc
   }
 
 
-  JobStepResult SequenceOfOperationsJob::ExecuteStep()
+  JobStepResult SequenceOfOperationsJob::Step()
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -369,7 +369,7 @@ namespace Orthanc
   }
 
 
-  void SequenceOfOperationsJob::SignalResubmit()
+  void SequenceOfOperationsJob::Reset()
   {
     boost::mutex::scoped_lock lock(mutex_);
       
@@ -383,7 +383,7 @@ namespace Orthanc
   }
 
 
-  void SequenceOfOperationsJob::ReleaseResources(JobReleaseReason reason)
+  void SequenceOfOperationsJob::Stop(JobStopReason reason)
   {
     boost::mutex::scoped_lock lock(mutex_);
     connectionManager_.Close();

@@ -87,7 +87,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerStoreJob::ReleaseResources(JobReleaseReason reason)   // For pausing jobs
+  void OrthancPeerStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     client_.reset(NULL);
   }

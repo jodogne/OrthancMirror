@@ -128,11 +128,11 @@ namespace Orthanc
     {
     }
 
-    virtual JobStepResult ExecuteStep();
+    virtual JobStepResult Step();
 
-    virtual void SignalResubmit();
+    virtual void Reset();
 
-    virtual void ReleaseResources(JobReleaseReason reason);
+    virtual void Stop(JobStopReason reason);
 
     virtual float GetProgress();
 

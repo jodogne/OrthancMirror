@@ -88,7 +88,7 @@ namespace Orthanc
 
     void SetPermissive(bool permissive);
 
-    virtual void SignalResubmit();
+    virtual void Reset();
     
     virtual void Start()
     {
@@ -114,7 +114,7 @@ namespace Orthanc
       return failedInstances_.find(instance) != failedInstances_.end();
     }
     
-    virtual JobStepResult ExecuteStep();
+    virtual JobStepResult Step();
     
     virtual void GetPublicContent(Json::Value& value);
     

@@ -67,7 +67,7 @@ namespace Orthanc
       return peer_;
     }
 
-    virtual void ReleaseResources(JobReleaseReason reason);   // For pausing jobs
+    virtual void Stop(JobStopReason reason);   // For pausing jobs
 
     virtual void GetJobType(std::string& target)
     {

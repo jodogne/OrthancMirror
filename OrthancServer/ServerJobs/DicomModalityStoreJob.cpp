@@ -164,7 +164,7 @@ namespace Orthanc
     }
   }
 
-  void DicomModalityStoreJob::ReleaseResources(JobReleaseReason reason)   // For pausing jobs
+  void DicomModalityStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     connection_.reset(NULL);
   }
