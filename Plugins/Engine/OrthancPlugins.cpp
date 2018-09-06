@@ -2886,6 +2886,8 @@ namespace Orthanc
         PImpl::ServerContextLock lock(*pimpl_);
         lock.GetContext().GetJobsEngine().GetRegistry().Submit(uuid, new PluginsJob(p), p.priority_);
         
+        *p.resultId_ = CopyString(uuid);
+
         return true;
       }
 
