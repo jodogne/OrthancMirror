@@ -2884,9 +2884,9 @@ namespace Orthanc
         std::string uuid;
 
         PImpl::ServerContextLock lock(*pimpl_);
-        lock.GetContext().GetJobsEngine().GetRegistry().Submit(uuid, new PluginsJob(p), p.priority_);
+        lock.GetContext().GetJobsEngine().GetRegistry().Submit(uuid, new PluginsJob(p), p.priority);
         
-        *p.resultId_ = CopyString(uuid);
+        *p.resultId = CopyString(uuid);
 
         return true;
       }

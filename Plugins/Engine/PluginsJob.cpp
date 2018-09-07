@@ -39,6 +39,7 @@
 #endif
 
 
+#include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 
 #include <json/reader.h>
@@ -47,70 +48,39 @@
 namespace Orthanc
 {
   PluginsJob::PluginsJob(const _OrthancPluginSubmitJob& parameters) :
-    job_(parameters.job_),
-    free_(parameters.free_),
-    getProgress_(parameters.getProgress_),
-    step_(parameters.step_),
-    stop_(parameters.stop_),
-    reset_(parameters.reset_)
+    parameters_(parameters)
   {
-    if (job_ == NULL ||
-        parameters.type_ == NULL ||
-        free_ == NULL ||
-        getProgress_ == NULL ||
-        step_ == NULL ||
-        stop_ == NULL ||
-        reset_ == NULL)
+    if (parameters_.job == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
-
-    type_.assign(parameters.type_);
-
-    if (parameters.content_ == NULL)
+    
+    if (parameters_.resultId == NULL ||
+        parameters_.freeJob == NULL ||
+        parameters_.type == NULL ||
+        parameters_.getProgress == NULL ||
+        parameters_.getContent == NULL ||
+        parameters_.getSerialized == NULL ||
+        parameters_.step == NULL ||
+        parameters_.stop == NULL ||
+        parameters_.reset == NULL)
     {
-      publicContent_ = Json::objectValue;
-    }
-    else
-    {
-      Json::Reader reader;
-      if (!reader.parse(parameters.content_, publicContent_) ||
-          publicContent_.type() != Json::objectValue)
-      {
-        free_(job_);
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
+      parameters_.freeJob(parameters.job);
+      throw OrthancException(ErrorCode_NullPointer);
     }
 
-    if (parameters.serialized_ == NULL)
-    {
-      hasSerialized_ = false;
-    }
-    else
-    {
-      hasSerialized_ = true;
-
-      Json::Reader reader;
-      if (!reader.parse(parameters.serialized_, serialized_) ||
-          serialized_.type() != Json::objectValue ||
-          !serialized_.isMember("Type") ||
-          serialized_["Type"].type() != Json::stringValue)
-      {
-        free_(job_);
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
+    type_.assign(parameters.type);
   }
 
   PluginsJob::~PluginsJob()
   {
-    assert(job_ != NULL);
-    free_(job_);
+    assert(parameters_.job != NULL);
+    parameters_.freeJob(parameters_.job);
   }
 
   JobStepResult PluginsJob::Step()
   {
-    OrthancPluginJobStepStatus status = step_(job_);
+    OrthancPluginJobStepStatus status = parameters_.step(parameters_.job);
 
     switch (status)
     {
@@ -130,7 +100,7 @@ namespace Orthanc
 
   void PluginsJob::Reset()
   {
-    reset_(job_);
+    parameters_.reset(parameters_.job);
   }
 
   void PluginsJob::Stop(JobStopReason reason)
@@ -138,19 +108,19 @@ namespace Orthanc
     switch (reason)
     {
       case JobStopReason_Success:
-        stop_(job_, OrthancPluginJobStopReason_Success);
+        parameters_.stop(parameters_.job, OrthancPluginJobStopReason_Success);
         break;
 
       case JobStopReason_Failure:
-        stop_(job_, OrthancPluginJobStopReason_Failure);
+        parameters_.stop(parameters_.job, OrthancPluginJobStopReason_Failure);
         break;
 
       case JobStopReason_Canceled:
-        stop_(job_, OrthancPluginJobStopReason_Canceled);
+        parameters_.stop(parameters_.job, OrthancPluginJobStopReason_Canceled);
         break;
 
       case JobStopReason_Paused:
-        stop_(job_, OrthancPluginJobStopReason_Paused);
+        parameters_.stop(parameters_.job, OrthancPluginJobStopReason_Paused);
         break;
 
       default:
@@ -160,19 +130,60 @@ namespace Orthanc
 
   float PluginsJob::GetProgress()
   {
-    return getProgress_(job_);
+    return parameters_.getProgress(parameters_.job);
+  }
+
+  void PluginsJob::GetPublicContent(Json::Value& value)
+  {
+    const char* content = parameters_.getContent(parameters_.job);
+
+    if (content == NULL)
+    {
+      value = Json::objectValue;
+    }
+    else
+    {
+      Json::Reader reader;
+      
+      if (!reader.parse(content, value) ||
+          value.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "A job plugin must provide a JSON object as its public content";
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
   }
 
   bool PluginsJob::Serialize(Json::Value& value)
   {
-    if (hasSerialized_)
+    const char* serialized = parameters_.getSerialized(parameters_.job);
+
+    if (serialized == NULL)
     {
-      value = serialized_;
-      return true;
+      return false;
     }
     else
     {
-      return false;
+      Json::Reader reader;
+      
+      if (!reader.parse(serialized, value) ||
+          value.type() != Json::objectValue)
+      {
+        LOG(ERROR) << "A job plugin must provide a JSON object as its serialized content";
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+
+      static const char* KEY_TYPE = "Type";
+      
+      if (value.isMember(KEY_TYPE))
+      {
+        LOG(ERROR) << "The \"Type\" field is for reserved use for serialized job";
+        throw OrthancException(ErrorCode_Plugin);
+      }
+
+      value[KEY_TYPE] = type_;
+      return true;
     }
   }
 }
