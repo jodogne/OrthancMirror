@@ -8,6 +8,11 @@ General
 * New main DICOM tag: "ImageOrientationPatient" at the instance level
 * New configuration option: "HttpVerbose" to debug outgoing HTTP connections
 
+Orthanc Explorer
+----------------
+
+* Query/retrieve: Added button for "DX" modality
+
 REST API
 --------
 
