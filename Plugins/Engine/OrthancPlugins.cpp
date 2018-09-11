@@ -2876,6 +2876,27 @@ namespace Orthanc
         CallPeerApi(parameters);
         return true;
 
+      case _OrthancPluginService_CreateJob:
+      {
+        const _OrthancPluginCreateJob& p =
+          *reinterpret_cast<const _OrthancPluginCreateJob*>(parameters);
+        *(p.target) = reinterpret_cast<OrthancPluginJob*>(new PluginsJob(p));
+        return true;
+      }
+
+      case _OrthancPluginService_FreeJob:
+      {
+        const _OrthancPluginFreeJob& p =
+          *reinterpret_cast<const _OrthancPluginFreeJob*>(parameters);
+
+        if (p.job != NULL)
+        {
+          delete reinterpret_cast<PluginsJob*>(p.job);
+        }
+
+        return true;
+      }
+
       case _OrthancPluginService_SubmitJob:
       {
         const _OrthancPluginSubmitJob& p =
@@ -2884,7 +2905,8 @@ namespace Orthanc
         std::string uuid;
 
         PImpl::ServerContextLock lock(*pimpl_);
-        lock.GetContext().GetJobsEngine().GetRegistry().Submit(uuid, new PluginsJob(p), p.priority);
+        lock.GetContext().GetJobsEngine().GetRegistry().Submit
+          (uuid, reinterpret_cast<PluginsJob*>(p.job), p.priority);
         
         *p.resultId = CopyString(uuid);
 
@@ -3434,9 +3456,9 @@ namespace Orthanc
   }
 
 
-  bool OrthancPlugins::UnserializeJob(const Json::Value& value)
+  IJob* OrthancPlugins::UnserializeJob(const std::string& type,
+                                       const Json::Value& value)
   {
-    const std::string type = SerializationToolbox::ReadString(value, "Type");
     const std::string serialized = value.toStyledString();
 
     boost::mutex::scoped_lock lock(pimpl_->jobsUnserializersMutex_);
@@ -3445,12 +3467,13 @@ namespace Orthanc
            unserializer = pimpl_->jobsUnserializers_.begin();
          unserializer != pimpl_->jobsUnserializers_.end(); ++unserializer)
     {
-      if ((*unserializer) (type.c_str(), serialized.c_str()) == OrthancPluginErrorCode_Success)
+      OrthancPluginJob* job = (*unserializer) (type.c_str(), serialized.c_str());
+      if (job != NULL)
       {
-        return true;
+        return reinterpret_cast<PluginsJob*>(job);
       }
     }
 
-    return false;
+    return NULL;
   }
 }

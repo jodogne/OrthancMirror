@@ -423,7 +423,6 @@ extern "C"
     _OrthancPluginService_CallHttpClient2 = 27,
     _OrthancPluginService_GenerateUuid = 28,
     _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
-    _OrthancPluginService_SubmitJob = 30,
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -437,7 +436,6 @@ extern "C"
     _OrthancPluginService_RegisterFindCallback = 1008,
     _OrthancPluginService_RegisterMoveCallback = 1009,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
-    _OrthancPluginService_RegisterJobsUnserializer = 1011,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -529,6 +527,12 @@ extern "C"
     _OrthancPluginService_GetPeerName = 8004,
     _OrthancPluginService_GetPeerUrl = 8005,
     _OrthancPluginService_CallPeerApi = 8006,
+
+    /* Primitives for handling jobs (new in 1.4.2) */
+    _OrthancPluginService_CreateJob = 9000,
+    _OrthancPluginService_FreeJob = 9001,
+    _OrthancPluginService_SubmitJob = 9002,
+    _OrthancPluginService_RegisterJobsUnserializer = 9003,
     
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -1272,7 +1276,10 @@ extern "C"
 
 
 
-  typedef void (*OrthancPluginJobFree) (void* job);
+
+  
+  typedef struct _OrthancPluginJob_t OrthancPluginJob;
+  typedef void (*OrthancPluginJobFinalize) (void* job);
   typedef float (*OrthancPluginJobGetProgress) (void* job);
   typedef const char* (*OrthancPluginJobGetContent) (void* job);
   typedef const char* (*OrthancPluginJobGetSerialized) (void* job);
@@ -1280,8 +1287,8 @@ extern "C"
   typedef OrthancPluginErrorCode (*OrthancPluginJobStop) (void* job, 
                                                           OrthancPluginJobStopReason reason);
   typedef OrthancPluginErrorCode (*OrthancPluginJobReset) (void* job);
-  typedef OrthancPluginErrorCode (*OrthancPluginJobsUnserializer) (const char* jobType,
-                                                                   const char* serialized);
+  typedef OrthancPluginJob* (*OrthancPluginJobsUnserializer) (const char* jobType,
+                                                              const char* serialized);
   
 
 
@@ -6041,12 +6048,13 @@ extern "C"
 
 
 
+
+
   typedef struct
   {
-    char**                          resultId;
+    OrthancPluginJob**              target;
     void                           *job;
-    OrthancPluginJobFree            freeJob;
-    int                             priority;
+    OrthancPluginJobFinalize        finalize;
     const char                     *type;
     OrthancPluginJobGetProgress     getProgress;
     OrthancPluginJobGetContent      getContent;
@@ -6054,13 +6062,12 @@ extern "C"
     OrthancPluginJobStep            step;
     OrthancPluginJobStop            stop;
     OrthancPluginJobReset           reset;
-  } _OrthancPluginSubmitJob;
+  } _OrthancPluginCreateJob;
 
-  ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
+  ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob(
     OrthancPluginContext           *context,
     void                           *job,
-    OrthancPluginJobFree            freeJob,
-    int                             priority,
+    OrthancPluginJobFinalize        finalize,
     const char                     *type,
     OrthancPluginJobGetProgress     getProgress,
     OrthancPluginJobGetContent      getContent,
@@ -6069,15 +6076,14 @@ extern "C"
     OrthancPluginJobStop            stop,
     OrthancPluginJobReset           reset)
   {
-    char* resultId = NULL;
+    OrthancPluginJob* target = NULL;
 
-    _OrthancPluginSubmitJob params;
+    _OrthancPluginCreateJob params;
     memset(&params, 0, sizeof(params));
 
-    params.resultId = &resultId;
+    params.target = &target;
     params.job = job;
-    params.freeJob = freeJob;
-    params.priority = priority;
+    params.finalize = finalize;
     params.type = type;
     params.getProgress = getProgress;
     params.getContent = getContent;
@@ -6085,6 +6091,58 @@ extern "C"
     params.step = step;
     params.stop = stop;
     params.reset = reset;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateJob, &params) != OrthancPluginErrorCode_Success ||
+        target == NULL)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginJob*   job;
+  } _OrthancPluginFreeJob;
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeJob(
+    OrthancPluginContext* context, 
+    OrthancPluginJob*     job)
+  {
+    _OrthancPluginFreeJob params;
+    params.job = job;
+
+    context->InvokeService(context, _OrthancPluginService_FreeJob, &params);
+  }
+
+
+  
+
+  typedef struct
+  {
+    char**             resultId;
+    OrthancPluginJob  *job;
+    int                priority;
+  } _OrthancPluginSubmitJob;
+
+  ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
+    OrthancPluginContext   *context,
+    OrthancPluginJob       *job,
+    int                     priority)
+  {
+    char* resultId = NULL;
+
+    _OrthancPluginSubmitJob params;
+    memset(&params, 0, sizeof(params));
+
+    params.resultId = &resultId;
+    params.job = job;
+    params.priority = priority;
 
     if (context->InvokeService(context, _OrthancPluginService_SubmitJob, &params) != OrthancPluginErrorCode_Success ||
         resultId == NULL)

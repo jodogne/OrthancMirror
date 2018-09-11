@@ -875,7 +875,8 @@ static bool StartDicomServer(ServerContext& context,
 
 
 static bool ConfigureHttpHandler(ServerContext& context,
-                                 OrthancPlugins *plugins)
+                                 OrthancPlugins *plugins,
+                                 bool loadJobsFromDatabase)
 {
 #if ORTHANC_ENABLE_PLUGINS == 1
   // By order of priority, first apply the "plugins" layer, so that
@@ -900,7 +901,13 @@ static bool ConfigureHttpHandler(ServerContext& context,
   OrthancRestApi restApi(context);
   context.GetHttpHandler().Register(restApi, true);
 
-  return StartDicomServer(context, restApi, plugins);
+  context.SetupJobsEngine(false /* not running unit tests */, loadJobsFromDatabase);
+
+  bool restart = StartDicomServer(context, restApi, plugins);
+
+  context.Stop();
+
+  return restart;
 }
 
 
@@ -973,7 +980,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
 
-  ServerContext context(database, storageArea, false /* not running unit tests */, loadJobsFromDatabase);
+  ServerContext context(database, storageArea, false /* not running unit tests */);
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
@@ -1012,14 +1019,12 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   try
   {
-    restart = ConfigureHttpHandler(context, plugins);
+    restart = ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
   catch (OrthancException& e)
   {
     error = e.GetErrorCode();
   }
-
-  context.Stop();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)

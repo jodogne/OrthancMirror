@@ -1204,8 +1204,8 @@ namespace
     OrthancJobsSerialization()
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */,
-                                       false /* don't reload jobs */));
+      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */));
+      context_->SetupJobsEngine(true, false);
     }
 
     virtual ~OrthancJobsSerialization()
