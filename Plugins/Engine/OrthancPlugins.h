@@ -59,6 +59,7 @@ namespace Orthanc
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
+#include "../../Core/JobsEngine/IJob.h"
 #include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
@@ -308,7 +309,8 @@ namespace Orthanc
 
     virtual IMoveRequestHandler* ConstructMoveRequestHandler();
 
-    bool UnserializeJob(const Json::Value& value);
+    IJob* UnserializeJob(const std::string& type,
+                         const Json::Value& value);
   };
 }
 

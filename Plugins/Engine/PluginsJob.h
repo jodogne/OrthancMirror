@@ -43,11 +43,11 @@ namespace Orthanc
   class PluginsJob : public IJob
   {
   private:
-    _OrthancPluginSubmitJob  parameters_;
+    _OrthancPluginCreateJob  parameters_;
     std::string              type_;
 
   public:
-    PluginsJob(const _OrthancPluginSubmitJob& parameters);
+    PluginsJob(const _OrthancPluginCreateJob& parameters);
 
     virtual ~PluginsJob();
 
