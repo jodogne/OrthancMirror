@@ -55,6 +55,17 @@ namespace Orthanc
   {
     const std::string type = SerializationToolbox::ReadString(source, "Type");
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (context_.HasPlugins())
+    {
+      std::auto_ptr<IJob> job(context_.GetPlugins().UnserializeJob(type, source));
+      if (job.get() != NULL)
+      {
+        return job.release();
+      }
+    }
+#endif
+
     if (type == "DicomModalityStore")
     {
       return new DicomModalityStoreJob(context_, source);

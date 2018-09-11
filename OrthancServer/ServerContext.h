@@ -143,9 +143,6 @@ namespace Orthanc
     void ReadDicomAsJsonInternal(std::string& result,
                                  const std::string& instancePublicId);
 
-    void SetupJobsEngine(bool unitTesting,
-                         bool loadJobsFromDatabase);
-
     void SaveJobsEngine();
 
     virtual void SignalJobSubmitted(const std::string& jobId);
@@ -178,6 +175,7 @@ namespace Orthanc
 
     bool done_;
     bool haveJobsChanged_;
+    bool isJobsEngineUnserialized_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
@@ -208,10 +206,12 @@ namespace Orthanc
 
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
-                  bool unitTesting,
-                  bool loadJobsFromDatabase);
+                  bool unitTesting);
 
     ~ServerContext();
+
+    void SetupJobsEngine(bool unitTesting,
+                         bool loadJobsFromDatabase);
 
     ServerIndex& GetIndex()
     {

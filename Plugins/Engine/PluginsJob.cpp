@@ -47,7 +47,7 @@
 
 namespace Orthanc
 {
-  PluginsJob::PluginsJob(const _OrthancPluginSubmitJob& parameters) :
+  PluginsJob::PluginsJob(const _OrthancPluginCreateJob& parameters) :
     parameters_(parameters)
   {
     if (parameters_.job == NULL)
@@ -55,8 +55,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
     
-    if (parameters_.resultId == NULL ||
-        parameters_.freeJob == NULL ||
+    if (parameters_.target == NULL ||
+        parameters_.finalize == NULL ||
         parameters_.type == NULL ||
         parameters_.getProgress == NULL ||
         parameters_.getContent == NULL ||
@@ -65,7 +65,7 @@ namespace Orthanc
         parameters_.stop == NULL ||
         parameters_.reset == NULL)
     {
-      parameters_.freeJob(parameters.job);
+      parameters_.finalize(parameters.job);
       throw OrthancException(ErrorCode_NullPointer);
     }
 
@@ -75,7 +75,7 @@ namespace Orthanc
   PluginsJob::~PluginsJob()
   {
     assert(parameters_.job != NULL);
-    parameters_.freeJob(parameters_.job);
+    parameters_.finalize(parameters_.job);
   }
 
   JobStepResult PluginsJob::Step()

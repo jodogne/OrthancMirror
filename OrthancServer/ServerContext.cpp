@@ -156,33 +156,17 @@ namespace Orthanc
   void ServerContext::SetupJobsEngine(bool unitTesting,
                                       bool loadJobsFromDatabase)
   {
-    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
-    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
-
     if (loadJobsFromDatabase)
     {
       std::string serialized;
       if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
       {
         LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
+        OrthancJobUnserializer unserializer(*this);
 
         try
         {
-          bool plugin = false;
-        
-#if ORTHANC_ENABLE_PLUGINS == 1
-          if (HasPlugins() &&
-              plugins_->UnserializeJob(serialized))
-          {
-            plugin = true;
-          }
-#endif
-
-          if (!plugin)
-          {
-            OrthancJobUnserializer unserializer(*this);
-            jobsEngine_.LoadRegistryFromString(unserializer, serialized);
-          }
+          jobsEngine_.LoadRegistryFromString(unserializer, serialized);
         }
         catch (OrthancException& e)
         {
@@ -204,6 +188,9 @@ namespace Orthanc
 
     jobsEngine_.GetRegistry().SetObserver(*this);
     jobsEngine_.Start();
+    isJobsEngineUnserialized_ = true;
+
+    saveJobsThread_ = boost::thread(SaveJobsThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -230,8 +217,7 @@ namespace Orthanc
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
-                               bool unitTesting,
-                               bool loadJobsFromDatabase) :
+                               bool unitTesting) :
     index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
@@ -246,15 +232,15 @@ namespace Orthanc
 #endif
     done_(false),
     haveJobsChanged_(false),
+    isJobsEngineUnserialized_(false),
     queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
+    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
+
     listeners_.push_back(ServerListener(luaListener_, "Lua"));
-
-    SetupJobsEngine(unitTesting, loadJobsFromDatabase);
-
     changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
-    saveJobsThread_ = boost::thread(SaveJobsThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -291,7 +277,12 @@ namespace Orthanc
       }
 
       jobsEngine_.GetRegistry().ResetObserver();
-      SaveJobsEngine();
+
+      if (isJobsEngineUnserialized_)
+      {
+        // Avoid losing jobs if the JobsRegistry cannot be unserialized
+        SaveJobsEngine();
+      }
 
       // Do not change the order below!
       jobsEngine_.Stop();
