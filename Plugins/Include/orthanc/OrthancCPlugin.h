@@ -857,10 +857,10 @@ extern "C"
 
 
   /**
-   * Explains why the job should stop and release its resources. This
-   * is especially important to disambiguate between the "paused"
-   * condition and the "final" conditions (success, failure, or
-   * canceled).
+   * Explains why the job should stop and release the resources it has
+   * allocated. This is especially important to disambiguate between
+   * the "paused" condition and the "final" conditions (success,
+   * failure, or canceled).
    **/
   typedef enum
   {
@@ -972,6 +972,14 @@ extern "C"
   typedef struct _OrthancPluginPeers_t OrthancPluginPeers;
 
 
+
+  /**
+   * @brief Opaque structure to a job to be executed by Orthanc.
+   * @ingroup Toolbox
+   **/
+  typedef struct _OrthancPluginJob_t OrthancPluginJob;  
+
+  
 
   /**
    * @brief Signature of a callback function that answers to a REST request.
@@ -1244,6 +1252,7 @@ extern "C"
    *
    * @param moveDriver The C-Move driver of interest.
    * @return The number of suboperations. 
+   * @ingroup DicomCallbacks
    **/
   typedef uint32_t (*OrthancPluginGetMoveSize) (void* moveDriver);
 
@@ -1258,6 +1267,7 @@ extern "C"
    *
    * @param moveDriver The C-Move driver of interest.
    * @return 0 if success, or the error code if failure.
+   * @ingroup DicomCallbacks
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginApplyMove) (void* moveDriver);
 
@@ -1271,22 +1281,144 @@ extern "C"
    * callback.
    *
    * @param moveDriver The C-Move driver of interest.
+   * @ingroup DicomCallbacks
    **/
   typedef void (*OrthancPluginFreeMove) (void* moveDriver);
 
 
+  /**
+   * @brief Callback to finalize one custom job.
+   * 
+   * Signature of a callback function that releases all the resources
+   * allocated by the given job. This job is the argument provided to
+   * OrthancPluginCreateJob().
+   *
+   * @param job The job of interest.
+   * @ingroup Toolbox
+   **/  
+  typedef void (*OrthancPluginJobFinalize) (void* job);
 
+
+  /**
+   * @brief Callback to check the progress of one custom job.
+   * 
+   * Signature of a callback function that returns the progress of the
+   * job.
+   *
+   * @param job The job of interest.
+   * @return The progress, as a floating-point number ranging from 0 to 1.
+   * @ingroup Toolbox
+   **/  
+  typedef float (*OrthancPluginJobGetProgress) (void* job);
 
   
-  typedef struct _OrthancPluginJob_t OrthancPluginJob;
-  typedef void (*OrthancPluginJobFinalize) (void* job);
-  typedef float (*OrthancPluginJobGetProgress) (void* job);
+  /**
+   * @brief Callback to retrieve the content of one custom job.
+   * 
+   * Signature of a callback function that returns human-readable
+   * statistics about the job. This statistics must be formatted as a
+   * JSON object. This information is notably displayed in the "Jobs"
+   * tab of "Orthanc Explorer".
+   *
+   * @param job The job of interest.
+   * @return The statistics, as a JSON object encoded as a string.
+   * @ingroup Toolbox
+   **/  
   typedef const char* (*OrthancPluginJobGetContent) (void* job);
+
+
+  /**
+   * @brief Callback to serialize one custom job.
+   * 
+   * Signature of a callback function that returns a serialized
+   * version of the job, formatted as a JSON object. This
+   * serialization is stored in the Orthanc database, and is used to
+   * reload the job on the restart of Orthanc. The "unserialization"
+   * callback (with OrthancPluginJobsUnserializer signature) will
+   * receive this serialized object.
+   *
+   * @param job The job of interest.
+   * @return The serialized job, as a JSON object encoded as a string.
+   * @see OrthancPluginRegisterJobsUnserializer()
+   * @ingroup Toolbox
+   **/  
   typedef const char* (*OrthancPluginJobGetSerialized) (void* job);
+
+
+  /**
+   * @brief Callback to execute one step of a custom job.
+   * 
+   * Signature of a callback function that executes one step in the
+   * job. The jobs engine of Orthanc will make successive calls to
+   * this method, as long as it returns
+   * OrthancPluginJobStepStatus_Continue.
+   *
+   * Orthanc starts one dedicated thread per custom job that is
+   * running. It is guaranteed that this method will only be called
+   * from this dedicated thread: As a consequence, it is *not*
+   * mandatory to protect this method by mutexes.
+   *
+   * @param job The job of interest.
+   * @return The status of execution.
+   * @ingroup Toolbox
+   **/  
   typedef OrthancPluginJobStepStatus (*OrthancPluginJobStep) (void* job);
+
+
+  /**
+   * @brief Callback executed once one custom job leaves the "running" state.
+   * 
+   * Signature of a callback function that is invoked once a job
+   * leaves the "running" state. This can happen if the previous call
+   * to OrthancPluginJobStep has failed/succeeded, if the host Orthanc
+   * server is being stopped, or if the user manually tags the job as
+   * paused/canceled. This callback allows the plugin to free
+   * resources allocated for running this custom job (e.g. to stop
+   * threads, or to remove temporary files).
+   * 
+   * Note that handling pauses might involves a specific treatment
+   * (such a stopping threads, but keeping temporary files on the
+   * disk). This "paused" situation can be checked by looking at the
+   * "reason" parameter.
+   *
+   * @param job The job of interest.
+   * @param reason The reason for leaving the "running" state. 
+   * @return 0 if success, or the error code if failure.
+   * @ingroup Toolbox
+   **/    
   typedef OrthancPluginErrorCode (*OrthancPluginJobStop) (void* job, 
                                                           OrthancPluginJobStopReason reason);
+
+
+  /**
+   * @brief Callback executed once one stopped custom job is started again.
+   * 
+   * Signature of a callback function that is invoked once a job
+   * leaves the "failure/canceled" state, to be started again. This
+   * function will typically reset the progress to zero. Note that
+   * before being actually executed, the job would first be tagged as
+   * "pending" in the Orthanc jobs engine.
+   *
+   * @param job The job of interest.
+   * @return 0 if success, or the error code if failure.
+   * @ingroup Toolbox
+   **/    
   typedef OrthancPluginErrorCode (*OrthancPluginJobReset) (void* job);
+
+
+  /**
+   * @brief Callback executed to unserialized a custom job.
+   * 
+   * Signature of a callback function that unserializes a job that was
+   * saved in the Orthanc database.
+   *
+   * @param jobType The type of the job, as provided to OrthancPluginCreateJob().
+   * @param serialized The serialization of the job, as provided by OrthancPluginJobGetSerialized.
+   * @return The unserialized job (as created by OrthancPluginCreateJob()), or NULL
+   * if this unserializer cannot handle this job type.
+   * @see OrthancPluginRegisterJobsUnserializer()
+   * @ingroup Callbacks
+   **/    
   typedef OrthancPluginJob* (*OrthancPluginJobsUnserializer) (const char* jobType,
                                                               const char* serialized);
   
@@ -6064,6 +6196,27 @@ extern "C"
     OrthancPluginJobReset           reset;
   } _OrthancPluginCreateJob;
 
+  /**
+   * @brief Create a custom job.
+   *
+   * This function creates a custom job to be run by the jobs engine
+   * of Orthanc.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param job The job to be executed.
+   * @param finalize The finalization callback.
+   * @param type The type of the job, provided to the job unserializer. 
+   * See OrthancPluginRegisterJobsUnserializer().
+   * @param getProgress The progress callback.
+   * @param getContent The content callback.
+   * @param getSerialized The serialization callback.
+   * @param step The callback to execute the individual steps of the job.
+   * @param stop The callback that is invoked once the job leaves the "running" state.
+   * @param reset The callback that is invoked if a stopped job is started again.
+   * @return The newly allocated job. It must be freed with OrthancPluginFreeJob(),
+   * as long as it is not submitted with OrthancPluginSubmitJob().
+   * @ingroup Toolbox
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob(
     OrthancPluginContext           *context,
     void                           *job,
@@ -6110,6 +6263,15 @@ extern "C"
     OrthancPluginJob*   job;
   } _OrthancPluginFreeJob;
 
+  /**
+   * @brief Free a custom job.
+   *
+   * This function frees an image that was created with OrthancPluginCreateJob().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param job The job.
+   * @ingroup Toolbox
+   **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeJob(
     OrthancPluginContext* context, 
     OrthancPluginJob*     job)
@@ -6122,7 +6284,6 @@ extern "C"
 
 
   
-
   typedef struct
   {
     char**             resultId;
@@ -6130,6 +6291,19 @@ extern "C"
     int                priority;
   } _OrthancPluginSubmitJob;
 
+  /**
+   * @brief Submit a new job to the jobs engine of Orthanc.
+   *
+   * This function adds the given job to the pending jobs of
+   * Orthanc. Orthanc will take take of freeing it by invoking the
+   * finalization callback provided to OrthancPluginCreateJob().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param job The job, as received by OrthancPluginCreateJob().
+   * @param priority The priority of the job.
+   * @return ID of the newly-submitted job. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
   ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
     OrthancPluginContext   *context,
     OrthancPluginJob       *job,
@@ -6163,6 +6337,18 @@ extern "C"
     OrthancPluginJobsUnserializer unserializer;
   } _OrthancPluginJobsUnserializer;
 
+  /**
+   * @brief Register an unserializer for custom jobs.
+   *
+   * This function registers an unserializer that decodes custom jobs
+   * from a JSON string. This callback is invoked when the jobs engine
+   * of Orthanc is started (on Orthanc initialization), for each job
+   * that is stored in the Orthanc database.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param unserializer The job unserializer.
+   * @ingroup Callbacks
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterJobsUnserializer(
     OrthancPluginContext*          context,
     OrthancPluginJobsUnserializer  unserializer)
