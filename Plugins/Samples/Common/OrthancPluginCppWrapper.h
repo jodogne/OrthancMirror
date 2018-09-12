@@ -46,11 +46,11 @@
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
-#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision) \
-  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||               \
-   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&             \
-    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||             \
-     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&           \
+#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
+  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
+   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
+    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
+     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
       ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
 #endif
 
@@ -60,6 +60,15 @@
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1
 #else
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  0
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 4, 2)
+#  define HAS_ORTHANC_PLUGIN_PEERS  1
+#  define HAS_ORTHANC_PLUGIN_JOB    1
+#else
+#  define HAS_ORTHANC_PLUGIN_PEERS  0
+#  define HAS_ORTHANC_PLUGIN_JOB    0
 #endif
 
 
@@ -531,4 +540,157 @@ namespace OrthancPlugins
       OrthancPluginRegisterRestCallback(context, uri.c_str(), Internals::Protect<Callback>);
     }
   }
+
+
+#if HAS_ORTHANC_PLUGIN_PEERS == 1
+  class OrthancPeers : public boost::noncopyable
+  {
+  private:
+    typedef std::map<std::string, uint32_t>   Index;
+
+    OrthancPluginContext *context_;
+    OrthancPluginPeers   *peers_;
+    Index                 index_;
+    uint32_t              timeout_;
+
+  public:
+    OrthancPeers(OrthancPluginContext* context);
+
+    ~OrthancPeers();
+
+    uint32_t GetTimeout() const
+    {
+      return timeout_;
+    }
+
+    void SetTimeout(uint32_t timeout)
+    {
+      timeout_ = timeout;
+    }
+
+    bool LookupName(size_t& target,
+                    const std::string& name) const;
+
+    std::string GetPeerName(size_t index) const;
+
+    std::string GetPeerUrl(size_t index) const;
+
+    std::string GetPeerUrl(const std::string& name) const;
+
+    size_t GetPeersCount() const
+    {
+      return index_.size();
+    }
+
+    bool DoGet(MemoryBuffer& target,
+               size_t index,
+               const std::string& uri) const;
+
+    bool DoGet(MemoryBuffer& target,
+               const std::string& name,
+               const std::string& uri) const;
+
+    bool DoGet(Json::Value& target,
+               size_t index,
+               const std::string& uri) const;
+      
+    bool DoGet(Json::Value& target,
+               const std::string& name,
+               const std::string& uri) const;
+      
+    bool DoPost(MemoryBuffer& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body) const;
+
+    bool DoPost(MemoryBuffer& target,
+                const std::string& name,
+                const std::string& uri,
+                const std::string& body) const;
+
+    bool DoPost(Json::Value& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body) const;
+      
+    bool DoPost(Json::Value& target,
+                const std::string& name,
+                const std::string& uri,
+                const std::string& body) const;
+
+    bool DoPut(size_t index,
+               const std::string& uri,
+               const std::string& body) const;
+
+    bool DoPut(const std::string& name,
+               const std::string& uri,
+               const std::string& body) const;
+
+    bool DoDelete(size_t index,
+                  const std::string& uri) const;
+
+    bool DoDelete(const std::string& name,
+                  const std::string& uri) const;
+  };
+#endif
+
+
+
+#if HAS_ORTHANC_PLUGIN_JOB == 1
+  class OrthancJob : public boost::noncopyable
+  {
+  private:
+    std::string   jobType_;
+    std::string   content_;
+    bool          hasSerialized_;
+    std::string   serialized_;
+    float         progress_;
+
+    static void CallbackFinalize(void* job);
+
+    static float CallbackGetProgress(void* job);
+
+    static const char* CallbackGetContent(void* job);
+
+    static const char* CallbackGetSerialized(void* job);
+
+    static OrthancPluginJobStepStatus CallbackStep(void* job);
+
+    static OrthancPluginErrorCode CallbackStop(void* job,
+                                               OrthancPluginJobStopReason reason);
+
+    static OrthancPluginErrorCode CallbackReset(void* job);
+
+  protected:
+    void ClearContent();
+
+    void UpdateContent(const Json::Value& content);
+
+    void ClearSerialized();
+
+    void UpdateSerialized(const Json::Value& serialized);
+
+    void UpdateProgress(float progress);
+    
+  public:
+    OrthancJob(const std::string& jobType);
+    
+    virtual ~OrthancJob()
+    {
+    }
+
+    virtual OrthancPluginJobStepStatus Step() = 0;
+
+    virtual void Stop(OrthancPluginJobStopReason reason) = 0;
+    
+    virtual void Reset() = 0;
+
+    static OrthancPluginJob* Create(OrthancPluginContext* context,
+                                    OrthancJob* job /* takes ownership */);
+
+    static std::string Submit(OrthancPluginContext* context,
+                              OrthancJob* job /* takes ownership */,
+                              int priority);
+  };
+#endif
 }

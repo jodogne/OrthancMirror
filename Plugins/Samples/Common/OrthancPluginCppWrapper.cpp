@@ -1150,10 +1150,10 @@ namespace OrthancPlugins
 
 
   bool RestApiPut(Json::Value& result,
-                   OrthancPluginContext* context,
-                   const std::string& uri,
-                   const Json::Value& body,
-                   bool applyPlugins)
+                  OrthancPluginContext* context,
+                  const std::string& uri,
+                  const Json::Value& body,
+                  bool applyPlugins)
   {
     Json::FastWriter writer;
     return RestApiPut(result, context, uri, writer.write(body), applyPlugins);
@@ -1238,7 +1238,7 @@ namespace OrthancPlugins
       bb < 0 ||
       cc < 0)
     {
-      throw false;
+      return false;
     }
 
     unsigned int a = static_cast<unsigned int>(aa);
@@ -1283,5 +1283,590 @@ namespace OrthancPlugins
       return false;
     }
   }
-}
 
+
+
+
+#if HAS_ORTHANC_PLUGIN_PEERS == 1
+  OrthancPeers::OrthancPeers(OrthancPluginContext* context) :
+    context_(context),
+    peers_(NULL),
+    timeout_(0)
+  {
+    if (context_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);          
+    }
+
+    peers_ = OrthancPluginGetPeers(context_);
+
+    if (peers_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+    }
+
+    uint32_t count = OrthancPluginGetPeersCount(context_, peers_);
+
+    for (uint32_t i = 0; i < count; i++)
+    {
+      const char* name = OrthancPluginGetPeerName(context_, peers_, i);
+      if (name == NULL)
+      {
+        OrthancPluginFreePeers(context_, peers_);
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      }
+
+      index_[name] = i;
+    }
+  }
+
+  
+  OrthancPeers::~OrthancPeers()
+  {
+    if (peers_ != NULL)
+    {
+      OrthancPluginFreePeers(context_, peers_);
+    }
+  }
+
+  
+  bool OrthancPeers::LookupName(size_t& target,
+                                const std::string& name) const
+  {
+    Index::const_iterator found = index_.find(name);
+
+    if (found == index_.end())
+    {
+      return false;
+    }
+    else
+    {
+      target = found->second;
+      return true;
+    }
+  }
+
+  
+  std::string OrthancPeers::GetPeerName(size_t index) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      const char* s = OrthancPluginGetPeerName(context_, peers_, static_cast<uint32_t>(index));
+      if (s == NULL)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      }
+      else
+      {
+        return s;
+      }
+    }
+  }
+  
+
+  std::string OrthancPeers::GetPeerUrl(size_t index) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      const char* s = OrthancPluginGetPeerUrl(context_, peers_, static_cast<uint32_t>(index));
+      if (s == NULL)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+      }
+      else
+      {
+        return s;
+      }
+    }
+  }
+
+  
+  std::string OrthancPeers::GetPeerUrl(const std::string& name) const
+  {
+    size_t index;
+    if (LookupName(index, name))
+    {
+      return GetPeerUrl(index);
+    }
+    else
+    {
+      std::string s = "Inexistent peer: " + name;
+      OrthancPluginLogError(context_, s.c_str());
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
+    }
+  }
+
+
+  bool OrthancPeers::DoGet(MemoryBuffer& target,
+                           size_t index,
+                           const std::string& uri) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+
+    OrthancPluginMemoryBuffer answer;
+    uint16_t status;
+    OrthancPluginErrorCode code = OrthancPluginCallPeerApi
+      (context_, &answer, NULL, &status, peers_, 
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Get, uri.c_str(),
+       0, NULL, NULL, NULL, 0, timeout_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      target.Assign(answer);
+      return (status == 200);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  bool OrthancPeers::DoGet(MemoryBuffer& target,
+                           const std::string& name,
+                           const std::string& uri) const
+  {
+    size_t index;
+    return (LookupName(index, name) &&
+            DoGet(target, index, uri));
+  }
+  
+
+  bool OrthancPeers::DoGet(Json::Value& target,
+                           size_t index,
+                           const std::string& uri) const
+  {
+    MemoryBuffer buffer(context_);
+      
+    if (DoGet(buffer, index, uri))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+      
+  bool OrthancPeers::DoGet(Json::Value& target,
+                           const std::string& name,
+                           const std::string& uri) const
+  {
+    MemoryBuffer buffer(context_);
+      
+    if (DoGet(buffer, name, uri))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  bool OrthancPeers::DoPost(MemoryBuffer& target,
+                            const std::string& name,
+                            const std::string& uri,
+                            const std::string& body) const
+  {
+    size_t index;
+    return (LookupName(index, name) &&
+            DoPost(target, index, uri, body));
+  }
+  
+
+  bool OrthancPeers::DoPost(Json::Value& target,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body) const
+  {
+    MemoryBuffer buffer(context_);
+      
+    if (DoPost(buffer, index, uri, body))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+      
+  bool OrthancPeers::DoPost(Json::Value& target,
+                            const std::string& name,
+                            const std::string& uri,
+                            const std::string& body) const
+  {
+    MemoryBuffer buffer(context_);
+      
+    if (DoPost(buffer, name, uri, body))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  bool OrthancPeers::DoPost(MemoryBuffer& target,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+
+    OrthancPluginMemoryBuffer answer;
+    uint16_t status;
+    OrthancPluginErrorCode code = OrthancPluginCallPeerApi
+      (context_, &answer, NULL, &status, peers_, 
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
+       0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      target.Assign(answer);
+      return (status == 200);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool OrthancPeers::DoPut(size_t index,
+                           const std::string& uri,
+                           const std::string& body) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+
+    OrthancPluginMemoryBuffer answer;
+    uint16_t status;
+    OrthancPluginErrorCode code = OrthancPluginCallPeerApi
+      (context_, &answer, NULL, &status, peers_, 
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
+       0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      OrthancPluginFreeMemoryBuffer(context_, &answer);
+      return (status == 200);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool OrthancPeers::DoPut(const std::string& name,
+                           const std::string& uri,
+                           const std::string& body) const
+  {
+    size_t index;
+    return (LookupName(index, name) &&
+            DoPut(index, uri, body));
+  }
+  
+
+  bool OrthancPeers::DoDelete(size_t index,
+                              const std::string& uri) const
+  {
+    if (index >= index_.size())
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+
+    OrthancPluginMemoryBuffer answer;
+    uint16_t status;
+    OrthancPluginErrorCode code = OrthancPluginCallPeerApi
+      (context_, &answer, NULL, &status, peers_, 
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
+       0, NULL, NULL, NULL, 0, timeout_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      OrthancPluginFreeMemoryBuffer(context_, &answer);
+      return (status == 200);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  bool OrthancPeers::DoDelete(const std::string& name,
+                              const std::string& uri) const
+  {
+    size_t index;
+    return (LookupName(index, name) &&
+            DoDelete(index, uri));
+  }
+#endif
+
+
+  
+#if HAS_ORTHANC_PLUGIN_JOB == 1
+  void OrthancJob::CallbackFinalize(void* job)
+  {
+    if (job != NULL)
+    {
+      delete reinterpret_cast<OrthancJob*>(job);
+    }
+  }
+  
+
+  float OrthancJob::CallbackGetProgress(void* job)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      return reinterpret_cast<OrthancJob*>(job)->progress_;
+    }
+    catch (...)
+    {
+      return 0;
+    }
+  }
+  
+
+  const char* OrthancJob::CallbackGetContent(void* job)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      return reinterpret_cast<OrthancJob*>(job)->content_.c_str();
+    }
+    catch (...)
+    {
+      return 0;
+    }
+  }
+  
+
+  const char* OrthancJob::CallbackGetSerialized(void* job)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      const OrthancJob& tmp = *reinterpret_cast<OrthancJob*>(job);
+
+      if (tmp.hasSerialized_)
+      {
+        return tmp.serialized_.c_str();
+      }
+      else
+      {
+        return NULL;
+      }
+    }
+    catch (...)
+    {
+      return 0;
+    }
+  }
+  
+
+  OrthancPluginJobStepStatus OrthancJob::CallbackStep(void* job)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      return reinterpret_cast<OrthancJob*>(job)->Step();
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return OrthancPluginJobStepStatus_Failure;
+    }
+    catch (...)
+    {
+      return OrthancPluginJobStepStatus_Failure;
+    }
+  }
+
+  
+  OrthancPluginErrorCode OrthancJob::CallbackStop(void* job,
+                                                  OrthancPluginJobStopReason reason)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      reinterpret_cast<OrthancJob*>(job)->Stop(reason);
+      return OrthancPluginErrorCode_Success;
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+  
+
+  OrthancPluginErrorCode OrthancJob::CallbackReset(void* job)
+  {
+    assert(job != NULL);
+
+    try
+    {
+      reinterpret_cast<OrthancJob*>(job)->Reset();
+      return OrthancPluginErrorCode_Success;
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+  
+
+  void OrthancJob::ClearContent()
+  {
+    Json::Value empty = Json::objectValue;
+    UpdateContent(empty);
+  }
+
+  
+  void OrthancJob::UpdateContent(const Json::Value& content)
+  {
+    if (content.type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
+    }
+    else
+    {
+      Json::FastWriter writer;
+      content_ = writer.write(content);
+    }
+  }
+  
+
+  void OrthancJob::ClearSerialized()
+  {
+    hasSerialized_ = false;
+    serialized_.clear();
+  }
+
+  
+  void OrthancJob::UpdateSerialized(const Json::Value& serialized)
+  {
+    if (serialized.type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_BadFileFormat);
+    }
+    else
+    {
+      Json::FastWriter writer;
+      serialized_ = writer.write(serialized);
+      hasSerialized_ = true;
+    }
+  }
+
+  
+  void OrthancJob::UpdateProgress(float progress)
+  {
+    if (progress < 0 ||
+        progress > 1)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+      
+    progress_ = progress;
+  }
+    
+
+  OrthancJob::OrthancJob(const std::string& jobType) :
+    jobType_(jobType),
+    progress_(0)
+  {
+    ClearContent();
+    ClearSerialized();
+  }
+
+    
+  OrthancPluginJob* OrthancJob::Create(OrthancPluginContext* context,
+                                       OrthancJob* job)
+  {
+    if (job == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
+    }
+
+    OrthancPluginJob* orthanc = OrthancPluginCreateJob(
+      context, job, CallbackFinalize, job->jobType_.c_str(),
+      CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
+      CallbackStep, CallbackStop, CallbackReset);
+
+    if (orthanc == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+    }
+    else
+    {
+      return orthanc;
+    }
+  }
+
+  
+  std::string OrthancJob::Submit(OrthancPluginContext* context,
+                                 OrthancJob* job,
+                                 int priority)
+  {
+    OrthancPluginJob* orthanc = Create(context, job);
+    
+    char* id = OrthancPluginSubmitJob(context, orthanc, priority);
+
+    if (id == NULL)
+    {
+      OrthancPluginLogError(context, "Plugin cannot submit job");
+      OrthancPluginFreeJob(context, orthanc);
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
+    }
+    else
+    {
+      std::string tmp(id);
+      tmp.assign(id);
+      OrthancPluginFreeString(context, id);
+
+      return tmp;
+    }
+  }
+#endif
+}
