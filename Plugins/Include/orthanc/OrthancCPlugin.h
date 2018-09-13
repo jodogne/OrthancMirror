@@ -1353,11 +1353,6 @@ extern "C"
    * this method, as long as it returns
    * OrthancPluginJobStepStatus_Continue.
    *
-   * Orthanc starts one dedicated thread per custom job that is
-   * running. It is guaranteed that this method will only be called
-   * from this dedicated thread: As a consequence, it is *not*
-   * mandatory to protect this method by mutexes.
-   *
    * @param job The job of interest.
    * @return The status of execution.
    * @ingroup Toolbox
@@ -6201,6 +6196,16 @@ extern "C"
    *
    * This function creates a custom job to be run by the jobs engine
    * of Orthanc.
+   * 
+   * Orthanc starts one dedicated thread per custom job that is
+   * running. It is guaranteed that all the callbacks will only be
+   * called from this single dedicated thread, in mutual exclusion: As
+   * a consequence, it is *not* mandatory to protect the various
+   * callbacks by mutexes.
+   * 
+   * The custom job can nonetheless launch its own processing threads
+   * on the first call to the "step()" callback, and stop them once
+   * the "stop()" callback is called.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param job The job to be executed.
