@@ -1072,7 +1072,7 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
     LOG(INFO) << "Plugin has registered a REST callback "
-              << (lock ? "with" : "witout")
+              << (lock ? "with" : "without")
               << " mutual exclusion on: " 
               << p.pathRegularExpression;
 
