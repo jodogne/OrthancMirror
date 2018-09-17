@@ -1705,7 +1705,7 @@ namespace OrthancPlugins
     {
       return reinterpret_cast<OrthancJob*>(job)->Step();
     }
-    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS&)
     {
       return OrthancPluginJobStepStatus_Failure;
     }
