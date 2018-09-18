@@ -633,9 +633,9 @@ TEST(WebServiceParameters, UserProperties)
     std::set<std::string> tmp;
     p.ListUserProperties(tmp);
     ASSERT_EQ(2u, tmp.size());
-    ASSERT_NE(tmp.find("a"), tmp.end());
-    ASSERT_NE(tmp.find("Hello"), tmp.end());
-    ASSERT_EQ(tmp.find("hello"), tmp.end());
+    ASSERT_TRUE(tmp.find("a")     != tmp.end());
+    ASSERT_TRUE(tmp.find("Hello") != tmp.end());
+    ASSERT_TRUE(tmp.find("hello") == tmp.end());
 
     std::string s;
     ASSERT_TRUE(p.LookupUserProperty(s, "a"));      ASSERT_TRUE(s == "b");
