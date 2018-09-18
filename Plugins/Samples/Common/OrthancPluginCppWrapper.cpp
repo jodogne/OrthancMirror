@@ -1288,6 +1288,22 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_PEERS == 1
+  size_t OrthancPeers::GetPeerIndex(const std::string& name) const
+  {
+    size_t index;
+    if (LookupName(index, name))
+    {
+      return index;
+    }
+    else
+    {
+      std::string s = "Inexistent peer: " + name;
+      OrthancPluginLogError(context_, s.c_str());
+      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
+    }
+  }
+
+
   OrthancPeers::OrthancPeers(OrthancPluginContext* context) :
     context_(context),
     peers_(NULL),
@@ -1391,17 +1407,39 @@ namespace OrthancPlugins
   
   std::string OrthancPeers::GetPeerUrl(const std::string& name) const
   {
-    size_t index;
-    if (LookupName(index, name))
+    return GetPeerUrl(GetPeerIndex(name));
+  }
+
+
+  bool OrthancPeers::LookupUserProperty(std::string& value,
+                                        size_t index,
+                                        const std::string& key) const
+  {
+    if (index >= index_.size())
     {
-      return GetPeerUrl(index);
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
     else
     {
-      std::string s = "Inexistent peer: " + name;
-      OrthancPluginLogError(context_, s.c_str());
-      ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
+      const char* s = OrthancPluginGetPeerUserProperty(context_, peers_, static_cast<uint32_t>(index), key.c_str());
+      if (s == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        value.assign(s);
+        return true;
+      }
     }
+  }
+
+
+  bool OrthancPeers::LookupUserProperty(std::string& value,
+                                        const std::string& peer,
+                                        const std::string& key) const
+  {
+    return LookupUserProperty(value, GetPeerIndex(peer), key);
   }
 
 

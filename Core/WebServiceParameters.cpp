@@ -58,6 +58,20 @@ namespace Orthanc
   static const char* KEY_USERNAME = "Username";
 
 
+  static bool IsReservedKey(const std::string& key)
+  {
+    return (key == KEY_CERTIFICATE_FILE ||
+            key == KEY_CERTIFICATE_KEY_FILE ||
+            key == KEY_CERTIFICATE_KEY_PASSWORD ||
+            key == KEY_HTTP_HEADERS ||
+            key == KEY_PASSWORD ||
+            key == KEY_PKCS11 ||
+            key == KEY_URL ||
+            key == KEY_URL_2 ||
+            key == KEY_USERNAME);
+  }
+
+
   WebServiceParameters::WebServiceParameters() : 
     pkcs11Enabled_(false)
   {
@@ -237,6 +251,7 @@ namespace Orthanc
       pkcs11Enabled_ = false;
     }
 
+
     headers_.clear();
 
     if (peer.isMember(KEY_HTTP_HEADERS))
@@ -260,6 +275,27 @@ namespace Orthanc
           {
             headers_[keys[i]] = value.asString();
           }
+        }
+      }
+    }
+
+
+    userProperties_.clear();
+
+    const Json::Value::Members members = peer.getMemberNames();
+
+    for (Json::Value::Members::const_iterator it = members.begin(); 
+         it != members.end(); ++it)
+    {
+      if (!IsReservedKey(*it))
+      {
+        if (peer[*it].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        else
+        {
+          userProperties_[*it] = peer[*it].asString();
         }
       }
     }
@@ -298,7 +334,7 @@ namespace Orthanc
   {
     target.clear();
 
-    for (HttpHeaders::const_iterator it = headers_.begin();
+    for (Dictionary::const_iterator it = headers_.begin();
          it != headers_.end(); ++it)
     {
       target.insert(it->first);
@@ -309,9 +345,53 @@ namespace Orthanc
   bool WebServiceParameters::LookupHttpHeader(std::string& value,
                                               const std::string& key) const
   {
-    HttpHeaders::const_iterator found = headers_.find(key);
+    Dictionary::const_iterator found = headers_.find(key);
 
     if (found == headers_.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second;
+      return true;
+    }
+  }
+
+
+  void WebServiceParameters::AddUserProperty(const std::string& key,
+                                             const std::string& value)
+  {
+    if (IsReservedKey(key))
+    {
+      LOG(ERROR) << "Cannot use this reserved key to name an user property: " << key;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      userProperties_[key] = value;
+    }
+  }
+
+
+  void WebServiceParameters::ListUserProperties(std::set<std::string>& target) const
+  {
+    target.clear();
+
+    for (Dictionary::const_iterator it = userProperties_.begin();
+         it != userProperties_.end(); ++it)
+    {
+      target.insert(it->first);
+    }
+  }
+
+
+  bool WebServiceParameters::LookupUserProperty(std::string& value,
+                                                const std::string& key) const
+  {
+    Dictionary::const_iterator found = userProperties_.find(key);
+
+    if (found == userProperties_.end())
     {
       return false;
     }
@@ -329,7 +409,8 @@ namespace Orthanc
             !certificateKeyFile_.empty() ||
             !certificateKeyPassword_.empty() ||
             pkcs11Enabled_ ||
-            !headers_.empty());
+            !headers_.empty() ||
+            !userProperties_.empty());
   }
 
 
@@ -373,10 +454,16 @@ namespace Orthanc
       value[KEY_PKCS11] = pkcs11Enabled_;
 
       value[KEY_HTTP_HEADERS] = Json::objectValue;
-      for (HttpHeaders::const_iterator it = headers_.begin();
+      for (Dictionary::const_iterator it = headers_.begin();
            it != headers_.end(); ++it)
       {
         value[KEY_HTTP_HEADERS][it->first] = it->second;
+      }
+
+      for (Dictionary::const_iterator it = userProperties_.begin();
+           it != userProperties_.end(); ++it)
+      {
+        value[it->first] = it->second;
       }
     }
     else

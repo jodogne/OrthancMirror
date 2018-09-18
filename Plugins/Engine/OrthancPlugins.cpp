@@ -2872,6 +2872,37 @@ namespace Orthanc
         }
       }
 
+      case _OrthancPluginService_GetPeerUserProperty:
+      {
+        const _OrthancPluginGetPeerProperty& p =
+          *reinterpret_cast<const _OrthancPluginGetPeerProperty*>(parameters);
+
+        if (p.peers == NULL ||
+            p.userProperty == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+          const WebServiceParameters::Dictionary& properties = 
+            reinterpret_cast<const OrthancPeers*>(p.peers)->GetPeerParameters(p.peerIndex).GetUserProperties();
+
+          WebServiceParameters::Dictionary::const_iterator found =
+            properties.find(p.userProperty);
+
+          if (found == properties.end())
+          {
+            *(p.target) = NULL;
+          }
+          else
+          {
+            *(p.target) = found->second.c_str();
+          }
+
+          return true;
+        }
+      }
+
       case _OrthancPluginService_CallPeerApi:
         CallPeerApi(parameters);
         return true;

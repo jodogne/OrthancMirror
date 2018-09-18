@@ -47,7 +47,7 @@ namespace Orthanc
   class WebServiceParameters
   {
   public:
-    typedef std::map<std::string, std::string>  HttpHeaders;
+    typedef std::map<std::string, std::string>  Dictionary;
 
   private:
     std::string  url_;
@@ -57,7 +57,8 @@ namespace Orthanc
     std::string  certificateKeyFile_;
     std::string  certificateKeyPassword_;
     bool         pkcs11Enabled_;
-    HttpHeaders  headers_;
+    Dictionary   headers_;
+    Dictionary   userProperties_;
 
     void FromSimpleFormat(const Json::Value& peer);
 
@@ -135,7 +136,7 @@ namespace Orthanc
       headers_.clear();
     }
 
-    const HttpHeaders& GetHttpHeaders() const
+    const Dictionary& GetHttpHeaders() const
     {
       return headers_;
     }
@@ -144,6 +145,24 @@ namespace Orthanc
 
     bool LookupHttpHeader(std::string& value,
                           const std::string& key) const; 
+
+    void AddUserProperty(const std::string& key,
+                         const std::string& value);
+
+    void ClearUserProperties()
+    {
+      userProperties_.clear();
+    }
+
+    const Dictionary& GetUserProperties() const
+    {
+      return userProperties_;
+    }
+
+    void ListUserProperties(std::set<std::string>& target) const; 
+
+    bool LookupUserProperty(std::string& value,
+                            const std::string& key) const; 
 
     bool IsAdvancedFormatNeeded() const;
 
