@@ -527,6 +527,7 @@ extern "C"
     _OrthancPluginService_GetPeerName = 8004,
     _OrthancPluginService_GetPeerUrl = 8005,
     _OrthancPluginService_CallPeerApi = 8006,
+    _OrthancPluginService_GetPeerUserProperty = 8007,
 
     /* Primitives for handling jobs (new in 1.4.2) */
     _OrthancPluginService_CreateJob = 9000,
@@ -6000,6 +6001,7 @@ extern "C"
     const char**               target;
     const OrthancPluginPeers*  peers;
     uint32_t                   peerIndex;
+    const char*                userProperty;
   } _OrthancPluginGetPeerProperty;
 
   /**
@@ -6031,6 +6033,7 @@ extern "C"
     params.target = &target;
     params.peers = peers;
     params.peerIndex = peerIndex;
+    params.userProperty = NULL;
 
     if (context->InvokeService(context, _OrthancPluginService_GetPeerName, &params) != OrthancPluginErrorCode_Success)
     {
@@ -6071,10 +6074,58 @@ extern "C"
     params.target = &target;
     params.peers = peers;
     params.peerIndex = peerIndex;
+    params.userProperty = NULL;
 
     if (context->InvokeService(context, _OrthancPluginService_GetPeerUrl, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+
+  /**
+   * @brief Get some user-defined property of an Orthanc peer.
+   *
+   * This function returns some user-defined property of some Orthanc
+   * peer. An user-defined property is a property that is associated
+   * with the peer in the Orthanc configuration file, but that is not
+   * recognized by the Orthanc core.
+   *
+   * This function is thread-safe: Several threads sharing the same
+   * OrthancPluginPeers object can simultaneously call this function.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param peers The data structure describing the Orthanc peers.
+   * @param peerIndex The index of the peer of interest.
+   * This value must be lower than OrthancPluginGetPeersCount().
+   * @param userProperty The user property of interest.
+   * @result The value of the user property, or NULL if it is not defined.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetPeerUserProperty(
+    OrthancPluginContext*      context,
+    const OrthancPluginPeers*  peers,
+    uint32_t                   peerIndex,
+    const char*                userProperty)
+  {
+    const char* target = NULL;
+
+    _OrthancPluginGetPeerProperty params;
+    memset(&params, 0, sizeof(params));
+    params.target = &target;
+    params.peers = peers;
+    params.peerIndex = peerIndex;
+    params.userProperty = userProperty;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetPeerUserProperty, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* No such user property */
       return NULL;
     }
     else

@@ -553,6 +553,8 @@ namespace OrthancPlugins
     Index                 index_;
     uint32_t              timeout_;
 
+    size_t GetPeerIndex(const std::string& name) const;
+
   public:
     OrthancPeers(OrthancPluginContext* context);
 
@@ -581,6 +583,14 @@ namespace OrthancPlugins
     {
       return index_.size();
     }
+
+    bool LookupUserProperty(std::string& value,
+                            size_t index,
+                            const std::string& key) const;
+
+    bool LookupUserProperty(std::string& value,
+                            const std::string& peer,
+                            const std::string& key) const;
 
     bool DoGet(MemoryBuffer& target,
                size_t index,
