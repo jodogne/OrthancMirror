@@ -401,7 +401,7 @@ namespace Orthanc
 
     SetUrl(service.GetUrl() + uri);
 
-    for (WebServiceParameters::HttpHeaders::const_iterator 
+    for (WebServiceParameters::Dictionary::const_iterator 
            it = service.GetHttpHeaders().begin();
          it != service.GetHttpHeaders().end(); ++it)
     {

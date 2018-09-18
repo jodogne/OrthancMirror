@@ -603,3 +603,43 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_FALSE(p2.LookupHttpHeader(s, "nope"));
   }
 }
+
+
+TEST(WebServiceParameters, UserProperties)
+{
+  Json::Value v = Json::nullValue;
+
+  {
+    WebServiceParameters p;
+    p.SetUrl("http://localhost:8042/");
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+
+    ASSERT_THROW(p.AddUserProperty("Url", "nope"), OrthancException);
+    p.AddUserProperty("Hello", "world");
+    p.AddUserProperty("a", "b");
+    ASSERT_TRUE(p.IsAdvancedFormatNeeded());
+
+    p.Serialize(v, false, true);
+
+    p.ClearUserProperties();
+    ASSERT_FALSE(p.IsAdvancedFormatNeeded());
+  }
+
+  {
+    WebServiceParameters p(v);
+    ASSERT_TRUE(p.IsAdvancedFormatNeeded());
+    ASSERT_TRUE(p.GetHttpHeaders().empty());
+
+    std::set<std::string> tmp;
+    p.ListUserProperties(tmp);
+    ASSERT_EQ(2u, tmp.size());
+    ASSERT_NE(tmp.find("a"), tmp.end());
+    ASSERT_NE(tmp.find("Hello"), tmp.end());
+    ASSERT_EQ(tmp.find("hello"), tmp.end());
+
+    std::string s;
+    ASSERT_TRUE(p.LookupUserProperty(s, "a"));      ASSERT_TRUE(s == "b");
+    ASSERT_TRUE(p.LookupUserProperty(s, "Hello"));  ASSERT_TRUE(s == "world");
+    ASSERT_FALSE(p.LookupUserProperty(s, "hello"));
+  }
+}
