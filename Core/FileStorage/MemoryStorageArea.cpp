@@ -35,6 +35,7 @@
 #include "MemoryStorageArea.h"
 
 #include "../OrthancException.h"
+#include "../Logging.h"
 
 namespace Orthanc
 {
@@ -54,6 +55,9 @@ namespace Orthanc
                                  size_t size,
                                  FileContentType type)
   {
+    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << static_cast<int>(type)
+              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+
     boost::mutex::scoped_lock lock(mutex_);
 
     if (size != 0 &&
@@ -76,6 +80,9 @@ namespace Orthanc
                                const std::string& uuid,
                                FileContentType type)
   {
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \""
+              << static_cast<int>(type) << "\" content type";
+
     boost::mutex::scoped_lock lock(mutex_);
 
     Content::const_iterator found = content_.find(uuid);
@@ -98,6 +105,8 @@ namespace Orthanc
   void MemoryStorageArea::Remove(const std::string& uuid,
                                  FileContentType type)
   {
+    LOG(INFO) << "Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type);
+
     boost::mutex::scoped_lock lock(mutex_);
 
     Content::iterator found = content_.find(uuid);
