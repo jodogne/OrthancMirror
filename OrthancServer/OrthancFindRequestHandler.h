@@ -57,7 +57,8 @@ namespace Orthanc
                         const DicomMap& source,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet);
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer);
 
   public:
     OrthancFindRequestHandler(ServerContext& context);
@@ -89,5 +90,11 @@ namespace Orthanc
     {
       maxInstances_ = instances;
     }
+
+    static void FormatOrigin(Json::Value& origin,
+                             const std::string& remoteIp,
+                             const std::string& remoteAet,
+                             const std::string& calledAet,
+                             ModalityManufacturer manufacturer);
   };
 }

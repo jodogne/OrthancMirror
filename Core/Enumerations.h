@@ -509,7 +509,10 @@ namespace Orthanc
   enum DicomFromJsonFlags
   {
     DicomFromJsonFlags_DecodeDataUriScheme = (1 << 0),
-    DicomFromJsonFlags_GenerateIdentifiers = (1 << 1)
+    DicomFromJsonFlags_GenerateIdentifiers = (1 << 1),
+
+    // Some predefined combinations
+    DicomFromJsonFlags_None = 0
   };
   
   enum DicomVersion

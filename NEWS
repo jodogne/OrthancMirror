@@ -29,6 +29,11 @@ Plugins
 * New primitives to handle jobs from plugins: "OrthancPluginSubmitJob()"
   and "OrthancPluginRegisterJobsUnserializer()"
 
+Lua
+---
+
+* IncomingWorklistRequestFilter() to filter incoming C-FIND worklist queries
+
 Maintenance
 -----------
 
