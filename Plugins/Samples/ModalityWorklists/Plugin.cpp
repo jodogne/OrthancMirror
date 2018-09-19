@@ -92,6 +92,7 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
 
     static const char* SCHEDULED_PROCEDURE_STEP_SEQUENCE = "0040,0100";
     static const char* SCHEDULED_STATION_AETITLE = "0040,0001";
+    static const char* PREGNANCY_STATUS = "0010,21c0";
 
     if (!json.isMember(SCHEDULED_PROCEDURE_STEP_SEQUENCE))
     {
@@ -118,10 +119,10 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
       v[0][SCHEDULED_STATION_AETITLE] = issuerAet;
     }
 
-    if (json.isMember("0010,21c0") &&
-        json["0010,21c0"].asString().size() == 0)
+    if (json.isMember(PREGNANCY_STATUS) &&
+        json[PREGNANCY_STATUS].asString().size() == 0)
     {
-      json.removeMember("0010,21c0");
+      json.removeMember(PREGNANCY_STATUS);
     }
 
     // Encode the modified JSON as a DICOM instance, then convert it to a C-Find matcher

@@ -62,6 +62,7 @@
 #include "../../Core/Images/JpegWriter.h"
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../OrthancServer/DefaultDicomImageDecoder.h"
+#include "../../OrthancServer/OrthancFindRequestHandler.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -454,11 +455,13 @@ namespace Orthanc
   private:
     OrthancPlugins&  that_;
     std::auto_ptr<HierarchicalMatcher> matcher_;
+    std::auto_ptr<ParsedDicomFile>     filtered_;
     ParsedDicomFile* currentQuery_;
 
     void Reset()
     {
-      matcher_.reset(NULL);
+      matcher_.reset();
+      filtered_.reset();
       currentQuery_ = NULL;
     }
 
@@ -475,11 +478,40 @@ namespace Orthanc
                         const std::string& calledAet,
                         ModalityManufacturer manufacturer)
     {
+      static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
+
+      {
+        PImpl::ServerContextLock lock(*that_.pimpl_);
+        LuaScripting::Lock lua(lock.GetContext().GetLuaScripting());
+
+        if (!lua.GetLua().IsExistingFunction(LUA_CALLBACK))
+        {
+          currentQuery_ = &query;
+        }
+        else
+        {
+          Json::Value source, origin;
+          query.DatasetToJson(source, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+          OrthancFindRequestHandler::FormatOrigin
+            (origin, remoteIp, remoteAet, calledAet, manufacturer);
+
+          LuaFunctionCall call(lua.GetLua(), LUA_CALLBACK);
+          call.PushJson(source);
+          call.PushJson(origin);
+
+          Json::Value target;
+          call.ExecuteToJson(target, true);
+          
+          filtered_.reset(ParsedDicomFile::CreateFromJson(target, DicomFromJsonFlags_None));
+          currentQuery_ = filtered_.get();
+        }
+      }
+      
+      matcher_.reset(new HierarchicalMatcher(*currentQuery_));
+
       {
         boost::mutex::scoped_lock lock(that_.pimpl_->worklistCallbackMutex_);
-
-        matcher_.reset(new HierarchicalMatcher(query));
-        currentQuery_ = &query;
 
         if (that_.pimpl_->worklistCallback_)
         {

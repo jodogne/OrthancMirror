@@ -482,7 +482,8 @@ namespace Orthanc
                                                  const DicomMap& source,
                                                  const std::string& remoteIp,
                                                  const std::string& remoteAet,
-                                                 const std::string& calledAet)
+                                                 const std::string& calledAet,
+                                                 ModalityManufacturer manufacturer)
   {
     static const char* LUA_CALLBACK = "IncomingFindRequestFilter";
     
@@ -494,10 +495,8 @@ namespace Orthanc
     }
     else
     {
-      Json::Value origin = Json::objectValue;
-      origin["RemoteIp"] = remoteIp;
-      origin["RemoteAet"] = remoteAet;
-      origin["CalledAet"] = calledAet;
+      Json::Value origin;
+      FormatOrigin(origin, remoteIp, remoteAet, calledAet, manufacturer);
 
       LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(source);
@@ -532,7 +531,7 @@ namespace Orthanc
     DicomMap lua;
     const DicomMap* filteredInput = &input;
 
-    if (ApplyLuaFilter(lua, input, remoteIp, remoteAet, calledAet))
+    if (ApplyLuaFilter(lua, input, remoteIp, remoteAet, calledAet, manufacturer))
     {
       filteredInput = &lua;
     }
@@ -674,5 +673,19 @@ namespace Orthanc
     LOG(INFO) << "Number of matching resources: " << answers.GetSize();
 
     answers.SetComplete(complete);
+  }
+
+
+  void OrthancFindRequestHandler::FormatOrigin(Json::Value& origin,
+                                               const std::string& remoteIp,
+                                               const std::string& remoteAet,
+                                               const std::string& calledAet,
+                                               ModalityManufacturer manufacturer)
+  {
+    origin = Json::objectValue;
+    origin["RemoteIp"] = remoteIp;
+    origin["RemoteAet"] = remoteAet;
+    origin["CalledAet"] = calledAet;
+    origin["Manufacturer"] = EnumerationToString(manufacturer);
   }
 }
