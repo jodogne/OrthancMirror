@@ -130,9 +130,13 @@ namespace Orthanc
   {
     std::string id = call.GetUriComponent("id", "");
 
-    ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+    std::auto_ptr<ParsedDicomFile> modified;
 
-    std::auto_ptr<ParsedDicomFile> modified(locker.GetDicom().Clone(true));
+    {
+      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+      modified.reset(locker.GetDicom().Clone(true));
+    }
+    
     modification.Apply(*modified);
     modified->Answer(call.GetOutput());
   }

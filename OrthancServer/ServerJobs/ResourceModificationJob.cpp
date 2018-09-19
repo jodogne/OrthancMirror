@@ -129,11 +129,21 @@ namespace Orthanc
       
     LOG(INFO) << "Modifying instance in a job: " << instance;
 
-    std::auto_ptr<ServerContext::DicomCacheLocker> locker;
+
+    /**
+     * Retrieve the original instance from the DICOM cache.
+     **/
+    
+    std::auto_ptr<DicomInstanceHasher> originalHasher;
+    std::auto_ptr<ParsedDicomFile> modified;
 
     try
     {
-      locker.reset(new ServerContext::DicomCacheLocker(context_, instance));
+      ServerContext::DicomCacheLocker locker(context_, instance);
+      ParsedDicomFile& original = locker.GetDicom();
+
+      originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
+      modified.reset(original.Clone(true));
     }
     catch (OrthancException&)
     {
@@ -142,15 +152,10 @@ namespace Orthanc
     }
 
 
-    ParsedDicomFile& original = locker->GetDicom();
-    DicomInstanceHasher originalHasher = original.GetHasher();
-
-
     /**
      * Compute the resulting DICOM instance.
      **/
 
-    std::auto_ptr<ParsedDicomFile> modified(original.Clone(true));
     modification_->Apply(*modified);
 
     DicomInstanceToStore toStore;
@@ -169,22 +174,22 @@ namespace Orthanc
                                  MetadataType_AnonymizedFrom :
                                  MetadataType_ModifiedFrom);
 
-    if (originalHasher.HashSeries() != modifiedHasher.HashSeries())
+    if (originalHasher->HashSeries() != modifiedHasher.HashSeries())
     {
-      toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher.HashSeries());
+      toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher->HashSeries());
     }
 
-    if (originalHasher.HashStudy() != modifiedHasher.HashStudy())
+    if (originalHasher->HashStudy() != modifiedHasher.HashStudy())
     {
-      toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher.HashStudy());
+      toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher->HashStudy());
     }
 
-    if (originalHasher.HashPatient() != modifiedHasher.HashPatient())
+    if (originalHasher->HashPatient() != modifiedHasher.HashPatient())
     {
-      toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher.HashPatient());
+      toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher->HashPatient());
     }
 
-    assert(instance == originalHasher.HashInstance());
+    assert(instance == originalHasher->HashInstance());
     toStore.AddMetadata(ResourceType_Instance, metadataType, instance);
 
 

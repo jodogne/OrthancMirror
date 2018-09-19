@@ -984,6 +984,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
+  // New option in Orthanc 1.4.2
+  context.GetIndex().SetOverwriteInstances(Configuration::GetGlobalBoolParameter("OverwriteInstances", false));
+
   try
   {
     context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalUnsignedIntegerParameter("MaximumPatientCount", 0));
