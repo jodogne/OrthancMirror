@@ -544,7 +544,8 @@ namespace Orthanc
     done_(false),
     db_(db),
     maximumStorageSize_(0),
-    maximumPatients_(0)
+    maximumPatients_(0),
+    overwrite_(false)
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
