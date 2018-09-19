@@ -626,15 +626,26 @@ namespace Orthanc
     {
       Transaction t(*this);
 
-      // Do nothing if the instance already exists
+      // Check whether this instance is already stored
       {
         ResourceType type;
         int64_t tmp;
         if (db_.LookupResource(tmp, type, hasher.HashInstance()))
         {
           assert(type == ResourceType_Instance);
-          db_.GetAllMetadata(instanceMetadata, tmp);
-          return StoreStatus_AlreadyStored;
+
+          if (overwrite_)
+          {
+            // Overwrite the old instance
+            LOG(INFO) << "Overwriting instance: " << hasher.HashInstance();
+            db_.DeleteResource(tmp);
+          }
+          else
+          {
+            // Do nothing if the instance already exists
+            db_.GetAllMetadata(instanceMetadata, tmp);
+            return StoreStatus_AlreadyStored;
+          }
         }
       }
 
@@ -1460,6 +1471,13 @@ namespace Orthanc
 
     StandaloneRecycling();
   }
+
+  void ServerIndex::SetOverwriteInstances(bool overwrite)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    overwrite_ = overwrite;
+  }
+
 
   void ServerIndex::StandaloneRecycling()
   {

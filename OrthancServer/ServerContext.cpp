@@ -354,6 +354,13 @@ namespace Orthanc
         return StoreStatus_FilteredOut;
       }
 
+      {
+        // Remove the file from the DicomCache (useful if
+        // "OverwriteInstances" is set to "true")
+        boost::mutex::scoped_lock lock(dicomCacheMutex_);
+        dicomCache_.Invalidate(resultPublicId);
+      }
+
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
