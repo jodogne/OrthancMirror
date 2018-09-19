@@ -70,9 +70,10 @@ namespace Orthanc
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
-    uint64_t currentStorageSize_;
-    uint64_t maximumStorageSize_;
+    uint64_t     currentStorageSize_;
+    uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
+    bool         overwrite_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
@@ -148,6 +149,8 @@ namespace Orthanc
 
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
+
+    void SetOverwriteInstances(bool overwrite);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       DicomInstanceToStore& instance,

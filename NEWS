@@ -6,7 +6,9 @@ General
 
 * "OrthancPeers" configuration option now allows to specify HTTP headers
 * New main DICOM tag: "ImageOrientationPatient" at the instance level
-* New configuration option: "HttpVerbose" to debug outgoing HTTP connections
+* New configuration options:
+  - "HttpVerbose" to debug outgoing HTTP connections
+  - "OverwriteInstances" to choose how duplicate SOPInstanceUID are handled
 
 Orthanc Explorer
 ----------------
