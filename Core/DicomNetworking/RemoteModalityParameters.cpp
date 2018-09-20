@@ -86,13 +86,13 @@ namespace Orthanc
 
       SetPortNumber(static_cast<uint16_t>(tmp));
     }
-    catch (std::runtime_error /* error inside JsonCpp */)
+    catch (std::runtime_error& /* error inside JsonCpp */)
     {
       try
       {
         SetPortNumber(boost::lexical_cast<uint16_t>(portValue.asString()));
       }
-      catch (boost::bad_lexical_cast)
+      catch (boost::bad_lexical_cast&)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }

@@ -393,7 +393,7 @@ namespace Orthanc
 
     void SetServerContext(ServerContext* context)
     {
-      boost::mutex::scoped_lock(contextMutex_);
+      boost::mutex::scoped_lock lock(contextMutex_);
       context_ = context;
     }
 

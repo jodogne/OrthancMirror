@@ -496,7 +496,7 @@ namespace Orthanc
              In this implementation, "threadid" is not printed.
           **/
 
-          char date[32];
+          char date[40];
           sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
                   level[0],
                   now.date().month().as_number(),
