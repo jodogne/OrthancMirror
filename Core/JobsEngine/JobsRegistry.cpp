@@ -691,7 +691,7 @@ namespace Orthanc
     std::string id;
     Submit(id, job, priority);
 
-    JobState state;
+    JobState state = JobState_Pending;
 
     {
       boost::mutex::scoped_lock lock(mutex_);
