@@ -292,7 +292,7 @@ namespace Orthanc
     {
       length = boost::lexical_cast<int>(cs->second);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return PostDataStatus_NoLength;
     }
@@ -364,7 +364,7 @@ namespace Orthanc
       {
         fileSize = boost::lexical_cast<size_t>(fileSizeStr->second);
       }
-      catch (boost::bad_lexical_cast)
+      catch (boost::bad_lexical_cast&)
       {
         return PostDataStatus_Failure;
       }
@@ -417,7 +417,7 @@ namespace Orthanc
         last = it;
       }
     }
-    catch (std::length_error)
+    catch (std::length_error&)
     {
       return PostDataStatus_Failure;
     }

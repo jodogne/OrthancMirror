@@ -476,7 +476,7 @@ namespace Orthanc
     {
       frame = boost::lexical_cast<unsigned int>(frameId);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }
@@ -584,7 +584,7 @@ namespace Orthanc
     {
       frame = boost::lexical_cast<unsigned int>(frameId);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }
@@ -618,7 +618,7 @@ namespace Orthanc
     {
       frame = boost::lexical_cast<unsigned int>(frameId);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }
