@@ -1723,9 +1723,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               {
                 item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding));
               }
+              break;
             }
 
             case Json::arrayValue:
+            {
               // Lua cannot disambiguate between an empty dictionary
               // and an empty array
               if (value[i].size() != 0)
@@ -1733,6 +1735,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                 throw OrthancException(ErrorCode_BadParameterType);
               }
               break;
+            }
 
             default:
               throw OrthancException(ErrorCode_BadParameterType);
