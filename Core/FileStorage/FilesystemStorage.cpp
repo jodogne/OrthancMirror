@@ -199,7 +199,7 @@ namespace Orthanc
               }
             }
           }
-          catch (fs::filesystem_error)
+          catch (fs::filesystem_error&)
           {
           }
         }

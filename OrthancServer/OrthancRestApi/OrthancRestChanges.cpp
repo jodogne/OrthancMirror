@@ -60,7 +60,7 @@ namespace Orthanc
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
       limit = boost::lexical_cast<unsigned int>(call.GetArgument("limit", "0"));
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }

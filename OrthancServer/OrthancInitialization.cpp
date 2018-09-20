@@ -1053,7 +1053,7 @@ namespace Orthanc
     {
       boost::filesystem::create_directories(indexDirectory);
     }
-    catch (boost::filesystem::filesystem_error)
+    catch (boost::filesystem::filesystem_error&)
     {
     }
 
