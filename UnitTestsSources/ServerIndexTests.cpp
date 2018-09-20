@@ -897,9 +897,9 @@ TEST(ServerIndex, Overwrite)
     context.GetIndex().ComputeStatistics(tmp);
     ASSERT_EQ(1, tmp["CountInstances"].asInt());
     ASSERT_EQ(dicom1.GetCompressedSize() + json1.GetCompressedSize(),
-              boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
     ASSERT_EQ(dicom1.GetUncompressedSize() + json1.GetUncompressedSize(),
-              boost::lexical_cast<int>(tmp["TotalUncompressedSize"].asString()));
+              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
 
     context.ReadDicomAsJson(tmp, id);
     ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
@@ -932,9 +932,9 @@ TEST(ServerIndex, Overwrite)
     context.GetIndex().ComputeStatistics(tmp);
     ASSERT_EQ(1, tmp["CountInstances"].asInt());
     ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(),
-              boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
     ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(),
-              boost::lexical_cast<int>(tmp["TotalUncompressedSize"].asString()));
+              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
 
     if (overwrite)
     {
