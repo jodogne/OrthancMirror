@@ -1714,10 +1714,28 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         {
           std::auto_ptr<DcmItem> item(new DcmItem);
 
-          Json::Value::Members members = value[i].getMemberNames();
-          for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
+          switch (value[i].type())
           {
-            item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding));
+            case Json::objectValue:
+            {
+              Json::Value::Members members = value[i].getMemberNames();
+              for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
+              {
+                item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding));
+              }
+            }
+
+            case Json::arrayValue:
+              // Lua cannot disambiguate between an empty dictionary
+              // and an empty array
+              if (value[i].size() != 0)
+              {
+                throw OrthancException(ErrorCode_BadParameterType);
+              }
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_BadParameterType);
           }
 
           sequence->append(item.release());
