@@ -353,8 +353,8 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
   ASSERT_FLOAT_EQ(-2147483648.0f, f);
-  ASSERT_DOUBLE_EQ(-2147483648.0, d); 
-  ASSERT_EQ(-2147483648, i);
+  ASSERT_DOUBLE_EQ(-2147483648.0, d);
+  ASSERT_EQ(static_cast<int32_t>(-2147483648ll), i);
   ASSERT_EQ(-2147483648ll, j);
   
   // -2**31 - 1
