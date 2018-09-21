@@ -253,6 +253,12 @@ namespace Orthanc
         format = PixelFormat_SignedGrayscale16;
         return true;
       }
+      
+      if (GetBitsAllocated() == 32 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_Grayscale32;
+        return true;
+      }
     }
 
     if (GetBitsStored() == 8 && 
