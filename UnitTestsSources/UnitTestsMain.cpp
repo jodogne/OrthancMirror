@@ -1125,6 +1125,7 @@ int main(int argc, char **argv)
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");
   OrthancInitialize();
+  Toolbox::InitializeGlobalLocale("en_US.UTF8");
 
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
