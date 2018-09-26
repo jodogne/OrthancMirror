@@ -55,6 +55,8 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance);
     
+    virtual bool HandleTrailingStep();
+
   public:
     DicomModalityStoreJob(ServerContext& context);
 

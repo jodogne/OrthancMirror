@@ -39,7 +39,8 @@
 
 namespace Orthanc
 {
-  SetOfInstancesJob::SetOfInstancesJob() :
+  SetOfInstancesJob::SetOfInstancesJob(bool hasTrailingStep) :
+    hasTrailingStep_(hasTrailingStep),
     started_(false),
     permissive_(false),
     position_(0)
@@ -60,6 +61,19 @@ namespace Orthanc
   }
 
     
+  size_t SetOfInstancesJob::GetStepsCount() const
+  {
+    if (HasTrailingStep())
+    {
+      return instances_.size() + 1;
+    }
+    else
+    {
+      return instances_.size();
+    }
+  }
+  
+
   void SetOfInstancesJob::AddInstance(const std::string& instance)
   {
     if (started_)
@@ -75,7 +89,7 @@ namespace Orthanc
 
   void SetOfInstancesJob::SetPermissive(bool permissive)
   {
-    if (IsStarted())
+    if (started_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -102,21 +116,23 @@ namespace Orthanc
     
   float SetOfInstancesJob::GetProgress()
   {
-    if (instances_.size() == 0)
+    const size_t steps = GetStepsCount();
+    
+    if (steps == 0)
     {
       return 0;
     }
     else
     {
       return (static_cast<float>(position_) /
-              static_cast<float>(instances_.size()));
+              static_cast<float>(steps));
     }
   }
 
 
   const std::string& SetOfInstancesJob::GetInstance(size_t index) const
   {
-    if (index > instances_.size())
+    if (index >= instances_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -134,27 +150,38 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    if (instances_.empty() &&
+    const size_t steps = GetStepsCount();
+
+    if (steps == 0 &&
         position_ == 0)
     {
-      // No instance to handle, we're done
+      // Nothing to handle (no instance, nor trailing step): We're done
       position_ = 1;
       return JobStepResult::Success();
     }
-
-    if (position_ >= instances_.size())
+    
+    if (position_ >= steps)
     {
       // Already done
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    const std::string currentInstance = instances_[position_];
+    bool isTrailingStep = (hasTrailingStep_ &&
+                           position_ + 1 == steps);
     
     bool ok;
       
     try
     {
-      ok = HandleInstance(currentInstance);
+      if (isTrailingStep)
+      {
+        ok = HandleTrailingStep();
+      }
+      else
+      {
+        // Not at the trailing step: Handle the current instance
+        ok = HandleInstance(instances_[position_]);
+      }
 
       if (!ok && !permissive_)
       {
@@ -173,14 +200,15 @@ namespace Orthanc
       }
     }
 
-    if (!ok)
+    if (!ok &&
+        !isTrailingStep)
     {
-      failedInstances_.insert(currentInstance);
+      failedInstances_.insert(instances_[position_]);
     }
 
     position_ += 1;
 
-    if (position_ == instances_.size())
+    if (position_ == steps)
     {
       // We're done
       return JobStepResult::Success();
@@ -191,10 +219,20 @@ namespace Orthanc
     }
   }
 
-    
+
+
+  static const char* KEY_DESCRIPTION = "Description";
+  static const char* KEY_PERMISSIVE = "Permissive";
+  static const char* KEY_POSITION = "Position";
+  static const char* KEY_TYPE = "Type";
+  static const char* KEY_INSTANCES = "Instances";
+  static const char* KEY_FAILED_INSTANCES = "FailedInstances";
+  static const char* KEY_TRAILING_STEP = "TrailingStep";
+
+  
   void SetOfInstancesJob::GetPublicContent(Json::Value& value)
   {
-    value["Description"] = GetDescription();
+    value[KEY_DESCRIPTION] = GetDescription();
     value["InstancesCount"] = static_cast<uint32_t>(instances_.size());
     value["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
   }    
@@ -206,14 +244,15 @@ namespace Orthanc
 
     std::string type;
     GetJobType(type);
-    value["Type"] = type;
+    value[KEY_TYPE] = type;
+    
+    value[KEY_PERMISSIVE] = permissive_;
+    value[KEY_POSITION] = static_cast<unsigned int>(position_);
+    value[KEY_DESCRIPTION] = description_;
+    value[KEY_TRAILING_STEP] = hasTrailingStep_;
 
-    value["Permissive"] = permissive_;
-    value["Position"] = static_cast<unsigned int>(position_);
-    value["Description"] = description_;
-
-    SerializationToolbox::WriteArrayOfStrings(value, instances_, "Instances");
-    SerializationToolbox::WriteSetOfStrings(value, failedInstances_, "FailedInstances");
+    SerializationToolbox::WriteArrayOfStrings(value, instances_, KEY_INSTANCES);
+    SerializationToolbox::WriteSetOfStrings(value, failedInstances_, KEY_FAILED_INSTANCES);
 
     return true;
   }
@@ -221,14 +260,24 @@ namespace Orthanc
 
   SetOfInstancesJob::SetOfInstancesJob(const Json::Value& value) :
     started_(false),
-    permissive_(SerializationToolbox::ReadBoolean(value, "Permissive")),
-    position_(SerializationToolbox::ReadUnsignedInteger(value, "Position")),
-    description_(SerializationToolbox::ReadString(value, "Description"))
+    permissive_(SerializationToolbox::ReadBoolean(value, KEY_PERMISSIVE)),
+    position_(SerializationToolbox::ReadUnsignedInteger(value, KEY_POSITION)),
+    description_(SerializationToolbox::ReadString(value, KEY_DESCRIPTION))
   {
-    SerializationToolbox::ReadArrayOfStrings(instances_, value, "Instances");
-    SerializationToolbox::ReadSetOfStrings(failedInstances_, value, "FailedInstances");
+    SerializationToolbox::ReadArrayOfStrings(instances_, value, KEY_INSTANCES);
+    SerializationToolbox::ReadSetOfStrings(failedInstances_, value, KEY_FAILED_INSTANCES);
 
-    if (position_ > instances_.size())
+    if (value.isMember(KEY_TRAILING_STEP))
+    {
+      hasTrailingStep_ = SerializationToolbox::ReadBoolean(value, KEY_TRAILING_STEP);
+    }
+    else
+    {
+      // Backward compatibility with Orthanc <= 1.4.2
+      hasTrailingStep_ = false;
+    }
+
+    if (position_ > GetStepsCount() + 1)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }

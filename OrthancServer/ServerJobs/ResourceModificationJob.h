@@ -75,8 +75,11 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance);
     
+    virtual bool HandleTrailingStep();
+
   public:
     ResourceModificationJob(ServerContext& context) :
+      SetOfInstancesJob(false /* no trailing step */),
       context_(context),
       isAnonymization_(false)
     {

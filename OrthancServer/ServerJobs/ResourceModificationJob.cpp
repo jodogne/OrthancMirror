@@ -215,9 +215,14 @@ namespace Orthanc
 
     return true;
   }
-    
 
   
+  bool ResourceModificationJob::HandleTrailingStep()
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+
+
   void ResourceModificationJob::SetModification(DicomModification* modification,
                                                 bool isAnonymization)
   {
