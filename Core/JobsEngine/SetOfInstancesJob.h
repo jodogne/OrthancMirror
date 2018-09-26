@@ -42,6 +42,7 @@ namespace Orthanc
   class SetOfInstancesJob : public IJob
   {
   private:
+    bool                      hasTrailingStep_;
     bool                      started_;
     std::vector<std::string>  instances_;
     bool                      permissive_;
@@ -52,11 +53,18 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
 
+    virtual bool HandleTrailingStep() = 0;
+
   public:
-    SetOfInstancesJob();
+    SetOfInstancesJob(bool hasTrailingStep);
 
     SetOfInstancesJob(const Json::Value& s);  // Unserialization
 
+    bool HasTrailingStep() const
+    {
+      return hasTrailingStep_;
+    }
+    
     size_t GetPosition() const
     {
       return position_;
@@ -79,6 +87,8 @@ namespace Orthanc
       return instances_.size();
     }
     
+    size_t GetStepsCount() const;
+
     void AddInstance(const std::string& instance);
 
     bool IsPermissive() const

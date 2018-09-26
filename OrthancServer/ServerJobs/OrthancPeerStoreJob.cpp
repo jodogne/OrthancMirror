@@ -74,6 +74,12 @@ namespace Orthanc
   }
     
 
+  bool OrthancPeerStoreJob::HandleTrailingStep()
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+
+
   void OrthancPeerStoreJob::SetPeer(const WebServiceParameters& peer)
   {
     if (IsStarted())

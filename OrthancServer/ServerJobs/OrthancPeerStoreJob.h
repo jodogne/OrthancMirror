@@ -51,8 +51,11 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance);
     
+    virtual bool HandleTrailingStep();
+
   public:
     OrthancPeerStoreJob(ServerContext& context) :
+      SetOfInstancesJob(false /* no trailing step */),
       context_(context)
     {
     }

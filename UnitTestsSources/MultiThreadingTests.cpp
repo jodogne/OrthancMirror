@@ -146,20 +146,58 @@ namespace
 
   class DummyInstancesJob : public SetOfInstancesJob
   {
+  private:
+    bool   trailingStepDone_;
+    
   protected:
     virtual bool HandleInstance(const std::string& instance)
     {
       return (instance != "nope");
     }
 
+    virtual bool HandleTrailingStep()
+    {
+      if (HasTrailingStep())
+      {
+        if (trailingStepDone_)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        else
+        {
+          trailingStepDone_ = true;
+          return true;
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
   public:
-    DummyInstancesJob()
+    DummyInstancesJob(bool hasTrailingStep) :
+      SetOfInstancesJob(hasTrailingStep),
+      trailingStepDone_(false)
     {
     }
     
     DummyInstancesJob(const Json::Value& value) :
       SetOfInstancesJob(value)
     {
+      if (HasTrailingStep())
+      {
+        trailingStepDone_ = (GetPosition() == GetStepsCount());
+      }
+      else
+      {
+        trailingStepDone_ = false;
+      }
+    }
+
+    bool IsTrailingStepDone() const
+    {
+      return trailingStepDone_;
     }
     
     virtual void Stop(JobStopReason reason)
@@ -790,7 +828,38 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
     Json::Value b = 43;
     if (unserialized->Serialize(b))
     {
-      return CheckSameJson(a, b);
+      return (CheckSameJson(a, b));
+    }
+    else
+    {
+      return false;
+    }
+  }
+}
+
+
+static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
+                                          SetOfInstancesJob& job)
+{
+  Json::Value a = 42;
+  
+  if (!job.Serialize(a))
+  {
+    return false;
+  }
+  else
+  {
+    std::auto_ptr<SetOfInstancesJob> unserialized
+      (dynamic_cast<SetOfInstancesJob*>(unserializer.UnserializeJob(a)));
+  
+    Json::Value b = 43;
+    if (unserialized->Serialize(b))
+    {    
+      return (CheckSameJson(a, b) &&
+              job.HasTrailingStep() == unserialized->HasTrailingStep() &&
+              job.GetPosition() == unserialized->GetPosition() &&
+              job.GetInstancesCount() == unserialized->GetInstancesCount() &&
+              job.GetStepsCount() == unserialized->GetStepsCount());
     }
     else
     {
@@ -956,20 +1025,22 @@ TEST(JobsSerialization, GenericJobs)
   // This tests SetOfInstancesJob
   
   {
-    DummyInstancesJob job;
+    DummyInstancesJob job(false);
     job.SetDescription("description");
     job.AddInstance("hello");
     job.AddInstance("nope");
     job.AddInstance("world");
     job.SetPermissive(true);
     ASSERT_THROW(job.Step(), OrthancException);  // Not started yet
+    ASSERT_FALSE(job.HasTrailingStep());
+    ASSERT_FALSE(job.IsTrailingStepDone());
     job.Start();
     job.Step();
     job.Step();
 
     {
       DummyUnserializer unserializer;
-      ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
     ASSERT_TRUE(job.Serialize(s));
@@ -1418,7 +1489,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetRemoteModality(modality);
     job.SetMoveOriginator("MOVESCU", 42);
 
-    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1448,7 +1519,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     OrthancPeerStoreJob job(GetContext());
     job.SetPeer(peer);
     
-    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1473,7 +1544,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.SetModification(modification.release(), true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
     
-    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, job));
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
 
@@ -1508,5 +1579,146 @@ TEST(JobsSerialization, Registry)
     Json::Value t;
     registry.Serialize(t);
     ASSERT_TRUE(CheckSameJson(s, t));
+  }
+}
+
+
+TEST(JobsSerialization, TrailingStep)
+{
+  {
+    Json::Value s;
+    
+    DummyInstancesJob job(false);
+    ASSERT_EQ(0, job.GetStepsCount());
+    ASSERT_EQ(0, job.GetInstancesCount());
+
+    job.Start();
+    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_FALSE(job.HasTrailingStep());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+    
+    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_THROW(job.Step(), OrthancException);
+  }
+
+  {
+    Json::Value s;
+    
+    DummyInstancesJob job(false);
+    job.AddInstance("hello");
+    job.AddInstance("world");
+    ASSERT_EQ(2, job.GetStepsCount());
+    ASSERT_EQ(2, job.GetInstancesCount());
+
+    job.Start();
+    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_FALSE(job.HasTrailingStep());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+    
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(2, job.GetPosition());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_THROW(job.Step(), OrthancException);
+  }
+
+  {
+    Json::Value s;
+    
+    DummyInstancesJob job(true);
+    ASSERT_EQ(1, job.GetStepsCount());
+    ASSERT_EQ(0, job.GetInstancesCount());
+
+    job.Start();
+    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_TRUE(job.HasTrailingStep());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+    
+    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_TRUE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_THROW(job.Step(), OrthancException);
+  }
+
+  {
+    Json::Value s;
+    
+    DummyInstancesJob job(true);
+    job.AddInstance("hello");
+    ASSERT_EQ(2, job.GetStepsCount());
+    ASSERT_EQ(1, job.GetInstancesCount());
+
+    job.Start();
+    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_TRUE(job.HasTrailingStep());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+    
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_FALSE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(2, job.GetPosition());
+    ASSERT_TRUE(job.IsTrailingStepDone());
+    
+    {
+      DummyUnserializer unserializer;
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    }
+
+    ASSERT_THROW(job.Step(), OrthancException);
   }
 }
