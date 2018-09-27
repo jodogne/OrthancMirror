@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Fix: Closing DICOM associations after running query/retrieve from REST API
 
 
 Version 1.4.2 (2018-09-20)
