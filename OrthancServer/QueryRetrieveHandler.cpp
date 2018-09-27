@@ -79,19 +79,6 @@ namespace Orthanc
   {
     done_ = false;
     answers_.Clear();
-    connection_.reset(NULL);
-  }
-
-
-  DicomUserConnection& QueryRetrieveHandler::GetConnection()
-  {
-    if (connection_.get() == NULL)
-    {
-      connection_.reset(new DicomUserConnection(localAet_, modality_));
-      connection_->Open();
-    }
-
-    return *connection_;
   }
 
 
@@ -107,7 +94,11 @@ namespace Orthanc
       // Secondly, possibly fix the query with the user-provider Lua callback
       FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
-      GetConnection().Find(answers_, level_, fixed);
+      {
+        DicomUserConnection connection(localAet_, modality_);
+        connection.Open();
+        connection.Find(answers_, level_, fixed);
+      }
 
       done_ = true;
     }
@@ -162,20 +153,34 @@ namespace Orthanc
   }
 
 
-  void QueryRetrieveHandler::Retrieve(const std::string& target,
-                                      size_t i)
+  void QueryRetrieveHandler::RetrieveInternal(DicomUserConnection& connection,
+                                              const std::string& target,
+                                              size_t i)
   {
     DicomMap map;
     GetAnswer(map, i);
-    GetConnection().Move(target, map);
+    connection.Move(target, map);
+  }
+
+
+  void QueryRetrieveHandler::Retrieve(const std::string& target,
+                                      size_t i)
+  {
+    DicomUserConnection connection(localAet_, modality_);
+    connection.Open();
+    
+    RetrieveInternal(connection, target, i);
   }
 
 
   void QueryRetrieveHandler::Retrieve(const std::string& target)
   {
+    DicomUserConnection connection(localAet_, modality_);
+    connection.Open();
+        
     for (size_t i = 0; i < GetAnswerCount(); i++)
     {
-      Retrieve(target, i);
+      RetrieveInternal(connection, target, i);
     }
   }
 }

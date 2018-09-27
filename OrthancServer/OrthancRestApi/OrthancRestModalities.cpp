@@ -430,7 +430,7 @@ namespace Orthanc
       Json::Value result = Json::objectValue;
       result["ID"] = s;
       result["Path"] = "/queries/" + s;
-      call.GetOutput().AnswerJson(result);      
+      call.GetOutput().AnswerJson(result);
     }
   }
 
