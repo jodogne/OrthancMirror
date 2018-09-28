@@ -78,6 +78,16 @@ namespace Orthanc
       return sourceStudy_;
     }
 
+    const std::string& GetTargetStudy() const
+    {
+      return targetStudy_;
+    }
+
+    const std::string& GetTargetStudyUid() const
+    {
+      return targetStudyUid_;
+    }
+
     void AddSourceSeries(const std::string& series);
 
     bool IsKeepSource() const
@@ -87,11 +97,22 @@ namespace Orthanc
     
     void SetKeepSource(bool keep);
 
+    bool LookupTargetSeriesUid(std::string& uid,
+                               const std::string& series) const;
+
     void Replace(const DicomTag& tag,
                  const std::string& value);
     
+    bool LookupReplacement(std::string& value,
+                           const DicomTag& tag) const;
+
     void Remove(const DicomTag& tag);
     
+    bool IsRemoved(const DicomTag& tag) const
+    {
+      return removals_.find(tag) != removals_.end();
+    }
+
     void SetOrigin(const DicomInstanceOrigin& origin);
 
     void SetOrigin(const RestApiCall& call);
