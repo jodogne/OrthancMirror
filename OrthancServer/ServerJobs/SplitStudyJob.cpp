@@ -242,6 +242,23 @@ namespace Orthanc
   }
 
 
+  bool SplitStudyJob::LookupTargetSeriesUid(std::string& uid,
+                                            const std::string& series) const
+  {
+    SeriesUidMap::const_iterator found = seriesUidMap_.find(series);
+
+    if (found == seriesUidMap_.end())
+    {
+      return false;
+    }
+    else
+    {
+      uid = found->second;
+      return true;
+    }
+  }
+
+
   void SplitStudyJob::Remove(const DicomTag& tag)
   {
     if (IsStarted())
@@ -264,6 +281,23 @@ namespace Orthanc
 
     CheckAllowedTag(tag);
     replacements_[tag] = value;
+  }
+
+
+  bool SplitStudyJob::LookupReplacement(std::string& value,
+                                        const DicomTag& tag) const
+  {
+    Replacements::const_iterator found = replacements_.find(tag);
+
+    if (found == replacements_.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second;
+      return true;
+    }
   }
   
     

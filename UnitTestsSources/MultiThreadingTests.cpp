@@ -1036,8 +1036,8 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_FALSE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
     job.Start();
-    job.Step();
-    job.Step();
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
 
     {
       DummyUnserializer unserializer;
@@ -1573,27 +1573,58 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    ASSERT_THROW(SplitStudyJob(GetContext(), std::string("nope")), OrthancException);
+    std::string a, b, c;
 
-    SplitStudyJob job(GetContext(), study);
-    job.SetKeepSource(true);
-    job.AddSourceSeries(series);
-    ASSERT_THROW(job.AddSourceSeries("nope"), OrthancException);
-    job.SetOrigin(DicomInstanceOrigin::FromLua());
+    {
+      ASSERT_THROW(SplitStudyJob(GetContext(), std::string("nope")), OrthancException);
+
+      SplitStudyJob job(GetContext(), study);
+      job.SetKeepSource(true);
+      job.AddSourceSeries(series);
+      ASSERT_THROW(job.AddSourceSeries("nope"), OrthancException);
+      job.SetOrigin(DicomInstanceOrigin::FromLua());
+      job.Replace(DICOM_TAG_PATIENT_NAME, "hello");
+      job.Remove(DICOM_TAG_PATIENT_BIRTH_DATE);
+      ASSERT_THROW(job.Replace(DICOM_TAG_SERIES_DESCRIPTION, "nope"), OrthancException);
+      ASSERT_THROW(job.Remove(DICOM_TAG_SERIES_DESCRIPTION), OrthancException);
     
-    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
-    ASSERT_TRUE(job.Serialize(s));
-  }
+      ASSERT_TRUE(job.GetTargetStudy().empty());
+      a = job.GetTargetStudyUid();
+      ASSERT_TRUE(job.LookupTargetSeriesUid(b, series));
 
-  {
-    std::auto_ptr<IJob> job;
-    job.reset(unserializer.UnserializeJob(s));
+      job.Start();
+      ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+      ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
 
-    SplitStudyJob& tmp = dynamic_cast<SplitStudyJob&>(*job);
-    ASSERT_TRUE(tmp.IsKeepSource());
-    ASSERT_EQ(study, tmp.GetSourceStudy());
-    ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
-    //ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+      c = job.GetTargetStudy();
+      ASSERT_FALSE(c.empty());
+
+      ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+      ASSERT_TRUE(job.Serialize(s));
+    }
+
+    {
+      std::auto_ptr<IJob> job;
+      job.reset(unserializer.UnserializeJob(s));
+
+      SplitStudyJob& tmp = dynamic_cast<SplitStudyJob&>(*job);
+      ASSERT_TRUE(tmp.IsKeepSource());
+      ASSERT_EQ(study, tmp.GetSourceStudy());
+      ASSERT_EQ(a, tmp.GetTargetStudyUid());
+      ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
+
+      std::string s;
+      ASSERT_EQ(c, tmp.GetTargetStudy());
+      ASSERT_FALSE(tmp.LookupTargetSeriesUid(s, "nope"));
+      ASSERT_TRUE(tmp.LookupTargetSeriesUid(s, series));
+      ASSERT_EQ(b, s);
+
+      ASSERT_FALSE(tmp.LookupReplacement(s, DICOM_TAG_STUDY_DESCRIPTION));
+      ASSERT_TRUE(tmp.LookupReplacement(s, DICOM_TAG_PATIENT_NAME));
+      ASSERT_EQ("hello", s);
+      ASSERT_FALSE(tmp.IsRemoved(DICOM_TAG_PATIENT_NAME));
+      ASSERT_TRUE(tmp.IsRemoved(DICOM_TAG_PATIENT_BIRTH_DATE));
+    }
   }
 }
 
