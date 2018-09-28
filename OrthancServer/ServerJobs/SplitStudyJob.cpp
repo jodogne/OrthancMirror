@@ -85,25 +85,16 @@ namespace Orthanc
     /**
      * Chose the target UIDs
      **/
-    
-    std::string series;
-    if (!modified->GetTagValue(series, DICOM_TAG_SERIES_INSTANCE_UID))
+
+    assert(modified->GetHasher().HashStudy() == sourceStudy_);
+
+    std::string series = modified->GetHasher().HashSeries();
+
+    SeriesUidMap::const_iterator targetSeriesUid = seriesUidMap_.find(series);
+
+    if (targetSeriesUid == seriesUidMap_.end())
     {
       throw OrthancException(ErrorCode_BadFileFormat);  // Should never happen
-    }    
-
-    std::string targetSeriesUid;
-    SeriesUidMap::const_iterator found = targetSeries_.find(series);
-
-    if (found == targetSeries_.end())
-    {
-      // Choose a random SeriesInstanceUID for this series
-      targetSeriesUid = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
-      targetSeries_[series] = targetSeriesUid;
-    }
-    else
-    {
-      targetSeriesUid = found->second;
     }
 
 
@@ -129,7 +120,7 @@ namespace Orthanc
      **/
     
     modified->ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, targetStudyUid_);
-    modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid);
+    modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid->second);
 
     if (targetStudy_.empty())
     {
@@ -186,15 +177,6 @@ namespace Orthanc
       LOG(ERROR) << "Cannot split unknown study: " << sourceStudy;
       throw OrthancException(ErrorCode_UnknownResource);
     }
-
-    std::list<std::string> children;
-    context_.GetIndex().GetChildren(children, sourceStudy);
-
-    for (std::list<std::string>::const_iterator
-           it = children.begin(); it != children.end(); ++it)
-    {
-      sourceSeries_.insert(*it);
-    }
   }
   
 
@@ -219,17 +201,23 @@ namespace Orthanc
 
   void SplitStudyJob::AddSourceSeries(const std::string& series)
   {
+    std::string parent;
+
     if (IsStarted())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (sourceSeries_.find(series) == sourceSeries_.end())
+    else if (!context_.GetIndex().LookupParent(parent, series, ResourceType_Study) ||
+             parent != sourceStudy_)
     {
       LOG(ERROR) << "This series does not belong to the study to be split: " << series;
       throw OrthancException(ErrorCode_UnknownResource);
     }
     else
     {
+      // Generate a target SeriesInstanceUID for this series
+      seriesUidMap_[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
+
       // Add all the instances of the series as to be processed
       std::list<std::string> instances;
       context_.GetIndex().GetChildren(instances, series);
@@ -292,12 +280,11 @@ namespace Orthanc
   }
 
 
-  static const char* SOURCE_STUDY = "SourceStudy";
-  static const char* SOURCE_SERIES = "SourceSeries";
   static const char* KEEP_SOURCE = "KeepSource";
+  static const char* SOURCE_STUDY = "SourceStudy";
   static const char* TARGET_STUDY = "TargetStudy";
   static const char* TARGET_STUDY_UID = "TargetStudyUID";
-  static const char* TARGET_SERIES = "TargetSeries";
+  static const char* SERIES_UID_MAP = "SeriesUIDMap";
   static const char* ORIGIN = "Origin";
   static const char* REPLACEMENTS = "Replacements";
   static const char* REMOVALS = "Removals";
@@ -318,10 +305,9 @@ namespace Orthanc
 
     keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
     sourceStudy_ = SerializationToolbox::ReadString(serialized, SOURCE_STUDY);
-    SerializationToolbox::ReadSetOfStrings(sourceSeries_, serialized, SOURCE_SERIES);
     targetStudy_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY);
     targetStudyUid_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY_UID);
-    SerializationToolbox::ReadMapOfStrings(targetSeries_, serialized, TARGET_SERIES);
+    SerializationToolbox::ReadMapOfStrings(seriesUidMap_, serialized, SERIES_UID_MAP);
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
     SerializationToolbox::ReadMapOfTags(replacements_, serialized, REPLACEMENTS);
     SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
@@ -338,10 +324,9 @@ namespace Orthanc
     {
       target[KEEP_SOURCE] = keepSource_;
       target[SOURCE_STUDY] = sourceStudy_;
-      SerializationToolbox::WriteSetOfStrings(target, sourceSeries_, SOURCE_SERIES);
       target[TARGET_STUDY] = targetStudy_;
       target[TARGET_STUDY_UID] = targetStudyUid_;
-      SerializationToolbox::WriteMapOfStrings(target, targetSeries_, TARGET_SERIES);
+      SerializationToolbox::WriteMapOfStrings(target, seriesUidMap_, SERIES_UID_MAP);
       origin_.Serialize(target[ORIGIN]);
       SerializationToolbox::WriteMapOfTags(target, replacements_, REPLACEMENTS);
       SerializationToolbox::WriteSetOfTags(target, removals_, REMOVALS);

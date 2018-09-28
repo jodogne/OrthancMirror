@@ -47,13 +47,12 @@ namespace Orthanc
     
     
     ServerContext&         context_;
+    std::set<DicomTag>     allowedTags_;
     bool                   keepSource_;
     std::string            sourceStudy_;
-    std::set<std::string>  sourceSeries_;
     std::string            targetStudy_;
     std::string            targetStudyUid_;
-    SeriesUidMap           targetSeries_;
-    std::set<DicomTag>     allowedTags_;
+    SeriesUidMap           seriesUidMap_;
     DicomInstanceOrigin    origin_;
     Replacements           replacements_;
     std::set<DicomTag>     removals_;

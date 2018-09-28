@@ -504,14 +504,6 @@ namespace Orthanc
   {
   }
 
-  DicomDirWriter::~DicomDirWriter()
-  {
-    if (pimpl_)
-    {
-      delete pimpl_;
-    }
-  }
-
   void DicomDirWriter::SetUtcUsed(bool utc)
   {
     pimpl_->SetUtcUsed(utc);

@@ -63,6 +63,8 @@
 #  include "../RestApi/RestApiOutput.h"
 #endif
 
+#include <boost/shared_ptr.hpp>
+
 
 class DcmDataset;
 class DcmFileFormat;
@@ -73,7 +75,7 @@ namespace Orthanc
   {
   private:
     struct PImpl;
-    PImpl* pimpl_;
+    boost::shared_ptr<PImpl> pimpl_;
 
     ParsedDicomFile(ParsedDicomFile& other,
                     bool keepSopInstanceUid);
@@ -107,8 +109,6 @@ namespace Orthanc
     ParsedDicomFile(DcmDataset& dicom);
 
     ParsedDicomFile(DcmFileFormat& dicom);
-
-    ~ParsedDicomFile();
 
     DcmFileFormat& GetDcmtkObject() const;
 
