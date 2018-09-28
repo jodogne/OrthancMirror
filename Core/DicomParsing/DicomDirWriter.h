@@ -43,12 +43,10 @@ namespace Orthanc
   {
   private:
     class PImpl;
-    PImpl* pimpl_;
+    boost::shared_ptr<PImpl>  pimpl_;
 
   public:
     DicomDirWriter();
-
-    ~DicomDirWriter();
 
     void SetUtcUsed(bool utc);
 
