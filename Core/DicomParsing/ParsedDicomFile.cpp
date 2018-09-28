@@ -944,59 +944,48 @@ namespace Orthanc
   void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
                                            Encoding defaultEncoding)
   {
-    try
+    pimpl_->file_.reset(new DcmFileFormat);
+
+    const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+
+    if (tmp == NULL)
     {
-      pimpl_->file_.reset(new DcmFileFormat);
+      SetEncoding(defaultEncoding);
+    }
+    else if (tmp->IsBinary())
+    {
+      LOG(ERROR) << "Invalid binary string in the SpecificCharacterSet (0008,0005) tag";
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else if (tmp->IsNull() ||
+             tmp->GetContent().empty())
+    {
+      SetEncoding(defaultEncoding);
+    }
+    else
+    {
+      Encoding encoding;
 
-      const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
-
-      if (tmp == NULL)
+      if (GetDicomEncoding(encoding, tmp->GetContent().c_str()))
       {
-        SetEncoding(defaultEncoding);
-      }
-      else if (tmp->IsBinary())
-      {
-        LOG(ERROR) << "Invalid binary string in the SpecificCharacterSet (0008,0005) tag";
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      else if (tmp->IsNull() ||
-               tmp->GetContent().empty())
-      {
-        SetEncoding(defaultEncoding);
+        SetEncoding(encoding);
       }
       else
       {
-        Encoding encoding;
-
-        if (GetDicomEncoding(encoding, tmp->GetContent().c_str()))
-        {
-          SetEncoding(encoding);
-        }
-        else
-        {
-          LOG(ERROR) << "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \""
-                     << tmp->GetContent() << "\"";        
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-      }
-
-      for (DicomMap::Map::const_iterator 
-             it = source.map_.begin(); it != source.map_.end(); ++it)
-      {
-        if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
-            !it->second->IsNull())
-        {
-          ReplacePlainString(it->first, it->second->GetContent());
-        }
+        LOG(ERROR) << "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \""
+                   << tmp->GetContent() << "\"";        
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
-    catch (OrthancException&)
+
+    for (DicomMap::Map::const_iterator 
+           it = source.map_.begin(); it != source.map_.end(); ++it)
     {
-      // Manually delete the PImpl to avoid a memory leak due to
-      // throwing the exception in the constructor
-      delete pimpl_;
-      pimpl_ = NULL;
-      throw;
+      if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
+          !it->second->IsNull())
+      {
+        ReplacePlainString(it->first, it->second->GetContent());
+      }
     }
   }
 
@@ -1058,12 +1047,6 @@ namespace Orthanc
   ParsedDicomFile::ParsedDicomFile(DcmFileFormat& dicom) : pimpl_(new PImpl)
   {
     pimpl_->file_.reset(new DcmFileFormat(dicom));
-  }
-
-
-  ParsedDicomFile::~ParsedDicomFile()
-  {
-    delete pimpl_;
   }
 
 
