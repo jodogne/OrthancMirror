@@ -93,6 +93,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerJobs/OrthancJobUnserializer.cpp
   OrthancServer/ServerJobs/OrthancPeerStoreJob.cpp
   OrthancServer/ServerJobs/ResourceModificationJob.cpp
+  OrthancServer/ServerJobs/SplitStudyJob.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
   )
