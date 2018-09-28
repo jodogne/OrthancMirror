@@ -33,8 +33,9 @@
 
 #include "SplitStudyJob.h"
 
-#include "../../Core/Logging.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 
 namespace Orthanc
 {
@@ -50,36 +51,14 @@ namespace Orthanc
   }
 
   
-  void SplitStudyJob::Setup(const std::string& sourceStudy)
+  void SplitStudyJob::Setup()
   {
     SetPermissive(false);
-    
-    keepSource_ = false;
-    sourceStudy_ = sourceStudy;
-    targetStudyUid_ = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study);
     
     DicomTag::AddTagsForModule(allowedTags_, DicomModule_Patient);
     DicomTag::AddTagsForModule(allowedTags_, DicomModule_Study);
     allowedTags_.erase(DICOM_TAG_STUDY_INSTANCE_UID);
     allowedTags_.erase(DICOM_TAG_SERIES_INSTANCE_UID);
-
-    ResourceType type;
-    
-    if (!context_.GetIndex().LookupResourceType(type, sourceStudy) ||
-        type != ResourceType_Study)
-    {
-      LOG(ERROR) << "Cannot split unknown study: " << sourceStudy;
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    std::list<std::string> children;
-    context_.GetIndex().GetChildren(children, sourceStudy);
-
-    for (std::list<std::string>::const_iterator
-           it = children.begin(); it != children.end(); ++it)
-    {
-      sourceSeries_.insert(*it);
-    }
   }
 
   
@@ -132,7 +111,7 @@ namespace Orthanc
      * Apply user-specified modifications
      **/
 
-    for (Removals::const_iterator it = removals_.begin();
+    for (std::set<DicomTag>::const_iterator it = removals_.begin();
          it != removals_.end(); ++it)
     {
       modified->Remove(*it);
@@ -192,22 +171,33 @@ namespace Orthanc
   SplitStudyJob::SplitStudyJob(ServerContext& context,
                                const std::string& sourceStudy) :
     SetOfInstancesJob(true /* with trailing step */),
-    context_(context)
+    context_(context),
+    keepSource_(false),
+    sourceStudy_(sourceStudy),
+    targetStudyUid_(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study))
   {
-    Setup(sourceStudy);
+    Setup();
+    
+    ResourceType type;
+    
+    if (!context_.GetIndex().LookupResourceType(type, sourceStudy) ||
+        type != ResourceType_Study)
+    {
+      LOG(ERROR) << "Cannot split unknown study: " << sourceStudy;
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    std::list<std::string> children;
+    context_.GetIndex().GetChildren(children, sourceStudy);
+
+    for (std::list<std::string>::const_iterator
+           it = children.begin(); it != children.end(); ++it)
+    {
+      sourceSeries_.insert(*it);
+    }
   }
   
 
-  SplitStudyJob::SplitStudyJob(ServerContext& context,
-                               const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),
-    context_(context)
-  {
-    //assert(HasTrailingStep());
-    //Setup();
-  }
-
-  
   void SplitStudyJob::SetOrigin(const DicomInstanceOrigin& origin)
   {
     if (IsStarted())
@@ -300,10 +290,63 @@ namespace Orthanc
     
     value["TargetStudyUID"] = targetStudyUid_;
   }
-  
 
+
+  static const char* SOURCE_STUDY = "SourceStudy";
+  static const char* SOURCE_SERIES = "SourceSeries";
+  static const char* KEEP_SOURCE = "KeepSource";
+  static const char* TARGET_STUDY = "TargetStudy";
+  static const char* TARGET_STUDY_UID = "TargetStudyUID";
+  static const char* TARGET_SERIES = "TargetSeries";
+  static const char* ORIGIN = "Origin";
+  static const char* REPLACEMENTS = "Replacements";
+  static const char* REMOVALS = "Removals";
+
+
+  SplitStudyJob::SplitStudyJob(ServerContext& context,
+                               const Json::Value& serialized) :
+    SetOfInstancesJob(serialized),  // (*)
+    context_(context)
+  {
+    if (!HasTrailingStep())
+    {
+      // Should have been set by (*)
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    Setup();
+
+    keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
+    sourceStudy_ = SerializationToolbox::ReadString(serialized, SOURCE_STUDY);
+    SerializationToolbox::ReadSetOfStrings(sourceSeries_, serialized, SOURCE_SERIES);
+    targetStudy_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY);
+    targetStudyUid_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY_UID);
+    SerializationToolbox::ReadMapOfStrings(targetSeries_, serialized, TARGET_SERIES);
+    origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
+    SerializationToolbox::ReadMapOfTags(replacements_, serialized, REPLACEMENTS);
+    SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
+  }
+
+  
   bool SplitStudyJob::Serialize(Json::Value& target)
   {
-    return true;
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[KEEP_SOURCE] = keepSource_;
+      target[SOURCE_STUDY] = sourceStudy_;
+      SerializationToolbox::WriteSetOfStrings(target, sourceSeries_, SOURCE_SERIES);
+      target[TARGET_STUDY] = targetStudy_;
+      target[TARGET_STUDY_UID] = targetStudyUid_;
+      SerializationToolbox::WriteMapOfStrings(target, targetSeries_, TARGET_SERIES);
+      origin_.Serialize(target[ORIGIN]);
+      SerializationToolbox::WriteMapOfTags(target, replacements_, REPLACEMENTS);
+      SerializationToolbox::WriteSetOfTags(target, removals_, REMOVALS);
+
+      return true;
+    }
   }
 }

@@ -63,6 +63,7 @@
 #include "../OrthancServer/ServerJobs/DicomModalityStoreJob.h"
 #include "../OrthancServer/ServerJobs/OrthancPeerStoreJob.h"
 #include "../OrthancServer/ServerJobs/ResourceModificationJob.h"
+#include "../OrthancServer/ServerJobs/SplitStudyJob.h"
 
 
 using namespace Orthanc;
@@ -1463,9 +1464,9 @@ TEST_F(OrthancJobsSerialization, Operations)
 
 TEST_F(OrthancJobsSerialization, Jobs)
 {
-  // ArchiveJob
-
   Json::Value s;
+
+  // ArchiveJob
 
   {
     boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
@@ -1556,6 +1557,43 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_TRUE(tmp.IsAnonymization());
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+  }
+
+  // SplitStudyJob
+
+  std::string id;
+  ASSERT_TRUE(CreateInstance(id));
+
+  std::string study, series;
+
+  {
+    ServerContext::DicomCacheLocker lock(GetContext(), id);
+    study = lock.GetDicom().GetHasher().HashStudy();
+    series = lock.GetDicom().GetHasher().HashSeries();
+  }
+
+  {
+    ASSERT_THROW(SplitStudyJob(GetContext(), std::string("nope")), OrthancException);
+
+    SplitStudyJob job(GetContext(), study);
+    job.SetKeepSource(true);
+    job.AddSourceSeries(series);
+    ASSERT_THROW(job.AddSourceSeries("nope"), OrthancException);
+    job.SetOrigin(DicomInstanceOrigin::FromLua());
+    
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    SplitStudyJob& tmp = dynamic_cast<SplitStudyJob&>(*job);
+    ASSERT_TRUE(tmp.IsKeepSource());
+    ASSERT_EQ(study, tmp.GetSourceStudy());
+    ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
+    //ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
   }
 }
 

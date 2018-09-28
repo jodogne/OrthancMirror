@@ -196,6 +196,75 @@ namespace Orthanc
     }
 
 
+    void ReadMapOfStrings(std::map<std::string, std::string>& target,
+                          const Json::Value& value,
+                          const std::string& field)
+    {
+      if (value.type() != Json::objectValue ||
+          !value.isMember(field.c_str()) ||
+          value[field.c_str()].type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      const Json::Value& source = value[field.c_str()];
+
+      target.clear();
+
+      Json::Value::Members members = source.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const Json::Value& tmp = source[members[i]];
+
+        if (tmp.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);        
+        }
+        else
+        {
+          target[members[i]] = tmp.asString();
+        }
+      }
+    }
+
+
+    void ReadMapOfTags(std::map<DicomTag, std::string>& target,
+                       const Json::Value& value,
+                       const std::string& field)
+    {
+      if (value.type() != Json::objectValue ||
+          !value.isMember(field.c_str()) ||
+          value[field.c_str()].type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      const Json::Value& source = value[field.c_str()];
+
+      target.clear();
+
+      Json::Value::Members members = source.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const Json::Value& tmp = source[members[i]];
+
+        DicomTag tag(0, 0);
+
+        if (!DicomTag::ParseHexadecimal(tag, members[i].c_str()) ||
+            tmp.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);        
+        }
+        else
+        {
+          target[tag] = tmp.asString();
+        }
+      }
+    }
+
+
     void WriteArrayOfStrings(Json::Value& target,
                              const std::vector<std::string>& values,
                              const std::string& field)
@@ -256,6 +325,50 @@ namespace Orthanc
            it != tags.end(); ++it)
       {
         value.append(it->Format());
+      }
+    }
+
+
+    void WriteMapOfStrings(Json::Value& target,
+                           const std::map<std::string, std::string>& values,
+                           const std::string& field)
+    {
+      if (target.type() != Json::objectValue ||
+          target.isMember(field.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& value = target[field];
+
+      value = Json::objectValue;
+
+      for (std::map<std::string, std::string>::const_iterator
+             it = values.begin(); it != values.end(); ++it)
+      {
+        value[it->first] = it->second;
+      }
+    }
+
+
+    void WriteMapOfTags(Json::Value& target,
+                        const std::map<DicomTag, std::string>& values,
+                        const std::string& field)
+    {
+      if (target.type() != Json::objectValue ||
+          target.isMember(field.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& value = target[field];
+
+      value = Json::objectValue;
+
+      for (std::map<DicomTag, std::string>::const_iterator
+             it = values.begin(); it != values.end(); ++it)
+      {
+        value[it->first.Format()] = it->second;
       }
     }
   }
