@@ -1071,6 +1071,11 @@ namespace Orthanc
 
     for (Json::Value::ArrayIndex i = 0; i < query.size(); i++)
     {
+      if (query[i].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+      
       std::string name = query[i].asString();
 
       DicomTag tag = FromDcmtkBridge::ParseTag(name);

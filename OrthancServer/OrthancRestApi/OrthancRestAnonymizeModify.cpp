@@ -36,8 +36,10 @@
 
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/ResourceModificationJob.h"
+#include "../ServerJobs/SplitStudyJob.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -652,6 +654,93 @@ namespace Orthanc
   }
 
 
+  static void SplitStudy(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+    if (!call.ParseJsonRequest(request))
+    {
+      // Bad JSON request
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    const std::string study = call.GetUriComponent("id", "");
+    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
+
+    std::auto_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
+    job->SetOrigin(call);
+    job->SetDescription("REST API");
+
+    std::vector<std::string> series;
+    SerializationToolbox::ReadArrayOfStrings(series, request, "Series");
+
+    for (size_t i = 0; i < series.size(); i++)
+    {
+      job->AddSourceSeries(series[i]);
+    }
+
+    static const char* KEEP_SOURCE = "KeepSource";
+    if (request.isMember(KEEP_SOURCE))
+    {
+      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
+    }
+
+    static const char* REMOVE = "Remove";
+    if (request.isMember(REMOVE))
+    {
+      if (request[REMOVE].type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      for (Json::Value::ArrayIndex i = 0; i < request[REMOVE].size(); i++)
+      {
+        if (request[REMOVE][i].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        else
+        {
+          job->Remove(FromDcmtkBridge::ParseTag(request[REMOVE][i].asCString()));
+        }
+      }
+    }
+
+    static const char* REPLACE = "Replace";
+    if (request.isMember(REPLACE))
+    {
+      if (request[REPLACE].type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value::Members tags = request[REPLACE].getMemberNames();
+
+      for (size_t i = 0; i < tags.size(); i++)
+      {
+        const Json::Value& value = request[REPLACE][tags[i]];
+        
+        if (value.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        else
+        {
+          job->Replace(FromDcmtkBridge::ParseTag(tags[i]), value.asString());
+        }
+      }
+    }
+
+    std::string id;
+    context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
+    
+    Json::Value v;
+    v["ID"] = id;
+    call.GetOutput().AnswerJson(v);
+  }
+
+
   void OrthancRestApi::RegisterAnonymizeModify()
   {
     Register("/instances/{id}/modify", ModifyInstance);
@@ -665,5 +754,7 @@ namespace Orthanc
     Register("/patients/{id}/anonymize", AnonymizeResource<ResourceType_Patient>);
 
     Register("/tools/create-dicom", CreateDicom);
+
+    Register("/studies/{id}/split", SplitStudy);
   }
 }
