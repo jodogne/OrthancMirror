@@ -48,6 +48,7 @@
 #include "DicomModalityStoreJob.h"
 #include "OrthancPeerStoreJob.h"
 #include "ResourceModificationJob.h"
+#include "SplitStudyJob.h"
 
 namespace Orthanc
 {
@@ -77,6 +78,10 @@ namespace Orthanc
     else if (type == "ResourceModification")
     {
       return new ResourceModificationJob(context_, source);
+    }
+    else if (type == "SplitStudy")
+    {
+      return new SplitStudyJob(context_, source);
     }
     else
     {

@@ -37,6 +37,7 @@
 
 #include <json/value.h>
 #include <list>
+#include <map>
 
 namespace Orthanc
 {
@@ -70,6 +71,14 @@ namespace Orthanc
                        const Json::Value& value,
                        const std::string& field);
 
+    void ReadMapOfStrings(std::map<std::string, std::string>& values,
+                          const Json::Value& target,
+                          const std::string& field);
+
+    void ReadMapOfTags(std::map<DicomTag, std::string>& values,
+                       const Json::Value& target,
+                       const std::string& field);
+
     void WriteArrayOfStrings(Json::Value& target,
                              const std::vector<std::string>& values,
                              const std::string& field);
@@ -80,6 +89,14 @@ namespace Orthanc
 
     void WriteSetOfTags(Json::Value& target,
                         const std::set<DicomTag>& tags,
+                        const std::string& field);
+
+    void WriteMapOfStrings(Json::Value& target,
+                           const std::map<std::string, std::string>& values,
+                           const std::string& field);
+
+    void WriteMapOfTags(Json::Value& target,
+                        const std::map<DicomTag, std::string>& values,
                         const std::string& field);
   }
 }

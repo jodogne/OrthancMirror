@@ -44,24 +44,23 @@ namespace Orthanc
   private:
     typedef std::map<std::string, std::string>  SeriesUidMap;
     typedef std::map<DicomTag, std::string>     Replacements;
-    typedef std::set<DicomTag>                  Removals;
     
     
     ServerContext&         context_;
+    bool                   keepSource_;
     std::string            sourceStudy_;
     std::set<std::string>  sourceSeries_;
-    bool                   keepSource_;
     std::string            targetStudy_;
     std::string            targetStudyUid_;
     SeriesUidMap           targetSeries_;
     std::set<DicomTag>     allowedTags_;
     DicomInstanceOrigin    origin_;
     Replacements           replacements_;
-    Removals               removals_;
+    std::set<DicomTag>     removals_;
 
     void CheckAllowedTag(const DicomTag& tag) const;
     
-    void Setup(const std::string& sourceStudy);
+    void Setup();
     
   protected:
     virtual bool HandleInstance(const std::string& instance);
@@ -75,9 +74,10 @@ namespace Orthanc
     SplitStudyJob(ServerContext& context,
                   const Json::Value& serialized);
 
-    void SetOrigin(const DicomInstanceOrigin& origin);
-
-    void SetOrigin(const RestApiCall& call);
+    const std::string& GetSourceStudy() const
+    {
+      return sourceStudy_;
+    }
 
     void AddSourceSeries(const std::string& series);
 
@@ -88,18 +88,27 @@ namespace Orthanc
     
     void SetKeepSource(bool keep);
 
-    void Remove(const DicomTag& tag);
-    
     void Replace(const DicomTag& tag,
                  const std::string& value);
     
+    void Remove(const DicomTag& tag);
+    
+    void SetOrigin(const DicomInstanceOrigin& origin);
+
+    void SetOrigin(const RestApiCall& call);
+
+    const DicomInstanceOrigin& GetOrigin() const
+    {
+      return origin_;
+    }
+
     virtual void Stop(JobStopReason reason)
     {
     }
 
     virtual void GetJobType(std::string& target)
     {
-      target = "SplitStudyJob";
+      target = "SplitStudy";
     }
 
     virtual void GetPublicContent(Json::Value& value);
