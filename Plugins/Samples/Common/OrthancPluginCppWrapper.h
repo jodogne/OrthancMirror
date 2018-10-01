@@ -79,7 +79,7 @@ namespace OrthancPlugins
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
 
-  class OrthancPluginImage;
+  class OrthancImage;
 
 
   class MemoryBuffer : public boost::noncopyable
