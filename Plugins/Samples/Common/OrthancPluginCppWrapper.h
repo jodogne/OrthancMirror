@@ -79,6 +79,9 @@ namespace OrthancPlugins
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
 
+  class OrthancPluginImage;
+
+
   class MemoryBuffer : public boost::noncopyable
   {
   private:
@@ -166,6 +169,10 @@ namespace OrthancPlugins
     }
 
     void CreateDicom(const Json::Value& tags,
+                     OrthancPluginCreateDicomFlags flags);
+
+    void CreateDicom(const Json::Value& tags,
+                     const OrthancImage& pixelData,
                      OrthancPluginCreateDicomFlags flags);
 
     void ReadFile(const std::string& path);
@@ -321,6 +328,14 @@ namespace OrthancPlugins
                  uint32_t                  width,
                  uint32_t                  height);
 
+    OrthancImage(OrthancPluginContext*     context,
+                 OrthancPluginPixelFormat  format,
+                 uint32_t                  width,
+                 uint32_t                  height,
+                 uint32_t                  pitch,
+                 void*                     buffer
+                 );
+
     ~OrthancImage()
     {
       Clear();
@@ -345,6 +360,8 @@ namespace OrthancPlugins
     unsigned int GetPitch();
     
     const void* GetBuffer();
+
+    const OrthancPluginImage* GetObject() const {return image_;}
 
     void CompressPngImage(MemoryBuffer& target);
 
