@@ -231,6 +231,18 @@ namespace OrthancPlugins
     Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
   }
 
+  void MemoreyBuffer::CreateDicom(const Json::Value& tags,
+                   const OrthancPluginImage& pixelData,
+                   OrthancPluginCreateDicomFlags flags)
+  {
+    Clear();
+
+    Json::FastWriter writer;
+    std::string s = writer.write(tags);
+
+    Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), pixelData.GetObject(), flags));
+  }
+
 
   void MemoryBuffer::ReadFile(const std::string& path)
   {
@@ -885,6 +897,23 @@ namespace OrthancPlugins
     }
   }
 
+  OrthancImage::OrthancImage(OrthancPluginContext*     context,
+                             OrthancPluginPixelFormat  format,
+                             uint32_t                  width,
+                             uint32_t                  height,
+                             uint32_t                  pitch,
+                             void*                     buffer) :
+    context_(context)
+  {
+    if (context == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
+    }
+    else
+    {
+      image_ = OrthancPluginCreateImageAccessor(context, format, width, height, pitch, buffer);
+    }
+  }
 
   void OrthancImage::UncompressPngImage(const void* data,
                                         size_t size)
