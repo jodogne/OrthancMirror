@@ -79,7 +79,7 @@ namespace OrthancPlugins
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
 
-  class OrthancPluginImage;
+  class OrthancImage;
 
 
   class MemoryBuffer : public boost::noncopyable
@@ -361,7 +361,10 @@ namespace OrthancPlugins
     
     const void* GetBuffer();
 
-    const OrthancPluginImage* GetObject() const {return image_;}
+    const OrthancPluginImage* GetObject() const
+    {
+      return image_;
+    }
 
     void CompressPngImage(MemoryBuffer& target);
 

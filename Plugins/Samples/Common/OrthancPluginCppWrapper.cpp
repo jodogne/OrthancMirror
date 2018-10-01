@@ -231,9 +231,9 @@ namespace OrthancPlugins
     Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
   }
 
-  void MemoreyBuffer::CreateDicom(const Json::Value& tags,
-                   const OrthancPluginImage& pixelData,
-                   OrthancPluginCreateDicomFlags flags)
+  void MemoryBuffer::CreateDicom(const Json::Value& tags,
+                                 const OrthancImage& pixelData,
+                                 OrthancPluginCreateDicomFlags flags)
   {
     Clear();
 
