@@ -361,7 +361,10 @@ namespace OrthancPlugins
     
     const void* GetBuffer();
 
-    const OrthancPluginImage* GetObject() const {return image_;}
+    const OrthancPluginImage* GetObject() const
+    {
+      return image_;
+    }
 
     void CompressPngImage(MemoryBuffer& target);
 
