@@ -219,6 +219,7 @@ namespace Orthanc
         }
 
         case PixelFormat_RGBA32:
+        case PixelFormat_BGRA32:
         {
           assert(bpp == 4);
 
@@ -256,7 +257,8 @@ namespace Orthanc
   {
     if (target.GetFormat() != PixelFormat_Grayscale8 &&
         target.GetFormat() != PixelFormat_RGB24 &&
-        target.GetFormat() != PixelFormat_RGBA32)
+        target.GetFormat() != PixelFormat_RGBA32 &&
+        target.GetFormat() != PixelFormat_BGRA32)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -311,7 +313,25 @@ namespace Orthanc
                   uint8_t g,
                   uint8_t b) const
   {
-    uint8_t color[4] = { r, g, b, 255 };
+    uint8_t color[4];
+
+    switch (target.GetFormat())
+    {
+      case PixelFormat_BGRA32:
+        color[0] = b;
+        color[1] = g;
+        color[2] = r;
+        color[3] = 255;
+        break;
+
+      default:
+        color[0] = r;
+        color[1] = g;
+        color[2] = b;
+        color[3] = 255;
+        break;
+    }
+    
     DrawInternal(target, utf8, x, y, color);
   }
 
