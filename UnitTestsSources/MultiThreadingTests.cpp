@@ -61,6 +61,7 @@
 
 #include "../OrthancServer/ServerJobs/ArchiveJob.h"
 #include "../OrthancServer/ServerJobs/DicomModalityStoreJob.h"
+#include "../OrthancServer/ServerJobs/MergeStudyJob.h"
 #include "../OrthancServer/ServerJobs/OrthancPeerStoreJob.h"
 #include "../OrthancServer/ServerJobs/ResourceModificationJob.h"
 #include "../OrthancServer/ServerJobs/SplitStudyJob.h"
@@ -1561,19 +1562,31 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
   // SplitStudyJob
 
-  std::string id;
-  ASSERT_TRUE(CreateInstance(id));
+  std::string instance;
+  ASSERT_TRUE(CreateInstance(instance));
 
   std::string study, series;
 
   {
-    ServerContext::DicomCacheLocker lock(GetContext(), id);
+    ServerContext::DicomCacheLocker lock(GetContext(), instance);
     study = lock.GetDicom().GetHasher().HashStudy();
     series = lock.GetDicom().GetHasher().HashSeries();
   }
 
   {
-    std::string a, b, c;
+    std::list<std::string> tmp;
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Study);
+    ASSERT_EQ(1u, tmp.size());
+    ASSERT_EQ(study, tmp.front());
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Series);
+    ASSERT_EQ(1u, tmp.size());
+    ASSERT_EQ(series, tmp.front());
+  }
+
+  std::string study2;
+
+  {
+    std::string a, b;
 
     {
       ASSERT_THROW(SplitStudyJob(GetContext(), std::string("nope")), OrthancException);
@@ -1596,8 +1609,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
       ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
       ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
 
-      c = job.GetTargetStudy();
-      ASSERT_FALSE(c.empty());
+      study2 = job.GetTargetStudy();
+      ASSERT_FALSE(study2.empty());
 
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
       ASSERT_TRUE(job.Serialize(s));
@@ -1614,7 +1627,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
       ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
 
       std::string s;
-      ASSERT_EQ(c, tmp.GetTargetStudy());
+      ASSERT_EQ(study2, tmp.GetTargetStudy());
       ASSERT_FALSE(tmp.LookupTargetSeriesUid(s, "nope"));
       ASSERT_TRUE(tmp.LookupTargetSeriesUid(s, series));
       ASSERT_EQ(b, s);
@@ -1625,6 +1638,55 @@ TEST_F(OrthancJobsSerialization, Jobs)
       ASSERT_FALSE(tmp.IsRemoved(DICOM_TAG_PATIENT_NAME));
       ASSERT_TRUE(tmp.IsRemoved(DICOM_TAG_PATIENT_BIRTH_DATE));
     }
+  }
+
+  {
+    std::list<std::string> tmp;
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Study);
+    ASSERT_EQ(2u, tmp.size());
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Series);
+    ASSERT_EQ(2u, tmp.size());
+  }
+
+  // MergeStudyJob
+
+  {
+    ASSERT_THROW(SplitStudyJob(GetContext(), std::string("nope")), OrthancException);
+
+    MergeStudyJob job(GetContext(), study);
+    job.SetKeepSource(true);
+    job.AddSource(study2);
+    ASSERT_THROW(job.AddSourceSeries("nope"), OrthancException);
+    ASSERT_THROW(job.AddSourceStudy("nope"), OrthancException);
+    ASSERT_THROW(job.AddSource("nope"), OrthancException);
+    job.SetOrigin(DicomInstanceOrigin::FromLua());
+    
+    ASSERT_EQ(job.GetTargetStudy(), study);
+
+    job.Start();
+    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::list<std::string> tmp;
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Study);
+    ASSERT_EQ(2u, tmp.size());
+    GetContext().GetIndex().GetAllUuids(tmp, ResourceType_Series);
+    ASSERT_EQ(3u, tmp.size());
+  }
+
+  {
+    std::auto_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    MergeStudyJob& tmp = dynamic_cast<MergeStudyJob&>(*job);
+    ASSERT_TRUE(tmp.IsKeepSource());
+    ASSERT_EQ(study, tmp.GetTargetStudy());
+    ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
   }
 }
 

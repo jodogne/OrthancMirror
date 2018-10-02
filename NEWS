@@ -5,6 +5,7 @@ Pending changes in the mainline
 REST API
 --------
 
+* New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
 
 Maintenance
