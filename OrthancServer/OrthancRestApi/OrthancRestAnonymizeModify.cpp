@@ -38,6 +38,7 @@
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
+#include "../ServerJobs/MergeStudyJob.h"
 #include "../ServerJobs/ResourceModificationJob.h"
 #include "../ServerJobs/SplitStudyJob.h"
 
@@ -741,6 +742,47 @@ namespace Orthanc
   }
 
 
+  static void MergeStudy(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+    if (!call.ParseJsonRequest(request))
+    {
+      // Bad JSON request
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    const std::string study = call.GetUriComponent("id", "");
+    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
+
+    std::auto_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
+    job->SetOrigin(call);
+    job->SetDescription("REST API");
+
+    std::vector<std::string> resources;
+    SerializationToolbox::ReadArrayOfStrings(resources, request, "Resources");
+
+    for (size_t i = 0; i < resources.size(); i++)
+    {
+      job->AddSource(resources[i]);
+    }
+
+    static const char* KEEP_SOURCE = "KeepSource";
+    if (request.isMember(KEEP_SOURCE))
+    {
+      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
+    }
+
+    std::string id;
+    context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
+    
+    Json::Value v;
+    v["ID"] = id;
+    call.GetOutput().AnswerJson(v);
+  }
+  
+
   void OrthancRestApi::RegisterAnonymizeModify()
   {
     Register("/instances/{id}/modify", ModifyInstance);
@@ -756,5 +798,6 @@ namespace Orthanc
     Register("/tools/create-dicom", CreateDicom);
 
     Register("/studies/{id}/split", SplitStudy);
+    Register("/studies/{id}/merge", MergeStudy);
   }
 }

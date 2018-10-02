@@ -85,6 +85,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerJobs/ArchiveJob.cpp
   OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
   OrthancServer/ServerJobs/LuaJobManager.cpp
+  OrthancServer/ServerJobs/MergeStudyJob.cpp
   OrthancServer/ServerJobs/Operations/DeleteResourceOperation.cpp
   OrthancServer/ServerJobs/Operations/ModifyInstanceOperation.cpp
   OrthancServer/ServerJobs/Operations/StorePeerOperation.cpp
