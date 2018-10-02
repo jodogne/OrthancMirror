@@ -73,19 +73,22 @@ macro(DownloadPackage MD5 Url TargetDirectory)
       # user know."
       # https://code.google.com/p/orthanc/issues/detail?id=6
       if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
-	      message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
+	message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
       endif()
 
-      if (MD5)
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
-      else()
+      if ("${MD5}" STREQUAL "no-check")
+        message(WARNING "Not checking the MD5 of: ${Url}")
         file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60)
+      else()
+        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
       endif()
 
     else()
       message("Using local copy of ${Url}")
 
-      if (MD5)
+      if ("${MD5}" STREQUAL "no-check")
+        message(WARNING "Not checking the MD5 of: ${Url}")
+      else()
         file(MD5 ${TMP_PATH} ActualMD5)
         if (NOT "${ActualMD5}" STREQUAL "${MD5}")
           message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${TMP_PATH}")
