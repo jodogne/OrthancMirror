@@ -66,6 +66,10 @@ static const char* GetMimeType(const std::string& path)
   {
     return "application/xml";
   }
+  else if (extension == ".wasm")
+  {
+    return "application/wasm";
+  }
   else if (extension == ".png")
   {
     return "image/png";
