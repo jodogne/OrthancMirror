@@ -343,6 +343,8 @@ namespace Orthanc
         contentType = "application/json";
       else if (!strcmp(extension, "pdf"))
         contentType = "application/pdf";
+      else if (!strcmp(extension, "wasm"))
+        contentType = "application/wasm";
 
       // Images types
       else if (!strcmp(extension, "jpg") || !strcmp(extension, "jpeg"))
