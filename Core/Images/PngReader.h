@@ -48,7 +48,6 @@
 #include <vector>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
-#include <boost/noncopyable.hpp>
 
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
@@ -56,9 +55,7 @@
 
 namespace Orthanc
 {
-  class PngReader : 
-    public ImageAccessor, 
-    public boost::noncopyable
+  class PngReader : public ImageAccessor
   {
   private:
     struct PngRabi;

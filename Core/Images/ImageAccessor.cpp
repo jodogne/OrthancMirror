@@ -247,10 +247,11 @@ namespace Orthanc
 
 
 
-  ImageAccessor ImageAccessor::GetRegion(unsigned int x,
-                                         unsigned int y,
-                                         unsigned int width,
-                                         unsigned int height) const
+  void ImageAccessor::GetRegion(ImageAccessor& accessor,
+                                unsigned int x,
+                                unsigned int y,
+                                unsigned int width,
+                                unsigned int height) const
   {
     if (x + width > width_ ||
         y + height > height_)
@@ -258,12 +259,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    ImageAccessor result;
-
     if (width == 0 ||
         height == 0)
     {
-      result.AssignWritable(format_, 0, 0, 0, NULL);
+      accessor.AssignWritable(format_, 0, 0, 0, NULL);
     }
     else
     {
@@ -273,15 +272,13 @@ namespace Orthanc
 
       if (readOnly_)
       {
-        result.AssignReadOnly(format_, width, height, pitch_, p);
+        accessor.AssignReadOnly(format_, width, height, pitch_, p);
       }
       else
       {
-        result.AssignWritable(format_, width, height, pitch_, p);
+        accessor.AssignWritable(format_, width, height, pitch_, p);
       }
     }
-
-    return result;
   }
 
 

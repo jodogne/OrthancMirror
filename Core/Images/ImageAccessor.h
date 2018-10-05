@@ -37,10 +37,11 @@
 
 #include <string>
 #include <stdint.h>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ImageAccessor
+  class ImageAccessor : public boost::noncopyable
   {
   private:
     template <Orthanc::PixelFormat Format>
@@ -142,10 +143,11 @@ namespace Orthanc
 
     void ToMatlabString(std::string& target) const; 
 
-    ImageAccessor GetRegion(unsigned int x,
-                            unsigned int y,
-                            unsigned int width,
-                            unsigned int height) const;
+    void GetRegion(ImageAccessor& accessor,
+                   unsigned int x,
+                   unsigned int y,
+                   unsigned int width,
+                   unsigned int height) const;
 
     void SetFormat(PixelFormat format);
   };
