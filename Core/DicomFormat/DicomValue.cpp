@@ -35,6 +35,7 @@
 #include "DicomValue.h"
 
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
@@ -193,4 +194,65 @@ namespace Orthanc
       return true;
     }
   }    
+
+
+  static const char* KEY_TYPE = "Type";
+  static const char* KEY_CONTENT = "Content";
+  
+  void DicomValue::Serialize(Json::Value& target) const
+  {
+    target = Json::objectValue;
+
+    switch (type_)
+    {
+      case Type_Null:
+        target[KEY_TYPE] = "Null";
+        break;
+
+      case Type_String:
+        target[KEY_TYPE] = "String";
+        target[KEY_CONTENT] = content_;
+        break;
+
+      case Type_Binary:
+      {
+        target[KEY_TYPE] = "Binary";
+
+        std::string base64;
+        Toolbox::EncodeBase64(base64, content_);
+        target[KEY_CONTENT] = base64;
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+  void DicomValue::Unserialize(const Json::Value& source)
+  {
+    std::string type = SerializationToolbox::ReadString(source, KEY_TYPE);
+
+    if (type == "Null")
+    {
+      type_ = Type_Null;
+      content_.clear();
+    }
+    else if (type == "String")
+    {
+      type_ = Type_String;
+      content_ = SerializationToolbox::ReadString(source, KEY_CONTENT);
+    }
+    else if (type == "Binary")
+    {
+      type_ = Type_Binary;
+
+      const std::string base64 =SerializationToolbox::ReadString(source, KEY_CONTENT);
+      Toolbox::DecodeBase64(content_, base64);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
 }
