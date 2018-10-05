@@ -45,7 +45,9 @@ namespace Orthanc
                bool forceMinimalPitch) :
     image_(format, width, height, forceMinimalPitch)
   {
-    ImageAccessor accessor = image_.GetAccessor();
+    ImageAccessor accessor;
+    image_.GetWriteableAccessor(accessor);
+    
     AssignWritable(format, width, height, accessor.GetPitch(), accessor.GetBuffer());
   }
 

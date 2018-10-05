@@ -191,17 +191,20 @@ TEST(DicomModification, Png)
     img.SetHeight(256);
     img.SetFormat(PixelFormat_Grayscale16);
 
+    ImageAccessor accessor;
+    img.GetWriteableAccessor(accessor);
+    
     uint16_t v = 0;
     for (unsigned int y = 0; y < img.GetHeight(); y++)
     {
-      uint16_t *p = reinterpret_cast<uint16_t*>(img.GetAccessor().GetRow(y));
+      uint16_t *p = reinterpret_cast<uint16_t*>(accessor.GetRow(y));
       for (unsigned int x = 0; x < img.GetWidth(); x++, p++, v++)
       {
         *p = v;
       }
     }
 
-    o.EmbedImage(img.GetAccessor());
+    o.EmbedImage(accessor);
     o.SaveToFile("UnitTestsResults/png4.dcm");
   }
 }
@@ -866,9 +869,12 @@ TEST(TestImages, PatternGrayscale8)
     }
   }
 
-  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, 0); 
-  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageAccessor r;
+
+  image.GetRegion(r, 32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 0);
+  
+  image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 255); 
 
   {
@@ -982,9 +988,12 @@ TEST(TestImages, PatternUint16)
     }
   }
 
-  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, 0); 
-  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageAccessor r;
+  
+  image.GetRegion(r, 32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, 0);
+  
+  image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 65535); 
 
   {
@@ -1036,9 +1045,11 @@ TEST(TestImages, PatternInt16)
     }
   }
 
-  Orthanc::ImageAccessor r = image.GetRegion(32, 32, 64, 192);
-  Orthanc::ImageProcessing::Set(r, -32768); 
-  r = image.GetRegion(160, 32, 64, 192);
+  Orthanc::ImageAccessor r;
+  image.GetRegion(r, 32, 32, 64, 192);
+  Orthanc::ImageProcessing::Set(r, -32768);
+  
+  image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 32767); 
 
   {

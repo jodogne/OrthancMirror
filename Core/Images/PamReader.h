@@ -39,13 +39,9 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
-#include <boost/noncopyable.hpp>
-
 namespace Orthanc
 {
-  class PamReader :
-      public ImageAccessor,
-      public boost::noncopyable
+  class PamReader : public ImageAccessor
   {
   private:
     void ParseContent();

@@ -140,24 +140,18 @@ namespace Orthanc
     }
   }
 
-
-  ImageAccessor ImageBuffer::GetAccessor()
+  
+  void ImageBuffer::GetReadOnlyAccessor(ImageAccessor& accessor)
   {
     Allocate();
-
-    ImageAccessor accessor;
-    accessor.AssignWritable(format_, width_, height_, pitch_, buffer_);
-    return accessor;
-  }
-
-
-  ImageAccessor ImageBuffer::GetConstAccessor()
-  {
-    Allocate();
-
-    ImageAccessor accessor;
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
-    return accessor;
+  }
+  
+
+  void ImageBuffer::GetWriteableAccessor(ImageAccessor& accessor)
+  {
+    Allocate();
+    accessor.AssignWritable(format_, width_, height_, pitch_, buffer_);
   }
 
 
