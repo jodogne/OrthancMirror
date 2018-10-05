@@ -89,6 +89,17 @@ namespace Orthanc
 
     void Clear();
 
+    void SetNullValue(uint16_t group, 
+                      uint16_t element)
+    {
+      SetValue(group, element, new DicomValue);
+    }
+    
+    void SetNullValue(const DicomTag& tag)
+    {
+      SetValue(tag, new DicomValue);
+    }
+    
     void SetValue(uint16_t group, 
                   uint16_t element, 
                   const DicomValue& value)
@@ -198,12 +209,16 @@ namespace Orthanc
                                 const DicomTag& tag) const;
 
     bool ParseUnsignedInteger64(uint64_t& result,
-                                const DicomTag& tag) const;                                
+                                const DicomTag& tag) const;
 
     bool ParseFloat(float& result,
-                    const DicomTag& tag) const;                                
+                    const DicomTag& tag) const;
 
     bool ParseDouble(double& result,
-                     const DicomTag& tag) const;                                
+                     const DicomTag& tag) const;
+
+    void Serialize(Json::Value& target) const;
+
+    void Unserialize(const Json::Value& source);
   };
 }

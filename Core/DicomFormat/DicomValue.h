@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <string>
 #include <boost/noncopyable.hpp>
+#include <json/value.h>
 
 #if !defined(ORTHANC_ENABLE_BASE64)
 #  error The macro ORTHANC_ENABLE_BASE64 must be defined
@@ -108,6 +109,10 @@ namespace Orthanc
 
     bool ParseFloat(float& result) const;                                
 
-    bool ParseDouble(double& result) const;                                
+    bool ParseDouble(double& result) const;
+
+    void Serialize(Json::Value& target) const;
+
+    void Unserialize(const Json::Value& source);
   };
 }
