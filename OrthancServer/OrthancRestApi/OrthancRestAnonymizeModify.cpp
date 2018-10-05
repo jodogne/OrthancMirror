@@ -681,6 +681,8 @@ namespace Orthanc
       job->AddSourceSeries(series[i]);
     }
 
+    job->AddTrailingStep();
+
     static const char* KEEP_SOURCE = "KeepSource";
     if (request.isMember(KEEP_SOURCE))
     {
@@ -767,6 +769,8 @@ namespace Orthanc
     {
       job->AddSource(resources[i]);
     }
+
+    job->AddTrailingStep();
 
     static const char* KEEP_SOURCE = "KeepSource";
     if (request.isMember(KEEP_SOURCE))

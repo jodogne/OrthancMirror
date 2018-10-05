@@ -79,7 +79,6 @@ namespace Orthanc
 
   public:
     ResourceModificationJob(ServerContext& context) :
-      SetOfInstancesJob(false /* no trailing step */),
       context_(context),
       isAnonymization_(false)
     {

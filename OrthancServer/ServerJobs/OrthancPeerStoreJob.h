@@ -55,7 +55,6 @@ namespace Orthanc
 
   public:
     OrthancPeerStoreJob(ServerContext& context) :
-      SetOfInstancesJob(false /* no trailing step */),
       context_(context)
     {
     }
