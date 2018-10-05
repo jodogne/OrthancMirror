@@ -135,11 +135,18 @@ namespace Orthanc
                         unsigned int pitch,
                         const void *buffer);
 
+    void GetReadOnlyAccessor(ImageAccessor& target) const
+    {
+      target.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
+    }
+
     void AssignWritable(PixelFormat format,
                         unsigned int width,
                         unsigned int height,
                         unsigned int pitch,
                         void *buffer);
+
+    void GetWriteableAccessor(ImageAccessor& target) const;
 
     void ToMatlabString(std::string& target) const; 
 
