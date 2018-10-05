@@ -204,6 +204,19 @@ namespace Orthanc
   }
 
 
+  void ImageAccessor::GetWriteableAccessor(ImageAccessor& target) const
+  {
+    if (readOnly_)
+    {
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+    else
+    {
+      target.AssignWritable(format_, width_, height_, pitch_, buffer_);
+    }
+  }
+
+
   void ImageAccessor::ToMatlabString(std::string& target) const
   {
     ChunkedBuffer buffer;
