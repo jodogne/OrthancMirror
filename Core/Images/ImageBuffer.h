@@ -101,9 +101,9 @@ namespace Orthanc
       return ::Orthanc::GetBytesPerPixel(format_);
     }
 
-    ImageAccessor GetAccessor();
+    void GetReadOnlyAccessor(ImageAccessor& accessor);
 
-    ImageAccessor GetConstAccessor();
+    void GetWriteableAccessor(ImageAccessor& accessor);
 
     bool IsMinimalPitchForced() const
     {
