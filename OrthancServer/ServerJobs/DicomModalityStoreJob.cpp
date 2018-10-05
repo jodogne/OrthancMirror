@@ -92,7 +92,6 @@ namespace Orthanc
 
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context) :
-    SetOfInstancesJob(false /* no trailing step */),
     context_(context),
     localAet_("ORTHANC"),
     moveOriginatorId_(0)  // By default, not a C-MOVE

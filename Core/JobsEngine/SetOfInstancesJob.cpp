@@ -37,249 +37,204 @@
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
 
+#include <cassert>
+
 namespace Orthanc
 {
-  SetOfInstancesJob::SetOfInstancesJob(bool hasTrailingStep) :
-    hasTrailingStep_(hasTrailingStep),
-    started_(false),
-    permissive_(false),
-    position_(0)
+  class SetOfInstancesJob::InstanceCommand : public SetOfInstancesJob::ICommand
+  {
+  private:
+    SetOfInstancesJob& that_;
+    std::string        instance_;
+
+  public:
+    InstanceCommand(SetOfInstancesJob& that,
+                    const std::string& instance) :
+      that_(that),
+      instance_(instance)
+    {
+    }
+
+    const std::string& GetInstance() const
+    {
+      return instance_;
+    }
+      
+    virtual bool Execute()
+    {
+      if (!that_.HandleInstance(instance_))
+      {
+        that_.failedInstances_.insert(instance_);
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target = instance_;
+    }
+  };
+
+
+  class SetOfInstancesJob::TrailingStepCommand : public SetOfInstancesJob::ICommand
+  {
+  private:
+    SetOfInstancesJob& that_;
+
+  public:
+    TrailingStepCommand(SetOfInstancesJob& that) :
+      that_(that)
+    {
+    }       
+      
+    virtual bool Execute()
+    {
+      return that_.HandleTrailingStep();
+    }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target = Json::nullValue;
+    }
+  };
+
+
+  class SetOfInstancesJob::InstanceUnserializer :
+    public SetOfInstancesJob::ICommandUnserializer
+  {
+  private:
+    SetOfInstancesJob& that_;
+
+  public:
+    InstanceUnserializer(SetOfInstancesJob& that) :
+      that_(that)
+    {
+    }
+
+    virtual ICommand* Unserialize(const Json::Value& source) const
+    {
+      if (source.type() == Json::nullValue)
+      {
+        return new TrailingStepCommand(that_);
+      }
+      else if (source.type() == Json::stringValue)
+      {
+        return new InstanceCommand(that_, source.asString());
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+  };
+    
+
+  SetOfInstancesJob::SetOfInstancesJob() :
+    hasTrailingStep_(false)
   {
   }
 
     
-  void SetOfInstancesJob::Reserve(size_t size)
-  {
-    if (started_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      instances_.reserve(size);
-    }
-  }
-
-    
-  size_t SetOfInstancesJob::GetStepsCount() const
-  {
-    if (HasTrailingStep())
-    {
-      return instances_.size() + 1;
-    }
-    else
-    {
-      return instances_.size();
-    }
-  }
-  
-
   void SetOfInstancesJob::AddInstance(const std::string& instance)
   {
-    if (started_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      instances_.push_back(instance);
-    }
+    AddCommand(new InstanceCommand(*this, instance));
   }
 
 
-  void SetOfInstancesJob::SetPermissive(bool permissive)
+  void SetOfInstancesJob::AddTrailingStep()
   {
-    if (started_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      permissive_ = permissive;
-    }
+    AddCommand(new TrailingStepCommand(*this));
+    hasTrailingStep_ = true;
   }
-
-
-  void SetOfInstancesJob::Reset()
+  
+  
+  size_t SetOfInstancesJob::GetInstancesCount() const
   {
-    if (started_)
+    if (hasTrailingStep_)
     {
-      position_ = 0;
-      failedInstances_.clear();
+      assert(GetCommandsCount() > 0);
+      return GetCommandsCount() - 1;
     }
     else
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      return GetCommandsCount();
     }
   }
 
-    
-  float SetOfInstancesJob::GetProgress()
-  {
-    const size_t steps = GetStepsCount();
-    
-    if (steps == 0)
-    {
-      return 0;
-    }
-    else
-    {
-      return (static_cast<float>(position_) /
-              static_cast<float>(steps));
-    }
-  }
-
-
+  
   const std::string& SetOfInstancesJob::GetInstance(size_t index) const
   {
-    if (index >= instances_.size())
+    if (index >= GetInstancesCount())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {
-      return instances_[index];
-    }
-  }
-      
-
-  JobStepResult SetOfInstancesJob::Step()
-  {
-    if (!started_)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    
-    const size_t steps = GetStepsCount();
-
-    if (steps == 0 &&
-        position_ == 0)
-    {
-      // Nothing to handle (no instance, nor trailing step): We're done
-      position_ = 1;
-      return JobStepResult::Success();
-    }
-    
-    if (position_ >= steps)
-    {
-      // Already done
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    bool isTrailingStep = (hasTrailingStep_ &&
-                           position_ + 1 == steps);
-    
-    bool ok;
-      
-    try
-    {
-      if (isTrailingStep)
-      {
-        ok = HandleTrailingStep();
-      }
-      else
-      {
-        // Not at the trailing step: Handle the current instance
-        ok = HandleInstance(instances_[position_]);
-      }
-
-      if (!ok && !permissive_)
-      {
-        return JobStepResult::Failure(ErrorCode_InternalError);
-      }
-    }
-    catch (OrthancException&)
-    {
-      if (permissive_)
-      {
-        ok = false;
-      }
-      else
-      {
-        throw;
-      }
-    }
-
-    if (!ok &&
-        !isTrailingStep)
-    {
-      failedInstances_.insert(instances_[position_]);
-    }
-
-    position_ += 1;
-
-    if (position_ == steps)
-    {
-      // We're done
-      return JobStepResult::Success();
-    }
-    else
-    {
-      return JobStepResult::Continue();
+      return dynamic_cast<const InstanceCommand&>(GetCommand(index)).GetInstance();
     }
   }
 
 
-
-  static const char* KEY_DESCRIPTION = "Description";
-  static const char* KEY_PERMISSIVE = "Permissive";
-  static const char* KEY_POSITION = "Position";
-  static const char* KEY_TYPE = "Type";
-  static const char* KEY_INSTANCES = "Instances";
-  static const char* KEY_FAILED_INSTANCES = "FailedInstances";
-  static const char* KEY_TRAILING_STEP = "TrailingStep";
-
-  
-  void SetOfInstancesJob::GetPublicContent(Json::Value& value)
+  void SetOfInstancesJob::Start()
   {
-    value[KEY_DESCRIPTION] = GetDescription();
-    value["InstancesCount"] = static_cast<uint32_t>(instances_.size());
-    value["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
+    SetOfCommandsJob::Start();    
+  }
+
+
+  void SetOfInstancesJob::Reset()
+  {
+    SetOfCommandsJob::Reset();
+
+    failedInstances_.clear();
+  }
+
+
+  void SetOfInstancesJob::GetPublicContent(Json::Value& target)
+  {
+    SetOfCommandsJob::GetPublicContent(target);
+    target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
+    target["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
   }    
 
 
-  bool SetOfInstancesJob::Serialize(Json::Value& value)
+
+  static const char* KEY_TRAILING_STEP = "TrailingStep";
+  static const char* KEY_FAILED_INSTANCES = "FailedInstances";
+
+  bool SetOfInstancesJob::Serialize(Json::Value& target) 
   {
-    value = Json::objectValue;
-
-    std::string type;
-    GetJobType(type);
-    value[KEY_TYPE] = type;
-    
-    value[KEY_PERMISSIVE] = permissive_;
-    value[KEY_POSITION] = static_cast<unsigned int>(position_);
-    value[KEY_DESCRIPTION] = description_;
-    value[KEY_TRAILING_STEP] = hasTrailingStep_;
-
-    SerializationToolbox::WriteArrayOfStrings(value, instances_, KEY_INSTANCES);
-    SerializationToolbox::WriteSetOfStrings(value, failedInstances_, KEY_FAILED_INSTANCES);
-
-    return true;
-  }
-
-
-  SetOfInstancesJob::SetOfInstancesJob(const Json::Value& value) :
-    started_(false),
-    permissive_(SerializationToolbox::ReadBoolean(value, KEY_PERMISSIVE)),
-    position_(SerializationToolbox::ReadUnsignedInteger(value, KEY_POSITION)),
-    description_(SerializationToolbox::ReadString(value, KEY_DESCRIPTION))
-  {
-    SerializationToolbox::ReadArrayOfStrings(instances_, value, KEY_INSTANCES);
-    SerializationToolbox::ReadSetOfStrings(failedInstances_, value, KEY_FAILED_INSTANCES);
-
-    if (value.isMember(KEY_TRAILING_STEP))
+    if (SetOfCommandsJob::Serialize(target))
     {
-      hasTrailingStep_ = SerializationToolbox::ReadBoolean(value, KEY_TRAILING_STEP);
+      target[KEY_TRAILING_STEP] = hasTrailingStep_;
+      SerializationToolbox::WriteSetOfStrings(target, failedInstances_, KEY_FAILED_INSTANCES);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  SetOfInstancesJob::SetOfInstancesJob(const Json::Value& source) :
+    SetOfCommandsJob(new InstanceUnserializer(*this), source)
+  {
+    SerializationToolbox::ReadSetOfStrings(failedInstances_, source, KEY_FAILED_INSTANCES);
+
+    if (source.isMember(KEY_TRAILING_STEP))
+    {
+      hasTrailingStep_ = SerializationToolbox::ReadBoolean(source, KEY_TRAILING_STEP);
     }
     else
     {
       // Backward compatibility with Orthanc <= 1.4.2
       hasTrailingStep_ = false;
     }
-
-    if (position_ > GetStepsCount() + 1)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
   }
+  
+
 }

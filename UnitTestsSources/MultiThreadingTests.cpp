@@ -178,8 +178,7 @@ namespace
     }
 
   public:
-    DummyInstancesJob(bool hasTrailingStep) :
-      SetOfInstancesJob(hasTrailingStep),
+    DummyInstancesJob() :
       trailingStepDone_(false)
     {
     }
@@ -189,7 +188,7 @@ namespace
     {
       if (HasTrailingStep())
       {
-        trailingStepDone_ = (GetPosition() == GetStepsCount());
+        trailingStepDone_ = (GetPosition() == GetCommandsCount());
       }
       else
       {
@@ -861,7 +860,7 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
               job.HasTrailingStep() == unserialized->HasTrailingStep() &&
               job.GetPosition() == unserialized->GetPosition() &&
               job.GetInstancesCount() == unserialized->GetInstancesCount() &&
-              job.GetStepsCount() == unserialized->GetStepsCount());
+              job.GetCommandsCount() == unserialized->GetCommandsCount());
     }
     else
     {
@@ -1027,7 +1026,7 @@ TEST(JobsSerialization, GenericJobs)
   // This tests SetOfInstancesJob
   
   {
-    DummyInstancesJob job(false);
+    DummyInstancesJob job;
     job.SetDescription("description");
     job.AddInstance("hello");
     job.AddInstance("nope");
@@ -1605,6 +1604,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
       a = job.GetTargetStudyUid();
       ASSERT_TRUE(job.LookupTargetSeriesUid(b, series));
 
+      job.AddTrailingStep();
       job.Start();
       ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
       ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
@@ -1663,6 +1663,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     
     ASSERT_EQ(job.GetTargetStudy(), study);
 
+    job.AddTrailingStep();
     job.Start();
     ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
     ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
@@ -1719,8 +1720,8 @@ TEST(JobsSerialization, TrailingStep)
   {
     Json::Value s;
     
-    DummyInstancesJob job(false);
-    ASSERT_EQ(0, job.GetStepsCount());
+    DummyInstancesJob job;
+    ASSERT_EQ(0, job.GetCommandsCount());
     ASSERT_EQ(0, job.GetInstancesCount());
 
     job.Start();
@@ -1748,10 +1749,10 @@ TEST(JobsSerialization, TrailingStep)
   {
     Json::Value s;
     
-    DummyInstancesJob job(false);
+    DummyInstancesJob job;
     job.AddInstance("hello");
     job.AddInstance("world");
-    ASSERT_EQ(2, job.GetStepsCount());
+    ASSERT_EQ(2, job.GetCommandsCount());
     ASSERT_EQ(2, job.GetInstancesCount());
 
     job.Start();
@@ -1788,11 +1789,14 @@ TEST(JobsSerialization, TrailingStep)
   {
     Json::Value s;
     
-    DummyInstancesJob job(true);
-    ASSERT_EQ(1, job.GetStepsCount());
+    DummyInstancesJob job;
     ASSERT_EQ(0, job.GetInstancesCount());
+    ASSERT_EQ(0, job.GetCommandsCount());
+    job.AddTrailingStep();
+    ASSERT_EQ(0, job.GetInstancesCount());
+    ASSERT_EQ(1, job.GetCommandsCount());
 
-    job.Start();
+    job.Start(); // This adds the trailing step
     ASSERT_EQ(0, job.GetPosition());
     ASSERT_TRUE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
@@ -1817,12 +1821,16 @@ TEST(JobsSerialization, TrailingStep)
   {
     Json::Value s;
     
-    DummyInstancesJob job(true);
+    DummyInstancesJob job;
     job.AddInstance("hello");
-    ASSERT_EQ(2, job.GetStepsCount());
     ASSERT_EQ(1, job.GetInstancesCount());
-
+    ASSERT_EQ(1, job.GetCommandsCount());
+    job.AddTrailingStep();
+    ASSERT_EQ(1, job.GetInstancesCount());
+    ASSERT_EQ(2, job.GetCommandsCount());
+    
     job.Start();
+    ASSERT_EQ(2, job.GetCommandsCount());
     ASSERT_EQ(0, job.GetPosition());
     ASSERT_TRUE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());

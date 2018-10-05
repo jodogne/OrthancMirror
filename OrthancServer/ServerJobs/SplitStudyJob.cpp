@@ -161,7 +161,6 @@ namespace Orthanc
   
   SplitStudyJob::SplitStudyJob(ServerContext& context,
                                const std::string& sourceStudy) :
-    SetOfInstancesJob(true /* with trailing step */),
     context_(context),
     keepSource_(false),
     sourceStudy_(sourceStudy),
