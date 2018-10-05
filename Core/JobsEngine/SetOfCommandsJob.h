@@ -34,64 +34,102 @@
 #pragma once
 
 #include "IJob.h"
-#include "SetOfCommandsJob.h"
 
 #include <set>
 
 namespace Orthanc
 {
-  class SetOfInstancesJob : public SetOfCommandsJob
+  class SetOfCommandsJob : public IJob
   {
-  private:
-    class InstanceCommand;
-    class TrailingStepCommand;
-    class InstanceUnserializer;
+  public:
+    class ICommand : public boost::noncopyable
+    {
+    public:
+      virtual ~ICommand()
+      {
+      }
+
+      virtual bool Execute() = 0;
+
+      virtual void Serialize(Json::Value& target) const = 0;
+    };
+
+    class ICommandUnserializer : public boost::noncopyable
+    {
+    public:
+      virtual ~ICommandUnserializer()
+      {
+      }
+      
+      virtual ICommand* Unserialize(const Json::Value& source) const = 0;
+    };
     
-    bool                   hasTrailingStep_;
-    std::set<std::string>  failedInstances_;
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance) = 0;
-
-    virtual bool HandleTrailingStep() = 0;
-
-    // Hiding this method, use AddInstance() instead
-    using SetOfCommandsJob::AddCommand;
+  private:
+    bool                    started_;
+    std::vector<ICommand*>  commands_;
+    bool                    permissive_;
+    size_t                  position_;
+    std::string             description_;
 
   public:
-    SetOfInstancesJob();
+    SetOfCommandsJob();
 
-    SetOfInstancesJob(const Json::Value& source);  // Unserialization
+    SetOfCommandsJob(ICommandUnserializer* unserializer  /* takes ownership */,
+                     const Json::Value& source);
 
-    void AddInstance(const std::string& instance);
+    virtual ~SetOfCommandsJob();
 
-    void AddTrailingStep(); 
-
-    size_t GetInstancesCount() const;
-    
-    const std::string& GetInstance(size_t index) const;
-
-    bool HasTrailingStep() const
+    size_t GetPosition() const
     {
-      return hasTrailingStep_;
+      return position_;
     }
 
-    const std::set<std::string>& GetFailedInstances() const
+    void SetDescription(const std::string& description)
     {
-      return failedInstances_;
+      description_ = description;
     }
 
-    bool IsFailedInstance(const std::string& instance) const
+    const std::string& GetDescription() const
     {
-      return failedInstances_.find(instance) != failedInstances_.end();
+      return description_;
     }
 
-    virtual void Start();
+    void Reserve(size_t size);
+
+    size_t GetCommandsCount() const
+    {
+      return commands_.size();
+    }
+
+    void AddCommand(ICommand* command);  // Takes ownership
+
+    bool IsPermissive() const
+    {
+      return permissive_;
+    }
+
+    void SetPermissive(bool permissive);
 
     virtual void Reset();
+    
+    virtual void Start()
+    {
+      started_ = true;
+    }
+    
+    virtual float GetProgress();
 
-    virtual void GetPublicContent(Json::Value& target);
+    bool IsStarted() const
+    {
+      return started_;
+    }
 
+    const ICommand& GetCommand(size_t index) const;
+      
+    virtual JobStepResult Step();
+    
+    virtual void GetPublicContent(Json::Value& value);
+    
     virtual bool Serialize(Json::Value& target);
   };
 }
