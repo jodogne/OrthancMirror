@@ -369,3 +369,43 @@ TEST(DicomMap, Parse)
   ASSERT_DOUBLE_EQ(-2147483649.0, d); 
   ASSERT_EQ(-2147483649ll, j);
 }
+
+
+TEST(DicomMap, Serialize)
+{
+  Json::Value s;
+  
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_PATIENT_NAME, "Hello", false);
+    m.SetValue(DICOM_TAG_STUDY_DESCRIPTION, "Binary", true);
+    m.SetNullValue(DICOM_TAG_SERIES_DESCRIPTION);
+    m.Serialize(s);
+  }
+
+  {
+    DicomMap m;
+    m.Unserialize(s);
+
+    const DicomValue* v = m.TestAndGetValue(DICOM_TAG_ACCESSION_NUMBER);
+    ASSERT_TRUE(v == NULL);
+
+    v = m.TestAndGetValue(DICOM_TAG_PATIENT_NAME);
+    ASSERT_TRUE(v != NULL);
+    ASSERT_FALSE(v->IsNull());
+    ASSERT_FALSE(v->IsBinary());
+    ASSERT_EQ("Hello", v->GetContent());
+
+    v = m.TestAndGetValue(DICOM_TAG_STUDY_DESCRIPTION);
+    ASSERT_TRUE(v != NULL);
+    ASSERT_FALSE(v->IsNull());
+    ASSERT_TRUE(v->IsBinary());
+    ASSERT_EQ("Binary", v->GetContent());
+
+    v = m.TestAndGetValue(DICOM_TAG_SERIES_DESCRIPTION);
+    ASSERT_TRUE(v != NULL);
+    ASSERT_TRUE(v->IsNull());
+    ASSERT_FALSE(v->IsBinary());
+    ASSERT_THROW(v->GetContent(), OrthancException);
+  }
+}
