@@ -179,12 +179,11 @@ namespace Orthanc
   }
 
 
-
-
   void DicomMap::Clear()
   {
     for (Map::iterator it = map_.begin(); it != map_.end(); ++it)
     {
+      assert(it->second != NULL);
       delete it->second;
     }
 
@@ -979,6 +978,53 @@ namespace Orthanc
     else
     {
       return value->ParseDouble(result);
+    }
+  }
+
+  
+  void DicomMap::Serialize(Json::Value& target) const
+  {
+    target = Json::objectValue;
+
+    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      
+      std::string tag = it->first.Format();
+
+      Json::Value value;
+      it->second->Serialize(value);
+
+      target[tag] = value;
+    }
+  }
+  
+
+  void DicomMap::Unserialize(const Json::Value& source)
+  {
+    Clear();
+
+    if (source.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value::Members tags = source.getMemberNames();
+
+    for (size_t i = 0; i < tags.size(); i++)
+    {
+      DicomTag tag(0, 0);
+      
+      if (!DicomTag::ParseHexadecimal(tag, tags[i].c_str()) ||
+          map_.find(tag) != map_.end())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      std::auto_ptr<DicomValue> value(new DicomValue);
+      value->Unserialize(source[tags[i]]);
+
+      map_[tag] = value.release();
     }
   }
 }
