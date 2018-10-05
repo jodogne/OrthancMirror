@@ -167,6 +167,7 @@ if (ENABLE_MODULE_JOBS)
     ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+    ${ORTHANC_ROOT}/Core/JobsEngine/SetOfCommandsJob.cpp
     ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
     )
 endif()
