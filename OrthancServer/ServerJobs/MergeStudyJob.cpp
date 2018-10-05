@@ -170,7 +170,6 @@ namespace Orthanc
   
   MergeStudyJob::MergeStudyJob(ServerContext& context,
                                const std::string& targetStudy) :
-    SetOfInstancesJob(true /* with trailing step */),
     context_(context),
     keepSource_(false),
     targetStudy_(targetStudy)
