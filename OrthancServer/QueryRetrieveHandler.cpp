@@ -138,7 +138,7 @@ namespace Orthanc
   }
 
 
-  size_t QueryRetrieveHandler::GetAnswerCount()
+  size_t QueryRetrieveHandler::GetAnswersCount()
   {
     Run();
     return answers_.GetSize();
@@ -150,37 +150,5 @@ namespace Orthanc
   {
     Run();
     answers_.GetAnswer(i).ExtractDicomSummary(target);
-  }
-
-
-  void QueryRetrieveHandler::RetrieveInternal(DicomUserConnection& connection,
-                                              const std::string& target,
-                                              size_t i)
-  {
-    DicomMap map;
-    GetAnswer(map, i);
-    connection.Move(target, map);
-  }
-
-
-  void QueryRetrieveHandler::Retrieve(const std::string& target,
-                                      size_t i)
-  {
-    DicomUserConnection connection(localAet_, modality_);
-    connection.Open();
-    
-    RetrieveInternal(connection, target, i);
-  }
-
-
-  void QueryRetrieveHandler::Retrieve(const std::string& target)
-  {
-    DicomUserConnection connection(localAet_, modality_);
-    connection.Open();
-        
-    for (size_t i = 0; i < GetAnswerCount(); i++)
-    {
-      RetrieveInternal(connection, target, i);
-    }
   }
 }

@@ -78,7 +78,9 @@ namespace Orthanc
 
     job->SetDescription("REST API");
 
-    if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), 0 /* TODO priority */))
+    Json::Value publicContent;
+    if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+        (publicContent, job.release(), 0 /* TODO priority */))
     {
       // The archive is now created: Prepare the sending of the ZIP file
       FilesystemHttpSender sender(tmp->GetPath());

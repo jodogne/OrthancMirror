@@ -164,7 +164,9 @@ namespace Orthanc
 
     context.AddChildInstances(*job, call.GetUriComponent("id", ""));
     
-    if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), priority))
+    Json::Value publicContent;
+    if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+        (publicContent, job.release(), priority))
     {
       Json::Value json;
       if (output->Format(json))

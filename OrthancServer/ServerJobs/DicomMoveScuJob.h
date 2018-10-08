@@ -33,64 +33,72 @@
 
 #pragma once
 
-#include "ServerContext.h"
+#include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#include "../../Core/DicomNetworking/DicomUserConnection.h"
+
+#include "../QueryRetrieveHandler.h"
+#include "../ServerContext.h"
 
 namespace Orthanc
 {
-  class QueryRetrieveHandler : public IDynamicObject
+  class DicomMoveScuJob : public SetOfCommandsJob
   {
   private:
-    ServerContext&             context_;
-    std::string                localAet_;
-    bool                       done_;
-    RemoteModalityParameters   modality_;
-    ResourceType               level_;
-    DicomMap                   query_;
-    DicomFindAnswers           answers_;
-    std::string                modalityName_;
+    class Command;
+    class Unserializer;
+    
+    ServerContext&                      context_;
+    std::string                         localAet_;
+    std::string                         targetAet_;
+    RemoteModalityParameters            remote_;
+    std::auto_ptr<DicomUserConnection>  connection_;
 
-    void Invalidate();
-
+    void Retrieve(const DicomMap& findAnswer);
+    
   public:
-    QueryRetrieveHandler(ServerContext& context);
-
-    void SetModality(const std::string& symbolicName);
-
-    const RemoteModalityParameters& GetRemoteModality() const
+    DicomMoveScuJob(ServerContext& context) :
+      context_(context)
     {
-      return modality_;
     }
 
+    DicomMoveScuJob(ServerContext& context,
+                    const Json::Value& serialized);
+
+    void AddFindAnswer(const DicomMap& answer);
+    
+    void AddFindAnswer(QueryRetrieveHandler& query,
+                       size_t i);
+    
     const std::string& GetLocalAet() const
     {
       return localAet_;
     }
 
-    const std::string& GetModalitySymbolicName() const
+    void SetLocalAet(const std::string& aet);
+
+    const std::string& GetTargetAet() const
     {
-      return modalityName_;
+      return targetAet_;
     }
 
-    void SetLevel(ResourceType level);
+    void SetTargetAet(const std::string& aet);
 
-    ResourceType GetLevel() const
+    const RemoteModalityParameters& GetRemoteModality() const
     {
-      return level_;
+      return remote_;
     }
 
-    void SetQuery(const DicomTag& tag,
-                  const std::string& value);
+    void SetRemoteModality(const RemoteModalityParameters& remote);
 
-    const DicomMap& GetQuery() const
+    virtual void Stop(JobStopReason reason);
+
+    virtual void GetJobType(std::string& target)
     {
-      return query_;
+      target = "DicomMoveScu";
     }
 
-    void Run();
+    virtual void GetPublicContent(Json::Value& value);
 
-    size_t GetAnswersCount();
-
-    void GetAnswer(DicomMap& target,
-                   size_t i);
+    virtual bool Serialize(Json::Value& target);
   };
 }
