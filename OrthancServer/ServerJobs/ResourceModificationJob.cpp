@@ -39,88 +39,100 @@
 
 namespace Orthanc
 {
-  ResourceModificationJob::Output::Output(ResourceType  level) :
-    level_(level),
-    isFirst_(true)
+  class ResourceModificationJob::Output : public boost::noncopyable
   {
-    if (level_ != ResourceType_Patient &&
-        level_ != ResourceType_Study &&
-        level_ != ResourceType_Series)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }            
-  }
+  private:
+    ResourceType  level_;
+    bool          isFirst_;
+    std::string   id_;
+    std::string   patientId_;
 
-
-  void ResourceModificationJob::Output::Update(DicomInstanceHasher& hasher)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-        
-    if (isFirst_)
+  public:
+    Output(ResourceType level) :
+      level_(level),
+      isFirst_(true)
     {
-      switch (level_)
+      if (level_ != ResourceType_Patient &&
+          level_ != ResourceType_Study &&
+          level_ != ResourceType_Series)
       {
-        case ResourceType_Series:
-          id_ = hasher.HashSeries();
-          break;
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }            
+    }
 
-        case ResourceType_Study:
-          id_ = hasher.HashStudy();
-          break;
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
+    
 
-        case ResourceType_Patient:
-          id_ = hasher.HashPatient();
-          break;
+    void Update(DicomInstanceHasher& hasher)
+    {
+      if (isFirst_)
+      {
+        switch (level_)
+        {
+          case ResourceType_Series:
+            id_ = hasher.HashSeries();
+            break;
 
-        default:
-          throw OrthancException(ErrorCode_InternalError);
+          case ResourceType_Study:
+            id_ = hasher.HashStudy();
+            break;
+
+          case ResourceType_Patient:
+            id_ = hasher.HashPatient();
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        patientId_ = hasher.HashPatient();
+        isFirst_ = false;
       }
-
-      patientId_ = hasher.HashPatient();
-      isFirst_ = false;
     }
-  }
 
 
-  bool ResourceModificationJob::Output::Format(Json::Value& target)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-        
-    if (isFirst_)
+    bool Format(Json::Value& target)
     {
-      return false;
+      if (isFirst_)
+      {
+        return false;
+      }
+      else
+      {
+        target = Json::objectValue;
+        target["Type"] = EnumerationToString(level_);
+        target["ID"] = id_;
+        target["Path"] = GetBasePath(level_, id_);
+        target["PatientID"] = patientId_;
+        return true;
+      }
     }
-    else
-    {
-      target = Json::objectValue;
-      target["Type"] = EnumerationToString(level_);
-      target["ID"] = id_;
-      target["Path"] = GetBasePath(level_, id_);
-      target["PatientID"] = patientId_;
-      return true;
-    }
-  }
 
   
-  bool ResourceModificationJob::Output::GetIdentifier(std::string& id)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-        
-    if (isFirst_)
+    bool GetIdentifier(std::string& id)
     {
-      return false;
+      if (isFirst_)
+      {
+        return false;
+      }
+      else
+      {
+        id = id_;
+        return true;
+      }
     }
-    else
-    {
-      id = id_;
-      return true;
-    }
-  }
+  };
+    
+
 
 
   bool ResourceModificationJob::HandleInstance(const std::string& instance)
   {
-    if (modification_.get() == NULL)
+    if (modification_.get() == NULL ||
+        output_.get() == NULL)
     {
       LOG(ERROR) << "No modification was provided for this job";
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -204,14 +216,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_CannotStoreInstance);
     }
 
-    // Sanity checks in debug mode
     assert(modifiedInstance == modifiedHasher.HashInstance());
 
-
-    if (output_.get() != NULL)
-    {
-      output_->Update(modifiedHasher);
-    }
+    output_->Update(modifiedHasher);
 
     return true;
   }
@@ -224,6 +231,7 @@ namespace Orthanc
 
 
   void ResourceModificationJob::SetModification(DicomModification* modification,
+                                                ResourceType level,
                                                 bool isAnonymization)
   {
     if (modification == NULL)
@@ -237,24 +245,12 @@ namespace Orthanc
     else
     {
       modification_.reset(modification);
+      output_.reset(new Output(level));
       isAnonymization_ = isAnonymization;
     }
   }
 
 
-  void ResourceModificationJob::SetOutput(boost::shared_ptr<Output>& output)
-  {
-    if (IsStarted())
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      output_ = output;
-    }
-  }
-
-  
   void ResourceModificationJob::SetOrigin(const DicomInstanceOrigin& origin)
   {
     if (IsStarted())
@@ -292,6 +288,11 @@ namespace Orthanc
     SetOfInstancesJob::GetPublicContent(value);
 
     value["IsAnonymization"] = isAnonymization_;
+
+    if (output_.get() != NULL)
+    {
+      output_->Format(value);
+    }
   }
 
 

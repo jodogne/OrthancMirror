@@ -57,39 +57,14 @@ namespace Orthanc
   }
 
 
-  static int GetPriority(const Json::Value& request)
-  {
-    static const char* PRIORITY = "Priority";
-    
-    if (request.isMember(PRIORITY))
-    {
-      if (request[PRIORITY].type() == Json::intValue)
-      {
-        return request[PRIORITY].asInt();
-      }
-      else
-      {
-        LOG(ERROR) << "Field \"" << PRIORITY << "\" of a modification request should be an integer";
-        throw OrthancException(ErrorCode_BadFileFormat);        
-      }
-    }
-    else
-    {
-      return 0;   // Default priority
-    }
-  }
-
-
-  static void ParseModifyRequest(DicomModification& target,
-                                 int& priority,
+  static void ParseModifyRequest(Json::Value& request,
+                                 DicomModification& target,
                                  const RestApiPostCall& call)
   {
     // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"},"Priority":9}'
 
-    Json::Value request;
     if (call.ParseJsonRequest(request))
     {
-      priority = GetPriority(request);
       target.ParseModifyRequest(request);
     }
     else
@@ -99,18 +74,15 @@ namespace Orthanc
   }
 
 
-  static void ParseAnonymizationRequest(DicomModification& target,
-                                        int& priority,
+  static void ParseAnonymizationRequest(Json::Value& request,
+                                        DicomModification& target,
                                         RestApiPostCall& call)
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
 
-    Json::Value request;
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
-      priority = GetPriority(request);
-
       bool patientNameReplaced;
       target.ParseAnonymizationRequest(patientNameReplaced, request);
 
@@ -145,49 +117,13 @@ namespace Orthanc
   }
 
 
-
-  static void SubmitJob(std::auto_ptr<DicomModification>& modification,
-                        bool isAnonymization,
-                        ResourceType level,
-                        int priority,
-                        RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    std::auto_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
-    
-    boost::shared_ptr<ResourceModificationJob::Output> output(new ResourceModificationJob::Output(level));
-    job->SetModification(modification.release(), isAnonymization);
-    job->SetOutput(output);
-    job->SetOrigin(call);
-    job->SetDescription("REST API");
-
-    context.AddChildInstances(*job, call.GetUriComponent("id", ""));
-    
-    Json::Value publicContent;
-    if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-        (publicContent, job.release(), priority))
-    {
-      Json::Value json;
-      if (output->Format(json))
-      {
-        call.GetOutput().AnswerJson(json);
-        return;
-      }
-    }
-
-    call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-  }
-
-
-
   static void ModifyInstance(RestApiPostCall& call)
   {
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    int priority;
-    ParseModifyRequest(modification, priority, call);
+    Json::Value request;
+    ParseModifyRequest(request, modification, call);
 
     if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
     {
@@ -215,10 +151,30 @@ namespace Orthanc
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
-    int priority;
-    ParseAnonymizationRequest(modification, priority, call);
+    Json::Value request;
+    ParseAnonymizationRequest(request, modification, call);
 
     AnonymizeOrModifyInstance(modification, call);
+  }
+
+
+  static void SubmitModificationJob(std::auto_ptr<DicomModification>& modification,
+                                    bool isAnonymization,
+                                    RestApiPostCall& call,
+                                    const Json::Value& body,
+                                    ResourceType level)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::auto_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    
+    job->SetModification(modification.release(), level, isAnonymization);
+    job->SetOrigin(call);
+    
+    context.AddChildInstances(*job, call.GetUriComponent("id", ""));
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, body);
   }
 
 
@@ -227,11 +183,13 @@ namespace Orthanc
   {
     std::auto_ptr<DicomModification> modification(new DicomModification);
 
-    int priority;
-    ParseModifyRequest(*modification, priority, call);
+    Json::Value body;
+    ParseModifyRequest(body, *modification, call);
 
     modification->SetLevel(resourceType);
-    SubmitJob(modification, false, resourceType, priority, call);
+
+    SubmitModificationJob(modification, false /* not an anonymization */,
+                          call, body, resourceType);
   }
 
 
@@ -240,10 +198,11 @@ namespace Orthanc
   {
     std::auto_ptr<DicomModification> modification(new DicomModification);
 
-    int priority;
-    ParseAnonymizationRequest(*modification, priority, call);
+    Json::Value body;
+    ParseAnonymizationRequest(body, *modification, call);
 
-    SubmitJob(modification, true, resourceType, priority, call);
+    SubmitModificationJob(modification, true /* anonymization */,
+                          call, body, resourceType);
   }
 
 

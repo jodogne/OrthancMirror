@@ -40,32 +40,9 @@ namespace Orthanc
 {
   class ResourceModificationJob : public SetOfInstancesJob
   {
-  public:
-    class Output : public boost::noncopyable
-    {
-    private:
-      boost::mutex  mutex_;
-      ResourceType  level_;
-      bool          isFirst_;
-      std::string   id_;
-      std::string   patientId_;
-
-    public:
-      Output(ResourceType  level);
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-
-      void Update(DicomInstanceHasher& hasher);
-
-      bool Format(Json::Value& target);
-
-      bool GetIdentifier(std::string& id);
-    };
-    
   private:
+    class Output;
+    
     ServerContext&                    context_;
     std::auto_ptr<DicomModification>  modification_;
     boost::shared_ptr<Output>         output_;
@@ -88,9 +65,8 @@ namespace Orthanc
                             const Json::Value& serialized);
 
     void SetModification(DicomModification* modification,   // Takes ownership
+                         ResourceType level,
                          bool isAnonymization);
-
-    void SetOutput(boost::shared_ptr<Output>& output);
 
     void SetOrigin(const DicomInstanceOrigin& origin);
 
