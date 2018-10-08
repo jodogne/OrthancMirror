@@ -721,50 +721,6 @@ namespace Orthanc
   }
 
 
-  static void SubmitJob(RestApiPostCall& call,
-                        const Json::Value& request,
-                        SetOfInstancesJob* jobRaw)
-  {
-    std::auto_ptr<SetOfInstancesJob> job(jobRaw);
-    
-    if (job.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-    
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    bool permissive = Toolbox::GetJsonBooleanField(request, "Permissive", false);
-    bool asynchronous = Toolbox::GetJsonBooleanField(request, "Asynchronous", false);
-    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
-
-    job->SetPermissive(permissive);
-    
-    Json::Value publicContent;
-
-    if (asynchronous)
-    {
-      // Asynchronous mode: Submit the job, but don't wait for its completion
-      std::string id;
-      context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
-
-      Json::Value v;
-      v["ID"] = id;
-      call.GetOutput().AnswerJson(v);
-    }
-    else if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-             (publicContent, job.release(), priority))
-    {
-      // Synchronous mode: We have submitted and waited for completion
-      call.GetOutput().AnswerBuffer("{}", "application/json");
-    }
-    else
-    {
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-    }
-  }
-
-
   static void DicomStore(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -783,18 +739,16 @@ namespace Orthanc
       int moveOriginatorID = Toolbox::GetJsonIntegerField
         (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
-      RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
-
-      job->SetDescription("REST API");
       job->SetLocalAet(localAet);
-      job->SetRemoteModality(p);
+      job->SetRemoteModality(Configuration::GetModalityUsingSymbolicName(remote));
 
       if (moveOriginatorID != 0)
       {
         job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
       }
 
-      SubmitJob(call, request, job.release());
+      OrthancRestApi::GetApi(call).SubmitCommandsJob
+        (call, job.release(), true /* synchronous by default */, request);
     }
   }
 
@@ -925,9 +879,9 @@ namespace Orthanc
       WebServiceParameters peer;
       if (Configuration::GetOrthancPeer(peer, remote))
       {
-        job->SetDescription("REST API");
         job->SetPeer(peer);    
-        SubmitJob(call, request, job.release());
+        OrthancRestApi::GetApi(call).SubmitCommandsJob
+          (call, job.release(), true /* synchronous by default */, request);
       }
       else
       {

@@ -1548,7 +1548,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     modification->SetupAnonymization(DicomVersion_2008);    
 
     ResourceModificationJob job(GetContext());
-    job.SetModification(modification.release(), true);
+    job.SetModification(modification.release(), ResourceType_Patient, true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
     
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
