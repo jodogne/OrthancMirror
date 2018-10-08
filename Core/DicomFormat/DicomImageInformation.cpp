@@ -45,6 +45,7 @@
 #include <limits>
 #include <cassert>
 #include <stdio.h>
+#include <memory>
 
 namespace Orthanc
 {
@@ -213,6 +214,23 @@ namespace Orthanc
     isSigned_ = (pixelRepresentation != 0 ? true : false);
   }
 
+  DicomImageInformation* DicomImageInformation::Clone() const
+  {
+    std::auto_ptr<DicomImageInformation> target(new DicomImageInformation);
+    target->width_ = width_;
+    target->height_ = height_;
+    target->samplesPerPixel_ = samplesPerPixel_;
+    target->numberOfFrames_ = numberOfFrames_;
+    target->isPlanar_ = isPlanar_;
+    target->isSigned_ = isSigned_;
+    target->bytesPerValue_ = bytesPerValue_;
+    target->bitsAllocated_ = bitsAllocated_;
+    target->bitsStored_ = bitsStored_;
+    target->highBit_ = highBit_;
+    target->photometric_ = photometric_;
+
+    return target.release();
+  }
 
   bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format,
                                                  bool ignorePhotometricInterpretation) const
