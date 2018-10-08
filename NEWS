@@ -11,6 +11,7 @@ REST API
 Maintenance
 -----------
 
+* Executing a query/retrieve from the REST API now creates a job
 * Fix: Closing DICOM associations after running query/retrieve from REST API
 
 

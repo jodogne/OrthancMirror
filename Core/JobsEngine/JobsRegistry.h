@@ -161,7 +161,8 @@ namespace Orthanc
     void Submit(IJob* job,        // Takes ownership
                 int priority);
 
-    bool SubmitAndWait(IJob* job,        // Takes ownership
+    bool SubmitAndWait(Json::Value& successContent,
+                       IJob* job,        // Takes ownership
                        int priority);
     
     bool SetPriority(const std::string& id,

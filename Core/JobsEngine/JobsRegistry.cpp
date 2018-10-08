@@ -685,22 +685,53 @@ namespace Orthanc
   }
 
 
-  bool JobsRegistry::SubmitAndWait(IJob* job,        // Takes ownership
+  bool JobsRegistry::SubmitAndWait(Json::Value& successContent,
+                                   IJob* job,        // Takes ownership
                                    int priority)
   {
     std::string id;
     Submit(id, job, priority);
 
-    JobState state = JobState_Pending;
+    JobState state = JobState_Pending;  // Dummy initialization
 
     {
       boost::mutex::scoped_lock lock(mutex_);
 
-      while (GetStateInternal(state, id) &&
-             state != JobState_Success &&
-             state != JobState_Failure)
+      for (;;)
       {
-        someJobComplete_.wait(lock);
+        if (!GetStateInternal(state, id))
+        {
+          // Job has finished and has been lost (should not happen)
+          state = JobState_Failure;
+          break;
+        }
+        else if (state == JobState_Failure)
+        {
+          // Failure
+          break;
+        }
+        else if (state == JobState_Success)
+        {
+          // Success, try and retrieve the status of the job
+          JobsIndex::const_iterator it = jobsIndex_.find(id);
+          if (it == jobsIndex_.end())
+          {
+            // Should not happen
+            state = JobState_Failure;
+          }
+          else
+          {
+            const JobStatus& status = it->second->GetLastStatus();
+            successContent = status.GetPublicContent();
+          }
+          
+          break;
+        }
+        else
+        {
+          // This job has not finished yet, wait for new completion
+          someJobComplete_.wait(lock);
+        }
       }
     }
 

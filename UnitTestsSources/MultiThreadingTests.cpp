@@ -716,8 +716,14 @@ TEST(JobsEngine, SubmitAndWait)
   engine.SetWorkersCount(3);
   engine.Start();
 
-  ASSERT_TRUE(engine.GetRegistry().SubmitAndWait(new DummyJob(), rand() % 10));
-  ASSERT_FALSE(engine.GetRegistry().SubmitAndWait(new DummyJob(true), rand() % 10));
+  Json::Value content = Json::nullValue;
+  ASSERT_TRUE(engine.GetRegistry().SubmitAndWait(content, new DummyJob(), rand() % 10));
+  ASSERT_EQ(Json::objectValue, content.type());
+  ASSERT_EQ("world", content["hello"].asString());
+
+  content = Json::nullValue;
+  ASSERT_FALSE(engine.GetRegistry().SubmitAndWait(content, new DummyJob(true), rand() % 10));
+  ASSERT_EQ(Json::nullValue, content.type());
 
   engine.Stop();
 }

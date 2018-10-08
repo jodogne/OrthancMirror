@@ -36,9 +36,11 @@
 
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../OrthancInitialization.h"
 #include "../QueryRetrieveHandler.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
+#include "../ServerJobs/DicomMoveScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
 
@@ -470,9 +472,9 @@ namespace Orthanc
       {
       }                     
 
-      QueryRetrieveHandler* operator->()
+      QueryRetrieveHandler& GetHandler() const
       {
-        return &handler_;
+        return handler_;
       }
     };
 
@@ -490,7 +492,7 @@ namespace Orthanc
   static void ListQueryAnswers(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    size_t count = query->GetAnswerCount();
+    size_t count = query.GetHandler().GetAnswersCount();
 
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < count; i++)
@@ -509,62 +511,92 @@ namespace Orthanc
     QueryAccessor query(call);
 
     DicomMap map;
-    query->GetAnswer(map, index);
+    query.GetHandler().GetAnswer(map, index);
 
     AnswerDicomMap(call, map, call.HasArgument("simplify"));
   }
 
 
+  static void SubmitRetrieveJob(RestApiPostCall& call,
+                                bool allAnswers,
+                                size_t index)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string targetAet;
+    
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
+    {
+      targetAet = SerializationToolbox::ReadString(body, "TargetAet");
+    }
+    else
+    {
+      body = Json::objectValue;
+      call.BodyToString(targetAet);
+    }
+    
+    std::auto_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
+    
+    {
+      QueryAccessor query(call);
+      job->SetTargetAet(targetAet);
+      job->SetLocalAet(query.GetHandler().GetLocalAet());
+      job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+
+      LOG(WARNING) << "Driving C-Move SCU on remote modality "
+                   << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
+                   << " to target modality " << targetAet;
+
+      if (allAnswers)
+      {
+        for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
+        {
+          job->AddFindAnswer(query.GetHandler(), i);
+        }
+      }
+      else
+      {
+        job->AddFindAnswer(query.GetHandler(), index);
+      }
+    }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, body);
+  }
+  
+
   static void RetrieveOneAnswer(RestApiPostCall& call)
   {
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
-
-    std::string modality;
-    call.BodyToString(modality);
-
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
-
-    QueryAccessor query(call);
-    query->Retrieve(modality, index);
-
-    // Retrieve has succeeded
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    SubmitRetrieveJob(call, false, index);
   }
 
 
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
-    std::string modality;
-    call.BodyToString(modality);
-
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
-
-    QueryAccessor query(call);
-    query->Retrieve(modality);
-
-    // Retrieve has succeeded
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    SubmitRetrieveJob(call, true, 0);
   }
 
 
   static void GetQueryArguments(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    AnswerDicomMap(call, query->GetQuery(), call.HasArgument("simplify"));
+    AnswerDicomMap(call, query.GetHandler().GetQuery(), call.HasArgument("simplify"));
   }
 
 
   static void GetQueryLevel(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(EnumerationToString(query->GetLevel()), "text/plain");
+    call.GetOutput().AnswerBuffer(EnumerationToString(query.GetHandler().GetLevel()), "text/plain");
   }
 
 
   static void GetQueryModality(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(query->GetModalitySymbolicName(), "text/plain");
+    call.GetOutput().AnswerBuffer(query.GetHandler().GetModalitySymbolicName(), "text/plain");
   }
 
 
@@ -594,7 +626,7 @@ namespace Orthanc
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
 
     DicomMap map;
-    query->GetAnswer(map, index);
+    query.GetHandler().GetAnswer(map, index);
 
     RestApi::AutoListChildren(call);
   }
@@ -708,6 +740,8 @@ namespace Orthanc
 
     job->SetPermissive(permissive);
     
+    Json::Value publicContent;
+
     if (asynchronous)
     {
       // Asynchronous mode: Submit the job, but don't wait for its completion
@@ -718,7 +752,8 @@ namespace Orthanc
       v["ID"] = id;
       call.GetOutput().AnswerJson(v);
     }
-    else if (context.GetJobsEngine().GetRegistry().SubmitAndWait(job.release(), priority))
+    else if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+             (publicContent, job.release(), priority))
     {
       // Synchronous mode: We have submitted and waited for completion
       call.GetOutput().AnswerBuffer("{}", "application/json");

@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/JobsEngine/SetOfCommandsJob.h"
 #include "../../Core/RestApi/RestApi.h"
 #include "../../Core/DicomParsing/DicomModification.h"
 #include "../ServerEnumerations.h"
@@ -96,5 +97,14 @@ namespace Orthanc
                               const std::string& publicId,
                               ResourceType resourceType,
                               StoreStatus status) const;
+
+    void SubmitCommandsJob(RestApiPostCall& call,
+                           SetOfCommandsJob* job,
+                           bool isDefaultSynchronous,
+                           const Json::Value& body) const;
+
+    void SubmitCommandsJob(RestApiPostCall& call,
+                           SetOfCommandsJob* job,
+                           bool isDefaultSynchronous) const;
   };
 }
