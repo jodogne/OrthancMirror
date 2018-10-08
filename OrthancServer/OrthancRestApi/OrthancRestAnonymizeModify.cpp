@@ -628,11 +628,9 @@ namespace Orthanc
     }
 
     const std::string study = call.GetUriComponent("id", "");
-    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
     std::auto_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
     job->SetOrigin(call);
-    job->SetDescription("REST API");
 
     std::vector<std::string> series;
     SerializationToolbox::ReadArrayOfStrings(series, request, "Series");
@@ -696,12 +694,8 @@ namespace Orthanc
       }
     }
 
-    std::string id;
-    context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
-    
-    Json::Value v;
-    v["ID"] = id;
-    call.GetOutput().AnswerJson(v);
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
   }
 
 
@@ -717,11 +711,9 @@ namespace Orthanc
     }
 
     const std::string study = call.GetUriComponent("id", "");
-    int priority = Toolbox::GetJsonIntegerField(request, "Priority", 0);
 
     std::auto_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
     job->SetOrigin(call);
-    job->SetDescription("REST API");
 
     std::vector<std::string> resources;
     SerializationToolbox::ReadArrayOfStrings(resources, request, "Resources");
@@ -739,12 +731,8 @@ namespace Orthanc
       job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
     }
 
-    std::string id;
-    context.GetJobsEngine().GetRegistry().Submit(id, job.release(), priority);
-    
-    Json::Value v;
-    v["ID"] = id;
-    call.GetOutput().AnswerJson(v);
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
   }
   
 
