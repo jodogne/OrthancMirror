@@ -39,6 +39,7 @@
 #include "../SerializationToolbox.h"
 
 #include <cassert>
+#include <memory>
 
 namespace Orthanc
 {
