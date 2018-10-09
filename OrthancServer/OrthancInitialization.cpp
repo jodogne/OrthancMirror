@@ -599,7 +599,7 @@ namespace Orthanc
 
     try
     {
-      modality.FromJson(modalities[name]);
+      modality.Unserialize(modalities[name]);
     }
     catch (OrthancException&)
     {
@@ -917,7 +917,7 @@ namespace Orthanc
       modalities.removeMember(symbolicName);
 
       Json::Value v;
-      modality.ToJson(v);
+      modality.Serialize(v, true /* force advanced format */);
       modalities[symbolicName] = v;
     }
 
