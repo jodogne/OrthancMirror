@@ -7,6 +7,12 @@ General
 
 * Possibility to restrict the allowed DICOM commands for each modality
 
+Orthanc Explorer
+----------------
+
+* The first screen of Orthanc Explorer is now a form to do studies lookups
+* Support of large databases, by limiting the results to 100 patients or studies
+
 REST API
 --------
 
