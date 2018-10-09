@@ -1334,9 +1334,10 @@ namespace Orthanc
                                  request["Query"][members[i]].asString(),
                                  caseSensitive);
       }
-      
+
+      bool isComplete;
       std::list<std::string> resources;
-      context.Apply(resources, query, since, limit);
+      context.Apply(isComplete, resources, query, since, limit);
       AnswerListOfResources(call.GetOutput(), context.GetIndex(),
                             resources, query.GetLevel(), expand);
     }
