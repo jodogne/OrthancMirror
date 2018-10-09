@@ -766,12 +766,14 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(std::list<std::string>& result,
+  void ServerContext::Apply(bool& isComplete, 
+                            std::list<std::string>& result,
                             const ::Orthanc::LookupResource& lookup,
                             size_t since,
                             size_t limit)
   {
     result.clear();
+    isComplete = true;
 
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
@@ -781,6 +783,8 @@ namespace Orthanc
     size_t skipped = 0;
     for (size_t i = 0; i < instances.size(); i++)
     {
+      // TODO - Don't read the full JSON from the disk if only "main
+      // DICOM tags" are to be returned
       Json::Value dicom;
       ReadDicomAsJson(dicom, instances[i]);
       
@@ -793,6 +797,7 @@ namespace Orthanc
         else if (limit != 0 &&
                  result.size() >= limit)
         {
+          isComplete = false;
           return;  // too many results
         }
         else

@@ -588,7 +588,7 @@ namespace Orthanc
      * Build up the query object.
      **/
 
-    LookupResource finder(level);
+    LookupResource lookup(level);
 
     const bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
 
@@ -623,7 +623,7 @@ namespace Orthanc
           sensitive = caseSensitivePN;
         }
 
-        finder.AddDicomConstraint(tag, value, sensitive);
+        lookup.AddDicomConstraint(tag, value, sensitive);
       }
       else
       {
@@ -637,10 +637,12 @@ namespace Orthanc
      * Run the query.
      **/
 
-    size_t maxResults = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
+    size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
+    // TODO - Use ServerContext::Apply() at this point, in order to
+    // share the code with the "/tools/find" REST URI
     std::vector<std::string> resources, instances;
-    context_.GetIndex().FindCandidates(resources, instances, finder);
+    context_.GetIndex().FindCandidates(resources, instances, lookup);
 
     LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
 
@@ -654,10 +656,10 @@ namespace Orthanc
       Json::Value dicom;
       context_.ReadDicomAsJson(dicom, instances[i]);
       
-      if (finder.IsMatch(dicom))
+      if (lookup.IsMatch(dicom))
       {
-        if (maxResults != 0 &&
-            answers.GetSize() >= maxResults)
+        if (limit != 0 &&
+            answers.GetSize() >= limit)
         {
           complete = false;
           break;
