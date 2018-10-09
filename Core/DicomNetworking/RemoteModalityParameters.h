@@ -44,17 +44,27 @@ namespace Orthanc
   class RemoteModalityParameters
   {
   private:
-    std::string aet_;
-    std::string host_;
-    uint16_t port_;
-    ModalityManufacturer manufacturer_;
+    std::string           aet_;
+    std::string           host_;
+    uint16_t              port_;
+    ModalityManufacturer  manufacturer_;
+    bool                  allowEcho_;
+    bool                  allowStore_;
+    bool                  allowFind_;
+    bool                  allowMove_;
+    bool                  allowGet_;
+
+    void Clear();
 
     void UnserializeArray(const Json::Value& serialized);
 
     void UnserializeObject(const Json::Value& serialized);
 
   public:
-    RemoteModalityParameters();
+    RemoteModalityParameters()
+    {
+      Clear();
+    }
 
     RemoteModalityParameters(const Json::Value& serialized)
     {
@@ -91,10 +101,7 @@ namespace Orthanc
       return port_;
     }
 
-    void SetPortNumber(uint16_t port)
-    {
-      port_ = port;
-    }
+    void SetPortNumber(uint16_t port);
 
     ModalityManufacturer GetManufacturer() const
     {
@@ -110,6 +117,11 @@ namespace Orthanc
     {
       manufacturer_ = StringToModalityManufacturer(manufacturer);
     }
+
+    bool IsRequestAllowed(DicomRequestType type) const;
+
+    void SetRequestAllowed(DicomRequestType type,
+                           bool allowed);
 
     void Unserialize(const Json::Value& modality);
 

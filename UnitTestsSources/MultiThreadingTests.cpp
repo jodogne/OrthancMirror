@@ -1875,6 +1875,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
 
   {
     RemoteModalityParameters modality;
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     modality.Serialize(s, false);
     ASSERT_EQ(Json::arrayValue, s.type());
   }
@@ -1885,6 +1886,11 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ("127.0.0.1", modality.GetHost());
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_Generic, modality.GetManufacturer());
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
   }
 
   s = Json::nullValue;
@@ -1892,6 +1898,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
   {
     RemoteModalityParameters modality;
     ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
+    ASSERT_THROW(modality.SetPortNumber(0), OrthancException);
+    ASSERT_THROW(modality.SetPortNumber(65535), OrthancException);
     modality.SetApplicationEntityTitle("HELLO");
     modality.SetHost("world");
     modality.SetPortNumber(45);
@@ -1906,6 +1914,11 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ("world", modality.GetHost());
     ASSERT_EQ(45u, modality.GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_Dcm4Chee, modality.GetManufacturer());
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
   }
 
   s["Port"] = "46";
@@ -1913,5 +1926,46 @@ TEST(JobsSerialization, RemoteModalityParameters)
   {
     RemoteModalityParameters modality(s);
     ASSERT_EQ(46u, modality.GetPortNumber());
+  }
+
+  s["Port"] = -1;     ASSERT_THROW(RemoteModalityParameters m(s), OrthancException);
+  s["Port"] = 65535;  ASSERT_THROW(RemoteModalityParameters m(s), OrthancException);
+  s["Port"] = "nope"; ASSERT_THROW(RemoteModalityParameters m(s), OrthancException);
+
+  std::set<DicomRequestType> operations;
+  operations.insert(DicomRequestType_Echo);
+  operations.insert(DicomRequestType_Find);
+  operations.insert(DicomRequestType_Get);
+  operations.insert(DicomRequestType_Move);
+  operations.insert(DicomRequestType_Store);
+
+  ASSERT_EQ(5u, operations.size());
+
+  for (std::set<DicomRequestType>::const_iterator 
+         it = operations.begin(); it != operations.end(); ++it)
+  {
+    {
+      RemoteModalityParameters modality;
+      modality.SetRequestAllowed(*it, false);
+      ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+
+      modality.Serialize(s, false);
+      ASSERT_EQ(Json::objectValue, s.type());
+    }
+
+    {
+      RemoteModalityParameters modality(s);
+
+      ASSERT_FALSE(modality.IsRequestAllowed(*it));
+
+      for (std::set<DicomRequestType>::const_iterator 
+             it2 = operations.begin(); it2 != operations.end(); ++it2)
+      {
+        if (*it2 != *it)
+        {
+          ASSERT_TRUE(modality.IsRequestAllowed(*it2));
+        }
+      }
+    }
   }
 }

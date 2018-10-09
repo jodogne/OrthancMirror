@@ -212,13 +212,18 @@ public:
       // Incoming C-Store requests are always accepted, even from unknown AET
       return true;
     }
-    else if (!Configuration::IsKnownAETitle(remoteAet, remoteIp))
-    {
-      return false;
-    }
     else
     {
-      return true;
+      RemoteModalityParameters modality;
+    
+      if (Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
+      {
+        return modality.IsRequestAllowed(type);
+      }
+      else
+      {
+        return false;
+      }
     }
   }
 
