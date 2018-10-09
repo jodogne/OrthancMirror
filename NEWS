@@ -2,6 +2,11 @@ Pending changes in the mainline
 ===============================
 
 
+General
+-------
+
+* Possibility to restrict the allowed DICOM commands for each modality
+
 REST API
 --------
 

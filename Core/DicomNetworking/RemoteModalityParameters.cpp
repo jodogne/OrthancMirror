@@ -43,30 +43,53 @@
 
 
 static const char* KEY_AET = "AET";
+static const char* KEY_ALLOW_ECHO = "AllowEcho";
+static const char* KEY_ALLOW_FIND = "AllowFind";
+static const char* KEY_ALLOW_GET = "AllowGet";
+static const char* KEY_ALLOW_MOVE = "AllowMove";
+static const char* KEY_ALLOW_STORE = "AllowStore";
+static const char* KEY_HOST = "Host";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
-static const char* KEY_HOST = "Host";
 
 
 namespace Orthanc
 {
-  RemoteModalityParameters::RemoteModalityParameters() :
-    aet_("ORTHANC"),
-    host_("127.0.0.1"),
-    port_(104),
-    manufacturer_(ModalityManufacturer_Generic)
+  void RemoteModalityParameters::Clear()
   {
+    aet_ = "ORTHANC";
+    host_ = "127.0.0.1";
+    port_ = 104;
+    manufacturer_ = ModalityManufacturer_Generic;
+    allowEcho_ = true;
+    allowStore_ = true;
+    allowFind_ = true;
+    allowMove_ = true;
+    allowGet_ = true;
   }
+
 
   RemoteModalityParameters::RemoteModalityParameters(const std::string& aet,
                                                      const std::string& host,
                                                      uint16_t port,
                                                      ModalityManufacturer manufacturer)
   {
+    Clear();
     SetApplicationEntityTitle(aet);
     SetHost(host);
     SetPortNumber(port);
     SetManufacturer(manufacturer);
+  }
+
+
+  static void CheckPortNumber(int value)
+  {
+    if (value <= 0 || 
+        value >= 65535)
+    {
+      LOG(ERROR) << "A TCP port number must be in range [1..65534], but found: " << value;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
@@ -96,15 +119,15 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    if (tmp <= 0 || tmp >= 65535)
-    {
-      LOG(ERROR) << "A TCP port number must be in range [1..65534], but found: " << tmp;
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-    else
-    {
-      return static_cast<uint16_t>(tmp);
-    }
+    CheckPortNumber(tmp);
+    return static_cast<uint16_t>(tmp);
+  }
+
+
+  void RemoteModalityParameters::SetPortNumber(uint16_t port)
+  {
+    CheckPortNumber(port);
+    port_ = port;
   }
 
 
@@ -162,12 +185,97 @@ namespace Orthanc
     {
       manufacturer_ = ModalityManufacturer_Generic;
     }
+
+    if (serialized.isMember(KEY_ALLOW_ECHO))
+    {
+      allowEcho_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_ECHO);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_FIND))
+    {
+      allowFind_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_FIND);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_STORE))
+    {
+      allowStore_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_STORE);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_GET))
+    {
+      allowGet_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_GET);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_MOVE))
+    {
+      allowMove_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_MOVE);
+    }
+  }
+
+
+  bool RemoteModalityParameters::IsRequestAllowed(DicomRequestType type) const
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        return allowEcho_;
+
+      case DicomRequestType_Find:
+        return allowFind_;
+
+      case DicomRequestType_Get:
+        return allowGet_;
+
+      case DicomRequestType_Move:
+        return allowMove_;
+
+      case DicomRequestType_Store:
+        return allowStore_;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void RemoteModalityParameters::SetRequestAllowed(DicomRequestType type,
+                                                   bool allowed)
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        allowEcho_ = allowed;
+        break;
+
+      case DicomRequestType_Find:
+        allowFind_ = allowed;
+        break;
+
+      case DicomRequestType_Get:
+        allowGet_ = allowed;
+        break;
+
+      case DicomRequestType_Move:
+        allowMove_ = allowed;
+        break;
+
+      case DicomRequestType_Store:
+        allowStore_ = allowed;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
   bool RemoteModalityParameters::IsAdvancedFormatNeeded() const
   {
-    return false; // TODO
+    return (!allowEcho_ ||
+            !allowStore_ ||
+            !allowFind_ ||
+            !allowGet_ ||
+            !allowMove_);
   }
 
   
@@ -182,6 +290,11 @@ namespace Orthanc
       target[KEY_HOST] = host_;
       target[KEY_PORT] = port_;
       target[KEY_MANUFACTURER] = EnumerationToString(manufacturer_);
+      target[KEY_ALLOW_ECHO] = allowEcho_;
+      target[KEY_ALLOW_STORE] = allowStore_;
+      target[KEY_ALLOW_FIND] = allowFind_;
+      target[KEY_ALLOW_GET] = allowGet_;
+      target[KEY_ALLOW_MOVE] = allowMove_;
     }
     else
     {
@@ -196,6 +309,8 @@ namespace Orthanc
   
   void RemoteModalityParameters::Unserialize(const Json::Value& serialized)
   {
+    Clear();
+
     switch (serialized.type())
     {
       case Json::objectValue:
