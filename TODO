@@ -18,8 +18,6 @@ General
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
-* Option to overwrite and reindex on duplicated instance identifier
-  (i.e. replace older DICOM instance by new one on identical SOPInstanceUID)
 
 
 ============
@@ -48,10 +46,6 @@ Short-term
 
 * Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series)
-* In the POST /instances, add a ?force=true query arguments to force Orthanc to replace 
-  the uploaded file even if it already exists in Orthanc.  This is useful when transcoding
-  an image outside Orthanc and reuploading it.  Since it has the same ids, its Orthanc ID
-  will be the same as the previous one.
 * In the /studies/{id}/anonymize route, add an option to remove secondary captures.
   They usually contains Patient info in the image.  The SOPClassUID might be used to
   identify such secondary captures.
@@ -106,11 +100,8 @@ SDK
 Ideas of plugins
 ----------------
 
-* Complex anonymization, with recursive mapping of UIDs
-  https://bitbucket.org/sjodogne/orthanc/issues/46/
 * DICOM-RT primitives (RT-STRUCT, RT-PLAN, RT-DOSE)
 * Converter to/from NIfTI
-* MySQL database plugin
 * Decode JPEG2k with grok: https://github.com/GrokImageCompression/grok
 * Generate dynamic HTTP content using Lua:
   https://groups.google.com/d/msg/orthanc-users/KompazkxRSs/5Rh03mzgDAAJ
