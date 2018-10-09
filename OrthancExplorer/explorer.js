@@ -411,8 +411,6 @@ $('#lookup-submit').live('click', function() {
     } 
   });
 
-  console.log(lookup);
-
   $.ajax({
     url: '../tools/find',
     type: 'POST', 
@@ -423,7 +421,6 @@ $('#lookup-submit').live('click', function() {
       alert('Error during lookup');
     },
     success: function(studies) {
-      console.log(studies);
       FormatListOfStudies('#lookup-result ul', '#lookup-alert', '#lookup-count', studies);
       $('#lookup-result').show();
     }
