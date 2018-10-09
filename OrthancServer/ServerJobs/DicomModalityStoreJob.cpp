@@ -219,7 +219,7 @@ namespace Orthanc
     else
     {
       target[LOCAL_AET] = localAet_;
-      remote_.Serialize(target[REMOTE]);
+      remote_.Serialize(target[REMOTE], true /* force advanced format */);
       target[MOVE_ORIGINATOR_AET] = moveOriginatorAet_;
       target[MOVE_ORIGINATOR_ID] = moveOriginatorId_;
       return true;

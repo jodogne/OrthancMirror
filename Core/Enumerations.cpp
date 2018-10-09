@@ -1434,6 +1434,7 @@ namespace Orthanc
     }
     else
     {
+      LOG(ERROR) << "Unknown modality manufacturer: \"" << manufacturer << "\"";
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 

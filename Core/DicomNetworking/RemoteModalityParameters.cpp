@@ -41,6 +41,13 @@
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>
 
+
+static const char* KEY_AET = "AET";
+static const char* KEY_MANUFACTURER = "Manufacturer";
+static const char* KEY_PORT = "Port";
+static const char* KEY_HOST = "Host";
+
+
 namespace Orthanc
 {
   RemoteModalityParameters::RemoteModalityParameters() :
@@ -63,89 +70,144 @@ namespace Orthanc
   }
 
 
-  void RemoteModalityParameters::FromJson(const Json::Value& modality)
+  static uint16_t ReadPortNumber(const Json::Value& value)
   {
-    if (!modality.isArray() ||
-        (modality.size() != 3 && modality.size() != 4))
+    int tmp;
+
+    switch (value.type())
+    {
+      case Json::intValue:
+      case Json::uintValue:
+        tmp = value.asInt();
+        break;
+
+      case Json::stringValue:
+        try
+        {
+          tmp = boost::lexical_cast<int>(value.asString());
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (tmp <= 0 || tmp >= 65535)
+    {
+      LOG(ERROR) << "A TCP port number must be in range [1..65534], but found: " << tmp;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return static_cast<uint16_t>(tmp);
+    }
+  }
+
+
+  void RemoteModalityParameters::UnserializeArray(const Json::Value& serialized)
+  {
+    assert(serialized.type() == Json::arrayValue);
+
+    if ((serialized.size() != 3 && 
+         serialized.size() != 4) ||
+        serialized[0].type() != Json::stringValue ||
+        serialized[1].type() != Json::stringValue ||
+        (serialized.size() == 4 &&
+         serialized[3].type() != Json::stringValue))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    SetApplicationEntityTitle(modality.get(0u, "").asString());
-    SetHost(modality.get(1u, "").asString());
+    aet_ = serialized[0].asString();
+    host_ = serialized[1].asString();
+    port_ = ReadPortNumber(serialized[2]);
 
-    const Json::Value& portValue = modality.get(2u, "");
-    try
+    if (serialized.size() == 4)
     {
-      int tmp = portValue.asInt();
-
-      if (tmp <= 0 || tmp >= 65535)
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-
-      SetPortNumber(static_cast<uint16_t>(tmp));
-    }
-    catch (std::runtime_error& /* error inside JsonCpp */)
-    {
-      try
-      {
-        SetPortNumber(boost::lexical_cast<uint16_t>(portValue.asString()));
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-    }
-
-    if (modality.size() == 4)
-    {
-      const std::string& manufacturer = modality.get(3u, "").asString();
-
-      try
-      {
-        SetManufacturer(manufacturer);
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Unknown modality manufacturer: \"" << manufacturer << "\"";
-        throw;
-      }
+      manufacturer_ = StringToModalityManufacturer(serialized[3].asString());
     }
     else
     {
-      SetManufacturer(ModalityManufacturer_Generic);
+      manufacturer_ = ModalityManufacturer_Generic;
     }
   }
 
   
-  void RemoteModalityParameters::ToJson(Json::Value& value) const
+  void RemoteModalityParameters::UnserializeObject(const Json::Value& serialized)
   {
-    value = Json::arrayValue;
-    value.append(GetApplicationEntityTitle());
-    value.append(GetHost());
-    value.append(GetPortNumber());
-    value.append(EnumerationToString(GetManufacturer()));
+    assert(serialized.type() == Json::objectValue);
+
+    aet_ = SerializationToolbox::ReadString(serialized, KEY_AET);
+    host_ = SerializationToolbox::ReadString(serialized, KEY_HOST);
+
+    if (serialized.isMember(KEY_PORT))
+    {
+      port_ = ReadPortNumber(serialized[KEY_PORT]);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    if (serialized.isMember(KEY_MANUFACTURER))
+    {
+      manufacturer_ = StringToModalityManufacturer
+        (SerializationToolbox::ReadString(serialized, KEY_MANUFACTURER));
+    }   
+    else
+    {
+      manufacturer_ = ModalityManufacturer_Generic;
+    }
+  }
+
+
+  bool RemoteModalityParameters::IsAdvancedFormatNeeded() const
+  {
+    return false; // TODO
   }
 
   
-  void RemoteModalityParameters::Serialize(Json::Value& target) const
+  void RemoteModalityParameters::Serialize(Json::Value& target,
+                                           bool forceAdvancedFormat) const
   {
-    target = Json::objectValue;
-    target["AET"] = aet_;
-    target["Host"] = host_;
-    target["Port"] = port_;
-    target["Manufacturer"] = EnumerationToString(manufacturer_);
+    if (forceAdvancedFormat ||
+        IsAdvancedFormatNeeded())
+    {
+      target = Json::objectValue;
+      target[KEY_AET] = aet_;
+      target[KEY_HOST] = host_;
+      target[KEY_PORT] = port_;
+      target[KEY_MANUFACTURER] = EnumerationToString(manufacturer_);
+    }
+    else
+    {
+      target = Json::arrayValue;
+      target.append(GetApplicationEntityTitle());
+      target.append(GetHost());
+      target.append(GetPortNumber());
+      target.append(EnumerationToString(GetManufacturer()));
+    }
   }
 
   
-  RemoteModalityParameters::RemoteModalityParameters(const Json::Value& serialized)
+  void RemoteModalityParameters::Unserialize(const Json::Value& serialized)
   {
-    aet_ = SerializationToolbox::ReadString(serialized, "AET");
-    host_ = SerializationToolbox::ReadString(serialized, "Host");
-    port_ = static_cast<uint16_t>
-      (SerializationToolbox::ReadUnsignedInteger(serialized, "Port"));
-    manufacturer_ = StringToModalityManufacturer
-      (SerializationToolbox::ReadString(serialized, "Manufacturer"));
+    switch (serialized.type())
+    {
+      case Json::objectValue:
+        UnserializeObject(serialized);
+        break;
+
+      case Json::arrayValue:
+        UnserializeArray(serialized);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
 }

@@ -49,10 +49,17 @@ namespace Orthanc
     uint16_t port_;
     ModalityManufacturer manufacturer_;
 
+    void UnserializeArray(const Json::Value& serialized);
+
+    void UnserializeObject(const Json::Value& serialized);
+
   public:
     RemoteModalityParameters();
 
-    RemoteModalityParameters(const Json::Value& serialized);
+    RemoteModalityParameters(const Json::Value& serialized)
+    {
+      Unserialize(serialized);
+    }
 
     RemoteModalityParameters(const std::string& aet,
                              const std::string& host,
@@ -104,10 +111,11 @@ namespace Orthanc
       manufacturer_ = StringToModalityManufacturer(manufacturer);
     }
 
-    void FromJson(const Json::Value& modality);
+    void Unserialize(const Json::Value& modality);
 
-    void ToJson(Json::Value& value) const;
+    bool IsAdvancedFormatNeeded() const;
 
-    void Serialize(Json::Value& target) const;
+    void Serialize(Json::Value& target,
+                   bool forceAdvancedFormat) const;
   };
 }

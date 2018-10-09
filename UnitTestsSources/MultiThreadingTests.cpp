@@ -1867,3 +1867,51 @@ TEST(JobsSerialization, TrailingStep)
     ASSERT_THROW(job.Step(), OrthancException);
   }
 }
+
+
+TEST(JobsSerialization, RemoteModalityParameters)
+{
+  Json::Value s;
+
+  {
+    RemoteModalityParameters modality;
+    modality.Serialize(s, false);
+    ASSERT_EQ(Json::arrayValue, s.type());
+  }
+
+  {
+    RemoteModalityParameters modality(s);
+    ASSERT_EQ("ORTHANC", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("127.0.0.1", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, modality.GetManufacturer());
+  }
+
+  s = Json::nullValue;
+
+  {
+    RemoteModalityParameters modality;
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
+    modality.SetApplicationEntityTitle("HELLO");
+    modality.SetHost("world");
+    modality.SetPortNumber(45);
+    modality.SetManufacturer(ModalityManufacturer_Dcm4Chee);
+    modality.Serialize(s, true);
+    ASSERT_EQ(Json::objectValue, s.type());
+  }
+
+  {
+    RemoteModalityParameters modality(s);
+    ASSERT_EQ("HELLO", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("world", modality.GetHost());
+    ASSERT_EQ(45u, modality.GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Dcm4Chee, modality.GetManufacturer());
+  }
+
+  s["Port"] = "46";
+  
+  {
+    RemoteModalityParameters modality(s);
+    ASSERT_EQ(46u, modality.GetPortNumber());
+  }
+}

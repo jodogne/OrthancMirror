@@ -829,7 +829,9 @@ namespace Orthanc
         if (Configuration::GetOrthancPeer(peer, *it))
         {
           Json::Value jsonPeer = Json::objectValue;
-          // only return the minimum information to identify the destination, do not include "security" information like passwords
+          // only return the minimum information to identify the
+          // destination, do not include "security" information like
+          // passwords
           jsonPeer["Url"] = peer.GetUrl();
           if (!peer.GetUsername().empty())
           {
@@ -911,10 +913,11 @@ namespace Orthanc
       for (OrthancRestApi::SetOfStrings::const_iterator
              it = modalities.begin(); it != modalities.end(); ++it)
       {
-        Json::Value modality;
-        Configuration::GetModalityUsingSymbolicName(*it).ToJson(modality);
-
-        result[*it] = modality;
+        const RemoteModalityParameters& remote = Configuration::GetModalityUsingSymbolicName(*it);
+        
+        Json::Value info;
+        remote.Serialize(info, true /* force advanced format */);
+        result[*it] = info;
       }
       call.GetOutput().AnswerJson(result);
     }
@@ -953,7 +956,7 @@ namespace Orthanc
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       RemoteModalityParameters modality;
-      modality.FromJson(json);
+      modality.Unserialize(json);
       Configuration::UpdateModality(context, call.GetUriComponent("id", ""), modality);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }

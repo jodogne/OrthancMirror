@@ -192,7 +192,7 @@ namespace Orthanc
     {
       target[LOCAL_AET] = localAet_;
       target[TARGET_AET] = targetAet_;
-      remote_.Serialize(target[REMOTE]);
+      remote_.Serialize(target[REMOTE], true /* force advanced format */);
       return true;
     }
   }
