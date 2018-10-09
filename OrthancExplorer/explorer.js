@@ -13,6 +13,8 @@ if ($.browser.msie)
 //$.mobile.defaultPageTransition = 'slide';
 
 
+var LIMIT_RESOURCES = 100;
+
 var currentPage = '';
 var currentUuid = '';
 
@@ -360,57 +362,169 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 
 
+$('#lookup').live('pagebeforeshow', function() {
+  // NB: "GenerateDicomDate()" is defined in "query-retrieve.js"
+  var target = $('#lookup-study-date');
+  $('option', target).remove();
+  target.append($('<option>').attr('value', '*').text('Any date'));
+  target.append($('<option>').attr('value', GenerateDicomDate(0)).text('Today'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-1)).text('Yesterday'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-7) + '-').text('Last 7 days'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-31) + '-').text('Last 31 days'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-31 * 3) + '-').text('Last 3 months'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-365) + '-').text('Last year'));
+  target.selectmenu('refresh');
+
+  $('#lookup-result').hide();
+});
+
+
+$('#lookup-submit').live('click', function() {
+  $('#lookup-result').hide();
+
+  var lookup = {
+    'Level' : 'Study',
+    'Expand' : true,
+    'Limit' : LIMIT_RESOURCES + 1,
+    'Query' : {
+      'StudyDate' : $('#lookup-study-date').val()
+    }
+  };
+
+  $('#lookup-form input').each(function(index, input) {
+    if (input.value.length != 0) {
+      if (input.id == 'lookup-patient-id') {
+        lookup['Query']['PatientID'] = input.value;
+      } 
+      else if (input.id == 'lookup-patient-name') {
+        lookup['Query']['PatientName'] = input.value;
+      } 
+      else if (input.id == 'lookup-accession-number') {
+        lookup['Query']['AccessionNumber'] = input.value;
+      } 
+      else if (input.id == 'lookup-study-description') {
+        lookup['Query']['StudyDescription'] = input.value;
+      }
+      else {
+        console.error('Unknown lookup field: ' + input.id);
+      }
+    } 
+  });
+
+  console.log(lookup);
+
+  $.ajax({
+    url: '../tools/find',
+    type: 'POST', 
+    data: JSON.stringify(lookup),
+    dataType: 'json',
+    async: false,
+    error: function() {
+      alert('Error during lookup');
+    },
+    success: function(studies) {
+      console.log(studies);
+      FormatListOfStudies('#lookup-result ul', '#lookup-alert', '#lookup-count', studies);
+      $('#lookup-result').show();
+    }
+  });
+
+  return false;
+});
+
+
 $('#find-patients').live('pagebeforeshow', function() {
-  GetResource('/patients?expand', function(patients) {
+  GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(patients) {
     var target = $('#all-patients');
     $('li', target).remove();
     
     SortOnDicomTag(patients, 'PatientName', false, false);
 
-    for (var i = 0; i < patients.length; i++) {
+    var count, showAlert;
+    if (patients.length <= LIMIT_RESOURCES) {
+      count = patients.length;
+      showAlert = false;
+    }
+    else {
+      count = LIMIT_RESOURCES;
+      showAlert = true;
+    }
+
+    for (var i = 0; i < count; i++) {
       var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
       target.append(p);
     }
 
-    target.listview('refresh');
+    target.listview('refresh'); 
+
+    if (showAlert) {
+      $('#count-patients').text(LIMIT_RESOURCES);
+      $('#alert-patients').show();
+    } else {
+      $('#alert-patients').hide();
+    }
   });
 });
 
 
 
+function FormatListOfStudies(targetId, alertId, countId, studies)
+{
+  var target = $(targetId);
+  $('li', target).remove();
+
+  for (var i = 0; i < studies.length; i++) {
+    var patient = studies[i].PatientMainDicomTags.PatientName;
+    var study = studies[i].MainDicomTags.StudyDescription;
+
+    var s;
+    if (typeof patient === 'string') {
+      s = patient;
+    }
+
+    if (typeof study === 'string') {
+      if (s.length > 0) {
+        s += ' - ';
+      }
+
+      s += study;
+    }
+
+    studies[i]['Label'] = s;
+  }
+
+  Sort(studies, function(a) { return a.Label }, false, false);
+
+
+  var count, showAlert;
+  if (studies.length <= LIMIT_RESOURCES) {
+    count = studies.length;
+    showAlert = false;
+  }
+  else {
+    count = LIMIT_RESOURCES;
+    showAlert = true;
+  }
+
+  for (var i = 0; i < count; i++) {
+    var p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
+    target.append(p);
+  }
+
+  target.listview('refresh');
+
+  if (showAlert) {
+    $(countId).text(LIMIT_RESOURCES);
+    $(alertId).show();
+  } else {
+    $(alertId).hide();
+  }
+}
+
+
 $('#find-studies').live('pagebeforeshow', function() {
-  GetResource('/studies?expand', function(studies) {
-    var target = $('#all-studies');
-    $('li', target).remove();
-
-    for (var i = 0; i < studies.length; i++) {
-      var patient = studies[i].PatientMainDicomTags.PatientName;
-      var study = studies[i].MainDicomTags.StudyDescription;
-
-      var s;
-      if (typeof patient === 'string') {
-        s = patient;
-      }
-
-      if (typeof study === 'string') {
-        if (s.length > 0) {
-          s += ' - ';
-        }
-
-        s += study;
-      }
-
-      studies[i]['Label'] = s;
-    }
-
-    Sort(studies, function(a) { return a.Label }, false, false);
-
-    for (var i = 0; i < studies.length; i++) {
-      var p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
-      target.append(p);
-    }
-
-    target.listview('refresh');
+  GetResource('/studies?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(studies) {
+    FormatListOfStudies('#all-studies', '#alert-studies', '#count-studies', studies);
   });
 });
 

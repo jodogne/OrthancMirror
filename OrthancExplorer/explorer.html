@@ -34,11 +34,11 @@
     <script src="../plugins/explorer.js"></script>
   </head>
   <body>
-    <div data-role="page" id="find-patients" >
+    <div data-role="page" id="lookup" >
       <div data-role="header" >
-	<h1><span class="orthanc-name"></span>Find a patient</h1>
+	<h1><span class="orthanc-name"></span>Lookup studies</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
           <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
@@ -48,6 +48,85 @@
         </div>
       </div>
       <div data-role="content">
+        <form data-ajax="false" id="lookup-form">
+          <div data-role="fieldcontain">
+	    <label for="lookup-patient-id">Patient ID:</label>
+	    <input type="text" name="lookup-patient-id" id="lookup-patient-id" value=""  />
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="lookup-patient-name">Patient Name:</label>
+	    <input type="text" name="lookup-patient-name" id="lookup-patient-name" value=""  />
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="lookup-accession-number">Accession Number:</label>
+	    <input type="text" name="lookup-accession-number" id="lookup-accession-number" value=""  />
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="lookup-study-description">Study Description:</label>
+	    <input type="text" name="lookup-study-description" id="lookup-study-description" value=""  />
+	  </div>
+
+          <div data-role="fieldcontain">
+	    <label for="lookup-study-date">Study Date:</label>
+            <select name="lookup-study-date" id="lookup-study-date">
+            </select>
+	  </div>
+
+          <fieldset class="ui-grid-b">
+	    <div class="ui-block-a">
+              <a href="#find-patients" data-role="button" data-theme="b" data-direction="reverse">All patients</a>
+            </div>
+	    <div class="ui-block-b">
+              <a href="#find-studies" data-role="button" data-theme="b" data-direction="reverse">All studies</a>
+            </div>
+	    <div class="ui-block-c">
+              <button id="lookup-submit" type="submit" data-theme="e">Do lookup</button>
+            </div>
+	  </fieldset>
+          <div>&nbsp;</div>
+        </form>
+        <div id="lookup-result">
+          <div id="lookup-alert">
+            <div class="ui-bar ui-bar-e">
+              <h3>Warning:</h3> Your lookup led to many results!
+              Showing only <span id="lookup-count">?</span> studies to
+              avoid performance issue. Please make your query more
+              specific, then relaunch the lookup.
+            </div>
+            <div>&nbsp;</div>
+          </div>
+          <ul data-role="listview" data-inset="true" data-filter="true">
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div data-role="page" id="find-patients" >
+      <div data-role="header" >
+	<h1><span class="orthanc-name"></span>All patients</h1>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
+        </div>
+        <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
+          <a href="#upload" data-icon="gear" data-role="button">Upload</a>
+          <a href="#query-retrieve" data-icon="search" data-role="button">Query/Retrieve</a>
+          <a href="#jobs" data-icon="refresh" data-role="button" data-direction="reverse">Jobs</a>
+        </div>
+      </div>
+      <div data-role="content">
+        <div id="alert-patients">
+          <div class="ui-bar ui-bar-e">
+            <h3>Warning:</h3> This is a large Orthanc server. Showing
+            only <span id="count-patients">?</span> patients to avoid
+            performance issue. Make sure to use lookup if targeting
+            specific patients!
+          </div>
+          <div>&nbsp;</div>
+        </div>
         <ul id="all-patients" data-role="listview" data-inset="true" data-filter="true">
         </ul>
       </div>
@@ -55,9 +134,9 @@
 
     <div data-role="page" id="find-studies" >
       <div data-role="header" >
-	<h1><span class="orthanc-name"></span>Find a study</h1>
+	<h1><span class="orthanc-name"></span>All studies</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
           <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
@@ -67,6 +146,15 @@
         </div>
       </div>
       <div data-role="content">
+        <div id="alert-studies">
+          <div class="ui-bar ui-bar-e">
+            <h3>Warning:</h3> This is a large Orthanc server. Showing
+            only <span id="count-studies">?</span> studies to avoid
+            performance issue. Make sure to use lookup if targeting
+            specific studies!
+          </div>
+          <div>&nbsp;</div>
+        </div>
         <ul id="all-studies" data-role="listview" data-inset="true" data-filter="true">
         </ul>
       </div>
@@ -76,8 +164,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Upload DICOM files</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
       </div>
       <div data-role="content">
@@ -105,8 +193,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Patient</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
@@ -166,8 +254,8 @@
           Study
         </h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
@@ -221,8 +309,8 @@
           Series
         </h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
@@ -278,8 +366,8 @@
           Instance
         </h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#upload" data-icon="gear" data-role="button">Upload</a>
@@ -334,8 +422,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Plugins</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
       </div>
       <div data-role="content">
@@ -348,8 +436,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (1/4)</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
       </div>
       <div data-role="content">
@@ -419,8 +507,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (2/4)</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
@@ -435,8 +523,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (3/4)</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
@@ -451,8 +539,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>DICOM Query/Retrieve (4/4)</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <a href="#query-retrieve" data-icon="search" class="ui-btn-right" data-direction="reverse">Query/Retrieve</a>
       </div>
@@ -480,8 +568,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Jobs</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
       </div>
       <div data-role="content">
@@ -494,8 +582,8 @@
       <div data-role="header" >
 	<h1><span class="orthanc-name"></span>Job</h1>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-left">
-          <a href="#find-patients" data-icon="home" data-role="button" data-direction="reverse">Patients</a>
-          <a href="#find-studies" data-icon="arrow-r" data-role="button" data-direction="reverse">Studies</a>
+          <a href="#lookup" data-icon="arrow-r" data-role="button" data-direction="reverse">Lookup</a>
+          <a href="#plugins" data-icon="grid" data-role="button" data-direction="reverse">Plugins</a>
         </div>
         <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right"> 
           <a href="#jobs" data-icon="refresh" data-role="button" data-direction="reverse">Jobs</a>
