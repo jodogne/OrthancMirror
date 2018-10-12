@@ -70,6 +70,22 @@ if (BOOST_STATIC)
 
 
   ##
+  ## Patching boost
+  ## 
+
+  execute_process(
+    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+    ${ORTHANC_ROOT}/Resources/Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE Failure
+    )
+
+  if (FirstRun AND Failure)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
+
+
+  ##
   ## Generic configuration of Boost
   ## 
 
@@ -102,17 +118,6 @@ if (BOOST_STATIC)
     add_definitions(
       -DBOOST_SYSTEM_USE_STRERROR=1
       )
-    
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
-
-    if (FirstRun AND Failure)
-      message(FATAL_ERROR "Error while patching a file")
-    endif()
   endif()
 
   
