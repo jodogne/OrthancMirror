@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -66,6 +67,11 @@ namespace Orthanc
       return element_;
     }
 
+    bool IsPrivate() const
+    {
+      return group_ % 2 == 1;
+    }
+
     const char* GetMainTagsName() const;
 
     bool operator< (const DicomTag& other) const;
@@ -82,6 +88,9 @@ namespace Orthanc
 
     std::string Format() const;
 
+    static bool ParseHexadecimal(DicomTag& tag,
+                                 const char* value);
+
     friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
     static void AddTagsForModule(std::set<DicomTag>& target,
@@ -95,6 +104,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SERIES_INSTANCE_UID(0x0020, 0x000e);
   static const DicomTag DICOM_TAG_STUDY_INSTANCE_UID(0x0020, 0x000d);
   static const DicomTag DICOM_TAG_PIXEL_DATA(0x7fe0, 0x0010);
+  static const DicomTag DICOM_TAG_TRANSFER_SYNTAX_UID(0x0002, 0x0010);
 
   static const DicomTag DICOM_TAG_IMAGE_INDEX(0x0054, 0x1330);
   static const DicomTag DICOM_TAG_INSTANCE_NUMBER(0x0020, 0x0013);
@@ -122,6 +132,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER(0x0020, 0x0100);
 
   // Tags for C-FIND and C-MOVE
+  static const DicomTag DICOM_TAG_MESSAGE_ID(0x0000, 0x0110);
   static const DicomTag DICOM_TAG_SPECIFIC_CHARACTER_SET(0x0008, 0x0005);
   static const DicomTag DICOM_TAG_QUERY_RETRIEVE_LEVEL(0x0008, 0x0052);
   static const DicomTag DICOM_TAG_MODALITIES_IN_STUDY(0x0008, 0x0061);
@@ -152,4 +163,47 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SERIES_TIME(0x0008, 0x0031);
   static const DicomTag DICOM_TAG_STUDY_DATE(0x0008, 0x0020);
   static const DicomTag DICOM_TAG_STUDY_TIME(0x0008, 0x0030);
+
+  // Various tags
+  static const DicomTag DICOM_TAG_SERIES_TYPE(0x0054, 0x1000);
+  static const DicomTag DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION(0x0032, 0x1060);
+  static const DicomTag DICOM_TAG_INSTITUTION_NAME(0x0008, 0x0080);
+  static const DicomTag DICOM_TAG_REQUESTING_PHYSICIAN(0x0032, 0x1032);
+  static const DicomTag DICOM_TAG_REFERRING_PHYSICIAN_NAME(0x0008, 0x0090);
+  static const DicomTag DICOM_TAG_OPERATOR_NAME(0x0008, 0x1070);
+  static const DicomTag DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION(0x0040, 0x0254);
+  static const DicomTag DICOM_TAG_IMAGE_COMMENTS(0x0020, 0x4000);
+  static const DicomTag DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION(0x0018, 0x1400);
+  static const DicomTag DICOM_TAG_CONTRAST_BOLUS_AGENT(0x0018, 0x0010);
+
+  // Tags used within the Stone of Orthanc
+  static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
+  static const DicomTag DICOM_TAG_GRID_FRAME_OFFSET_VECTOR(0x3004, 0x000c);
+  static const DicomTag DICOM_TAG_PIXEL_SPACING(0x0028, 0x0030);
+  static const DicomTag DICOM_TAG_RESCALE_INTERCEPT(0x0028, 0x1052);
+  static const DicomTag DICOM_TAG_RESCALE_SLOPE(0x0028, 0x1053);
+  static const DicomTag DICOM_TAG_SLICE_THICKNESS(0x0018, 0x0050);
+  static const DicomTag DICOM_TAG_WINDOW_CENTER(0x0028, 0x1050);
+  static const DicomTag DICOM_TAG_WINDOW_WIDTH(0x0028, 0x1051);
+  static const DicomTag DICOM_TAG_DOSE_GRID_SCALING(0x3004, 0x000e);
+                                    
+  // Counting patients, studies and series
+  // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES(0x0020, 0x1200);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES(0x0020, 0x1202);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES(0x0020, 0x1204);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES(0x0020, 0x1206);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES(0x0020, 0x1208);  
+  static const DicomTag DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES(0x0020, 0x1209);  
+  static const DicomTag DICOM_TAG_SOP_CLASSES_IN_STUDY(0x0008, 0x0062);  
+
+  // Tags to preserve relationships during anonymization
+  static const DicomTag DICOM_TAG_REFERENCED_IMAGE_SEQUENCE(0x0008, 0x1140);
+  static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID(0x0008, 0x1155);
+  static const DicomTag DICOM_TAG_SOURCE_IMAGE_SEQUENCE(0x0008, 0x2112);
+  static const DicomTag DICOM_TAG_FRAME_OF_REFERENCE_UID(0x0020, 0x0052);
+  static const DicomTag DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID(0x3006, 0x0024);
+  static const DicomTag DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID(0x3006, 0x00c2);
+  static const DicomTag DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE(0x0040, 0xa375);
+  static const DicomTag DICOM_TAG_REFERENCED_SERIES_SEQUENCE(0x0008, 0x1115);
 }

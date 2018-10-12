@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -91,10 +93,10 @@ namespace Orthanc
 
     if (convertJsonToXml_)
     {
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
       std::string s;
       Toolbox::JsonToXml(s, value);
-      output_.SetContentType("application/xml");
+      output_.SetContentType("application/xml; charset=utf-8");
       output_.Answer(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
@@ -104,7 +106,7 @@ namespace Orthanc
     else
     {
       Json::StyledWriter writer;
-      output_.SetContentType("application/json");
+      output_.SetContentType("application/json; charset=utf-8");
       output_.Answer(writer.write(value));
     }
 

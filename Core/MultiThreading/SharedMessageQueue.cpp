@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -184,5 +185,25 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     isFifo_ = false;
+  }
+
+  void SharedMessageQueue::Clear()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (queue_.empty())
+    {
+      return;
+    }
+    else
+    {
+      while (!queue_.empty())
+      {
+        std::auto_ptr<IDynamicObject> message(queue_.front());
+        queue_.pop_front();
+      }
+
+      emptied_.notify_all();
+    }
   }
 }

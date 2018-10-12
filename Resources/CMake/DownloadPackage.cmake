@@ -15,12 +15,18 @@ endmacro()
 ## Setup the patch command-line tool
 ##
 
-if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-  set(PATCH_EXECUTABLE ${CMAKE_SOURCE_DIR}/Resources/ThirdParty/patch/patch.exe)
-else ()
-  find_program(PATCH_EXECUTABLE patch)
-  if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
-    message(FATAL_ERROR "Please install the 'patch' standard command-line tool")
+if (NOT ORTHANC_DISABLE_PATCH)
+  if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    set(PATCH_EXECUTABLE ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/patch/patch.exe)
+    if (NOT EXISTS ${PATCH_EXECUTABLE})
+      message(FATAL_ERROR "Unable to find the patch.exe tool that is shipped with Orthanc")
+    endif()
+
+  else ()
+    find_program(PATCH_EXECUTABLE patch)
+    if (${PATCH_EXECUTABLE} MATCHES "PATCH_EXECUTABLE-NOTFOUND")
+      message(FATAL_ERROR "Please install the 'patch' standard command-line tool")
+    endif()
   endif()
 endif()
 
@@ -70,9 +76,24 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 	message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
       endif()
 
-      file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS EXPECTED_MD5 "${MD5}")
+      if ("${MD5}" STREQUAL "no-check")
+        message(WARNING "Not checking the MD5 of: ${Url}")
+        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60)
+      else()
+        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
+      endif()
+
     else()
       message("Using local copy of ${Url}")
+
+      if ("${MD5}" STREQUAL "no-check")
+        message(WARNING "Not checking the MD5 of: ${Url}")
+      else()
+        file(MD5 ${TMP_PATH} ActualMD5)
+        if (NOT "${ActualMD5}" STREQUAL "${MD5}")
+          message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${TMP_PATH}")
+        endif()
+      endif()
     endif()
 
     GetUrlExtension(TMP_EXTENSION "${Url}")
@@ -83,7 +104,9 @@ macro(DownloadPackage MD5 Url TargetDirectory)
       # How to silently extract files using 7-zip
       # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
 
-      if (("${TMP_EXTENSION}" STREQUAL "gz") OR ("${TMP_EXTENSION}" STREQUAL "tgz"))
+      if (("${TMP_EXTENSION}" STREQUAL "gz") OR 
+          ("${TMP_EXTENSION}" STREQUAL "tgz") OR
+          ("${TMP_EXTENSION}" STREQUAL "xz"))
         execute_process(
           COMMAND ${ZIP_EXECUTABLE} e -y ${TMP_PATH}
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -97,8 +120,10 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 
         if ("${TMP_EXTENSION}" STREQUAL "tgz")
           string(REGEX REPLACE ".tgz$" ".tar" TMP_FILENAME2 "${TMP_FILENAME}")
-        else()
+        elseif ("${TMP_EXTENSION}" STREQUAL "gz")
           string(REGEX REPLACE ".gz$" "" TMP_FILENAME2 "${TMP_FILENAME}")
+        elseif ("${TMP_EXTENSION}" STREQUAL "xz")
+          string(REGEX REPLACE ".xz" "" TMP_FILENAME2 "${TMP_FILENAME}")
         endif()
 
         execute_process(
@@ -135,6 +160,12 @@ macro(DownloadPackage MD5 Url TargetDirectory)
       elseif ("${TMP_EXTENSION}" STREQUAL "bz2")
         execute_process(
           COMMAND sh -c "${TAR_EXECUTABLE} xfj ${TMP_PATH}"
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          )
+      elseif ("${TMP_EXTENSION}" STREQUAL "xz")
+        execute_process(
+          COMMAND sh -c "${TAR_EXECUTABLE} xf ${TMP_PATH}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           )

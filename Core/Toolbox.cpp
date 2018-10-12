@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,57 +37,38 @@
 #include "OrthancException.h"
 #include "Logging.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp> 
+#include <boost/uuid/sha1.hpp>
+ 
 #include <string>
 #include <stdint.h>
 #include <string.h>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/uuid/sha1.hpp>
-#include <boost/lexical_cast.hpp>
 #include <algorithm>
 #include <ctype.h>
 
-#if BOOST_HAS_DATE_TIME == 1
-#include <boost/date_time/posix_time/posix_time.hpp>
+
+#if ORTHANC_ENABLE_MD5 == 1
+#  include "../Resources/ThirdParty/md5/md5.h"
 #endif
 
-#if BOOST_HAS_REGEX == 1
-#include <boost/regex.hpp> 
+#if ORTHANC_ENABLE_BASE64 == 1
+#  include "../Resources/ThirdParty/base64/base64.h"
 #endif
 
-#if defined(_WIN32)
-#include <windows.h>
-#include <process.h>   // For "_spawnvp()" and "_getpid()"
-#else
-#include <unistd.h>    // For "execvp()"
-#include <sys/wait.h>  // For "waitpid()"
+#if ORTHANC_ENABLE_LOCALE == 1
+#  include <boost/locale.hpp>
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach-o/dyld.h> /* _NSGetExecutablePath */
-#include <limits.h>      /* PATH_MAX */
-#endif
-
-#if defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
-#include <limits.h>      /* PATH_MAX */
-#include <signal.h>
-#include <unistd.h>
-#endif
-
-#if BOOST_HAS_LOCALE != 1
-#error Since version 0.7.6, Orthanc entirely relies on boost::locale
-#endif
-
-#include <boost/locale.hpp>
-
-
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
-#include "../Resources/ThirdParty/md5/md5.h"
-#endif
-
-
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
-#include "../Resources/ThirdParty/base64/base64.h"
+#if ORTHANC_ENABLE_SSL == 1
+// For OpenSSL initialization and finalization
+#  include <openssl/conf.h>
+#  include <openssl/engine.h>
+#  include <openssl/err.h>
+#  include <openssl/evp.h>
+#  include <openssl/ssl.h>
 #endif
 
 
@@ -103,81 +85,105 @@ extern "C"
 #endif
 
 
-#if ORTHANC_PUGIXML_ENABLED == 1
-#include "ChunkedBuffer.h"
-#include <pugixml.hpp>
+#if defined(_WIN32)
+#  include <windows.h>   // For ::Sleep
 #endif
+
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include "ChunkedBuffer.h"
+#  include <pugixml.hpp>
+#endif
+
+
+// Inclusions for UUID
+// http://stackoverflow.com/a/1626302
+
+extern "C"
+{
+#if defined(_WIN32)
+#  include <rpc.h>
+#else
+#  include <uuid/uuid.h>
+#endif
+}
+
 
 
 namespace Orthanc
 {
-  static bool finish;
-
-#if defined(_WIN32)
-  static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType)
+  void Toolbox::LinesIterator::FindEndOfLine()
   {
-    // http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
-    finish = true;
-    return true;
-  }
-#else
-  static void SignalHandler(int)
-  {
-    finish = true;
-  }
-#endif
+    lineEnd_ = lineStart_;
 
-  void Toolbox::USleep(uint64_t microSeconds)
-  {
-#if defined(_WIN32)
-    ::Sleep(static_cast<DWORD>(microSeconds / static_cast<uint64_t>(1000)));
-#elif defined(__linux) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
-    usleep(microSeconds);
-#else
-#error Support your platform here
-#endif
-  }
-
-
-  static void ServerBarrierInternal(const bool* stopFlag)
-  {
-#if defined(_WIN32)
-    SetConsoleCtrlHandler(ConsoleControlHandler, true);
-#else
-    signal(SIGINT, SignalHandler);
-    signal(SIGQUIT, SignalHandler);
-    signal(SIGTERM, SignalHandler);
-#endif
-  
-    // Active loop that awakens every 100ms
-    finish = false;
-    while (!(*stopFlag || finish))
+    while (lineEnd_ < content_.size() &&
+           content_[lineEnd_] != '\n' &&
+           content_[lineEnd_] != '\r')
     {
-      Toolbox::USleep(100 * 1000);
+      lineEnd_ += 1;
     }
-
-#if defined(_WIN32)
-    SetConsoleCtrlHandler(ConsoleControlHandler, false);
-#else
-    signal(SIGINT, NULL);
-    signal(SIGQUIT, NULL);
-    signal(SIGTERM, NULL);
-#endif
   }
+  
 
-
-  void Toolbox::ServerBarrier(const bool& stopFlag)
+  Toolbox::LinesIterator::LinesIterator(const std::string& content) :
+    content_(content),
+    lineStart_(0)
   {
-    ServerBarrierInternal(&stopFlag);
+    FindEndOfLine();
   }
 
-  void Toolbox::ServerBarrier()
+    
+  bool Toolbox::LinesIterator::GetLine(std::string& target) const
   {
-    const bool stopFlag = false;
-    ServerBarrierInternal(&stopFlag);
+    assert(lineStart_ <= content_.size() &&
+           lineEnd_ <= content_.size() &&
+           lineStart_ <= lineEnd_);
+
+    if (lineStart_ == content_.size())
+    {
+      return false;
+    }
+    else
+    {
+      target = content_.substr(lineStart_, lineEnd_ - lineStart_);
+      return true;
+    }
   }
 
+    
+  void Toolbox::LinesIterator::Next()
+  {
+    lineStart_ = lineEnd_;
 
+    if (lineStart_ != content_.size())
+    {
+      assert(content_[lineStart_] == '\r' ||
+             content_[lineStart_] == '\n');
+
+      char second;
+      
+      if (content_[lineStart_] == '\r')
+      {
+        second = '\n';
+      }
+      else
+      {
+        second = '\r';
+      }
+        
+      lineStart_ += 1;
+
+      if (lineStart_ < content_.size() &&
+          content_[lineStart_] == second)
+      {
+        lineStart_ += 1;
+      }
+
+      FindEndOfLine();
+    }
+  }
+
+  
   void Toolbox::ToUpperCase(std::string& s)
   {
     std::transform(s.begin(), s.end(), s.begin(), toupper);
@@ -203,82 +209,6 @@ namespace Orthanc
     result = source;
     ToLowerCase(result);
   }
-
-
-  void Toolbox::ReadFile(std::string& content,
-                         const std::string& path) 
-  {
-    if (!boost::filesystem::is_regular_file(path))
-    {
-      LOG(ERROR) << "The path does not point to a regular file: " << path;
-      throw OrthancException(ErrorCode_RegularFileExpected);
-    }
-
-    boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ifstream::binary);
-    if (!f.good())
-    {
-      throw OrthancException(ErrorCode_InexistentFile);
-    }
-
-    // http://www.cplusplus.com/reference/iostream/istream/tellg/
-    f.seekg(0, std::ios::end);
-    std::streamsize size = f.tellg();
-    f.seekg(0, std::ios::beg);
-
-    content.resize(size);
-    if (size != 0)
-    {
-      f.read(reinterpret_cast<char*>(&content[0]), size);
-    }
-
-    f.close();
-  }
-
-
-  void Toolbox::WriteFile(const void* content,
-                          size_t size,
-                          const std::string& path)
-  {
-    boost::filesystem::ofstream f;
-    f.open(path, std::ofstream::binary);
-    if (!f.good())
-    {
-      throw OrthancException(ErrorCode_CannotWriteFile);
-    }
-
-    if (size != 0)
-    {
-      f.write(reinterpret_cast<const char*>(content), size);
-    }
-
-    f.close();
-  }
-
-
-  void Toolbox::WriteFile(const std::string& content,
-                          const std::string& path)
-  {
-    WriteFile(content.size() > 0 ? content.c_str() : NULL,
-              content.size(), path);
-  }
-
-
-  void Toolbox::RemoveFile(const std::string& path)
-  {
-    if (boost::filesystem::exists(path))
-    {
-      if (boost::filesystem::is_regular_file(path))
-      {
-        boost::filesystem::remove(path);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_RegularFileExpected);
-      }
-    }
-  }
-
 
 
   void Toolbox::SplitUriComponents(UriComponents& components,
@@ -413,6 +343,8 @@ namespace Orthanc
         contentType = "application/json";
       else if (!strcmp(extension, "pdf"))
         contentType = "application/pdf";
+      else if (!strcmp(extension, "wasm"))
+        contentType = "application/wasm";
 
       // Images types
       else if (!strcmp(extension, "jpg") || !strcmp(extension, "jpeg"))
@@ -448,21 +380,7 @@ namespace Orthanc
   }
 
 
-
-  uint64_t Toolbox::GetFileSize(const std::string& path)
-  {
-    try
-    {
-      return static_cast<uint64_t>(boost::filesystem::file_size(path));
-    }
-    catch (boost::filesystem::filesystem_error&)
-    {
-      throw OrthancException(ErrorCode_InexistentFile);
-    }
-  }
-
-
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
+#if ORTHANC_ENABLE_MD5 == 1
   static char GetHexadecimalCharacter(uint8_t value)
   {
     assert(value < 16);
@@ -494,16 +412,16 @@ namespace Orthanc
 
   void Toolbox::ComputeMD5(std::string& result,
                            const void* data,
-                           size_t length)
+                           size_t size)
   {
     md5_state_s state;
     md5_init(&state);
 
-    if (length > 0)
+    if (size > 0)
     {
       md5_append(&state, 
                  reinterpret_cast<const md5_byte_t*>(data), 
-                 static_cast<int>(length));
+                 static_cast<int>(size));
     }
 
     md5_byte_t actualHash[16];
@@ -519,7 +437,7 @@ namespace Orthanc
 #endif
 
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
+#if ORTHANC_ENABLE_BASE64 == 1
   void Toolbox::EncodeBase64(std::string& result, 
                              const std::string& data)
   {
@@ -529,12 +447,23 @@ namespace Orthanc
   void Toolbox::DecodeBase64(std::string& result, 
                              const std::string& data)
   {
+    for (size_t i = 0; i < data.length(); i++)
+    {
+      if (!isalnum(data[i]) &&
+          data[i] != '+' &&
+          data[i] != '/' &&
+          data[i] != '=')
+      {
+        // This is not a valid character for a Base64 string
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+
     result = base64_decode(data);
   }
 
 
-#  if BOOST_HAS_REGEX == 1
-  void Toolbox::DecodeDataUriScheme(std::string& mime,
+  bool Toolbox::DecodeDataUriScheme(std::string& mime,
                                     std::string& content,
                                     const std::string& source)
   {
@@ -546,71 +475,26 @@ namespace Orthanc
     {
       mime = what[1];
       DecodeBase64(content, what[2]);
+      return true;
     }
     else
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      return false;
     }
   }
-#  endif
+
+
+  void Toolbox::EncodeDataUriScheme(std::string& result,
+                                    const std::string& mime,
+                                    const std::string& content)
+  {
+    result = "data:" + mime + ";base64," + base64_encode(content);
+  }
 
 #endif
 
 
-
-#if defined(_WIN32)
-  static std::string GetPathToExecutableInternal()
-  {
-    // Yes, this is ugly, but there is no simple way to get the 
-    // required buffer size, so we use a big constant
-    std::vector<char> buffer(32768);
-    /*int bytes =*/ GetModuleFileNameA(NULL, &buffer[0], static_cast<DWORD>(buffer.size() - 1));
-    return std::string(&buffer[0]);
-  }
-
-#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
-  static std::string GetPathToExecutableInternal()
-  {
-    std::vector<char> buffer(PATH_MAX + 1);
-    ssize_t bytes = readlink("/proc/self/exe", &buffer[0], buffer.size() - 1);
-    if (bytes == 0)
-    {
-      throw OrthancException(ErrorCode_PathToExecutable);
-    }
-
-    return std::string(&buffer[0]);
-  }
-
-#elif defined(__APPLE__) && defined(__MACH__)
-  static std::string GetPathToExecutableInternal()
-  {
-    char pathbuf[PATH_MAX + 1];
-    unsigned int  bufsize = static_cast<int>(sizeof(pathbuf));
-
-    _NSGetExecutablePath( pathbuf, &bufsize);
-
-    return std::string(pathbuf);
-  }
-
-#else
-#error Support your platform here
-#endif
-
-
-  std::string Toolbox::GetPathToExecutable()
-  {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p).string();
-  }
-
-
-  std::string Toolbox::GetDirectoryOfExecutable()
-  {
-    boost::filesystem::path p(GetPathToExecutableInternal());
-    return boost::filesystem::absolute(p.parent_path()).string();
-  }
-
-
+#if ORTHANC_ENABLE_LOCALE == 1
   static const char* GetBoostLocaleEncoding(const Encoding sourceEncoding)
   {
     switch (sourceEncoding)
@@ -677,8 +561,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+#endif
 
 
+#if ORTHANC_ENABLE_LOCALE == 1
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding)
   {
@@ -705,8 +591,10 @@ namespace Orthanc
       return ConvertToAscii(source);
     }
   }
+#endif
+  
 
-
+#if ORTHANC_ENABLE_LOCALE == 1
   std::string Toolbox::ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding)
   {
@@ -733,7 +621,31 @@ namespace Orthanc
       return ConvertToAscii(source);
     }
   }
+#endif
 
+
+  bool Toolbox::IsAsciiString(const void* data,
+                              size_t size)
+  {
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
+
+    for (size_t i = 0; i < size; i++, p++)
+    {
+      if (*p > 127 || *p == 0 || iscntrl(*p))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  bool Toolbox::IsAsciiString(const std::string& s)
+  {
+    return IsAsciiString(s.c_str(), s.size());
+  }
+  
 
   std::string Toolbox::ConvertToAscii(const std::string& source)
   {
@@ -751,14 +663,16 @@ namespace Orthanc
     return result;
   }
 
+
   void Toolbox::ComputeSHA1(std::string& result,
-                            const std::string& data)
+                            const void* data,
+                            size_t size)
   {
     boost::uuids::detail::sha1 sha1;
 
-    if (data.size() > 0)
+    if (size > 0)
     {
-      sha1.process_bytes(&data[0], data.size());
+      sha1.process_bytes(data, size);
     }
 
     unsigned int digest[5];
@@ -776,6 +690,20 @@ namespace Orthanc
             digest[3],
             digest[4]);
   }
+
+  void Toolbox::ComputeSHA1(std::string& result,
+                            const std::string& data)
+  {
+    if (data.size() > 0)
+    {
+      ComputeSHA1(result, data.c_str(), data.size());
+    }
+    else
+    {
+      ComputeSHA1(result, NULL, 0);
+    }
+  }
+
 
   bool Toolbox::IsSHA1(const char* str,
                        size_t size)
@@ -853,30 +781,6 @@ namespace Orthanc
       return IsSHA1(s.c_str(), s.size());
     }
   }
-
-
-#if BOOST_HAS_DATE_TIME == 1
-  std::string Toolbox::GetNowIsoString()
-  {
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    return boost::posix_time::to_iso_string(now);
-  }
-
-  void Toolbox::GetNowDicom(std::string& date,
-                            std::string& time)
-  {
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    tm tm = boost::posix_time::to_tm(now);
-
-    char s[32];
-    sprintf(s, "%04d%02d%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-    date.assign(s);
-
-    // TODO milliseconds
-    sprintf(s, "%02d%02d%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
-    time.assign(s);
-  }
-#endif
 
 
   std::string Toolbox::StripSpaces(const std::string& source)
@@ -979,7 +883,6 @@ namespace Orthanc
   }
 
 
-#if BOOST_HAS_REGEX == 1
   std::string Toolbox::WildcardToRegularExpression(const std::string& source)
   {
     // TODO - Speed up this with a regular expression
@@ -1007,8 +910,6 @@ namespace Orthanc
 
     return result;
   }
-#endif
-
 
 
   void Toolbox::TokenizeString(std::vector<std::string>& result,
@@ -1036,32 +937,7 @@ namespace Orthanc
   }
 
 
-  void Toolbox::MakeDirectory(const std::string& path)
-  {
-    if (boost::filesystem::exists(path))
-    {
-      if (!boost::filesystem::is_directory(path))
-      {
-        throw OrthancException(ErrorCode_DirectoryOverFile);
-      }
-    }
-    else
-    {
-      if (!boost::filesystem::create_directories(path))
-      {
-        throw OrthancException(ErrorCode_MakeDirectory);
-      }
-    }
-  }
-
-
-  bool Toolbox::IsExistingFile(const std::string& path)
-  {
-    return boost::filesystem::exists(path);
-  }
-
-
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
   class ChunkedBufferWriter : public pugi::xml_writer
   {
   private:
@@ -1183,64 +1059,6 @@ namespace Orthanc
 #endif
 
 
-  void Toolbox::ExecuteSystemCommand(const std::string& command,
-                                     const std::vector<std::string>& arguments)
-  {
-    // Convert the arguments as a C array
-    std::vector<char*>  args(arguments.size() + 2);
-
-    args.front() = const_cast<char*>(command.c_str());
-
-    for (size_t i = 0; i < arguments.size(); i++)
-    {
-      args[i + 1] = const_cast<char*>(arguments[i].c_str());
-    }
-
-    args.back() = NULL;
-
-    int status;
-
-#if defined(_WIN32)
-    // http://msdn.microsoft.com/en-us/library/275khfab.aspx
-    status = static_cast<int>(_spawnvp(_P_OVERLAY, command.c_str(), &args[0]));
-
-#else
-    int pid = fork();
-
-    if (pid == -1)
-    {
-      // Error in fork()
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "Cannot fork a child process";
-#endif
-
-      throw OrthancException(ErrorCode_SystemCommand);
-    }
-    else if (pid == 0)
-    {
-      // Execute the system command in the child process
-      execvp(command.c_str(), &args[0]);
-
-      // We should never get here
-      _exit(1);
-    }
-    else
-    {
-      // Wait for the system command to exit
-      waitpid(pid, &status, 0);
-    }
-#endif
-
-    if (status != 0)
-    {
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "System command failed with status code " << status;
-#endif
-
-      throw OrthancException(ErrorCode_SystemCommand);
-    }
-  }
-
   
   bool Toolbox::IsInteger(const std::string& str)
   {
@@ -1348,15 +1166,402 @@ namespace Orthanc
       return str.compare(0, prefix.size(), prefix) == 0;
     }
   }
+  
 
-
-  int Toolbox::GetProcessId()
+  static bool IsUnreservedCharacter(char c)
   {
-#if defined(_WIN32)
-    return static_cast<int>(_getpid());
+    // This function checks whether "c" is an unserved character
+    // wrt. an URI percent-encoding
+    // https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding%5Fin%5Fa%5FURI
+
+    return ((c >= 'A' && c <= 'Z') ||
+            (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') ||
+            c == '-' ||
+            c == '_' ||
+            c == '.' ||
+            c == '~');
+  }
+
+  void Toolbox::UriEncode(std::string& target,
+                          const std::string& source)
+  {
+    // Estimate the length of the percent-encoded URI
+    size_t length = 0;
+
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      if (IsUnreservedCharacter(source[i]))
+      {
+        length += 1;
+      }
+      else
+      {
+        // This character must be percent-encoded
+        length += 3;
+      }
+    }
+
+    target.clear();
+    target.reserve(length);
+
+    for (size_t i = 0; i < source.size(); i++)
+    {
+      if (IsUnreservedCharacter(source[i]))
+      {
+        target.push_back(source[i]);
+      }
+      else
+      {
+        // This character must be percent-encoded
+        uint8_t byte = static_cast<uint8_t>(source[i]);
+        uint8_t a = byte >> 4;
+        uint8_t b = byte & 0x0f;
+
+        target.push_back('%');
+        target.push_back(a < 10 ? a + '0' : a - 10 + 'A');
+        target.push_back(b < 10 ? b + '0' : b - 10 + 'A');
+      }
+    }
+  }
+
+
+  static bool HasField(const Json::Value& json,
+                       const std::string& key,
+                       Json::ValueType expectedType)
+  {
+    if (json.type() != Json::objectValue ||
+        !json.isMember(key))
+    {
+      return false;
+    }
+    else if (json[key].type() == expectedType)
+    {
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+  }
+
+
+  std::string Toolbox::GetJsonStringField(const Json::Value& json,
+                                          const std::string& key,
+                                          const std::string& defaultValue)
+  {
+    if (HasField(json, key, Json::stringValue))
+    {
+      return json[key].asString();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  bool Toolbox::GetJsonBooleanField(const ::Json::Value& json,
+                                    const std::string& key,
+                                    bool defaultValue)
+  {
+    if (HasField(json, key, Json::booleanValue))
+    {
+      return json[key].asBool();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  int Toolbox::GetJsonIntegerField(const ::Json::Value& json,
+                                   const std::string& key,
+                                   int defaultValue)
+  {
+    if (HasField(json, key, Json::intValue))
+    {
+      return json[key].asInt();
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  unsigned int Toolbox::GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                                    const std::string& key,
+                                                    unsigned int defaultValue)
+  {
+    int v = GetJsonIntegerField(json, key, defaultValue);
+
+    if (v < 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return static_cast<unsigned int>(v);
+    }
+  }
+
+
+  bool Toolbox::IsUuid(const std::string& str)
+  {
+    if (str.size() != 36)
+    {
+      return false;
+    }
+
+    for (size_t i = 0; i < str.length(); i++)
+    {
+      if (i == 8 || i == 13 || i == 18 || i == 23)
+      {
+        if (str[i] != '-')
+          return false;
+      }
+      else
+      {
+        if (!isalnum(str[i]))
+          return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  bool Toolbox::StartsWithUuid(const std::string& str)
+  {
+    if (str.size() < 36)
+    {
+      return false;
+    }
+
+    if (str.size() == 36)
+    {
+      return IsUuid(str);
+    }
+
+    assert(str.size() > 36);
+    if (!isspace(str[36]))
+    {
+      return false;
+    }
+
+    return IsUuid(str.substr(0, 36));
+  }
+
+
+#if ORTHANC_ENABLE_LOCALE == 1
+  static std::auto_ptr<std::locale>  globalLocale_;
+
+  static bool SetGlobalLocale(const char* locale)
+  {
+    globalLocale_.reset(NULL);
+
+    try
+    {
+      if (locale == NULL)
+      {
+        LOG(WARNING) << "Falling back to system-wide default locale";
+        globalLocale_.reset(new std::locale());
+      }
+      else
+      {
+        LOG(INFO) << "Using locale: \"" << locale << "\" for case-insensitive comparison of strings";
+        globalLocale_.reset(new std::locale(locale));
+      }
+    }
+    catch (std::runtime_error&)
+    {
+    }
+
+    return (globalLocale_.get() != NULL);
+  }
+  
+  void Toolbox::InitializeGlobalLocale(const char* locale)
+  {
+    // Make Orthanc use English, United States locale
+    // Linux: use "en_US.UTF-8"
+    // Windows: use ""
+    // Wine: use NULL
+    
+#if defined(__MINGW32__)
+    // Visibly, there is no support of locales in MinGW yet
+    // http://mingw.5.n7.nabble.com/How-to-use-std-locale-global-with-MinGW-correct-td33048.html
+    static const char* DEFAULT_LOCALE = NULL;
+#elif defined(_WIN32)
+    // For Windows: use default locale (using "en_US" does not work)
+    static const char* DEFAULT_LOCALE = "";
 #else
-    return static_cast<int>(getpid());
+    // For Linux & cie
+    static const char* DEFAULT_LOCALE = "en_US.UTF-8";
 #endif
+
+    bool ok;
+    
+    if (locale == NULL)
+    {
+      ok = SetGlobalLocale(DEFAULT_LOCALE);
+
+#if defined(__MINGW32__)
+      LOG(WARNING) << "This is a MinGW build, case-insensitive comparison of "
+                   << "strings with accents will not work outside of Wine";
+#endif
+    }
+    else
+    {
+      ok = SetGlobalLocale(locale);
+    }
+
+    if (!ok &&
+        !SetGlobalLocale(NULL))
+    {
+      LOG(ERROR) << "Cannot initialize global locale";
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+  }
+
+
+  void Toolbox::FinalizeGlobalLocale()
+  {
+    globalLocale_.reset();
+  }
+
+
+  std::string Toolbox::ToUpperCaseWithAccents(const std::string& source)
+  {
+    if (globalLocale_.get() == NULL)
+    {
+      LOG(ERROR) << "No global locale was set, call Toolbox::InitializeGlobalLocale()";
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    /**
+     * A few notes about locales:
+     *
+     * (1) We don't use "case folding":
+     * http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/conversions.html
+     *
+     * Characters are made uppercase one by one. This is because, in
+     * static builds, we are using iconv, which is visibly not
+     * supported correctly (TODO: Understand why). Case folding seems
+     * to be working correctly if using the default backend under
+     * Linux (ICU or POSIX?). If one wishes to use case folding, one
+     * would use:
+     *
+     *   boost::locale::generator gen;
+     *   std::locale::global(gen(DEFAULT_LOCALE));
+     *   return boost::locale::to_upper(source);
+     *
+     * (2) The function "boost::algorithm::to_upper_copy" does not
+     * make use of the "std::locale::global()". We therefore create a
+     * global variable "globalLocale_".
+     * 
+     * (3) The variant of "boost::algorithm::to_upper_copy()" that
+     * uses std::string does not work properly. We need to apply it
+     * one wide strings (std::wstring). This explains the two calls to
+     * "utf_to_utf" in order to convert to/from std::wstring.
+     **/
+
+    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source);
+    w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
+    return boost::locale::conv::utf_to_utf<char>(w);
+  }
+#endif
+
+
+  void Toolbox::InitializeOpenSsl()
+  {
+#if ORTHANC_ENABLE_SSL == 1
+    // https://wiki.openssl.org/index.php/Library_Initialization
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+#endif
+  }
+
+
+  void Toolbox::FinalizeOpenSsl()
+  {
+#if ORTHANC_ENABLE_SSL == 1
+    // Finalize OpenSSL
+    // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
+#ifdef FIPS_mode_set
+    FIPS_mode_set(0);
+#endif
+    ENGINE_cleanup();
+    CONF_modules_unload(1);
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+    ERR_remove_state(0);
+    ERR_free_strings();
+#endif
+  }
+
+
+  std::string Toolbox::GenerateUuid()
+  {
+#ifdef WIN32
+    UUID uuid;
+    UuidCreate ( &uuid );
+
+    unsigned char * str;
+    UuidToStringA ( &uuid, &str );
+
+    std::string s( ( char* ) str );
+
+    RpcStringFreeA ( &str );
+#else
+    uuid_t uuid;
+    uuid_generate_random ( uuid );
+    char s[37];
+    uuid_unparse ( uuid, s );
+#endif
+    return s;
   }
 }
 
+
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content)
+{
+  return reinterpret_cast<OrthancLinesIterator*>(new Orthanc::Toolbox::LinesIterator(content));
+}
+
+
+bool OrthancLinesIterator_GetLine(std::string& target,
+                                         const OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    return reinterpret_cast<const Orthanc::Toolbox::LinesIterator*>(iterator)->GetLine(target);
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    reinterpret_cast<Orthanc::Toolbox::LinesIterator*>(iterator)->Next();
+  }
+}
+
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator)
+{
+  if (iterator != NULL)
+  {
+    delete reinterpret_cast<const Orthanc::Toolbox::LinesIterator*>(iterator);
+  }
+}

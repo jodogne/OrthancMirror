@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,11 +43,12 @@
 
 #include "IDatabaseWrapper.h"
 
-
 namespace Orthanc
 {
   class LookupResource;
   class ServerContext;
+  class DicomInstanceToStore;
+  class ParsedDicomFile;
 
   class ServerIndex : public boost::noncopyable
   {
@@ -68,13 +70,16 @@ namespace Orthanc
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
-    uint64_t currentStorageSize_;
-    uint64_t maximumStorageSize_;
+    uint64_t     currentStorageSize_;
+    uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
+    bool         overwrite_;
 
-    static void FlushThread(ServerIndex* that);
+    static void FlushThread(ServerIndex* that,
+                            unsigned int threadSleep);
 
-    static void UnstableResourcesMonitorThread(ServerIndex* that);
+    static void UnstableResourcesMonitorThread(ServerIndex* that,
+                                               unsigned int threadSleep);
 
     void MainDicomTagsToJson(Json::Value& result,
                              int64_t resourceId,
@@ -115,9 +120,15 @@ namespace Orthanc
     int64_t CreateResource(const std::string& publicId,
                            ResourceType type);
 
+    void SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
+                             int64_t instance,
+                             MetadataType metadata,
+                             const std::string& value);
+
   public:
     ServerIndex(ServerContext& context,
-                IDatabaseWrapper& database);
+                IDatabaseWrapper& database,
+                unsigned int threadSleep);
 
     ~ServerIndex();
 
@@ -139,11 +150,11 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
+    void SetOverwriteInstances(bool overwrite);
+
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
-                      const DicomMap& dicomSummary,
-                      const Attachments& attachments,
-                      const std::string& remoteAet,
-                      const MetadataMap& metadata);
+                      DicomInstanceToStore& instance,
+                      const Attachments& attachments);
 
     void ComputeStatistics(Json::Value& target);                        
 
@@ -250,6 +261,9 @@ namespace Orthanc
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
 
+    bool LookupGlobalProperty(std::string& value,
+                              GlobalProperty property);
+
     std::string GetGlobalProperty(GlobalProperty property,
                                   const std::string& defaultValue);
 
@@ -266,5 +280,11 @@ namespace Orthanc
     void FindCandidates(std::vector<std::string>& resources,
                         std::vector<std::string>& instances,
                         const ::Orthanc::LookupResource& lookup);
+
+    bool LookupParent(std::string& target,
+                      const std::string& publicId,
+                      ResourceType parentType);
+
+    void ReconstructInstance(ParsedDicomFile& dicom);
   };
 }

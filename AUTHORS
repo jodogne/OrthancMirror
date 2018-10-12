@@ -6,28 +6,15 @@ Authors of Orthanc
 ------------------
 
 * Sebastien Jodogne <s.jodogne@gmail.com>
-  Department of Medical Physics
-  University Hospital of Liege
-  Belgium
 
   Overall design and lead developer.
 
+* Department of Medical Physics
+  University Hospital of Liege
+  4000 Liege
+  Belgium
 
-Client library
---------------
-
-The client library of Orthanc is automatically wrapped from the C++
-code using the LAAW software. LAAW is the Lightweight, Automated API
-Wrapper from the Jomago team, that comes from the following authors:
-
-* Sebastien Jodogne <s.jodogne@gmail.com>
-* Alain Mazy <alain@mazy.be>
-* Benjamin Golinvaux <golinvauxb@gmail.com>
-
-LAAW should be soon released as a separate open-source project.
-
-
-Contributors
-------------
-
-See the file "THANKS" for the occasional contributors.
+* Osimis S.A. <info@osimis.io>
+  Rue du Bois Saint-Jean 15/1
+  4102 Seraing
+  Belgium

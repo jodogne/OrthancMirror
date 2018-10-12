@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -59,7 +60,7 @@ namespace Orthanc
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
       limit = boost::lexical_cast<unsigned int>(call.GetArgument("limit", "0"));
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }

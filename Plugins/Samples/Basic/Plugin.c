@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,9 +29,9 @@ static OrthancPluginContext* context = NULL;
 static OrthancPluginErrorCode customError;
 
 
-ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   char buffer[1024];
   uint32_t i;
@@ -57,7 +58,7 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
     OrthancPluginLogWarning(context, buffer);    
   }
 
-  OrthancPluginLogWarning(context, "");    
+  OrthancPluginLogWarning(context, "");
 
   for (i = 0; i < request->headersCount; i++)
   {
@@ -67,13 +68,13 @@ ORTHANC_PLUGINS_API int32_t Callback1(OrthancPluginRestOutput* output,
 
   OrthancPluginLogWarning(context, "");
 
-  return 1;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback2(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 16bpp image. */
 
@@ -99,13 +100,13 @@ ORTHANC_PLUGINS_API int32_t Callback2(OrthancPluginRestOutput* output,
                                            256, 256, sizeof(uint16_t) * 256, buffer);
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback3(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -124,13 +125,13 @@ ORTHANC_PLUGINS_API int32_t Callback3(OrthancPluginRestOutput* output,
     }
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback4(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 8bpp image. */
 
@@ -156,13 +157,13 @@ ORTHANC_PLUGINS_API int32_t Callback4(OrthancPluginRestOutput* output,
                                            256, 256, 256, buffer);
   }
 
-  return 0;
+  return OrthancPluginErrorCode_Success;
 }
 
 
-ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
-                                      const char* url,
-                                      const OrthancPluginHttpRequest* request)
+ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* output,
+                                                     const char* url,
+                                                     const OrthancPluginHttpRequest* request)
 {
   /**
    * Demonstration the difference between the
@@ -194,20 +195,18 @@ ORTHANC_PLUGINS_API int32_t Callback5(OrthancPluginRestOutput* output,
   }
   else
   {
-    printf("ICI1\n");
     error = OrthancPluginRestApiGetAfterPlugins(context, &tmp, request->groups[1]);
-    printf("ICI2\n");
   }
 
   if (error)
   {
-    return -1;
+    return OrthancPluginErrorCode_InternalError;
   }
   else
   {
     OrthancPluginAnswerBuffer(context, output, tmp.data, tmp.size, "application/octet-stream");
     OrthancPluginFreeMemoryBuffer(context, &tmp);
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 }
 
@@ -264,8 +263,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
   char* json;
   static int first = 1;
 
-  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from AET %s", 
+  sprintf(buffer, "Just received a DICOM instance of size %d and ID %s from origin %d (AET %s)", 
           (int) OrthancPluginGetInstanceSize(context, instance), instanceId, 
+          OrthancPluginGetInstanceOrigin(context, instance),
           OrthancPluginGetInstanceRemoteAet(context, instance));
 
   OrthancPluginLogWarning(context, buffer);  
@@ -323,11 +323,44 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeT
 }
 
 
+ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  method,
+                                                      const char*              uri,
+                                                      const char*              ip,
+                                                      uint32_t                 headersCount,
+                                                      const char* const*       headersKeys,
+                                                      const char* const*       headersValues)
+{
+  uint32_t i;
+
+  if (headersCount > 0)
+  {
+    OrthancPluginLogInfo(context, "HTTP headers of an incoming REST request:");
+    for (i = 0; i < headersCount; i++)
+    {
+      char info[1024];
+      sprintf(info, "  %s: %s", headersKeys[i], headersValues[i]);
+      OrthancPluginLogInfo(context, info);
+    }
+  }
+
+  if (method == OrthancPluginHttpMethod_Get ||
+      method == OrthancPluginHttpMethod_Post)
+  {
+    return 1;  /* Allowed */
+  }
+  else
+  {
+    return 0;  /* Only allow GET and POST requests */
+  }
+}
+
+
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
   OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
   int counter, i;
+  OrthancPluginDictionaryEntry entry;
 
   context = c;
   OrthancPluginLogWarning(context, "Sample plugin is initializing");
@@ -384,8 +417,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
-
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
+  OrthancPluginRegisterIncomingHttpRequestFilter(context, FilterIncomingHttpRequest);
 
   /* Declare several properties of the plugin */
   OrthancPluginSetRootUri(context, "/plugin/hello");
@@ -407,6 +440,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
   OrthancPluginRegisterDictionaryTag(context, 0x0014, 0x1020, OrthancPluginValueRepresentation_DA,
                                      "ValidationExpiryDate", 1, 1);
+
+  OrthancPluginLookupDictionary(context, &entry, "ValidationExpiryDate");
+  OrthancPluginLookupDictionary(context, &entry, "0010-0010");
 
   return 0;
 }

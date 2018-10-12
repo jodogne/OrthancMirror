@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,25 +34,21 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
-#include "FromDcmtkBridge.h"
-#include "ServerToolbox.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 #include "OrthancInitialization.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "Search/LookupResource.h"
+#include "ServerJobs/OrthancJobUnserializer.h"
+#include "ServerToolbox.h"
 
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-
-#include "Scheduler/CallSystemCommand.h"
-#include "Scheduler/DeleteInstanceCommand.h"
-#include "Scheduler/ModifyInstanceCommand.h"
-#include "Scheduler/StoreScuCommand.h"
-#include "Scheduler/StorePeerCommand.h"
-#include "OrthancRestApi/OrthancRestApi.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 
 
 #define ENABLE_DICOM_CACHE  1
@@ -69,11 +66,12 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
-  void ServerContext::ChangeThread(ServerContext* that)
+  void ServerContext::ChangeThread(ServerContext* that,
+                                   unsigned int sleepDelay)
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(100));
+      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
         
       if (obj.get() != NULL)
       {
@@ -85,12 +83,24 @@ namespace Orthanc
         {
           try
           {
-            it->GetListener().SignalChange(change);
+            try
+            {
+              it->GetListener().SignalChange(change);
+            }
+            catch (std::bad_alloc&)
+            {
+              LOG(ERROR) << "Not enough memory while signaling a change";
+            }
+            catch (...)
+            {
+              throw OrthancException(ErrorCode_InternalError);
+            }
           }
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while signaling a change: " << e.What();
+                       << " callback while signaling a change: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
           }
         }
       }
@@ -98,29 +108,139 @@ namespace Orthanc
   }
 
 
+  void ServerContext::SaveJobsThread(ServerContext* that,
+                                     unsigned int sleepDelay)
+  {
+    static const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(10);
+    
+    boost::posix_time::ptime next =
+      boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+    
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+
+      if (that->haveJobsChanged_ ||
+          boost::posix_time::microsec_clock::universal_time() >= next)
+      {
+        that->haveJobsChanged_ = false;
+        that->SaveJobsEngine();
+        next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+      }
+    }
+  }
+  
+
+  void ServerContext::SignalJobSubmitted(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    mainLua_.SignalJobSubmitted(jobId);
+  }
+  
+
+  void ServerContext::SignalJobSuccess(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    mainLua_.SignalJobSuccess(jobId);
+  }
+
+  
+  void ServerContext::SignalJobFailure(const std::string& jobId)
+  {
+    haveJobsChanged_ = true;
+    mainLua_.SignalJobFailure(jobId);
+  }
+
+
+  void ServerContext::SetupJobsEngine(bool unitTesting,
+                                      bool loadJobsFromDatabase)
+  {
+    if (loadJobsFromDatabase)
+    {
+      std::string serialized;
+      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+      {
+        LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
+        OrthancJobUnserializer unserializer(*this);
+
+        try
+        {
+          jobsEngine_.LoadRegistryFromString(unserializer, serialized);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
+          throw;
+        }
+      }
+      else
+      {
+        LOG(INFO) << "The last execution of Orthanc has archived no job";
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "Not reloading the jobs from the last execution of Orthanc";
+    }
+
+    //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
+
+    jobsEngine_.GetRegistry().SetObserver(*this);
+    jobsEngine_.Start();
+    isJobsEngineUnserialized_ = true;
+
+    saveJobsThread_ = boost::thread(SaveJobsThread, this, (unitTesting ? 20 : 100));
+  }
+
+
+  void ServerContext::SaveJobsEngine()
+  {
+    VLOG(1) << "Serializing the content of the jobs engine";
+    
+    try
+    {
+      Json::Value value;
+      jobsEngine_.GetRegistry().Serialize(value);
+
+      Json::FastWriter writer;
+      std::string serialized = writer.write(value);
+
+      index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+    }
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database,
-                               IStorageArea& area) :
-    index_(*this, database),
+                               IStorageArea& area,
+                               bool unitTesting) :
+    index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
     storeMD5_(true),
     provider_(*this),
     dicomCache_(provider_, DICOM_CACHE_SIZE),
-    scheduler_(Configuration::GetGlobalIntegerParameter("LimitJobs", 10)),
-    lua_(*this),
-#if ORTHANC_PLUGINS_ENABLED == 1
+    mainLua_(*this),
+    filterLua_(*this),
+    luaListener_(*this),
+#if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
     done_(false),
-    queryRetrieveArchive_(Configuration::GetGlobalIntegerParameter("QueryRetrieveSize", 10)),
+    haveJobsChanged_(false),
+    isJobsEngineUnserialized_(false),
+    queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
     defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
   {
-    uint64_t s = Configuration::GetGlobalIntegerParameter("DicomAssociationCloseDelay", 5);  // In seconds
-    scu_.SetMillisecondsBeforeClose(s * 1000);  // Milliseconds are expected here
+    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
 
-    listeners_.push_back(ServerListener(lua_, "Lua"));
-
-    changeThread_ = boost::thread(ChangeThread, this);
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
+    changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
   }
 
 
@@ -151,10 +271,21 @@ namespace Orthanc
         changeThread_.join();
       }
 
-      scu_.Finalize();
+      if (saveJobsThread_.joinable())
+      {
+        saveJobsThread_.join();
+      }
+
+      jobsEngine_.GetRegistry().ResetObserver();
+
+      if (isJobsEngineUnserialized_)
+      {
+        // Avoid losing jobs if the JobsRegistry cannot be unserialized
+        SaveJobsEngine();
+      }
 
       // Do not change the order below!
-      scheduler_.Stop();
+      jobsEngine_.Stop();
       index_.Stop();
     }
   }
@@ -189,7 +320,7 @@ namespace Orthanc
       resultPublicId = hasher.HashInstance();
 
       Json::Value simplifiedTags;
-      Toolbox::SimplifyTags(simplifiedTags, dicom.GetJson());
+      ServerToolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
       bool accepted = true;
@@ -210,7 +341,8 @@ namespace Orthanc
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while receiving an instance: " << e.What();
+                       << " callback while receiving an instance: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
             throw;
           }
         }
@@ -220,6 +352,13 @@ namespace Orthanc
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
         return StoreStatus_FilteredOut;
+      }
+
+      {
+        // Remove the file from the DicomCache (useful if
+        // "OverwriteInstances" is set to "true")
+        boost::mutex::scoped_lock lock(dicomCacheMutex_);
+        dicomCache_.Invalidate(resultPublicId);
       }
 
       // TODO Should we use "gzip" instead?
@@ -236,8 +375,7 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(instanceMetadata, dicom.GetSummary(), attachments, 
-                                        dicom.GetRemoteAet(), dicom.GetMetadata());
+      StoreStatus status = index_.Store(instanceMetadata, dicom, attachments);
 
       // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
@@ -288,7 +426,8 @@ namespace Orthanc
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while receiving an instance: " << e.What();
+                       << " callback while receiving an instance: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
           }
         }
       }
@@ -299,7 +438,7 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        Toolbox::LogMissingRequiredTag(dicom.GetSummary());
+        dicom.GetSummary().LogMissingTagsForStore();
       }
 
       throw;
@@ -318,7 +457,7 @@ namespace Orthanc
     }
 
     StorageAccessor accessor(area_);
-    accessor.AnswerFile(output, attachment);
+    accessor.AnswerFile(output, attachment, GetFileContentMime(content));
   }
 
 
@@ -368,35 +507,101 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadJson(Json::Value& result,
-                               const std::string& instancePublicId)
+  void ServerContext::ReadDicomAsJsonInternal(std::string& result,
+                                              const std::string& instancePublicId)
   {
-    std::string s;
-    ReadFile(s, instancePublicId, FileContentType_DicomAsJson);
-
-    Json::Reader reader;
-    if (!reader.parse(s, result))
+    FileInfo attachment;
+    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
     {
-      throw OrthancException(ErrorCode_CorruptedFile);
+      ReadAttachment(result, attachment);
+    }
+    else
+    {
+      // The "DICOM as JSON" summary is not available from the Orthanc
+      // store (most probably deleted), reconstruct it from the DICOM file
+      std::string dicom;
+      ReadDicom(dicom, instancePublicId);
+
+      LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: "
+                << instancePublicId;
+    
+      ParsedDicomFile parsed(dicom);
+
+      Json::Value summary;
+      parsed.DatasetToJson(summary);
+
+      result = summary.toStyledString();
+
+      if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
+                         result.c_str(), result.size()))
+      {
+        LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
 
-  void ServerContext::ReadFile(std::string& result,
-                               const std::string& instancePublicId,
-                               FileContentType content,
-                               bool uncompressIfNeeded)
+  void ServerContext::ReadDicomAsJson(std::string& result,
+                                      const std::string& instancePublicId,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    if (ignoreTagLength.empty())
+    {
+      ReadDicomAsJsonInternal(result, instancePublicId);
+    }
+    else
+    {
+      Json::Value tmp;
+      ReadDicomAsJson(tmp, instancePublicId, ignoreTagLength);
+      result = tmp.toStyledString();
+    }
+  }
+
+
+  void ServerContext::ReadDicomAsJson(Json::Value& result,
+                                      const std::string& instancePublicId,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    if (ignoreTagLength.empty())
+    {
+      std::string tmp;
+      ReadDicomAsJsonInternal(tmp, instancePublicId);
+
+      Json::Reader reader;
+      if (!reader.parse(tmp, result))
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+    }
+    else
+    {
+      // The "DicomAsJson" attachment might have stored some tags as
+      // "too long". We are forced to re-parse the DICOM file.
+      std::string dicom;
+      ReadDicom(dicom, instancePublicId);
+
+      ParsedDicomFile parsed(dicom);
+      parsed.DatasetToJson(result, ignoreTagLength);
+    }
+  }
+
+
+  void ServerContext::ReadAttachment(std::string& result,
+                                     const std::string& instancePublicId,
+                                     FileContentType content,
+                                     bool uncompressIfNeeded)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
+      LOG(WARNING) << "Unable to read attachment " << EnumerationToString(content) << " of instance " << instancePublicId;
       throw OrthancException(ErrorCode_InternalError);
     }
 
     if (uncompressIfNeeded)
     {
-      StorageAccessor accessor(area_);
-      accessor.Read(result, attachment);
+      ReadAttachment(result, attachment);
     }
     else
     {
@@ -407,10 +612,19 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ReadAttachment(std::string& result,
+                                     const FileInfo& attachment)
+  {
+    // This will decompress the attachment
+    StorageAccessor accessor(area_);
+    accessor.Read(result, attachment);
+  }
+
+
   IDynamicObject* ServerContext::DicomCacheProvider::Provide(const std::string& instancePublicId)
   {
     std::string content;
-    context_.ReadFile(content, instancePublicId, FileContentType_Dicom);
+    context_.ReadDicom(content, instancePublicId);
     return new ParsedDicomFile(content);
   }
 
@@ -472,6 +686,13 @@ namespace Orthanc
                                      const std::string& uuid,
                                      ResourceType expectedType)
   {
+    if (expectedType == ResourceType_Instance)
+    {
+      // remove the file from the DicomCache
+      boost::mutex::scoped_lock lock(dicomCacheMutex_);
+      dicomCache_.Invalidate(uuid);
+    }
+
     return index_.DeleteResource(target, uuid, expectedType);
   }
 
@@ -482,7 +703,7 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   void ServerContext::SetPlugins(OrthancPlugins& plugins)
   {
     boost::recursive_mutex::scoped_lock lock(listenersMutex_);
@@ -491,7 +712,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
     listeners_.push_back(ServerListener(plugins, "plugin"));
   }
 
@@ -504,7 +725,7 @@ namespace Orthanc
 
     // TODO REFACTOR THIS
     listeners_.clear();
-    listeners_.push_back(ServerListener(lua_, "Lua"));
+    listeners_.push_back(ServerListener(luaListener_, "Lua"));
   }
 
 
@@ -537,7 +758,7 @@ namespace Orthanc
 
   bool ServerContext::HasPlugins() const
   {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     return (plugins_ != NULL);
 #else
     return false;
@@ -545,28 +766,39 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::Apply(std::list<std::string>& result,
+  void ServerContext::Apply(bool& isComplete, 
+                            std::list<std::string>& result,
                             const ::Orthanc::LookupResource& lookup,
-                            size_t maxResults)
+                            size_t since,
+                            size_t limit)
   {
     result.clear();
+    isComplete = true;
 
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
     assert(resources.size() == instances.size());
 
+    size_t skipped = 0;
     for (size_t i = 0; i < instances.size(); i++)
     {
+      // TODO - Don't read the full JSON from the disk if only "main
+      // DICOM tags" are to be returned
       Json::Value dicom;
-      ReadJson(dicom, instances[i]);
+      ReadDicomAsJson(dicom, instances[i]);
       
       if (lookup.IsMatch(dicom))
       {
-        if (maxResults != 0 &&
-            result.size() >= maxResults)
+        if (skipped < since)
         {
-          return false;  // too many results
+          skipped++;
+        }
+        else if (limit != 0 &&
+                 result.size() >= limit)
+        {
+          isComplete = false;
+          return;  // too many results
         }
         else
         {
@@ -574,8 +806,21 @@ namespace Orthanc
         }
       }
     }
-
-    return true;  // finished
   }
 
+
+  void ServerContext::AddChildInstances(SetOfInstancesJob& job,
+                                        const std::string& publicId)
+  {
+    std::list<std::string> instances;
+    GetIndex().GetChildInstances(instances, publicId);
+
+    job.Reserve(job.GetInstancesCount() + instances.size());
+
+    for (std::list<std::string>::const_iterator
+           it = instances.begin(); it != instances.end(); ++it)
+    {
+      job.AddInstance(*it);
+    }
+  }
 }

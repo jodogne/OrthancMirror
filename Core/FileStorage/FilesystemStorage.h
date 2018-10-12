@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,6 +33,14 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The class FilesystemStorage cannot be used in sandboxed environments
+#endif
+
 #include "IStorageArea.h"
 
 #include <stdint.h>
@@ -52,7 +61,7 @@ namespace Orthanc
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
   public:
-    FilesystemStorage(std::string root);
+    explicit FilesystemStorage(std::string root);
 
     virtual void Create(const std::string& uuid,
                         const void* content, 

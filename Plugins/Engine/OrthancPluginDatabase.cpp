@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,7 +34,7 @@
 #include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "OrthancPluginDatabase.h"
 
-#if ORTHANC_PLUGINS_ENABLED != 1
+#if ORTHANC_ENABLE_PLUGINS != 1
 #error The plugin support is disabled
 #endif
 
@@ -633,6 +634,34 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::LookupIdentifierRange(std::list<int64_t>& result,
+                                                    ResourceType level,
+                                                    const DicomTag& tag,
+                                                    const std::string& start,
+                                                    const std::string& end)
+  {
+    if (extensions_.lookupIdentifierRange == NULL)
+    {
+      // Default implementation, for plugins using Orthanc SDK <= 1.3.2
+
+      LookupIdentifier(result, level, tag, IdentifierConstraintType_GreaterOrEqual, start);
+
+      std::list<int64_t> b;
+      LookupIdentifier(result, level, tag, IdentifierConstraintType_SmallerOrEqual, end);
+
+      result.splice(result.end(), b);
+    }
+    else
+    {
+      ResetAnswers();
+      CheckSuccess(extensions_.lookupIdentifierRange(GetContext(), payload_, Plugins::Convert(level),
+                                                     tag.GetGroup(), tag.GetElement(),
+                                                     start.c_str(), end.c_str()));
+      ForwardAnswers(result);
+    }
+  }
+
+
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)
@@ -986,7 +1015,7 @@ namespace Orthanc
       {
         const OrthancPluginDicomTag& tag = *reinterpret_cast<const OrthancPluginDicomTag*>(answer.valueGeneric);
         assert(answerDicomMap_ != NULL);
-        answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value));
+        answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value), false);
         break;
       }
 

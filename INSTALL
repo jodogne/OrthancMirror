@@ -51,12 +51,17 @@ WARNING 2: If cmake complains about not being able to uncompress
 third-party dependencies, delete the "~/Orthanc/ThirdPartyDownloads/"
 folder, then restart cmake.
 
+WARNING 3: If performance is important to you, make sure to add the
+option "-DCMAKE_BUILD_TYPE=Release" when invoking cmake. Indeed, by
+default, run-time debug assertions are enabled, which can seriously
+impact performance, especially if your Orthanc server stores a lot of
+DICOM instances.
 
-Native Linux Compilation
-------------------------
+
+Native GNU/Linux Compilation
+----------------------------
 
 See the file "LinuxCompilation.txt".
-
 
 
 Native OS X Compilation
@@ -70,36 +75,55 @@ Native Windows build with Microsoft Visual Studio
 -------------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON -G "Visual Studio 8 2005" [...]\Orthanc
+# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\Orthanc
 
 Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 
 NOTES:
-* More recent versions of Visual Studio than 2005 should also
+* More recent versions of Visual Studio than 2008 should also
   work. Type "cmake" without arguments to have the list of generators
   that are available on your computer.
 * You will have to install the Platform SDK (version 6 or above) for
   Visual Studio 2005:
   http://en.wikipedia.org/wiki/Microsoft_Windows_SDK.
   Read the CMake FAQ: http://goo.gl/By90B 
+* The "-DUSE_LEGACY_JSONCPP=ON" must be set for versions of
+  Visual Studio that do not support C++11
 
 
 
-Cross-Compilation for Windows under Linux
------------------------------------------
+Cross-Compilation for Windows under GNU/Linux
+---------------------------------------------
 
-To cross-compile Windows binaries under Linux using MinGW, please use
-the following command:
+Some versions of MinGW-W64 might have problems with C++11 (notably
+those shipped in Ubuntu 16.04 LTS, in the "mingw-w64" package). Use
+the following command to disable C++11:
 
 # cd ~/OrthancBuild
-# cmake -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cmake ~/Orthanc \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake \
+        -DSTANDALONE_BUILD=ON \
+        -DSTATIC_BUILD=ON \
+        -DUSE_LEGACY_JSONCPP=ON
 # make
 
+NB: Use the toolchain "MinGW-W64-Toolchain64.cmake" to produce 64bit
+Windows binaries.
 
 
-Native Windows build with MinGW (VERY SLOW)
--------------------------------------------
 
-# cd [...]\OrthancBuild
-# cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug [...]\Orthanc
-# mingw32-make
+Legacy MinGW32 compilers (notably those shipped in Ubuntu 14.04 LTS,
+in the "mingw32" package) are incompatible with DCMTK 3.6.2 and
+C++11. Use the following command to force using DCMTK 3.6.0 and
+disable C++11:
+
+# cd ~/OrthancBuild
+# cmake ~/Orthanc \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake \
+        -DSTANDALONE_BUILD=ON \
+        -DSTATIC_BUILD=ON \
+        -DUSE_DCMTK_360=ON \
+        -DUSE_LEGACY_JSONCPP=ON
+# make

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,12 +33,12 @@
 
 #pragma once
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 
+#include "../../Core/SharedLibrary.h"
 #include "../../OrthancServer/IDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
-#include "SharedLibrary.h"
 
 namespace Orthanc
 {
@@ -211,6 +212,12 @@ namespace Orthanc
                                   const DicomTag& tag,
                                   IdentifierConstraintType type,
                                   const std::string& value);
+
+    virtual void LookupIdentifierRange(std::list<int64_t>& result,
+                                       ResourceType level,
+                                       const DicomTag& tag,
+                                       const std::string& start,
+                                       const std::string& end);
 
     virtual bool LookupMetadata(std::string& target,
                                 int64_t id,

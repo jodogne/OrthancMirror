@@ -1,52 +1,11 @@
-Introduction
-============
+ServeFolders plugin
+===================
 
 This sample plugin enables Orthanc to serve additional folders using
 its embedded Web server.
 
+The shared library containing the plugin is created as part of the
+build process of Orthanc.
 
-Compilation for Linux
-=====================
-
-# mkdir Build
-# cd Build
-# cmake ..
-# make
-
-
-Cross-compilation for Windows using MinGW
-=========================================
-
-# mkdir Build
-# cd Build
-# cmake .. -DCMAKE_TOOLCHAIN_FILE=../../../Resources/MinGWToolchain.cmake
-# make
-
-
-Configuration
-=============
-
-First, generate the default configuration of Orthanc:
-https://code.google.com/p/orthanc/wiki/OrthancConfiguration
-
-Then, modify the "Plugins" option to point to the folder containing
-the built plugins.
-
-Finally, create a section "ServeFolders" in the configuration file to
-specify which folder you want to serve, and at which URI. For
-instance, the following excerpt would load the plugins from the
-working directory, then would branch the content of the folder
-"/home/jodogne/WWW/fosdem" as the URI "http://localhost:8042/fosdem":
-
-{
-  "Name" : "MyOrthanc",
-  [...]
-  "HttpPort" : 8042,
-  [...]
-  "Plugins" : [ 
-    "."
-  ],
-  "ServeFolders" : {
-    "/fosdem" : "/home/jodogne/WWW/fosdem"
-  }
-}
+Documentation is available in the Orthanc Book:
+http://book.orthanc-server.com/plugins/serve-folders.html

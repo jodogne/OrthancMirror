@@ -1,0 +1,74 @@
+diff -urEb boost_1_67_0.orig/boost/move/adl_move_swap.hpp boost_1_67_0/boost/move/adl_move_swap.hpp
+--- boost_1_67_0.orig/boost/move/adl_move_swap.hpp	2018-06-20 17:42:27.000000000 +0200
++++ boost_1_67_0/boost/move/adl_move_swap.hpp	2018-10-12 14:27:41.368076902 +0200
+@@ -28,6 +28,8 @@
+ //Try to avoid including <algorithm>, as it's quite big
+ #if defined(_MSC_VER) && defined(BOOST_DINKUMWARE_STDLIB)
+    #include <utility>   //Dinkum libraries define std::swap in utility which is lighter than algorithm
++#elif defined(__LSB_VERSION__)
++#  include <utility>
+ #elif defined(BOOST_GNU_STDLIB)
+    //For non-GCC compilers, where GNUC version is not very reliable, or old GCC versions
+    //use the good old stl_algobase header, which is quite lightweight
+diff -urEb boost_1_67_0.orig/boost/thread/detail/config.hpp boost_1_67_0/boost/thread/detail/config.hpp
+--- boost_1_67_0.orig/boost/thread/detail/config.hpp	2018-06-20 17:42:27.000000000 +0200
++++ boost_1_67_0/boost/thread/detail/config.hpp	2018-10-12 14:27:41.372076898 +0200
+@@ -417,6 +417,8 @@
+   #define BOOST_THREAD_INTERNAL_CLOCK_IS_MONO
+ #elif defined(BOOST_THREAD_CHRONO_MAC_API)
+   #define BOOST_THREAD_HAS_MONO_CLOCK
++#elif defined(__LSB_VERSION__) || defined(__ANDROID__)
++  #define BOOST_THREAD_HAS_MONO_CLOCK
+ #else
+   #include <time.h> // check for CLOCK_MONOTONIC
+   #if defined(CLOCK_MONOTONIC)
+diff -urEb boost_1_67_0.orig/boost/type_traits/detail/has_postfix_operator.hpp boost_1_67_0/boost/type_traits/detail/has_postfix_operator.hpp
+--- boost_1_67_0.orig/boost/type_traits/detail/has_postfix_operator.hpp	2018-06-20 17:42:27.000000000 +0200
++++ boost_1_67_0/boost/type_traits/detail/has_postfix_operator.hpp	2018-10-12 14:31:27.539874170 +0200
+@@ -32,8 +32,11 @@
+ namespace boost {
+ namespace detail {
+ 
++// https://stackoverflow.com/a/15474269
++#ifndef Q_MOC_RUN
+ // This namespace ensures that argument-dependent name lookup does not mess things up.
+ namespace BOOST_JOIN(BOOST_TT_TRAIT_NAME,_impl) {
++#endif
+ 
+ // 1. a function to have an instance of type T without requiring T to be default
+ // constructible
+@@ -181,7 +184,9 @@
+    BOOST_STATIC_CONSTANT(bool, value = (trait_impl1 < Lhs_noref, Ret, BOOST_TT_FORBIDDEN_IF >::value));
+ };
+ 
++#ifndef Q_MOC_RUN
+ } // namespace impl
++#endif
+ } // namespace detail
+ 
+ // this is the accessible definition of the trait to end user
+diff -urEb boost_1_67_0.orig/boost/type_traits/detail/has_prefix_operator.hpp boost_1_67_0/boost/type_traits/detail/has_prefix_operator.hpp
+--- boost_1_67_0.orig/boost/type_traits/detail/has_prefix_operator.hpp	2018-06-20 17:42:27.000000000 +0200
++++ boost_1_67_0/boost/type_traits/detail/has_prefix_operator.hpp	2018-10-12 14:31:40.991862281 +0200
+@@ -45,8 +45,11 @@
+ namespace boost {
+ namespace detail {
+ 
++// https://stackoverflow.com/a/15474269
++#ifndef Q_MOC_RUN
+ // This namespace ensures that argument-dependent name lookup does not mess things up.
+ namespace BOOST_JOIN(BOOST_TT_TRAIT_NAME,_impl) {
++#endif
+ 
+ // 1. a function to have an instance of type T without requiring T to be default
+ // constructible
+@@ -194,7 +197,9 @@
+    BOOST_STATIC_CONSTANT(bool, value = (trait_impl1 < Rhs_noref, Ret, BOOST_TT_FORBIDDEN_IF >::value));
+ };
+ 
++#ifndef Q_MOC_RUN
+ } // namespace impl
++#endif
+ } // namespace detail
+ 
+ // this is the accessible definition of the trait to end user

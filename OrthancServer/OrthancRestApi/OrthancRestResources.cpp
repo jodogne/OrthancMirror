@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,15 +34,80 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
-#include "../ServerToolbox.h"
-#include "../FromDcmtkBridge.h"
+#include "../OrthancInitialization.h"
+#include "../Search/LookupResource.h"
 #include "../ServerContext.h"
+#include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
 
 
 namespace Orthanc
 {
+  static void AnswerDicomAsJson(RestApiCall& call,
+                                const Json::Value& dicom,
+                                DicomToJsonFormat mode)
+  {
+    if (mode != DicomToJsonFormat_Full)
+    {
+      Json::Value simplified;
+      ServerToolbox::SimplifyTags(simplified, dicom, mode);
+      call.GetOutput().AnswerJson(simplified);
+    }
+    else
+    {
+      call.GetOutput().AnswerJson(dicom);
+    }
+  }
+
+
+  static DicomToJsonFormat GetDicomFormat(const RestApiGetCall& call)
+  {
+    if (call.HasArgument("simplify"))
+    {
+      return DicomToJsonFormat_Human;
+    }
+    else if (call.HasArgument("short"))
+    {
+      return DicomToJsonFormat_Short;
+    }
+    else
+    {
+      return DicomToJsonFormat_Full;
+    }
+  }
+
+
+  static void AnswerDicomAsJson(RestApiGetCall& call,
+                                const Json::Value& dicom)
+  {
+    AnswerDicomAsJson(call, dicom, GetDicomFormat(call));
+  }
+
+
+  static void ParseSetOfTags(std::set<DicomTag>& target,
+                             const RestApiGetCall& call,
+                             const std::string& argument)
+  {
+    target.clear();
+
+    if (call.HasArgument(argument))
+    {
+      std::vector<std::string> tags;
+      Toolbox::TokenizeString(tags, call.GetArgument(argument, ""), ',');
+
+      for (size_t i = 0; i < tags.size(); i++)
+      {
+        target.insert(FromDcmtkBridge::ParseTag(tags[i]));
+      }
+    }
+  }
+
+
   // List all the patients, studies, series or instances ----------------------
  
   static void AnswerListOfResources(RestApiOutput& output,
@@ -184,78 +250,217 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::string dicom;
-    context.ReadFile(dicom, publicId, FileContentType_Dicom);
+    context.ReadDicom(dicom, publicId);
 
     std::string target;
     call.BodyToString(target);
-    Toolbox::WriteFile(dicom, target);
+    SystemToolbox::WriteFile(dicom, target);
 
     call.GetOutput().AnswerBuffer("{}", "application/json");
   }
 
 
-  template <bool simplify>
+  template <DicomToJsonFormat format>
   static void GetInstanceTags(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
+
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
     
-    if (simplify)
+    if (format != DicomToJsonFormat_Full ||
+        !ignoreTagLength.empty())
     {
       Json::Value full;
-      context.ReadJson(full, publicId);
-
-      Json::Value simplified;
-      Toolbox::SimplifyTags(simplified, full);
-      call.GetOutput().AnswerJson(simplified);
+      context.ReadDicomAsJson(full, publicId, ignoreTagLength);
+      AnswerDicomAsJson(call, full, format);
     }
     else
     {
-      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_DicomAsJson);
+      // This path allows to avoid the JSON decoding if no
+      // simplification is asked, and if no "ignore-length" argument
+      // is present
+      std::string full;
+      context.ReadDicomAsJson(full, publicId);
+      call.GetOutput().AnswerBuffer(full, "application/json");
     }
   }
 
 
   static void GetInstanceTagsBis(RestApiGetCall& call)
   {
-    bool simplify = call.HasArgument("simplify");
+    switch (GetDicomFormat(call))
+    {
+      case DicomToJsonFormat_Human:
+        GetInstanceTags<DicomToJsonFormat_Human>(call);
+        break;
 
-    if (simplify)
-    {
-      GetInstanceTags<true>(call);
-    }
-    else
-    {
-      GetInstanceTags<false>(call);
+      case DicomToJsonFormat_Short:
+        GetInstanceTags<DicomToJsonFormat_Short>(call);
+        break;
+
+      case DicomToJsonFormat_Full:
+        GetInstanceTags<DicomToJsonFormat_Full>(call);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
   }
 
   
   static void ListFrames(RestApiGetCall& call)
   {
-    Json::Value instance;
-    if (OrthancRestApi::GetIndex(call).LookupResource(instance, call.GetUriComponent("id", ""), ResourceType_Instance))
+    std::string publicId = call.GetUriComponent("id", "");
+
+    unsigned int numberOfFrames;
+      
     {
-      unsigned int numberOfFrames = 1;
-
-      try
-      {
-        Json::Value tmp = instance["MainDicomTags"]["NumberOfFrames"];
-        numberOfFrames = boost::lexical_cast<unsigned int>(tmp.asString());
-      }
-      catch (...)
-      {
-      }
-
-      Json::Value result = Json::arrayValue;
-      for (unsigned int i = 0; i < numberOfFrames; i++)
-      {
-        result.append(i);
-      }
-
-      call.GetOutput().AnswerJson(result);
+      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+      numberOfFrames = locker.GetDicom().GetFramesCount();
     }
+    
+    Json::Value result = Json::arrayValue;
+    for (unsigned int i = 0; i < numberOfFrames; i++)
+    {
+      result.append(i);
+    }
+    
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  namespace
+  {
+    class ImageToEncode
+    {
+    private:
+      std::auto_ptr<ImageAccessor>&  image_;
+      ImageExtractionMode            mode_;
+      bool                           invert_;
+      std::string                    format_;
+      std::string                    answer_;
+
+    public:
+      ImageToEncode(std::auto_ptr<ImageAccessor>& image,
+                    ImageExtractionMode mode,
+                    bool invert) :
+        image_(image),
+        mode_(mode),
+        invert_(invert)
+      {
+      }
+
+      void Answer(RestApiOutput& output)
+      {
+        output.AnswerBuffer(answer_, format_);
+      }
+
+      void EncodeUsingPng()
+      {
+        format_ = "image/png";
+        DicomImageDecoder::ExtractPngImage(answer_, image_, mode_, invert_);
+      }
+
+      void EncodeUsingPam()
+      {
+        /**
+         * "No Internet Media Type (aka MIME type, content type) for
+         * PBM has been registered with IANA, but the unofficial value
+         * image/x-portable-arbitrarymap is assigned by this
+         * specification, to be consistent with conventional values
+         * for the older Netpbm formats."
+         * http://netpbm.sourceforge.net/doc/pam.html
+         **/
+        format_ = "image/x-portable-arbitrarymap";
+        DicomImageDecoder::ExtractPamImage(answer_, image_, mode_, invert_);
+      }
+
+      void EncodeUsingJpeg(uint8_t quality)
+      {
+        format_ = "image/jpeg";
+        DicomImageDecoder::ExtractJpegImage(answer_, image_, mode_, invert_, quality);
+      }
+    };
+
+    class EncodePng : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+
+    public:
+      EncodePng(ImageToEncode& image) : image_(image)
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "png");
+        image_.EncodeUsingPng();
+      }
+    };
+
+    class EncodePam : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+
+    public:
+      EncodePam(ImageToEncode& image) : image_(image)
+      {
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "x-portable-arbitrarymap");
+        image_.EncodeUsingPam();
+      }
+    };
+
+    class EncodeJpeg : public HttpContentNegociation::IHandler
+    {
+    private:
+      ImageToEncode&  image_;
+      unsigned int    quality_;
+
+    public:
+      EncodeJpeg(ImageToEncode& image,
+                 const RestApiGetCall& call) :
+        image_(image)
+      {
+        std::string v = call.GetArgument("quality", "90" /* default JPEG quality */);
+        bool ok = false;
+
+        try
+        {
+          quality_ = boost::lexical_cast<unsigned int>(v);
+          ok = (quality_ >= 1 && quality_ <= 100);
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+        }
+
+        if (!ok)
+        {
+          LOG(ERROR) << "Bad quality for a JPEG encoding (must be a number between 0 and 100): " << v;
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+      }
+
+      virtual void Handle(const std::string& type,
+                          const std::string& subtype)
+      {
+        assert(type == "image");
+        assert(subtype == "jpeg");
+        image_.EncodeUsingJpeg(quality_);
+      }
+    };
   }
 
 
@@ -271,21 +476,64 @@ namespace Orthanc
     {
       frame = boost::lexical_cast<unsigned int>(frameId);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }
 
-    std::string publicId = call.GetUriComponent("id", "");
-    std::string dicomContent, png;
-    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
-
-    ParsedDicomFile dicom(dicomContent);
+    bool invert = false;
+    std::auto_ptr<ImageAccessor> decoded;
 
     try
     {
-      dicom.ExtractPngImage(png, frame, mode);
-      call.GetOutput().AnswerBuffer(png, "image/png");
+      std::string publicId = call.GetUriComponent("id", "");
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (context.GetPlugins().HasCustomImageDecoder())
+      {
+        // TODO create a cache of file
+        std::string dicomContent;
+        context.ReadDicom(dicomContent, publicId);
+        decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
+
+        /**
+         * Note that we call "DecodeUnsafe()": We do not fallback to
+         * the builtin decoder if no installed decoder plugin is able
+         * to decode the image. This allows us to take advantage of
+         * the cache below.
+         **/
+
+        if (mode == ImageExtractionMode_Preview &&
+            decoded.get() != NULL)
+        {
+          // TODO Optimize this lookup for photometric interpretation:
+          // It should be implemented by the plugin to avoid parsing
+          // twice the DICOM file
+          ParsedDicomFile parsed(dicomContent);
+          
+          PhotometricInterpretation photometric;
+          if (parsed.LookupPhotometricInterpretation(photometric))
+          {
+            invert = (photometric == PhotometricInterpretation_Monochrome1);
+          }
+        }
+      }
+#endif
+
+      if (decoded.get() == NULL)
+      {
+        // Use Orthanc's built-in decoder, using the cache to speed-up
+        // things on multi-frame images
+        ServerContext::DicomCacheLocker locker(context, publicId);        
+        decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
+
+        PhotometricInterpretation photometric;
+        if (mode == ImageExtractionMode_Preview &&
+            locker.GetDicom().LookupPhotometricInterpretation(photometric))
+        {
+          invert = (photometric == PhotometricInterpretation_Monochrome1);
+        }
+      }
     }
     catch (OrthancException& e)
     {
@@ -305,6 +553,23 @@ namespace Orthanc
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
     }
+
+    ImageToEncode image(decoded, mode, invert);
+
+    HttpContentNegociation negociation;
+    EncodePng png(image);
+    negociation.Register("image/png", png);
+
+    EncodeJpeg jpeg(image, call);
+    negociation.Register("image/jpeg", jpeg);
+
+    EncodePam pam(image);
+    negociation.Register("image/x-portable-arbitrarymap", pam);
+
+    if (negociation.Apply(call.GetHttpHeaders()))
+    {
+      image.Answer(call.GetOutput());
+    }
   }
 
 
@@ -319,25 +584,64 @@ namespace Orthanc
     {
       frame = boost::lexical_cast<unsigned int>(frameId);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return;
     }
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string dicomContent;
-    context.ReadFile(dicomContent, publicId, FileContentType_Dicom);
+    context.ReadDicom(dicomContent, publicId);
 
-    ParsedDicomFile dicom(dicomContent);
-    ImageBuffer buffer;
-    dicom.ExtractImage(buffer, frame);
+#if ORTHANC_ENABLE_PLUGINS == 1
+    IDicomImageDecoder& decoder = context.GetPlugins();
+#else
+    DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
+#endif
 
-    ImageAccessor accessor(buffer.GetConstAccessor());
+    std::auto_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
 
     std::string result;
-    accessor.ToMatlabString(result);
+    decoded->ToMatlabString(result);
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
+  }
+
+
+  template <bool GzipCompression>
+  static void GetRawFrame(RestApiGetCall& call)
+  {
+    std::string frameId = call.GetUriComponent("frame", "0");
+
+    unsigned int frame;
+    try
+    {
+      frame = boost::lexical_cast<unsigned int>(frameId);
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return;
+    }
+
+    std::string publicId = call.GetUriComponent("id", "");
+    std::string raw, mime;
+
+    {
+      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+      locker.GetDicom().GetRawFrame(raw, mime, frame);
+    }
+
+    if (GzipCompression)
+    {
+      GzipCompressor gzip;
+      std::string compressed;
+      gzip.Compress(compressed, raw.empty() ? NULL : raw.c_str(), raw.size());
+      call.GetOutput().AnswerBuffer(compressed, "application/gzip");
+    }
+    else
+    {
+      call.GetOutput().AnswerBuffer(raw, mime);
+    }
   }
 
 
@@ -369,12 +673,33 @@ namespace Orthanc
     std::list<MetadataType> metadata;
 
     OrthancRestApi::GetIndex(call).ListAvailableMetadata(metadata, publicId);
-    Json::Value result = Json::arrayValue;
 
-    for (std::list<MetadataType>::const_iterator 
-           it = metadata.begin(); it != metadata.end(); ++it)
+    Json::Value result;
+
+    if (call.HasArgument("expand"))
     {
-      result.append(EnumerationToString(*it));
+      result = Json::objectValue;
+      
+      for (std::list<MetadataType>::const_iterator 
+             it = metadata.begin(); it != metadata.end(); ++it)
+      {
+        std::string value;
+        if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, *it))
+        {
+          std::string key = EnumerationToString(*it);
+          result[key] = value;
+        }
+      }      
+    }
+    else
+    {
+      result = Json::arrayValue;
+      
+      for (std::list<MetadataType>::const_iterator 
+             it = metadata.begin(); it != metadata.end(); ++it)
+      {       
+        result.append(EnumerationToString(*it));
+      }
     }
 
     call.GetOutput().AnswerJson(result);
@@ -405,12 +730,14 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
-    if (metadata >= MetadataType_StartUser &&
-        metadata <= MetadataType_EndUser)
-    {
-      // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    {      
       OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
       call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 
@@ -426,12 +753,15 @@ namespace Orthanc
     std::string value;
     call.BodyToString(value);
 
-    if (metadata >= MetadataType_StartUser &&
-        metadata <= MetadataType_EndUser)
+    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
     {
       // It is forbidden to modify internal metadata
       OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
       call.GetOutput().AnswerBuffer("", "text/plain");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 
@@ -527,7 +857,7 @@ namespace Orthanc
     {
       // Return the raw data (possibly compressed), as stored on the filesystem
       std::string content;
-      context.ReadFile(content, publicId, type, false);
+      context.ReadAttachment(content, publicId, type, false);
       call.GetOutput().AnswerBuffer(content, "application/octet-stream");
     }
   }
@@ -596,7 +926,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadFile(data, publicId, StringToContentType(name), false);
+    context.ReadAttachment(data, publicId, StringToContentType(name), false);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -611,7 +941,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadFile(data, publicId, StringToContentType(name), true);        
+        context.ReadAttachment(data, publicId, StringToContentType(name), true);        
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -638,11 +968,14 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
 
     FileContentType contentType = StringToContentType(name);
-    if (contentType >= FileContentType_StartUser &&  // It is forbidden to modify internal attachments
-        contentType <= FileContentType_EndUser &&
+    if (IsUserContentType(contentType) &&  // It is forbidden to modify internal attachments
         context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
     {
       call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 
@@ -655,12 +988,32 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    if (contentType >= FileContentType_StartUser &&
-        contentType <= FileContentType_EndUser)
+    bool allowed;
+    if (IsUserContentType(contentType))
     {
-      // It is forbidden to delete internal attachments
+      allowed = true;
+    }
+    else if (Configuration::GetGlobalBoolParameter("StoreDicom", true) &&
+             contentType == FileContentType_DicomAsJson)
+    {
+      allowed = true;
+    }
+    else
+    {
+      // It is forbidden to delete internal attachments, except for
+      // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
+      // would be automatically reconstructed on the next GET call)
+      allowed = false;
+    }
+
+    if (allowed) 
+    {
       OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
       call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+    else
+    {
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
     }
   }
 
@@ -724,7 +1077,7 @@ namespace Orthanc
 
       try
       {
-        context.ReadJson(tags, *it);
+        context.ReadDicomAsJson(tags, *it);
       }
       catch (OrthancException&)
       {
@@ -782,22 +1135,12 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
 
     Json::Value sharedTags;
     if (ExtractSharedTags(sharedTags, context, publicId))
     {
       // Success: Send the value of the shared tags
-      if (simplify)
-      {
-        Json::Value simplified;
-        Toolbox::SimplifyTags(simplified, sharedTags);
-        call.GetOutput().AnswerJson(simplified);
-      }
-      else
-      {
-        call.GetOutput().AnswerJson(sharedTags);
-      }
+      AnswerDicomAsJson(call, sharedTags);
     }
   }
 
@@ -818,7 +1161,9 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
+
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
 
     typedef std::set<DicomTag> ModuleTags;
     ModuleTags moduleTags;
@@ -842,7 +1187,7 @@ namespace Orthanc
       publicId = instances.front();
     }
 
-    context.ReadJson(tags, publicId);
+    context.ReadDicomAsJson(tags, publicId, ignoreTagLength);
     
     // Filter the tags of the instance according to the module
     Json::Value result = Json::objectValue;
@@ -855,16 +1200,7 @@ namespace Orthanc
       }      
     }
 
-    if (simplify)
-    {
-      Json::Value simplified;
-      Toolbox::SimplifyTags(simplified, result);
-      call.GetOutput().AnswerJson(simplified);
-    }
-    else
-    {
-      call.GetOutput().AnswerJson(result);
-    }    
+    AnswerDicomAsJson(call, result);
   }
     
 
@@ -943,7 +1279,8 @@ namespace Orthanc
         request["Level"].type() == Json::stringValue &&
         request["Query"].type() == Json::objectValue &&
         (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue) &&
-        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue))
+        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue) &&
+        (!request.isMember("Since") || request["Since"].type() == Json::intValue))
     {
       bool expand = false;
       if (request.isMember("Expand"))
@@ -960,11 +1297,25 @@ namespace Orthanc
       size_t limit = 0;
       if (request.isMember("Limit"))
       {
-        limit = request["CaseSensitive"].asInt();
-        if (limit < 0)
+        int tmp = request["Limit"].asInt();
+        if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
+
+        limit = static_cast<size_t>(tmp);
+      }
+
+      size_t since = 0;
+      if (request.isMember("Since"))
+      {
+        int tmp = request["Since"].asInt();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        since = static_cast<size_t>(tmp);
       }
 
       std::string level = request["Level"].asString();
@@ -983,10 +1334,12 @@ namespace Orthanc
                                  request["Query"][members[i]].asString(),
                                  caseSensitive);
       }
-      
+
+      bool isComplete;
       std::list<std::string> resources;
-      context.Apply(resources, query, limit);
-      AnswerListOfResources(call.GetOutput(), context.GetIndex(), resources, query.GetLevel(), expand);
+      context.Apply(isComplete, resources, query, since, limit);
+      AnswerListOfResources(call.GetOutput(), context.GetIndex(),
+                            resources, query.GetLevel(), expand);
     }
     else
     {
@@ -1043,7 +1396,10 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    bool simplify = call.HasArgument("simplify");
+    DicomToJsonFormat format = GetDicomFormat(call);
+
+    std::set<DicomTag> ignoreTagLength;
+    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
 
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
@@ -1057,12 +1413,12 @@ namespace Orthanc
          it != instances.end(); ++it)
     {
       Json::Value full;
-      context.ReadJson(full, *it);
+      context.ReadDicomAsJson(full, *it, ignoreTagLength);
 
-      if (simplify)
+      if (format != DicomToJsonFormat_Full)
       {
         Json::Value simplified;
-        Toolbox::SimplifyTags(simplified, full);
+        ServerToolbox::SimplifyTags(simplified, full, format);
         result[*it] = simplified;
       }
       else
@@ -1138,6 +1494,79 @@ namespace Orthanc
   }
 
 
+  static void GetInstanceHeader(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+
+    std::string dicomContent;
+    context.ReadDicom(dicomContent, publicId);
+
+    // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
+    // speed up things here
+
+    ParsedDicomFile dicom(dicomContent);
+
+    Json::Value header;
+    dicom.HeaderToJson(header, DicomToJsonFormat_Full);
+
+    AnswerDicomAsJson(call, header);
+  }
+
+
+  static void InvalidateTags(RestApiPostCall& call)
+  {
+    ServerIndex& index = OrthancRestApi::GetIndex(call);
+    
+    // Loop over the instances, grouping them by parent studies so as
+    // to avoid large memory consumption
+    std::list<std::string> studies;
+    index.GetAllUuids(studies, ResourceType_Study);
+
+    for (std::list<std::string>::const_iterator 
+           study = studies.begin(); study != studies.end(); ++study)
+    {
+      std::list<std::string> instances;
+      index.GetChildInstances(instances, *study);
+
+      for (std::list<std::string>::const_iterator 
+             instance = instances.begin(); instance != instances.end(); ++instance)
+      {
+        index.DeleteAttachment(*instance, FileContentType_DicomAsJson);
+      }
+    }
+
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
+  template <enum ResourceType type>
+  static void ReconstructResource(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""));
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
+  static void ReconstructAllResources(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::list<std::string> studies;
+    context.GetIndex().GetAllUuids(studies, ResourceType_Study);
+
+    for (std::list<std::string>::const_iterator 
+           study = studies.begin(); study != studies.end(); ++study)
+    {
+      ServerToolbox::ReconstructResource(context, *study);
+    }
+    
+    call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -1172,7 +1601,7 @@ namespace Orthanc
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTagsBis);
-    Register("/instances/{id}/simplified-tags", GetInstanceTags<true>);
+    Register("/instances/{id}/simplified-tags", GetInstanceTags<DicomToJsonFormat_Human>);
     Register("/instances/{id}/frames", ListFrames);
 
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
@@ -1180,12 +1609,15 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
+    Register("/instances/{id}/frames/{frame}/raw", GetRawFrame<false>);
+    Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/matlab", GetMatlabImage);
+    Register("/instances/{id}/header", GetInstanceHeader);
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
@@ -1210,6 +1642,7 @@ namespace Orthanc
     Register("/{resourceType}/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
     Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
 
+    Register("/tools/invalidate-tags", InvalidateTags);
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find);
 
@@ -1234,5 +1667,11 @@ namespace Orthanc
     Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/series/{id}/ordered-slices", OrderSlices);
+
+    Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+    Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
+    Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
+    Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
+    Register("/tools/reconstruct", ReconstructAllResources);
   }
 }

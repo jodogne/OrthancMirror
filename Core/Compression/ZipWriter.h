@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,13 +33,18 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_ZLIB)
+#  error The macro ORTHANC_ENABLE_ZLIB must be defined
+#endif
+
+#if ORTHANC_ENABLE_ZLIB != 1
+#  error ZLIB support must be enabled to include this file
+#endif
+
+
 #include <stdint.h>
 #include <string>
 #include <boost/shared_ptr.hpp>
-
-#if ORTHANC_BUILD_UNIT_TESTS == 1
-#include <gtest/gtest_prod.h>
-#endif
 
 namespace Orthanc
 {

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,13 +34,13 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../OrthancServer/Internals/DicomImageDecoder.h"
+#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 
-#if ORTHANC_JPEG_LOSSLESS_ENABLED == 1
+#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "../OrthancServer/ParsedDicomFile.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Images/ImageBuffer.h"
 #include "../Core/Images/PngWriter.h"

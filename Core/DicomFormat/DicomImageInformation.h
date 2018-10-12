@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,8 +57,15 @@ namespace Orthanc
 
     PhotometricInterpretation  photometric_;
 
+  protected:
+    explicit DicomImageInformation()
+    {
+    }
+
   public:
-    DicomImageInformation(const DicomMap& values);
+    explicit DicomImageInformation(const DicomMap& values);
+
+    DicomImageInformation* Clone() const;
 
     unsigned int GetWidth() const
     {
@@ -119,6 +127,9 @@ namespace Orthanc
       return photometric_;
     }
 
-    bool ExtractPixelFormat(PixelFormat& format) const;
+    bool ExtractPixelFormat(PixelFormat& format,
+                            bool ignorePhotometricInterpretation) const;
+
+    size_t GetFrameSize() const;
   };
 }

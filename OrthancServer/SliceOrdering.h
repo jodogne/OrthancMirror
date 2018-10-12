@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,7 +43,7 @@ namespace Orthanc
     typedef float Vector[3];
 
     struct Instance;
-    struct PositionComparator;
+    class  PositionComparator;
 
     ServerIndex&             index_;
     std::string              seriesId_;
@@ -50,6 +51,12 @@ namespace Orthanc
     Vector                   normal_;
     std::vector<Instance*>   instances_;
     bool                     isVolume_;
+
+    static bool ComputeNormal(Vector& normal,
+                              const DicomMap& dicom);
+
+    static bool IsParallelOrOpposite(const Vector& a,
+                                     const Vector& b);
 
     static bool IndexInSeriesComparator(const SliceOrdering::Instance* a,
                                         const SliceOrdering::Instance* b);

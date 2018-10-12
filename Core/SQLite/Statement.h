@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
  *
- * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@gmail.com>,
  * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -46,10 +46,8 @@
 #include <stdint.h>
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
-#include <gtest/gtest_prod.h>
+#  include <gtest/gtest_prod.h>
 #endif
-
-struct sqlite3_stmt;
 
 
 namespace Orthanc

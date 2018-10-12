@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
  *
- * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@gmail.com>,
  * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -82,7 +82,8 @@ namespace Orthanc
       if (error != SQLITE_OK)
       {
 #if ORTHANC_SQLITE_STANDALONE != 1
-        LOG(ERROR) << "SQLite: " << sqlite3_errmsg(database);
+        LOG(ERROR) << "SQLite: " << sqlite3_errmsg(database)
+                   << " (" << sqlite3_extended_errcode(database) << ")";
 #endif
 
         throw OrthancSQLiteException(ErrorCode_SQLitePrepareStatement);

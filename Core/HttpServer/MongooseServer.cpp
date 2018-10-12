@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,7 +39,17 @@
 #include "../Logging.h"
 #include "../ChunkedBuffer.h"
 #include "HttpToolbox.h"
-#include "mongoose.h"
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+#  include "mongoose.h"
+
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+#  include "civetweb.h"
+#  define MONGOOSE_USE_CALLBACKS 1
+
+#else
+#  error "Either Mongoose or Civetweb must be enabled to compile this file"
+#endif
 
 #include <algorithm>
 #include <string.h>
@@ -49,13 +60,15 @@
 #include <stdio.h>
 #include <boost/thread.hpp>
 
-#if ORTHANC_SSL_ENABLED == 1
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
+#if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
 #endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
-
-static const long LOCALHOST = (127ll << 24) + 1ll;
 
 
 namespace Orthanc
@@ -279,7 +292,7 @@ namespace Orthanc
     {
       length = boost::lexical_cast<int>(cs->second);
     }
-    catch (boost::bad_lexical_cast)
+    catch (boost::bad_lexical_cast&)
     {
       return PostDataStatus_NoLength;
     }
@@ -351,7 +364,7 @@ namespace Orthanc
       {
         fileSize = boost::lexical_cast<size_t>(fileSizeStr->second);
       }
-      catch (boost::bad_lexical_cast)
+      catch (boost::bad_lexical_cast&)
       {
         return PostDataStatus_Failure;
       }
@@ -404,7 +417,7 @@ namespace Orthanc
         last = it;
       }
     }
-    catch (std::length_error)
+    catch (std::length_error&)
     {
       return PostDataStatus_Failure;
     }
@@ -575,19 +588,30 @@ namespace Orthanc
   }
 
 
-  static void InternalCallback(struct mg_connection *connection,
+  static void InternalCallback(HttpOutput& output /* out */,
+                               HttpMethod& method /* out */,
+                               MongooseServer& server,
+                               struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
-    MongooseServer* that = reinterpret_cast<MongooseServer*>(request->user_data);
+    bool localhost;
 
-    MongooseOutputStream stream(connection);
-    HttpOutput output(stream, that->IsKeepAliveEnabled());
-
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    static const long LOCALHOST = (127ll << 24) + 1ll;
+    localhost = (request->remote_ip == LOCALHOST);
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    // The "remote_ip" field of "struct mg_request_info" is tagged as
+    // deprecated in Civetweb, using "remote_addr" instead.
+    localhost = (std::string(request->remote_addr) == "127.0.0.1");
+#else
+#error
+#endif
+    
     // Check remote calls
-    if (!that->IsRemoteAccessAllowed() &&
-        request->remote_ip != LOCALHOST)
+    if (!server.IsRemoteAccessAllowed() &&
+        !localhost)
     {
-      output.SendUnauthorized(ORTHANC_REALM);
+      output.SendUnauthorized(server.GetRealm());
       return;
     }
 
@@ -597,11 +621,14 @@ namespace Orthanc
     for (int i = 0; i < request->num_headers; i++)
     {
       std::string name = request->http_headers[i].name;
+      std::string value = request->http_headers[i].value;
+
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-      headers.insert(std::make_pair(name, request->http_headers[i].value));
+      headers.insert(std::make_pair(name, value));
+      VLOG(1) << "HTTP header: [" << name << "]: [" << value << "]";
     }
 
-    if (that->IsHttpCompressionEnabled())
+    if (server.IsHttpCompressionEnabled())
     {
       ConfigureHttpCompression(output, headers);
     }
@@ -616,7 +643,7 @@ namespace Orthanc
 
 
     // Compute the HTTP method, taking method faking into consideration
-    HttpMethod method = HttpMethod_Get;
+    method = HttpMethod_Get;
     if (!ExtractMethod(method, request, headers, argumentsGET))
     {
       output.SendStatus(HttpStatus_400_BadRequest);
@@ -625,13 +652,15 @@ namespace Orthanc
 
 
     // Authenticate this connection
-    if (that->IsAuthenticationEnabled() && !IsAccessGranted(*that, headers))
+    if (server.IsAuthenticationEnabled() && 
+        !IsAccessGranted(server, headers))
     {
-      output.SendUnauthorized(ORTHANC_REALM);
+      output.SendUnauthorized(server.GetRealm());
       return;
     }
 
-
+    
+#if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
     sprintf(remoteIp, "%d.%d.%d.%d", 
@@ -639,15 +668,22 @@ namespace Orthanc
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    const char* remoteIp = request->remote_addr;
+#else
+#error
+#endif
 
     std::string username = GetAuthenticatedUsername(headers);
 
-    const IIncomingHttpRequestFilter *filter = that->GetIncomingHttpRequestFilter();
+    IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      if (!filter->IsAllowed(method, request->uri, remoteIp, username.c_str()))
+      if (!filter->IsAllowed(method, request->uri, remoteIp,
+                             username.c_str(), headers, argumentsGET))
       {
-        output.SendUnauthorized(ORTHANC_REALM);
+        //output.SendUnauthorized(server.GetRealm());
+        output.SendStatus(HttpStatus_403_Forbidden);
         return;
       }
     }
@@ -675,7 +711,7 @@ namespace Orthanc
         if (contentType.size() >= multipartLength &&
             !memcmp(contentType.c_str(), multipart, multipartLength))
         {
-          status = ParseMultipartPost(body, connection, headers, contentType, that->GetChunkStore());
+          status = ParseMultipartPost(body, connection, headers, contentType, server.GetChunkStore());
         }
         else
         {
@@ -709,7 +745,7 @@ namespace Orthanc
     {
       Toolbox::SplitUriComponents(uri, request->uri);
     }
-    catch (OrthancException)
+    catch (OrthancException&)
     {
       output.SendStatus(HttpStatus_400_BadRequest);
       return;
@@ -718,56 +754,111 @@ namespace Orthanc
 
     LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
 
+    bool found = false;
 
+    if (server.HasHandler())
+    {
+      found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
+                                         method, uri, headers, argumentsGET, body.c_str(), body.size());
+    }
+
+    if (!found)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+
+  static void ProtectedCallback(struct mg_connection *connection,
+                                const struct mg_request_info *request)
+  {
     try
     {
-      bool found = false;
+      void* that = NULL;
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+      that = request->user_data;
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+      // https://github.com/civetweb/civetweb/issues/409
+      that = mg_get_user_data(mg_get_context(connection));
+#else
+#error
+#endif                              
+      
+      MongooseServer* server = reinterpret_cast<MongooseServer*>(that);
+
+      if (server == NULL)
+      {
+        MongooseOutputStream stream(connection);
+        HttpOutput output(stream, false /* assume no keep-alive */);
+        output.SendStatus(HttpStatus_500_InternalServerError);
+        return;
+      }
+
+      MongooseOutputStream stream(connection);
+      HttpOutput output(stream, server->IsKeepAliveEnabled());
+      HttpMethod method = HttpMethod_Get;
 
       try
       {
-        if (that->HasHandler())
+        try
         {
-          found = that->GetHandler().Handle(output, RequestOrigin_Http, remoteIp, username.c_str(), 
-                                            method, uri, headers, argumentsGET, body.c_str(), body.size());
+          InternalCallback(output, method, *server, connection, request);
+        }
+        catch (OrthancException&)
+        {
+          throw;  // Pass the exception to the main handler below
+        }
+        // Now convert native exceptions as OrthancException
+        catch (boost::bad_lexical_cast&)
+        {
+          LOG(ERROR) << "Syntax error in some user-supplied data";
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+        catch (std::runtime_error&)
+        {
+          // Presumably an error while parsing the JSON body
+          throw OrthancException(ErrorCode_BadRequest);
+        }
+        catch (std::bad_alloc&)
+        {
+          LOG(ERROR) << "The server hosting Orthanc is running out of memory";
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "An unhandled exception was generated inside the HTTP server";
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
-      catch (boost::bad_lexical_cast&)
+      catch (OrthancException& e)
       {
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-      catch (std::runtime_error&)
-      {
-        // Presumably an error while parsing the JSON body
-        throw OrthancException(ErrorCode_BadRequest);
-      }
+        assert(server != NULL);
 
-      if (!found)
-      {
-        throw OrthancException(ErrorCode_UnknownResource);
+        // Using this candidate handler results in an exception
+        try
+        {
+          if (server->GetExceptionFormatter() == NULL)
+          {
+            LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+            output.SendStatus(e.GetHttpStatus());
+          }
+          else
+          {
+            server->GetExceptionFormatter()->Format(output, e, method, request->uri);
+          }
+        }
+        catch (OrthancException&)
+        {
+          // An exception here reflects the fact that the status code
+          // was already set by the HTTP handler.
+        }
       }
     }
-    catch (OrthancException& e)
+    catch (...)
     {
-      // Using this candidate handler results in an exception
-      try
-      {
-        if (that->GetExceptionFormatter() == NULL)
-        {
-          LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
-          output.SendStatus(e.GetHttpStatus());
-        }
-        else
-        {
-          that->GetExceptionFormatter()->Format(output, e, method, request->uri);
-        }
-      }
-      catch (OrthancException&)
-      {
-        // An exception here reflects the fact that the status code
-        // was already set by the HTTP handler.
-      }
-
-      return;
+      // We should never arrive at this point, where it is even impossible to send an answer
+      LOG(ERROR) << "Catastrophic error inside the HTTP server, giving up";
     }
   }
 
@@ -779,7 +870,7 @@ namespace Orthanc
   {
     if (event == MG_NEW_REQUEST) 
     {
-      InternalCallback(connection, request);
+      ProtectedCallback(connection, request);
 
       // Mark as processed
       return (void*) "";
@@ -793,9 +884,9 @@ namespace Orthanc
 #elif MONGOOSE_USE_CALLBACKS == 1
   static int Callback(struct mg_connection *connection)
   {
-    struct mg_request_info *request = mg_get_request_info(connection);
+    const struct mg_request_info *request = mg_get_request_info(connection);
 
-    InternalCallback(connection, request);
+    ProtectedCallback(connection, request);
 
     return 1;  // Do not let Mongoose handle the request by itself
   }
@@ -826,8 +917,9 @@ namespace Orthanc
     keepAlive_ = false;
     httpCompression_ = true;
     exceptionFormatter_ = NULL;
+    realm_ = ORTHANC_REALM;
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
     // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
     if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
@@ -853,6 +945,14 @@ namespace Orthanc
 
   void MongooseServer::Start()
   {
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    LOG(INFO) << "Starting embedded Web server using Mongoose";
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    LOG(INFO) << "Starting embedded Web server using Civetweb";
+#else
+#error
+#endif  
+
     if (!IsRunning())
     {
       std::string port = boost::lexical_cast<std::string>(port_);
@@ -870,6 +970,11 @@ namespace Orthanc
         // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
         "enable_keep_alive", (keepAlive_ ? "yes" : "no"),
 
+#if ORTHANC_ENABLE_CIVETWEB == 1
+        // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
+        "keep_alive_timeout_ms", (keepAlive_ ? "500" : "0"),
+#endif
+        
         // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
         certificate_.c_str(),
@@ -893,6 +998,13 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_HttpPortInUse);
       }
+
+      LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()
+                   << " (HTTPS encryption is "
+                   << (IsSslEnabled() ? "enabled" : "disabled")
+                   << ", remote access is "
+                   << (IsRemoteAccessAllowed() ? "" : "not ")
+                   << "allowed)";
     }
   }
 
@@ -928,7 +1040,7 @@ namespace Orthanc
   {
     Stop();
 
-#if ORTHANC_SSL_ENABLED == 0
+#if ORTHANC_ENABLE_SSL == 0
     if (enabled)
     {
       throw OrthancException(ErrorCode_SslDisabled);
@@ -947,7 +1059,7 @@ namespace Orthanc
   {
     Stop();
     keepAlive_ = enabled;
-    LOG(WARNING) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+    LOG(INFO) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
   }
 
 

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -60,6 +61,11 @@ namespace Orthanc
         stringToEnumeration_.clear();
       }
 
+      bool Contains(Enumeration value) const
+      {
+        return enumerationToString_.find(value) != enumerationToString_.end();
+      }
+
       void Add(Enumeration value, const std::string& str)
       {
         // Check if these values are free
@@ -80,10 +86,9 @@ namespace Orthanc
       {
         try
         {
-          int value = boost::lexical_cast<int>(str);
-          return static_cast<Enumeration>(value);
+          return static_cast<Enumeration>(boost::lexical_cast<int>(str));
         }
-        catch (boost::bad_lexical_cast)
+        catch (boost::bad_lexical_cast&)
         {
         }
 

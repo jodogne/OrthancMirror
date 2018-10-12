@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -41,8 +42,8 @@
 #include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
+#include "../Core/TemporaryFile.h"
 #include "../Core/Toolbox.h"
-#include "../Core/Uuid.h"
 #include "../OrthancServer/OrthancInitialization.h"
 
 
@@ -364,12 +365,18 @@ TEST(Toolbox, Base64)
   std::string decoded;
   Toolbox::DecodeBase64(decoded, hello);
   ASSERT_EQ("Hello world", decoded);
+
+  // Invalid character
+  ASSERT_THROW(Toolbox::DecodeBase64(decoded, "?"), OrthancException);
+
+  // All the allowed characters
+  Toolbox::DecodeBase64(decoded, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
 }
 
 TEST(Toolbox, PathToExecutable)
 {
-  printf("[%s]\n", Toolbox::GetPathToExecutable().c_str());
-  printf("[%s]\n", Toolbox::GetDirectoryOfExecutable().c_str());
+  printf("[%s]\n", SystemToolbox::GetPathToExecutable().c_str());
+  printf("[%s]\n", SystemToolbox::GetDirectoryOfExecutable().c_str());
 }
 
 TEST(Toolbox, StripSpaces)
@@ -410,10 +417,6 @@ TEST(Toolbox, ConvertFromLatin1)
   // This is a Latin-1 test string
   const unsigned char data[10] = { 0xe0, 0xe9, 0xea, 0xe7, 0x26, 0xc6, 0x61, 0x62, 0x63, 0x00 };
   
-  /*FILE* f = fopen("/tmp/tutu", "w");
-  fwrite(&data[0], 9, 1, f);
-  fclose(f);*/
-
   std::string s((char*) &data[0], 10);
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
@@ -458,7 +461,21 @@ TEST(Toolbox, UrlDecode)
 }
 
 
-#if defined(__linux)
+TEST(Toolbox, IsAsciiString)
+{
+  std::string s = "Hello 12 /";
+  ASSERT_EQ(10u, s.size());
+  ASSERT_TRUE(Toolbox::IsAsciiString(s));
+  ASSERT_TRUE(Toolbox::IsAsciiString(s.c_str(), 10));
+  ASSERT_FALSE(Toolbox::IsAsciiString(s.c_str(), 11));  // Taking the trailing hidden '\0'
+
+  s[2] = '\0';
+  ASSERT_EQ(10u, s.size());
+  ASSERT_FALSE(Toolbox::IsAsciiString(s));
+}
+
+
+#if defined(__linux__)
 TEST(OrthancInitialization, AbsoluteDirectory)
 {
   ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
@@ -524,11 +541,17 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_EQ(2047, StringToMetadata("Ceci est un test"));
 
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Generic")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("GenericNoWildcardInDates")));
+  ASSERT_STREQ("GenericNoUniversalWildcard", EnumerationToString(StringToModalityManufacturer("GenericNoUniversalWildcard")));
   ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
   ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
-  ASSERT_STREQ("MedInria", EnumerationToString(StringToModalityManufacturer("MedInria")));
   ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
-  ASSERT_STREQ("SyngoVia", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
+  ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
+  // backward compatibility tests (to remove once we make these manufacturer really obsolete)
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("MedInria")));
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("EFilm2")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
+  ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
 }
 
 
@@ -538,7 +561,7 @@ TEST(Toolbox, WriteFile)
   std::string path;
 
   {
-    Toolbox::TemporaryFile tmp;
+    TemporaryFile tmp;
     path = tmp.GetPath();
 
     std::string s;
@@ -547,18 +570,28 @@ TEST(Toolbox, WriteFile)
     s.append("World");
     ASSERT_EQ(11u, s.size());
 
-    Toolbox::WriteFile(s, path.c_str());
+    SystemToolbox::WriteFile(s, path.c_str());
 
     std::string t;
-    Toolbox::ReadFile(t, path.c_str());
+    SystemToolbox::ReadFile(t, path.c_str());
 
     ASSERT_EQ(11u, t.size());
     ASSERT_EQ(0, t[5]);
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
+
+    std::string h;
+    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path.c_str(), 1));
+    ASSERT_EQ(1u, h.size());
+    ASSERT_EQ('H', h[0]);
+    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path.c_str(), 0));
+    ASSERT_EQ(0u, h.size());
+    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path.c_str(), 32));
+    ASSERT_EQ(11u, h.size());
+    ASSERT_EQ(0, memcmp(s.c_str(), h.c_str(), s.size()));
   }
 
   std::string u;
-  ASSERT_THROW(Toolbox::ReadFile(u, path.c_str()), OrthancException);
+  ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
 }
 
 
@@ -615,11 +648,48 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(ResourceType_Instance, StringToResourceType(EnumerationToString(ResourceType_Instance)));
 
   ASSERT_EQ(ImageFormat_Png, StringToImageFormat(EnumerationToString(ImageFormat_Png)));
+
+  ASSERT_EQ(PhotometricInterpretation_ARGB, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_ARGB)));
+  ASSERT_EQ(PhotometricInterpretation_CMYK, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_CMYK)));
+  ASSERT_EQ(PhotometricInterpretation_HSV, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_HSV)));
+  ASSERT_EQ(PhotometricInterpretation_Monochrome1, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Monochrome1)));
+  ASSERT_EQ(PhotometricInterpretation_Monochrome2, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Monochrome2)));
+  ASSERT_EQ(PhotometricInterpretation_Palette, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_Palette)));
+  ASSERT_EQ(PhotometricInterpretation_RGB, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_RGB)));
+  ASSERT_EQ(PhotometricInterpretation_YBRFull, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRFull)));
+  ASSERT_EQ(PhotometricInterpretation_YBRFull422, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRFull422)));
+  ASSERT_EQ(PhotometricInterpretation_YBRPartial420, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRPartial420)));
+  ASSERT_EQ(PhotometricInterpretation_YBRPartial422, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBRPartial422)));
+  ASSERT_EQ(PhotometricInterpretation_YBR_ICT, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBR_ICT)));
+  ASSERT_EQ(PhotometricInterpretation_YBR_RCT, StringToPhotometricInterpretation(EnumerationToString(PhotometricInterpretation_YBR_RCT)));
+
+  ASSERT_STREQ("Unknown", EnumerationToString(PhotometricInterpretation_Unknown));
+  ASSERT_THROW(StringToPhotometricInterpretation("Unknown"), OrthancException);
+
+  ASSERT_EQ(DicomVersion_2008, StringToDicomVersion(EnumerationToString(DicomVersion_2008)));
+  ASSERT_EQ(DicomVersion_2017c, StringToDicomVersion(EnumerationToString(DicomVersion_2017c)));
+
+  for (int i = static_cast<int>(ValueRepresentation_ApplicationEntity);
+       i < static_cast<int>(ValueRepresentation_NotSupported); i += 1)
+  {
+    ValueRepresentation vr = static_cast<ValueRepresentation>(i);
+    ASSERT_EQ(vr, StringToValueRepresentation(EnumerationToString(vr), true));
+  }
+
+  ASSERT_THROW(StringToValueRepresentation("nope", true), OrthancException);
+
+  ASSERT_EQ(JobState_Pending, StringToJobState(EnumerationToString(JobState_Pending)));
+  ASSERT_EQ(JobState_Running, StringToJobState(EnumerationToString(JobState_Running)));
+  ASSERT_EQ(JobState_Success, StringToJobState(EnumerationToString(JobState_Success)));
+  ASSERT_EQ(JobState_Failure, StringToJobState(EnumerationToString(JobState_Failure)));
+  ASSERT_EQ(JobState_Paused, StringToJobState(EnumerationToString(JobState_Paused)));
+  ASSERT_EQ(JobState_Retry, StringToJobState(EnumerationToString(JobState_Retry)));
+  ASSERT_THROW(StringToJobState("nope"), OrthancException);
 }
 
 
 
-#if defined(__linux)
+#if defined(__linux__) || defined(__OpenBSD__)
 #include <endian.h>
 #elif defined(__FreeBSD__)
 #include <machine/endian.h>
@@ -639,12 +709,24 @@ TEST(Toolbox, Endianness)
 #if defined(_WIN32) || defined(__APPLE__)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 
+  
+  /**
+   * FreeBSD.
+   **/
+  
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#  if _BYTE_ORDER == _BIG_ENDIAN
+   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
+#  else // _LITTLE_ENDIAN
+   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
+#  endif
+
 
   /**
    * Linux.
    **/
   
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__)
 
 #if !defined(__BYTE_ORDER)
 #  error Support your platform here
@@ -656,25 +738,209 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
-  
-  /**
-   * FreeBSD.
-   **/
-  
-#elif defined(__FreeBSD__)
-#  if _BYTE_ORDER == _BIG_ENDIAN
-   ASSERT_EQ(Endianness_Big, Toolbox::DetectEndianness());
-#  else // _LITTLE_ENDIAN
-   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
-#  endif
-
 #else
 #error Support your platform here
 #endif
 }
 
 
-#if ORTHANC_PUGIXML_ENABLED == 1
+#include "../Core/Endianness.h"
+
+static void ASSERT_EQ16(uint16_t a, uint16_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
+}
+
+static void ASSERT_NE16(uint16_t a, uint16_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
+}
+
+static void ASSERT_EQ32(uint32_t a, uint32_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
+}
+
+static void ASSERT_NE32(uint32_t a, uint32_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
+}
+
+static void ASSERT_EQ64(uint64_t a, uint64_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_EQ(static_cast<unsigned int>(a), static_cast<unsigned int>(b));
+#else
+  ASSERT_EQ(a, b);
+#endif
+}
+
+static void ASSERT_NE64(uint64_t a, uint64_t b)
+{
+#ifdef __MINGW32__
+  // This cast solves a linking problem with MinGW
+  ASSERT_NE(static_cast<unsigned long long>(a), static_cast<unsigned long long>(b));
+#else
+  ASSERT_NE(a, b);
+#endif
+}
+
+
+
+TEST(Toolbox, EndiannessConversions16)
+{
+  Endianness e = Toolbox::DetectEndianness();
+
+  for (unsigned int i = 0; i < 65536; i += 17)
+  {
+    uint16_t v = static_cast<uint16_t>(i);
+    ASSERT_EQ16(v, be16toh(htobe16(v)));
+    ASSERT_EQ16(v, le16toh(htole16(v)));
+
+    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&v);
+    if (bytes[0] != bytes[1])
+    {
+      ASSERT_NE16(v, le16toh(htobe16(v)));
+      ASSERT_NE16(v, be16toh(htole16(v)));
+    }
+    else
+    {
+      ASSERT_EQ16(v, le16toh(htobe16(v)));
+      ASSERT_EQ16(v, be16toh(htole16(v)));
+    }
+
+    switch (e)
+    {
+      case Endianness_Little:
+        ASSERT_EQ16(v, htole16(v));
+        if (bytes[0] != bytes[1])
+        {
+          ASSERT_NE16(v, htobe16(v));
+        }
+        else
+        {
+          ASSERT_EQ16(v, htobe16(v));
+        }
+        break;
+
+      case Endianness_Big:
+        ASSERT_EQ16(v, htobe16(v));
+        if (bytes[0] != bytes[1])
+        {
+          ASSERT_NE16(v, htole16(v));
+        }
+        else
+        {
+          ASSERT_EQ16(v, htole16(v));
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+}
+
+
+TEST(Toolbox, EndiannessConversions32)
+{
+  const uint32_t v = 0xff010203u;
+  const uint32_t r = 0x030201ffu;
+  ASSERT_EQ32(v, be32toh(htobe32(v)));
+  ASSERT_EQ32(v, le32toh(htole32(v)));
+  ASSERT_NE32(v, be32toh(htole32(v)));
+  ASSERT_NE32(v, le32toh(htobe32(v)));
+
+  switch (Toolbox::DetectEndianness())
+  {
+    case Endianness_Little:
+      ASSERT_EQ32(r, htobe32(v));
+      ASSERT_EQ32(v, htole32(v));
+      ASSERT_EQ32(r, be32toh(v));
+      ASSERT_EQ32(v, le32toh(v));
+      break;
+
+    case Endianness_Big:
+      ASSERT_EQ32(v, htobe32(v));
+      ASSERT_EQ32(r, htole32(v));
+      ASSERT_EQ32(v, be32toh(v));
+      ASSERT_EQ32(r, le32toh(v));
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+}
+
+
+TEST(Toolbox, EndiannessConversions64)
+{
+  const uint64_t v = 0xff01020304050607LL;
+  const uint64_t r = 0x07060504030201ffLL;
+  ASSERT_EQ64(v, be64toh(htobe64(v)));
+  ASSERT_EQ64(v, le64toh(htole64(v)));
+  ASSERT_NE64(v, be64toh(htole64(v)));
+  ASSERT_NE64(v, le64toh(htobe64(v)));
+
+  switch (Toolbox::DetectEndianness())
+  {
+    case Endianness_Little:
+      ASSERT_EQ64(r, htobe64(v));
+      ASSERT_EQ64(v, htole64(v));
+      ASSERT_EQ64(r, be64toh(v));
+      ASSERT_EQ64(v, le64toh(v));
+      break;
+
+    case Endianness_Big:
+      ASSERT_EQ64(v, htobe64(v));
+      ASSERT_EQ64(r, htole64(v));
+      ASSERT_EQ64(v, be64toh(v));
+      ASSERT_EQ64(r, le64toh(v));
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+}
+
+
+TEST(Toolbox, Now)
+{
+  LOG(WARNING) << "Local time: " << SystemToolbox::GetNowIsoString(false);
+  LOG(WARNING) << "Universal time: " << SystemToolbox::GetNowIsoString(true);
+
+  std::string date, time;
+  SystemToolbox::GetNowDicom(date, time, false);
+  LOG(WARNING) << "Local DICOM time: [" << date << "] [" << time << "]";
+
+  SystemToolbox::GetNowDicom(date, time, true);
+  LOG(WARNING) << "Universal DICOM time: [" << date << "] [" << time << "]";
+}
+
+
+
+#if ORTHANC_ENABLE_PUGIXML == 1
 TEST(Toolbox, Xml)
 {
   Json::Value a;
@@ -699,7 +965,7 @@ TEST(Toolbox, ExecuteSystemCommand)
   args[0] = "Hello";
   args[1] = "World";
 
-  Toolbox::ExecuteSystemCommand("echo", args);
+  SystemToolbox::ExecuteSystemCommand("echo", args);
 }
 #endif
 
@@ -729,12 +995,135 @@ TEST(Toolbox, StartsWith)
 }
 
 
+TEST(Toolbox, UriEncode)
+{
+  std::string s;
+
+  // Unreserved characters must not be modified
+  std::string t = "aAzZ09.-~_";
+  Toolbox::UriEncode(s, t); 
+  ASSERT_EQ(t, s);
+
+  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);  
+  Toolbox::UriEncode(s, "%"); ASSERT_EQ("%25", s);
+
+  // Encode characters from UTF-8. This is the test string from the
+  // file "../Resources/EncodingTests.py"
+  Toolbox::UriEncode(s, "\x54\x65\x73\x74\xc3\xa9\xc3\xa4\xc3\xb6\xc3\xb2\xd0\x94\xce\x98\xc4\x9d\xd7\x93\xd8\xb5\xc4\xb7\xd1\x9b\xe0\xb9\x9b\xef\xbe\x88\xc4\xb0"); 
+  ASSERT_EQ("Test%C3%A9%C3%A4%C3%B6%C3%B2%D0%94%CE%98%C4%9D%D7%93%D8%B5%C4%B7%D1%9B%E0%B9%9B%EF%BE%88%C4%B0", s);
+}
+
+
+TEST(Toolbox, AccessJson)
+{
+  Json::Value v = Json::arrayValue;
+  ASSERT_EQ("nope", Toolbox::GetJsonStringField(v, "hello", "nope"));
+
+  v = Json::objectValue;
+  ASSERT_EQ("nope", Toolbox::GetJsonStringField(v, "hello", "nope"));
+  ASSERT_EQ(-10, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_EQ(10u, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_TRUE(Toolbox::GetJsonBooleanField(v, "hello", true));
+
+  v["hello"] = "world";
+  ASSERT_EQ("world", Toolbox::GetJsonStringField(v, "hello", "nope"));
+  ASSERT_THROW(Toolbox::GetJsonIntegerField(v, "hello", -10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = -42;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_EQ(-42, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = 42;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_EQ(42, Toolbox::GetJsonIntegerField(v, "hello", -10));
+  ASSERT_EQ(42u, Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10));
+  ASSERT_THROW(Toolbox::GetJsonBooleanField(v, "hello", true), OrthancException);
+
+  v["hello"] = false;
+  ASSERT_THROW(Toolbox::GetJsonStringField(v, "hello", "nope"), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonIntegerField(v, "hello", -10), OrthancException);
+  ASSERT_THROW(Toolbox::GetJsonUnsignedIntegerField(v, "hello", 10), OrthancException);
+  ASSERT_FALSE(Toolbox::GetJsonBooleanField(v, "hello", true));
+}
+
+
+TEST(Toolbox, LinesIterator)
+{
+  std::string s;
+
+  {
+    std::string content;
+    Toolbox::LinesIterator it(content);
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\n\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s));
+  }
+  
+  {
+    std::string content = "\n Hello \n\nWorld\n\n";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\r Hello \r\rWorld\r\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\n\r Hello \n\r\n\rWorld\n\r\n\r";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+
+  {
+    std::string content = "\r\n Hello \r\n\r\nWorld\r\n\r\n";
+    Toolbox::LinesIterator it(content);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ(" Hello ", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("World", s);
+    ASSERT_TRUE(it.GetLine(s)); it.Next(); ASSERT_EQ("", s);
+    ASSERT_FALSE(it.GetLine(s)); it.Next();
+    ASSERT_FALSE(it.GetLine(s));
+  }
+}
+
+
 int main(int argc, char **argv)
 {
   Logging::Initialize();
   Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
-  Toolbox::MakeDirectory("UnitTestsResults");
+  SystemToolbox::MakeDirectory("UnitTestsResults");
   OrthancInitialize();
 
   ::testing::InitGoogleTest(&argc, argv);

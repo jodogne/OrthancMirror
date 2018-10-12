@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,9 +35,10 @@
 #include "OrthancMoveRequestHandler.h"
 
 #include "OrthancInitialization.h"
-#include "FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "ServerJobs/DicomModalityStoreJob.h"
 
 namespace Orthanc
 {
@@ -44,7 +46,7 @@ namespace Orthanc
   {
     // Anonymous namespace to avoid clashes between compilation modules
 
-    class OrthancMoveRequestIterator : public IMoveRequestIterator
+    class SynchronousMove : public IMoveRequestIterator
     {
     private:
       ServerContext& context_;
@@ -52,16 +54,23 @@ namespace Orthanc
       std::vector<std::string> instances_;
       size_t position_;
       RemoteModalityParameters remote_;
+      std::string originatorAet_;
+      uint16_t originatorId_;
+      std::auto_ptr<DicomUserConnection> connection_;
 
     public:
-      OrthancMoveRequestIterator(ServerContext& context,
-                                 const std::string& aet,
-                                 const std::string& publicId) :
+      SynchronousMove(ServerContext& context,
+                      const std::string& targetAet,
+                      const std::string& publicId,
+                      const std::string& originatorAet,
+                      uint16_t originatorId) :
         context_(context),
         localAet_(context.GetDefaultLocalApplicationEntityTitle()),
-        position_(0)
+        position_(0),
+        originatorAet_(originatorAet),
+        originatorId_(originatorId)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << aet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
 
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
@@ -72,7 +81,7 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        remote_ = Configuration::GetModalityUsingAet(aet);
+        remote_ = Configuration::GetModalityUsingAet(targetAet);
       }
 
       virtual unsigned int GetSubOperationCount() const
@@ -90,15 +99,76 @@ namespace Orthanc
         const std::string& id = instances_[position_++];
 
         std::string dicom;
-        context_.ReadFile(dicom, id, FileContentType_Dicom);
+        context_.ReadDicom(dicom, id);
 
+        if (connection_.get() == NULL)
         {
-          ReusableDicomUserConnection::Locker locker
-            (context_.GetReusableDicomUserConnection(), localAet_, remote_);
-          locker.GetConnection().Store(dicom);
+          connection_.reset(new DicomUserConnection(localAet_, remote_));
         }
 
+        connection_->Store(dicom, originatorAet_, originatorId_);
+
         return Status_Success;
+      }
+    };
+
+
+    class AsynchronousMove : public IMoveRequestIterator
+    {
+    private:
+      ServerContext&                        context_;
+      std::auto_ptr<DicomModalityStoreJob>  job_;
+      size_t                                position_;
+      
+    public:
+      AsynchronousMove(ServerContext& context,
+                       const std::string& targetAet,
+                       const std::string& publicId,
+                       const std::string& originatorAet,
+                       uint16_t originatorId) :
+        context_(context),
+        job_(new DicomModalityStoreJob(context)),
+        position_(0)
+      {
+        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
+
+        job_->SetDescription("C-MOVE");
+        job_->SetPermissive(true);
+        job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
+        job_->SetRemoteModality(Configuration::GetModalityUsingAet(targetAet));
+
+        if (originatorId != 0)
+        {
+          job_->SetMoveOriginator(originatorAet, originatorId);
+        }
+        
+        std::list<std::string> tmp;
+        context_.GetIndex().GetChildInstances(tmp, publicId);
+
+        job_->Reserve(tmp.size());
+
+        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+        {
+          job_->AddInstance(*it);
+        }
+      }
+
+      virtual unsigned int GetSubOperationCount() const
+      {
+        return 1;
+      }
+
+      virtual Status DoNext()
+      {
+        if (position_ == 0)
+        {
+          context_.GetJobsEngine().GetRegistry().Submit(job_.release(), 0 /* priority */);
+          return Status_Success;
+        }
+        else
+        {
+          return Status_Failure;
+        }
       }
     };
   }
@@ -162,10 +232,31 @@ namespace Orthanc
   }
 
 
+  static IMoveRequestIterator* CreateIterator(ServerContext& context,
+                                              const std::string& targetAet,
+                                              const std::string& publicId,
+                                              const std::string& originatorAet,
+                                              uint16_t originatorId)
+  {
+    bool synchronous = Configuration::GetGlobalBoolParameter("SynchronousCMove", false);
+
+    if (synchronous)
+    {
+      return new SynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+    }
+    else
+    {
+      return new AsynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+    }
+  }
+
+
   IMoveRequestIterator* OrthancMoveRequestHandler::Handle(const std::string& targetAet,
                                                           const DicomMap& input,
-                                                          const std::string& remoteIp,
-                                                          const std::string& remoteAet)
+                                                          const std::string& originatorIp,
+                                                          const std::string& originatorAet,
+                                                          const std::string& calledAet,
+                                                          uint16_t originatorId)
   {
     LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
@@ -176,13 +267,11 @@ namespace Orthanc
         if (!query.GetElement(i).GetValue().IsNull())
         {
           LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                    << "  " << FromDcmtkBridge::GetName(query.GetElement(i).GetTag())
+                    << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
                     << " = " << query.GetElement(i).GetValue().GetContent();
         }
       }
     }
-
-
 
     /**
      * Retrieve the query level.
@@ -207,7 +296,7 @@ namespace Orthanc
           LookupIdentifier(publicId, ResourceType_Study, input) ||
           LookupIdentifier(publicId, ResourceType_Patient, input))
       {
-        return new OrthancMoveRequestIterator(context_, targetAet, publicId);
+        return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
       }
       else
       {
@@ -228,7 +317,7 @@ namespace Orthanc
 
     if (LookupIdentifier(publicId, level, input))
     {
-      return new OrthancMoveRequestIterator(context_, targetAet, publicId);
+      return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
     }
     else
     {

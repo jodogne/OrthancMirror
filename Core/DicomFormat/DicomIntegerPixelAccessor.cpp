@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -53,9 +54,15 @@ namespace Orthanc
     pixelData_(pixelData),
     size_(size)
   {
+    if (information_.GetBitsAllocated() > 32 ||
+        information_.GetBitsStored() >= 32)
+    {
+      // Not available, as the accessor internally uses int32_t values
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
     frame_ = 0;
-    frameOffset_ = (information_.GetHeight() * information_.GetWidth() * 
-                    information_.GetBytesPerValue() * information_.GetChannelCount());
+    frameOffset_ = information_.GetFrameSize();
 
     if (information_.GetNumberOfFrames() * frameOffset_ > size)
     {
@@ -137,7 +144,7 @@ namespace Orthanc
     const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
       y * rowOffset_ + frame_ * frameOffset_;
 
-    // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+    // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
     if (information_.IsPlanar())
     {
       /**

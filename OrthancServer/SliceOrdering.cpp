@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -94,12 +95,69 @@ namespace Orthanc
   }
 
 
+  static bool IsCloseToZero(double x)
+  {
+    return fabs(x) < 10.0 * std::numeric_limits<float>::epsilon();
+  }
+
+  
+  bool SliceOrdering::ComputeNormal(Vector& normal,
+                                    const DicomMap& dicom)
+  {
+    std::vector<float> cosines;
+
+    if (TokenizeVector(cosines, dicom, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6))
+    {
+      assert(cosines.size() == 6);
+      normal[0] = cosines[1] * cosines[5] - cosines[2] * cosines[4];
+      normal[1] = cosines[2] * cosines[3] - cosines[0] * cosines[5];
+      normal[2] = cosines[0] * cosines[4] - cosines[1] * cosines[3];
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool SliceOrdering::IsParallelOrOpposite(const Vector& u,
+                                           const Vector& v)
+  {
+    // Check out "GeometryToolbox::IsParallelOrOpposite()" in Stone of
+    // Orthanc for explanations
+    const double u1 = u[0];
+    const double u2 = u[1];
+    const double u3 = u[2];
+    const double normU = sqrt(u1 * u1 + u2 * u2 + u3 * u3);
+
+    const double v1 = v[0];
+    const double v2 = v[1];
+    const double v3 = v[2];
+    const double normV = sqrt(v1 * v1 + v2 * v2 + v3 * v3);
+
+    if (IsCloseToZero(normU * normV))
+    {
+      return false;
+    }
+    else
+    {
+      const double cosAngle = (u1 * v1 + u2 * v2 + u3 * v3) / (normU * normV);
+
+      return (IsCloseToZero(cosAngle - 1.0) ||      // Close to +1: Parallel, non-opposite
+              IsCloseToZero(fabs(cosAngle) - 1.0)); // Close to -1: Parallel, opposite
+    }
+  }
+
+  
   struct SliceOrdering::Instance : public boost::noncopyable
   {
   private:
     std::string   instanceId_;
     bool          hasPosition_;
     Vector        position_;   
+    bool          hasNormal_;
+    Vector        normal_;   
     bool          hasIndexInSeries_;
     size_t        indexInSeries_;
     unsigned int  framesCount_;
@@ -139,6 +197,8 @@ namespace Orthanc
         position_[1] = tmp[1];
         position_[2] = tmp[2];
       }
+
+      hasNormal_ = ComputeNormal(normal_, instance);
 
       std::string s;
       hasIndexInSeries_ = false;
@@ -189,6 +249,17 @@ namespace Orthanc
     {
       return framesCount_;
     }
+
+    bool HasNormal() const
+    {
+      return hasNormal_;
+    }
+
+    const Vector& GetNormal() const
+    {
+      assert(hasNormal_);
+      return normal_;
+    }
   };
 
 
@@ -225,15 +296,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    std::vector<float> cosines;
-    hasNormal_ = TokenizeVector(cosines, series, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6);
-
-    if (hasNormal_)
-    {
-      normal_[0] = cosines[1] * cosines[5] - cosines[2] * cosines[4];
-      normal_[1] = cosines[2] * cosines[3] - cosines[0] * cosines[5];
-      normal_[2] = cosines[0] * cosines[4] - cosines[1] * cosines[3];
-    }
+    hasNormal_ = ComputeNormal(normal_, series);
   }
 
 
@@ -267,7 +330,10 @@ namespace Orthanc
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (!instances_[i]->HasPosition())
+
+      if (!instances_[i]->HasPosition() ||
+          (instances_[i]->HasNormal() &&
+           !IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
       {
         return false;
       }
@@ -276,21 +342,23 @@ namespace Orthanc
     PositionComparator comparator(normal_);
     std::sort(instances_.begin(), instances_.end(), comparator);
 
-    float a = instances_.front()->ComputeRelativePosition(normal_);
-    float b = instances_.back()->ComputeRelativePosition(normal_);
+    float a = instances_[0]->ComputeRelativePosition(normal_);
+    for (size_t i = 1; i < instances_.size(); i++)
+    {
+      float b = instances_[i]->ComputeRelativePosition(normal_);
 
-    if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
-    {
-      // Not enough difference between the minimum and maximum
-      // positions along the normal of the volume
-      return false;
+      if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
+      {
+        // Not enough space between two slices along the normal of the volume
+        return false;
+      }
+
+      a = b;
     }
-    else
-    {
-      // This is a 3D volume
-      isVolume_ = true;
-      return true;
-    }
+
+    // This is a 3D volume
+    isVolume_ = true;
+    return true;
   }
 
 
@@ -318,7 +386,8 @@ namespace Orthanc
       if (instances_[i - 1]->GetIndexInSeries() == instances_[i]->GetIndexInSeries())
       {
         // The current "IndexInSeries" occurs 2 times: Not a proper ordering
-        return false;
+        LOG(WARNING) << "This series contains 2 slices with the same index, trying to display it anyway";
+        break;
       }
     }
 
@@ -396,6 +465,8 @@ namespace Orthanc
 
     result["Dicom"] = tmp;
 
+    Json::Value slicesShort = Json::arrayValue;
+
     tmp.clear();
     for (size_t i = 0; i < GetInstancesCount(); i++)
     {
@@ -404,8 +475,16 @@ namespace Orthanc
       {
         tmp.append(base + "/frames/" + boost::lexical_cast<std::string>(j));
       }
+
+      Json::Value tmp2 = Json::arrayValue;
+      tmp2.append(GetInstanceId(i));
+      tmp2.append(0);
+      tmp2.append(GetFramesCount(i));
+      
+      slicesShort.append(tmp2);
     }
 
     result["Slices"] = tmp;
+    result["SlicesShort"] = slicesShort;
   }
 }

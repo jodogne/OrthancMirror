@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,14 +33,10 @@
 
 #pragma once
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"
-
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-#include <dcmtk/dcmdata/dcvr.h>
-#endif
 
 namespace Orthanc
 {
@@ -65,9 +62,17 @@ namespace Orthanc
 
     IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
 
-#if !defined(ORTHANC_ENABLE_DCMTK) || ORTHANC_ENABLE_DCMTK != 0
-    DcmEVR Convert(OrthancPluginValueRepresentation vr);
-#endif
+    OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
+
+    OrthancPluginHttpMethod Convert(HttpMethod method);
+
+    ValueRepresentation Convert(OrthancPluginValueRepresentation vr);
+
+    OrthancPluginValueRepresentation Convert(ValueRepresentation vr);
+
+    OrthancPluginJobStepStatus Convert(JobStepCode step);
+
+    JobStepCode Convert(OrthancPluginJobStepStatus step);
   }
 }
 

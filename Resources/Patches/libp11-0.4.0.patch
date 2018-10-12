@@ -1,0 +1,36 @@
+diff -urEb libp11-0.4.0.orig/src/atfork.c libp11-0.4.0/src/atfork.c
+--- libp11-0.4.0.orig/src/atfork.c	2016-06-20 13:38:43.845575107 +0200
++++ libp11-0.4.0/src/atfork.c	2016-06-20 13:46:52.969575591 +0200
+@@ -25,7 +25,7 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <unistd.h>
+-#include <atfork.h>
++#include "atfork.h"
+ 
+ #ifdef __sun
+ # pragma fini(lib_deinit)
+diff -urEb libp11-0.4.0.orig/src/engine.h libp11-0.4.0/src/engine.h
+--- libp11-0.4.0.orig/src/engine.h	2016-06-20 13:38:43.845575107 +0200
++++ libp11-0.4.0/src/engine.h	2016-06-20 13:46:27.421575566 +0200
+@@ -29,7 +29,7 @@
+ #define _ENGINE_PKCS11_H
+ 
+ #ifndef _WIN32
+-#include "config.h"
++//#include "config.h"
+ #endif
+ 
+ #include "libp11.h"
+diff -urEb libp11-0.4.0.orig/src/libp11-int.h libp11-0.4.0/src/libp11-int.h
+--- libp11-0.4.0.orig/src/libp11-int.h	2016-06-20 13:38:43.845575107 +0200
++++ libp11-0.4.0/src/libp11-int.h	2016-06-20 13:46:27.421575566 +0200
+@@ -20,7 +20,7 @@
+ #define _LIBP11_INT_H
+ 
+ #ifndef _WIN32
+-#include "config.h"
++//#include "config.h"
+ #endif
+ 
+ #include "libp11.h"

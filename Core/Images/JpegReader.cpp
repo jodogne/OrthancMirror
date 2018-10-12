@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,13 +38,21 @@
 #include "../OrthancException.h"
 #include "../Logging.h"
 
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
+
+
 namespace Orthanc
 {
   static void Uncompress(struct jpeg_decompress_struct& cinfo,
                          std::string& content,
                          ImageAccessor& accessor)
   {
-    jpeg_read_header(&cinfo, TRUE);
+    // The "static_cast" is necessary on OS X:
+    // https://github.com/simonfuhrmann/mve/issues/371
+    jpeg_read_header(&cinfo, static_cast<boolean>(true));
+
     jpeg_start_decompress(&cinfo);
 
     PixelFormat format;
@@ -93,9 +102,10 @@ namespace Orthanc
   }
 
 
-  void JpegReader::ReadFromFile(const char* filename)
+#if ORTHANC_SANDBOXED == 0
+  void JpegReader::ReadFromFile(const std::string& filename)
   {
-    FILE* fp = fopen(filename, "rb");
+    FILE* fp = SystemToolbox::OpenFile(filename, FileMode_ReadBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_InexistentFile);
@@ -111,7 +121,7 @@ namespace Orthanc
     {
       jpeg_destroy_decompress(&cinfo);
       fclose(fp);
-      LOG(ERROR) << "Error during JPEG encoding: " << jerr.GetMessage();
+      LOG(ERROR) << "Error during JPEG decoding: " << jerr.GetMessage();
       throw OrthancException(ErrorCode_InternalError);
     }
 
@@ -134,6 +144,7 @@ namespace Orthanc
     jpeg_destroy_decompress(&cinfo);
     fclose(fp);
   }
+#endif
 
 
   void JpegReader::ReadFromMemory(const void* buffer,
@@ -148,7 +159,7 @@ namespace Orthanc
     if (setjmp(jerr.GetJumpBuffer())) 
     {
       jpeg_destroy_decompress(&cinfo);
-      LOG(ERROR) << "Error during JPEG encoding: " << jerr.GetMessage();
+      LOG(ERROR) << "Error during JPEG decoding: " << jerr.GetMessage();
       throw OrthancException(ErrorCode_InternalError);
     }
 

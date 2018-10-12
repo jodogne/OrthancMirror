@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -52,25 +53,37 @@ namespace Orthanc
       {
         while (that->continue_)
         {
-          std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
-          if (obj.get() != NULL)
+          try
           {
-            try
+            std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            if (obj.get() != NULL)
             {
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());
-            
+              
               bool wishToContinue = runnable.Step();
-
+              
               if (wishToContinue)
               {
                 // The runnable wishes to continue, reinsert it at the beginning of the queue
                 that->queue_.Enqueue(obj.release());
               }
             }
-            catch (OrthancException& e)
-            {
-              LOG(ERROR) << "Exception in a pool of working threads: " << e.What();
-            }
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Exception while handling some runnable object: " << e.What();
+          }
+          catch (std::bad_alloc&)
+          {
+            LOG(ERROR) << "Not enough memory to handle some runnable object";
+          }
+          catch (std::exception& e)
+          {
+            LOG(ERROR) << "std::exception while handling some runnable object: " << e.what();
+          }
+          catch (...)
+          {
+            LOG(ERROR) << "Native exception while handling some runnable object";
           }
         }
       }
@@ -105,7 +118,7 @@ namespace Orthanc
   {
     pimpl_->continue_ = true;
 
-    if (countWorkers <= 0)
+    if (countWorkers == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

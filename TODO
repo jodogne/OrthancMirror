@@ -1,0 +1,170 @@
+=======================
+=== Orthanc Roadmap ===
+=======================
+
+The wishlist from Orthanc users is available on Trello:
+https://trello.com/b/gcn33tDM/orthanc-wishlist
+
+
+=======
+General
+=======
+
+* Configure an user-defined site UID root if generating DICOM UIDs
+  ("FromDcmtkBridge::GenerateUuid()")
+* Support "/preview" and "/matlab" for LUT color images
+* Improve handling of errors in the command queue:
+  https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
+* Support partial file retrieval in Orthanc::HttpClient
+* Support retry counter in Orthanc::HttpClient
+* Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
+
+
+============
+Dependencies
+============
+
+* Switch from libiconv to libICU (http://site.icu-project.org/download),
+  as recommended by Boost:
+  http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/building_boost_locale.html
+
+
+=============
+Documentation
+=============
+
+* Document REST API with Swagger/OpenAPI
+
+
+========
+REST API
+========
+
+----------
+Short-term
+----------
+
+* Create multi-frame images with /tools/create-dicom (by adding a
+  "MultiFrame" flag to avoid creating a series)
+* In the /studies/{id}/anonymize route, add an option to remove secondary captures.
+  They usually contains Patient info in the image.  The SOPClassUID might be used to
+  identify such secondary captures.
+
+---------
+Long-term
+---------
+
+* Stick to the JSONapi or JAREST guidelines for a "v2" of the API:
+  https://groups.google.com/forum/#!msg/orthanc-users/Bag-SwEE9ZI/-w7QXI6p7-oJ
+  http://www.admiraalit.nl/jarest/
+
+
+=====
+DICOM
+=====
+
+----------
+Short-term
+----------
+
+* Support C-GET: 
+  http://dclunie.blogspot.be/2016/05/to-c-move-is-human-to-c-get-divine.html
+* Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
+  DicomImageDecoder
+
+---------
+Long-term
+---------
+
+* Support DICOM TLS (cf. "--enable-tls" in storescp)
+* Support Storage Commitment:
+  https://groups.google.com/forum/#!msg/orthanc-users/VZOn8St65jw/s8kg_OHesj0J
+* Support extended association:
+  https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
+
+
+=======
+Plugins
+=======
+
+---
+SDK
+---
+
+* Image transcoding API
+* Add plugins for normalized operations (notably so as to support
+  Print SCU/SCP):
+  https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+
+----------------
+Ideas of plugins
+----------------
+
+* DICOM-RT primitives (RT-STRUCT, RT-PLAN, RT-DOSE)
+* Converter to/from NIfTI
+* Decode JPEG2k with grok: https://github.com/GrokImageCompression/grok
+* Generate dynamic HTTP content using Lua:
+  https://groups.google.com/d/msg/orthanc-users/KompazkxRSs/5Rh03mzgDAAJ
+* More generally, expose more callbacks of the plugin SDK in Lua:
+  https://groups.google.com/d/msg/orthanc-users/_FbiRHuXPGM/J-OAv7zaCAAJ
+* Authorization plugin for the DICOM protocol:
+  https://groups.google.com/d/msg/orthanc-users/Wv-QEwTE0IA/rvJxoOjcAQAJ
+
+
+===
+Lua
+===
+
+* Configure HTTP headers from Lua (in HttpGet(), HttpPost(),
+  HttpPut(), HttpDelete(), RestApiGet(), RestApiPost(), RestApiPut()
+  and RestApiDelete().
+  https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
+
+
+===========
+Performance
+===========
+
+
+================
+Code refactoring
+================
+
+* Use Semaphore::Locker everywhere (instead of explicit
+  Release() and Acquire())
+* Avoid direct calls to FromDcmtkBridge (make most of its 
+  methods private), go through ParsedDicomFile wherever possible
+
+
+=================
+Platform-specific
+=================
+
+---------
+Packaging
+---------
+
+* CentOS and RHEL through EPEL:
+  http://fedoraproject.org/wiki/EPEL_Package_Maintainers
+
+------------------------
+Big-endian architectures
+------------------------
+
+* Check the generated 16bpp PNG images
+
+-----------------
+Microsoft Windows
+-----------------
+
+* Add compatibility with non-ASCII paths (Orthanc expresses its paths
+  as UTF-8 strings, but Windows expects them to be translated to the 
+  system locale)
+
+
+=====================
+External applications
+=====================
+
+* Create REST bindings with Slicer
+* Create REST bindings with Horos/OsiriX

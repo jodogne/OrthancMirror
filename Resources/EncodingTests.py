@@ -72,3 +72,9 @@ else:
     for i in range(len(expected)):
         print expected[i]
         #print '%s: %s' % (expected[i], l[i])
+
+
+
+u = (u'grüßEN SébasTIen %s' % source)
+print 'static const char *toUpperSource = %s;' % ToArray(u.encode('utf-8'))
+print 'static const char *toUpperResult = %s;' % ToArray(u.upper().encode('utf-8'))

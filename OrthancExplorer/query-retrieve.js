@@ -83,7 +83,6 @@ $('#qr-submit').live('click', function() {
       'PatientID' : '*',
       'PatientName' : '*',
       'PatientSex' : '*',
-      'SpecificCharacterSet' : 'ISO_IR 192',  // UTF-8
       'StudyDate' : $('#qr-date').val(),
       'StudyDescription' : '*'
     }
@@ -95,7 +94,7 @@ $('#qr-submit').live('click', function() {
   var modalities = '';
   $('#qr-modalities input:checked').each(function() {
     var s = $(this).attr('name');
-    if (modalities == '*')
+    if (modalities == '')
       modalities = s;
     else
       modalities += '\\' + s;
@@ -117,7 +116,10 @@ $('#qr-submit').live('click', function() {
       alert('Error during query (C-Find)');
     },
     success: function(result) {
-      window.location.assign('explorer.html#query-retrieve-2?server=' + server + '&uuid=' + result['ID']);
+      ChangePage('query-retrieve-2', {
+        'server' : server,
+        'uuid' : result['ID']
+      });
     }
   });
 
@@ -126,57 +128,11 @@ $('#qr-submit').live('click', function() {
 
 
 
-function Retrieve(url)
-{
-  $.ajax({
-    url: '../system',
-    dataType: 'json',
-    async: false,
-    success: function(system) {
-      $('<div>').simpledialog2({
-        mode: 'button',
-        headerText: 'Target',
-        headerClose: true,
-        buttonPrompt: 'Enter Application Entity Title (AET):',
-        buttonInput: true,
-        buttonInputDefault: system['DicomAet'],
-        buttons : {
-          'OK': {
-            click: function () { 
-              var aet = $.mobile.sdLastInput;
-              if (aet.length == 0)
-                aet = system['DicomAet'];
-
-              $.ajax({
-                url: url,
-                type: 'POST',
-                async: true,  // Necessary to block UI
-                dataType: 'text',
-                data: aet,
-                beforeSend: function() {
-                  $.blockUI({ message: $('#info-retrieve') });
-                },
-                complete: function(s) {
-                  $.unblockUI();
-                },
-                error: function() {
-                  alert('Error during retrieve');
-                }
-              });
-            }
-          }
-        }
-      });
-    }
-  });
-}
-
-
-
-
 $('#query-retrieve-2').live('pagebeforeshow', function() {
   if ($.mobile.pageData) {
-    var uri = '../queries/' + $.mobile.pageData.uuid + '/answers';
+    var pageData = DeepCopy($.mobile.pageData);
+
+    var uri = '../queries/' + pageData.uuid + '/answers';
 
     $.ajax({
       url: uri,
@@ -192,25 +148,30 @@ $('#query-retrieve-2').live('pagebeforeshow', function() {
             dataType: 'json',
             async: false,
             success: function(study) {
-              var series = '#query-retrieve-3?server=' + $.mobile.pageData.server + '&uuid=' + study['StudyInstanceUID'];
-              var info = $('<a>').attr('href', series).html(
-                ('<h3>{0} - {1}</h3>' + 
-                 '<p>Accession number: <b>{2}</b></p>' +
-                 '<p>Birth date: <b>{3}</b></p>' +
-                 '<p>Patient sex: <b>{4}</b></p>' +
-                 '<p>Study description: <b>{5}</b></p>' +
-                 '<p>Study date: <b>{6}</b></p>').format(
-                   study['PatientID'],
-                   study['PatientName'],
-                   study['AccessionNumber'],
-                   FormatDicomDate(study['PatientBirthDate']),
-                   study['PatientSex'],
-                   study['StudyDescription'],
-                   FormatDicomDate(study['StudyDate'])));
+              var series = '#query-retrieve-3?server=' + pageData.server + '&uuid=' + study['StudyInstanceUID'];
 
-              var studyUri = uri + '/' + answers[i] + '/retrieve';
-              var retrieve = $('<a>').text('Retrieve').click(function() {
-                Retrieve(studyUri);
+              var content = ($('<div>')
+                             .append($('<h3>').text(study['PatientID'] + ' - ' + study['PatientName']))
+                             .append($('<p>').text('Accession number: ')
+                                     .append($('<b>').text(study['AccessionNumber'])))
+                             .append($('<p>').text('Birth date: ')
+                                     .append($('<b>').text(study['PatientBirthDate'])))
+                             .append($('<p>').text('Patient sex: ')
+                                     .append($('<b>').text(study['PatientSex'])))
+                             .append($('<p>').text('Study description: ')
+                                     .append($('<b>').text(study['StudyDescription'])))
+                             .append($('<p>').text('Study date: ')
+                                     .append($('<b>').text(FormatDicomDate(study['StudyDate'])))));
+
+              var info = $('<a>').attr('href', series).html(content);
+              
+              var answerId = answers[i];
+              var retrieve = $('<a>').text('Retrieve all study').click(function() {
+                ChangePage('query-retrieve-4', {
+                  'query' : pageData.uuid,
+                  'answer' : answerId,
+                  'server' : pageData.server
+                });
               });
 
               target.append($('<li>').append(info).append(retrieve));
@@ -227,6 +188,8 @@ $('#query-retrieve-2').live('pagebeforeshow', function() {
 
 $('#query-retrieve-3').live('pagebeforeshow', function() {
   if ($.mobile.pageData) {
+    var pageData = DeepCopy($.mobile.pageData);
+
     var query = {
       'Level' : 'Series',
       'Query' : {
@@ -234,12 +197,12 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
         'ProtocolName' : '*',
         'SeriesDescription' : '*',
         'SeriesInstanceUID' : '*',
-        'StudyInstanceUID' : $.mobile.pageData.uuid
+        'StudyInstanceUID' : pageData.uuid
       }
     };
 
     $.ajax({
-      url: '../modalities/' + $.mobile.pageData.server + '/query',
+      url: '../modalities/' + pageData.server + '/query',
       type: 'POST', 
       data: JSON.stringify(query),
       dataType: 'json',
@@ -248,6 +211,7 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
         alert('Error during query (C-Find)');
       },
       success: function(answer) {
+        var queryUuid = answer['ID'];
         var uri = '../queries/' + answer['ID'] + '/answers';
 
         $.ajax({
@@ -265,28 +229,92 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
                 dataType: 'json',
                 async: false,
                 success: function(series) {
-                  var info = $('<a>').html(
-                    ('<h3>{0}</h3>'  + 
-                     '<p>Modality: <b>{1}</b></p>' +
-                     '<p>Protocol name: <b>{2}</b></p>'
-                    ).format(
-                      series['SeriesDescription'],
-                      series['Modality'],
-                      series['ProtocolName']
-                    ));
+                  var content = ($('<div>')
+                                 .append($('<h3>').text(series['SeriesDescription']))
+                                 .append($('<p>').text('Modality: ')
+                                         .append($('<b>').text(series['Modality'])))
+                                 .append($('<p>').text('ProtocolName: ')
+                                         .append($('<b>').text(series['ProtocolName']))));
 
-                  var seriesUri = uri + '/' + answers[i] + '/retrieve';
-                  var retrieve = $('<a>').text('Retrieve').click(function() {
-                    Retrieve(seriesUri);
+                  var info = $('<a>').html(content);
+
+                  var answerId = answers[i];
+                  info.click(function() {
+                    ChangePage('query-retrieve-4', {
+                      'query' : queryUuid,
+                      'study' : pageData.uuid,
+                      'answer' : answerId,
+                      'server' : pageData.server
+                    });
                   });
 
-                  target.append($('<li>').append(info).append(retrieve));
+                  target.append($('<li>').attr('data-icon', 'arrow-d').append(info));
                 }
               });
             }
 
             target.listview('refresh');
           }
+        });
+      }
+    });
+  }
+});
+
+
+
+$('#query-retrieve-4').live('pagebeforeshow', function() {
+  if ($.mobile.pageData) {
+    var pageData = DeepCopy($.mobile.pageData);
+    var uri = '../queries/' + pageData.query + '/answers/' + pageData.answer + '/retrieve';
+
+    $.ajax({
+      url: '../system',
+      dataType: 'json',
+      async: false,
+      cache: false,
+      success: function(system) {
+        $('#retrieve-target').val(system['DicomAet']);
+
+        $('#retrieve-form').submit(function(event) {
+          event.preventDefault();
+
+          var aet = $('#retrieve-target').val();
+          if (aet.length == 0) {
+            aet = system['DicomAet'];
+          }
+
+          $.ajax({
+            url: uri,
+            type: 'POST',
+            async: true,  // Necessary to block UI
+            dataType: 'text',
+            data: aet,
+            beforeSend: function() {
+              $.blockUI({ message: $('#info-retrieve') });
+            },
+            complete: function(s) {
+              $.unblockUI();
+            },
+            success: function() {
+              if (pageData.study) {
+                // Go back to the list of series
+                ChangePage('query-retrieve-3', {
+                  'server' : pageData.server,
+                  'uuid' : pageData.study
+                });
+              } else {
+                // Go back to the list of studies
+                ChangePage('query-retrieve-2', {
+                  'server' : pageData.server,
+                  'uuid' : pageData.query
+                });
+              }
+            },
+            error: function() {
+              alert('Error during retrieve');
+            }
+          });
         });
       }
     });

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,9 +36,13 @@
 
 #include "../OrthancException.h"
 #include "../Logging.h"
-
 #include "JpegErrorManager.h"
 
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
+
+#include <stdlib.h>
 #include <vector>
 
 namespace Orthanc
@@ -91,8 +96,12 @@ namespace Orthanc
     }
 
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, quality, TRUE);
-    jpeg_start_compress(&cinfo, TRUE);
+
+    // The "static_cast" is necessary on OS X:
+    // https://github.com/simonfuhrmann/mve/issues/371
+    jpeg_set_quality(&cinfo, quality, static_cast<boolean>(true));
+    jpeg_start_compress(&cinfo, static_cast<boolean>(true));
+    
     jpeg_write_scanlines(&cinfo, &lines[0], height);
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
@@ -101,7 +110,7 @@ namespace Orthanc
 
   void JpegWriter::SetQuality(uint8_t quality)
   {
-    if (quality <= 0 || quality > 100)
+    if (quality == 0 || quality > 100)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -110,17 +119,18 @@ namespace Orthanc
   }
 
 
-  void JpegWriter::WriteToFile(const char* filename,
-                               unsigned int width,
-                               unsigned int height,
-                               unsigned int pitch,
-                               PixelFormat format,
-                               const void* buffer)
+#if ORTHANC_SANDBOXED == 0
+  void JpegWriter::WriteToFileInternal(const std::string& filename,
+                                       unsigned int width,
+                                       unsigned int height,
+                                       unsigned int pitch,
+                                       PixelFormat format,
+                                       const void* buffer)
   {
-    FILE* fp = fopen(filename, "wb");
+    FILE* fp = SystemToolbox::OpenFile(filename, FileMode_WriteBinary);
     if (fp == NULL)
     {
-      throw OrthancException(ErrorCode_FullStorage);
+      throw OrthancException(ErrorCode_CannotWriteFile);
     }
 
     std::vector<uint8_t*> lines;
@@ -153,14 +163,15 @@ namespace Orthanc
 
     fclose(fp);
   }
+#endif
 
 
-  void JpegWriter::WriteToMemory(std::string& jpeg,
-                                 unsigned int width,
-                                 unsigned int height,
-                                 unsigned int pitch,
-                                 PixelFormat format,
-                                 const void* buffer)
+  void JpegWriter::WriteToMemoryInternal(std::string& jpeg,
+                                         unsigned int width,
+                                         unsigned int height,
+                                         unsigned int pitch,
+                                         PixelFormat format,
+                                         const void* buffer)
   {
     std::vector<uint8_t*> lines;
     GetLines(lines, height, pitch, format, buffer);

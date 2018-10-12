@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
  *
- * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@gmail.com>,
  * Medical Physics Department, CHU of Liege, Belgium
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,6 @@
 
 #include "Statement.h"
 
-struct sqlite3_context;
-struct Mem;  // This corresponds to the opaque type "sqlite3_value"
- 
 namespace Orthanc
 {
   namespace SQLite
@@ -50,14 +47,14 @@ namespace Orthanc
     private:
       struct sqlite3_context* context_;
       unsigned int argc_;
-      struct ::Mem** argv_;
+      Internals::SQLiteValue** argv_;
 
       void CheckIndex(unsigned int index) const;
 
     public:
       FunctionContext(struct sqlite3_context* context,
                       int argc,
-                      struct ::Mem** argv);
+                      Internals::SQLiteValue** argv);
 
       ColumnType GetColumnType(unsigned int index) const;
  

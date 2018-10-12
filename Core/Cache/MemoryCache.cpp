@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -75,6 +76,18 @@ namespace Orthanc
     provider_(provider),
     cacheSize_(cacheSize)
   {
+  }
+
+  void MemoryCache::Invalidate(const std::string& id)
+  {
+    Page* p = NULL;
+    if (index_.Contains(id, p))
+    {
+      VLOG(1) << "Invalidating a cache page";
+      assert(p != NULL);
+      delete p;
+      index_.Invalidate(id);
+    }
   }
 
   MemoryCache::~MemoryCache()

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,20 +57,24 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void FontRegistry::AddFromFile(const std::string& path)
   {
     std::auto_ptr<Font> f(new Font);
     f->LoadFromFile(path);
     fonts_.push_back(f.release());
   }
+#endif
 
 
+#if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
   void FontRegistry::AddFromResource(EmbeddedResources::FileResourceId resource)
   {
     std::string content;
     EmbeddedResources::GetFileResource(content, resource);
     AddFromMemory(content);
   }
+#endif
 
 
   const Font& FontRegistry::GetFont(size_t i) const

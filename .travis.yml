@@ -31,8 +31,12 @@ before_install:
     -qq build-essential unzip cmake mercurial uuid-dev libcurl4-openssl-dev liblua5.1-0-dev
     libgtest-dev libpng-dev libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev libwrap0-dev
     libcharls-dev; fi
-  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw32; fi
+  # For DCMTK 3.6.2 - Can't make it compile in static mode with MinGW32 on the
+  # Ubuntu Precise (12.04) that is used by Travis:
+  # - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw-w64 gcc-mingw-w64-i686 g++-mingw-w64-i686 wine; fi
 
+  # For DCMTK 3.6.0: 
+  - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then sudo apt-get install mingw32; fi
 
 before_script:
   - mkdir Build
@@ -40,11 +44,11 @@ before_script:
   - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == OFF ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
     -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF
-    -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON
+    -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON
     ..; fi
   - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
-    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake
+    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON
     ..; fi
   - if [ $TRAVIS_OS_NAME == osx ]; then cmake 
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,8 +35,8 @@
 #include "gtest/gtest.h"
 
 #include "../Core/FileStorage/FilesystemStorage.h"
+#include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../OrthancServer/DatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
@@ -671,11 +672,13 @@ TEST(ServerIndex, Sequence)
 {
   const std::string path = "UnitTestsStorage";
 
-  Toolbox::RemoveFile(path + "/index");
+  SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage);
+  ServerContext context(db, storage, true /* running unit tests */);
+  context.SetupJobsEngine(true, false);
+
   ServerIndex& index = context.GetIndex();
 
   ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
@@ -769,11 +772,12 @@ TEST(ServerIndex, AttachmentRecycling)
 {
   const std::string path = "UnitTestsStorage";
 
-  Toolbox::RemoveFile(path + "/index");
+  SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage);
+  ServerContext context(db, storage, true /* running unit tests */);
+  context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
   index.SetMaximumStorageSize(10);
@@ -790,17 +794,26 @@ TEST(ServerIndex, AttachmentRecycling)
   {
     std::string id = boost::lexical_cast<std::string>(i);
     DicomMap instance;
-    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient-" + id);
-    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id);
-    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id);
-    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id);
+    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient-" + id, false);
+    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study-" + id, false);
+    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series-" + id, false);
+    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id, false);
+    instance.SetValue(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.1", false);  // CR image
 
     std::map<MetadataType, std::string> instanceMetadata;
-    ServerIndex::MetadataMap metadata;
-    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, instance, attachments, "", metadata));
-    ASSERT_EQ(2u, instanceMetadata.size());
+    DicomInstanceToStore toStore;
+    toStore.SetSummary(instance);
+    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
+    ASSERT_EQ(5u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
+
+    // By default, an Explicit VR Little Endian is used by Orthanc
+    ASSERT_EQ("1.2.840.10008.1.2.1", instanceMetadata[MetadataType_Instance_TransferSyntax]);
+
+    ASSERT_EQ("1.2.840.10008.5.1.4.1.1.1", instanceMetadata[MetadataType_Instance_SopClassUid]);
 
     DicomInstanceHasher hasher(instance);
     ids.push_back(hasher.HashPatient());
@@ -823,8 +836,144 @@ TEST(ServerIndex, AttachmentRecycling)
   }
 
   // Because the DB is in memory, the SQLite index must not have been created
-  ASSERT_THROW(Toolbox::GetFileSize(path + "/index"), OrthancException);  
+  ASSERT_FALSE(SystemToolbox::IsRegularFile(path + "/index"));
 
   context.Stop();
   db.Close();
 }
+
+
+TEST(LookupIdentifierQuery, NormalizeIdentifier)
+{
+  ASSERT_EQ("H^L.LO", ServerToolbox::NormalizeIdentifier("   Hé^l.LO  %_  "));
+  ASSERT_EQ("1.2.840.113619.2.176.2025", ServerToolbox::NormalizeIdentifier("   1.2.840.113619.2.176.2025  "));
+}
+
+
+TEST(ServerIndex, Overwrite)
+{
+  for (unsigned int i = 0; i < 2; i++)
+  {
+    bool overwrite = (i == 0);
+
+    MemoryStorageArea storage;
+    DatabaseWrapper db;   // The SQLite DB is in memory
+    db.Open();
+    ServerContext context(db, storage, true /* running unit tests */);
+    context.SetupJobsEngine(true, false);
+    context.SetCompressionEnabled(true);
+
+    DicomMap instance;
+    instance.SetValue(DICOM_TAG_PATIENT_ID, "patient", false);
+    instance.SetValue(DICOM_TAG_PATIENT_NAME, "name", false);
+    instance.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "study", false);
+    instance.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "series", false);
+    instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "sop", false);
+    instance.SetValue(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.1", false);  // CR image
+
+    DicomInstanceHasher hasher(instance);
+    std::string id = hasher.HashInstance();
+    context.GetIndex().SetOverwriteInstances(overwrite);
+
+    Json::Value tmp;
+    context.GetIndex().ComputeStatistics(tmp);
+    ASSERT_EQ(0, tmp["CountInstances"].asInt());
+    ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+
+    {
+      DicomInstanceToStore toStore;
+      toStore.SetSummary(instance);
+      toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+
+      std::string id2;
+      ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore));
+      ASSERT_EQ(id, id2);
+    }
+
+    FileInfo dicom1, json1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(json1, id, FileContentType_DicomAsJson));
+
+    context.GetIndex().ComputeStatistics(tmp);
+    ASSERT_EQ(1, tmp["CountInstances"].asInt());
+    ASSERT_EQ(dicom1.GetCompressedSize() + json1.GetCompressedSize(),
+              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
+    ASSERT_EQ(dicom1.GetUncompressedSize() + json1.GetUncompressedSize(),
+              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
+
+    context.ReadDicomAsJson(tmp, id);
+    ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
+    
+    {
+      ServerContext::DicomCacheLocker locker(context, id);
+      std::string tmp;
+      locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+      ASSERT_EQ("name", tmp);
+    }
+
+    {
+      DicomMap instance2;
+      instance2.Assign(instance);
+      instance2.SetValue(DICOM_TAG_PATIENT_NAME, "overwritten", false);
+
+      DicomInstanceToStore toStore;
+      toStore.SetSummary(instance2);
+      toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+
+      std::string id2;
+      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored, context.Store(id2, toStore));
+      ASSERT_EQ(id, id2);
+    }
+
+    FileInfo dicom2, json2;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(json2, id, FileContentType_DicomAsJson));
+
+    context.GetIndex().ComputeStatistics(tmp);
+    ASSERT_EQ(1, tmp["CountInstances"].asInt());
+    ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(),
+              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
+    ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(),
+              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
+
+    if (overwrite)
+    {
+      ASSERT_NE(dicom1.GetUuid(), dicom2.GetUuid());
+      ASSERT_NE(json1.GetUuid(), json2.GetUuid());
+      ASSERT_NE(dicom1.GetUncompressedSize(), dicom2.GetUncompressedSize());
+      ASSERT_NE(json1.GetUncompressedSize(), json2.GetUncompressedSize());
+    
+      context.ReadDicomAsJson(tmp, id);
+      ASSERT_EQ("overwritten", tmp["0010,0010"]["Value"].asString());
+    
+      {
+        ServerContext::DicomCacheLocker locker(context, id);
+        std::string tmp;
+        locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+        ASSERT_EQ("overwritten", tmp);
+      }
+    }
+    else
+    {
+      ASSERT_EQ(dicom1.GetUuid(), dicom2.GetUuid());
+      ASSERT_EQ(json1.GetUuid(), json2.GetUuid());
+      ASSERT_EQ(dicom1.GetUncompressedSize(), dicom2.GetUncompressedSize());
+      ASSERT_EQ(json1.GetUncompressedSize(), json2.GetUncompressedSize());
+
+      context.ReadDicomAsJson(tmp, id);
+      ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
+    
+      {
+        ServerContext::DicomCacheLocker locker(context, id);
+        std::string tmp;
+        locker.GetDicom().GetTagValue(tmp, DICOM_TAG_PATIENT_NAME);
+        ASSERT_EQ("name", tmp);
+      }
+    }
+
+    context.Stop();
+    db.Close();
+  }
+}
+
+

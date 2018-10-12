@@ -1,0 +1,11 @@
+Introduction
+============
+
+This sample plugin enables Orthanc to serve DICOM modality worklists
+that are read from some folder.
+
+The shared library containing the plugin is created as part of the
+build process of Orthanc.
+
+Documentation is available in the Orthanc Book:
+http://book.orthanc-server.com/plugins/worklists-plugin.html

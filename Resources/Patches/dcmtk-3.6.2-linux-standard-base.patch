@@ -1,0 +1,12 @@
+diff -urEb dcmtk-3.6.2.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.2/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.2.orig/ofstd/include/dcmtk/ofstd/offile.h	2017-07-14 17:41:11.000000000 +0200
++++ dcmtk-3.6.2/ofstd/include/dcmtk/ofstd/offile.h	2018-01-02 13:56:04.075293459 +0100
+@@ -551,7 +551,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);

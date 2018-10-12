@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,22 +33,21 @@
 
 #pragma once
 
-#include "../Core/MultiThreading/SharedMessageQueue.h"
-#include "../Core/Cache/MemoryCache.h"
-#include "../Core/Cache/SharedArchive.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/Lua/LuaContext.h"
-#include "../Core/RestApi/RestApiOutput.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 #include "DicomInstanceToStore.h"
-#include "DicomProtocol/ReusableDicomUserConnection.h"
 #include "IServerListener.h"
 #include "LuaScripting.h"
-#include "ParsedDicomFile.h"
-#include "Scheduler/ServerScheduler.h"
-#include "ServerIndex.h"
 #include "OrthancHttpHandler.h"
-#include "Search/LookupResource.h"
+#include "ServerIndex.h"
+
+#include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/SharedArchive.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
+#include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/JobsEngine/JobsEngine.h"
+#include "../Core/JobsEngine/SetOfInstancesJob.h"
+#include "../Core/MultiThreading/SharedMessageQueue.h"
+#include "../Core/RestApi/RestApiOutput.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -60,9 +60,39 @@ namespace Orthanc
    * filesystem (including compression), as well as the index of the
    * DICOM store. It implements the required locking mechanisms.
    **/
-  class ServerContext
+  class ServerContext : private JobsRegistry::IObserver
   {
   private:
+    class LuaServerListener : public IServerListener
+    {
+    private:
+      ServerContext& context_;
+
+    public:
+      LuaServerListener(ServerContext& context) :
+        context_(context)
+      {
+      }
+
+      virtual void SignalStoredInstance(const std::string& publicId,
+                                        DicomInstanceToStore& instance,
+                                        const Json::Value& simplifiedTags)
+      {
+        context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);
+      }
+    
+      virtual void SignalChange(const ServerIndexChange& change)
+      {
+        context_.mainLua_.SignalChange(change);
+      }
+
+      virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                          const Json::Value& simplified)
+      {
+        return context_.filterLua_.FilterIncomingInstance(instance, simplified);
+      }
+    };
+    
     class DicomCacheProvider : public ICachePageProvider
     {
     private:
@@ -104,8 +134,22 @@ namespace Orthanc
     typedef std::list<ServerListener>  ServerListeners;
 
 
-    static void ChangeThread(ServerContext* that);
+    static void ChangeThread(ServerContext* that,
+                             unsigned int sleepDelay);
 
+    static void SaveJobsThread(ServerContext* that,
+                               unsigned int sleepDelay);
+
+    void ReadDicomAsJsonInternal(std::string& result,
+                                 const std::string& instancePublicId);
+
+    void SaveJobsEngine();
+
+    virtual void SignalJobSubmitted(const std::string& jobId);
+
+    virtual void SignalJobSuccess(const std::string& jobId);
+
+    virtual void SignalJobFailure(const std::string& jobId);
 
     ServerIndex index_;
     IStorageArea& area_;
@@ -116,12 +160,13 @@ namespace Orthanc
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
-    ReusableDicomUserConnection scu_;
-    ServerScheduler scheduler_;
+    JobsEngine jobsEngine_;
 
-    LuaScripting lua_;
+    LuaScripting mainLua_;
+    LuaScripting filterLua_;
+    LuaServerListener  luaListener_;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
 
@@ -129,8 +174,11 @@ namespace Orthanc
     boost::recursive_mutex listenersMutex_;
 
     bool done_;
+    bool haveJobsChanged_;
+    bool isJobsEngineUnserialized_;
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
+    boost::thread  saveJobsThread_;
         
     SharedArchive  queryRetrieveArchive_;
     std::string defaultLocalAet_;
@@ -157,9 +205,13 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database,
-                  IStorageArea& area);
+                  IStorageArea& area,
+                  bool unitTesting);
 
     ~ServerContext();
+
+    void SetupJobsEngine(bool unitTesting,
+                         bool loadJobsFromDatabase);
 
     ServerIndex& GetIndex()
     {
@@ -192,14 +244,42 @@ namespace Orthanc
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
-    void ReadJson(Json::Value& result,
-                  const std::string& instancePublicId);
+    void ReadDicomAsJson(std::string& result,
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);
 
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);
+
+    void ReadDicomAsJson(std::string& result,
+                         const std::string& instancePublicId)
+    {
+      std::set<DicomTag> ignoreTagLength;
+      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
+    }
+
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId)
+    {
+      std::set<DicomTag> ignoreTagLength;
+      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
+    }
+
+    void ReadDicom(std::string& dicom,
+                   const std::string& instancePublicId)
+    {
+      ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true);
+    }
+    
     // TODO CACHING MECHANISM AT THIS POINT
-    void ReadFile(std::string& result,
-                  const std::string& instancePublicId,
-                  FileContentType content,
-                  bool uncompressIfNeeded = true);
+    void ReadAttachment(std::string& result,
+                        const std::string& instancePublicId,
+                        FileContentType content,
+                        bool uncompressIfNeeded);
+    
+    void ReadAttachment(std::string& result,
+                        const FileInfo& attachment);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
@@ -208,14 +288,9 @@ namespace Orthanc
       return storeMD5_;
     }
 
-    ReusableDicomUserConnection& GetReusableDicomUserConnection()
+    JobsEngine& GetJobsEngine()
     {
-      return scu_;
-    }
-
-    ServerScheduler& GetScheduler()
-    {
-      return scheduler_;
+      return jobsEngine_;
     }
 
     bool DeleteResource(Json::Value& target,
@@ -234,9 +309,9 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
-    LuaScripting& GetLua()
+    LuaScripting& GetLuaScripting()
     {
-      return lua_;
+      return mainLua_;
     }
 
     OrthancHttpHandler& GetHttpHandler()
@@ -246,16 +321,18 @@ namespace Orthanc
 
     void Stop();
 
-    bool Apply(std::list<std::string>& result,
+    void Apply(bool& isComplete, 
+               std::list<std::string>& result,
                const ::Orthanc::LookupResource& lookup,
-               size_t maxResults);
+               size_t since,
+               size_t limit);
 
 
     /**
      * Management of the plugins
      **/
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     void SetPlugins(OrthancPlugins& plugins);
 
     void ResetPlugins();
@@ -266,5 +343,8 @@ namespace Orthanc
 #endif
 
     bool HasPlugins() const;
+
+    void AddChildInstances(SetOfInstancesJob& job,
+                           const std::string& publicId);
   };
 }

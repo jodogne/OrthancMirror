@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,8 +33,10 @@
 
 #pragma once
 
+#include "../../Core/JobsEngine/SetOfCommandsJob.h"
 #include "../../Core/RestApi/RestApi.h"
-#include "../DicomModification.h"
+#include "../../Core/DicomParsing/DicomModification.h"
+#include "../ServerEnumerations.h"
 
 #include <set>
 
@@ -95,7 +98,13 @@ namespace Orthanc
                               ResourceType resourceType,
                               StoreStatus status) const;
 
-    static bool ParseModifyRequest(DicomModification& target,
-                                   const Json::Value& request);
+    void SubmitCommandsJob(RestApiPostCall& call,
+                           SetOfCommandsJob* job,
+                           bool isDefaultSynchronous,
+                           const Json::Value& body) const;
+
+    void SubmitCommandsJob(RestApiPostCall& call,
+                           SetOfCommandsJob* job,
+                           bool isDefaultSynchronous) const;
   };
 }

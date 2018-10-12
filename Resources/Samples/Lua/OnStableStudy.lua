@@ -40,7 +40,7 @@ function OnStableStudy(studyId, tags, metadata)
 
       -- Modify the entire study in one single call
       local m = RestApiPost('/studies/' .. studyId .. '/modify',
-                            DumpJson(command))
+                            DumpJson(command, true))
       print('Modified study: ' .. m)
    end
 end

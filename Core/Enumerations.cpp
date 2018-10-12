@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,8 +36,11 @@
 
 #include "OrthancException.h"
 #include "Toolbox.h"
+#include "Logging.h"
 
+#include <boost/thread/mutex.hpp>
 #include <string.h>
+#include <cassert>
 
 namespace Orthanc
 {
@@ -62,7 +66,7 @@ namespace Orthanc
         return "Parameter out of range";
 
       case ErrorCode_NotEnoughMemory:
-        return "Not enough memory";
+        return "The server hosting Orthanc is running out of memory";
 
       case ErrorCode_BadParameterType:
         return "Bad type for a parameter";
@@ -151,6 +155,18 @@ namespace Orthanc
       case ErrorCode_EmptyRequest:
         return "The request is empty";
 
+      case ErrorCode_NotAcceptable:
+        return "Cannot send a response which is acceptable according to the Accept HTTP header";
+
+      case ErrorCode_NullPointer:
+        return "Cannot handle a NULL pointer";
+
+      case ErrorCode_DatabaseUnavailable:
+        return "The database is currently not available (probably a transient situation)";
+
+      case ErrorCode_CanceledJob:
+        return "This job was canceled";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -209,10 +225,10 @@ namespace Orthanc
         return "The specified path does not point to a directory";
 
       case ErrorCode_HttpPortInUse:
-        return "The TCP port of the HTTP server is already in use";
+        return "The TCP port of the HTTP server is privileged or already in use";
 
       case ErrorCode_DicomPortInUse:
-        return "The TCP port of the DICOM server is already in use";
+        return "The TCP port of the DICOM server is privileged or already in use";
 
       case ErrorCode_BadHttpStatusInRest:
         return "This HTTP status is not allowed in a REST API";
@@ -321,6 +337,12 @@ namespace Orthanc
 
       case ErrorCode_CannotOrderSlices:
         return "Unable to order the slices of the series";
+
+      case ErrorCode_NoWorklistHandler:
+        return "No request handler factory for DICOM C-Find Modality SCP";
+
+      case ErrorCode_AlreadyExistingTag:
+        return "Cannot override the value of a tag that already exists";
 
       default:
         if (error >= ErrorCode_START_PLUGINS)
@@ -621,10 +643,10 @@ namespace Orthanc
         return "RGB";
 
       case PhotometricInterpretation_Monochrome1:
-        return "Monochrome1";
+        return "MONOCHROME1";
 
       case PhotometricInterpretation_Monochrome2:
-        return "Monochrome2";
+        return "MONOCHROME2";
 
       case PhotometricInterpretation_ARGB:
         return "ARGB";
@@ -636,25 +658,25 @@ namespace Orthanc
         return "HSV";
 
       case PhotometricInterpretation_Palette:
-        return "Palette color";
+        return "PALETTE COLOR";
 
       case PhotometricInterpretation_YBRFull:
-        return "YBR full";
+        return "YBR_FULL";
 
       case PhotometricInterpretation_YBRFull422:
-        return "YBR full 422";
+        return "YBR_FULL_422";
 
       case PhotometricInterpretation_YBRPartial420:
-        return "YBR partial 420"; 
+        return "YBR_PARTIAL_420"; 
 
       case PhotometricInterpretation_YBRPartial422:
-        return "YBR partial 422"; 
+        return "YBR_PARTIAL_422"; 
 
       case PhotometricInterpretation_YBR_ICT:
-        return "YBR ICT"; 
+        return "YBR_ICT"; 
 
       case PhotometricInterpretation_YBR_RCT:
-        return "YBR RCT"; 
+        return "YBR_RCT"; 
 
       case PhotometricInterpretation_Unknown:
         return "Unknown";
@@ -675,8 +697,8 @@ namespace Orthanc
       case RequestOrigin_DicomProtocol:
         return "DicomProtocol";
 
-      case RequestOrigin_Http:
-        return "Http";
+      case RequestOrigin_RestApi:
+        return "RestApi";
 
       case RequestOrigin_Plugins:
         return "Plugins";
@@ -711,6 +733,290 @@ namespace Orthanc
     }
   }
 
+
+  const char* EnumerationToString(PixelFormat format)
+  {
+    switch (format)
+    {
+      case PixelFormat_RGB24:
+        return "RGB24";
+
+      case PixelFormat_RGBA32:
+        return "RGBA32";
+
+      case PixelFormat_BGRA32:
+        return "BGRA32";
+
+      case PixelFormat_Grayscale8:
+        return "Grayscale (unsigned 8bpp)";
+
+      case PixelFormat_Grayscale16:
+        return "Grayscale (unsigned 16bpp)";
+
+      case PixelFormat_SignedGrayscale16:
+        return "Grayscale (signed 16bpp)";
+
+      case PixelFormat_Float32:
+        return "Grayscale (float 32bpp)";
+
+      case PixelFormat_Grayscale32:
+        return "Grayscale (unsigned 32bpp)";
+
+      case PixelFormat_Grayscale64:
+        return "Grayscale (unsigned 64bpp)";
+
+      case PixelFormat_RGB48:
+        return "RGB48";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(ModalityManufacturer manufacturer)
+  {
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_Generic:
+        return "Generic";
+
+      case ModalityManufacturer_GenericNoWildcardInDates:
+        return "GenericNoWildcardInDates";
+
+      case ModalityManufacturer_GenericNoUniversalWildcard:
+        return "GenericNoUniversalWildcard";
+
+      case ModalityManufacturer_StoreScp:
+        return "StoreScp";
+      
+      case ModalityManufacturer_ClearCanvas:
+        return "ClearCanvas";
+      
+      case ModalityManufacturer_Dcm4Chee:
+        return "Dcm4Chee";
+      
+      case ModalityManufacturer_Vitrea:
+        return "Vitrea";
+      
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(DicomRequestType type)
+  {
+    switch (type)
+    {
+      case DicomRequestType_Echo:
+        return "Echo";
+        break;
+
+      case DicomRequestType_Find:
+        return "Find";
+        break;
+
+      case DicomRequestType_Get:
+        return "Get";
+        break;
+
+      case DicomRequestType_Move:
+        return "Move";
+        break;
+
+      case DicomRequestType_Store:
+        return "Store";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(TransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        return "Deflated";
+
+      case TransferSyntax_Jpeg:
+        return "JPEG";
+
+      case TransferSyntax_Jpeg2000:
+        return "JPEG2000";
+
+      case TransferSyntax_JpegLossless:
+        return "JPEG Lossless";
+
+      case TransferSyntax_Jpip:
+        return "JPIP";
+
+      case TransferSyntax_Mpeg2:
+        return "MPEG2";
+
+      case TransferSyntax_Rle:
+        return "RLE";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(DicomVersion version)
+  {
+    switch (version)
+    {
+      case DicomVersion_2008:
+        return "2008";
+        break;
+
+      case DicomVersion_2017c:
+        return "2017c";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(ValueRepresentation vr)
+  {
+    switch (vr)
+    {
+      case ValueRepresentation_ApplicationEntity:     // AE
+        return "AE";
+
+      case ValueRepresentation_AgeString:             // AS
+        return "AS";
+
+      case ValueRepresentation_AttributeTag:          // AT (2 x uint16_t)
+        return "AT";
+
+      case ValueRepresentation_CodeString:            // CS
+        return "CS";
+
+      case ValueRepresentation_Date:                  // DA
+        return "DA";
+
+      case ValueRepresentation_DecimalString:         // DS
+        return "DS";
+
+      case ValueRepresentation_DateTime:              // DT
+        return "DT";
+
+      case ValueRepresentation_FloatingPointSingle:   // FL (float)
+        return "FL";
+
+      case ValueRepresentation_FloatingPointDouble:   // FD (double)
+        return "FD";
+
+      case ValueRepresentation_IntegerString:         // IS
+        return "IS";
+
+      case ValueRepresentation_LongString:            // LO
+        return "LO";
+
+      case ValueRepresentation_LongText:              // LT
+        return "LT";
+
+      case ValueRepresentation_OtherByte:             // OB
+        return "OB";
+
+      case ValueRepresentation_OtherDouble:           // OD
+        return "OD";
+
+      case ValueRepresentation_OtherFloat:            // OF
+        return "OF";
+
+      case ValueRepresentation_OtherLong:             // OL
+        return "OL";
+
+      case ValueRepresentation_OtherWord:             // OW
+        return "OW";
+
+      case ValueRepresentation_PersonName:            // PN
+        return "PN";
+
+      case ValueRepresentation_ShortString:           // SH
+        return "SH";
+
+      case ValueRepresentation_SignedLong:            // SL (int32_t)
+        return "SL";
+
+      case ValueRepresentation_Sequence:              // SQ
+        return "SQ";
+
+      case ValueRepresentation_SignedShort:           // SS (int16_t)
+        return "SS";
+
+      case ValueRepresentation_ShortText:             // ST
+        return "ST";
+
+      case ValueRepresentation_Time:                  // TM
+        return "TM";
+
+      case ValueRepresentation_UnlimitedCharacters:   // UC
+        return "UC";
+
+      case ValueRepresentation_UniqueIdentifier:      // UI (UID)
+        return "UI";
+
+      case ValueRepresentation_UnsignedLong:          // UL (uint32_t)
+        return "UL";
+
+      case ValueRepresentation_Unknown:               // UN
+        return "UN";
+
+      case ValueRepresentation_UniversalResource:     // UR (URI or URL)
+        return "UR";
+
+      case ValueRepresentation_UnsignedShort:         // US (uint16_t)
+        return "US";
+
+      case ValueRepresentation_UnlimitedText:         // UT
+        return "UT";
+
+      case ValueRepresentation_NotSupported:
+        return "Not supported";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(JobState state)
+  {
+    switch (state)
+    {
+      case JobState_Pending:
+        return "Pending";
+        
+      case JobState_Running:
+        return "Running";
+        
+      case JobState_Success:
+        return "Success";
+        
+      case JobState_Failure:
+        return "Failure";
+        
+      case JobState_Paused:
+        return "Paused";
+        
+      case JobState_Retry:
+        return "Retry";
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
 
   Encoding StringToEncoding(const char* encoding)
   {
@@ -862,6 +1168,368 @@ namespace Orthanc
   }
 
 
+  ValueRepresentation StringToValueRepresentation(const std::string& vr,
+                                                  bool throwIfUnsupported)
+  {
+    if (vr == "AE")
+    {
+      return ValueRepresentation_ApplicationEntity;
+    }
+    else if (vr == "AS")
+    {
+      return ValueRepresentation_AgeString;
+    }
+    else if (vr == "AT")
+    {
+      return ValueRepresentation_AttributeTag;
+    }
+    else if (vr == "CS")
+    {
+      return ValueRepresentation_CodeString;
+    }
+    else if (vr == "DA")
+    {
+      return ValueRepresentation_Date;
+    }
+    else if (vr == "DS")
+    {
+      return ValueRepresentation_DecimalString;
+    }
+    else if (vr == "DT")
+    {
+      return ValueRepresentation_DateTime;
+    }
+    else if (vr == "FL")
+    {
+      return ValueRepresentation_FloatingPointSingle;
+    }
+    else if (vr == "FD")
+    {
+      return ValueRepresentation_FloatingPointDouble;
+    }
+    else if (vr == "IS")
+    {
+      return ValueRepresentation_IntegerString;
+    }
+    else if (vr == "LO")
+    {
+      return ValueRepresentation_LongString;
+    }
+    else if (vr == "LT")
+    {
+      return ValueRepresentation_LongText;
+    }
+    else if (vr == "OB")
+    {
+      return ValueRepresentation_OtherByte;
+    }
+    else if (vr == "OD")
+    {
+      return ValueRepresentation_OtherDouble;
+    }
+    else if (vr == "OF")
+    {
+      return ValueRepresentation_OtherFloat;
+    }
+    else if (vr == "OL")
+    {
+      return ValueRepresentation_OtherLong;
+    }
+    else if (vr == "OW")
+    {
+      return ValueRepresentation_OtherWord;
+    }
+    else if (vr == "PN")
+    {
+      return ValueRepresentation_PersonName;
+    }
+    else if (vr == "SH")
+    {
+      return ValueRepresentation_ShortString;
+    }
+    else if (vr == "SL")
+    {
+      return ValueRepresentation_SignedLong;
+    }
+    else if (vr == "SQ")
+    {
+      return ValueRepresentation_Sequence;
+    }
+    else if (vr == "SS")
+    {
+      return ValueRepresentation_SignedShort;
+    }
+    else if (vr == "ST")
+    {
+      return ValueRepresentation_ShortText;
+    }
+    else if (vr == "TM")
+    {
+      return ValueRepresentation_Time;
+    }
+    else if (vr == "UC")
+    {
+      return ValueRepresentation_UnlimitedCharacters;
+    }
+    else if (vr == "UI")
+    {
+      return ValueRepresentation_UniqueIdentifier;
+    }
+    else if (vr == "UL")
+    {
+      return ValueRepresentation_UnsignedLong;
+    }
+    else if (vr == "UN")
+    {
+      return ValueRepresentation_Unknown;
+    }
+    else if (vr == "UR")
+    {
+      return ValueRepresentation_UniversalResource;
+    }
+    else if (vr == "US")
+    {
+      return ValueRepresentation_UnsignedShort;
+    }
+    else if (vr == "UT")
+    {
+      return ValueRepresentation_UnlimitedText;
+    }
+    else
+    {
+      std::string s = "Unsupported value representation encountered: " + vr;
+
+      if (throwIfUnsupported)
+      {
+        LOG(ERROR) << s;
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        LOG(INFO) << s;
+        return ValueRepresentation_NotSupported;
+      }
+    }
+  }
+
+
+  PhotometricInterpretation StringToPhotometricInterpretation(const char* value)
+  {
+    // http://dicom.nema.org/medical/dicom/2017a/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
+    std::string s(value);
+
+    if (s == "MONOCHROME1")
+    {
+      return PhotometricInterpretation_Monochrome1;
+    }
+    
+    if (s == "MONOCHROME2")
+    {
+      return PhotometricInterpretation_Monochrome2;
+    }
+
+    if (s == "PALETTE COLOR")
+    {
+      return PhotometricInterpretation_Palette;
+    }
+    
+    if (s == "RGB")
+    {
+      return PhotometricInterpretation_RGB;
+    }
+    
+    if (s == "HSV")
+    {
+      return PhotometricInterpretation_HSV;
+    }
+    
+    if (s == "ARGB")
+    {
+      return PhotometricInterpretation_ARGB;
+    }    
+
+    if (s == "CMYK")
+    {
+      return PhotometricInterpretation_CMYK;
+    }    
+
+    if (s == "YBR_FULL")
+    {
+      return PhotometricInterpretation_YBRFull;
+    }
+    
+    if (s == "YBR_FULL_422")
+    {
+      return PhotometricInterpretation_YBRFull422;
+    }
+    
+    if (s == "YBR_PARTIAL_422")
+    {
+      return PhotometricInterpretation_YBRPartial422;
+    }
+    
+    if (s == "YBR_PARTIAL_420")
+    {
+      return PhotometricInterpretation_YBRPartial420;
+    }
+    
+    if (s == "YBR_ICT")
+    {
+      return PhotometricInterpretation_YBR_ICT;
+    }
+    
+    if (s == "YBR_RCT")
+    {
+      return PhotometricInterpretation_YBR_RCT;
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
+  
+
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
+  {
+    ModalityManufacturer result;
+    bool obsolete = false;
+    
+    if (manufacturer == "Generic")
+    {
+      return ModalityManufacturer_Generic;
+    }
+    else if (manufacturer == "GenericNoWildcardInDates")
+    {
+      return ModalityManufacturer_GenericNoWildcardInDates;
+    }
+    else if (manufacturer == "GenericNoUniversalWildcard")
+    {
+      return ModalityManufacturer_GenericNoUniversalWildcard;
+    }
+    else if (manufacturer == "ClearCanvas")
+    {
+      return ModalityManufacturer_ClearCanvas;
+    }
+    else if (manufacturer == "StoreScp")
+    {
+      return ModalityManufacturer_StoreScp;
+    }
+    else if (manufacturer == "Dcm4Chee")
+    {
+      return ModalityManufacturer_Dcm4Chee;
+    }
+    else if (manufacturer == "Vitrea")
+    {
+      return ModalityManufacturer_Vitrea;
+    }
+    else if (manufacturer == "AgfaImpax" ||
+             manufacturer == "SyngoVia")
+    {
+      result = ModalityManufacturer_GenericNoWildcardInDates;
+      obsolete = true;
+    }
+    else if (manufacturer == "EFilm2" ||
+             manufacturer == "MedInria")
+    {
+      result = ModalityManufacturer_Generic;
+      obsolete = true;
+    }
+    else
+    {
+      LOG(ERROR) << "Unknown modality manufacturer: \"" << manufacturer << "\"";
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (obsolete)
+    {
+      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
+                   << "Orthanc 1.3.0. To guarantee compatibility with future Orthanc "
+                   << "releases, you should replace it by \""
+                   << EnumerationToString(result)
+                   << "\" in your configuration file.";
+    }
+
+    return result;
+  }
+
+
+  DicomVersion StringToDicomVersion(const std::string& version)
+  {
+    if (version == "2008")
+    {
+      return DicomVersion_2008;
+    }
+    else if (version == "2017c")
+    {
+      return DicomVersion_2017c;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  JobState StringToJobState(const std::string& state)
+  {
+    if (state == "Pending")
+    {
+      return JobState_Pending;
+    }
+    else if (state == "Running")
+    {
+      return JobState_Running;
+    }
+    else if (state == "Success")
+    {
+      return JobState_Success;
+    }
+    else if (state == "Failure")
+    {
+      return JobState_Failure;
+    }
+    else if (state == "Paused")
+    {
+      return JobState_Paused;
+    }
+    else if (state == "Retry")
+    {
+      return JobState_Retry;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  RequestOrigin StringToRequestOrigin(const std::string& origin)
+  {
+    if (origin == "Unknown")
+    {
+      return RequestOrigin_Unknown;
+    }
+    else if (origin == "DicomProtocol")
+    {
+      return RequestOrigin_DicomProtocol;
+    }
+    else if (origin == "RestApi")
+    {
+      return RequestOrigin_RestApi;
+    }
+    else if (origin == "Plugins")
+    {
+      return RequestOrigin_Plugins;
+    }
+    else if (origin == "Lua")
+    {
+      return RequestOrigin_Lua;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   unsigned int GetBytesPerPixel(PixelFormat format)
   {
     switch (format)
@@ -877,7 +1545,19 @@ namespace Orthanc
         return 3;
 
       case PixelFormat_RGBA32:
+      case PixelFormat_BGRA32:
+      case PixelFormat_Grayscale32:
         return 4;
+
+      case PixelFormat_Float32:
+        assert(sizeof(float) == 4);
+        return 4;
+
+      case PixelFormat_RGB48:
+        return 6;
+
+      case PixelFormat_Grayscale64:
+        return 8;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -888,14 +1568,17 @@ namespace Orthanc
   bool GetDicomEncoding(Encoding& encoding,
                         const char* specificCharacterSet)
   {
-    std::string s = specificCharacterSet;
+    std::string s = Toolbox::StripSpaces(specificCharacterSet);
     Toolbox::ToUpperCase(s);
 
-    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
     // https://github.com/dcm4che/dcm4che/blob/master/dcm4che-core/src/main/java/org/dcm4che3/data/SpecificCharacterSet.java
     if (s == "ISO_IR 6" ||
-        s == "ISO_IR 192" ||
         s == "ISO 2022 IR 6")
+    {
+      encoding = Encoding_Ascii;
+    }
+    else if (s == "ISO_IR 192")
     {
       encoding = Encoding_Utf8;
     }
@@ -952,8 +1635,15 @@ namespace Orthanc
     {
       encoding = Encoding_Japanese;
     }
-    else if (s == "GB18030")
+    else if (s == "GB18030" || s == "GBK")
     {
+      /**
+       * According to tumashu@163.com, "In China, many dicom file's
+       * 0008,0005 tag is set as "GBK", instead of "GB18030", GBK is a
+       * subset of GB18030, and which is used frequently in China,
+       * suggest support it."
+       * https://groups.google.com/d/msg/orthanc-users/WMM8LMbjpUc/02-1f_yFCgAJ
+       **/
       encoding = Encoding_Chinese;
     }
     /*
@@ -977,39 +1667,6 @@ namespace Orthanc
 
     // The encoding was properly detected
     return true;
-  }
-
-
-  const char* GetMimeType(FileContentType type)
-  {
-    switch (type)
-    {
-      case FileContentType_Dicom:
-        return "application/dicom";
-
-      case FileContentType_DicomAsJson:
-        return "application/json";
-
-      default:
-        return "application/octet-stream";
-    }
-  }
-
-
-  const char* GetFileExtension(FileContentType type)
-  {
-    switch (type)
-    {
-      case FileContentType_Dicom:
-        return ".dcm";
-
-      case FileContentType_DicomAsJson:
-        return ".json";
-
-      default:
-        // Unknown file type
-        return "";
-    }
   }
 
 
@@ -1073,11 +1730,13 @@ namespace Orthanc
 
   const char* GetDicomSpecificCharacterSet(Encoding encoding)
   {
-    // http://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+    // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
     switch (encoding)
     {
-      case Encoding_Utf8:
       case Encoding_Ascii:
+        return "ISO_IR 6";
+
+      case Encoding_Utf8:
         return "ISO_IR 192";
 
       case Encoding_Latin1:
@@ -1164,8 +1823,100 @@ namespace Orthanc
       case ErrorCode_Unauthorized:
         return HttpStatus_401_Unauthorized;
 
+      case ErrorCode_NotAcceptable:
+        return HttpStatus_406_NotAcceptable;
+
+      case ErrorCode_DatabaseUnavailable:
+        return HttpStatus_503_ServiceUnavailable;
+
       default:
         return HttpStatus_500_InternalServerError;
     }
   }
+
+
+  bool IsUserContentType(FileContentType type)
+  {
+    return (type >= FileContentType_StartUser &&
+            type <= FileContentType_EndUser);
+  }
+
+
+  bool IsBinaryValueRepresentation(ValueRepresentation vr)
+  {
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+
+    switch (vr)
+    {
+      case ValueRepresentation_ApplicationEntity:     // AE
+      case ValueRepresentation_AgeString:             // AS
+      case ValueRepresentation_CodeString:            // CS
+      case ValueRepresentation_Date:                  // DA
+      case ValueRepresentation_DecimalString:         // DS
+      case ValueRepresentation_DateTime:              // DT
+      case ValueRepresentation_IntegerString:         // IS
+      case ValueRepresentation_LongString:            // LO
+      case ValueRepresentation_LongText:              // LT
+      case ValueRepresentation_PersonName:            // PN
+      case ValueRepresentation_ShortString:           // SH
+      case ValueRepresentation_ShortText:             // ST
+      case ValueRepresentation_Time:                  // TM
+      case ValueRepresentation_UnlimitedCharacters:   // UC
+      case ValueRepresentation_UniqueIdentifier:      // UI (UID)
+      case ValueRepresentation_UniversalResource:     // UR (URI or URL)
+      case ValueRepresentation_UnlimitedText:         // UT
+      {
+        return false;
+      }
+
+      /**
+       * Below are all the VR whose character repertoire is tagged as
+       * "not applicable"
+       **/
+      case ValueRepresentation_AttributeTag:          // AT (2 x uint16_t)
+      case ValueRepresentation_FloatingPointSingle:   // FL (float)
+      case ValueRepresentation_FloatingPointDouble:   // FD (double)
+      case ValueRepresentation_OtherByte:             // OB
+      case ValueRepresentation_OtherDouble:           // OD
+      case ValueRepresentation_OtherFloat:            // OF
+      case ValueRepresentation_OtherLong:             // OL
+      case ValueRepresentation_OtherWord:             // OW
+      case ValueRepresentation_SignedLong:            // SL (int32_t)
+      case ValueRepresentation_Sequence:              // SQ
+      case ValueRepresentation_SignedShort:           // SS (int16_t)
+      case ValueRepresentation_UnsignedLong:          // UL (uint32_t)
+      case ValueRepresentation_Unknown:               // UN
+      case ValueRepresentation_UnsignedShort:         // US (uint16_t)
+      {
+        return true;
+      }
+
+      case ValueRepresentation_NotSupported:
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }  
+
+
+  static boost::mutex  defaultEncodingMutex_;  // Should not be necessary
+  static Encoding      defaultEncoding_ = ORTHANC_DEFAULT_DICOM_ENCODING;
+  
+  Encoding GetDefaultDicomEncoding()
+  {
+    boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+    return defaultEncoding_;
+  }
+
+  void SetDefaultDicomEncoding(Encoding encoding)
+  {
+    std::string name = EnumerationToString(encoding);
+    
+    {
+      boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+      defaultEncoding_ = encoding;
+    }
+
+    LOG(INFO) << "Default encoding for DICOM was changed to: " << name;
+  }
+
 }

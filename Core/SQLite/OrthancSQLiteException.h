@@ -1,7 +1,7 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
  *
- * Copyright (C) 2012-2015 Sebastien Jodogne <s.jodogne@gmail.com>,
+ * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@gmail.com>,
  * Medical Physics Department, CHU of Liege, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
@@ -36,6 +36,11 @@
 
 
 #pragma once
+
+
+#if ORTHANC_ENABLE_SQLITE != 1
+#  error Macro ORTHANC_ENABLE_SQLITE must be set to 1 to use SQLite
+#endif
 
 
 #if ORTHANC_SQLITE_STANDALONE == 1

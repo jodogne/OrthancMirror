@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,9 +34,9 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/OrthancException.h"
-#include "../Core/Uuid.h"
 #include "../Core/HttpServer/BufferHttpSender.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
@@ -74,7 +75,7 @@ TEST(Gzip, Empty)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
@@ -107,7 +108,7 @@ TEST(Gzip, EmptyWithPrefix)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
@@ -154,6 +155,7 @@ TEST(Zlib, DISABLED_Corrupted)  // Disabled because it may result in a crash
   ZlibCompressor c;
   IBufferCompressor::Compress(compressed, c, s);
 
+  ASSERT_FALSE(compressed.empty());
   compressed[compressed.size() - 1] = 'a';
   std::string u;
 
@@ -172,7 +174,7 @@ TEST(Zlib, Empty)
 
   std::string uncompressed;
   IBufferCompressor::Uncompress(uncompressed, c, compressed);
-  ASSERT_EQ(0u, uncompressed.size());
+  ASSERT_TRUE(uncompressed.empty());
 }
 
 
@@ -232,14 +234,14 @@ TEST(FilesystemHttpSender, Basic)
   std::string t;
 
   {
-    Toolbox::WriteFile(s, path);
+    SystemToolbox::WriteFile(s, path);
     FilesystemHttpSender sender(path);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(s, t);
   }
 
   {
-    Toolbox::WriteFile("", path);
+    SystemToolbox::WriteFile("", path);
     FilesystemHttpSender sender(path);
     ASSERT_TRUE(ReadAllStream(t, sender));
     ASSERT_EQ(0u, t.size());

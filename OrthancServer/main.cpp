@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,24 +34,21 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 
-#include <fstream>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "DicomProtocol/DicomServer.h"
-#include "DicomProtocol/ReusableDicomUserConnection.h"
+#include "../Core/DicomNetworking/DicomServer.h"
 #include "OrthancInitialization.h"
 #include "ServerContext.h"
 #include "OrthancFindRequestHandler.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerToolbox.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 
 using namespace Orthanc;
 
@@ -77,7 +75,8 @@ public:
     if (dicomFile.size() > 0)
     {
       DicomInstanceToStore toStore;
-      toStore.SetDicomProtocolOrigin(remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str());
+      toStore.SetOrigin(DicomInstanceOrigin::FromDicomProtocol
+                        (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
       toStore.SetBuffer(dicomFile);
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
@@ -88,6 +87,23 @@ public:
   }
 };
 
+
+
+class ModalitiesFromConfiguration : public Orthanc::DicomServer::IRemoteModalities
+{
+public:
+  virtual bool IsSameAETitle(const std::string& aet1,
+                             const std::string& aet2) 
+  {
+    return Orthanc::Configuration::IsSameAETitle(aet1, aet2);
+  }
+
+  virtual bool LookupAETitle(RemoteModalityParameters& modality,
+                             const std::string& aet) 
+  {
+    return Orthanc::Configuration::LookupDicomModalityUsingAETitle(modality, aet);
+  }
+};
 
 
 class MyDicomServerFactory : 
@@ -112,8 +128,8 @@ public:
   {
     std::auto_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
 
-    result->SetMaxResults(Configuration::GetGlobalIntegerParameter("LimitFindResults", 0));
-    result->SetMaxInstances(Configuration::GetGlobalIntegerParameter("LimitFindInstances", 0));
+    result->SetMaxResults(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindResults", 0));
+    result->SetMaxInstances(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindInstances", 0));
 
     if (result->GetMaxResults() == 0)
     {
@@ -152,42 +168,68 @@ public:
 class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 {
 private:
-  ServerContext& context_;
+  ServerContext&  context_;
+  bool            alwaysAllowEcho_;
+  bool            alwaysAllowStore_;
 
 public:
-  OrthancApplicationEntityFilter(ServerContext& context) : context_(context)
+  OrthancApplicationEntityFilter(ServerContext& context) :
+    context_(context)
   {
+    alwaysAllowEcho_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowEcho", true);
+    alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
   }
 
-  virtual bool IsAllowedConnection(const std::string& /*callingIp*/,
-                                   const std::string& /*callingAet*/)
+  virtual bool IsAllowedConnection(const std::string& remoteIp,
+                                   const std::string& remoteAet,
+                                   const std::string& calledAet)
   {
-    return true;
+    LOG(INFO) << "Incoming connection from AET " << remoteAet
+              << " on IP " << remoteIp << ", calling AET " << calledAet;
+
+    return (alwaysAllowEcho_ ||
+            alwaysAllowStore_ ||
+            Configuration::IsKnownAETitle(remoteAet, remoteIp));
   }
 
-  virtual bool IsAllowedRequest(const std::string& /*callingIp*/,
-                                const std::string& callingAet,
+  virtual bool IsAllowedRequest(const std::string& remoteIp,
+                                const std::string& remoteAet,
+                                const std::string& calledAet,
                                 DicomRequestType type)
   {
-    if (type == DicomRequestType_Store)
+    LOG(INFO) << "Incoming " << Orthanc::EnumerationToString(type) << " request from AET "
+              << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
+    
+    if (type == DicomRequestType_Echo &&
+        alwaysAllowEcho_)
     {
-      // Incoming store requests are always accepted, even from unknown AET
+      // Incoming C-Echo requests are always accepted, even from unknown AET
       return true;
     }
-
-    if (!Configuration::IsKnownAETitle(callingAet))
+    else if (type == DicomRequestType_Store &&
+             alwaysAllowStore_)
     {
-      LOG(ERROR) << "Unknown remote DICOM modality AET: \"" << callingAet << "\"";
-      return false;
+      // Incoming C-Store requests are always accepted, even from unknown AET
+      return true;
     }
     else
     {
-      return true;
+      RemoteModalityParameters modality;
+    
+      if (Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
+      {
+        return modality.IsRequestAllowed(type);
+      }
+      else
+      {
+        return false;
+      }
     }
   }
 
-  virtual bool IsAllowedTransferSyntax(const std::string& callingIp,
-                                       const std::string& callingAet,
+  virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
+                                       const std::string& remoteAet,
+                                       const std::string& calledAet,
                                        TransferSyntax syntax)
   {
     std::string configuration;
@@ -227,20 +269,46 @@ public:
     }
 
     {
-      std::string lua = "Is" + configuration;
+      std::string name = "Is" + configuration;
 
-      LuaScripting::Locker locker(context_.GetLua());
+      LuaScripting::Lock lock(context_.GetLuaScripting());
       
-      if (locker.GetLua().IsExistingFunction(lua.c_str()))
+      if (lock.GetLua().IsExistingFunction(name.c_str()))
       {
-        LuaFunctionCall call(locker.GetLua(), lua.c_str());
-        call.PushString(callingAet);
-        call.PushString(callingIp);
+        LuaFunctionCall call(lock.GetLua(), name.c_str());
+        call.PushString(remoteAet);
+        call.PushString(remoteIp);
+        call.PushString(calledAet);
         return call.ExecutePredicate();
       }
     }
 
     return Configuration::GetGlobalBoolParameter(configuration, true);
+  }
+
+
+  virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet)
+  {
+    static const char* configuration = "UnknownSopClassAccepted";
+
+    {
+      std::string lua = "Is" + std::string(configuration);
+
+      LuaScripting::Lock lock(context_.GetLuaScripting());
+      
+      if (lock.GetLua().IsExistingFunction(lua.c_str()))
+      {
+        LuaFunctionCall call(lock.GetLua(), lua.c_str());
+        call.PushString(remoteAet);
+        call.PushString(remoteIp);
+        call.PushString(calledAet);
+        return call.ExecutePredicate();
+      }
+    }
+
+    return Configuration::GetGlobalBoolParameter(configuration, false);
   }
 };
 
@@ -248,26 +316,38 @@ public:
 class MyIncomingHttpRequestFilter : public IIncomingHttpRequestFilter
 {
 private:
-  ServerContext& context_;
+  ServerContext&   context_;
+  OrthancPlugins*  plugins_;
 
 public:
-  MyIncomingHttpRequestFilter(ServerContext& context) : context_(context)
+  MyIncomingHttpRequestFilter(ServerContext& context,
+                              OrthancPlugins* plugins) : 
+    context_(context),
+    plugins_(plugins)
   {
   }
 
   virtual bool IsAllowed(HttpMethod method,
                          const char* uri,
                          const char* ip,
-                         const char* username) const
+                         const char* username,
+                         const IHttpHandler::Arguments& httpHeaders,
+                         const IHttpHandler::GetArguments& getArguments)
   {
+    if (plugins_ != NULL &&
+        !plugins_->IsAllowed(method, uri, ip, username, httpHeaders, getArguments))
+    {
+      return false;
+    }
+
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
-    LuaScripting::Locker locker(context_.GetLua());
+    LuaScripting::Lock lock(context_.GetLuaScripting());
 
     // Test if the instance must be filtered out
-    if (locker.GetLua().IsExistingFunction(HTTP_FILTER))
+    if (lock.GetLua().IsExistingFunction(HTTP_FILTER))
     {
-      LuaFunctionCall call(locker.GetLua(), HTTP_FILTER);
+      LuaFunctionCall call(lock.GetLua(), HTTP_FILTER);
 
       switch (method)
       {
@@ -294,6 +374,7 @@ public:
       call.PushString(uri);
       call.PushString(ip);
       call.PushString(username);
+      call.PushStringMap(httpHeaders);
 
       if (!call.ExecutePredicate())
       {
@@ -330,7 +411,7 @@ public:
     {
       bool isPlugin = false;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL)
       {
         plugins_->GetErrorDictionary().LogError(exception.GetErrorCode(), true);
@@ -351,7 +432,7 @@ public:
     {
       bool isPlugin = false;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       if (plugins_ != NULL &&
           plugins_->GetErrorDictionary().Format(message, httpStatus, exception))
       {
@@ -402,7 +483,9 @@ static void PrintHelp(const char* path)
     << "Command-line options:" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
     << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
-    << "\t\t\t(if not used, the logs are dumped to stderr)" << std::endl
+    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
+    << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
+    << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
     << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
@@ -410,6 +493,8 @@ static void PrintHelp(const char* path)
     << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
     << "\t\t\tdatabase (beware that the database will become" << std::endl
     << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
+    << "  --no-jobs\t\tDon't restart the jobs that were stored during" << std::endl
+    << "\t\t\tthe last execution of Orthanc" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Exit status:" << std::endl
@@ -427,7 +512,8 @@ static void PrintVersion(const char* path)
 {
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
-    << "Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
+    << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
+    << "Copyright (C) 2017-2018 Osimis S.A. (Belgium)" << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>, with OpenSSL exception." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -462,7 +548,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_Plugin, "Error encountered within the plugin engine");
     PrintErrorCode(ErrorCode_NotImplemented, "Not implemented yet");
     PrintErrorCode(ErrorCode_ParameterOutOfRange, "Parameter out of range");
-    PrintErrorCode(ErrorCode_NotEnoughMemory, "Not enough memory");
+    PrintErrorCode(ErrorCode_NotEnoughMemory, "The server hosting Orthanc is running out of memory");
     PrintErrorCode(ErrorCode_BadParameterType, "Bad type for a parameter");
     PrintErrorCode(ErrorCode_BadSequenceOfCalls, "Bad sequence of calls");
     PrintErrorCode(ErrorCode_InexistentItem, "Accessing an inexistent item");
@@ -492,6 +578,10 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabasePlugin, "The plugin implementing a custom database back-end does not fulfill the proper interface");
     PrintErrorCode(ErrorCode_StorageAreaPlugin, "Error in the plugin implementing a custom storage area");
     PrintErrorCode(ErrorCode_EmptyRequest, "The request is empty");
+    PrintErrorCode(ErrorCode_NotAcceptable, "Cannot send a response which is acceptable according to the Accept HTTP header");
+    PrintErrorCode(ErrorCode_NullPointer, "Cannot handle a NULL pointer");
+    PrintErrorCode(ErrorCode_DatabaseUnavailable, "The database is currently not available (probably a transient situation)");
+    PrintErrorCode(ErrorCode_CanceledJob, "This job was canceled");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -511,8 +601,8 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DirectoryOverFile, "The directory to be created is already occupied by a regular file");
     PrintErrorCode(ErrorCode_FileStorageCannotWrite, "Unable to create a subdirectory or a file in the file storage");
     PrintErrorCode(ErrorCode_DirectoryExpected, "The specified path does not point to a directory");
-    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is already in use");
-    PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is already in use");
+    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use");
+    PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is privileged or already in use");
     PrintErrorCode(ErrorCode_BadHttpStatusInRest, "This HTTP status is not allowed in a REST API");
     PrintErrorCode(ErrorCode_RegularFileExpected, "The specified path does not point to a regular file");
     PrintErrorCode(ErrorCode_PathToExecutable, "Unable to get the path to the executable");
@@ -549,6 +639,8 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabaseNotInitialized, "Plugin trying to call the database during its initialization");
     PrintErrorCode(ErrorCode_SslDisabled, "Orthanc has been built without SSL support");
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
+    PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
+    PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
   }
 
   std::cout << std::endl;
@@ -556,26 +648,7 @@ static void PrintErrors(const char* path)
 
 
 
-static void LoadLuaScripts(ServerContext& context)
-{
-  std::list<std::string> luaScripts;
-  Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
-  for (std::list<std::string>::const_iterator
-         it = luaScripts.begin(); it != luaScripts.end(); ++it)
-  {
-    std::string path = Configuration::InterpretStringParameterAsPath(*it);
-    LOG(WARNING) << "Installing the Lua scripts from: " << path;
-    std::string script;
-    Toolbox::ReadFile(script, path);
-
-    LuaScripting::Locker locker(context.GetLua());
-    locker.GetLua().Execute(script);
-  }
-}
-
-
-
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 static void LoadPlugins(OrthancPlugins& plugins)
 {
   std::list<std::string> path;
@@ -598,21 +671,52 @@ static bool WaitForExit(ServerContext& context,
 {
   LOG(WARNING) << "Orthanc has started";
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
   {
     context.GetPlugins().SignalOrthancStarted();
   }
 #endif
 
-  context.GetLua().Execute("Initialize");
+  context.GetLuaScripting().Start();
+  context.GetLuaScripting().Execute("Initialize");
 
-  Toolbox::ServerBarrier(restApi.LeaveBarrierFlag());
-  bool restart = restApi.IsResetRequestReceived();
+  bool restart;
 
-  context.GetLua().Execute("Finalize");
+  for (;;)
+  {
+    ServerBarrierEvent event = SystemToolbox::ServerBarrier(restApi.LeaveBarrierFlag());
+    restart = restApi.IsResetRequestReceived();
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+    if (!restart && 
+        event == ServerBarrierEvent_Reload)
+    {
+      // Handling of SIGHUP
+
+      if (Configuration::HasConfigurationChanged())
+      {
+        LOG(WARNING) << "A SIGHUP signal has been received, resetting Orthanc";
+        Logging::Flush();
+        restart = true;
+        break;
+      }
+      else
+      {
+        LOG(WARNING) << "A SIGHUP signal has been received, but is ignored as the configuration has not changed";
+        Logging::Flush();
+        continue;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  context.GetLuaScripting().Execute("Finalize");
+  context.GetLuaScripting().Stop();
+
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (context.HasPlugins())
   {
     context.GetPlugins().SignalOrthancStopped();
@@ -646,9 +750,9 @@ static bool StartHttpServer(ServerContext& context,
   
 
   // HTTP server
-  MyIncomingHttpRequestFilter httpFilter(context);
+  MyIncomingHttpRequestFilter httpFilter(context, plugins);
   MongooseServer httpServer;
-  httpServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("HttpPort", 8042));
+  httpServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042));
   httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
   httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));
   httpServer.SetHttpCompressionEnabled(Configuration::GetGlobalBoolParameter("HttpCompressionEnabled", true));
@@ -672,8 +776,14 @@ static bool StartHttpServer(ServerContext& context,
 
   httpServer.Register(context.GetHttpHandler());
 
+  if (httpServer.GetPortNumber() < 1024)
+  {
+    LOG(WARNING) << "The HTTP port is privileged (" 
+                 << httpServer.GetPortNumber() << " is below 1024), "
+                 << "make sure you run Orthanc as root/administrator";
+  }
+
   httpServer.Start();
-  LOG(WARNING) << "HTTP server listening on port: " << httpServer.GetPortNumber();
   
   bool restart = WaitForExit(context, restApi);
 
@@ -695,22 +805,55 @@ static bool StartDicomServer(ServerContext& context,
   }
 
   MyDicomServerFactory serverFactory(context);
-
-  // DICOM server
-  DicomServer dicomServer;
   OrthancApplicationEntityFilter dicomFilter(context);
+  ModalitiesFromConfiguration modalities;
+  
+  // Setup the DICOM server  
+  DicomServer dicomServer;
+  dicomServer.SetRemoteModalities(modalities);
   dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
   dicomServer.SetStoreRequestHandlerFactory(serverFactory);
   dicomServer.SetMoveRequestHandlerFactory(serverFactory);
   dicomServer.SetFindRequestHandlerFactory(serverFactory);
-  dicomServer.SetPortNumber(Configuration::GetGlobalIntegerParameter("DicomPort", 4242));
+  dicomServer.SetAssociationTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScpTimeout", 30));
+
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+  if (plugins != NULL)
+  {
+    if (plugins->HasWorklistHandler())
+    {
+      dicomServer.SetWorklistRequestHandlerFactory(*plugins);
+    }
+
+    if (plugins->HasFindHandler())
+    {
+      dicomServer.SetFindRequestHandlerFactory(*plugins);
+    }
+
+    if (plugins->HasMoveHandler())
+    {
+      dicomServer.SetMoveRequestHandlerFactory(*plugins);
+    }
+  }
+#endif
+
+  dicomServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242));
   dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
   dicomServer.SetApplicationEntityFilter(dicomFilter);
 
-  dicomServer.Start();
-  LOG(WARNING) << "DICOM server listening on port: " << dicomServer.GetPortNumber();
+  if (dicomServer.GetPortNumber() < 1024)
+  {
+    LOG(WARNING) << "The DICOM port is privileged (" 
+                 << dicomServer.GetPortNumber() << " is below 1024), "
+                 << "make sure you run Orthanc as root/administrator";
+  }
 
-  bool restart;
+  dicomServer.Start();
+  LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
+               << " on port: " << dicomServer.GetPortNumber();
+
+  bool restart = false;
   ErrorCode error = ErrorCode_Success;
 
   try
@@ -737,9 +880,10 @@ static bool StartDicomServer(ServerContext& context,
 
 
 static bool ConfigureHttpHandler(ServerContext& context,
-                                 OrthancPlugins *plugins)
+                                 OrthancPlugins *plugins,
+                                 bool loadJobsFromDatabase)
 {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   // By order of priority, first apply the "plugins" layer, so that
   // plugins can overwrite the built-in REST API of Orthanc
   if (plugins)
@@ -762,65 +906,95 @@ static bool ConfigureHttpHandler(ServerContext& context,
   OrthancRestApi restApi(context);
   context.GetHttpHandler().Register(restApi, true);
 
-  return StartDicomServer(context, restApi, plugins);
+  context.SetupJobsEngine(false /* not running unit tests */, loadJobsFromDatabase);
+
+  bool restart = StartDicomServer(context, restApi, plugins);
+
+  context.Stop();
+
+  return restart;
 }
 
 
-static bool UpgradeDatabase(IDatabaseWrapper& database,
-                            IStorageArea& storageArea,
-                            bool allowDatabaseUpgrade)
+static void UpgradeDatabase(IDatabaseWrapper& database,
+                            IStorageArea& storageArea)
 {
   // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
+
+  LOG(WARNING) << "Starting the upgrade of the database schema";
+  LOG(WARNING) << "Current database version: " << currentVersion;
+  LOG(WARNING) << "Database version expected by Orthanc: " << ORTHANC_DATABASE_VERSION;
+  
   if (currentVersion == ORTHANC_DATABASE_VERSION)
   {
-    return true;
+    LOG(WARNING) << "No upgrade is needed, start Orthanc without the \"--upgrade\" argument";
+    return;
   }
 
   if (currentVersion > ORTHANC_DATABASE_VERSION)
   {
     LOG(ERROR) << "The version of the database schema (" << currentVersion
                << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
-    return false;
-  }
-
-  if (!allowDatabaseUpgrade)
-  {
-    LOG(ERROR) << "The database schema must be upgraded from version "
-               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
-               << ": Please run Orthanc with the \"--upgrade\" command-line option";
-    return false;
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
 
   LOG(WARNING) << "Upgrading the database from schema version "
                << currentVersion << " to " << ORTHANC_DATABASE_VERSION;
-  database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+
+  try
+  {
+    database.Upgrade(ORTHANC_DATABASE_VERSION, storageArea);
+  }
+  catch (OrthancException&)
+  {
+    LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
+               << "http://book.orthanc-server.com//users/replication.html";
+    throw;
+  }
     
   // Sanity check
   currentVersion = database.GetDatabaseVersion();
   if (ORTHANC_DATABASE_VERSION != currentVersion)
   {
     LOG(ERROR) << "The database schema was not properly upgraded, it is still at version " << currentVersion;
-    throw OrthancException(ErrorCode_InternalError);
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
-
-  return true;
+  else
+  {
+    LOG(WARNING) << "The database schema was successfully upgraded, "
+                 << "you can now start Orthanc without the \"--upgrade\" argument";
+  }
 }
 
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
-                                   OrthancPlugins *plugins)
+                                   OrthancPlugins *plugins,
+                                   bool loadJobsFromDatabase)
 {
-  ServerContext context(database, storageArea);
+  // These configuration options must be set before creating the
+  // ServerContext, otherwise the possible Lua scripts will not be
+  // able to properly issue HTTP/HTTPS queries
+  HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
+                           Configuration::InterpretStringParameterAsPath
+                           (Configuration::GetGlobalStringParameter("HttpsCACertificates", "")));
+  HttpClient::SetDefaultVerbose(Configuration::GetGlobalBoolParameter("HttpVerbose", false));
+  HttpClient::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("HttpTimeout", 0));
+  HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
 
-  HttpClient::SetDefaultTimeout(Configuration::GetGlobalIntegerParameter("HttpTimeout", 0));
+  DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
+
+  ServerContext context(database, storageArea, false /* not running unit tests */);
   context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
   context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
+  // New option in Orthanc 1.4.2
+  context.GetIndex().SetOverwriteInstances(Configuration::GetGlobalBoolParameter("OverwriteInstances", false));
+
   try
   {
-    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalIntegerParameter("MaximumPatientCount", 0));
+    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalUnsignedIntegerParameter("MaximumPatientCount", 0));
   }
   catch (...)
   {
@@ -829,7 +1003,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   try
   {
-    uint64_t size = Configuration::GetGlobalIntegerParameter("MaximumStorageSize", 0);
+    uint64_t size = Configuration::GetGlobalUnsignedIntegerParameter("MaximumStorageSize", 0);
     context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
   }
   catch (...)
@@ -837,9 +1011,10 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.GetIndex().SetMaximumStorageSize(0);
   }
 
-  LoadLuaScripts(context);
+  context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
+    (Configuration::GetGlobalUnsignedIntegerParameter("JobsHistorySize", 10));
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
   {
     plugins->SetServerContext(context);
@@ -847,23 +1022,22 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 #endif
 
-  bool restart;
+  bool restart = false;
   ErrorCode error = ErrorCode_Success;
 
   try
   {
-    restart = ConfigureHttpHandler(context, plugins);
+    restart = ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
   catch (OrthancException& e)
   {
     error = e.GetErrorCode();
   }
 
-  context.Stop();
-
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   if (plugins)
   {
+    plugins->ResetServerContext();
     context.ResetPlugins();
   }
 #endif
@@ -880,16 +1054,28 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 static bool ConfigureDatabase(IDatabaseWrapper& database,
                               IStorageArea& storageArea,
                               OrthancPlugins *plugins,
-                              bool allowDatabaseUpgrade)
+                              bool upgradeDatabase,
+                              bool loadJobsFromDatabase)
 {
   database.Open();
-  
-  if (!UpgradeDatabase(database, storageArea, allowDatabaseUpgrade))
+
+  unsigned int currentVersion = database.GetDatabaseVersion();
+
+  if (upgradeDatabase)
   {
-    return false;
+    UpgradeDatabase(database, storageArea);
+    return false;  // Stop and don't restart Orthanc (cf. issue 29)
+  }
+  else if (currentVersion != ORTHANC_DATABASE_VERSION)
+  {
+    LOG(ERROR) << "The database schema must be changed from version "
+               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
+               << ": Please run Orthanc with the \"--upgrade\" argument";
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
   }
 
-  bool success = ConfigureServerContext(database, storageArea, plugins);
+  bool success = ConfigureServerContext
+    (database, storageArea, plugins, loadJobsFromDatabase);
 
   database.Close();
 
@@ -899,12 +1085,13 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 
 static bool ConfigurePlugins(int argc, 
                              char* argv[],
-                             bool allowDatabaseUpgrade)
+                             bool upgradeDatabase,
+                             bool loadJobsFromDatabase)
 {
   std::auto_ptr<IDatabaseWrapper>  databasePtr;
   std::auto_ptr<IStorageArea>  storage;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   OrthancPlugins plugins;
   plugins.SetCommandLineArguments(argc, argv);
   LoadPlugins(plugins);
@@ -934,26 +1121,37 @@ static bool ConfigurePlugins(int argc,
   assert(database != NULL);
   assert(storage.get() != NULL);
 
-  return ConfigureDatabase(*database, *storage, &plugins, allowDatabaseUpgrade);
+  return ConfigureDatabase(*database, *storage, &plugins,
+                           upgradeDatabase, loadJobsFromDatabase);
 
-#elif ORTHANC_PLUGINS_ENABLED == 0
+#elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
   databasePtr.reset(Configuration::CreateDatabaseWrapper());
   storage.reset(Configuration::CreateStorageArea());
 
-  return ConfigureDatabase(*databasePtr, *storage, NULL, allowDatabaseUpgrade);
+  return ConfigureDatabase(*databasePtr, *storage, NULL,
+                           upgradeDatabase, loadJobsFromDatabase);
 
 #else
-#  error The macro ORTHANC_PLUGINS_ENABLED must be set to 0 or 1
+#  error The macro ORTHANC_ENABLE_PLUGINS must be set to 0 or 1
 #endif
 }
 
 
 static bool StartOrthanc(int argc, 
                          char* argv[],
-                         bool allowDatabaseUpgrade)
+                         bool upgradeDatabase,
+                         bool loadJobsFromDatabase)
 {
-  return ConfigurePlugins(argc, argv, allowDatabaseUpgrade);
+  return ConfigurePlugins(argc, argv, upgradeDatabase, loadJobsFromDatabase);
+}
+
+
+static bool DisplayPerformanceWarning()
+{
+  (void) DisplayPerformanceWarning;   // Disable warning about unused function
+  LOG(WARNING) << "Performance warning: Non-release build, runtime debug assertions are turned on";
+  return true;
 }
 
 
@@ -961,7 +1159,8 @@ int main(int argc, char* argv[])
 {
   Logging::Initialize();
 
-  bool allowDatabaseUpgrade = false;
+  bool upgradeDatabase = false;
+  bool loadJobsFromDatabase = true;
   const char* configurationFile = NULL;
 
 
@@ -988,6 +1187,8 @@ int main(int argc, char* argv[])
       {
         // Use the first argument that does not start with a "-" as
         // the configuration file
+
+        // TODO WHAT IS THE ENCODING?
         configurationFile = argv[i];
       }
     }
@@ -1016,6 +1217,7 @@ int main(int argc, char* argv[])
     }
     else if (boost::starts_with(argument, "--logdir="))
     {
+      // TODO WHAT IS THE ENCODING?
       std::string directory = argument.substr(9);
 
       try
@@ -1029,12 +1231,33 @@ int main(int argc, char* argv[])
         return -1;
       }
     }
+    else if (boost::starts_with(argument, "--logfile="))
+    {
+      // TODO WHAT IS THE ENCODING?
+      std::string file = argument.substr(10);
+
+      try
+      {
+        Logging::SetTargetFile(file);
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot write to the specified log file (" 
+                   << file << "), aborting.";
+        return -1;
+      }
+    }
     else if (argument == "--upgrade")
     {
-      allowDatabaseUpgrade = true;
+      upgradeDatabase = true;
+    }
+    else if (argument == "--no-jobs")
+    {
+      loadJobsFromDatabase = false;
     }
     else if (boost::starts_with(argument, "--config="))
     {
+      // TODO WHAT IS THE ENCODING?
       std::string configurationSample;
       GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
 
@@ -1044,8 +1267,17 @@ int main(int argc, char* argv[])
 #endif
 
       std::string target = argument.substr(9);
-      Toolbox::WriteFile(configurationSample, target);
-      return 0;
+
+      try
+      {
+        SystemToolbox::WriteFile(configurationSample, target);
+        return 0;
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot write sample configuration as file \"" << target << "\"";
+        return -1;
+      }
     }
     else
     {
@@ -1058,7 +1290,26 @@ int main(int argc, char* argv[])
    * Launch Orthanc.
    **/
 
-  LOG(WARNING) << "Orthanc version: " << ORTHANC_VERSION;
+  {
+    std::string version(ORTHANC_VERSION);
+
+    if (std::string(ORTHANC_VERSION) == "mainline")
+    {
+      try
+      {
+        boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
+        std::time_t creation = boost::filesystem::last_write_time(exe);
+        boost::posix_time::ptime converted(boost::posix_time::from_time_t(creation));
+        version += " (" + boost::posix_time::to_iso_string(converted) + ")";
+      }
+      catch (...)
+      {
+      }
+    }
+
+    LOG(WARNING) << "Orthanc version: " << version;
+    assert(DisplayPerformanceWarning());
+  }
 
   int status = 0;
   try
@@ -1067,10 +1318,12 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv, allowDatabaseUpgrade);
+      bool restart = StartOrthanc(argc, argv, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
       {
         OrthancFinalize();
+        LOG(WARNING) << "Logging system is resetting";
+        Logging::Reset();
       }
       else
       {

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,6 +40,10 @@
 #include "../OrthancException.h"
 #include "../ChunkedBuffer.h"
 #include "../Toolbox.h"
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
 
 
 // http://www.libpng.org/pub/png/libpng-1.2.5-manual.html#section-4
@@ -202,16 +207,17 @@ namespace Orthanc
   }
 
 
-  void PngWriter::WriteToFile(const char* filename,
-                              unsigned int width,
-                              unsigned int height,
-                              unsigned int pitch,
-                              PixelFormat format,
-                              const void* buffer)
+#if ORTHANC_SANDBOXED == 0
+  void PngWriter::WriteToFileInternal(const std::string& filename,
+                                      unsigned int width,
+                                      unsigned int height,
+                                      unsigned int pitch,
+                                      PixelFormat format,
+                                      const void* buffer)
   {
     Prepare(width, height, pitch, format, buffer);
 
-    FILE* fp = fopen(filename, "wb");
+    FILE* fp = SystemToolbox::OpenFile(filename, FileMode_WriteBinary);
     if (!fp)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
@@ -229,8 +235,7 @@ namespace Orthanc
 
     fclose(fp);
   }
-
-
+#endif
 
 
   static void MemoryCallback(png_structp png_ptr, 
@@ -243,12 +248,12 @@ namespace Orthanc
 
 
 
-  void PngWriter::WriteToMemory(std::string& png,
-                                unsigned int width,
-                                unsigned int height,
-                                unsigned int pitch,
-                                PixelFormat format,
-                                const void* buffer)
+  void PngWriter::WriteToMemoryInternal(std::string& png,
+                                        unsigned int width,
+                                        unsigned int height,
+                                        unsigned int pitch,
+                                        PixelFormat format,
+                                        const void* buffer)
   {
     ChunkedBuffer chunks;
 

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -55,76 +56,6 @@ namespace Orthanc
     StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
-  enum ModalityManufacturer
-  {
-    ModalityManufacturer_Generic,
-    ModalityManufacturer_StoreScp,
-    ModalityManufacturer_ClearCanvas,
-    ModalityManufacturer_MedInria,
-    ModalityManufacturer_Dcm4Chee,
-    ModalityManufacturer_SyngoVia
-  };
-
-  enum DicomRequestType
-  {
-    DicomRequestType_Echo,
-    DicomRequestType_Find,
-    DicomRequestType_Get,
-    DicomRequestType_Move,
-    DicomRequestType_Store
-  };
-
-  enum DicomReplaceMode
-  {
-    DicomReplaceMode_InsertIfAbsent,
-    DicomReplaceMode_ThrowIfAbsent,
-    DicomReplaceMode_IgnoreIfAbsent
-  };
-
-  enum TransferSyntax
-  {
-    TransferSyntax_Deflated,
-    TransferSyntax_Jpeg,
-    TransferSyntax_Jpeg2000,
-    TransferSyntax_JpegLossless,
-    TransferSyntax_Jpip,
-    TransferSyntax_Mpeg2,
-    TransferSyntax_Rle
-  };
-
-  enum ValueRepresentation
-  {
-    ValueRepresentation_Other,
-    ValueRepresentation_PatientName,
-    ValueRepresentation_Date,
-    ValueRepresentation_DateTime,
-    ValueRepresentation_Time
-  };
-
-  enum DicomToJsonFormat
-  {
-    DicomToJsonFormat_Full,
-    DicomToJsonFormat_Short,
-    DicomToJsonFormat_Simple
-  };
-
-  enum DicomToJsonFlags
-  {
-    DicomToJsonFlags_IncludeBinary         = (1 << 0),
-    DicomToJsonFlags_IncludePrivateTags    = (1 << 1),
-    DicomToJsonFlags_IncludeUnknownTags    = (1 << 2),
-    DicomToJsonFlags_IncludePixelData      = (1 << 3),
-    DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
-    DicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
-
-    // Some predefined combinations
-    DicomToJsonFlags_None     = 0,
-    DicomToJsonFlags_Default  = (DicomToJsonFlags_IncludePrivateTags | 
-                                 DicomToJsonFlags_IncludeUnknownTags | 
-                                 DicomToJsonFlags_IncludePixelData | 
-                                 DicomToJsonFlags_ConvertBinaryToNull)
-  };
-
   enum IdentifierConstraintType
   {
     IdentifierConstraintType_Equal,
@@ -144,7 +75,23 @@ namespace Orthanc
   {
     GlobalProperty_DatabaseSchemaVersion = 1,   // Unused in the Orthanc core as of Orthanc 0.9.5
     GlobalProperty_FlushSleep = 2,
-    GlobalProperty_AnonymizationSequence = 3
+    GlobalProperty_AnonymizationSequence = 3,
+    GlobalProperty_JobsRegistry = 5,
+    GlobalProperty_TotalCompressedSize = 6,     // Reserved for Orthanc > 1.4.1
+    GlobalProperty_TotalUncompressedSize = 7,   // Reserved for Orthanc > 1.4.1
+
+    // Reserved values for internal use by the database plugins
+    GlobalProperty_DatabasePatchLevel = 4,
+    GlobalProperty_DatabaseInternal0 = 10,
+    GlobalProperty_DatabaseInternal1 = 11,
+    GlobalProperty_DatabaseInternal2 = 12,
+    GlobalProperty_DatabaseInternal3 = 13,
+    GlobalProperty_DatabaseInternal4 = 14,
+    GlobalProperty_DatabaseInternal5 = 15,
+    GlobalProperty_DatabaseInternal6 = 16,
+    GlobalProperty_DatabaseInternal7 = 17,
+    GlobalProperty_DatabaseInternal8 = 18,
+    GlobalProperty_DatabaseInternal9 = 19
   };
 
   enum MetadataType
@@ -156,6 +103,12 @@ namespace Orthanc
     MetadataType_ModifiedFrom = 5,
     MetadataType_AnonymizedFrom = 6,
     MetadataType_LastUpdate = 7,
+    MetadataType_Instance_Origin = 8,          // New in Orthanc 0.9.5
+    MetadataType_Instance_TransferSyntax = 9,  // New in Orthanc 1.2.0
+    MetadataType_Instance_SopClassUid = 10,    // New in Orthanc 1.2.0
+    MetadataType_Instance_RemoteIp = 11,       // New in Orthanc 1.4.0
+    MetadataType_Instance_CalledAet = 12,      // New in Orthanc 1.4.0
+    MetadataType_Instance_HttpUsername = 13,   // New in Orthanc 1.4.0
 
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
@@ -178,6 +131,8 @@ namespace Orthanc
     ChangeType_StablePatient = 12,
     ChangeType_StableStudy = 13,
     ChangeType_StableSeries = 14,
+    ChangeType_UpdatedAttachment = 15,
+    ChangeType_UpdatedMetadata = 16,
 
     ChangeType_INTERNAL_LastLogged = 4095,
 
@@ -198,11 +153,14 @@ namespace Orthanc
   std::string EnumerationToString(MetadataType type);
 
   void RegisterUserContentType(int contentType,
-                               const std::string& name);
+                               const std::string& name,
+                               const std::string& mime);
 
   FileContentType StringToContentType(const std::string& str);
 
   std::string EnumerationToString(FileContentType type);
+
+  std::string GetFileContentMime(FileContentType type);
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId);
@@ -213,11 +171,5 @@ namespace Orthanc
 
   const char* EnumerationToString(ChangeType type);
 
-  const char* EnumerationToString(ModalityManufacturer manufacturer);
-
-  const char* EnumerationToString(DicomRequestType type);
-
-  const char* EnumerationToString(TransferSyntax syntax);
-
-  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+  bool IsUserMetadata(MetadataType type);
 }

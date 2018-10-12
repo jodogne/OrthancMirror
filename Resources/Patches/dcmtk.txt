@@ -1,0 +1,10 @@
+Generate some patch
+===================
+
+diff -urEb dcmtk-3.6.0.orig/ dcmtk-3.6.0
+diff -urEb dcmtk-3.6.2.orig/ dcmtk-3.6.2
+
+For "dcmtk-3.6.2-private.dic"
+=============================
+
+# cp ../../ThirdPartyDownloads/dcmtk-3.6.2/dcmdata/data/private.dic dcmtk-3.6.2-private.dic

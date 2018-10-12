@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,17 +52,19 @@ namespace Orthanc
   }
 
 
-  void ChunkedBuffer::AddChunk(const char* chunkData,
+  void ChunkedBuffer::AddChunk(const void* chunkData,
                                size_t chunkSize)
   {
     if (chunkSize == 0)
     {
       return;
     }
-
-    assert(chunkData != NULL);
-    chunks_.push_back(new std::string(chunkData, chunkSize));
-    numBytes_ += chunkSize;
+    else
+    {
+      assert(chunkData != NULL);
+      chunks_.push_back(new std::string(reinterpret_cast<const char*>(chunkData), chunkSize));
+      numBytes_ += chunkSize;
+    }
   }
 
 
@@ -95,5 +98,6 @@ namespace Orthanc
     }
 
     chunks_.clear();
+    numBytes_ = 0;
   }
 }

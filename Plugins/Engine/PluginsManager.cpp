@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,14 +34,14 @@
 #include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "PluginsManager.h"
 
-#if ORTHANC_PLUGINS_ENABLED != 1
+#if ORTHANC_ENABLE_PLUGINS != 1
 #error The plugin support is disabled
 #endif
 
-
-#include "../../Core/Toolbox.h"
 #include "../../Core/HttpServer/HttpOutput.h"
 #include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
+#include "../../Core/Toolbox.h"
 
 #include <cassert>
 #include <memory>
@@ -48,7 +49,7 @@
 
 #ifdef WIN32
 #define PLUGIN_EXTENSION ".dll"
-#elif defined(__linux) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #define PLUGIN_EXTENSION ".so"
 #elif defined(__APPLE__) && defined(__MACH__)
 #define PLUGIN_EXTENSION ".dylib"
@@ -191,7 +192,11 @@ namespace Orthanc
       catch (OrthancException& e)
       {
         // This service provider has failed
-        LOG(ERROR) << "Exception while invoking plugin service " << service << ": " << e.What();
+        if (e.GetErrorCode() != ErrorCode_UnknownResource)  // This error code is valid in plugins
+        {
+          LOG(ERROR) << "Exception while invoking plugin service " << service << ": " << e.What();
+        }
+
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       }
     }

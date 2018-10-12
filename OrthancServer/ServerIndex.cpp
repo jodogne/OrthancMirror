@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,16 +41,16 @@
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
 #include "OrthancInitialization.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/Logging.h"
-#include "../Core/Uuid.h"
 #include "../Core/DicomFormat/DicomArray.h"
-#include "Search/LookupIdentifierQuery.h"
-#include "Search/LookupResource.h"
 
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "ServerContext.h"
+#include "DicomInstanceToStore.h"
+#include "Search/LookupResource.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
@@ -341,7 +342,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::FlushThread(ServerIndex* that)
+  void ServerIndex::FlushThread(ServerIndex* that,
+                                unsigned int threadSleep)
   {
     // By default, wait for 10 seconds before flushing
     unsigned int sleep = 10;
@@ -367,12 +369,14 @@ namespace Orthanc
 
     while (!that->done_)
     {
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
       count++;
       if (count < sleep)
       {
         continue;
       }
+
+      Logging::Flush();
 
       boost::mutex::scoped_lock lock(that->mutex_);
       that->db_.FlushToDisk();
@@ -535,11 +539,13 @@ namespace Orthanc
 
 
   ServerIndex::ServerIndex(ServerContext& context,
-                           IDatabaseWrapper& db) : 
+                           IDatabaseWrapper& db,
+                           unsigned int threadSleep) : 
     done_(false),
     db_(db),
     maximumStorageSize_(0),
-    maximumPatients_(0)
+    maximumPatients_(0),
+    overwrite_(false)
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
@@ -552,10 +558,11 @@ namespace Orthanc
 
     if (db.HasFlushToDisk())
     {
-      flushThread_ = boost::thread(FlushThread, this);
+      flushThread_ = boost::thread(FlushThread, this, threadSleep);
     }
 
-    unstableResourcesMonitorThread_ = boost::thread(UnstableResourcesMonitorThread, this);
+    unstableResourcesMonitorThread_ = boost::thread
+      (UnstableResourcesMonitorThread, this, threadSleep);
   }
 
 
@@ -592,31 +599,54 @@ namespace Orthanc
 
 
 
+  void ServerIndex::SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
+                                        int64_t instance,
+                                        MetadataType metadata,
+                                        const std::string& value)
+  {
+    db_.SetMetadata(instance, metadata, value);
+    instanceMetadata[metadata] = value;
+  }
+
+
+
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
-                                 const DicomMap& dicomSummary,
-                                 const Attachments& attachments,
-                                 const std::string& remoteAet,
-                                 const MetadataMap& metadata)
+                                 DicomInstanceToStore& instanceToStore,
+                                 const Attachments& attachments)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
+    const DicomMap& dicomSummary = instanceToStore.GetSummary();
+    const ServerIndex::MetadataMap& metadata = instanceToStore.GetMetadata();
+
     instanceMetadata.clear();
 
-    DicomInstanceHasher hasher(dicomSummary);
+    DicomInstanceHasher hasher(instanceToStore.GetSummary());
 
     try
     {
       Transaction t(*this);
 
-      // Do nothing if the instance already exists
+      // Check whether this instance is already stored
       {
         ResourceType type;
         int64_t tmp;
         if (db_.LookupResource(tmp, type, hasher.HashInstance()))
         {
           assert(type == ResourceType_Instance);
-          db_.GetAllMetadata(instanceMetadata, tmp);
-          return StoreStatus_AlreadyStored;
+
+          if (overwrite_)
+          {
+            // Overwrite the old instance
+            LOG(INFO) << "Overwriting instance: " << hasher.HashInstance();
+            db_.DeleteResource(tmp);
+          }
+          else
+          {
+            // Do nothing if the instance already exists
+            db_.GetAllMetadata(instanceMetadata, tmp);
+            return StoreStatus_AlreadyStored;
+          }
         }
       }
 
@@ -632,7 +662,7 @@ namespace Orthanc
 
       // Create the instance
       int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
-      Toolbox::SetMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
+      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
 
       // Detect up to which level the patient/study/series/instance
       // hierarchy must be created
@@ -684,21 +714,21 @@ namespace Orthanc
       if (isNewSeries)
       {
         series = CreateResource(hasher.HashSeries(), ResourceType_Series);
-        Toolbox::SetMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
         study = CreateResource(hasher.HashStudy(), ResourceType_Study);
-        Toolbox::SetMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
         patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
-        Toolbox::SetMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
       }
 
       // Create the parent-to-child links
@@ -746,8 +776,7 @@ namespace Orthanc
             break;
 
           case ResourceType_Instance:
-            db_.SetMetadata(instance, it->first.second, it->second);
-            instanceMetadata[it->first.second] = it->second;
+            SetInstanceMetadata(instanceMetadata, instance, it->first.second, it->second);
             break;
 
           default:
@@ -756,28 +785,62 @@ namespace Orthanc
       }
 
       // Attach the auto-computed metadata for the patient/study/series levels
-      std::string now = Toolbox::GetNowIsoString();
+      std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
       db_.SetMetadata(series, MetadataType_LastUpdate, now);
       db_.SetMetadata(study, MetadataType_LastUpdate, now);
       db_.SetMetadata(patient, MetadataType_LastUpdate, now);
 
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
-      db_.SetMetadata(instance, MetadataType_Instance_ReceptionDate, now);
-      instanceMetadata[MetadataType_Instance_ReceptionDate] = now;
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet,
+                          instanceToStore.GetOrigin().GetRemoteAetC());
+      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
+                          EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
 
-      db_.SetMetadata(instance, MetadataType_Instance_RemoteAet, remoteAet);
-      instanceMetadata[MetadataType_Instance_RemoteAet] = remoteAet;
+      {
+        std::string s;
+
+        if (instanceToStore.LookupTransferSyntax(s))
+        {
+          // New in Orthanc 1.2.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_TransferSyntax, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupRemoteIp(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteIp, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupCalledAet(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_CalledAet, s);
+        }
+
+        if (instanceToStore.GetOrigin().LookupHttpUsername(s))
+        {
+          // New in Orthanc 1.4.0
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_HttpUsername, s);
+        }
+      }
 
       const DicomValue* value;
+      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+          !value->IsNull() &&
+          !value->IsBinary())
+      {
+        SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_SopClassUid, value->GetContent());
+      }
+
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
           (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
       {
         if (!value->IsNull() && 
             !value->IsBinary())
         {
-          db_.SetMetadata(instance, MetadataType_Instance_IndexInSeries, value->GetContent());
-          instanceMetadata[MetadataType_Instance_IndexInSeries] = value->GetContent();
+          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_IndexInSeries, value->GetContent());
         }
       }
 
@@ -1155,7 +1218,12 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
+
+      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
+      // "GetLastChange()" involves calls to "GetPublicId()"
+      Transaction transaction(*this);
       db_.GetChanges(changes, done, since, maxResults);
+      transaction.Commit(0);
     }
 
     FormatLog(target, changes, "Changes", done, since);
@@ -1168,7 +1236,12 @@ namespace Orthanc
 
     {
       boost::mutex::scoped_lock lock(mutex_);
+
+      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
+      // "GetLastChange()" involves calls to "GetPublicId()"
+      Transaction transaction(*this);
       db_.GetLastChange(changes);
+      transaction.Commit(0);
     }
 
     FormatLog(target, changes, "Changes", true, 0);
@@ -1185,7 +1258,7 @@ namespace Orthanc
     ResourceType type;
     if (!db_.LookupResource(id, type, publicId))
     {
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InexistentItem);
     }
 
     std::string patientId;
@@ -1206,22 +1279,34 @@ namespace Orthanc
       switch (currentType)
       {
         case ResourceType_Patient:
-          patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
+          if (map.HasTag(DICOM_TAG_PATIENT_ID))
+          {
+            patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
+          }
           done = true;
           break;
 
         case ResourceType_Study:
-          studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+          {
+            studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Patient;
           break;
 
         case ResourceType_Series:
-          seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+          {
+            seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Study;
           break;
 
         case ResourceType_Instance:
-          sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
+          if (map.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+          {
+            sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
+          }
           currentType = ResourceType_Series;
           break;
 
@@ -1242,7 +1327,7 @@ namespace Orthanc
                               type,
                               publicId,
                               remoteModality,
-                              Toolbox::GetNowIsoString(),
+                              SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */),
                               patientId,
                               studyInstanceUid,
                               seriesInstanceUid,
@@ -1388,6 +1473,13 @@ namespace Orthanc
     StandaloneRecycling();
   }
 
+  void ServerIndex::SetOverwriteInstances(bool overwrite)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    overwrite_ = overwrite;
+  }
+
+
   void ServerIndex::StandaloneRecycling()
   {
     // WARNING: No mutex here, do not include this as a public method
@@ -1525,6 +1617,7 @@ namespace Orthanc
                                 const std::string& value)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction t(*this);
 
     ResourceType rtype;
     int64_t id;
@@ -1534,6 +1627,13 @@ namespace Orthanc
     }
 
     db_.SetMetadata(id, type, value);
+
+    if (IsUserMetadata(type))
+    {
+      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
+    }
+
+    t.Commit(0);
   }
 
 
@@ -1541,6 +1641,7 @@ namespace Orthanc
                                    MetadataType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
+    Transaction t(*this);
 
     ResourceType rtype;
     int64_t id;
@@ -1550,6 +1651,13 @@ namespace Orthanc
     }
 
     db_.DeleteMetadata(id, type);
+
+    if (IsUserMetadata(type))
+    {
+      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
+    }
+
+    t.Commit(0);
   }
 
 
@@ -1822,9 +1930,10 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that)
+  void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
+                                                   unsigned int threadSleep)
   {
-    int stableAge = Configuration::GetGlobalIntegerParameter("StableAge", 60);
+    int stableAge = Configuration::GetGlobalUnsignedIntegerParameter("StableAge", 60);
     if (stableAge <= 0)
     {
       stableAge = 60;
@@ -1834,8 +1943,8 @@ namespace Orthanc
 
     while (!that->done_)
     {
-      // Check for stable resources each second
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      // Check for stable resources each few seconds
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
 
       boost::mutex::scoped_lock lock(that->mutex_);
 
@@ -1958,6 +2067,11 @@ namespace Orthanc
 
     db_.AddAttachment(resourceId, attachment);
 
+    if (IsUserContentType(attachment.GetContentType()))
+    {
+      LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId);
+    }
+
     t.Commit(attachment.GetCompressedSize());
 
     return StoreStatus_Success;
@@ -1978,6 +2092,11 @@ namespace Orthanc
     }
 
     db_.DeleteAttachment(id, type);
+
+    if (IsUserContentType(type))
+    {
+      LogChange(id, ChangeType_UpdatedAttachment, rtype, publicId);
+    }
 
     t.Commit(0);
   }
@@ -2026,13 +2145,20 @@ namespace Orthanc
   }
 
 
+  bool ServerIndex::LookupGlobalProperty(std::string& value,
+                                         GlobalProperty property)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return db_.LookupGlobalProperty(value, property);
+  }
+  
+
   std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
                                              const std::string& defaultValue)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-
     std::string value;
-    if (db_.LookupGlobalProperty(value, property))
+
+    if (LookupGlobalProperty(value, property))
     {
       return value;
     }
@@ -2134,13 +2260,108 @@ namespace Orthanc
       assert(db_.GetResourceType(*it) == lookup.GetLevel());
       
       int64_t instance;
-      if (!Toolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
+      if (!ServerToolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
       resources[pos] = db_.GetPublicId(*it);
       instances[pos] = db_.GetPublicId(instance);
+    }
+  }
+
+
+  bool ServerIndex::LookupParent(std::string& target,
+                                 const std::string& publicId,
+                                 ResourceType parentType)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    ResourceType type;
+    int64_t id;
+    if (!db_.LookupResource(id, type, publicId))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
+    while (type != parentType)
+    {
+      int64_t parentId;
+
+      if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
+          !db_.LookupParent(parentId, id))
+      {
+        return false;
+      }
+
+      id = parentId;
+      type = GetParentResourceType(type);
+    }
+
+    target = db_.GetPublicId(id);
+    return true;
+  }
+
+
+  void ServerIndex::ReconstructInstance(ParsedDicomFile& dicom)
+  {
+    DicomMap summary;
+    dicom.ExtractDicomSummary(summary);
+
+    DicomInstanceHasher hasher(summary);
+
+    boost::mutex::scoped_lock lock(mutex_);
+
+    try
+    {
+      Transaction t(*this);
+
+      int64_t patient = -1, study = -1, series = -1, instance = -1;
+
+      ResourceType dummy;      
+      if (!db_.LookupResource(patient, dummy, hasher.HashPatient()) ||
+          !db_.LookupResource(study, dummy, hasher.HashStudy()) ||
+          !db_.LookupResource(series, dummy, hasher.HashSeries()) ||
+          !db_.LookupResource(instance, dummy, hasher.HashInstance()) ||
+          patient == -1 ||
+          study == -1 ||
+          series == -1 ||
+          instance == -1)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      db_.ClearMainDicomTags(patient);
+      db_.ClearMainDicomTags(study);
+      db_.ClearMainDicomTags(series);
+      db_.ClearMainDicomTags(instance);
+
+      ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, summary);
+      ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, summary);
+      ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, summary);
+      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, summary);
+
+      {
+        std::string s;
+        if (dicom.LookupTransferSyntax(s))
+        {
+          db_.SetMetadata(instance, MetadataType_Instance_TransferSyntax, s);
+        }
+      }
+
+      const DicomValue* value;
+      if ((value = summary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+          !value->IsNull() &&
+          !value->IsBinary())
+      {
+        db_.SetMetadata(instance, MetadataType_Instance_SopClassUid, value->GetContent());
+      }
+
+      t.Commit(0);  // No change in the DB size
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
     }
   }
 }
