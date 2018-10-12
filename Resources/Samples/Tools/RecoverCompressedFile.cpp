@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,7 +20,7 @@
 
 
 #include "../../../Core/Compression/ZlibCompressor.h"
-#include "../../../Core/Toolbox.h"
+#include "../../../Core/SystemToolbox.h"
 #include "../../../Core/OrthancException.h"
 
 #include <stdio.h>
@@ -40,21 +41,23 @@ int main(int argc, const char* argv[])
     fflush(stderr);
 
     std::string content;
-    Orthanc::Toolbox::ReadFile(content, argv[1]);
+    Orthanc::SystemToolbox::ReadFile(content, argv[1]);
 
     fprintf(stderr, "Decompressing the content of the file...\n");
     fflush(stderr);
 
     Orthanc::ZlibCompressor compressor;
     std::string uncompressed;
-    compressor.Uncompress(uncompressed, content);
+    compressor.Uncompress(uncompressed, 
+                          content.empty() ? NULL : content.c_str(), 
+                          content.size());
 
     fprintf(stderr, "Writing the uncompressed data...\n");
     fflush(stderr);
 
     if (argc == 3)
     {
-      Orthanc::Toolbox::WriteFile(uncompressed, argv[2]);
+      Orthanc::SystemToolbox::WriteFile(uncompressed, argv[2]);
     }
     else
     {

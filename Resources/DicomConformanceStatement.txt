@@ -149,6 +149,7 @@ Orthanc supports the following SOP Classes as an SCP for C-Find:
 
   FINDPatientRootQueryRetrieveInformationModel   | 1.2.840.10008.5.1.4.1.2.1.1
   FINDStudyRootQueryRetrieveInformationModel     | 1.2.840.10008.5.1.4.1.2.2.1
+  FINDModalityWorklistInformationModel           | 1.2.840.10008.5.1.4.31
 
 
 --------------------
@@ -202,7 +203,7 @@ Orthanc supports the following SOP Classes as an SCU for C-Move:
 Transfer Syntaxes
 -----------------
 
-Orthanc will accept and negociate presentation contexts for all of the
+Orthanc will accept and negotiate presentation contexts for all of the
 abovementioned supported SOP Classes using any of the following
 transfer syntaxes:
 

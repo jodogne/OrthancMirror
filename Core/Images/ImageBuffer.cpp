@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -87,7 +88,9 @@ namespace Orthanc
 
   ImageBuffer::ImageBuffer(PixelFormat format,
                            unsigned int width,
-                           unsigned int height)
+                           unsigned int height,
+                           bool forceMinimalPitch) :
+    forceMinimalPitch_(forceMinimalPitch)
   {
     Initialize();
     SetWidth(width);
@@ -137,34 +140,18 @@ namespace Orthanc
     }
   }
 
-
-  ImageAccessor ImageBuffer::GetAccessor()
+  
+  void ImageBuffer::GetReadOnlyAccessor(ImageAccessor& accessor)
   {
     Allocate();
-
-    ImageAccessor accessor;
-    accessor.AssignWritable(format_, width_, height_, pitch_, buffer_);
-    return accessor;
-  }
-
-
-  ImageAccessor ImageBuffer::GetConstAccessor()
-  {
-    Allocate();
-
-    ImageAccessor accessor;
     accessor.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
-    return accessor;
   }
+  
 
-
-  void ImageBuffer::SetMinimalPitchForced(bool force)
+  void ImageBuffer::GetWriteableAccessor(ImageAccessor& accessor)
   {
-    if (force != forceMinimalPitch_)
-    {
-      changed_ = true;
-      forceMinimalPitch_ = force;
-    }
+    Allocate();
+    accessor.AssignWritable(format_, width_, height_, pitch_, buffer_);
   }
 
 

@@ -1,6 +1,7 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
+# Copyright (C) 2017-2018 Osimis S.A., Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -48,20 +49,33 @@ def _SetupCredentials(h):
     if _credentials != None:
         h.add_credentials(_credentials[0], _credentials[1])
 
-def DoGet(uri, data = {}, interpretAsJson = True):
+def _ComputeGetUri(uri, data):
     d = ''
     if len(data.keys()) > 0:
         d = '?' + urlencode(data)
 
+    return uri + d
+        
+def DoGet(uri, data = {}, interpretAsJson = True):
     h = httplib2.Http()
     _SetupCredentials(h)
-    resp, content = h.request(uri + d, 'GET')
+    resp, content = h.request(_ComputeGetUri(uri, data), 'GET')
     if not (resp.status in [ 200 ]):
         raise Exception(resp.status)
     elif not interpretAsJson:
         return content.decode()
     else:
         return _DecodeJson(content)
+
+
+def DoRawGet(uri, data = {}):
+    h = httplib2.Http()
+    _SetupCredentials(h)
+    resp, content = h.request(_ComputeGetUri(uri, data), 'GET')
+    if not (resp.status in [ 200 ]):
+        raise Exception(resp.status)
+    else:
+        return content
 
 
 def _DoPutOrPost(uri, method, data, contentType):

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -61,7 +62,8 @@ namespace Orthanc
   public:
     ImageBuffer(PixelFormat format,
                 unsigned int width,
-                unsigned int height);
+                unsigned int height,
+                bool forceMinimalPitch);
 
     ImageBuffer()
     {
@@ -99,16 +101,14 @@ namespace Orthanc
       return ::Orthanc::GetBytesPerPixel(format_);
     }
 
-    ImageAccessor GetAccessor();
+    void GetReadOnlyAccessor(ImageAccessor& accessor);
 
-    ImageAccessor GetConstAccessor();
+    void GetWriteableAccessor(ImageAccessor& accessor);
 
     bool IsMinimalPitchForced() const
     {
       return forceMinimalPitch_;
     }
-
-    void SetMinimalPitchForced(bool force);
 
     void AcquireOwnership(ImageBuffer& other);
   };

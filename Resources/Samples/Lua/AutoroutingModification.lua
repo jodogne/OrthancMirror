@@ -1,8 +1,7 @@
-function OnStoredInstance(instanceId, tags, metadata)
-   -- Ignore the instances that result from a modification to avoid
-   -- infinite loops
-   if (metadata['ModifiedFrom'] == nil and
-       metadata['AnonymizedFrom'] == nil) then
+function OnStoredInstance(instanceId, tags, metadata, origin)
+   -- Ignore the instances that result from the present Lua script to
+   -- avoid infinite loops
+   if origin['RequestOrigin'] ~= 'Lua' then
 
       -- The tags to be replaced
       local replace = {}
@@ -12,10 +11,21 @@ function OnStoredInstance(instanceId, tags, metadata)
       -- The tags to be removed
       local remove = { 'MilitaryRank' }
 
-      -- Modify the instance, send it, then delete the modified instance
-      Delete(SendToModality(ModifyInstance(instanceId, replace, remove, true), 'sample'))
+      -- Modify the instance
+      local command = {}
+      command['Replace'] = replace
+      command['Remove'] = remove
+      local modifiedFile = RestApiPost('/instances/' .. instanceId .. '/modify', DumpJson(command, true))
 
-      -- Delete the original instance
-      Delete(instanceId)
+      -- Upload the modified instance to the Orthanc database so that
+      -- it can be sent by Orthanc to other modalities
+      local modifiedId = ParseJson(RestApiPost('/instances/', modifiedFile)) ['ID']
+
+      -- Send the modified instance to another modality
+      RestApiPost('/modalities/sample/store', modifiedId)
+
+      -- Delete the original and the modified instances
+      RestApiDelete('/instances/' .. instanceId)
+      RestApiDelete('/instances/' .. modifiedId)
    end
 end

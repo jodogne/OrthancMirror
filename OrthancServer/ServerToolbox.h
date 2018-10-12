@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,24 +33,22 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "IDatabaseWrapper.h"
+#include "ServerContext.h"
 
 #include <json/json.h>
 
 namespace Orthanc
 {
-  namespace Toolbox
+  namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,
-                      const Json::Value& source);
+                      const Json::Value& source,
+                      DicomToJsonFormat format);
 
-    void LogMissingRequiredTag(const DicomMap& summary);
-
-    void SetMainDicomTags(IDatabaseWrapper& database,
-                          int64_t resource,
-                          ResourceType level,
-                          const DicomMap& dicomSummary);
+    void StoreMainDicomTags(IDatabaseWrapper& database,
+                            int64_t resource,
+                            ResourceType level,
+                            const DicomMap& dicomSummary);
 
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,
@@ -59,5 +58,17 @@ namespace Orthanc
     void ReconstructMainDicomTags(IDatabaseWrapper& database,
                                   IStorageArea& storageArea,
                                   ResourceType level);
+
+    void LoadIdentifiers(const DicomTag*& tags,
+                         size_t& size,
+                         ResourceType level);
+
+    bool IsIdentifier(const DicomTag& tag,
+                      ResourceType level);
+
+    std::string NormalizeIdentifier(const std::string& value);
+
+    void ReconstructResource(ServerContext& context,
+                             const std::string& resource);
   }
 }

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,6 +33,14 @@
 
 #include "../PrecompiledHeaders.h"
 #include "Font.h"
+
+#if !defined(ORTHANC_ENABLE_LOCALE)
+#  error ORTHANC_ENABLE_LOCALE must be defined to use this file
+#endif
+
+#if ORTHANC_SANDBOXED == 0
+#  include "../SystemToolbox.h"
+#endif
 
 #include "../Toolbox.h"
 #include "../OrthancException.h"
@@ -132,12 +141,14 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_SANDBOXED == 0
   void Font::LoadFromFile(const std::string& path)
   {
     std::string font;
-    Toolbox::ReadFile(font, path);
+    SystemToolbox::ReadFile(font, path);
     LoadFromMemory(font);
   }
+#endif
 
 
   static unsigned int MyMin(unsigned int a, 
@@ -208,6 +219,7 @@ namespace Orthanc
         }
 
         case PixelFormat_RGBA32:
+        case PixelFormat_BGRA32:
         {
           assert(bpp == 4);
 
@@ -245,14 +257,21 @@ namespace Orthanc
   {
     if (target.GetFormat() != PixelFormat_Grayscale8 &&
         target.GetFormat() != PixelFormat_RGB24 &&
-        target.GetFormat() != PixelFormat_RGBA32)
+        target.GetFormat() != PixelFormat_RGBA32 &&
+        target.GetFormat() != PixelFormat_BGRA32)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
     int a = x;
 
+#if ORTHANC_ENABLE_LOCALE == 1
     std::string s = Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1);
+#else
+    // If the locale support is disabled, simply drop non-ASCII
+    // characters from the source UTF-8 string
+    std::string s = Toolbox::ConvertToAscii(utf8);
+#endif
 
     for (size_t i = 0; i < s.size(); i++)
     {
@@ -294,7 +313,25 @@ namespace Orthanc
                   uint8_t g,
                   uint8_t b) const
   {
-    uint8_t color[4] = { r, g, b, 255 };
+    uint8_t color[4];
+
+    switch (target.GetFormat())
+    {
+      case PixelFormat_BGRA32:
+        color[0] = b;
+        color[1] = g;
+        color[2] = r;
+        color[3] = 255;
+        break;
+
+      default:
+        color[0] = r;
+        color[1] = g;
+        color[2] = b;
+        color[3] = 255;
+        break;
+    }
+    
     DrawInternal(target, utf8, x, y, color);
   }
 

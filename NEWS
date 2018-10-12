@@ -1,21 +1,492 @@
 Pending changes in the mainline
 ===============================
 
-* Full indexation of the patient/study tags to speed up searches and C-Find
-* Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
-* "/tools/create-dicom": Support of binary tags encoded using data URI scheme
-* "/tools/create-dicom": Support of hierarchical structures (creation of sequences)
-* "/modify" can insert/modify sequences
-* "/series/.../ordered-slices" to order the slices of a 2D+t or 3D image
-* New URI "/tools/shutdown" to stop Orthanc from the REST API
-* New URIs for attachments: ".../compress", ".../uncompress" and ".../is-compressed"
+
+General
+-------
+
+* Possibility to restrict the allowed DICOM commands for each modality
+
+Orthanc Explorer
+----------------
+
+* The first screen of Orthanc Explorer is now a form to do studies lookups
+* Support of large databases, by limiting the results to 100 patients or studies
+
+REST API
+--------
+
+* New URI: "/studies/.../merge" to merge a study
+* New URI: "/studies/.../split" to split a study
+
+Maintenance
+-----------
+
+* Executing a query/retrieve from the REST API now creates a job
+* Fix: Closing DICOM associations after running query/retrieve from REST API
+
+
+Version 1.4.2 (2018-09-20)
+==========================
+
+General
+-------
+
+* "OrthancPeers" configuration option now allows to specify HTTP headers
+* New main DICOM tag: "ImageOrientationPatient" at the instance level
+* New configuration options:
+  - "HttpVerbose" to debug outgoing HTTP connections
+  - "OverwriteInstances" to choose how duplicate SOPInstanceUID are handled
+
+Orthanc Explorer
+----------------
+
+* Query/retrieve: Added button for "DX" modality
+
+REST API
+--------
+
+* "/tools/reconstruct" to reconstruct the main DICOM tags, the JSON summary and
+  the metadata of all the instances stored in Orthanc. This is a slow operation!
 
 Plugins
 -------
 
-* New function "OrthancPluginRegisterErrorCode()" to declare custom error codes
-* New function "OrthancPluginRegisterDictionaryTag()" to declare DICOM tags
-* New "OrthancStarted" and "OrthancStopped" events in change callbacks
+* New primitives to access Orthanc peers from plugins
+* New events in change callbacks: "UpdatedPeers" and "UpdatedModalities"
+* New primitives to handle jobs from plugins: "OrthancPluginSubmitJob()"
+  and "OrthancPluginRegisterJobsUnserializer()"
+
+Lua
+---
+
+* IncomingWorklistRequestFilter() to filter incoming C-FIND worklist queries
+
+Maintenance
+-----------
+
+* Fix "/series/.../ordered-slices" in the presence of non-parallel slices
+* Fix incoming DICOM C-Store filtering for JPEG-LS transfer syntaxes
+* Fix OrthancPluginHttpClient() to return the HTTP status on errors
+* Fix HTTPS requests to sites using a certificate encrypted with ECDSA
+* Fix handling of incoming C-FIND queries containing Generic Group Length (*, 0x0000)
+* Fix issue 54 (quoting multipart answers), for OsiriX compatibility through DICOMweb
+* Fix issue 98 (DCMTK configuration fails with GCC 6.4.0 on Alpine)
+* Fix issue 99 (PamWriter test segfaults on alpine linux with gcc 6.4.0)
+
+
+Version 1.4.1 (2018-07-17)
+==========================
+
+* Fix deadlock in Lua scripting
+* Simplification to the "DatabaseWrapper" class
+
+
+Version 1.4.0 (2018-07-13)
+==========================
+
+General
+-------
+
+* New advanced job engine
+* New configuration options:
+  - "ConcurrentJobs": Max number of jobs that are simultaneously running
+  - "SynchronousCMove": Whether to run DICOM C-Move operations synchronously
+  - "JobsHistorySize": Max number of completed jobs that are kept in memory
+* New metadata automatically computed at the instance level: 
+  "RemoteIp", "CalledAet" and "HttpUsername"
+
+Orthanc Explorer
+----------------
+
+* New screen listing all the available studies
+
+REST API
+--------
+
+* "/jobs/..." to manage the jobs from the REST API
+* New option "?short" to list DICOM tags using their hexadecimal ID in:
+  - "/instances/.../tags?short"
+  - "/instances/.../header?short"
+  - "/{patients|studies|series}/.../instances-tags?short"
+  - "/{patients|studies|series}/.../shared-tags?short"
+  - "/{patients|studies|series|instances}/.../module?short"
+  - "/studies/.../module-patient?short"
+* "/instances/.../tags" URI was returning only the first value of
+  DicomTags containing multiple numerical value.  It now returns all
+  values in a string separated by \\ (i.e.: "1\\2\\3").  Note that,
+  for data already in Orthanc, you'll need to reconstruct the data by
+  sending a POST request to the ".../reconstruct" URI.  This change
+  triggered an update of ORTHANC_API_VERSION from 1.0 to 1.1
+* "/instances/.../frame/../image-uint8 and friends now accepts a 
+  "image/pam" MIME type to retrieve images in PAM format
+  (https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format)
+* New option "?expand" to "/instances/.../metadata"
+
+Plugins
+-------
+
+* New primitive in database SDK: "lookupIdentifierRange" to speed up range searches
+* New function in the SDK: "OrthancPluginCheckVersionAdvanced()"
+
+Maintenance
+-----------
+
+* Configuration option "LogExportedResources" is now "false" by default
+* Header "OrthancCppDatabasePlugin.h" is now part of the "orthanc-databases" project
+* Fix generation of DICOMDIR if PatientID is empty
+* Fix issue 25 (Deadlock with Lua scripts): The event queue is now implemented for Lua
+* Fix issue 94 (Instance modification should not modify FrameOfReferenceUID)
+* Fix issue 77 (Lua access to REST-API is null terminated)
+* Fix memory leak introduced by changeset #99116ed6f38c in Orthanc 1.3.2
+* Upgraded dependencies for static and Windows builds:
+  - boost 1.67.0
+  - openssl 1.0.2o
+
+
+Version 1.3.2 (2018-04-18)
+==========================
+
+REST API
+--------
+
+* "/system" URI returns the version of the Orthanc REST API
+* "/tools/now" returns the current UTC (universal) time
+* "/tools/now-local" returns the curent local time.
+  This was the behavior of "/tools/now" until release 1.3.1.
+* Added "?expand" GET argument to "/peers" and "/modalities" routes
+* New URI: "/tools/create-media-extended" to generate a DICOMDIR
+  archive from several resources, including additional type-3 tags
+* Preservation of UID relationships while anonymizing
+
+Lua
+---
+
+* New CMake option: "-DENABLE_LUA_MODULES=ON" to enable support for
+  loading external Lua modules if the Lua engine is statically linked
+
+Plugins
+-------
+
+* New error code: DatabaseUnavailable
+
+Maintenance
+-----------
+
+* Orthanc now uses UTC (universal time) instead of local time in its database
+* Fix to allow creating DICOM instances with empty Specific Character Set (0008,0005)
+* Support of Linux Standard Base
+* Static linking against libuuid (from e2fsprogs)
+* Fix static build on CentOS 6
+* Possibility of using JsonCpp 0.10.6 if the compiler does not support C++11
+  with the "-DUSE_LEGACY_JSONCPP=ON" CMake option
+* Upgraded dependencies for static and Windows builds:
+  - boost 1.66.0
+  - curl 7.57.0
+  - jsoncpp 1.8.4
+  - zlib 1.2.11
+
+
+Version 1.3.1 (2017-11-29)
+==========================
+
+General
+-------
+
+* Built-in decoding of palette images
+
+REST API
+--------
+
+* New URI: "/instances/.../frames/.../raw.gz" to compress raw frames using gzip
+* New argument "ignore-length" to force the inclusion of too long tags in JSON
+* New argument "/.../media?extended" to include additional type-3 tags in DICOMDIR
+
+Plugins
+-------
+
+* New pixel formats exposed in SDK: BGRA32, Float32, Grayscale32, RGB48
+
+Maintenance
+-----------
+
+* Creation of ./Resources/CMake/OrthancFramework*.cmake to reuse the Orthanc
+  C++ framework in other projects
+* New security-related options: "DicomAlwaysAllowEcho"
+* Use "GBK" (frequently used in China) as an alias for "GB18030"
+* Experimental support of actively maintained Civetweb to replace Mongoose 3.8
+* Fix issue 31 for good (create new modality types for Philips ADW, GE Xeleris, GE AWServer)
+* Fix issue 64 (OpenBSD support)
+* Fix static compilation of DCMTK 3.6.2 on Fedora
+* Upgrade to Boost 1.65.1 in static builds
+* Upgrade to SQLite amalgamation 3.21.0 in static builds
+
+
+Version 1.3.0 (2017-07-19)
+==========================
+
+General
+-------
+
+* Orthanc now anonymizes according to Basic Profile of PS 3.15-2017c Table E.1-1
+* In the "DicomModalities" configuration:
+  - Manufacturer type MedInria is now obsolete
+  - Manufacturer types AgfaImpax and SyngoVia are obsolete too
+    (use GenericNoWildcardInDates instead)
+  - Obsolete manufacturers are still accepted but might disappear in the future
+  - Added new manufacturer: GenericNoUniversalWildcard to replace all '*' by '' in
+    outgoing C-Find requests
+* New security-related options: "DicomAlwaysAllowStore" and "DicomCheckModalityHost"
+
+REST API
+--------
+
+* Argument "Since" in URI "/tools/find" (related to issue 53)
+* Argument "DicomVersion" in URIs "/{...}/{...}/anonymization"
+
+Plugins
+-------
+
+* New function: "OrthancPluginRegisterIncomingHttpRequestFilter2()"
+
+Lua
+---
+
+* Added HTTP headers support for Lua HttpPost/HttpGet/HttpPut/HttpDelete
+
+Orthanc Explorer
+----------------
+
+* Query/retrieve: Added button for "DR" modality
+
+Maintenance
+-----------
+
+* Ability to retrieve raw frames encoded as unsigned 32-bits integers
+* Fix issue 29 (more consistent handling of the "--upgrade" argument)
+* Fix issue 31 (create new modality types for Philips ADW, GE Xeleris, GE AWServer)
+* Fix issue 35 (AET name is not transferred to Orthanc using DCMTK 3.6.0)
+* Fix issue 44 (bad interpretation of photometric interpretation MONOCHROME1)
+* Fix issue 45 (crash when providing a folder to "--config" command-line option)
+* Fix issue 46 (PHI remaining after anonymization)
+* Fix issue 49 (worklists: accentuated characters are removed from C-Find responses)
+* Fix issue 52 (DICOM level security association problems)
+* Fix issue 55 (modification/anonymization of tags that might break the database
+  model now requires the "Force" parameter to be set to "true" in the query)
+* Fix issue 56 (case-insensitive matching over accents)
+* Fix Debian #865606 (orthanc FTBFS with libdcmtk-dev 3.6.1~20170228-2)
+* Fix XSS inside DICOM in Orthanc Explorer (as reported by Victor Pasnkel, Morphus Labs)
+* Upgrade to DCMTK 3.6.2 in static builds (released on 2017-07-17)
+* Upgrade to Boost 1.64.0 in static builds
+* New advanced "Locale" configuration option
+* Removed configuration option "USE_DCMTK_361_PRIVATE_DIC"
+
+
+Version 1.2.0 (2016/12/13)
+==========================
+
+General
+-------
+
+* Handling of private tags/creators in the "Dictionary" configuration option
+* New configuration options: "LoadPrivateDictionary", "DicomScuTimeout" and "DicomScpTimeout"
+* New metadata automatically computed at the instance level: "TransferSyntax" and "SopClassUid"
+
+REST API
+--------
+
+* "/tools/invalidate-tags" to invalidate the JSON summary of all the DICOM files
+  (useful if private tags are registered, or if changing the default encoding)
+* "Permissive" flag for URI "/modalities/{...}/store" to ignore C-STORE transfer errors
+* "Asynchronous" flag for URIs "/modalities/{...}/store" and "/peers/{...}/store"
+  to avoid waiting for the completion of image transfers
+* Possibility to DELETE "dicom-as-json" attachments to reconstruct the JSON summaries
+  (useful if "Dictionary" has changed)
+* "Keep" option for modifications to keep original DICOM identifiers (advanced feature)
+* "/tools/default-encoding" to get or temporarily change the default encoding
+* "/{resource}/{id}/reconstruct" to reconstruct the main DICOM tags, the JSON summary and
+  the metadata of a resource (useful to compute new metadata, or if using "Keep" above)
+
+Plugins
+-------
+
+* New function: "OrthancPluginRegisterPrivateDictionaryTag()" to register private tags
+* More control over client cache in the ServeFolders plugin
+* New C++ help wrappers in "Plugins/Samples/Common/" to read DICOM datasets from REST API
+* New data structure: "OrthancPluginFindMatcher" to match DICOM against C-FIND queries
+
+Maintenance
+-----------
+
+* Fix handling of encodings in C-FIND requests (including for worklists)
+* Use of DCMTK 3.6.1 dictionary of private tags in standalone builds
+* Avoid hard crash if not enough memory (handling of std::bad_alloc)
+* Improved robustness of Orthanc Explorer wrt. query/retrieve (maybe fix issue 24)
+* Fix serious performance issue with C-FIND
+* Fix extraction of the symbolic name of the private tags
+* Performance warning if runtime debug assertions are turned on
+* Improved robustness against files with no PatientID
+* Upgrade to curl 7.50.3 for static and Windows builds
+* Content-Type for JSON documents is now "application/json; charset=utf-8"
+* Ignore "Group Length" tags in C-FIND queries
+* Fix handling of worklist SCP with ReferencedStudySequence and ReferencedPatientSequence
+* Fix handling of Move Originator AET and ID in C-MOVE SCP
+* Fix vulnerability ZSL-2016-5379 "Unquoted Service Path Privilege Escalation" in the
+  Windows service
+* Fix vulnerability ZSL-2016-5380 "Remote Memory Corruption Vulnerability" in DCMTK 3.6.0
+
+
+Version 1.1.0 (2016/06/27)
+==========================
+
+General
+-------
+
+* HTTPS client certificates can be associated with Orthanc peers to enhance security over Internet
+* Possibility to use PKCS#11 authentication for hardware security modules with Orthanc peers
+* New command-line option "--logfile" to output the Orthanc log to the given file
+* Support of SIGHUP signal (restart Orthanc only if the configuration files have changed)
+
+REST API
+--------
+
+* New URI: "/instances/.../frames/.../raw" to access the raw frames (bypass image decoding)
+* New URI "/modalities/.../move" to issue C-MOVE SCU requests
+* "MoveOriginatorID" can be specified for "/modalities/.../store"
+
+Dicom protocol
+--------------
+
+* Support of optional tags for counting resources in C-FIND:
+  0008-0061, 0008-0062, 0020-1200, 0020-1202, 0020-1204, 0020-1206, 0020-1208, 0020-1209
+* Support of Move Originator Message ID (0000,1031) in C-STORE responses driven by C-MOVE
+
+Plugins
+-------
+
+* Speedup in plugins by removing unnecessary locks
+* New callback to filter incoming HTTP requests: OrthancPluginRegisterIncomingHttpRequestFilter()
+* New callback to handle non-worklists C-FIND requests: OrthancPluginRegisterFindCallback()
+* New callback to handle C-MOVE requests: OrthancPluginRegisterMoveCallback()
+* New function: "OrthancPluginHttpClient()" to do HTTP requests with full control
+* New function: "OrthancPluginGenerateUuid()" to generate a UUID
+* More than one custom image decoder can be installed (e.g. to handle different transfer syntaxes)
+
+Lua
+---
+
+* Possibility to dynamically fix outgoing C-FIND requests using "OutgoingFindRequestFilter()"
+* Access to the HTTP headers in the "IncomingHttpRequestFilter()" callback
+
+Image decoding
+--------------
+
+* Huge speedup if decoding the family of JPEG transfer syntaxes
+* Refactoring leading to speedups with custom image decoders (including Web viewer plugin)
+* Support decoding of RLE Lossless transfer syntax
+* Support of signed 16bpp images in ParsedDicomFile
+
+Maintenance
+-----------
+
+* New logo of Orthanc
+* Fix issue 11 (is_regular_file() fails for FILE_ATTRIBUTE_REPARSE_POINT)
+* Fix issue 16 ("Limit" parameter error in REST API /tools/find method)
+* Fix of Debian bug #818512 ("FTBFS: Please install libdcmtk*-dev")
+* Fix of Debian bug #823139 ("orthanc: Please provide RecoverCompressedFile.cpp")
+* Replaced "localhost" by "127.0.0.1", as it might impact performance on Windows
+* Compatibility with CMake >= 3.5.0
+* Possibility to use forthcoming DCMTK 3.6.1 in static builds (instead of 3.6.0)
+* Upgrade to Boost 1.60.0 for static builds
+* Use of HTTP status 403 Forbidden (instead of 401) if access to a REST resource is disallowed
+* Option "HttpsVerifyPeers" can be used to connect against self-signed HTTPS certificates
+* New configuration option "AllowFindSopClassesInStudy"
+* Macro "__linux" (now obsolete) replaced by macro "__linux__" (maybe solves Debian bug #821011)
+* Modification of instances can now replace PixelData (resp. EncapsulatedDocument) with 
+  provided a PNG/JPEG image (resp. PDF file) if it is encoded using Data URI Scheme
+* Dropped support of Google Log
+
+
+Version 1.0.0 (2015/12/15)
+==========================
+
+* Lua: "IncomingFindRequestFilter()" to apply filters to incoming C-FIND requests
+* New function in plugin SDK: "OrthancPluginSendMultipartItem2()"
+* Fix of DICOMDIR generation with DCMTK 3.6.1, support of encodings
+* Fix range search if the lower or upper limit is absent
+* Fix modality worklists lookups if tags with UN (unknown) VR are present
+* Warn about badly formatted modality/peer definitions in configuration file at startup
+
+
+Version 0.9.6 (2015/12/08)
+==========================
+
+* Promiscuous mode (accept unknown SOP class UID) is now turned off by default
+* Fix serialization of DICOM buffers that might contain garbage trailing
+* Fix modality worklists server if some fields are null
+* More tolerant "/series/.../ordered-slices" with broken series
+* Improved logging information if upgrade fails
+* Fix formatting of multipart HTTP answers (bis)
+
+
+Version 0.9.5 (2015/12/02)
+==========================
+
+Major
+-----
+
+* Experimental support of DICOM C-FIND SCP for modality worklists through plugins
+* Support of DICOM C-FIND SCU for modality worklists ("/modalities/{dicom}/find-worklist")
+
+REST API
+--------
+
+* New URIs:
+  - "/series/.../ordered-slices" to order the slices of a 2D+t or 3D series
+  - "/tools/shutdown" to stop Orthanc from the REST API
+  - ".../compress", ".../uncompress" and ".../is-compressed" for attachments
+  - "/tools/create-archive" to create ZIP from a set of resources
+  - "/tools/create-media" to create ZIP+DICOMDIR from a set of resources
+  - "/instances/.../header" to get the meta information (header) of the DICOM instance
+* "/tools/create-dicom":
+  - Support of binary tags encoded using data URI scheme
+  - Support of hierarchical structures (creation of sequences)
+  - Create tags with unknown VR
+* "/modify" can insert/modify sequences
+* ".../preview" and ".../image-uint8" can return JPEG images if the HTTP Accept Header asks so
+* "Origin" metadata for the instances
+
+Minor
+-----
+
+* New configuration options:
+  - "UnknownSopClassAccepted" to disable promiscuous mode (accept unknown SOP class UID)
+  - New configuration option: "Dictionary" to declare custom DICOM tags
+* Add ".dcm" suffix to files in ZIP archives (cf. URI ".../archive")
+* MIME content type can be associated to custom attachments (cf. "UserContentType")
+
+Plugins
+-------
+
+* New functions:
+  - "OrthancPluginRegisterDecodeImageCallback()" to replace the built-in image decoder
+  - "OrthancPluginDicomInstanceToJson()" to convert DICOM to JSON
+  - "OrthancPluginDicomBufferToJson()" to convert DICOM to JSON
+  - "OrthancPluginRegisterErrorCode()" to declare custom error codes
+  - "OrthancPluginRegisterDictionaryTag()" to declare custom DICOM tags
+  - "OrthancPluginLookupDictionary()" to get information about some DICOM tag
+  - "OrthancPluginRestApiGet2()" to provide HTTP headers when calling Orthanc API
+  - "OrthancPluginGetInstanceOrigin()" to know through which mechanism an instance was received
+  - "OrthancPluginCreateImage()" and "OrthancPluginCreateImageAccessor()" to create images
+  - "OrthancPluginDecodeDicomImage()" to decode DICOM images
+  - "OrthancPluginComputeMd5()" and "OrthancPluginComputeSha1()" to compute MD5/SHA-1 hash
+* New events in change callbacks:
+  - "OrthancStarted"
+  - "OrthancStopped"
+  - "UpdatedAttachment" 
+  - "UpdatedMetadata"
+* "/system" URI gives information about the plugins used for storage area and DB back-end
+* Plugin callbacks must now return explicit "OrthancPluginErrorCode" (instead of integers)
 
 Lua
 ---
@@ -25,15 +496,17 @@ Lua
 Maintenance
 -----------
 
-* Full refactoring of the searching features
-* C-Move SCP for studies using AccessionNumber tag
-* Fix issue 4 (C-Store Association not renegotiated on Specific-to-specific transfer syntax change)
-* "/system" URI gives information about the plugins used for storage area and DB back-end
-* Plugin callbacks should now return explicit "OrthancPluginErrorCode" instead of integers
-* "/tools/create-dicom" can create tags with unknown VR
+* Full indexation of the patient/study tags to speed up searches and C-FIND
+* Many refactorings, notably of the searching features and of the image decoding
+* C-MOVE SCP for studies using AccessionNumber tag
+* Fix issue 4 (C-STORE Association not renegotiated on Specific-to-specific transfer syntax change)
+* Fix formatting of multipart HTTP answers
 * "--logdir" flag creates a single log file instead of 3 separate files for errors/warnings/infos
 * "--errors" flag lists the error codes that could be returned by Orthanc
 * Under Windows, the exit status of Orthanc corresponds to the encountered error code
+* New "AgfaImpax", "EFilm2" and "Vitrea" modality manufacturers
+* C-FIND SCP will return tags with sequence value representation
+* Upgrade to Boost 1.59.0 for static builds
 
 
 Version 0.9.4 (2015/09/16)
@@ -77,7 +550,7 @@ Maintenance
 * If error while calling the REST API, the answer body contains description of the error
   (this feature can be disabled with the "HttpDescribeErrors" option)
 * Upgrade to curl 7.44.0 for static and Windows builds
-* Upgrade to libcurl 1.0.2d for static and Windows builds
+* Upgrade to openssl 1.0.2d for static and Windows builds
 * Depends on libjpeg 9a
 * Bypass zlib uncompression if "StorageCompression" is enabled and HTTP client supports deflate
 
@@ -108,7 +581,7 @@ General
 -------
 
 * The configuration can be splitted into several files stored inside the same folder
-* Custom setting of the local AET during C-Store SCU (both in Lua and in the REST API)
+* Custom setting of the local AET during C-STORE SCU (both in Lua and in the REST API)
 * Many code refactorings
 
 Lua
@@ -127,9 +600,9 @@ Plugins
 Fixes
 -----
 
-* Fix compatibility issues for C-Find SCU to Siemens Syngo.Via modalities SCP
+* Fix compatibility issues for C-FIND SCU to Siemens Syngo.Via modalities SCP
 * Fix issue 15 (Lua scripts making HTTP requests)
-* Fix issue 35 (Characters in PatientID string are not protected for C-Find)
+* Fix issue 35 (Characters in PatientID string are not protected for C-FIND)
 * Fix issue 37 (Hyphens trigger range query even if datatype does not support ranges)
 
 
@@ -140,7 +613,7 @@ Major
 -----
 
 * DICOM Query/Retrieve available from Orthanc Explorer
-* C-Move SCU and C-Find SCU are accessible through the REST API
+* C-MOVE SCU and C-FIND SCU are accessible through the REST API
 * "?expand" flag for URIs "/patients", "/studies" and "/series"
 * "/tools/find" URI to search for DICOM resources from REST
 * Support of FreeBSD
@@ -150,15 +623,15 @@ Minor
 -----
 
 * Speed-up in Orthanc Explorer for large amount of images
-* Speed-up of the C-Find SCP server of Orthanc
+* Speed-up of the C-FIND SCP server of Orthanc
 * Allow replacing PatientID/StudyInstanceUID/SeriesInstanceUID from Lua scripts
-* Option "CaseSensitivePN" to enable case-insensitive C-Find SCP
+* Option "CaseSensitivePN" to enable case-insensitive C-FIND SCP
 
 Fixes
 -----
 
 * Prevent freeze on C-FIND if no DICOM tag is to be returned
-* Fix slow C-Store SCP on recent versions of Linux, if
+* Fix slow C-STORE SCP on recent versions of GNU/Linux, if
   USE_SYSTEM_DCMTK is set to OFF (http://forum.dcmtk.org/viewtopic.php?f=1&t=4009)
 * Fix issue 30 (QR response missing "Query/Retrieve Level" (008,0052))
 * Fix issue 32 (Cyrillic symbols): Introduction of the "Windows1251" encoding
@@ -229,7 +702,7 @@ Version 0.8.4 (2014/09/19)
 
 * "/instances-tags" to get the tags of all the child instances of a
   patient/study/series with a single REST call (bulk tags retrieval)
-* Configuration/Lua to select the accepted C-Store SCP transfer syntaxes
+* Configuration/Lua to select the accepted C-STORE SCP transfer syntaxes
 * Fix reporting of errors in Orthanc Explorer when sending images to peers/modalities
 * Installation of plugin SDK in CMake
 
@@ -340,7 +813,7 @@ Version 0.7.6 (2014/06/11)
 Version 0.7.5 (2014/05/08)
 ==========================
 
-* Dynamic negotiation of SOP classes for C-Store SCU
+* Dynamic negotiation of SOP classes for C-STORE SCU
 * Creation of DICOM instances using the REST API
 * Embedding of images within DICOM instances
 * Adding/removal/modification of remote modalities/peers through REST
@@ -379,16 +852,16 @@ Minor changes
 * Possibility to disable the HTTP server or the DICOM server
 * Automatic computation of MD5 hashes for the stored DICOM files
 * Maintenance tool to recover DICOM files compressed by Orthanc
-* The newline characters in the configuration file are fixed for Linux
-* Capture of the SIGTERM signal in Linux
+* The newline characters in the configuration file are fixed for GNU/Linux
+* Capture of the SIGTERM signal in GNU/Linux
 
 
 Version 0.7.2 (2013/11/08)
 ==========================
 
 * Support of Query/Retrieve from medInria
-* Accept more transfer syntaxes for C-Store SCP and SCU (notably JPEG)
-* Create the meta-header when receiving files through C-Store SCP
+* Accept more transfer syntaxes for C-STORE SCP and SCU (notably JPEG)
+* Create the meta-header when receiving files through C-STORE SCP
 * Fixes and improvements thanks to the static analyzer cppcheck
 
 
@@ -431,7 +904,7 @@ Version 0.6.1 (2013/09/16)
 ==========================
 
 * Detection of stable patients/studies/series
-* C-Find SCU at the instance level
+* C-FIND SCU at the instance level
 * Link from modified to original resource in Orthanc Explorer
 * Fix of issue #8
 * Anonymization of the medical alerts tag (0010,2000)
@@ -541,7 +1014,7 @@ Major changes
 * The patient/study/series/instances are now indexed by SHA-1 digests
   of their DICOM Instance IDs (and not by UUIDs anymore): The same
   DICOM objects are thus always identified by the same Orthanc IDs
-* Log of exported instances through DICOM C-Store SCU ("/exported" URI)
+* Log of exported instances through DICOM C-STORE SCU ("/exported" URI)
 * Full refactoring of the DB schema and of the REST API
 * Introduction of generic classes for REST APIs (in Core/RestApi)
 
@@ -572,7 +1045,7 @@ Version 0.2.3 (2012/10/26)
 Version 0.2.2 (2012/10/04)
 ==========================
 
-* Switch to Google Logging
+* Switch to Google Log
 * Fixes to Debian packaging
 
 

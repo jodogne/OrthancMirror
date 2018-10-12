@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -48,14 +49,28 @@
 
 #include <json/value.h>
 
-#if ORTHANC_PUGIXML_ENABLED == 1
-#include <pugixml.hpp>
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include <pugixml.hpp>
 #endif
 
 #include "Enumerations.h"
 #include "Logging.h"
 #include "OrthancException.h"
 #include "Toolbox.h"
-#include "Uuid.h"
+
+#if ORTHANC_ENABLE_DCMTK == 1
+// Headers from DCMTK used in Orthanc headers 
+#  include <dcmtk/dcmdata/dcdatset.h>
+#  include <dcmtk/dcmdata/dcfilefo.h>
+#  include <dcmtk/dcmdata/dcmetinf.h>
+#  include <dcmtk/dcmdata/dcpixseq.h>
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_NETWORKING == 1
+#  include "DicomNetworking/DicomServer.h"
+
+// Headers from DCMTK used in Orthanc headers 
+#  include <dcmtk/dcmnet/dimse.h>
+#endif
 
 #endif

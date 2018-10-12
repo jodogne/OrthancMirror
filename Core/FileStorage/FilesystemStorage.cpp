@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,7 +40,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../Uuid.h"
+#include "../SystemToolbox.h"
 
 #include <boost/filesystem/fstream.hpp>
 
@@ -83,14 +84,40 @@ namespace Orthanc
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
 
-    Toolbox::MakeDirectory(root);
+    SystemToolbox::MakeDirectory(root);
   }
+
+
+
+  static const char* GetDescriptionInternal(FileContentType content)
+  {
+    // This function is for logging only (internal use), a more
+    // fully-featured version is available in ServerEnumerations.cpp
+    switch (content)
+    {
+      case FileContentType_Unknown:
+        return "Unknown";
+
+      case FileContentType_Dicom:
+        return "DICOM";
+
+      case FileContentType_DicomAsJson:
+        return "JSON summary of DICOM";
+
+      default:
+        return "User-defined";
+    }
+  }
+
 
   void FilesystemStorage::Create(const std::string& uuid,
                                  const void* content, 
                                  size_t size,
-                                 FileContentType /*type*/)
+                                 FileContentType type)
   {
+    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+
     boost::filesystem::path path;
     
     path = GetPath(uuid);
@@ -117,33 +144,19 @@ namespace Orthanc
       }
     }
 
-    boost::filesystem::ofstream f;
-    f.open(path, std::ofstream::out | std::ios::binary);
-    if (!f.good())
-    {
-      throw OrthancException(ErrorCode_FileStorageCannotWrite);
-    }
-
-    if (size != 0)
-    {
-      f.write(static_cast<const char*>(content), size);
-      if (!f.good())
-      {
-        f.close();
-        throw OrthancException(ErrorCode_FileStorageCannotWrite);
-      }
-    }
-
-    f.close();
+    SystemToolbox::WriteFile(content, size, path.string());
   }
 
 
   void FilesystemStorage::Read(std::string& content,
                                const std::string& uuid,
-                               FileContentType /*type*/)
+                               FileContentType type)
   {
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" content type";
+
     content.clear();
-    Toolbox::ReadFile(content, GetPath(uuid).string());
+    SystemToolbox::ReadFile(content, GetPath(uuid).string());
   }
 
 
@@ -165,7 +178,7 @@ namespace Orthanc
     {
       for (fs::recursive_directory_iterator current(root_), end; current != end ; ++current)
       {
-        if (fs::is_regular_file(current->status()))
+        if (SystemToolbox::IsRegularFile(current->path().string()))
         {
           try
           {
@@ -186,7 +199,7 @@ namespace Orthanc
               }
             }
           }
-          catch (fs::filesystem_error)
+          catch (fs::filesystem_error&)
           {
           }
         }
@@ -211,11 +224,9 @@ namespace Orthanc
 
 
   void FilesystemStorage::Remove(const std::string& uuid,
-                                 FileContentType /*type*/)
+                                 FileContentType type)
   {
-#if ORTHANC_ENABLE_GOOGLE_LOG == 1
-    LOG(INFO) << "Deleting file " << uuid;
-#endif
+    LOG(INFO) << "Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type);
 
     namespace fs = boost::filesystem;
 

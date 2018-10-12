@@ -1,17 +1,17 @@
 This file is a complement to "INSTALL", which contains instructions
-that are specific to Linux.
+that are specific to GNU/Linux.
 
 
-Static linking for Linux
-========================
+Static linking for GNU/Linux
+============================
 
-The most simple way of building Orthanc under Linux consists in
+The most simple way of building Orthanc under GNU/Linux consists in
 statically linking against all the third-party dependencies. In this
 case, the system-wide libraries will not be used. The build tool
 (CMake) will download the sources of all the required packages and
 automatically compile them.
 
-This process should work on any Linux distribution, provided that a
+This process should work on any GNU/Linux distribution, provided that a
 C/C++ compiler ("build-essential" in Debian-based systems), the Python
 interpreter, CMake, the "unzip" system tool, and the development
 package for libuuid ("uuid-dev" in Debian) are installed.
@@ -47,14 +47,14 @@ then run cmake again.
 Note 3- To build the documentation, you will have to install doxyen.
 
 
-Use system-wide libraries under Linux
-=====================================
+Use system-wide libraries under GNU/Linux
+=========================================
 
-Under Linux, by default, Orthanc links against the shared libraries of
-your system (the "STATIC_BUILD" option is set to "OFF"). This greatly
-speeds up the compilation. This is also required when building
-packages for Linux distributions. Because using system libraries is
-the default behavior, you just have to use:
+Under GNU/Linux, by default, Orthanc links against the shared
+libraries of your system (the "STATIC_BUILD" option is set to
+"OFF"). This greatly speeds up the compilation. This is also required
+when building packages for GNU/Linux distributions. Because using
+system libraries is the default behavior, you just have to use:
 
 # cd ~/OrthancBuild
 # cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
@@ -62,13 +62,14 @@ the default behavior, you just have to use:
 
 Note that to build the documentation, you will have to install doxyen.
 
-However, on some Linux distributions, it is still required to download
-and static link against some third-party dependencies, e.g. when the
-system-wide library is not shipped or is outdated. Because of
-difference in the packaging of the various Linux distribution, it is
-also sometimes required to fine-tune some options.
+However, on some GNU/Linux distributions, it is still required to
+download and static link against some third-party dependencies,
+e.g. when the system-wide library is not shipped or is
+outdated. Because of difference in the packaging of the various
+GNU/Linux distribution, it is also sometimes required to fine-tune
+some options.
 
-You will find below build instructions for specific Linux
+You will find below build instructions for specific GNU/Linux
 distributions. Distributions tagged by "SUPPORTED" are tested by
 Sébastien Jodogne. Distributions tagged by "CONTRIBUTED" come from
 Orthanc users.
@@ -79,14 +80,15 @@ SUPPORTED - Debian Jessie/Sid
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgoogle-glog-dev libgtest-dev libpng-dev libjpeg-dev \
+       	       	       libgtest-dev libpng-dev libjpeg-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 Note: Have also a look at the official package:
@@ -106,9 +108,9 @@ SUPPORTED - Ubuntu 12.04.5 LTS
         -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
-	-DUSE_SYSTEM_GOOGLE_LOG=OFF \
 	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 
@@ -123,9 +125,10 @@ SUPPORTED - Ubuntu 14.04 LTS
                        libcharls-dev libjsoncpp-dev libpugixml-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_GTEST_DEBIAN_SOURCE_PACKAGE=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
 
 
@@ -134,7 +137,7 @@ SUPPORTED - Fedora 20-22
 ------------------------
 
 # sudo yum install unzip make automake gcc gcc-c++ python cmake \
-                   boost-devel curl-devel dcmtk-devel glog-devel \
+                   boost-devel curl-devel dcmtk-devel \
                    gtest-devel libpng-devel libsqlite3x-devel libuuid-devel jpeg-devel \
                    mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
 
@@ -144,6 +147,7 @@ You will also have to install "gflags-devel" on Fedora 21&22:
 
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
+         -DCMAKE_BUILD_TYPE=Release \
          ~/Orthanc
        
 Note: Have also a look at the official package:
@@ -155,11 +159,12 @@ SUPPORTED - FreeBSD 10.1
 ------------------------
 
 # pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake jpeg \
-              e2fsprogs-libuuid glog boost-libs sqlite3 python libiconv
+              e2fsprogs-libuuid boost-libs sqlite3 python libiconv
 
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
+        -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
 
 
@@ -180,12 +185,13 @@ SUPPORTED - CentOS 6
         -DUSE_SYSTEM_DCMTK=OFF \
         -DUSE_SYSTEM_GOOGLE_TEST=OFF \
         -DUSE_SYSTEM_LIBJPEG=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
 
 
 
-Other Linux distributions?
---------------------------
+Other GNU/Linux distributions?
+------------------------------
 
 Please send us your build instructions (by a mail to
 s.jodogne@gmail.com)!
@@ -203,7 +209,7 @@ they might give indications.
 Using ccache
 ============
 
-Under Linux, you also have the opportunity to use "ccache" to
+Under GNU/Linux, you also have the opportunity to use "ccache" to
 dramatically decrease the compilation time when rebuilding
 Orthanc. This is especially useful for developers. To this end, you
 would use:

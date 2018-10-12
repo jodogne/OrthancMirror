@@ -31,7 +31,9 @@ Prepare the build with CMake
 # cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON ~/Orthanc
 
 NB: Adapt the value of "CMAKE_OSX_DEPLOYMENT_TARGET" with respect to
-your version of XCode.
+your version of OS X. This version can obtained by typing:
+
+# sw_vers
 
 
 Build the Debug version of Orthanc
@@ -47,6 +49,6 @@ Build the Release version of Orthanc
 ------------------------------------
 
 # xcodebuild -configuration Release
-# ./Debug/UnitTests
+# ./Release/UnitTests
 
 The binaries of Orthanc are located at "~/OrthancBuild/Release/Orthanc".

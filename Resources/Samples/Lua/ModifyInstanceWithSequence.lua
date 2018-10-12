@@ -17,7 +17,7 @@ function OnStoredInstance(instanceId, tags, metadata, origin)
 
       -- Create the modified instance
       local modified = RestApiPost('/instances/' .. instanceId .. '/modify',
-                                   DumpJson(request))
+                                   DumpJson(request, true))
 
       -- Upload the modified instance to the Orthanc store
       RestApiPost('/instances/', modified)

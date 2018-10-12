@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,7 +35,12 @@
 
 #include "PluginsErrorDictionary.h"
 
-#if ORTHANC_PLUGINS_ENABLED != 1
+#if !defined(ORTHANC_ENABLE_PLUGINS)
+#  error The macro ORTHANC_ENABLE_PLUGINS must be defined
+#endif
+
+
+#if ORTHANC_ENABLE_PLUGINS != 1
 
 #include <boost/noncopyable.hpp>
 
@@ -47,8 +53,14 @@ namespace Orthanc
 
 #else
 
+#include "../../Core/DicomNetworking/IFindRequestHandlerFactory.h"
+#include "../../Core/DicomNetworking/IMoveRequestHandlerFactory.h"
+#include "../../Core/DicomNetworking/IWorklistRequestHandlerFactory.h"
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
+#include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
+#include "../../Core/JobsEngine/IJob.h"
+#include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/IServerListener.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
@@ -63,13 +75,20 @@ namespace Orthanc
   class OrthancPlugins : 
     public IHttpHandler, 
     public IPluginServiceProvider, 
-    public IServerListener
+    public IServerListener,
+    public IWorklistRequestHandlerFactory,
+    public IDicomImageDecoder,
+    public IIncomingHttpRequestFilter,
+    public IFindRequestHandlerFactory,
+    public IMoveRequestHandlerFactory
   {
   private:
-    struct PImpl;
+    class PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    void CheckContextAvailable();
+    class WorklistHandler;
+    class FindHandler;
+    class MoveHandler;
 
     void RegisterRestCallback(const void* parameters,
                               bool lock);
@@ -77,6 +96,20 @@ namespace Orthanc
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
     void RegisterOnChangeCallback(const void* parameters);
+
+    void RegisterWorklistCallback(const void* parameters);
+
+    void RegisterFindCallback(const void* parameters);
+
+    void RegisterMoveCallback(const void* parameters);
+
+    void RegisterDecodeImageCallback(const void* parameters);
+
+    void RegisterJobsUnserializer(const void* parameters);
+
+    void RegisterIncomingHttpRequestFilter(const void* parameters);
+
+    void RegisterIncomingHttpRequestFilter2(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -90,6 +123,8 @@ namespace Orthanc
 
     void RestApiGet(const void* parameters,
                     bool afterPlugins);
+
+    void RestApiGet2(const void* parameters);
 
     void RestApiPostPut(bool isPost, 
                         const void* parameters,
@@ -123,16 +158,45 @@ namespace Orthanc
 
     void CallHttpClient(const void* parameters);
 
+    void CallHttpClient2(const void* parameters);
+
+    void CallPeerApi(const void* parameters);
+  
     void GetFontInfo(const void* parameters);
 
     void DrawText(const void* parameters);
 
+    void DatabaseAnswer(const void* parameters);
+
     void ApplyDicomToJson(_OrthancPluginService service,
                           const void* parameters);
+
+    void ApplyCreateDicom(_OrthancPluginService service,
+                          const void* parameters);
+
+    void ApplyCreateImage(_OrthancPluginService service,
+                          const void* parameters);
+
+    void ApplyLookupDictionary(const void* parameters);
+
+    void ApplySendMultipartItem(const void* parameters);
+
+    void ApplySendMultipartItem2(const void* parameters);
+
+    void ComputeHash(_OrthancPluginService service,
+                     const void* parameters);
 
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,
                               const char* resource);
+
+    bool InvokeSafeService(SharedLibrary& plugin,
+                           _OrthancPluginService service,
+                           const void* parameters);
+
+    bool InvokeProtectedService(SharedLibrary& plugin,
+                                _OrthancPluginService service,
+                                const void* parameters);
 
   public:
     OrthancPlugins();
@@ -140,6 +204,8 @@ namespace Orthanc
     virtual ~OrthancPlugins();
 
     void SetServerContext(ServerContext& context);
+
+    void ResetServerContext();
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
@@ -200,6 +266,51 @@ namespace Orthanc
     {
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
     }
+
+    void SignalUpdatedPeers()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_UpdatedPeers, OrthancPluginResourceType_None, NULL);
+    }
+
+    void SignalUpdatedModalities()
+    {
+      SignalChangeInternal(OrthancPluginChangeType_UpdatedModalities, OrthancPluginResourceType_None, NULL);
+    }
+
+    bool HasWorklistHandler();
+
+    virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
+
+    bool HasCustomImageDecoder();
+
+    // Contrarily to "Decode()", this method does not fallback to the
+    // builtin image decoder, if no installed custom decoder can
+    // handle the image (it returns NULL in this case).
+    ImageAccessor* DecodeUnsafe(const void* dicom,
+                                size_t size,
+                                unsigned int frame);
+
+    virtual ImageAccessor* Decode(const void* dicom,
+                                  size_t size,
+                                  unsigned int frame);
+
+    virtual bool IsAllowed(HttpMethod method,
+                           const char* uri,
+                           const char* ip,
+                           const char* username,
+                           const IHttpHandler::Arguments& httpHeaders,
+                           const IHttpHandler::GetArguments& getArguments);
+
+    bool HasFindHandler();
+
+    virtual IFindRequestHandler* ConstructFindRequestHandler();
+
+    bool HasMoveHandler();
+
+    virtual IMoveRequestHandler* ConstructMoveRequestHandler();
+
+    IJob* UnserializeJob(const std::string& type,
+                         const Json::Value& value);
   };
 }
 

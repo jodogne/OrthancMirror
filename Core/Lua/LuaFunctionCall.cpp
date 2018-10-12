@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -151,5 +152,41 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_LuaReturnsNoString);
     }
+  }
+
+
+  void LuaFunctionCall::PushStringMap(const std::map<std::string, std::string>& value)
+  {
+    Json::Value json = Json::objectValue;
+
+    for (std::map<std::string, std::string>::const_iterator
+           it = value.begin(); it != value.end(); ++it)
+    {
+      json[it->first] = it->second;
+    }
+
+    PushJson(json);
+  }
+
+
+  void LuaFunctionCall::PushDicom(const DicomMap& dicom)
+  {
+    DicomArray a(dicom);
+    PushDicom(a);
+  }
+
+
+  void LuaFunctionCall::PushDicom(const DicomArray& dicom)
+  {
+    Json::Value value = Json::objectValue;
+
+    for (size_t i = 0; i < dicom.GetSize(); i++)
+    {
+      const DicomValue& v = dicom.GetElement(i).GetValue();
+      std::string s = (v.IsNull() || v.IsBinary()) ? "" : v.GetContent();
+      value[dicom.GetElement(i).GetTag().Format()] = s;
+    }
+
+    PushJson(value);
   }
 }

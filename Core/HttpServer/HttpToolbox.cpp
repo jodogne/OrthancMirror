@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -41,7 +42,7 @@
 #include "StringHttpOutput.h"
 
 
-static const char* LOCALHOST = "localhost";
+static const char* LOCALHOST = "127.0.0.1";
 
 
 
@@ -201,10 +202,9 @@ namespace Orthanc
   bool HttpToolbox::SimpleGet(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
-                              const std::string& uri)
+                              const std::string& uri,
+                              const IHttpHandler::Arguments& httpHeaders)
   {
-    IHttpHandler::Arguments headers;  // No HTTP header
-
     UriComponents curi;
     IHttpHandler::GetArguments getArguments;
     ParseGetQuery(curi, getArguments, uri.c_str());
@@ -213,7 +213,7 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
-                       headers, getArguments, NULL /* no body for GET */, 0))
+                       httpHeaders, getArguments, NULL /* no body for GET */, 0))
     {
       stream.GetOutput(result);
       return true;
@@ -222,6 +222,16 @@ namespace Orthanc
     {
       return false;
     }
+  }
+
+
+  bool HttpToolbox::SimpleGet(std::string& result,
+                              IHttpHandler& handler,
+                              RequestOrigin origin,
+                              const std::string& uri)
+  {
+    IHttpHandler::Arguments headers;  // No HTTP header
+    return SimpleGet(result, handler, origin, uri, headers);
   }
 
 

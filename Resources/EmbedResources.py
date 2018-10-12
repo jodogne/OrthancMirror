@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
+# Copyright (C) 2017-2018 Osimis S.A., Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -39,8 +40,8 @@ import re
 UPCASE_CHECK = True
 USE_SYSTEM_EXCEPTION = False
 EXCEPTION_CLASS = 'OrthancException'
-OUT_OF_RANGE_EXCEPTION = 'OrthancException(ErrorCode_ParameterOutOfRange)'
-INEXISTENT_PATH_EXCEPTION = 'OrthancException(ErrorCode_InexistentItem)'
+OUT_OF_RANGE_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_ParameterOutOfRange)'
+INEXISTENT_PATH_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_InexistentItem)'
 NAMESPACE = 'Orthanc'
 
 ARGS = []
@@ -158,6 +159,10 @@ header.write("""
 
 #include <string>
 #include <list>
+
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4065)  // "Switch statement contains 'default' but no 'case' labels"
+#endif
 
 namespace %s
 {

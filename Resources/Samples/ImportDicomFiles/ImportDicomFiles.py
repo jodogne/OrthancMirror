@@ -1,8 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
+# Copyright (C) 2017-2018 Osimis S.A., Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -33,7 +34,7 @@ API.
 
 Usage: %s [hostname] [HTTP port] [path]
 Usage: %s [hostname] [HTTP port] [path] [username] [password]
-For instance: %s localhost 8042 .
+For instance: %s 127.0.0.1 8042 .
 """ % (sys.argv[0], sys.argv[0], sys.argv[0]))
     exit(-1)
 
@@ -81,7 +82,7 @@ def UploadFile(path):
             sys.stdout.write(" => success\n")
             success_count += 1
         else:
-            sys.stdout.write(" => failure (Is it a DICOM file?)\n")
+            sys.stdout.write(" => failure (Is it a DICOM file? Is there a password?)\n")
 
     except:
         sys.stdout.write(" => unable to connect (Is Orthanc running? Is there a password?)\n")

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,7 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../OrthancInitialization.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
 #include "../ServerContext.h"
@@ -53,17 +54,18 @@ namespace Orthanc
   {
     Json::Value result = Json::objectValue;
 
+    result["ApiVersion"] = ORTHANC_API_VERSION;
     result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
     result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
-    result["DicomPort"] = Configuration::GetGlobalIntegerParameter("DicomPort", 4242);
-    result["HttpPort"] = Configuration::GetGlobalIntegerParameter("HttpPort", 8042);
+    result["DicomPort"] = Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242);
+    result["HttpPort"] = Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042);
     result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
     result["Version"] = ORTHANC_VERSION;
 
     result["StorageAreaPlugin"] = Json::nullValue;
     result["DatabaseBackendPlugin"] = Json::nullValue;
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     result["PluginsEnabled"] = true;
     const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
 
@@ -122,16 +124,17 @@ namespace Orthanc
     call.BodyToString(command);
 
     {
-      LuaScripting::Locker locker(context.GetLua());
-      locker.GetLua().Execute(result, command);
+      LuaScripting::Lock lock(context.GetLuaScripting());
+      lock.GetLua().Execute(result, command);
     }
 
     call.GetOutput().AnswerBuffer(result, "text/plain");
   }
 
+  template <bool UTC>
   static void GetNowIsoString(RestApiGetCall& call)
   {
-    call.GetOutput().AnswerBuffer(Toolbox::GetNowIsoString(), "text/plain");
+    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), "text/plain");
   }
 
 
@@ -143,6 +146,24 @@ namespace Orthanc
   }
 
 
+  static void GetDefaultEncoding(RestApiGetCall& call)
+  {
+    Encoding encoding = GetDefaultDicomEncoding();
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  static void SetDefaultEncoding(RestApiPutCall& call)
+  {
+    Encoding encoding = StringToEncoding(call.GetBodyData());
+
+    Configuration::SetDefaultEncoding(encoding);
+
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+  }
+
+
+  
   // Plugins information ------------------------------------------------------
 
   static void ListPlugins(RestApiGetCall& call)
@@ -153,7 +174,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       std::list<std::string> plugins;
       OrthancRestApi::GetContext(call).GetPlugins().GetManager().ListPlugins(plugins);
 
@@ -176,7 +197,7 @@ namespace Orthanc
       return;
     }
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     const PluginsManager& manager = OrthancRestApi::GetContext(call).GetPlugins().GetManager();
     std::string id = call.GetUriComponent("id", "");
 
@@ -224,7 +245,7 @@ namespace Orthanc
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
     {
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
       const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
       const PluginsManager& manager = plugins.GetManager();
 
@@ -248,6 +269,99 @@ namespace Orthanc
   }
 
 
+
+
+  // Jobs information ------------------------------------------------------
+
+  static void ListJobs(RestApiGetCall& call)
+  {
+    bool expand = call.HasArgument("expand");
+
+    Json::Value v = Json::arrayValue;
+
+    std::set<std::string> jobs;
+    OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().ListJobs(jobs);
+
+    for (std::set<std::string>::const_iterator it = jobs.begin();
+         it != jobs.end(); ++it)
+    {
+      if (expand)
+      {
+        JobInfo info;
+        if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, *it))
+        {
+          Json::Value tmp;
+          info.Format(tmp);
+          v.append(tmp);
+        }
+      }
+      else
+      {
+        v.append(*it);
+      }
+    }
+    
+    call.GetOutput().AnswerJson(v);
+  }
+
+  static void GetJobInfo(RestApiGetCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
+
+    JobInfo info;
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().GetJobInfo(info, id))
+    {
+      Json::Value json;
+      info.Format(json);
+      call.GetOutput().AnswerJson(json);
+    }
+  }
+
+
+  enum JobAction
+  {
+    JobAction_Cancel,
+    JobAction_Pause,
+    JobAction_Resubmit,
+    JobAction_Resume
+  };
+
+  template <JobAction action>
+  static void ApplyJobAction(RestApiPostCall& call)
+  {
+    std::string id = call.GetUriComponent("id", "");
+
+    bool ok = false;
+
+    switch (action)
+    {
+      case JobAction_Cancel:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Cancel(id);
+        break;
+
+      case JobAction_Pause:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Pause(id);
+        break;
+ 
+      case JobAction_Resubmit:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resubmit(id);
+        break;
+
+      case JobAction_Resume:
+        ok = OrthancRestApi::GetContext(call).GetJobsEngine().GetRegistry().Resume(id);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    if (ok)
+    {
+      call.GetOutput().AnswerBuffer("{}", "application/json");
+    }
+  }
+
+  
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -255,11 +369,21 @@ namespace Orthanc
     Register("/statistics", GetStatistics);
     Register("/tools/generate-uid", GenerateUid);
     Register("/tools/execute-script", ExecuteScript);
-    Register("/tools/now", GetNowIsoString);
+    Register("/tools/now", GetNowIsoString<true>);
+    Register("/tools/now-local", GetNowIsoString<false>);
     Register("/tools/dicom-conformance", GetDicomConformanceStatement);
+    Register("/tools/default-encoding", GetDefaultEncoding);
+    Register("/tools/default-encoding", SetDefaultEncoding);
 
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);
     Register("/plugins/explorer.js", GetOrthancExplorerPlugins);
+
+    Register("/jobs", ListJobs);
+    Register("/jobs/{id}", GetJobInfo);
+    Register("/jobs/{id}/cancel", ApplyJobAction<JobAction_Cancel>);
+    Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
+    Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
+    Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
   }
 }

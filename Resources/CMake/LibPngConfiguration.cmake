@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
-  SET(LIBPNG_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz")
+  SET(LIBPNG_URL "http://www.orthanc-server.com/downloads/third-party/libpng-1.5.12.tar.gz")
   SET(LIBPNG_MD5 "8ea7f60347a306c5faf70b977fa80e28")
 
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")
@@ -46,7 +46,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
     -DPNG_IMPEXP=
     )
 
-  source_group(ThirdParty\\Libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
+  source_group(ThirdParty\\libpng REGULAR_EXPRESSION ${LIBPNG_SOURCES_DIR}/.*)
 
 else()
   include(FindPNG)

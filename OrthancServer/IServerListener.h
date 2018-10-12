@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IServerListener
+  class IServerListener : public boost::noncopyable
   {
   public:
     virtual ~IServerListener()
@@ -48,8 +49,8 @@ namespace Orthanc
 
     virtual void SignalStoredInstance(const std::string& publicId,
                                       DicomInstanceToStore& instance,
-                                      const Json::Value& simplifiedTags) = 0;                                      
-
+                                      const Json::Value& simplifiedTags) = 0;
+    
     virtual void SignalChange(const ServerIndexChange& change) = 0;
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,

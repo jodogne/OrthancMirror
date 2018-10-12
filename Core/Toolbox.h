@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,6 +40,35 @@
 #include <string>
 #include <json/json.h>
 
+
+#if !defined(ORTHANC_ENABLE_BASE64)
+#  error The macro ORTHANC_ENABLE_BASE64 must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_LOCALE)
+#  error The macro ORTHANC_ENABLE_LOCALE must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_MD5)
+#  error The macro ORTHANC_ENABLE_MD5 must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error The macro ORTHANC_ENABLE_PUGIXML must be defined
+#endif
+
+
+/**
+ * NOTE: GUID vs. UUID
+ * The simple answer is: no difference, they are the same thing. Treat
+ * them as a 16 byte (128 bits) value that is used as a unique
+ * value. In Microsoft-speak they are called GUIDs, but call them
+ * UUIDs when not using Microsoft-speak.
+ * http://stackoverflow.com/questions/246930/is-there-any-difference-between-a-guid-and-a-uuid
+ **/
+
+
+
 namespace Orthanc
 {
   typedef std::vector<std::string> UriComponents;
@@ -49,10 +79,24 @@ namespace Orthanc
 
   namespace Toolbox
   {
-    void ServerBarrier(const bool& stopFlag);
+    class LinesIterator
+    {
+    private:
+      const std::string& content_;
+      size_t             lineStart_;
+      size_t             lineEnd_;
 
-    void ServerBarrier();
+      void FindEndOfLine();
+  
+    public:
+      LinesIterator(const std::string& content);
+  
+      bool GetLine(std::string& target) const;
 
+      void Next();
+    };
+    
+    
     void ToUpperCase(std::string& s);  // Inplace version
 
     void ToLowerCase(std::string& s);  // Inplace version
@@ -62,20 +106,6 @@ namespace Orthanc
 
     void ToLowerCase(std::string& result,
                      const std::string& source);
-
-    void ReadFile(std::string& content,
-                  const std::string& path);
-
-    void WriteFile(const std::string& content,
-                   const std::string& path);
-
-    void WriteFile(const void* content,
-                   size_t size,
-                   const std::string& path);
-
-    void USleep(uint64_t microSeconds);
-
-    void RemoveFile(const std::string& path);
 
     void SplitUriComponents(UriComponents& components,
                             const std::string& uri);
@@ -92,86 +122,77 @@ namespace Orthanc
     std::string FlattenUri(const UriComponents& components,
                            size_t fromLevel = 0);
 
-    uint64_t GetFileSize(const std::string& path);
-
-#if !defined(ORTHANC_ENABLE_MD5) || ORTHANC_ENABLE_MD5 == 1
+#if ORTHANC_ENABLE_MD5 == 1
     void ComputeMD5(std::string& result,
                     const std::string& data);
 
     void ComputeMD5(std::string& result,
                     const void* data,
-                    size_t length);
+                    size_t size);
 #endif
 
     void ComputeSHA1(std::string& result,
                      const std::string& data);
+
+    void ComputeSHA1(std::string& result,
+                     const void* data,
+                     size_t size);
 
     bool IsSHA1(const char* str,
                 size_t size);
 
     bool IsSHA1(const std::string& s);
 
-#if !defined(ORTHANC_ENABLE_BASE64) || ORTHANC_ENABLE_BASE64 == 1
+#if ORTHANC_ENABLE_BASE64 == 1
     void DecodeBase64(std::string& result, 
                       const std::string& data);
 
     void EncodeBase64(std::string& result, 
                       const std::string& data);
 
-#  if BOOST_HAS_REGEX == 1
-    void DecodeDataUriScheme(std::string& mime,
+    bool DecodeDataUriScheme(std::string& mime,
                              std::string& content,
                              const std::string& source);
-#  endif
+
+    void EncodeDataUriScheme(std::string& result,
+                             const std::string& mime,
+                             const std::string& content);
 #endif
 
-    std::string GetPathToExecutable();
-
-    std::string GetDirectoryOfExecutable();
-
+#if ORTHANC_ENABLE_LOCALE == 1
     std::string ConvertToUtf8(const std::string& source,
                               Encoding sourceEncoding);
 
     std::string ConvertFromUtf8(const std::string& source,
                                 Encoding targetEncoding);
+#endif
+
+    bool IsAsciiString(const void* data,
+                       size_t size);
+
+    bool IsAsciiString(const std::string& s);
 
     std::string ConvertToAscii(const std::string& source);
 
     std::string StripSpaces(const std::string& source);
-
-#if BOOST_HAS_DATE_TIME == 1
-    std::string GetNowIsoString();
-
-    void GetNowDicom(std::string& date,
-                     std::string& time);
-#endif
 
     // In-place percent-decoding for URL
     void UrlDecode(std::string& s);
 
     Endianness DetectEndianness();
 
-#if BOOST_HAS_REGEX == 1
     std::string WildcardToRegularExpression(const std::string& s);
-#endif
 
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
 
-    void MakeDirectory(const std::string& path);
-
-    bool IsExistingFile(const std::string& path);
-
-#if ORTHANC_PUGIXML_ENABLED == 1
+#if ORTHANC_ENABLE_PUGIXML == 1
     void JsonToXml(std::string& target,
                    const Json::Value& source,
                    const std::string& rootElement = "root",
                    const std::string& arrayElement = "item");
 #endif
-
-    void ExecuteSystemCommand(const std::string& command,
-                              const std::vector<std::string>& arguments);
 
     bool IsInteger(const std::string& str);
 
@@ -181,6 +202,62 @@ namespace Orthanc
     bool StartsWith(const std::string& str,
                     const std::string& prefix);
 
-    int GetProcessId();
+    void UriEncode(std::string& target,
+                   const std::string& source);
+
+    std::string GetJsonStringField(const ::Json::Value& json,
+                                   const std::string& key,
+                                   const std::string& defaultValue);
+
+    bool GetJsonBooleanField(const ::Json::Value& json,
+                             const std::string& key,
+                             bool defaultValue);
+
+    int GetJsonIntegerField(const ::Json::Value& json,
+                            const std::string& key,
+                            int defaultValue);
+
+    unsigned int GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                             const std::string& key,
+                                             unsigned int defaultValue);
+
+    bool IsUuid(const std::string& str);
+
+    bool StartsWithUuid(const std::string& str);
+
+#if ORTHANC_ENABLE_LOCALE == 1
+    void InitializeGlobalLocale(const char* locale);
+
+    void FinalizeGlobalLocale();
+
+    std::string ToUpperCaseWithAccents(const std::string& source);
+#endif
+
+    void InitializeOpenSsl();
+    
+    void FinalizeOpenSsl();
+
+    std::string GenerateUuid();
   }
 }
+
+
+
+
+/**
+ * The plain C, opaque data structure "OrthancLinesIterator" is a thin
+ * wrapper around Orthanc::Toolbox::LinesIterator, and is only used by
+ * "../Resources/WebAssembly/dcdict.cc", in order to avoid code
+ * duplication
+ **/
+
+struct OrthancLinesIterator;
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content);
+
+bool OrthancLinesIterator_GetLine(std::string& target,
+                                  const OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator);

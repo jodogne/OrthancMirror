@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,6 +45,7 @@
 #include <limits>
 #include <cassert>
 #include <stdio.h>
+#include <memory>
 
 namespace Orthanc
 {
@@ -157,7 +159,7 @@ namespace Orthanc
       if (samplesPerPixel_ > 1)
       {
         // The "Planar Configuration" is only set when "Samples per Pixels" is greater than 1
-        // https://www.dabsoft.ch/dicom/3/C.7.6.3.1.3/
+        // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
         try
         {
           planarConfiguration = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).GetContent());
@@ -177,18 +179,20 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-    try
+    if (values.HasTag(DICOM_TAG_NUMBER_OF_FRAMES))
     {
-      numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+      try
+      {
+        numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
     }
-    catch (OrthancException&)
+    else
     {
-      // If the tag "NumberOfFrames" is absent, assume there is a single frame
       numberOfFrames_ = 1;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     if ((bitsAllocated_ != 8 && bitsAllocated_ != 16 && 
@@ -196,13 +200,6 @@ namespace Orthanc
         numberOfFrames_ == 0 ||
         (planarConfiguration != 0 && planarConfiguration != 1))
     {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-    if (bitsAllocated_ > 32 ||
-        bitsStored_ >= 32)
-    {
-      // Not available, as the accessor internally uses int32_t values
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
@@ -217,10 +214,44 @@ namespace Orthanc
     isSigned_ = (pixelRepresentation != 0 ? true : false);
   }
 
-
-  bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format) const
+  DicomImageInformation* DicomImageInformation::Clone() const
   {
-    if (photometric_ == PhotometricInterpretation_Monochrome1 ||
+    std::auto_ptr<DicomImageInformation> target(new DicomImageInformation);
+    target->width_ = width_;
+    target->height_ = height_;
+    target->samplesPerPixel_ = samplesPerPixel_;
+    target->numberOfFrames_ = numberOfFrames_;
+    target->isPlanar_ = isPlanar_;
+    target->isSigned_ = isSigned_;
+    target->bytesPerValue_ = bytesPerValue_;
+    target->bitsAllocated_ = bitsAllocated_;
+    target->bitsStored_ = bitsStored_;
+    target->highBit_ = highBit_;
+    target->photometric_ = photometric_;
+
+    return target.release();
+  }
+
+  bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format,
+                                                 bool ignorePhotometricInterpretation) const
+  {
+    if (photometric_ == PhotometricInterpretation_Palette)
+    {
+      if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_RGB24;
+        return true;
+      }
+
+      if (GetBitsStored() == 16 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_RGB48;
+        return true;
+      }
+    }
+    
+    if (ignorePhotometricInterpretation ||
+        photometric_ == PhotometricInterpretation_Monochrome1 ||
         photometric_ == PhotometricInterpretation_Monochrome2)
     {
       if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
@@ -240,17 +271,32 @@ namespace Orthanc
         format = PixelFormat_SignedGrayscale16;
         return true;
       }
+      
+      if (GetBitsAllocated() == 32 && GetChannelCount() == 1 && !IsSigned())
+      {
+        format = PixelFormat_Grayscale32;
+        return true;
+      }
     }
 
     if (GetBitsStored() == 8 && 
         GetChannelCount() == 3 && 
         !IsSigned() &&
-        photometric_ == PhotometricInterpretation_RGB)
+        (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
     {
       format = PixelFormat_RGB24;
       return true;
     }
 
     return false;
+  }
+
+
+  size_t DicomImageInformation::GetFrameSize() const
+  {
+    return (GetHeight() * 
+            GetWidth() * 
+            GetBytesPerValue() * 
+            GetChannelCount());
   }
 }

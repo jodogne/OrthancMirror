@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -65,7 +66,7 @@ namespace Orthanc
 
       for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
       {
-        s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
+        s += boost::lexical_cast<std::string>(static_cast<double>(*p)) + " ";
       }
 
       target.AddChunk(s);
@@ -121,7 +122,7 @@ namespace Orthanc
   {
     if (buffer_ != NULL)
     {
-      return reinterpret_cast<const uint8_t*>(buffer_) + y * pitch_;
+      return buffer_ + y * pitch_;
     }
     else
     {
@@ -143,7 +144,7 @@ namespace Orthanc
 
     if (buffer_ != NULL)
     {
-      return reinterpret_cast<uint8_t*>(buffer_) + y * pitch_;
+      return buffer_ + y * pitch_;
     }
     else
     {
@@ -174,9 +175,12 @@ namespace Orthanc
     width_ = width;
     height_ = height;
     pitch_ = pitch;
-    buffer_ = const_cast<void*>(buffer);
+    buffer_ = reinterpret_cast<uint8_t*>(const_cast<void*>(buffer));
 
-    assert(GetBytesPerPixel() * width_ <= pitch_);
+    if (GetBytesPerPixel() * width_ > pitch_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
@@ -191,9 +195,25 @@ namespace Orthanc
     width_ = width;
     height_ = height;
     pitch_ = pitch;
-    buffer_ = buffer;
+    buffer_ = reinterpret_cast<uint8_t*>(buffer);
 
-    assert(GetBytesPerPixel() * width_ <= pitch_);
+    if (GetBytesPerPixel() * width_ > pitch_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void ImageAccessor::GetWriteableAccessor(ImageAccessor& target) const
+  {
+    if (readOnly_)
+    {
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+    else
+    {
+      target.AssignWritable(format_, width_, height_, pitch_, buffer_);
+    }
   }
 
 
@@ -211,8 +231,20 @@ namespace Orthanc
         ToMatlabStringInternal<uint16_t>(buffer, *this);
         break;
 
+      case PixelFormat_Grayscale32:
+        ToMatlabStringInternal<uint32_t>(buffer, *this);
+        break;
+
+      case PixelFormat_Grayscale64:
+        ToMatlabStringInternal<uint64_t>(buffer, *this);
+        break;
+
       case PixelFormat_SignedGrayscale16:
         ToMatlabStringInternal<int16_t>(buffer, *this);
+        break;
+
+      case PixelFormat_Float32:
+        ToMatlabStringInternal<float>(buffer, *this);
         break;
 
       case PixelFormat_RGB24:
@@ -226,4 +258,58 @@ namespace Orthanc
     buffer.Flatten(target);
   }
 
+
+
+  void ImageAccessor::GetRegion(ImageAccessor& accessor,
+                                unsigned int x,
+                                unsigned int y,
+                                unsigned int width,
+                                unsigned int height) const
+  {
+    if (x + width > width_ ||
+        y + height > height_)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    if (width == 0 ||
+        height == 0)
+    {
+      accessor.AssignWritable(format_, 0, 0, 0, NULL);
+    }
+    else
+    {
+      uint8_t* p = (buffer_ + 
+                    y * pitch_ + 
+                    x * GetBytesPerPixel());
+
+      if (readOnly_)
+      {
+        accessor.AssignReadOnly(format_, width, height, pitch_, p);
+      }
+      else
+      {
+        accessor.AssignWritable(format_, width, height, pitch_, p);
+      }
+    }
+  }
+
+
+  void ImageAccessor::SetFormat(PixelFormat format)
+  {
+    if (readOnly_)
+    {
+#if ORTHANC_ENABLE_LOGGING == 1
+      LOG(ERROR) << "Trying to modify the format of a read-only image";
+#endif
+      throw OrthancException(ErrorCode_ReadOnly);
+    }
+
+    if (::Orthanc::GetBytesPerPixel(format) != ::Orthanc::GetBytesPerPixel(format_))
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+
+    format_ = format;
+  }
 }

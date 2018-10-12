@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,12 +51,12 @@ namespace Orthanc
     void Initialize(const boost::filesystem::path& path);
 
   public:
-    FilesystemHttpSender(const std::string& path)
+    explicit FilesystemHttpSender(const std::string& path)
     {
       Initialize(path);
     }
 
-    FilesystemHttpSender(const boost::filesystem::path& path)
+    explicit FilesystemHttpSender(const boost::filesystem::path& path)
     {
       Initialize(path);
     }

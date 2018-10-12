@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -47,7 +48,7 @@ namespace Orthanc
     void Stop();
 
   public:
-    RunnableWorkersPool(size_t countWorkers);
+    explicit RunnableWorkersPool(size_t countWorkers);
 
     ~RunnableWorkersPool();
 
