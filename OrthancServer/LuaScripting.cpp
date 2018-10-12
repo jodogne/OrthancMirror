@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,24 +34,217 @@
 #include "PrecompiledHeadersServer.h"
 #include "LuaScripting.h"
 
-#include "ServerContext.h"
 #include "OrthancInitialization.h"
-#include "../Core/Lua/LuaFunctionCall.h"
+#include "OrthancRestApi/OrthancRestApi.h"
+#include "ServerContext.h"
+
 #include "../Core/HttpServer/StringHttpOutput.h"
 #include "../Core/Logging.h"
-
-#include "Scheduler/DeleteInstanceCommand.h"
-#include "Scheduler/StoreScuCommand.h"
-#include "Scheduler/StorePeerCommand.h"
-#include "Scheduler/ModifyInstanceCommand.h"
-#include "Scheduler/CallSystemCommand.h"
-#include "OrthancRestApi/OrthancRestApi.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 
 #include <EmbeddedResources.h>
 
 
 namespace Orthanc
 {
+  class LuaScripting::IEvent : public IDynamicObject
+  {
+  public:
+    virtual void Apply(LuaScripting& lock) = 0;
+  };
+
+
+  class LuaScripting::OnStoredInstanceEvent : public LuaScripting::IEvent
+  {
+  private:
+    std::string    instanceId_;
+    Json::Value    simplifiedTags_;
+    Json::Value    metadata_;
+    Json::Value    origin_;
+
+  public:
+    OnStoredInstanceEvent(const std::string& instanceId,
+                          const Json::Value& simplifiedTags,
+                          const Json::Value& metadata,
+                          const DicomInstanceToStore& instance) :
+      instanceId_(instanceId),
+      simplifiedTags_(simplifiedTags),
+      metadata_(metadata)
+    {
+      instance.GetOrigin().Format(origin_);
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      static const char* NAME = "OnStoredInstance";
+
+      LuaScripting::Lock lock(that);
+
+      if (lock.GetLua().IsExistingFunction(NAME))
+      {
+        that.InitializeJob();
+
+        LuaFunctionCall call(lock.GetLua(), NAME);
+        call.PushString(instanceId_);
+        call.PushJson(simplifiedTags_);
+        call.PushJson(metadata_);
+        call.PushJson(origin_);
+        call.Execute();
+
+        that.SubmitJob();
+      }
+    }
+  };
+
+
+  class LuaScripting::ExecuteEvent : public LuaScripting::IEvent
+  {
+  private:
+    std::string    command_;
+
+  public:
+    ExecuteEvent(const std::string& command) :
+      command_(command)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      LuaScripting::Lock lock(that);
+
+      if (lock.GetLua().IsExistingFunction(command_.c_str()))
+      {
+        LuaFunctionCall call(lock.GetLua(), command_.c_str());
+        call.Execute();
+      }
+    }
+  };
+
+
+  class LuaScripting::StableResourceEvent : public LuaScripting::IEvent
+  {
+  private:
+    ServerIndexChange  change_;
+
+  public:
+    StableResourceEvent(const ServerIndexChange& change) :
+    change_(change)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      const char* name;
+
+      switch (change_.GetChangeType())
+      {
+        case ChangeType_StablePatient:
+          name = "OnStablePatient";
+          break;
+
+        case ChangeType_StableStudy:
+          name = "OnStableStudy";
+          break;
+
+        case ChangeType_StableSeries:
+          name = "OnStableSeries";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        // Avoid unnecessary calls to the database if there's no Lua callback
+        LuaScripting::Lock lock(that);
+
+        if (!lock.GetLua().IsExistingFunction(name))
+        {
+          return;
+        }
+      }
+      
+      Json::Value tags, metadata;
+      if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()) &&
+          that.context_.GetIndex().GetMetadata(metadata, change_.GetPublicId()))
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(name))
+        {
+          that.InitializeJob();
+
+          LuaFunctionCall call(lock.GetLua(), name);
+          call.PushString(change_.GetPublicId());
+          call.PushJson(tags["MainDicomTags"]);
+          call.PushJson(metadata);
+          call.Execute();
+
+          that.SubmitJob();
+        }
+      }
+    }
+  };
+
+
+  class LuaScripting::JobEvent : public LuaScripting::IEvent
+  {
+  public:
+    enum Type
+    {
+      Type_Failure,
+      Type_Submitted,
+      Type_Success
+    };
+    
+  private:
+    Type         type_;
+    std::string  jobId_;
+
+  public:
+    JobEvent(Type type,
+             const std::string& jobId) :
+      type_(type),
+      jobId_(jobId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (type_)
+      {
+        case Type_Failure:
+          functionName = "OnJobFailure";
+          break;
+
+        case Type_Submitted:
+          functionName = "OnJobSubmitted";
+          break;
+
+        case Type_Success:
+          functionName = "OnJobSuccess";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(jobId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
   ServerContext* LuaScripting::GetServerContext(lua_State *state)
   {
     const void* value = LuaContext::GetGlobalVariable(state, "_ServerContext");
@@ -210,7 +404,7 @@ namespace Orthanc
     }
 
     LOG(ERROR) << "Lua: Error in RestApiDelete() for URI: " << uri;
-      lua_pushnil(state);
+    lua_pushnil(state);
 
     return 1;
   }
@@ -228,13 +422,14 @@ namespace Orthanc
   }
 
 
-  IServerCommand* LuaScripting::ParseOperation(const std::string& operation,
-                                               const Json::Value& parameters)
+  size_t LuaScripting::ParseOperation(LuaJobManager::Lock& lock,
+                                      const std::string& operation,
+                                      const Json::Value& parameters)
   {
     if (operation == "delete")
     {
       LOG(INFO) << "Lua script to delete resource " << parameters["Resource"].asString();
-      return new DeleteInstanceCommand(context_);
+      return lock.AddDeleteResourceOperation(context_);
     }
 
     if (operation == "store-scu")
@@ -249,34 +444,35 @@ namespace Orthanc
         localAet = context_.GetDefaultLocalApplicationEntityTitle();
       }
 
-      std::string modality = parameters["Modality"].asString();
-      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
-                << " to modality " << modality << " using Store-SCU";
-      return new StoreScuCommand(context_, localAet,
-                                 Configuration::GetModalityUsingSymbolicName(modality), true);
+      std::string name = parameters["Modality"].asString();
+      RemoteModalityParameters modality = Configuration::GetModalityUsingSymbolicName(name);
+
+      // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
+      return lock.AddStoreScuOperation(localAet, modality);
     }
 
     if (operation == "store-peer")
     {
-      std::string peer = parameters["Peer"].asString();
-      LOG(INFO) << "Lua script to send resource " << parameters["Resource"].asString()
-                << " to peer " << peer << " using HTTP";
+      std::string name = parameters["Peer"].asString();
 
-      OrthancPeerParameters parameters;
-      Configuration::GetOrthancPeer(parameters, peer);
-      return new StorePeerCommand(context_, parameters, true);
+      WebServiceParameters peer;
+      if (Configuration::GetOrthancPeer(peer, name))
+      {
+        return lock.AddStorePeerOperation(peer);
+      }
+      else
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << name;
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
 
     if (operation == "modify")
     {
-      LOG(INFO) << "Lua script to modify resource " << parameters["Resource"].asString();
       std::auto_ptr<DicomModification> modification(new DicomModification);
-      OrthancRestApi::ParseModifyRequest(*modification, parameters);
+      modification->ParseModifyRequest(parameters);
 
-      std::auto_ptr<ModifyInstanceCommand> command
-        (new ModifyInstanceCommand(context_, RequestOrigin_Lua, modification.release()));
-
-      return command.release();
+      return lock.AddModifyInstanceOperation(context_, modification.release());
     }
 
     if (operation == "call-system")
@@ -317,7 +513,10 @@ namespace Orthanc
         }
       }
 
-      return new CallSystemCommand(context_, parameters["Command"].asString(), args);
+      std::string command = parameters["Command"].asString();
+      std::vector<std::string> postArgs;
+
+      return lock.AddSystemCallOperation(command, args, postArgs);
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -330,7 +529,7 @@ namespace Orthanc
   }
 
 
-  void LuaScripting::SubmitJob(const std::string& description)
+  void LuaScripting::SubmitJob()
   {
     Json::Value operations;
     LuaFunctionCall call2(lua_, "_AccessJob");
@@ -341,8 +540,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    ServerJob job;
-    ServerCommandInstance* previousCommand = NULL;
+    LuaJobManager::Lock lock(jobManager_, context_.GetJobsEngine());
+
+    bool isFirst = true;
+    size_t previous = 0;  // Dummy initialization to avoid warning
 
     for (Json::Value::ArrayIndex i = 0; i < operations.size(); ++i)
     {
@@ -353,34 +554,33 @@ namespace Orthanc
       }
 
       const Json::Value& parameters = operations[i];
-      std::string operation = parameters["Operation"].asString();
-
-      ServerCommandInstance& command = job.AddCommand(ParseOperation(operation, operations[i]));
-        
       if (!parameters.isMember("Resource"))
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
+      std::string operation = parameters["Operation"].asString();
+      size_t index = ParseOperation(lock, operation, operations[i]);
+        
       std::string resource = parameters["Resource"].asString();
-      if (resource.empty())
+      if (!resource.empty())
       {
-        previousCommand->ConnectOutput(command);
+        lock.AddDicomInstanceInput(index, context_, resource);
       }
-      else 
+      else if (!isFirst)
       {
-        command.AddInput(resource);
+        lock.Connect(previous, index);
       }
 
-      previousCommand = &command;
+      isFirst = false;
+      previous = index;
     }
-
-    job.SetDescription(description);
-    context_.GetScheduler().Submit(job);
   }
 
 
-  LuaScripting::LuaScripting(ServerContext& context) : context_(context)
+  LuaScripting::LuaScripting(ServerContext& context) : 
+    context_(context),
+    state_(State_Setup)
   {
     lua_.SetGlobalVariable("_ServerContext", &context);
     lua_.RegisterFunction("RestApiGet", RestApiGet);
@@ -389,34 +589,90 @@ namespace Orthanc
     lua_.RegisterFunction("RestApiDelete", RestApiDelete);
     lua_.RegisterFunction("GetOrthancConfiguration", GetOrthancConfiguration);
 
-    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
-    lua_.SetHttpProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
+    LOG(INFO) << "Initializing Lua for the event handler";
+    LoadGlobalConfiguration();
   }
 
 
-  void LuaScripting::ApplyOnStoredInstance(const std::string& instanceId,
-                                           const Json::Value& simplifiedTags,
-                                           const Json::Value& metadata,
-                                           const DicomInstanceToStore& instance)
+  LuaScripting::~LuaScripting()
   {
-    static const char* NAME = "OnStoredInstance";
-
-    if (lua_.IsExistingFunction(NAME))
+    if (state_ == State_Running)
     {
-      InitializeJob();
+      LOG(ERROR) << "INTERNAL ERROR: LuaScripting::Stop() should be invoked manually to avoid mess in the destruction order!";
+      Stop();
+    }
+  }
 
-      LuaFunctionCall call(lua_, NAME);
-      call.PushString(instanceId);
-      call.PushJson(simplifiedTags);
-      call.PushJson(metadata);
 
-      Json::Value origin;
-      instance.GetOriginInformation(origin);
-      call.PushJson(origin);
+  void LuaScripting::EventThread(LuaScripting* that)
+  {
+    for (;;)
+    {
+      std::auto_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
 
-      call.Execute();
+      if (event.get() == NULL)
+      {
+        // The event queue is empty, check whether we should stop
+        boost::recursive_mutex::scoped_lock lock(that->mutex_);
 
-      SubmitJob(std::string("Lua script: ") + NAME);
+        if (that->state_ != State_Running)
+        {
+          return;
+        }
+      }
+      else
+      {
+        try
+        {
+          dynamic_cast<IEvent&>(*event).Apply(*that);
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Error while processing Lua events: " << e.What();
+        }
+      }
+    }
+  }
+
+
+  void LuaScripting::Start()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    if (state_ != State_Setup ||
+        eventThread_.joinable()  /* already started */)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      LOG(INFO) << "Starting the Lua engine";
+      eventThread_ = boost::thread(EventThread, this);
+      state_ = State_Running;
+    }
+  }
+
+
+  void LuaScripting::Stop()
+  {
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);
+
+      if (state_ != State_Running)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      state_ = State_Done;
+    }
+
+    jobManager_.AwakeTrailingSleep();
+
+    if (eventThread_.joinable())
+    {
+      LOG(INFO) << "Stopping the Lua engine";
+      eventThread_.join();
+      LOG(INFO) << "The Lua engine has stopped";
     }
   }
 
@@ -425,8 +681,6 @@ namespace Orthanc
                                           DicomInstanceToStore& instance,
                                           const Json::Value& simplifiedTags)
   {
-    boost::recursive_mutex::scoped_lock lock(mutex_);
-
     Json::Value metadata = Json::objectValue;
 
     for (ServerIndex::MetadataMap::const_iterator 
@@ -439,55 +693,8 @@ namespace Orthanc
       }
     }
 
-    ApplyOnStoredInstance(publicId, simplifiedTags, metadata, instance);
+    pendingEvents_.Enqueue(new OnStoredInstanceEvent(publicId, simplifiedTags, metadata, instance));
   }
-
-
-  
-  void LuaScripting::OnStableResource(const ServerIndexChange& change)
-  {
-    const char* name;
-
-    switch (change.GetChangeType())
-    {
-      case ChangeType_StablePatient:
-        name = "OnStablePatient";
-        break;
-
-      case ChangeType_StableStudy:
-        name = "OnStableStudy";
-        break;
-
-      case ChangeType_StableSeries:
-        name = "OnStableSeries";
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-
-    Json::Value tags, metadata;
-    if (context_.GetIndex().LookupResource(tags, change.GetPublicId(), change.GetResourceType()) &&
-        context_.GetIndex().GetMetadata(metadata, change.GetPublicId()))
-    {
-      boost::recursive_mutex::scoped_lock lock(mutex_);
-
-      if (lua_.IsExistingFunction(name))
-      {
-        InitializeJob();
-
-        LuaFunctionCall call(lua_, name);
-        call.PushString(change.GetPublicId());
-        call.PushJson(tags["MainDicomTags"]);
-        call.PushJson(metadata);
-        call.Execute();
-
-        SubmitJob(std::string("Lua script: ") + name);
-      }
-    }
-  }
-
 
 
   void LuaScripting::SignalChange(const ServerIndexChange& change)
@@ -496,7 +703,7 @@ namespace Orthanc
         change.GetChangeType() == ChangeType_StableStudy ||
         change.GetChangeType() == ChangeType_StableSeries)
     {
-      OnStableResource(change);
+      pendingEvents_.Enqueue(new StableResourceEvent(change));
     }
   }
 
@@ -514,7 +721,7 @@ namespace Orthanc
       call.PushJson(simplified);
 
       Json::Value origin;
-      instance.GetOriginInformation(origin);
+      instance.GetOrigin().Format(origin);
       call.PushJson(origin);
 
       if (!call.ExecutePredicate())
@@ -529,12 +736,46 @@ namespace Orthanc
 
   void LuaScripting::Execute(const std::string& command)
   {
-    LuaScripting::Locker locker(*this);
-      
-    if (locker.GetLua().IsExistingFunction(command.c_str()))
+    pendingEvents_.Enqueue(new ExecuteEvent(command));
+  }
+
+
+  void LuaScripting::LoadGlobalConfiguration()
+  {
+    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+
+    std::list<std::string> luaScripts;
+    Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+
+    LuaScripting::Lock lock(*this);
+
+    for (std::list<std::string>::const_iterator
+           it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
-      LuaFunctionCall call(locker.GetLua(), command.c_str());
-      call.Execute();
+      std::string path = Configuration::InterpretStringParameterAsPath(*it);
+      LOG(INFO) << "Installing the Lua scripts from: " << path;
+      std::string script;
+      SystemToolbox::ReadFile(script, path);
+
+      lock.GetLua().Execute(script);
     }
+  }
+
+  
+  void LuaScripting::SignalJobSubmitted(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Submitted, jobId));
+  }
+  
+
+  void LuaScripting::SignalJobSuccess(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Success, jobId));
+  }
+  
+
+  void LuaScripting::SignalJobFailure(const std::string& jobId)
+  {
+    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Failure, jobId));
   }
 }

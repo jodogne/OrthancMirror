@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,7 +32,7 @@
 
 #pragma once
 
-#include "DicomProtocol/IFindRequestHandler.h"
+#include "../Core/DicomNetworking/IFindRequestHandler.h"
 
 #include "ServerContext.h"
 
@@ -41,24 +42,34 @@ namespace Orthanc
   {
   private:
     ServerContext& context_;
-    unsigned int maxResults_;
-    unsigned int maxInstances_;
+    unsigned int   maxResults_;
+    unsigned int   maxInstances_;
 
     bool HasReachedLimit(const DicomFindAnswers& answers,
                          ResourceType level) const;
 
-  public:
-    OrthancFindRequestHandler(ServerContext& context) :
-      context_(context), 
-      maxResults_(0),
-      maxInstances_(0)
-    {
-    }
+    bool FilterQueryTag(std::string& value /* can be modified */,
+                        ResourceType level,
+                        const DicomTag& tag,
+                        ModalityManufacturer manufacturer);
 
-    virtual bool Handle(DicomFindAnswers& answers,
-                        const DicomMap& input,
+    bool ApplyLuaFilter(DicomMap& target,
+                        const DicomMap& source,
                         const std::string& remoteIp,
-                        const std::string& remoteAet);
+                        const std::string& remoteAet,
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer);
+
+  public:
+    OrthancFindRequestHandler(ServerContext& context);
+
+    virtual void Handle(DicomFindAnswers& answers,
+                        const DicomMap& input,
+                        const std::list<DicomTag>& sequencesToReturn,
+                        const std::string& remoteIp,
+                        const std::string& remoteAet,
+                        const std::string& calledAet,
+                        ModalityManufacturer manufacturer);
 
     unsigned int GetMaxResults() const
     {
@@ -79,5 +90,11 @@ namespace Orthanc
     {
       maxInstances_ = instances;
     }
+
+    static void FormatOrigin(Json::Value& origin,
+                             const std::string& remoteIp,
+                             const std::string& remoteAet,
+                             const std::string& calledAet,
+                             ModalityManufacturer manufacturer);
   };
 }

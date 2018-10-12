@@ -13,21 +13,40 @@ if ($.browser.msie)
 //$.mobile.defaultPageTransition = 'slide';
 
 
+var LIMIT_RESOURCES = 100;
+
 var currentPage = '';
 var currentUuid = '';
 
 
-// http://stackoverflow.com/a/4673436
-String.prototype.format = function() {
-  var args = arguments;
-  return this.replace(/{(\d+)}/g, function(match, number) { 
-    /*return typeof args[number] != 'undefined'
-      ? args[number]
-      : match;*/
+function DeepCopy(obj)
+{
+  return jQuery.extend(true, {}, obj);
+}
 
-    return args[number];
-  });
-};
+
+function ChangePage(page, options)
+{
+  var first = true;
+  if (options) {
+    for (var key in options) {
+      var value = options[key];
+      if (first) {
+        page += '?';
+        first = false;
+      } else {
+        page += '&';
+      }
+      
+      page += key + '=' + value;
+    }
+  }
+
+  window.location.replace('explorer.html#' + page);
+  /*$.mobile.changePage('#' + page, {
+    changeHash: true
+  });*/
+}
 
 
 function Refresh()
@@ -179,29 +198,34 @@ function GetResource(uri, callback)
 }
 
 
-function CompleteFormatting(s, link, isReverse)
+function CompleteFormatting(node, link, isReverse, count)
 {
+  if (count != null)
+  {
+    node = node.add($('<span>')
+                    .addClass('ui-li-count')
+                    .text(count));
+  }
+  
   if (link != null)
   {
-    s = 'href="' + link + '">' + s + '</a>';
-    
-    if (isReverse)
-      s = 'data-direction="reverse" '+ s;
+    node = $('<a>').attr('href', link).append(node);
 
-    s = '<a ' + s;
+    if (isReverse)
+      node.attr('data-direction', 'reverse')
   }
 
+  node = $('<li>').append(node);
+
   if (isReverse)
-    return '<li data-icon="back">' + s + '</li>';
-  else
-    return '<li>' + s + '</li>';
+    node.attr('data-icon', 'back');
+
+  return node;
 }
 
 
-function FormatMainDicomTags(tags, tagsToIgnore)
+function FormatMainDicomTags(target, tags, tagsToIgnore)
 {
-  var s = '';
-
   for (var i in tags)
   {
     if (tagsToIgnore.indexOf(i) == -1)
@@ -220,47 +244,52 @@ function FormatMainDicomTags(tags, tagsToIgnore)
         v = SplitLongUid(v);
       }
       
-
-      s += ('<p>{0}: <strong>{1}</strong></p>').format(i, v);
+      target.append($('<p>')
+                    .text(i + ': ')
+                    .append($('<strong>').text(v)));
     }
   }
-
-  return s;
 }
 
 
 function FormatPatient(patient, link, isReverse)
 {
-  var s = ('<h3>{0}</h3>{1}' + 
-           '<span class="ui-li-count">{2}</span>'
-          ).format
-  (patient.MainDicomTags.PatientName,
-   FormatMainDicomTags(patient.MainDicomTags, [ 
-     "PatientName"
-     /*"OtherPatientIDs" */
-   ]),
-   patient.Studies.length
-  );
+  var node = $('<div>').append($('<h3>').text(patient.MainDicomTags.PatientName));
 
-  return CompleteFormatting(s, link, isReverse);
+  FormatMainDicomTags(node, patient.MainDicomTags, [ 
+    "PatientName"
+    // "OtherPatientIDs"
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse, patient.Studies.length);
 }
 
 
 
-function FormatStudy(study, link, isReverse)
+function FormatStudy(study, link, isReverse, includePatient)
 {
-  var s = ('<h3>{0}</h3>{1}' +
-           '<span class="ui-li-count">{2}</span>'
-           ).format
-  (study.MainDicomTags.StudyDescription,
-   FormatMainDicomTags(study.MainDicomTags, [
-     "StudyDescription", 
-     "StudyTime" 
-   ]),
-   study.Series.length
-  );
+  var label;
 
-  return CompleteFormatting(s, link, isReverse);
+  if (includePatient) {
+    label = study.Label;
+  } else {
+    label = study.MainDicomTags.StudyDescription;
+  }
+
+  var node = $('<div>').append($('<h3>').text(label));
+
+  if (includePatient) {
+    FormatMainDicomTags(node, study.PatientMainDicomTags, [ 
+      'PatientName'
+    ]);
+  }
+    
+  FormatMainDicomTags(node, study.MainDicomTags, [ 
+     'StudyDescription', 
+     'StudyTime' 
+  ]);
+
+  return CompleteFormatting(node, link, isReverse, study.Series.length);
 }
 
 
@@ -277,41 +306,39 @@ function FormatSeries(series, link, isReverse)
   {
     c = series.Instances.length + '/' + series.ExpectedNumberOfInstances;
   }
+  
+  var node = $('<div>')
+      .append($('<h3>').text(series.MainDicomTags.SeriesDescription))
+      .append($('<p>').append($('<em>')
+                           .text('Status: ')
+                           .append($('<strong>').text(series.Status))));
 
-  var s = ('<h3>{0}</h3>' +
-           '<p><em>Status: <strong>{1}</strong></em></p>{2}' +
-           '<span class="ui-li-count">{3}</span>').format
-  (series.MainDicomTags.SeriesDescription,
-   series.Status,
-   FormatMainDicomTags(series.MainDicomTags, [
+  FormatMainDicomTags(node, series.MainDicomTags, [ 
      "SeriesDescription", 
      "SeriesTime", 
      "Manufacturer",
      "ImagesInAcquisition",
      "SeriesDate",
      "ImageOrientationPatient"
-   ]),
-   c
-  );
-
-  return CompleteFormatting(s, link, isReverse);
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse, c);
 }
 
 
 function FormatInstance(instance, link, isReverse)
 {
-  var s = ('<h3>Instance {0}</h3>{1}').format
-  (instance.IndexInSeries,
-   FormatMainDicomTags(instance.MainDicomTags, [
-     "AcquisitionNumber", 
-     "InstanceNumber", 
-     "InstanceCreationDate", 
-     "InstanceCreationTime",
-     "ImagePositionPatient"
-   ])
-  );
+  var node = $('<div>').append($('<h3>').text('Instance: ' + instance.IndexInSeries));
 
-  return CompleteFormatting(s, link, isReverse);
+  FormatMainDicomTags(node, instance.MainDicomTags, [
+    "AcquisitionNumber", 
+    "InstanceNumber", 
+    "InstanceCreationDate", 
+    "InstanceCreationTime",
+    "ImagePositionPatient"
+  ]);
+    
+  return CompleteFormatting(node, link, isReverse);
 }
 
 
@@ -323,7 +350,11 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     cache: false,
     success: function(s) {
       if (s.Name != "") {
-        $('.orthanc-name').html('<a class="ui-link" href="explorer.html">' + s.Name + '</a> &raquo; ');
+        $('.orthanc-name').html($('<a>')
+                                .addClass('ui-link')
+                                .attr('href', 'explorer.html')
+                                .text(s.Name)
+                                .append(' &raquo; '));
       }
     }
   });
@@ -331,19 +362,166 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 
 
-$('#find-patients').live('pagebeforeshow', function() {
-  GetResource('/patients?expand', function(patients) {
-      var target = $('#all-patients');
-      $('li', target).remove();
-    
-      SortOnDicomTag(patients, 'PatientName', false, false);
+$('#lookup').live('pagebeforeshow', function() {
+  // NB: "GenerateDicomDate()" is defined in "query-retrieve.js"
+  var target = $('#lookup-study-date');
+  $('option', target).remove();
+  target.append($('<option>').attr('value', '*').text('Any date'));
+  target.append($('<option>').attr('value', GenerateDicomDate(0)).text('Today'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-1)).text('Yesterday'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-7) + '-').text('Last 7 days'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-31) + '-').text('Last 31 days'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-31 * 3) + '-').text('Last 3 months'));
+  target.append($('<option>').attr('value', GenerateDicomDate(-365) + '-').text('Last year'));
+  target.selectmenu('refresh');
 
-      for (var i = 0; i < patients.length; i++) {
-        var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
-        target.append(p);
+  $('#lookup-result').hide();
+});
+
+
+$('#lookup-submit').live('click', function() {
+  $('#lookup-result').hide();
+
+  var lookup = {
+    'Level' : 'Study',
+    'Expand' : true,
+    'Limit' : LIMIT_RESOURCES + 1,
+    'Query' : {
+      'StudyDate' : $('#lookup-study-date').val()
+    }
+  };
+
+  $('#lookup-form input').each(function(index, input) {
+    if (input.value.length != 0) {
+      if (input.id == 'lookup-patient-id') {
+        lookup['Query']['PatientID'] = input.value;
+      } 
+      else if (input.id == 'lookup-patient-name') {
+        lookup['Query']['PatientName'] = input.value;
+      } 
+      else if (input.id == 'lookup-accession-number') {
+        lookup['Query']['AccessionNumber'] = input.value;
+      } 
+      else if (input.id == 'lookup-study-description') {
+        lookup['Query']['StudyDescription'] = input.value;
+      }
+      else {
+        console.error('Unknown lookup field: ' + input.id);
+      }
+    } 
+  });
+
+  $.ajax({
+    url: '../tools/find',
+    type: 'POST', 
+    data: JSON.stringify(lookup),
+    dataType: 'json',
+    async: false,
+    error: function() {
+      alert('Error during lookup');
+    },
+    success: function(studies) {
+      FormatListOfStudies('#lookup-result ul', '#lookup-alert', '#lookup-count', studies);
+      $('#lookup-result').show();
+    }
+  });
+
+  return false;
+});
+
+
+$('#find-patients').live('pagebeforeshow', function() {
+  GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(patients) {
+    var target = $('#all-patients');
+    $('li', target).remove();
+    
+    SortOnDicomTag(patients, 'PatientName', false, false);
+
+    var count, showAlert;
+    if (patients.length <= LIMIT_RESOURCES) {
+      count = patients.length;
+      showAlert = false;
+    }
+    else {
+      count = LIMIT_RESOURCES;
+      showAlert = true;
+    }
+
+    for (var i = 0; i < count; i++) {
+      var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
+      target.append(p);
+    }
+
+    target.listview('refresh'); 
+
+    if (showAlert) {
+      $('#count-patients').text(LIMIT_RESOURCES);
+      $('#alert-patients').show();
+    } else {
+      $('#alert-patients').hide();
+    }
+  });
+});
+
+
+
+function FormatListOfStudies(targetId, alertId, countId, studies)
+{
+  var target = $(targetId);
+  $('li', target).remove();
+
+  for (var i = 0; i < studies.length; i++) {
+    var patient = studies[i].PatientMainDicomTags.PatientName;
+    var study = studies[i].MainDicomTags.StudyDescription;
+
+    var s;
+    if (typeof patient === 'string') {
+      s = patient;
+    }
+
+    if (typeof study === 'string') {
+      if (s.length > 0) {
+        s += ' - ';
       }
 
-      target.listview('refresh');
+      s += study;
+    }
+
+    studies[i]['Label'] = s;
+  }
+
+  Sort(studies, function(a) { return a.Label }, false, false);
+
+
+  var count, showAlert;
+  if (studies.length <= LIMIT_RESOURCES) {
+    count = studies.length;
+    showAlert = false;
+  }
+  else {
+    count = LIMIT_RESOURCES;
+    showAlert = true;
+  }
+
+  for (var i = 0; i < count; i++) {
+    var p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
+    target.append(p);
+  }
+
+  target.listview('refresh');
+
+  if (showAlert) {
+    $(countId).text(LIMIT_RESOURCES);
+    $(alertId).show();
+  } else {
+    $(alertId).hide();
+  }
+}
+
+
+$('#find-studies').live('pagebeforeshow', function() {
+  GetResource('/studies?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(studies) {
+    FormatListOfStudies('#all-studies', '#alert-studies', '#count-studies', studies);
   });
 });
 
@@ -369,8 +547,10 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
 function RefreshPatient()
 {
   if ($.mobile.pageData) {
-    GetResource('/patients/' + $.mobile.pageData.uuid, function(patient) {
-      GetResource('/patients/' + $.mobile.pageData.uuid + '/studies', function(studies) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/patients/' + pageData.uuid, function(patient) {
+      GetResource('/patients/' + pageData.uuid + '/studies', function(studies) {
         SortOnDicomTag(studies, 'StudyDate', false, true);
 
         $('#patient-info li').remove();
@@ -385,8 +565,9 @@ function RefreshPatient()
         for (var i = 0; i < studies.length; i++) {
           if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
           {
-            target.append('<li data-role="list-divider">{0}</li>'.format
-                          (FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
+            target.append($('<li>')
+                          .attr('data-role', 'list-divider')
+                          .text(FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
           }
 
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
@@ -399,7 +580,7 @@ function RefreshPatient()
 
         // Check whether this patient is protected
         $.ajax({
-          url: '../patients/' + $.mobile.pageData.uuid + '/protected',
+          url: '../patients/' + pageData.uuid + '/protected',
           type: 'GET',
           dataType: 'text',
           async: false,
@@ -411,7 +592,7 @@ function RefreshPatient()
         });
 
         currentPage = 'patient';
-        currentUuid = $.mobile.pageData.uuid;
+        currentUuid = pageData.uuid;
       });
     });
   }
@@ -421,9 +602,11 @@ function RefreshPatient()
 function RefreshStudy()
 {
   if ($.mobile.pageData) {
-    GetResource('/studies/' + $.mobile.pageData.uuid, function(study) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/studies/' + pageData.uuid, function(study) {
       GetResource('/patients/' + study.ParentPatient, function(patient) {
-        GetResource('/studies/' + $.mobile.pageData.uuid + '/series', function(series) {
+        GetResource('/studies/' + pageData.uuid + '/series', function(series) {
           SortOnDicomTag(series, 'SeriesDate', false, true);
 
           $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -443,15 +626,17 @@ function RefreshStudy()
           for (var i = 0; i < series.length; i++) {
             if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
             {
-              target.append('<li data-role="list-divider">{0}</li>'.format
-                            (FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
+              target.append($('<li>')
+                            .attr('data-role', 'list-divider')
+                            .text(FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
             }
+            
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
 
           currentPage = 'study';
-          currentUuid = $.mobile.pageData.uuid;
+          currentUuid = pageData.uuid;
         });
       });
     });
@@ -462,10 +647,12 @@ function RefreshStudy()
 function RefreshSeries() 
 {
   if ($.mobile.pageData) {
-    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/series/' + pageData.uuid, function(series) {
       GetResource('/studies/' + series.ParentStudy, function(study) {
         GetResource('/patients/' + study.ParentPatient, function(patient) {
-          GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+          GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
             Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
             $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -492,7 +679,7 @@ function RefreshSeries()
             target.listview('refresh');
 
             currentPage = 'series';
-            currentUuid = $.mobile.pageData.uuid;
+            currentUuid = pageData.uuid;
           });
         });
       });
@@ -501,6 +688,24 @@ function RefreshSeries()
 }
 
 
+function EscapeHtml(value)
+{
+  var ENTITY_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  };
+
+  return String(value).replace(/[&<>"'`=\/]/g, function (s) {
+    return ENTITY_MAP[s];
+  });
+}
+
 
 function ConvertForTree(dicom)
 {
@@ -508,12 +713,14 @@ function ConvertForTree(dicom)
 
   for (var i in dicom) {
     if (dicom[i] != null) {
-      var label = i + '<span class="tag-name"> (<i>' + dicom[i]["Name"] + '</i>)</span>: ';
+      var label = (i + '<span class="tag-name"> (<i>' +
+                   EscapeHtml(dicom[i]["Name"]) +
+                   '</i>)</span>: ');
 
       if (dicom[i]["Type"] == 'String')
       {
         result.push({
-          label: label + '<strong>' + dicom[i]["Value"] + '</strong>',
+          label: label + '<strong>' + EscapeHtml(dicom[i]["Value"]) + '</strong>',
           children: []
         });
       }
@@ -556,7 +763,9 @@ function ConvertForTree(dicom)
 function RefreshInstance()
 {
   if ($.mobile.pageData) {
-    GetResource('/instances/' + $.mobile.pageData.uuid, function(instance) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/instances/' + pageData.uuid, function(instance) {
       GetResource('/series/' + instance.ParentSeries, function(series) {
         GetResource('/studies/' + series.ParentStudy, function(study) {
           GetResource('/patients/' + study.ParentPatient, function(patient) {
@@ -585,7 +794,7 @@ function RefreshInstance()
             SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', 'ModifiedFrom');
 
             currentPage = 'instance';
-            currentUuid = $.mobile.pageData.uuid;
+            currentUuid = pageData.uuid;
           });
         });
       });
@@ -704,7 +913,9 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    var pdf = '../instances/' + $.mobile.pageData.uuid + '/pdf';
+    var pageData = DeepCopy($.mobile.pageData);
+
+    var pdf = '../instances/' + pageData.uuid + '/pdf';
     $.ajax({
       url: pdf,
       cache: false,
@@ -712,11 +923,11 @@ $('#instance-preview').live('click', function(e) {
         window.location.assign(pdf);
       },
       error: function() {
-        GetResource('/instances/' + $.mobile.pageData.uuid + '/frames', function(frames) {
+        GetResource('/instances/' + pageData.uuid + '/frames', function(frames) {
           if (frames.length == 1)
           {
             // Viewing a single-frame image
-            jQuery.slimbox('../instances/' + $.mobile.pageData.uuid + '/preview', '', {
+            jQuery.slimbox('../instances/' + pageData.uuid + '/preview', '', {
               overlayFadeDuration : 1,
               resizeDuration : 1,
               imageFadeDuration : 1
@@ -728,7 +939,7 @@ $('#instance-preview').live('click', function(e) {
 
             var images = [];
             for (var i = 0; i < frames.length; i++) {
-              images.push([ '../instances/' + $.mobile.pageData.uuid + '/frames/' + i + '/preview' ]);
+              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview' ]);
             }
 
             jQuery.slimbox(images, 0, {
@@ -748,14 +959,16 @@ $('#instance-preview').live('click', function(e) {
 
 $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    GetResource('/series/' + $.mobile.pageData.uuid, function(series) {
-      GetResource('/series/' + $.mobile.pageData.uuid + '/instances', function(instances) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    GetResource('/series/' + pageData.uuid, function(series) {
+      GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
         Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
         var images = [];
         for (var i = 0; i < instances.length; i++) {
           images.push([ '../instances/' + instances[i].ID + '/preview',
-                        '{0}/{1}'.format(i + 1, instances.length) ])
+                        (i + 1).toString() + '/' + instances.length.toString() ])
         }
 
         jQuery.slimbox(images, 0, {
@@ -858,6 +1071,8 @@ function ChooseDicomModality(callback)
 
 $('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
   ChooseDicomModality(function(modality, peer) {
+    var pageData = DeepCopy($.mobile.pageData);
+
     var url;
     var loading;
 
@@ -878,7 +1093,7 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
         url: url,
         type: 'POST',
         dataType: 'text',
-        data: $.mobile.pageData.uuid,
+        data: pageData.uuid,
         async: true,  // Necessary to block UI
         beforeSend: function() {
           $.blockUI({ message: $(loading) });
@@ -1051,4 +1266,210 @@ $('#plugins').live('pagebeforeshow', function() {
       target.listview('refresh');
     }
   });
+});
+
+
+
+function ParseJobTime(s)
+{
+  var t = (s.substr(0, 4) + '-' +
+           s.substr(4, 2) + '-' +
+           s.substr(6, 5) + ':' +
+           s.substr(11, 2) + ':' +
+           s.substr(13));
+  var utc = new Date(t);
+
+  // Convert from UTC to local time
+  return new Date(utc.getTime() - utc.getTimezoneOffset() * 60000);
+}
+
+
+function AddJobField(target, description, field)
+{
+  if (!(typeof field === 'undefined')) {
+    target.append($('<p>')
+                  .text(description)
+                  .append($('<strong>').text(field)));
+  }
+}
+
+
+function AddJobDateField(target, description, field)
+{
+  if (!(typeof field === 'undefined')) {
+    target.append($('<p>')
+                  .text(description)
+                  .append($('<strong>').text(ParseJobTime(field))));
+  }
+}
+
+
+$('#jobs').live('pagebeforeshow', function() {
+  $.ajax({
+    url: '../jobs?expand',
+    dataType: 'json',
+    async: false,
+    cache: false,
+    success: function(jobs) {
+      var target = $('#all-jobs');
+      $('li', target).remove();
+
+      var running = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Currently running');
+
+      var pending = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Pending jobs');
+
+      var inactive = $('<li>')
+          .attr('data-role', 'list-divider')
+          .text('Inactive jobs');
+
+      target.append(running);
+      target.append(pending);
+      target.append(inactive);
+
+      jobs.map(function(job) {
+        var li = $('<li>');
+        var item = $('<a>');
+        li.append(item);
+        item.attr('href', '#job?uuid=' + job.ID);
+        item.append($('<h1>').text(job.Type));
+        item.append($('<span>').addClass('ui-li-count').text(job.State));
+        AddJobField(item, 'ID: ', job.ID);
+        AddJobField(item, 'Local AET: ', job.Content.LocalAet);
+        AddJobField(item, 'Remote AET: ', job.Content.RemoteAet);
+        AddJobDateField(item, 'Creation time: ', job.CreationTime);
+        AddJobDateField(item, 'Completion time: ', job.CompletionTime);
+        AddJobDateField(item, 'ETA: ', job.EstimatedTimeOfArrival);
+
+        if (job.State == 'Running' ||
+            job.State == 'Pending' ||
+            job.State == 'Paused') {
+          AddJobField(item, 'Priority: ', job.Priority);
+          AddJobField(item, 'Progress: ', job.Progress);
+        }
+        
+        if (job.State == 'Running') {
+          li.insertAfter(running);
+        } else if (job.State == 'Pending' ||
+                   job.State == 'Paused') {
+          li.insertAfter(pending);
+        } else {
+          li.insertAfter(inactive);
+        }
+      });
+
+      target.listview('refresh');
+    }
+  });
+});
+
+
+$('#job').live('pagebeforeshow', function() {
+  if ($.mobile.pageData) {
+    var pageData = DeepCopy($.mobile.pageData);
+
+    $.ajax({
+      url: '../jobs/' + pageData.uuid,
+      dataType: 'json',
+      async: false,
+      cache: false,
+      success: function(job) {
+        var target = $('#job-info');
+        $('li', target).remove();
+
+        target.append($('<li>')
+                      .attr('data-role', 'list-divider')
+                      .text('General information about the job'));
+
+        var block = $('<li>');
+        for (var i in job) {
+          if (i == 'CreationTime' ||
+              i == 'CompletionTime' ||
+              i == 'EstimatedTimeOfArrival') {
+            AddJobDateField(block, i + ': ', job[i]);
+          } else if (i != 'InternalContent' &&
+                     i != 'Content' &&
+                     i != 'Timestamp') {
+            AddJobField(block, i + ': ', job[i]);
+          }
+        }
+
+        target.append(block);
+        
+        target.append($('<li>')
+                      .attr('data-role', 'list-divider')
+                      .text('Detailed information'));
+
+        var block = $('<li>');
+
+        for (var item in job.Content) {
+          var value = job.Content[item];
+          if (typeof value !== 'string') {
+            value = JSON.stringify(value);
+          }
+          
+          AddJobField(block, item + ': ', value);
+        }
+
+        target.append(block);
+        
+        target.listview('refresh');
+
+        $('#job-cancel').closest('.ui-btn').hide();
+        $('#job-retry').closest('.ui-btn').hide();
+        $('#job-resubmit').closest('.ui-btn').hide();
+        $('#job-pause').closest('.ui-btn').hide();
+        $('#job-resume').closest('.ui-btn').hide();
+
+        if (job.State == 'Running' ||
+            job.State == 'Pending' ||
+            job.State == 'Retry') {
+          $('#job-cancel').closest('.ui-btn').show();
+          $('#job-pause').closest('.ui-btn').show();
+        }
+        else if (job.State == 'Success') {
+        }
+        else if (job.State == 'Failure') {
+          $('#job-resubmit').closest('.ui-btn').show();
+        }
+        else if (job.State == 'Paused') {
+          $('#job-resume').closest('.ui-btn').show();
+        }
+      }
+    });
+  }
+});
+
+
+
+function TriggerJobAction(action)
+{
+  $.ajax({
+    url: '../jobs/' + $.mobile.pageData.uuid + '/' + action,
+    type: 'POST',
+    async: false,
+    cache: false,
+    complete: function(s) {
+      window.location.reload();
+    }
+  });
+}
+
+$('#job-cancel').live('click', function() {
+  TriggerJobAction('cancel');
+});
+
+$('#job-resubmit').live('click', function() {
+  TriggerJobAction('resubmit');
+});
+
+$('#job-pause').live('click', function() {
+  TriggerJobAction('pause');
+});
+
+$('#job-resume').live('click', function() {
+  TriggerJobAction('resume');
 });

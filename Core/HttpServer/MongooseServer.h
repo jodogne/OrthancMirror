@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,7 +33,21 @@
 
 #pragma once
 
-#include "IHttpHandler.h"
+#if !defined(ORTHANC_ENABLE_MONGOOSE)
+#  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to include this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_CIVETWEB)
+#  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to include this file
+#endif
+
+#if (ORTHANC_ENABLE_MONGOOSE == 0 && \
+     ORTHANC_ENABLE_CIVETWEB == 0)
+#  error Either ORTHANC_ENABLE_MONGOOSE or ORTHANC_ENABLE_CIVETWEB must be set to 1
+#endif
+
+
+#include "IIncomingHttpRequestFilter.h"
 
 #include "../OrthancException.h"
 
@@ -46,21 +61,7 @@ namespace Orthanc
 {
   class ChunkStore;
 
-  class IIncomingHttpRequestFilter
-  {
-  public:
-    virtual ~IIncomingHttpRequestFilter()
-    {
-    }
-
-    virtual bool IsAllowed(HttpMethod method,
-                           const char* uri,
-                           const char* ip,
-                           const char* username) const = 0;
-  };
-
-
-  class IHttpExceptionFormatter
+  class IHttpExceptionFormatter : public boost::noncopyable
   {
   public:
     virtual ~IHttpExceptionFormatter()
@@ -95,6 +96,7 @@ namespace Orthanc
     bool keepAlive_;
     bool httpCompression_;
     IHttpExceptionFormatter* exceptionFormatter_;
+    std::string realm_;
   
     bool IsRunning() const;
 
@@ -161,7 +163,7 @@ namespace Orthanc
 
     void SetHttpCompressionEnabled(bool enabled);
 
-    const IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
+    IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
     {
       return filter_;
     }
@@ -186,6 +188,16 @@ namespace Orthanc
     IHttpExceptionFormatter* GetExceptionFormatter()
     {
       return exceptionFormatter_;
+    }
+
+    const std::string& GetRealm() const
+    {
+      return realm_;
+    }
+
+    void SetRealm(const std::string& realm)
+    {
+      realm_ = realm;
     }
   };
 }

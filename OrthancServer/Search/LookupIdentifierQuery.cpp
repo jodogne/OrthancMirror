@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,7 +36,7 @@
 
 #include "../../Core/OrthancException.h"
 #include "SetOfResources.h"
-#include "../FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 
 #include <cassert>
 
@@ -43,72 +44,16 @@
 
 namespace Orthanc
 {
-  static const DicomTag patientIdentifiers[] = 
-  {
-    DICOM_TAG_PATIENT_ID,
-    DICOM_TAG_PATIENT_NAME,
-    DICOM_TAG_PATIENT_BIRTH_DATE
-  };
-
-  static const DicomTag studyIdentifiers[] = 
-  {
-    DICOM_TAG_PATIENT_ID,
-    DICOM_TAG_PATIENT_NAME,
-    DICOM_TAG_PATIENT_BIRTH_DATE,
-    DICOM_TAG_STUDY_INSTANCE_UID,
-    DICOM_TAG_ACCESSION_NUMBER,
-    DICOM_TAG_STUDY_DESCRIPTION,
-    DICOM_TAG_STUDY_DATE
-  };
-
-  static const DicomTag seriesIdentifiers[] = 
-  {
-    DICOM_TAG_SERIES_INSTANCE_UID
-  };
-
-  static const DicomTag instanceIdentifiers[] = 
-  {
-    DICOM_TAG_SOP_INSTANCE_UID
-  };
-
-
-  void LookupIdentifierQuery::LoadIdentifiers(const DicomTag*& tags,
-                                              size_t& size,
-                                              ResourceType level)
-  {
-    switch (level)
-    {
-      case ResourceType_Patient:
-        tags = patientIdentifiers;
-        size = sizeof(patientIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Study:
-        tags = studyIdentifiers;
-        size = sizeof(studyIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Series:
-        tags = seriesIdentifiers;
-        size = sizeof(seriesIdentifiers) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Instance:
-        tags = instanceIdentifiers;
-        size = sizeof(instanceIdentifiers) / sizeof(DicomTag);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   LookupIdentifierQuery::Disjunction::~Disjunction()
   {
-    for (size_t i = 0; i < disjunction_.size(); i++)
+    for (size_t i = 0; i < singleConstraints_.size(); i++)
     {
-      delete disjunction_[i];
+      delete singleConstraints_[i];
+    }
+
+    for (size_t i = 0; i < rangeConstraints_.size(); i++)
+    {
+      delete rangeConstraints_[i];
     }
   }
 
@@ -117,38 +62,25 @@ namespace Orthanc
                                                IdentifierConstraintType type,
                                                const std::string& value)
   {
-    disjunction_.push_back(new Constraint(tag, type, value));
+    singleConstraints_.push_back(new SingleConstraint(tag, type, value));
+  }
+
+
+  void LookupIdentifierQuery::Disjunction::AddRange(const DicomTag& tag,
+                                                    const std::string& start,
+                                                    const std::string& end)
+  {
+    rangeConstraints_.push_back(new RangeConstraint(tag, start, end));
   }
 
 
   LookupIdentifierQuery::~LookupIdentifierQuery()
   {
-    for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
+    for (Disjunctions::iterator it = disjunctions_.begin();
+         it != disjunctions_.end(); ++it)
     {
       delete *it;
     }
-  }
-
-
-
-  bool LookupIdentifierQuery::IsIdentifier(const DicomTag& tag,
-                                           ResourceType level)
-  {
-    const DicomTag* tags;
-    size_t size;
-
-    LoadIdentifiers(tags, size, level);
-
-    for (size_t i = 0; i < size; i++)
-    {
-      if (tag == tags[i])
-      {
-        return true;
-      }
-    }
-
-    return false;
   }
 
 
@@ -157,47 +89,25 @@ namespace Orthanc
                                             const std::string& value)
   {
     assert(IsIdentifier(tag));
-    constraints_.push_back(new Disjunction);
-    constraints_.back()->Add(tag, type, value);
+    disjunctions_.push_back(new Disjunction);
+    disjunctions_.back()->Add(tag, type, value);
+  }
+
+
+  void LookupIdentifierQuery::AddRange(DicomTag tag,
+                                       const std::string& start,
+                                       const std::string& end)
+  {
+    assert(IsIdentifier(tag));
+    disjunctions_.push_back(new Disjunction);
+    disjunctions_.back()->AddRange(tag, start, end);
   }
 
 
   LookupIdentifierQuery::Disjunction& LookupIdentifierQuery::AddDisjunction()
   {
-    constraints_.push_back(new Disjunction);
-    return *constraints_.back();
-  }
-
-
-  std::string LookupIdentifierQuery::NormalizeIdentifier(const std::string& value)
-  {
-    std::string s = Toolbox::ConvertToAscii(Toolbox::StripSpaces(value));
-    Toolbox::ToUpperCase(s);
-    return s;
-  }
-
-
-  void LookupIdentifierQuery::StoreIdentifiers(IDatabaseWrapper& database,
-                                               int64_t resource,
-                                               ResourceType level,
-                                               const DicomMap& map)
-  {
-    const DicomTag* tags;
-    size_t size;
-
-    LoadIdentifiers(tags, size, level);
-
-    for (size_t i = 0; i < size; i++)
-    {
-      const DicomValue* value = map.TestAndGetValue(tags[i]);
-      if (value != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        std::string s = NormalizeIdentifier(value->GetContent());
-        database.SetIdentifierTag(resource, tags[i], s);
-      }
-    }
+    disjunctions_.push_back(new Disjunction);
+    return *disjunctions_.back();
   }
 
 
@@ -214,15 +124,26 @@ namespace Orthanc
   void LookupIdentifierQuery::Apply(SetOfResources& result,
                                     IDatabaseWrapper& database)
   {
-    for (size_t i = 0; i < GetSize(); i++)
+    for (size_t i = 0; i < disjunctions_.size(); i++)
     {
       std::list<int64_t> a;
 
-      for (size_t j = 0; j < constraints_[i]->GetSize(); j++)
+      for (size_t j = 0; j < disjunctions_[i]->GetSingleConstraintsCount(); j++)
       {
-        const Constraint& constraint = constraints_[i]->GetConstraint(j);
+        const SingleConstraint& constraint = disjunctions_[i]->GetSingleConstraint(j);
         std::list<int64_t> b;
-        database.LookupIdentifier(b, level_, constraint.GetTag(), constraint.GetType(), constraint.GetValue());
+        database.LookupIdentifier(b, level_, constraint.GetTag(), 
+                                  constraint.GetType(), constraint.GetValue());
+
+        a.splice(a.end(), b);
+      }
+
+      for (size_t j = 0; j < disjunctions_[i]->GetRangeConstraintsCount(); j++)
+      {
+        const RangeConstraint& constraint = disjunctions_[i]->GetRangeConstraint(j);
+        std::list<int64_t> b;
+        database.LookupIdentifierRange(b, level_, constraint.GetTag(), 
+                                       constraint.GetStart(), constraint.GetEnd());
 
         a.splice(a.end(), b);
       }
@@ -235,18 +156,18 @@ namespace Orthanc
   void LookupIdentifierQuery::Print(std::ostream& s) const
   {
     s << "Constraint: " << std::endl;
-    for (Constraints::const_iterator
-           it = constraints_.begin(); it != constraints_.end(); ++it)
+    for (Disjunctions::const_iterator
+           it = disjunctions_.begin(); it != disjunctions_.end(); ++it)
     {
-      if (it == constraints_.begin())
+      if (it == disjunctions_.begin())
         s << "   ";
       else
         s << "OR ";
 
-      for (size_t j = 0; j < (*it)->GetSize(); j++)
+      for (size_t j = 0; j < (*it)->GetSingleConstraintsCount(); j++)
       {
-        const Constraint& c = (*it)->GetConstraint(j);
-        s << FromDcmtkBridge::GetName(c.GetTag());
+        const SingleConstraint& c = (*it)->GetSingleConstraint(j);
+        s << FromDcmtkBridge::GetTagName(c.GetTag(), "");
 
         switch (c.GetType())
         {

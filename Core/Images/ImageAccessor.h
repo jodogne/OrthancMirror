@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,18 +36,40 @@
 #include "../Enumerations.h"
 
 #include <string>
+#include <stdint.h>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ImageAccessor
+  class ImageAccessor : public boost::noncopyable
   {
   private:
+    template <Orthanc::PixelFormat Format>
+    friend struct ImageTraits;
+    
     bool readOnly_;
     PixelFormat format_;
     unsigned int width_;
     unsigned int height_;
     unsigned int pitch_;
-    void *buffer_;
+    uint8_t *buffer_;
+
+    template <typename T>
+    const T& GetPixelUnchecked(unsigned int x,
+                               unsigned int y) const
+    {
+      const uint8_t* row = reinterpret_cast<const uint8_t*>(buffer_) + y * pitch_;
+      return reinterpret_cast<const T*>(row) [x];
+    }
+
+
+    template <typename T>
+    T& GetPixelUnchecked(unsigned int x,
+                         unsigned int y)
+    {
+      uint8_t* row = reinterpret_cast<uint8_t*>(buffer_) + y * pitch_;
+      return reinterpret_cast<T*>(row) [x];
+    }
 
   public:
     ImageAccessor()
@@ -112,12 +135,27 @@ namespace Orthanc
                         unsigned int pitch,
                         const void *buffer);
 
+    void GetReadOnlyAccessor(ImageAccessor& target) const
+    {
+      target.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
+    }
+
     void AssignWritable(PixelFormat format,
                         unsigned int width,
                         unsigned int height,
                         unsigned int pitch,
                         void *buffer);
 
+    void GetWriteableAccessor(ImageAccessor& target) const;
+
     void ToMatlabString(std::string& target) const; 
+
+    void GetRegion(ImageAccessor& accessor,
+                   unsigned int x,
+                   unsigned int y,
+                   unsigned int width,
+                   unsigned int height) const;
+
+    void SetFormat(PixelFormat format);
   };
 }

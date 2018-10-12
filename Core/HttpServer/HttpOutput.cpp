@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -291,8 +292,7 @@ namespace Orthanc
 			      const char* message,
 			      size_t messageSize)
   {
-    if (status == HttpStatus_200_Ok ||
-        status == HttpStatus_301_MovedPermanently ||
+    if (status == HttpStatus_301_MovedPermanently ||
         status == HttpStatus_401_Unauthorized ||
         status == HttpStatus_405_MethodNotAllowed)
     {
@@ -300,7 +300,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     
-    stateMachine_.ClearHeaders();
     stateMachine_.SetHttpStatus(status);
     stateMachine_.SendBody(message, messageSize);
   }
@@ -433,28 +432,103 @@ namespace Orthanc
     {
       if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
       {
-        LOG(ERROR) << "The only headers that can be set in multipart answers are Set-Cookie (here: " << *it << " is set)";
+        LOG(ERROR) << "The only headers that can be set in multipart answers "
+                   << "are Set-Cookie (here: " << *it << " is set)";
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
       header += *it;
     }
 
+    /**
+     * Fix for issue 54 ("Decide what to do wrt. quoting of multipart
+     * answers"). The "type" parameter in the "Content-Type" HTTP
+     * header must be quoted if it contains a forward slash "/". This
+     * is necessary for DICOMweb compatibility with OsiriX, but breaks
+     * compatibility with old releases of the client in the Orthanc
+     * DICOMweb plugin <= 0.3 (releases >= 0.4 work fine).
+     *
+     * Full history is available at the following locations:
+     * - In changeset 2248:69b0f4e8a49b:
+     *   # hg history -v -r 2248
+     * - https://bitbucket.org/sjodogne/orthanc/issues/54/
+     * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
+     **/
+    std::string tmp;
+    if (contentType.find('/') == std::string::npos)
+    {
+      // No forward slash in the content type
+      tmp = contentType;
+    }
+    else
+    {
+      // Quote the content type because of the forward slash
+      tmp = "\"" + contentType + "\"";
+    }
+
     multipartBoundary_ = Toolbox::GenerateUuid();
     multipartContentType_ = contentType;
-    header += "Content-Type: multipart/related; type=multipart/" + subType + "; boundary=" + multipartBoundary_ + "\r\n\r\n";
+    header += ("Content-Type: multipart/" + subType + "; type=" +
+               tmp + "; boundary=" + multipartBoundary_ + "\r\n\r\n");
 
     stream_.Send(true, header.c_str(), header.size());
     state_ = State_WritingMultipart;
   }
 
 
-  void HttpOutput::StateMachine::SendMultipartItem(const void* item, size_t length)
+  void HttpOutput::StateMachine::SendMultipartItem(const void* item, 
+                                                   size_t length,
+                                                   const std::map<std::string, std::string>& headers)
   {
-    std::string header = "--" + multipartBoundary_ + "\n";
-    header += "Content-Type: " + multipartContentType_ + "\n";
-    header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\n";
-    header += "MIME-Version: 1.0\n\n";
+    if (state_ != State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    std::string header = "--" + multipartBoundary_ + "\r\n";
+
+    bool hasContentType = false;
+    bool hasContentLength = false;
+    bool hasMimeVersion = false;
+
+    for (std::map<std::string, std::string>::const_iterator
+           it = headers.begin(); it != headers.end(); ++it)
+    {
+      header += it->first + ": " + it->second + "\r\n";
+
+      std::string tmp;
+      Toolbox::ToLowerCase(tmp, it->first);
+
+      if (tmp == "content-type")
+      {
+        hasContentType = true;
+      }
+
+      if (tmp == "content-length")
+      {
+        hasContentLength = true;
+      }
+
+      if (tmp == "mime-version")
+      {
+        hasMimeVersion = true;
+      }
+    }
+
+    if (!hasContentType)
+    {
+      header += "Content-Type: " + multipartContentType_ + "\r\n";
+    }
+
+    if (!hasContentLength)
+    {
+      header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\r\n";
+    }
+
+    if (!hasMimeVersion)
+    {
+      header += "MIME-Version: 1.0\r\n\r\n";
+    }
 
     stream_.Send(false, header.c_str(), header.size());
 
@@ -463,7 +537,7 @@ namespace Orthanc
       stream_.Send(false, item, length);
     }
 
-    stream_.Send(false, "\n", 1);
+    stream_.Send(false, "\r\n", 2);    
   }
 
 
@@ -478,7 +552,7 @@ namespace Orthanc
     // closed the connection. Such an error is ignored.
     try
     {
-      std::string header = "--" + multipartBoundary_ + "--\n";
+      std::string header = "--" + multipartBoundary_ + "--\r\n";
       stream_.Send(false, header.c_str(), header.size());
     }
     catch (OrthancException&)
@@ -486,19 +560,6 @@ namespace Orthanc
     }
 
     state_ = State_Done;
-  }
-
-
-  void HttpOutput::SendMultipartItem(const std::string& item)
-  {
-    if (item.size() > 0)
-    {
-      stateMachine_.SendMultipartItem(item.c_str(), item.size());
-    }
-    else
-    {
-      stateMachine_.SendMultipartItem(NULL, 0);
-    }
   }
 
 

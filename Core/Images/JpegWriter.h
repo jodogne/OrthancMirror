@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,15 +33,37 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
+#if !defined(ORTHANC_ENABLE_JPEG)
+#  error The macro ORTHANC_ENABLE_JPEG must be defined
+#endif
 
-#include <string>
-#include <stdint.h>
+#if ORTHANC_ENABLE_JPEG != 1
+#  error JPEG support must be enabled to include this file
+#endif
+
+#include "IImageWriter.h"
 
 namespace Orthanc
 {
-  class JpegWriter
+  class JpegWriter : public IImageWriter
   {
+  protected:
+#if ORTHANC_SANDBOXED == 0
+    virtual void WriteToFileInternal(const std::string& filename,
+                                     unsigned int width,
+                                     unsigned int height,
+                                     unsigned int pitch,
+                                     PixelFormat format,
+                                     const void* buffer);
+#endif
+
+    virtual void WriteToMemoryInternal(std::string& jpeg,
+                                       unsigned int width,
+                                       unsigned int height,
+                                       unsigned int pitch,
+                                       PixelFormat format,
+                                       const void* buffer);
+
   private:
     uint8_t  quality_;
 
@@ -54,34 +77,6 @@ namespace Orthanc
     uint8_t GetQuality() const
     {
       return quality_;
-    }
-
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
-
-    void WriteToMemory(std::string& jpeg,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
-
-    void WriteToFile(const char* filename,
-                     const ImageAccessor& accessor)
-    {
-      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
-
-    void WriteToMemory(std::string& jpeg,
-                       const ImageAccessor& accessor)
-    {
-      WriteToMemory(jpeg, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
     }
   };
 }

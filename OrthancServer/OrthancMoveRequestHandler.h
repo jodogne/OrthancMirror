@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,7 +32,7 @@
 
 #pragma once
 
-#include "DicomProtocol/IMoveRequestHandler.h"
+#include "../Core/DicomNetworking/IMoveRequestHandler.h"
 #include "ServerContext.h"
 
 namespace Orthanc
@@ -53,7 +54,9 @@ namespace Orthanc
 
     virtual IMoveRequestIterator* Handle(const std::string& targetAet,
                                          const DicomMap& input,
-                                         const std::string& remoteIp,
-                                         const std::string& remoteAet);
+                                         const std::string& originatorIp,
+                                         const std::string& originatorAet,
+                                         const std::string& calledAet,
+                                         uint16_t originatorId);
   };
 }

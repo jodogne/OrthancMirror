@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Orthanc - A Lightweight, RESTful DICOM Store
-# Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+# Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
+# Copyright (C) 2017-2018 Osimis S.A., Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -29,7 +30,7 @@ def PrintHelp():
     print('Download ZIP archives for all the studies generated '
           'during a given time range (according to the StudyDate tag)\n')
     print('Usage: %s <URL> <StartDate> <EndDate> <TargetFolder>\n' % sys.argv[0])
-    print('Example: %s http://localhost:8042/ 20150101 20151231 /tmp/\n' % sys.argv[0])
+    print('Example: %s http://127.0.0.1:8042/ 20150101 20151231 /tmp/\n' % sys.argv[0])
     exit(-1)
 
 def CheckIsDate(date):
@@ -49,6 +50,12 @@ TARGET = sys.argv[4]
 CheckIsDate(START)
 CheckIsDate(END)
 
+def GetTag(tags, key):
+    if key in tags:
+        return tags[key]
+    else:
+        return 'No%s' % key
+
 # Loop over the studies
 for studyId in RestToolbox.DoGet('%s/studies' % URL):
     # Retrieve the DICOM tags of the current study
@@ -61,13 +68,13 @@ for studyId in RestToolbox.DoGet('%s/studies' % URL):
     studyDate = study['StudyDate'][:8]
     if studyDate >= START and studyDate <= END:
         # Create a filename
-        filename = '%s - %s %s - %s.zip' % (study['StudyDate'],
-                                            patient['PatientID'],
-                                            patient['PatientName'],
-                                            study['StudyDescription'])
+        filename = '%s - %s %s - %s.zip' % (GetTag(study, 'StudyDate'),
+                                            GetTag(patient, 'PatientID'),
+                                            GetTag(patient, 'PatientName'),
+                                            GetTag(study, 'StudyDescription'))
 
         # Remove any non-ASCII character in the filename
-        filename = filename.encode('ascii', errors = 'replace')
+        filename = filename.encode('ascii', errors = 'replace').translate(None, r"'\/:*?\"<>|!=").strip()
 
         # Download the ZIP archive of the study
         print('Downloading %s' % filename)

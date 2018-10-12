@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,9 +45,7 @@ namespace Orthanc
     }
     else
     {
-      std::string s = value;
-      Toolbox::ToUpperCase(s);
-      allowedValues_.insert(s);      
+      allowedValues_.insert(Toolbox::ToUpperCaseWithAccents(value));
     }
   }
 
@@ -66,13 +65,36 @@ namespace Orthanc
 
   bool ListConstraint::Match(const std::string& value) const
   {
-    std::string v = value;
-
-    if (!isCaseSensitive_)
+    std::string s;
+    
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(v);
+      s = value;
+    }
+    else
+    {
+      s = Toolbox::ToUpperCaseWithAccents(value);
     }
 
-    return allowedValues_.find(v) != allowedValues_.end();
+    return allowedValues_.find(s) != allowedValues_.end();
+  }
+
+
+  std::string ListConstraint::Format() const
+  {
+    std::string s;
+
+    for (std::set<std::string>::const_iterator
+           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
+    {
+      if (!s.empty())
+      {
+        s += "\\";
+      }
+
+      s += *it;
+    }
+
+    return s;
   }
 }

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,12 +34,13 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../../Core/OrthancException.h"
 #include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;
 
 
-#if ORTHANC_PLUGINS_ENABLED == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
 
 TEST(SharedLibrary, Enumerations)
 {
@@ -57,15 +59,25 @@ TEST(SharedLibrary, Basic)
   ASSERT_TRUE(l.HasFunction("GetVersionExW"));
   ASSERT_FALSE(l.HasFunction("world"));
 
-#elif defined(__linux) || defined(__FreeBSD_kernel__)
+#elif defined(__LSB_VERSION__)
+  // For Linux Standard Base, we use a low-level shared library coming
+  // with glibc:
+  // http://www.linuxfromscratch.org/lfs/view/6.5/chapter06/glibc.html
+  SharedLibrary l("libSegFault.so");
+  ASSERT_THROW(l.GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l.GetFunction("_init") != NULL);
+  ASSERT_TRUE(l.HasFunction("_init"));
+  ASSERT_FALSE(l.HasFunction("world"));
+
+#elif defined(__linux__) || defined(__FreeBSD_kernel__)
   SharedLibrary l("libdl.so");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
   ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
   ASSERT_TRUE(l.HasFunction("dlclose"));
   ASSERT_FALSE(l.HasFunction("world"));
 
-#elif defined(__FreeBSD__)
-  // dlopen() in FreeBSD is supplied by libc, libc.so is
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+  // dlopen() in FreeBSD/OpenBSD is supplied by libc, libc.so is
   // a ldscript, so we can't actually use it. Use thread
   // library instead - if it works - dlopen() is good.
   SharedLibrary l("libpthread.so");

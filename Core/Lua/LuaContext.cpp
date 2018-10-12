@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -61,7 +62,6 @@ namespace Orthanc
     return true;
   }
   
-
   LuaContext& LuaContext::GetLuaContext(lua_State *state)
   {
     const void* value = GetGlobalVariable(state, "_LuaContext");
@@ -209,14 +209,36 @@ namespace Orthanc
     return true;
   }
 
+  void LuaContext::SetHttpHeaders(lua_State *state, int top)
+  {
+    this->httpClient_.ClearHeaders(); // always reset headers in case they have been set in a previous request
+
+    if (lua_gettop(state) >= top)
+    {
+      Json::Value headers;
+      this->GetJson(headers, top, true);
+
+      Json::Value::Members members = headers.getMemberNames();
+
+      for (Json::Value::Members::const_iterator 
+           it = members.begin(); it != members.end(); ++it)
+      {
+        this->httpClient_.AddHeader(*it, headers[*it].asString());
+      }
+    }
+
+  }
   
+
+
   int LuaContext::CallHttpGet(lua_State *state)
   {
     LuaContext& that = GetLuaContext(state);
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if (nArgs != 1 || !lua_isstring(state, 1))  // URL
+    if ((nArgs < 1 || nArgs > 2) ||         // check args count
+       !lua_isstring(state, 1))             // URL is a string
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
       lua_pushnil(state);
@@ -227,6 +249,8 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(HttpMethod_Get);
     that.httpClient_.SetUrl(url);
+    that.httpClient_.GetBody().clear();
+    that.SetHttpHeaders(state, 2);
 
     // Do the HTTP GET request
     if (!that.AnswerHttpQuery(state))
@@ -246,9 +270,9 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs != 1 && nArgs != 2) ||
-        !lua_isstring(state, 1) ||                // URL
-        (nArgs >= 2 && !lua_isstring(state, 2)))  // Body data
+    if ((nArgs < 1 || nArgs > 3) ||                 // check arg count
+        !lua_isstring(state, 1) ||                  // URL is a string
+        (nArgs >= 2 && (!lua_isstring(state, 2) && !lua_isnil(state, 2))))    // Body data is null or is a string
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpPost() or HttpPut()";
       lua_pushnil(state);
@@ -259,10 +283,21 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(method);
     that.httpClient_.SetUrl(url);
+    that.SetHttpHeaders(state, 3);
 
-    if (nArgs >= 2)
+    if (nArgs >= 2 && !lua_isnil(state, 2))
     {
-      that.httpClient_.SetBody(lua_tostring(state, 2));
+      size_t bodySize = 0;
+      const char* bodyData = lua_tolstring(state, 2, &bodySize);
+
+      if (bodySize == 0)
+      {
+        that.httpClient_.GetBody().clear();
+      }
+      else
+      {
+        that.httpClient_.GetBody().assign(bodyData, bodySize);
+      }
     }
     else
     {
@@ -298,7 +333,7 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if (nArgs != 1 || !lua_isstring(state, 1))  // URL
+    if (nArgs < 1 || nArgs > 2 || !lua_isstring(state, 1))  // URL
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpDelete()";
       lua_pushnil(state);
@@ -309,6 +344,8 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(HttpMethod_Delete);
     that.httpClient_.SetUrl(url);
+    that.httpClient_.GetBody().clear();
+    that.SetHttpHeaders(state, 2);
 
     // Do the HTTP DELETE request
     std::string s;
@@ -497,6 +534,10 @@ namespace Orthanc
       // Lua can convert most types to strings by default.
       result = std::string(lua_tostring(lua_, top));
     }
+    else if (lua_isboolean(lua_, top))
+    {
+      result = lua_toboolean(lua_, top) ? true : false;
+    }
     else
     {
       LOG(WARNING) << "Unsupported Lua type when returning Json";
@@ -557,12 +598,14 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
   void LuaContext::Execute(EmbeddedResources::FileResourceId resource)
   {
     std::string command;
     EmbeddedResources::GetFileResource(command, resource);
     ExecuteInternal(NULL, command);
   }
+#endif
 
 
   bool LuaContext::IsExistingFunction(const char* name)

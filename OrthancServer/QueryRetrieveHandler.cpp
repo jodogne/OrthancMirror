@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,9 +36,45 @@
 
 #include "OrthancInitialization.h"
 
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/Logging.h"
+
 
 namespace Orthanc
 {
+  static void FixQueryLua(DicomMap& query,
+                          ServerContext& context,
+                          const std::string& modality)
+  {
+    static const char* LUA_CALLBACK = "OutgoingFindRequestFilter";
+
+    LuaScripting::Lock lock(context.GetLuaScripting());
+
+    if (lock.GetLua().IsExistingFunction(LUA_CALLBACK))
+    {
+      LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
+      call.PushDicom(query);
+      call.PushJson(modality);
+      FromDcmtkBridge::ExecuteToDicom(query, call);
+    }
+  }
+
+
+  static void FixQueryBuiltin(DicomMap& query,
+                              ModalityManufacturer manufacturer)
+  {
+    /**
+     * Introduce patches for specific manufacturers below.
+     **/
+
+    switch (manufacturer)
+    {
+      default:
+        break;
+    }
+  }
+
+
   void QueryRetrieveHandler::Invalidate()
   {
     done_ = false;
@@ -49,8 +86,20 @@ namespace Orthanc
   {
     if (!done_)
     {
-      ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-      locker.GetConnection().Find(answers_, level_, query_);
+      // Firstly, fix the content of the query for specific manufacturers
+      DicomMap fixed;
+      fixed.Assign(query_);
+      FixQueryBuiltin(fixed, modality_.GetManufacturer());
+
+      // Secondly, possibly fix the query with the user-provider Lua callback
+      FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
+
+      {
+        DicomUserConnection connection(localAet_, modality_);
+        connection.Open();
+        connection.Find(answers_, level_, fixed);
+      }
+
       done_ = true;
     }
   }
@@ -60,7 +109,8 @@ namespace Orthanc
     context_(context),
     localAet_(context.GetDefaultLocalApplicationEntityTitle()),
     done_(false),
-    level_(ResourceType_Study)
+    level_(ResourceType_Study),
+    answers_(false)
   {
   }
 
@@ -84,50 +134,21 @@ namespace Orthanc
                                       const std::string& value)
   {
     Invalidate();
-    query_.SetValue(tag, value);
+    query_.SetValue(tag, value, false);
   }
 
 
-  size_t QueryRetrieveHandler::GetAnswerCount()
+  size_t QueryRetrieveHandler::GetAnswersCount()
   {
     Run();
     return answers_.GetSize();
   }
 
 
-  const DicomMap& QueryRetrieveHandler::GetAnswer(size_t i)
+  void QueryRetrieveHandler::GetAnswer(DicomMap& target,
+                                       size_t i)
   {
     Run();
-
-    if (i >= answers_.GetSize())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    return answers_.GetAnswer(i);
-  }
-
-
-  void QueryRetrieveHandler::Retrieve(const std::string& target,
-                                      size_t i)
-  {
-    Run();
-
-    if (i >= answers_.GetSize())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    ReusableDicomUserConnection::Locker locker(context_.GetReusableDicomUserConnection(), localAet_, modality_);
-    locker.GetConnection().Move(target, answers_.GetAnswer(i));
-  }
-
-
-  void QueryRetrieveHandler::Retrieve(const std::string& target)
-  {
-    for (size_t i = 0; i < GetAnswerCount(); i++)
-    {
-      Retrieve(target, i);
-    }
+    answers_.GetAnswer(i).ExtractDicomSummary(target);
   }
 }

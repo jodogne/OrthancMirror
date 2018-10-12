@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +35,7 @@
 #include "FilesystemHttpHandler.h"
 
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 #include "FilesystemHttpSender.h"
 
 #include <boost/filesystem.hpp>
@@ -95,8 +97,10 @@ namespace Orthanc
 #endif
 
       std::string h = Toolbox::FlattenUri(uri) + "/" + f;
-      if (fs::is_regular_file(it->status()))
+      if (SystemToolbox::IsRegularFile(it->path().string()))
+      {
         s += "<li><a href=\"" + h + "\">" + f + "</a></li>";
+      }
     }      
 
     s += "    </ul>";
@@ -156,7 +160,7 @@ namespace Orthanc
       p /= uri[i];
     }
 
-    if (fs::exists(p) && fs::is_regular_file(p))
+    if (SystemToolbox::IsRegularFile(p.string()))
     {
       FilesystemHttpSender sender(p);
       output.Answer(sender);   // TODO COMPRESSION

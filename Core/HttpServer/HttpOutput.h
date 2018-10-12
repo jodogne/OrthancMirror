@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,13 +33,14 @@
 
 #pragma once
 
-#include <list>
-#include <string>
-#include <stdint.h>
 #include "../Enumerations.h"
 #include "IHttpOutputStream.h"
 #include "IHttpStreamAnswer.h"
-#include "../Uuid.h"
+
+#include <list>
+#include <string>
+#include <stdint.h>
+#include <map>
 
 namespace Orthanc
 {
@@ -99,7 +101,9 @@ namespace Orthanc
       void StartMultipart(const std::string& subType,
                           const std::string& contentType);
 
-      void SendMultipartItem(const void* item, size_t length);
+      void SendMultipartItem(const void* item, 
+                             size_t length,
+                             const std::map<std::string, std::string>& headers);
 
       void CloseMultipart();
 
@@ -202,11 +206,11 @@ namespace Orthanc
       stateMachine_.StartMultipart(subType, contentType);
     }
 
-    void SendMultipartItem(const std::string& item);
-
-    void SendMultipartItem(const void* item, size_t size)
+    void SendMultipartItem(const void* item, 
+                           size_t size,
+                           const std::map<std::string, std::string>& headers)
     {
-      stateMachine_.SendMultipartItem(item, size);
+      stateMachine_.SendMultipartItem(item, size, headers);
     }
 
     void CloseMultipart()

@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,15 +36,19 @@
 
 #include "../Core/OrthancException.h"
 #include "../Core/EnumerationDictionary.h"
+#include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 
 #include <boost/thread.hpp>
 
 namespace Orthanc
 {
+  typedef std::map<FileContentType, std::string>  MimeTypes;
+
   static boost::mutex enumerationsMutex_;
   static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
   static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
+  static MimeTypes  mimeTypes_;
 
   void InitializeServerEnumerations()
   {
@@ -59,6 +64,12 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");
     dictMetadataType_.Add(MetadataType_LastUpdate, "LastUpdate");
+    dictMetadataType_.Add(MetadataType_Instance_Origin, "Origin");
+    dictMetadataType_.Add(MetadataType_Instance_TransferSyntax, "TransferSyntax");
+    dictMetadataType_.Add(MetadataType_Instance_SopClassUid, "SopClassUid");
+    dictMetadataType_.Add(MetadataType_Instance_RemoteIp, "RemoteIP");
+    dictMetadataType_.Add(MetadataType_Instance_CalledAet, "CalledAET");
+    dictMetadataType_.Add(MetadataType_Instance_HttpUsername, "HttpUsername");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
@@ -69,13 +80,29 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
-    if (metadata < static_cast<int>(MetadataType_StartUser) ||
-        metadata > static_cast<int>(MetadataType_EndUser))
+    MetadataType type = static_cast<MetadataType>(metadata);
+
+    if (metadata < 0 || 
+        !IsUserMetadata(type))
     {
+      LOG(ERROR) << "A user content type must have index between "
+                 << static_cast<int>(MetadataType_StartUser) << " and "
+                 << static_cast<int>(MetadataType_EndUser) << ", but \""
+                 << name << "\" has index " << metadata;
+        
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    dictMetadataType_.Add(static_cast<MetadataType>(metadata), name);
+    if (dictMetadataType_.Contains(type))
+    {
+      LOG(ERROR) << "Cannot associate user content type \""
+                 << name << "\" with index " << metadata 
+                 << ", as this index is already used";
+        
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictMetadataType_.Add(type, name);
   }
 
   std::string EnumerationToString(MetadataType type)
@@ -93,17 +120,35 @@ namespace Orthanc
   }
 
   void RegisterUserContentType(int contentType,
-                               const std::string& name)
+                               const std::string& name,
+                               const std::string& mime)
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
 
-    if (contentType < static_cast<int>(FileContentType_StartUser) ||
-        contentType > static_cast<int>(FileContentType_EndUser))
+    FileContentType type = static_cast<FileContentType>(contentType);
+
+    if (contentType < 0 || 
+        !IsUserContentType(type))
     {
+      LOG(ERROR) << "A user content type must have index between "
+                 << static_cast<int>(FileContentType_StartUser) << " and "
+                 << static_cast<int>(FileContentType_EndUser) << ", but \""
+                 << name << "\" has index " << contentType;
+        
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    dictContentType_.Add(static_cast<FileContentType>(contentType), name);
+    if (dictContentType_.Contains(type))
+    {
+      LOG(ERROR) << "Cannot associate user content type \""
+                 << name << "\" with index " << contentType 
+                 << ", as this index is already used";
+        
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    dictContentType_.Add(type, name);
+    mimeTypes_[type] = mime;
   }
 
   std::string EnumerationToString(FileContentType type)
@@ -112,6 +157,33 @@ namespace Orthanc
     // char*", as the result is not a static string
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictContentType_.Translate(type);
+  }
+
+  std::string GetFileContentMime(FileContentType type)
+  {
+    if (type >= FileContentType_StartUser &&
+        type <= FileContentType_EndUser)
+    {
+      boost::mutex::scoped_lock lock(enumerationsMutex_);
+      
+      MimeTypes::const_iterator it = mimeTypes_.find(type);
+      if (it != mimeTypes_.end())
+      {
+        return it->second;
+      }
+    }
+
+    switch (type)
+    {
+      case FileContentType_Dicom:
+        return "application/dicom";
+
+      case FileContentType_DicomAsJson:
+        return "application/json";
+
+      default:
+        return "application/octet-stream";
+    }
   }
 
   FileContentType StringToContentType(const std::string& str)
@@ -237,131 +309,21 @@ namespace Orthanc
       case ChangeType_NewChildInstance:
         return "NewChildInstance";
 
+      case ChangeType_UpdatedAttachment:
+        return "UpdatedAttachment";
+
+      case ChangeType_UpdatedMetadata:
+        return "UpdatedMetadata";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
-
-  const char* EnumerationToString(ModalityManufacturer manufacturer)
+  
+  bool IsUserMetadata(MetadataType metadata)
   {
-    switch (manufacturer)
-    {
-      case ModalityManufacturer_Generic:
-        return "Generic";
-
-      case ModalityManufacturer_StoreScp:
-        return "StoreScp";
-      
-      case ModalityManufacturer_ClearCanvas:
-        return "ClearCanvas";
-      
-      case ModalityManufacturer_MedInria:
-        return "MedInria";
-
-      case ModalityManufacturer_Dcm4Chee:
-        return "Dcm4Chee";
-      
-      case ModalityManufacturer_SyngoVia:
-        return "SyngoVia";
-      
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  const char* EnumerationToString(DicomRequestType type)
-  {
-    switch (type)
-    {
-      case DicomRequestType_Echo:
-        return "Echo";
-        break;
-
-      case DicomRequestType_Find:
-        return "Find";
-        break;
-
-      case DicomRequestType_Get:
-        return "Get";
-        break;
-
-      case DicomRequestType_Move:
-        return "Move";
-        break;
-
-      case DicomRequestType_Store:
-        return "Store";
-        break;
-
-      default: 
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-
-  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer)
-  {
-    if (manufacturer == "Generic")
-    {
-      return ModalityManufacturer_Generic;
-    }
-    else if (manufacturer == "ClearCanvas")
-    {
-      return ModalityManufacturer_ClearCanvas;
-    }
-    else if (manufacturer == "StoreScp")
-    {
-      return ModalityManufacturer_StoreScp;
-    }
-    else if (manufacturer == "MedInria")
-    {
-      return ModalityManufacturer_MedInria;
-    }
-    else if (manufacturer == "Dcm4Chee")
-    {
-      return ModalityManufacturer_Dcm4Chee;
-    }
-    else if (manufacturer == "SyngoVia")
-    {
-      return ModalityManufacturer_SyngoVia;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  const char* EnumerationToString(TransferSyntax syntax)
-  {
-    switch (syntax)
-    {
-      case TransferSyntax_Deflated:
-        return "Deflated";
-
-      case TransferSyntax_Jpeg:
-        return "JPEG";
-
-      case TransferSyntax_Jpeg2000:
-        return "JPEG2000";
-
-      case TransferSyntax_JpegLossless:
-        return "JPEG Lossless";
-
-      case TransferSyntax_Jpip:
-        return "JPIP";
-
-      case TransferSyntax_Mpeg2:
-        return "MPEG2";
-
-      case TransferSyntax_Rle:
-        return "RLE";
-
-      default: 
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    return (metadata >= MetadataType_StartUser &&
+            metadata <= MetadataType_EndUser);
   }
 }

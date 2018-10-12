@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,15 +33,39 @@
 
 #pragma once
 
-#include "ImageAccessor.h"
+#if !defined(ORTHANC_ENABLE_PNG)
+#  error The macro ORTHANC_ENABLE_PNG must be defined
+#endif
+
+#if ORTHANC_ENABLE_PNG != 1
+#  error PNG support must be enabled to include this file
+#endif
+
+#include "IImageWriter.h"
 
 #include <boost/shared_ptr.hpp>
-#include <string>
 
 namespace Orthanc
 {
-  class PngWriter
+  class PngWriter : public IImageWriter
   {
+  protected:
+#if ORTHANC_SANDBOXED == 0
+    virtual void WriteToFileInternal(const std::string& filename,
+                                     unsigned int width,
+                                     unsigned int height,
+                                     unsigned int pitch,
+                                     PixelFormat format,
+                                     const void* buffer);
+#endif
+
+    virtual void WriteToMemoryInternal(std::string& png,
+                                       unsigned int width,
+                                       unsigned int height,
+                                       unsigned int pitch,
+                                       PixelFormat format,
+                                       const void* buffer);
+
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
@@ -60,33 +85,5 @@ namespace Orthanc
     PngWriter();
 
     ~PngWriter();
-
-    void WriteToFile(const char* filename,
-                     unsigned int width,
-                     unsigned int height,
-                     unsigned int pitch,
-                     PixelFormat format,
-                     const void* buffer);
-
-    void WriteToMemory(std::string& png,
-                       unsigned int width,
-                       unsigned int height,
-                       unsigned int pitch,
-                       PixelFormat format,
-                       const void* buffer);
-
-    void WriteToFile(const char* filename,
-                     const ImageAccessor& accessor)
-    {
-      WriteToFile(filename, accessor.GetWidth(), accessor.GetHeight(),
-                  accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
-
-    void WriteToMemory(std::string& png,
-                       const ImageAccessor& accessor)
-    {
-      WriteToMemory(png, accessor.GetWidth(), accessor.GetHeight(),
-                    accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
   };
 }

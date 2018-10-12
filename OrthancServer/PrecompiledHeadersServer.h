@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,42 +37,6 @@
 
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
-// DCMTK
-#include <dcmtk/dcmdata/dcchrstr.h>
-#include <dcmtk/dcmdata/dcdeftag.h>
-#include <dcmtk/dcmdata/dcdicent.h>
-#include <dcmtk/dcmdata/dcdict.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
-#include <dcmtk/dcmdata/dcistrmf.h>
-#include <dcmtk/dcmdata/dcmetinf.h>
-#include <dcmtk/dcmdata/dcostrmb.h>
-#include <dcmtk/dcmdata/dcpixel.h>
-#include <dcmtk/dcmdata/dcpixseq.h>
-#include <dcmtk/dcmdata/dcpxitem.h>
-#include <dcmtk/dcmdata/dcuid.h>
-#include <dcmtk/dcmdata/dcvrae.h>
-#include <dcmtk/dcmdata/dcvras.h>
-#include <dcmtk/dcmdata/dcvrcs.h>
-#include <dcmtk/dcmdata/dcvrda.h>
-#include <dcmtk/dcmdata/dcvrds.h>
-#include <dcmtk/dcmdata/dcvrdt.h>
-#include <dcmtk/dcmdata/dcvrfd.h>
-#include <dcmtk/dcmdata/dcvrfl.h>
-#include <dcmtk/dcmdata/dcvris.h>
-#include <dcmtk/dcmdata/dcvrlo.h>
-#include <dcmtk/dcmdata/dcvrlt.h>
-#include <dcmtk/dcmdata/dcvrpn.h>
-#include <dcmtk/dcmdata/dcvrsh.h>
-#include <dcmtk/dcmdata/dcvrsl.h>
-#include <dcmtk/dcmdata/dcvrss.h>
-#include <dcmtk/dcmdata/dcvrst.h>
-#include <dcmtk/dcmdata/dcvrtm.h>
-#include <dcmtk/dcmdata/dcvrui.h>
-#include <dcmtk/dcmdata/dcvrul.h>
-#include <dcmtk/dcmdata/dcvrus.h>
-#include <dcmtk/dcmdata/dcvrut.h>
-#include <dcmtk/dcmnet/dcasccfg.h>
-#include <dcmtk/dcmnet/diutil.h>
+#include "ServerContext.h"
 
 #endif

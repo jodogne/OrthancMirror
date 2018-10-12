@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,28 +37,39 @@
 #include <set>
 #include <json/json.h>
 #include <stdint.h>
-#include "../Core/HttpServer/MongooseServer.h"
-#include "DicomProtocol/RemoteModalityParameters.h"
-#include "ServerEnumerations.h"
-#include "OrthancPeerParameters.h"
-#include "IDatabaseWrapper.h"
+
 #include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/HttpServer/MongooseServer.h"
 #include "../Core/Images/FontRegistry.h"
+#include "../Core/WebServiceParameters.h"
+#include "../Core/DicomNetworking/RemoteModalityParameters.h"
+
+#include "IDatabaseWrapper.h"
+#include "ServerEnumerations.h"
+
 
 namespace Orthanc
 {
+  class ServerContext;
+
   void OrthancInitialize(const char* configurationFile = NULL);
 
   void OrthancFinalize();
 
   class Configuration
   {
+  private:
+    Configuration();  // Forbidden, this is a static class
+
   public:
     static std::string GetGlobalStringParameter(const std::string& parameter,
                                                 const std::string& defaultValue);
 
     static int GetGlobalIntegerParameter(const std::string& parameter,
                                          int defaultValue);
+
+    static unsigned int GetGlobalUnsignedIntegerParameter(const std::string& parameter,
+                                                          unsigned int defaultValue);
 
     static bool GetGlobalBoolParameter(const std::string& parameter,
                                        bool defaultValue);
@@ -68,7 +80,7 @@ namespace Orthanc
     static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
                                                 const std::string& aet);
 
-    static void GetOrthancPeer(OrthancPeerParameters& peer,
+    static bool GetOrthancPeer(WebServiceParameters& peer,
                                const std::string& name);
 
     static void GetListOfDicomModalities(std::set<std::string>& target);
@@ -85,7 +97,8 @@ namespace Orthanc
     static void GetGlobalListOfStringsParameter(std::list<std::string>& target,
                                                 const std::string& key);
 
-    static bool IsKnownAETitle(const std::string& aet);
+    static bool IsKnownAETitle(const std::string& aet,
+                               const std::string& ip);
 
     static bool IsSameAETitle(const std::string& aet1,
                               const std::string& aet2);
@@ -94,15 +107,19 @@ namespace Orthanc
 
     static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
 
-    static void UpdateModality(const std::string& symbolicName,
+    static void UpdateModality(ServerContext& context,
+                               const std::string& symbolicName,
                                const RemoteModalityParameters& modality);
 
-    static void RemoveModality(const std::string& symbolicName);
+    static void RemoveModality(ServerContext& context,
+                               const std::string& symbolicName);
 
-    static void UpdatePeer(const std::string& symbolicName,
-                           const OrthancPeerParameters& peer);
+    static void UpdatePeer(ServerContext& context,
+                           const std::string& symbolicName,
+                           const WebServiceParameters& peer);
 
-    static void RemovePeer(const std::string& symbolicName);
+    static void RemovePeer(ServerContext& context,
+                           const std::string& symbolicName);
 
     static const std::string& GetConfigurationAbsolutePath();
 
@@ -115,5 +132,9 @@ namespace Orthanc
     static void FormatConfiguration(std::string& result);
 
     static const FontRegistry& GetFontRegistry();
+
+    static void SetDefaultEncoding(Encoding encoding);
+
+    static bool HasConfigurationChanged();
   };
 }

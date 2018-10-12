@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,10 +33,29 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if ORTHANC_SANDBOXED == 1
+#  error The class StorageAccessor cannot be used in sandboxed environments
+#endif
+
+#if !defined(ORTHANC_ENABLE_CIVETWEB)
+#  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to use this file
+#endif
+
+#if !defined(ORTHANC_ENABLE_MONGOOSE)
+#  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to use this file
+#endif
+
 #include "IStorageArea.h"
 #include "FileInfo.h"
-#include "../HttpServer/BufferHttpSender.h"
-#include "../RestApi/RestApiOutput.h"
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+#  include "../HttpServer/BufferHttpSender.h"
+#  include "../RestApi/RestApiOutput.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -50,8 +70,11 @@ namespace Orthanc
   private:
     IStorageArea&  area_;
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SetupSender(BufferHttpSender& sender,
-                     const FileInfo& info);
+                     const FileInfo& info,
+                     const std::string& mime);
+#endif
 
   public:
     StorageAccessor(IStorageArea& area) : area_(area)
@@ -84,10 +107,14 @@ namespace Orthanc
       area_.Remove(info.GetUuid(), info.GetContentType());
     }
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void AnswerFile(HttpOutput& output,
-                    const FileInfo& info);
+                    const FileInfo& info,
+                    const std::string& mime);
 
     void AnswerFile(RestApiOutput& output,
-                    const FileInfo& info);
+                    const FileInfo& info,
+                    const std::string& mime);
+#endif
   };
 }

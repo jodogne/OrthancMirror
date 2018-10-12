@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,7 +41,7 @@ namespace Orthanc
   {
   private:
     ServerContext&             context_;
-    const std::string&         localAet_;
+    std::string                localAet_;
     bool                       done_;
     RemoteModalityParameters   modality_;
     ResourceType               level_;
@@ -50,15 +51,19 @@ namespace Orthanc
 
     void Invalidate();
 
-
   public:
     QueryRetrieveHandler(ServerContext& context);
 
     void SetModality(const std::string& symbolicName);
 
-    const RemoteModalityParameters& GetModality() const
+    const RemoteModalityParameters& GetRemoteModality() const
     {
       return modality_;
+    }
+
+    const std::string& GetLocalAet() const
+    {
+      return localAet_;
     }
 
     const std::string& GetModalitySymbolicName() const
@@ -83,13 +88,9 @@ namespace Orthanc
 
     void Run();
 
-    size_t GetAnswerCount();
+    size_t GetAnswersCount();
 
-    const DicomMap& GetAnswer(size_t i);
-
-    void Retrieve(const std::string& target,
-                  size_t i);
-
-    void Retrieve(const std::string& target);
+    void GetAnswer(DicomMap& target,
+                   size_t i);
   };
 }

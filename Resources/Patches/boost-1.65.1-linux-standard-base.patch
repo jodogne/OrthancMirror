@@ -1,0 +1,12 @@
+diff -urEb boost_1_65_1.orig/boost/move/adl_move_swap.hpp boost_1_65_1/boost/move/adl_move_swap.hpp
+--- boost_1_65_1.orig/boost/move/adl_move_swap.hpp	2017-11-08 17:43:20.000000000 +0100
++++ boost_1_65_1/boost/move/adl_move_swap.hpp	2018-01-02 15:34:48.829052917 +0100
+@@ -28,6 +28,8 @@
+ //Try to avoid including <algorithm>, as it's quite big
+ #if defined(_MSC_VER) && defined(BOOST_DINKUMWARE_STDLIB)
+    #include <utility>   //Dinkum libraries define std::swap in utility which is lighter than algorithm
++#elif defined(__LSB_VERSION__)
++#  include <utility>
+ #elif defined(BOOST_GNU_STDLIB)
+    //For non-GCC compilers, where GNUC version is not very reliable, or old GCC versions
+    //use the good old stl_algobase header, which is quite lightweight

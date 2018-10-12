@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,120 +19,80 @@
  **/
 
 
-#include <orthanc/OrthancCPlugin.h>
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <json/reader.h>
 #include <json/value.h>
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+#if HAS_ORTHANC_EXCEPTION == 1
+#  error The macro HAS_ORTHANC_EXCEPTION must be set to 0 to compile this plugin
+#endif
+
 
 
 static OrthancPluginContext* context_ = NULL;
+static std::map<std::string, std::string> extensions_;
 static std::map<std::string, std::string> folders_;
 static const char* INDEX_URI = "/app/plugin-serve-folders.html";
+static bool allowCache_ = false;
+static bool generateETag_ = true;
 
 
-static const char* GetMimeType(const std::string& path)
+static void SetHttpHeaders(OrthancPluginRestOutput* output)
+{
+  if (!allowCache_)
+  {
+    // http://stackoverflow.com/a/2068407/881731
+    OrthancPluginSetHttpHeader(context_, output, "Cache-Control", "no-cache, no-store, must-revalidate");
+    OrthancPluginSetHttpHeader(context_, output, "Pragma", "no-cache");
+    OrthancPluginSetHttpHeader(context_, output, "Expires", "0");
+  }
+}
+
+
+static void RegisterDefaultExtensions()
+{
+  extensions_["css"]  = "text/css";
+  extensions_["gif"]  = "image/gif";
+  extensions_["html"] = "text/html";
+  extensions_["jpeg"] = "image/jpeg";
+  extensions_["jpg"]  = "image/jpeg";
+  extensions_["js"]   = "application/javascript";
+  extensions_["json"] = "application/json";
+  extensions_["nexe"] = "application/x-nacl";
+  extensions_["nmf"]  = "application/json";
+  extensions_["pexe"] = "application/x-pnacl";
+  extensions_["png"]  = "image/png";
+  extensions_["svg"]  = "image/svg+xml";
+  extensions_["wasm"] = "application/wasm";
+  extensions_["woff"] = "application/x-font-woff";
+  extensions_["xml"]  = "application/xml";
+}
+
+
+static std::string GetMimeType(const std::string& path)
 {
   size_t dot = path.find_last_of('.');
 
-  std::string extension = (dot == std::string::npos) ? "" : path.substr(dot);
+  std::string extension = (dot == std::string::npos) ? "" : path.substr(dot + 1);
   std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
 
-  if (extension == ".html")
+  std::map<std::string, std::string>::const_iterator found = extensions_.find(extension);
+
+  if (found != extensions_.end() &&
+      !found->second.empty())
   {
-    return "text/html";
-  }
-  else if (extension == ".css")
-  {
-    return "text/css";
-  }
-  else if (extension == ".js")
-  {
-    return "application/javascript";
-  }
-  else if (extension == ".gif")
-  {
-    return "image/gif";
-  }
-  else if (extension == ".svg")
-  {
-    return "image/svg+xml";
-  }
-  else if (extension == ".json")
-  {
-    return "application/json";
-  }
-  else if (extension == ".xml")
-  {
-    return "application/xml";
-  }
-  else if (extension == ".png")
-  {
-    return "image/png";
-  }
-  else if (extension == ".jpg" || extension == ".jpeg")
-  {
-    return "image/jpeg";
-  }
-  else if (extension == ".woff")
-  {
-    return "application/x-font-woff";
+    return found->second;
   }
   else
   {
-    std::string s = "Unknown MIME type for extension: " + extension;
-    OrthancPluginLogWarning(context_, s.c_str());
+    OrthancPlugins::LogWarning(context_, "ServeFolders: Unknown MIME type for extension \"" + extension + "\"");
     return "application/octet-stream";
   }
 }
-
-
-static bool ReadFile(std::string& target,
-                     const std::string& path)
-{
-  OrthancPluginMemoryBuffer buffer;
-  if (OrthancPluginReadFile(context_, &buffer, path.c_str()))
-  {
-    return false;
-  }
-  else
-  {
-    target.assign(reinterpret_cast<const char*>(buffer.data), buffer.size);
-    OrthancPluginFreeMemoryBuffer(context_, &buffer);
-    return true;
-  }
-}
-
-
-static bool ReadConfiguration(Json::Value& configuration,
-                              OrthancPluginContext* context)
-{
-  std::string s;
-
-  {
-    char* tmp = OrthancPluginGetConfiguration(context);
-    if (tmp == NULL)
-    {
-      OrthancPluginLogError(context, "Error while retrieving the configuration from Orthanc");
-      return false;
-    }
-
-    s.assign(tmp);
-    OrthancPluginFreeString(context, tmp);      
-  }
-
-  Json::Reader reader;
-  if (reader.parse(s, configuration))
-  {
-    return true;
-  }
-  else
-  {
-    OrthancPluginLogError(context, "Unable to parse the configuration");
-    return false;
-  }
-}
-
 
 
 static bool LookupFolder(std::string& folder,
@@ -143,8 +104,7 @@ static bool LookupFolder(std::string& folder,
   std::map<std::string, std::string>::const_iterator found = folders_.find(uri);
   if (found == folders_.end())
   {
-    std::string s = "Unknown URI in plugin server-folders: " + uri;
-    OrthancPluginLogError(context_, s.c_str());
+    OrthancPlugins::LogError(context_, "Unknown URI in plugin server-folders: " + uri);
     OrthancPluginSendHttpStatusCode(context_, output, 404);
     return false;
   }
@@ -156,16 +116,35 @@ static bool LookupFolder(std::string& folder,
 }
 
 
-static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
-                                             const char* url,
-                                             const OrthancPluginHttpRequest* request)
+static void Answer(OrthancPluginRestOutput* output,
+                   const char* content,
+                   size_t size,
+                   const std::string& mime)
+{
+  if (generateETag_)
+  {
+    OrthancPlugins::OrthancString md5(context_);
+    md5.Assign(OrthancPluginComputeMd5(context_, content, size));
+
+    std::string etag = "\"" + std::string(md5.GetContent()) + "\"";
+    OrthancPluginSetHttpHeader(context_, output, "ETag", etag.c_str());
+  }
+
+  SetHttpHeaders(output);
+  OrthancPluginAnswerBuffer(context_, output, content, size, mime.c_str());
+}
+
+
+void ServeFolder(OrthancPluginRestOutput* output,
+                 const char* url,
+                 const OrthancPluginHttpRequest* request)
 {
   namespace fs = boost::filesystem;  
 
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return OrthancPluginErrorCode_Success;
+    return;
   }
 
   std::string folder;
@@ -198,7 +177,10 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
 
       for (fs::directory_iterator it(parent) ; it != end; ++it)
       {
-        if (fs::is_regular_file(it->status()))
+        fs::file_type type = it->status().type();
+
+        if (type == fs::regular_file ||
+            type == fs::reparse_file)  // cf. BitBucket issue #11
         {
           std::string f = it->path().filename().string();
           s += "      <li><a href=\"" + f + "\">" + f + "</a></li>\n";
@@ -209,40 +191,42 @@ static OrthancPluginErrorCode FolderCallback(OrthancPluginRestOutput* output,
       s += "  </body>\n";
       s += "</html>\n";
 
-      OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
+      Answer(output, s.c_str(), s.size(), "text/html");
     }
     else
     {
       std::string path = folder + "/" + item.string();
-      const char* mime = GetMimeType(path);
+      std::string mime = GetMimeType(path);
 
-      std::string s;
-      if (ReadFile(s, path))
+      OrthancPlugins::MemoryBuffer content(context_);
+
+      try
       {
-        const char* resource = s.size() ? s.c_str() : NULL;
-        OrthancPluginAnswerBuffer(context_, output, resource, s.size(), mime);
+        content.ReadFile(path);
       }
-      else
+      catch (...)
       {
-        std::string s = "Inexistent file in served folder: " + path;
-        OrthancPluginLogError(context_, s.c_str());
-        OrthancPluginSendHttpStatusCode(context_, output, 404);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
       }
+
+      boost::posix_time::ptime lastModification = boost::posix_time::from_time_t(fs::last_write_time(path));
+      std::string t = boost::posix_time::to_iso_string(lastModification);
+      OrthancPluginSetHttpHeader(context_, output, "Last-Modified", t.c_str());
+
+      Answer(output, content.GetData(), content.GetSize(), mime);
     }
   }
-
-  return OrthancPluginErrorCode_Success;
 }
 
 
-static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
-                                                const char* url,
-                                                const OrthancPluginHttpRequest* request)
+void ListServedFolders(OrthancPluginRestOutput* output,
+                       const char* url,
+                       const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context_, output, "GET");
-    return OrthancPluginErrorCode_Success;
+    return;
   }
 
   std::string s = "<html><body><h1>Additional folders served by Orthanc</h1>\n";
@@ -266,9 +250,161 @@ static OrthancPluginErrorCode ListServedFolders(OrthancPluginRestOutput* output,
 
   s += "</body></html>\n";
 
-  OrthancPluginAnswerBuffer(context_, output, s.c_str(), s.size(), "text/html");
+  Answer(output, s.c_str(), s.size(), "text/html");
+}
 
-  return OrthancPluginErrorCode_Success;
+
+static void ConfigureFolders(const Json::Value& folders)
+{
+  if (folders.type() != Json::objectValue)
+  {
+    OrthancPlugins::LogError(context_, "The list of folders to be served is badly formatted (must be a JSON object)");
+    ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+  }
+
+  Json::Value::Members members = folders.getMemberNames();
+
+  // Register the callback for each base URI
+  for (Json::Value::Members::const_iterator 
+         it = members.begin(); it != members.end(); ++it)
+  {
+    if (folders[*it].type() != Json::stringValue)
+    {
+      OrthancPlugins::LogError(context_, "The folder to be served \"" + *it + 
+                               "\" must be associated with a string value (its mapped URI)");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+
+    std::string baseUri = *it;
+
+    // Remove the heading and trailing slashes in the root URI, if any
+    while (!baseUri.empty() &&
+           *baseUri.begin() == '/')
+    {
+      baseUri = baseUri.substr(1);
+    }
+
+    while (!baseUri.empty() &&
+           *baseUri.rbegin() == '/')
+    {
+      baseUri.resize(baseUri.size() - 1);
+    }
+
+    if (baseUri.empty())
+    {
+      OrthancPlugins::LogError(context_, "The URI of a folder to be served cannot be empty");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+
+    // Check whether the source folder exists and is indeed a directory
+    const std::string folder = folders[*it].asString();
+    if (!boost::filesystem::is_directory(folder))
+    {
+      OrthancPlugins::LogError(context_, "Trying and serve an inexistent folder: " + folder);
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
+    }
+
+    folders_[baseUri] = folder;
+
+    // Register the callback to serve the folder
+    {
+      const std::string regex = "/(" + baseUri + ")/(.*)";
+      OrthancPlugins::RegisterRestCallback<ServeFolder>(context_, regex.c_str(), true);
+    }
+  }
+}
+
+
+static void ConfigureExtensions(const Json::Value& extensions)
+{
+  if (extensions.type() != Json::objectValue)
+  {
+    OrthancPlugins::LogError(context_, "The list of extensions is badly formatted (must be a JSON object)");
+    ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+  }
+
+  Json::Value::Members members = extensions.getMemberNames();
+
+  for (Json::Value::Members::const_iterator 
+         it = members.begin(); it != members.end(); ++it)
+  {
+    if (extensions[*it].type() != Json::stringValue)
+    {
+      OrthancPlugins::LogError(context_, "The file extension \"" + *it + 
+                               "\" must be associated with a string value (its MIME type)");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+
+    const std::string& mime = extensions[*it].asString();
+
+    std::string name = *it;
+
+    if (!name.empty() &&
+        name[0] == '.')
+    {
+      name = name.substr(1);  // Remove the leading dot "."
+    }
+
+    extensions_[name] = mime;
+
+    if (mime.empty())
+    {
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Removing MIME type for file extension \"." + name + "\"");
+    }
+    else
+    {
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Associating file extension \"." + name + 
+                                 "\" with MIME type \"" + mime + "\"");
+    }
+  }  
+}
+
+
+static void ReadConfiguration()
+{
+  OrthancPlugins::OrthancConfiguration configuration;
+
+  {
+    OrthancPlugins::OrthancConfiguration globalConfiguration(context_);
+    globalConfiguration.GetSection(configuration, "ServeFolders");
+  }
+
+  if (!configuration.IsSection("Folders"))
+  {
+    // This is a basic configuration
+    ConfigureFolders(configuration.GetJson());
+  }
+  else
+  {
+    // This is an advanced configuration
+    ConfigureFolders(configuration.GetJson()["Folders"]);
+
+    bool tmp;
+
+    if (configuration.LookupBooleanValue(tmp, "AllowCache"))
+    {
+      allowCache_ = tmp;
+      OrthancPlugins::LogWarning(context_, "ServeFolders: Requesting the HTTP client to " +
+                                 std::string(tmp ? "enable" : "disable") + 
+                                 " its caching mechanism");
+    }
+
+    if (configuration.LookupBooleanValue(tmp, "GenerateETag"))
+    {
+      generateETag_ = tmp;
+      OrthancPlugins::LogWarning(context_, "ServeFolders: The computation of an ETag for the served resources is " +
+                                 std::string(tmp ? "enabled" : "disabled"));
+    }
+
+    OrthancPlugins::OrthancConfiguration extensions;
+    configuration.GetSection(extensions, "Extensions");
+    ConfigureExtensions(extensions.GetJson());
+  }
+
+  if (folders_.empty())
+  {
+    OrthancPlugins::LogWarning(context_, "ServeFolders: Empty configuration file: No additional folder will be served!");
+  }
 }
 
 
@@ -281,87 +417,27 @@ extern "C"
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context_) == 0)
     {
-      char info[1024];
-      sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
-              context_->orthancVersion,
-              ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-      OrthancPluginLogError(context_, info);
+      OrthancPlugins::ReportMinimalOrthancVersion(context_, 
+                                                  ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       return -1;
     }
 
+    RegisterDefaultExtensions();
     OrthancPluginSetDescription(context_, "Serve additional folders with the HTTP server of Orthanc.");
-
-    Json::Value configuration;
-    if (!ReadConfiguration(configuration, context_))
-    {
-      return -1;
-    }
-
-    if (configuration.isMember("ServeFolders"))
-    {
-      if (configuration["ServeFolders"].type() != Json::objectValue)
-      {
-        OrthancPluginLogError(context_, "The \"ServeFolders\" configuration section is badly formatted (must be a JSON object)");
-        return -1;
-      }
-    }
-    else
-    {
-      OrthancPluginLogWarning(context_, "No section \"ServeFolders\" in your configuration file: "
-                              "No additional folder will be served!");
-      configuration["ServeFolders"] = Json::objectValue;
-    }
-
-
-    Json::Value::Members members = configuration["ServeFolders"].getMemberNames();
-
-    // Register the callback for each base URI
-    for (Json::Value::Members::const_iterator 
-           it = members.begin(); it != members.end(); ++it)
-    {
-      std::string baseUri = *it;
-
-      // Remove the heading and trailing slashes in the root URI, if any
-      while (!baseUri.empty() &&
-             *baseUri.begin() == '/')
-      {
-        baseUri = baseUri.substr(1);
-      }
-
-      while (!baseUri.empty() &&
-             *baseUri.rbegin() == '/')
-      {
-        baseUri.resize(baseUri.size() - 1);
-      }
-
-      if (baseUri.empty())
-      {
-        OrthancPluginLogError(context_, "The URI of a folder to be served cannot be empty");
-        return -1;
-      }
-
-      // Check whether the source folder exists and is indeed a directory
-      const std::string folder = configuration["ServeFolders"][*it].asString();
-      if (!boost::filesystem::is_directory(folder))
-      {
-        std::string msg = "Trying and serve an inexistent folder: " + folder;
-        OrthancPluginLogError(context_, msg.c_str());
-        return -1;
-      }
-
-      folders_[baseUri] = folder;
-
-      // Register the callback to serve the folder
-      {
-        const std::string regex = "/(" + baseUri + ")/(.*)";
-        OrthancPluginRegisterRestCallback(context, regex.c_str(), FolderCallback);
-      }
-    }
-
-    OrthancPluginRegisterRestCallback(context, INDEX_URI, ListServedFolders);
     OrthancPluginSetRootUri(context, INDEX_URI);
+    OrthancPlugins::RegisterRestCallback<ListServedFolders>(context_, INDEX_URI, true);
+
+    try
+    {
+      ReadConfiguration();
+    }
+    catch (OrthancPlugins::PluginException& e)
+    {
+      OrthancPlugins::LogError(context_, "Error while initializing the ServeFolders plugin: " + 
+                               std::string(e.What(context_)));
+    }
 
     return 0;
   }

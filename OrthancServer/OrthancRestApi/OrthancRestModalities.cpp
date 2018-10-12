@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,15 +34,16 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../OrthancInitialization.h"
-#include "../../Core/HttpClient.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
-#include "../FromDcmtkBridge.h"
-#include "../Scheduler/ServerJob.h"
-#include "../Scheduler/StoreScuCommand.h"
-#include "../Scheduler/StorePeerCommand.h"
+#include "../../Core/SerializationToolbox.h"
+#include "../OrthancInitialization.h"
 #include "../QueryRetrieveHandler.h"
+#include "../ServerJobs/DicomModalityStoreJob.h"
+#include "../ServerJobs/DicomMoveScuJob.h"
+#include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
+
 
 namespace Orthanc
 {
@@ -54,12 +56,15 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     try
     {
-      if (locker.GetConnection().Echo())
+      DicomUserConnection connection(localAet, remote);
+      connection.Open();
+      
+      if (connection.Echo())
       {
         // Echo has succeeded
         call.GetOutput().AnswerBuffer("{}", "application/json");
@@ -97,7 +102,7 @@ namespace Orthanc
     for (size_t i = 0; i < members.size(); i++)
     {
       DicomTag t = FromDcmtkBridge::ParseTag(members[i]);
-      result.SetValue(t, query[members[i]].asString());
+      result.SetValue(t, query[members[i]].asString(), false);
     }
 
     return true;
@@ -175,11 +180,16 @@ namespace Orthanc
     }
 
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+    
+    DicomFindAnswers answers(false);
 
-    DicomFindAnswers answers;
-    FindPatient(answers, locker.GetConnection(), fields);
+    {
+      DicomUserConnection connection(localAet, remote);
+      connection.Open();
+      FindPatient(answers, connection, fields);
+    }
 
     Json::Value result;
     answers.ToJson(result, true);
@@ -205,11 +215,16 @@ namespace Orthanc
     }        
       
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomFindAnswers answers;
-    FindStudy(answers, locker.GetConnection(), fields);
+    DicomFindAnswers answers(false);
+
+    {
+      DicomUserConnection connection(localAet, remote);
+      connection.Open();
+      FindStudy(answers, connection, fields);
+    }
 
     Json::Value result;
     answers.ToJson(result, true);
@@ -236,11 +251,16 @@ namespace Orthanc
     }        
          
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomFindAnswers answers;
-    FindSeries(answers, locker.GetConnection(), fields);
+    DicomFindAnswers answers(false);
+
+    {
+      DicomUserConnection connection(localAet, remote);
+      connection.Open();
+      FindSeries(answers, connection, fields);
+    }
 
     Json::Value result;
     answers.ToJson(result, true);
@@ -268,15 +288,32 @@ namespace Orthanc
     }        
          
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomFindAnswers answers;
-    FindInstance(answers, locker.GetConnection(), fields);
+    DicomFindAnswers answers(false);
+
+    {
+      DicomUserConnection connection(localAet, remote);
+      connection.Open();
+      FindInstance(answers, connection, fields);
+    }
 
     Json::Value result;
     answers.ToJson(result, true);
     call.GetOutput().AnswerJson(result);
+  }
+
+
+  static void CopyTagIfExists(DicomMap& target,
+                              ParsedDicomFile& source,
+                              const DicomTag& tag)
+  {
+    std::string tmp;
+    if (source.GetTagValue(tmp, tag))
+    {
+      target.SetValue(tag, tmp, false);
+    }
   }
 
 
@@ -293,54 +330,59 @@ namespace Orthanc
     }
  
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote = Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    ReusableDicomUserConnection::Locker locker(context.GetReusableDicomUserConnection(), localAet, remote);
+    RemoteModalityParameters remote =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomFindAnswers patients;
-    FindPatient(patients, locker.GetConnection(), m);
+    DicomUserConnection connection(localAet, remote);
+    connection.Open();
+    
+    DicomFindAnswers patients(false);
+    FindPatient(patients, connection, m);
 
     // Loop over the found patients
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < patients.GetSize(); i++)
     {
-      Json::Value patient(Json::objectValue);
-      FromDcmtkBridge::ToJson(patient, patients.GetAnswer(i), true);
+      Json::Value patient;
+      patients.ToJson(patient, i, true);
 
       DicomMap::SetupFindStudyTemplate(m);
       if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
       {
         return;
       }
-      m.CopyTagIfExists(patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
 
-      DicomFindAnswers studies;
-      FindStudy(studies, locker.GetConnection(), m);
+      CopyTagIfExists(m, patients.GetAnswer(i), DICOM_TAG_PATIENT_ID);
+
+      DicomFindAnswers studies(false);
+      FindStudy(studies, connection, m);
 
       patient["Studies"] = Json::arrayValue;
       
       // Loop over the found studies
       for (size_t j = 0; j < studies.GetSize(); j++)
       {
-        Json::Value study(Json::objectValue);
-        FromDcmtkBridge::ToJson(study, studies.GetAnswer(j), true);
+        Json::Value study;
+        studies.ToJson(study, j, true);
 
         DicomMap::SetupFindSeriesTemplate(m);
         if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
         {
           return;
         }
-        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
-        m.CopyTagIfExists(studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
 
-        DicomFindAnswers series;
-        FindSeries(series, locker.GetConnection(), m);
+        CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_PATIENT_ID);
+        CopyTagIfExists(m, studies.GetAnswer(j), DICOM_TAG_STUDY_INSTANCE_UID);
+
+        DicomFindAnswers series(false);
+        FindSeries(series, connection, m);
 
         // Loop over the found series
         study["Series"] = Json::arrayValue;
         for (size_t k = 0; k < series.GetSize(); k++)
         {
-          Json::Value series2(Json::objectValue);
-          FromDcmtkBridge::ToJson(series2, series.GetAnswer(k), true);
+          Json::Value series2;
+          series.ToJson(series2, k, true);
           study["Series"].append(series2);
         }
 
@@ -372,7 +414,7 @@ namespace Orthanc
       std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
 
       handler->SetModality(call.GetUriComponent("id", ""));
-      handler->SetLevel(StringToResourceType(request["Level"].asString().c_str()));
+      handler->SetLevel(StringToResourceType(request["Level"].asCString()));
 
       if (request.isMember("Query"))
       {
@@ -390,7 +432,7 @@ namespace Orthanc
       Json::Value result = Json::objectValue;
       result["ID"] = s;
       result["Path"] = "/queries/" + s;
-      call.GetOutput().AnswerJson(result);      
+      call.GetOutput().AnswerJson(result);
     }
   }
 
@@ -430,9 +472,9 @@ namespace Orthanc
       {
       }                     
 
-      QueryRetrieveHandler* operator->()
+      QueryRetrieveHandler& GetHandler() const
       {
-        return &handler_;
+        return handler_;
       }
     };
 
@@ -450,7 +492,7 @@ namespace Orthanc
   static void ListQueryAnswers(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    size_t count = query->GetAnswerCount();
+    size_t count = query.GetHandler().GetAnswersCount();
 
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < count; i++)
@@ -465,61 +507,96 @@ namespace Orthanc
   static void GetQueryOneAnswer(RestApiGetCall& call)
   {
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+
     QueryAccessor query(call);
-    AnswerDicomMap(call, query->GetAnswer(index), call.HasArgument("simplify"));
+
+    DicomMap map;
+    query.GetHandler().GetAnswer(map, index);
+
+    AnswerDicomMap(call, map, call.HasArgument("simplify"));
   }
 
+
+  static void SubmitRetrieveJob(RestApiPostCall& call,
+                                bool allAnswers,
+                                size_t index)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string targetAet;
+    
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
+    {
+      targetAet = SerializationToolbox::ReadString(body, "TargetAet");
+    }
+    else
+    {
+      body = Json::objectValue;
+      call.BodyToString(targetAet);
+    }
+    
+    std::auto_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
+    
+    {
+      QueryAccessor query(call);
+      job->SetTargetAet(targetAet);
+      job->SetLocalAet(query.GetHandler().GetLocalAet());
+      job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+
+      LOG(WARNING) << "Driving C-Move SCU on remote modality "
+                   << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
+                   << " to target modality " << targetAet;
+
+      if (allAnswers)
+      {
+        for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
+        {
+          job->AddFindAnswer(query.GetHandler(), i);
+        }
+      }
+      else
+      {
+        job->AddFindAnswer(query.GetHandler(), index);
+      }
+    }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, body);
+  }
+  
 
   static void RetrieveOneAnswer(RestApiPostCall& call)
   {
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
-
-    std::string modality;
-    call.BodyToString(modality);
-
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
-
-    QueryAccessor query(call);
-    query->Retrieve(modality, index);
-
-    // Retrieve has succeeded
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    SubmitRetrieveJob(call, false, index);
   }
 
 
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
-    std::string modality;
-    call.BodyToString(modality);
-
-    LOG(WARNING) << "Driving C-Move SCU on modality: " << modality;
-
-    QueryAccessor query(call);
-    query->Retrieve(modality);
-
-    // Retrieve has succeeded
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    SubmitRetrieveJob(call, true, 0);
   }
 
 
   static void GetQueryArguments(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    AnswerDicomMap(call, query->GetQuery(), call.HasArgument("simplify"));
+    AnswerDicomMap(call, query.GetHandler().GetQuery(), call.HasArgument("simplify"));
   }
 
 
   static void GetQueryLevel(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(EnumerationToString(query->GetLevel()), "text/plain");
+    call.GetOutput().AnswerBuffer(EnumerationToString(query.GetHandler().GetLevel()), "text/plain");
   }
 
 
   static void GetQueryModality(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(query->GetModalitySymbolicName(), "text/plain");
+    call.GetOutput().AnswerBuffer(query.GetHandler().GetModalitySymbolicName(), "text/plain");
   }
 
 
@@ -547,7 +624,9 @@ namespace Orthanc
 
     // Ensure that the answer of interest does exist
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
-    query->GetAnswer(index);
+
+    DicomMap map;
+    query.GetHandler().GetAnswer(map, index);
 
     RestApi::AutoListChildren(call);
   }
@@ -560,7 +639,7 @@ namespace Orthanc
    ***************************************************************************/
 
   static bool GetInstancesToExport(Json::Value& otherArguments,
-                                   std::list<std::string>& instances,
+                                   SetOfInstancesJob& job,
                                    const std::string& remote,
                                    RestApiPostCall& call)
   {
@@ -630,19 +709,12 @@ namespace Orthanc
         return false;
       }
 
-      if (Configuration::GetGlobalBoolParameter("LogExportedResources", true))
+      if (Configuration::GetGlobalBoolParameter("LogExportedResources", false))
       {
         context.GetIndex().LogExportedResource(stripped, remote);
       }
-       
-      std::list<std::string> tmp;
-      context.GetIndex().GetChildInstances(tmp, stripped);
 
-      for (std::list<std::string>::const_iterator
-             it = tmp.begin(); it != tmp.end(); ++it)
-      {
-        instances.push_back(*it);
-      }
+      context.AddChildInstances(job, stripped);
     }
 
     return true;
@@ -656,39 +728,79 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::list<std::string> instances;
-    if (!GetInstancesToExport(request, instances, remote, call))
-    {
-      return;
-    }
+    std::auto_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
 
-    std::string localAet = context.GetDefaultLocalApplicationEntityTitle();
-    if (request.isMember("LocalAet"))
+    if (GetInstancesToExport(request, *job, remote, call))
     {
-      localAet = request["LocalAet"].asString();
-    }
+      std::string localAet = Toolbox::GetJsonStringField
+        (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+      std::string moveOriginatorAET = Toolbox::GetJsonStringField
+        (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
+      int moveOriginatorID = Toolbox::GetJsonIntegerField
+        (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
-    RemoteModalityParameters p = Configuration::GetModalityUsingSymbolicName(remote);
+      job->SetLocalAet(localAet);
+      job->SetRemoteModality(Configuration::GetModalityUsingSymbolicName(remote));
 
-    ServerJob job;
-    for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); ++it)
-    {
-      job.AddCommand(new StoreScuCommand(context, localAet, p, false)).AddInput(*it);
-    }
+      if (moveOriginatorID != 0)
+      {
+        job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
+      }
 
-    job.SetDescription("HTTP request: Store-SCU to peer \"" + remote + "\"");
-
-    if (context.GetScheduler().SubmitAndWait(job))
-    {
-      // Success
-      call.GetOutput().AnswerBuffer("{}", "application/json");
-    }
-    else
-    {
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+      OrthancRestApi::GetApi(call).SubmitCommandsJob
+        (call, job.release(), true /* synchronous by default */, request);
     }
   }
+
+
+  /***************************************************************************
+   * DICOM C-Move SCU
+   ***************************************************************************/
+  
+  static void DicomMove(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+
+    static const char* RESOURCES = "Resources";
+    static const char* LEVEL = "Level";
+
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue ||
+        !request.isMember(RESOURCES) ||
+        !request.isMember(LEVEL) ||
+        request[RESOURCES].type() != Json::arrayValue ||
+        request[LEVEL].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    ResourceType level = StringToResourceType(request["Level"].asCString());
+    
+    std::string localAet = Toolbox::GetJsonStringField
+      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string targetAet = Toolbox::GetJsonStringField
+      (request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
+
+    const RemoteModalityParameters source =
+      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    DicomUserConnection connection(localAet, source);
+    connection.Open();
+    
+    for (Json::Value::ArrayIndex i = 0; i < request[RESOURCES].size(); i++)
+    {
+      DicomMap resource;
+      FromDcmtkBridge::FromJson(resource, request[RESOURCES][i]);
+      
+      connection.Move(targetAet, level, resource);
+    }
+
+    // Move has succeeded
+    call.GetOutput().AnswerBuffer("{}", "application/json");
+  }
+
 
 
   /***************************************************************************
@@ -706,14 +818,41 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings peers;
     Configuration::GetListOfOrthancPeers(peers);
 
-    Json::Value result = Json::arrayValue;
-    for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = peers.begin(); it != peers.end(); ++it)
+    if (call.HasArgument("expand"))
     {
-      result.append(*it);
+      Json::Value result = Json::objectValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = peers.begin(); it != peers.end(); ++it)
+      {
+        WebServiceParameters peer;
+        
+        if (Configuration::GetOrthancPeer(peer, *it))
+        {
+          Json::Value jsonPeer = Json::objectValue;
+          // only return the minimum information to identify the
+          // destination, do not include "security" information like
+          // passwords
+          jsonPeer["Url"] = peer.GetUrl();
+          if (!peer.GetUsername().empty())
+          {
+            jsonPeer["Username"] = peer.GetUsername();
+          }
+          result[*it] = jsonPeer;
+        }
+      }
+      call.GetOutput().AnswerJson(result);
     }
+    else // if expand is not present, keep backward compatibility and return an array of peers
+    {
+      Json::Value result = Json::arrayValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = peers.begin(); it != peers.end(); ++it)
+      {
+        result.append(*it);
+      }
 
-    call.GetOutput().AnswerJson(result);
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
   static void ListPeerOperations(RestApiGetCall& call)
@@ -735,32 +874,22 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::list<std::string> instances;
-    if (!GetInstancesToExport(request, instances, remote, call))
-    {
-      return;
-    }
+    std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
 
-    OrthancPeerParameters peer;
-    Configuration::GetOrthancPeer(peer, remote);
-
-    ServerJob job;
-    for (std::list<std::string>::const_iterator 
-           it = instances.begin(); it != instances.end(); ++it)
+    if (GetInstancesToExport(request, *job, remote, call))
     {
-      job.AddCommand(new StorePeerCommand(context, peer, false)).AddInput(*it);
-    }
-
-    job.SetDescription("HTTP request: POST to peer \"" + remote + "\"");
-
-    if (context.GetScheduler().SubmitAndWait(job))
-    {
-      // Success
-      call.GetOutput().AnswerBuffer("{}", "application/json");
-    }
-    else
-    {
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+      WebServiceParameters peer;
+      if (Configuration::GetOrthancPeer(peer, remote))
+      {
+        job->SetPeer(peer);    
+        OrthancRestApi::GetApi(call).SubmitCommandsJob
+          (call, job.release(), true /* synchronous by default */, request);
+      }
+      else
+      {
+        LOG(ERROR) << "No peer with symbolic name: " << remote;
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
   }
 
@@ -778,14 +907,30 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings modalities;
     Configuration::GetListOfDicomModalities(modalities);
 
-    Json::Value result = Json::arrayValue;
-    for (OrthancRestApi::SetOfStrings::const_iterator 
-           it = modalities.begin(); it != modalities.end(); ++it)
+    if (call.HasArgument("expand"))
     {
-      result.append(*it);
+      Json::Value result = Json::objectValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = modalities.begin(); it != modalities.end(); ++it)
+      {
+        const RemoteModalityParameters& remote = Configuration::GetModalityUsingSymbolicName(*it);
+        
+        Json::Value info;
+        remote.Serialize(info, true /* force advanced format */);
+        result[*it] = info;
+      }
+      call.GetOutput().AnswerJson(result);
     }
-
-    call.GetOutput().AnswerJson(result);
+    else // if expand is not present, keep backward compatibility and return an array of modalities ids
+    {
+      Json::Value result = Json::arrayValue;
+      for (OrthancRestApi::SetOfStrings::const_iterator
+             it = modalities.begin(); it != modalities.end(); ++it)
+      {
+        result.append(*it);
+      }
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
@@ -804,13 +949,15 @@ namespace Orthanc
 
   static void UpdateModality(RestApiPutCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     Json::Value json;
     Json::Reader reader;
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
       RemoteModalityParameters modality;
-      modality.FromJson(json);
-      Configuration::UpdateModality(call.GetUriComponent("id", ""), modality);
+      modality.Unserialize(json);
+      Configuration::UpdateModality(context, call.GetUriComponent("id", ""), modality);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -818,20 +965,24 @@ namespace Orthanc
 
   static void DeleteModality(RestApiDeleteCall& call)
   {
-    Configuration::RemoveModality(call.GetUriComponent("id", ""));
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Configuration::RemoveModality(context, call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
   }
 
 
   static void UpdatePeer(RestApiPutCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     Json::Value json;
     Json::Reader reader;
     if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
     {
-      OrthancPeerParameters peer;
-      peer.FromJson(json);
-      Configuration::UpdatePeer(call.GetUriComponent("id", ""), peer);
+      WebServiceParameters peer;
+      peer.Unserialize(json);
+      Configuration::UpdatePeer(context, call.GetUriComponent("id", ""), peer);
       call.GetOutput().AnswerBuffer("", "text/plain");
     }
   }
@@ -839,8 +990,38 @@ namespace Orthanc
 
   static void DeletePeer(RestApiDeleteCall& call)
   {
-    Configuration::RemovePeer(call.GetUriComponent("id", ""));
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Configuration::RemovePeer(context, call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", "text/plain");
+  }
+
+
+  static void DicomFindWorklist(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value json;
+    if (call.ParseJsonRequest(json))
+    {
+      const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+      RemoteModalityParameters remote =
+        Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+      std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
+
+      DicomFindAnswers answers(true);
+
+      {
+        DicomUserConnection connection(localAet, remote);
+        connection.Open();
+        connection.FindWorklist(answers, *query);
+      }
+
+      Json::Value result;
+      answers.ToJson(result, true);
+      call.GetOutput().AnswerJson(result);
+    }
   }
 
 
@@ -857,6 +1038,7 @@ namespace Orthanc
     Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
+    Register("/modalities/{id}/move", DicomMove);
 
     // For Query/Retrieve
     Register("/modalities/{id}/query", DicomQuery);
@@ -877,5 +1059,7 @@ namespace Orthanc
     Register("/peers/{id}", UpdatePeer);
     Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
+
+    Register("/modalities/{id}/find-worklist", DicomFindWorklist);
   }
 }

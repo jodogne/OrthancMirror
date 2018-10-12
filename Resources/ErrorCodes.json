@@ -32,7 +32,7 @@
   {
     "Code": 4, 
     "Name": "NotEnoughMemory", 
-    "Description": "Not enough memory"
+    "Description": "The server hosting Orthanc is running out of memory"
   }, 
   {
     "Code": 5, 
@@ -189,7 +189,29 @@
     "Code": 33,
     "Name": "EmptyRequest",
     "Description": "The request is empty"
+  }, 
+  {
+    "Code": 34, 
+    "HttpStatus": 406, 
+    "Name": "NotAcceptable", 
+    "Description": "Cannot send a response which is acceptable according to the Accept HTTP header"
+  }, 
+  {
+    "Code": 35, 
+    "Name": "NullPointer", 
+    "Description": "Cannot handle a NULL pointer"
   },
+  {
+    "Code": 36, 
+    "HttpStatus": 503, 
+    "Name": "DatabaseUnavailable", 
+    "Description": "The database is currently not available (probably a transient situation)"
+  }, 
+  {
+    "Code": 37, 
+    "Name": "CanceledJob", 
+    "Description": "This job was canceled"
+  }, 
 
 
 
@@ -321,12 +343,12 @@
   {
     "Code": 2003, 
     "Name": "HttpPortInUse", 
-    "Description": "The TCP port of the HTTP server is already in use"
+    "Description": "The TCP port of the HTTP server is privileged or already in use"
   },
   {
     "Code": 2004, 
     "Name": "DicomPortInUse", 
-    "Description": "The TCP port of the DICOM server is already in use"
+    "Description": "The TCP port of the DICOM server is privileged or already in use"
   },
   {
     "Code": 2005, 
@@ -507,5 +529,15 @@
     "Code": 2040,
     "Name": "CannotOrderSlices",
     "Description": "Unable to order the slices of the series"
+  },
+  {
+    "Code": 2041, 
+    "Name": "NoWorklistHandler", 
+    "Description": "No request handler factory for DICOM C-Find Modality SCP"
+  },
+  {
+    "Code": 2042,
+    "Name": "AlreadyExistingTag",
+    "Description": "Cannot override the value of a tag that already exists"
   }
 ]

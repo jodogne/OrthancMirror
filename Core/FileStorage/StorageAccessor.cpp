@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,7 +36,12 @@
 
 #include "../Compression/ZlibCompressor.h"
 #include "../OrthancException.h"
-#include "../HttpServer/HttpStreamTranscoder.h"
+#include "../Toolbox.h"
+#include "../Toolbox.h"
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+#  include "../HttpServer/HttpStreamTranscoder.h"
+#endif
 
 namespace Orthanc
 {
@@ -140,33 +146,59 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
-                                    const FileInfo& info)
+                                    const FileInfo& info,
+                                    const std::string& mime)
   {
     area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
-    sender.SetContentType(GetMimeType(info.GetContentType()));
-    sender.SetContentFilename(info.GetUuid() + std::string(GetFileExtension(info.GetContentType())));
+    sender.SetContentType(mime);
+
+    const char* extension;
+    switch (info.GetContentType())
+    {
+      case FileContentType_Dicom:
+        extension = ".dcm";
+        break;
+
+      case FileContentType_DicomAsJson:
+        extension = ".json";
+        break;
+
+      default:
+        // Non-standard content type
+        extension = "";
+    }
+
+    sender.SetContentFilename(info.GetUuid() + std::string(extension));
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(HttpOutput& output,
-                                   const FileInfo& info)
+                                   const FileInfo& info,
+                                   const std::string& mime)
   {
     BufferHttpSender sender;
-    SetupSender(sender, info);
+    SetupSender(sender, info, mime);
   
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.Answer(transcoder);
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(RestApiOutput& output,
-                                   const FileInfo& info)
+                                   const FileInfo& info,
+                                   const std::string& mime)
   {
     BufferHttpSender sender;
-    SetupSender(sender, info);
+    SetupSender(sender, info, mime);
   
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.AnswerStream(transcoder);
   }
+#endif
 }

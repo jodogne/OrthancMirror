@@ -1,15 +1,33 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
   SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.1.5)
   SET(LUA_MD5 "2e115fe26e435e33b0d5c022e4490567")
-  SET(LUA_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/lua-5.1.5.tar.gz")
+  SET(LUA_URL "http://www.orthanc-server.com/downloads/third-party/lua-5.1.5.tar.gz")
 
   DownloadPackage(${LUA_MD5} ${LUA_URL} "${LUA_SOURCES_DIR}")
 
-  add_definitions(
-    #-DLUA_LIB=1
-    #-Dluaall_c=1
-    #-DLUA_COMPAT_ALL=1  # Compile a generic version of Lua
-    )
+  if (ENABLE_LUA_MODULES)
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
+        ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+      # Enable loading of shared libraries (for UNIX-like)
+      add_definitions(-DLUA_USE_DLOPEN=1)
+
+      # Publish the functions of the Lua engine (that are built within
+      # the Orthanc binary) as global symbols, so that the external
+      # shared libraries can call them
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--export-dynamic")
+
+    elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+      add_definitions(-DLUA_DL_DLL=1)       # Enable loading of shared libraries (for Microsoft Windows)
+      
+    elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+      add_definitions(-LUA_DL_DYLD=1)       # Enable loading of shared libraries (for Apple OS X)
+      
+    else()
+      message(FATAL_ERROR "Support your platform here")
+    endif()
+  endif()
 
   include_directories(
     ${LUA_SOURCES_DIR}/src

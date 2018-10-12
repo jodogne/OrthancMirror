@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,8 +44,9 @@
 #include <sqlite3.h>
 #include <lua.h>
 #include <jpeglib.h>
+#include <iconv.h>
 
-#if ORTHANC_SSL_ENABLED == 1
+#if ORTHANC_ENABLE_SSL == 1
 #include <openssl/opensslv.h>
 #endif
 
@@ -97,23 +99,23 @@ TEST(Versions, Lua)
 
 TEST(Versions, ZlibStatic)
 {
-  ASSERT_STREQ("1.2.7", zlibVersion());
+  ASSERT_STREQ("1.2.11", zlibVersion());
 }
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_STREQ("1_58", BOOST_LIB_VERSION);
+  ASSERT_STREQ("1_67", BOOST_LIB_VERSION);
 }
 
 TEST(Versions, CurlStatic)
 {
   curl_version_info_data* v = curl_version_info(CURLVERSION_NOW);
-  ASSERT_STREQ("7.44.0", v->version);
+  ASSERT_STREQ("7.57.0", v->version);
 }
 
 TEST(Versions, PngStatic)
 {
-  ASSERT_EQ(10512, png_access_version_number());
+  ASSERT_EQ(10512u, png_access_version_number());
   ASSERT_STREQ("1.5.12", PNG_LIBPNG_VER_STRING);
 }
 
@@ -130,7 +132,7 @@ TEST(Versions, CurlSslStatic)
   // Check that SSL support is enabled when required
   bool curlSupportsSsl = (vinfo->features & CURL_VERSION_SSL) != 0;
 
-#if ORTHANC_SSL_ENABLED == 0
+#if ORTHANC_ENABLE_SSL == 0
   ASSERT_FALSE(curlSupportsSsl);
 #else
   ASSERT_TRUE(curlSupportsSsl);
@@ -142,11 +144,18 @@ TEST(Version, LuaStatic)
   ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
 }
 
+TEST(Version, LibIconvStatic)
+{
+  static const int major = 1;
+  static const int minor = 15;  
+  ASSERT_EQ((major << 8) + minor, _LIBICONV_VERSION);
+}
 
-#if ORTHANC_SSL_ENABLED == 1
+
+#if ORTHANC_ENABLE_SSL == 1
 TEST(Version, OpenSslStatic)
 {
-  ASSERT_EQ(0x1000204fL /* openssl-1.0.2d */, OPENSSL_VERSION_NUMBER);
+  ASSERT_EQ(0x100020ffL /* openssl-1.0.2o */, OPENSSL_VERSION_NUMBER);
 }
 #endif
 
@@ -155,7 +164,13 @@ TEST(Version, OpenSslStatic)
 
 TEST(Version, JsonCpp)
 {
-  ASSERT_STREQ("0.10.5", JSONCPP_VERSION_STRING);
+#if ORTHANC_LEGACY_JSONCPP == 1
+  ASSERT_STREQ("0.10.6", JSONCPP_VERSION_STRING);
+#elif ORTHANC_LEGACY_JSONCPP == 0
+  ASSERT_STREQ("1.8.4", JSONCPP_VERSION_STRING);
+#else
+#  error Macro ORTHANC_LEGACY_JSONCPP should be set
+#endif
 }
 
 #endif

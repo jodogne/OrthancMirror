@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -47,7 +48,7 @@ namespace Orthanc
   private:
     friend class DicomArray;
     friend class FromDcmtkBridge;
-    friend class ToDcmtkBridge;
+    friend class ParsedDicomFile;
 
     typedef std::map<DicomTag, DicomValue*>  Map;
 
@@ -88,6 +89,17 @@ namespace Orthanc
 
     void Clear();
 
+    void SetNullValue(uint16_t group, 
+                      uint16_t element)
+    {
+      SetValue(group, element, new DicomValue);
+    }
+    
+    void SetNullValue(const DicomTag& tag)
+    {
+      SetValue(tag, new DicomValue);
+    }
+    
     void SetValue(uint16_t group, 
                   uint16_t element, 
                   const DicomValue& value)
@@ -102,16 +114,18 @@ namespace Orthanc
     }
 
     void SetValue(const DicomTag& tag,
-                  const std::string& str)
+                  const std::string& str,
+                  bool isBinary)
     {
-      SetValue(tag, new DicomValue(str, false));
+      SetValue(tag, new DicomValue(str, isBinary));
     }
 
     void SetValue(uint16_t group, 
                   uint16_t element, 
-                  const std::string& str)
+                  const std::string& str,
+                  bool isBinary)
     {
-      SetValue(group, element, new DicomValue(str, false));
+      SetValue(group, element, new DicomValue(str, isBinary));
     }
 
     bool HasTag(uint16_t group, uint16_t element) const
@@ -169,12 +183,42 @@ namespace Orthanc
 
     static void GetMainDicomTags(std::set<DicomTag>& result);
 
-    void Print(FILE* fp) const;
-
     void GetTags(std::set<DicomTag>& tags) const;
 
     static void LoadMainDicomTags(const DicomTag*& tags,
                                   size_t& size,
                                   ResourceType level);
+
+    static bool ParseDicomMetaInformation(DicomMap& result,
+                                          const char* dicom,
+                                          size_t size);
+
+    void LogMissingTagsForStore() const;
+
+    bool CopyToString(std::string& result,
+                      const DicomTag& tag,
+                      bool allowBinary) const;
+    
+    bool ParseInteger32(int32_t& result,
+                        const DicomTag& tag) const;
+
+    bool ParseInteger64(int64_t& result,
+                        const DicomTag& tag) const;                                
+
+    bool ParseUnsignedInteger32(uint32_t& result,
+                                const DicomTag& tag) const;
+
+    bool ParseUnsignedInteger64(uint64_t& result,
+                                const DicomTag& tag) const;
+
+    bool ParseFloat(float& result,
+                    const DicomTag& tag) const;
+
+    bool ParseDouble(double& result,
+                     const DicomTag& tag) const;
+
+    void Serialize(Json::Value& target) const;
+
+    void Unserialize(const Json::Value& source);
   };
 }

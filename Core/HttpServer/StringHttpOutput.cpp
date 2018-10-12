@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,9 +40,18 @@ namespace Orthanc
 {
   void StringHttpOutput::OnHttpStatusReceived(HttpStatus status)
   {
-    if (status != HttpStatus_200_Ok)
+    switch (status)
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      case HttpStatus_200_Ok:
+        found_ = true;
+        break;
+
+      case HttpStatus_404_NotFound:
+        found_ = false;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_BadRequest);
     }
   }
 
@@ -50,6 +60,18 @@ namespace Orthanc
     if (!isHeader)
     {
       buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
+    }
+  }
+
+  void StringHttpOutput::GetOutput(std::string& output)
+  {
+    if (found_)
+    {
+      buffer_.Flatten(output);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
     }
   }
 }

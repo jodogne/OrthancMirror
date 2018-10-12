@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
-  SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
-  SET(ZLIB_URL "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz")
-  SET(ZLIB_MD5 "60df6a37c56e7c1366cca812414f7b85")
+  SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.11)
+  SET(ZLIB_URL "http://www.orthanc-server.com/downloads/third-party/zlib-1.2.11.tar.gz")
+  SET(ZLIB_MD5 "1c9f62f0778697a09d36121ead88e08e")
 
   DownloadPackage(${ZLIB_MD5} ${ZLIB_URL} "${ZLIB_SOURCES_DIR}")
 
@@ -27,10 +27,19 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
     ${ZLIB_SOURCES_DIR}/zutil.c
     )
 
+  source_group(ThirdParty\\zlib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
+      ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    # "ioapi.c" from zlib (minizip) expects the "IOAPI_NO_64" macro to be set to "true"
+    # https://ohse.de/uwe/articles/lfs.html
+    add_definitions(
+      -DIOAPI_NO_64=1
+      )
+  endif()
+
 else()
   include(FindZLIB)
   include_directories(${ZLIB_INCLUDE_DIRS})
   link_libraries(${ZLIB_LIBRARIES})
 endif()
-
-source_group(ThirdParty\\ZLib REGULAR_EXPRESSION ${ZLIB_SOURCES_DIR}/.*)

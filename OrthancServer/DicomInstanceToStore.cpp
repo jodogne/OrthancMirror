@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,20 +34,15 @@
 #include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
-#include "FromDcmtkBridge.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 
 namespace Orthanc
 {
-  static DcmDataset& GetDataset(ParsedDicomFile& file)
-  {
-    return *reinterpret_cast<DcmFileFormat*>(file.GetDcmtkObject())->getDataset();
-  }
-
-
   void DicomInstanceToStore::AddMetadata(ResourceType level,
                                          MetadataType metadata,
                                          const std::string& value)
@@ -69,17 +65,23 @@ namespace Orthanc
     {
       if (!parsed_.HasContent())
       {
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
-      else
-      {
-        // Serialize the parsed DICOM file
-        buffer_.Allocate();
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), GetDataset(parsed_.GetContent())))
+        if (!summary_.HasContent())
         {
-          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_NotImplemented);
         }
+        else
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent()));
+        }                                
+      }
+
+      // Serialize the parsed DICOM file
+      buffer_.Allocate();
+      if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
+                                               *parsed_.GetContent().GetDcmtkObject().getDataset()))
+      {
+        LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
 
@@ -103,16 +105,18 @@ namespace Orthanc
     if (!summary_.HasContent())
     {
       summary_.Allocate();
-      FromDcmtkBridge::Convert(summary_.GetContent(), GetDataset(parsed_.GetContent()));
+      FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
+                                           *parsed_.GetContent().GetDcmtkObject().getDataset());
     }
     
     if (!json_.HasContent())
     {
       json_.Allocate();
-      FromDcmtkBridge::ToJson(json_.GetContent(), GetDataset(parsed_.GetContent()), 
-                              DicomToJsonFormat_Full, 
-                              DicomToJsonFlags_Default,
-                              256 /* max string length */);
+
+      std::set<DicomTag> ignoreTagLength;
+      FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
+                                          *parsed_.GetContent().GetDcmtkObject().getDataset(),
+                                          ignoreTagLength);
     }
   }
 
@@ -177,97 +181,23 @@ namespace Orthanc
   }
 
 
-
-  void DicomInstanceToStore::GetOriginInformation(Json::Value& result) const
+  bool DicomInstanceToStore::LookupTransferSyntax(std::string& result)
   {
-    result = Json::objectValue;
-    result["RequestOrigin"] = EnumerationToString(origin_);
+    ComputeMissingInformation();
 
-    switch (origin_)
+    DicomMap header;
+    if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
     {
-      case RequestOrigin_Unknown:
+      const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
+      if (value != NULL &&
+          !value->IsBinary() &&
+          !value->IsNull())
       {
-        // None of the methods "SetDicomProtocolOrigin()", "SetHttpOrigin()",
-        // "SetLuaOrigin()" or "SetPluginsOrigin()" was called!
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        result = Toolbox::StripSpaces(value->GetContent());
+        return true;
       }
-
-      case RequestOrigin_DicomProtocol:
-      {
-        result["RemoteIp"] = remoteIp_;
-        result["RemoteAet"] = dicomRemoteAet_;
-        result["CalledAet"] = dicomCalledAet_;
-        break;
-      }
-
-      case RequestOrigin_Http:
-      {
-        result["RemoteIp"] = remoteIp_;
-        result["Username"] = httpUsername_;
-        break;
-      }
-
-      case RequestOrigin_Lua:
-      case RequestOrigin_Plugins:
-      {
-        // No additional information available for these kinds of requests
-        break;
-      }
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
     }
-  }
 
-
-  void DicomInstanceToStore::SetDicomProtocolOrigin(const char* remoteIp,
-                                                    const char* remoteAet,
-                                                    const char* calledAet)
-  {
-    origin_ = RequestOrigin_DicomProtocol;
-    remoteIp_ = remoteIp;
-    dicomRemoteAet_ = remoteAet;
-    dicomCalledAet_ = calledAet;
-  }
-
-  void DicomInstanceToStore::SetRestOrigin(const RestApiCall& call)
-  {
-    origin_ = call.GetRequestOrigin();
-
-    if (origin_ == RequestOrigin_Http)
-    {
-      remoteIp_ = call.GetRemoteIp();
-      httpUsername_ = call.GetUsername();
-    }
-  }
-
-  void DicomInstanceToStore::SetHttpOrigin(const char* remoteIp,
-                                           const char* username)
-  {
-    origin_ = RequestOrigin_Http;
-    remoteIp_ = remoteIp;
-    httpUsername_ = username;
-  }
-
-  void DicomInstanceToStore::SetLuaOrigin()
-  {
-    origin_ = RequestOrigin_Lua;
-  }
-
-  void DicomInstanceToStore::SetPluginsOrigin()
-  {
-    origin_ = RequestOrigin_Plugins;
-  }
-
-  const char* DicomInstanceToStore::GetRemoteAet() const
-  {
-    if (origin_ == RequestOrigin_DicomProtocol)
-    {
-      return dicomRemoteAet_.c_str();
-    }
-    else
-    {
-      return "";
-    }
+    return false;
   }
 }

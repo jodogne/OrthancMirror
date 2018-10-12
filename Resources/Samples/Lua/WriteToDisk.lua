@@ -2,7 +2,8 @@ TARGET = '/tmp/lua'
 
 function ToAscii(s)
    -- http://www.lua.org/manual/5.1/manual.html#pdf-string.gsub
-   return s:gsub('[^a-zA-Z0-9-/ ]', '_')
+   -- https://groups.google.com/d/msg/orthanc-users/qMLgkEmwwPI/6jRpCrlgBwAJ
+   return s:gsub('[^a-zA-Z0-9-/-: ]', '_')
 end
 
 function OnStableSeries(seriesId, tags, metadata)

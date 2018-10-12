@@ -1,7 +1,8 @@
 /**
  * Orthanc - A Lightweight, RESTful DICOM Store
- * Copyright (C) 2012-2015 Sebastien Jodogne, Medical Physics
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2018 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,14 +41,17 @@ namespace Orthanc
   RangeConstraint::RangeConstraint(const std::string& lower,
                                    const std::string& upper,
                                    bool isCaseSensitive) : 
-    lower_(lower),
-    upper_(upper),
     isCaseSensitive_(isCaseSensitive)
   {
-    if (!isCaseSensitive_)
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(lower_);
-      Toolbox::ToUpperCase(upper_);
+      lower_ = lower;
+      upper_ = upper;
+    }
+    else
+    {
+      lower_ = Toolbox::ToUpperCaseWithAccents(lower);
+      upper_ = Toolbox::ToUpperCaseWithAccents(upper);
     }
   }
 
@@ -55,18 +59,37 @@ namespace Orthanc
   void RangeConstraint::Setup(LookupIdentifierQuery& lookup,
                               const DicomTag& tag) const
   {
-    lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
-    lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
+    if (!lower_.empty() &&
+        !upper_.empty())
+    {
+      lookup.AddRange(tag, lower_, upper_);
+    }
+    else
+    {
+      if (!lower_.empty())
+      {
+        lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
+      }
+
+      if (!upper_.empty())
+      {
+        lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
+      }
+    }
   }
 
 
   bool RangeConstraint::Match(const std::string& value) const
   {
-    std::string v = value;
+    std::string v;
 
-    if (!isCaseSensitive_)
+    if (isCaseSensitive_)
     {
-      Toolbox::ToUpperCase(v);
+      v = value;
+    }
+    else
+    {
+      v = Toolbox::ToUpperCaseWithAccents(value);
     }
 
     if (lower_.size() == 0 && 
