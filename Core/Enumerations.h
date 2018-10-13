@@ -529,7 +529,8 @@ namespace Orthanc
     ModalityManufacturer_StoreScp,
     ModalityManufacturer_ClearCanvas,
     ModalityManufacturer_Dcm4Chee,
-    ModalityManufacturer_Vitrea
+    ModalityManufacturer_Vitrea,
+    ModalityManufacturer_GE
   };
 
   enum DicomRequestType

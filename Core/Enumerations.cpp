@@ -799,6 +799,9 @@ namespace Orthanc
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
       
+      case ModalityManufacturer_GE:
+        return "GE";
+      
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1419,6 +1422,10 @@ namespace Orthanc
     else if (manufacturer == "Vitrea")
     {
       return ModalityManufacturer_Vitrea;
+    }
+    else if (manufacturer == "GE")
+    {
+      return ModalityManufacturer_GE;
     }
     else if (manufacturer == "AgfaImpax" ||
              manufacturer == "SyngoVia")
