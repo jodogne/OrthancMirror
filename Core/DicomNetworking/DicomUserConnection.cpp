@@ -625,12 +625,14 @@ namespace Orthanc
       case ResourceType_Instance:
         clevel = "INSTANCE";
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
-            manufacturer_ == ModalityManufacturer_Dcm4Chee)
+            manufacturer_ == ModalityManufacturer_Dcm4Chee ||
+            manufacturer_ == ModalityManufacturer_GE)
         {
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
           // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
           DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "IMAGE");
+          clevel = "IMAGE";
         }
         else
         {
@@ -644,6 +646,18 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+
+    const char* universal;
+    if (manufacturer_ == ModalityManufacturer_GE)
+    {
+      universal = "*";
+    }
+    else
+    {
+      universal = "";
+    }      
+    
+
     // Add the expected tags for this query level.
     // WARNING: Do not reorder or add "break" in this switch-case!
     switch (level)
@@ -651,27 +665,37 @@ namespace Orthanc
       case ResourceType_Instance:
         // SOP Instance UID
         if (!fields.HasTag(0x0008, 0x0018))
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0018), "");
+        {
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0018), universal);
+        }
 
       case ResourceType_Series:
         // Series instance UID
         if (!fields.HasTag(0x0020, 0x000e))
-          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000e), "");
+        {
+          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000e), universal);
+        }
 
       case ResourceType_Study:
         // Accession number
         if (!fields.HasTag(0x0008, 0x0050))
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0050), "");
+        {
+          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0050), universal);
+        }
 
         // Study instance UID
         if (!fields.HasTag(0x0020, 0x000d))
-          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000d), "");
+        {
+          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000d), universal);
+        }
 
       case ResourceType_Patient:
         // Patient ID
         if (!fields.HasTag(0x0010, 0x0020))
-          DU_putStringDOElement(dataset, DcmTagKey(0x0010, 0x0020), "");
-
+        {
+          DU_putStringDOElement(dataset, DcmTagKey(0x0010, 0x0020), universal);
+        }
+        
         break;
 
       default:
@@ -709,7 +733,8 @@ namespace Orthanc
 
       case ResourceType_Instance:
         if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
-            manufacturer_ == ModalityManufacturer_Dcm4Chee)
+            manufacturer_ == ModalityManufacturer_Dcm4Chee ||
+            manufacturer_ == ModalityManufacturer_GE)
         {
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J

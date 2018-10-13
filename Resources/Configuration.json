@@ -166,11 +166,16 @@
      * specific PACS manufacturers. The allowed values are currently:
      * - "Generic" (default value),
      * - "GenericNoWildcardInDates" (to replace "*" by "" in date fields 
-     *   in outgoing C-Find requests originating from Orthanc)
+     *   in outgoing C-Find requests originating from Orthanc),
      * - "GenericNoUniversalWildcard" (to replace "*" by "" in all fields
-     *   in outgoing C-Find SCU requests originating from Orthanc)
+     *   in outgoing C-Find SCU requests originating from Orthanc),
      * - "StoreScp" (storescp tool from DCMTK),
-     * - "ClearCanvas", "Dcm4Chee" and "Vitrea".
+     * - "ClearCanvas",
+     * - "Dcm4Chee",
+     * - "Vitrea",
+     * - "GE" (Enterprise Archive, MRI consoles and Advantage Workstation
+     *   from GE Healthcare).
+     *
      * This parameter is case-sensitive.
      **/
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
