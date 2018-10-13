@@ -547,6 +547,7 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
   ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
   ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
+  ASSERT_STREQ("GE", EnumerationToString(StringToModalityManufacturer("GE")));
   // backward compatibility tests (to remove once we make these manufacturer really obsolete)
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("MedInria")));
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("EFilm2")));
