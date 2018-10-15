@@ -25,7 +25,7 @@ Maintenance
 * New modality manufacturer: "GE" for GE Healthcare EA and AW
 * Executing a query/retrieve from the REST API now creates a job
 * Fix: Closing DICOM associations after running query/retrieve from REST API
-
+* Fix: Allow creation of MONOCHROME1 greyscale images in tools/create-dicom
 
 Version 1.4.2 (2018-09-20)
 ==========================

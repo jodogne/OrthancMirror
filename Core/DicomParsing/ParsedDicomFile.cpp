@@ -1174,7 +1174,7 @@ namespace Orthanc
     }
 
     ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
-    ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+    SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2"); // by default, greyscale images are in MONOCHROME2
 
     unsigned int bytesPerPixel = 0;
 
