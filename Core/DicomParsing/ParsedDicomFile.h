@@ -147,6 +147,16 @@ namespace Orthanc
       Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent);
     }
 
+    void SetIfAbsent(const DicomTag& tag,
+                     const std::string& utf8Value)
+    {
+      std::string currentValue;
+      if (!GetTagValue(currentValue, tag))
+      {
+        ReplacePlainString(tag, utf8Value);
+      }
+    }
+
     void RemovePrivateTags()
     {
       RemovePrivateTagsInternal(NULL);
