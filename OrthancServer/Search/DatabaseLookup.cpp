@@ -48,8 +48,18 @@ namespace Orthanc
     
     for (size_t i = 0; i < size; i++)
     {
-      assert(tags_.find(tags[i]) == tags_.end());
-      tags_[tags[i]] = TagInfo(DicomTagType_Identifier, level);
+      if (tags_.find(tags[i]) == tags_.end())
+      {
+        tags_[tags[i]] = TagInfo(DicomTagType_Identifier, level);
+      }
+      else
+      {
+        // These patient-level tags are copied in the study level
+        assert(level == ResourceType_Study &&
+               (tags[i] == DICOM_TAG_PATIENT_ID ||
+                tags[i] == DICOM_TAG_PATIENT_NAME ||
+                tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+      }
     }
     
     DicomMap::LoadMainDicomTags(tags, size, level);

@@ -116,6 +116,13 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    if (type != ConstraintType_Wildcard &&
+        (value.find('*') != std::string::npos ||
+         value.find('?') != std::string::npos))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
 
@@ -129,7 +136,7 @@ namespace Orthanc
     constraintType_(type),
     caseSensitive_(caseSensitive)
   {
-    if (type != ConstraintType_Wildcard)
+    if (type != ConstraintType_List)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
