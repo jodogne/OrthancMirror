@@ -70,6 +70,8 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/Search/DatabaseLookup.cpp
+  OrthancServer/Search/DicomTagConstraint.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
