@@ -64,6 +64,22 @@ namespace Orthanc
     IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
   };
 
+  enum DicomTagType
+  {
+    DicomTagType_Identifier,   // Tag that whose value is stored and indexed in the DB
+    DicomTagType_Main,         // Tag that is stored in the DB (but not indexed)
+    DicomTagType_Generic       // Tag that is only stored in the JSON files
+  };
+
+  enum ConstraintType
+  {
+    ConstraintType_Equal,
+    ConstraintType_SmallerOrEqual,
+    ConstraintType_GreaterOrEqual,
+    ConstraintType_Wildcard,
+    ConstraintType_List
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
