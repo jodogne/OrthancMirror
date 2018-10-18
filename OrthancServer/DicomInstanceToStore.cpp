@@ -35,7 +35,9 @@
 #include "DicomInstanceToStore.h"
 
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/Logging.h"
+#include "../Core/OrthancException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -43,161 +45,355 @@
 
 namespace Orthanc
 {
+  // Anonymous namespace to avoid clashes between compilation modules
+  namespace
+  {
+    template <typename T>
+    class SmartContainer
+    {
+    private:
+      T* content_;
+      bool toDelete_;
+      bool isReadOnly_;
+
+      void Deallocate()
+      {
+        if (content_ && toDelete_)
+        {
+          delete content_;
+          toDelete_ = false;
+          content_ = NULL;
+        }
+      }
+
+    public:
+      SmartContainer() : content_(NULL), toDelete_(false), isReadOnly_(true)
+      {
+      }
+
+      ~SmartContainer()
+      {
+        Deallocate();
+      }
+
+      void Allocate()
+      {
+        Deallocate();
+        content_ = new T;
+        toDelete_ = true;
+        isReadOnly_ = false;
+      }
+
+      void TakeOwnership(T* content)
+      {
+        if (content == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        Deallocate();
+        content_ = content;
+        toDelete_ = true;
+        isReadOnly_ = false;
+      }
+
+      void SetReference(T& content)   // Read and write assign, without transfering ownership
+      {
+        Deallocate();
+        content_ = &content;
+        toDelete_ = false;
+        isReadOnly_ = false;
+      }
+
+      void SetConstReference(const T& content)   // Read-only assign, without transfering ownership
+      {
+        Deallocate();
+        content_ = &const_cast<T&>(content);
+        toDelete_ = false;
+        isReadOnly_ = true;
+      }
+
+      bool HasContent() const
+      {
+        return content_ != NULL;
+      }
+
+      T& GetContent()
+      {
+        if (content_ == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        if (isReadOnly_)
+        {
+          throw OrthancException(ErrorCode_ReadOnly);
+        }
+
+        return *content_;
+      }
+
+      const T& GetConstContent() const
+      {
+        if (content_ == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        return *content_;
+      }
+    };
+  }
+
+
+  struct DicomInstanceToStore::PImpl
+  {
+    DicomInstanceOrigin              origin_;
+    SmartContainer<std::string>      buffer_;
+    SmartContainer<ParsedDicomFile>  parsed_;
+    SmartContainer<DicomMap>         summary_;
+    SmartContainer<Json::Value>      json_;
+    MetadataMap                      metadata_;
+
+    void ComputeMissingInformation()
+    {
+      if (buffer_.HasContent() &&
+          summary_.HasContent() &&
+          json_.HasContent())
+      {
+        // Fine, everything is available
+        return; 
+      }
+    
+      if (!buffer_.HasContent())
+      {
+        if (!parsed_.HasContent())
+        {
+          if (!summary_.HasContent())
+          {
+            throw OrthancException(ErrorCode_NotImplemented);
+          }
+          else
+          {
+            parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent()));
+          }                                
+        }
+
+        // Serialize the parsed DICOM file
+        buffer_.Allocate();
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
+                                                 *parsed_.GetContent().GetDcmtkObject().getDataset()))
+        {
+          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      if (summary_.HasContent() &&
+          json_.HasContent())
+      {
+        return;
+      }
+
+      // At this point, we know that the DICOM file is available as a
+      // memory buffer, but that its summary or its JSON version is
+      // missing
+
+      if (!parsed_.HasContent())
+      {
+        parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetConstContent()));
+      }
+
+      // At this point, we have parsed the DICOM file
+    
+      if (!summary_.HasContent())
+      {
+        summary_.Allocate();
+        FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
+                                             *parsed_.GetContent().GetDcmtkObject().getDataset());
+      }
+    
+      if (!json_.HasContent())
+      {
+        json_.Allocate();
+
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
+                                            *parsed_.GetContent().GetDcmtkObject().getDataset(),
+                                            ignoreTagLength);
+      }
+    }
+
+
+    const char* GetBufferData()
+    {
+      ComputeMissingInformation();
+    
+      if (!buffer_.HasContent())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (buffer_.GetConstContent().size() == 0)
+      {
+        return NULL;
+      }
+      else
+      {
+        return buffer_.GetConstContent().c_str();
+      }
+    }
+
+
+    size_t GetBufferSize()
+    {
+      ComputeMissingInformation();
+    
+      if (!buffer_.HasContent())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      return buffer_.GetConstContent().size();
+    }
+
+
+    const DicomMap& GetSummary()
+    {
+      ComputeMissingInformation();
+    
+      if (!summary_.HasContent())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      return summary_.GetConstContent();
+    }
+
+    
+    const Json::Value& GetJson()
+    {
+      ComputeMissingInformation();
+    
+      if (!json_.HasContent())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      return json_.GetConstContent();
+    }
+
+
+    bool LookupTransferSyntax(std::string& result)
+    {
+      ComputeMissingInformation();
+
+      DicomMap header;
+      if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
+      {
+        const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
+        if (value != NULL &&
+            !value->IsBinary() &&
+            !value->IsNull())
+        {
+          result = Toolbox::StripSpaces(value->GetContent());
+          return true;
+        }
+      }
+
+      return false;
+    }
+  };
+
+
+  DicomInstanceToStore::DicomInstanceToStore() :
+    pimpl_(new PImpl)
+  {
+  }
+
+
+  void DicomInstanceToStore::SetOrigin(const DicomInstanceOrigin& origin)
+  {
+    pimpl_->origin_ = origin;
+  }
+
+    
+  const DicomInstanceOrigin& DicomInstanceToStore::GetOrigin() const
+  {
+    return pimpl_->origin_;
+  }
+
+    
+  void DicomInstanceToStore::SetBuffer(const std::string& dicom)
+  {
+    pimpl_->buffer_.SetConstReference(dicom);
+  }
+
+
+  void DicomInstanceToStore::SetParsedDicomFile(ParsedDicomFile& parsed)
+  {
+    pimpl_->parsed_.SetReference(parsed);
+  }
+
+
+  void DicomInstanceToStore::SetSummary(const DicomMap& summary)
+  {
+    pimpl_->summary_.SetConstReference(summary);
+  }
+
+
+  void DicomInstanceToStore::SetJson(const Json::Value& json)
+  {
+    pimpl_->json_.SetConstReference(json);
+  }
+
+
+  const DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata() const
+  {
+    return pimpl_->metadata_;
+  }
+
+
+  DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata()
+  {
+    return pimpl_->metadata_;
+  }
+
+
   void DicomInstanceToStore::AddMetadata(ResourceType level,
                                          MetadataType metadata,
                                          const std::string& value)
   {
-    metadata_[std::make_pair(level, metadata)] = value;
+    pimpl_->metadata_[std::make_pair(level, metadata)] = value;
   }
-
-
-  void DicomInstanceToStore::ComputeMissingInformation()
-  {
-    if (buffer_.HasContent() &&
-        summary_.HasContent() &&
-        json_.HasContent())
-    {
-      // Fine, everything is available
-      return; 
-    }
-    
-    if (!buffer_.HasContent())
-    {
-      if (!parsed_.HasContent())
-      {
-        if (!summary_.HasContent())
-        {
-          throw OrthancException(ErrorCode_NotImplemented);
-        }
-        else
-        {
-          parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent()));
-        }                                
-      }
-
-      // Serialize the parsed DICOM file
-      buffer_.Allocate();
-      if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
-                                               *parsed_.GetContent().GetDcmtkObject().getDataset()))
-      {
-        LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    if (summary_.HasContent() &&
-        json_.HasContent())
-    {
-      return;
-    }
-
-    // At this point, we know that the DICOM file is available as a
-    // memory buffer, but that its summary or its JSON version is
-    // missing
-
-    if (!parsed_.HasContent())
-    {
-      parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetConstContent()));
-    }
-
-    // At this point, we have parsed the DICOM file
-    
-    if (!summary_.HasContent())
-    {
-      summary_.Allocate();
-      FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
-                                           *parsed_.GetContent().GetDcmtkObject().getDataset());
-    }
-    
-    if (!json_.HasContent())
-    {
-      json_.Allocate();
-
-      std::set<DicomTag> ignoreTagLength;
-      FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
-                                          *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                                          ignoreTagLength);
-    }
-  }
-
 
 
   const char* DicomInstanceToStore::GetBufferData()
   {
-    ComputeMissingInformation();
-    
-    if (!buffer_.HasContent())
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (buffer_.GetConstContent().size() == 0)
-    {
-      return NULL;
-    }
-    else
-    {
-      return buffer_.GetConstContent().c_str();
-    }
+    return pimpl_->GetBufferData();
   }
 
 
   size_t DicomInstanceToStore::GetBufferSize()
   {
-    ComputeMissingInformation();
-    
-    if (!buffer_.HasContent())
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    return buffer_.GetConstContent().size();
+    return pimpl_->GetBufferSize();
   }
 
 
   const DicomMap& DicomInstanceToStore::GetSummary()
   {
-    ComputeMissingInformation();
-    
-    if (!summary_.HasContent())
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    return summary_.GetConstContent();
+    return pimpl_->GetSummary();
   }
 
     
   const Json::Value& DicomInstanceToStore::GetJson()
   {
-    ComputeMissingInformation();
-    
-    if (!json_.HasContent())
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    return json_.GetConstContent();
+    return pimpl_->GetJson();
   }
 
 
   bool DicomInstanceToStore::LookupTransferSyntax(std::string& result)
   {
-    ComputeMissingInformation();
-
-    DicomMap header;
-    if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
-    {
-      const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
-      if (value != NULL &&
-          !value->IsBinary() &&
-          !value->IsNull())
-      {
-        result = Toolbox::StripSpaces(value->GetContent());
-        return true;
-      }
-    }
-
-    return false;
+    return pimpl_->LookupTransferSyntax(result);
   }
 }

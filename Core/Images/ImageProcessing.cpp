@@ -35,6 +35,7 @@
 #include "ImageProcessing.h"
 
 #include "PixelTraits.h"
+#include "../OrthancException.h"
 
 #include <boost/math/special_functions/round.hpp>
 

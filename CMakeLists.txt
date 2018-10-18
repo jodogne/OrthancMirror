@@ -70,6 +70,8 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/Search/DatabaseLookup.cpp
+  OrthancServer/Search/DicomTagConstraint.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
@@ -102,23 +104,24 @@ set(ORTHANC_SERVER_SOURCES
 
 
 set(ORTHANC_UNIT_TESTS_SOURCES
+  UnitTestsSources/DatabaseLookupTests.cpp
   UnitTestsSources/DicomMapTests.cpp
   UnitTestsSources/FileStorageTests.cpp
   UnitTestsSources/FromDcmtkTests.cpp
-  UnitTestsSources/MemoryCacheTests.cpp
+  UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/ImageTests.cpp
+  UnitTestsSources/JpegLosslessTests.cpp
+  UnitTestsSources/LuaTests.cpp
+  UnitTestsSources/MemoryCacheTests.cpp
+  UnitTestsSources/MultiThreadingTests.cpp
   UnitTestsSources/RestApiTests.cpp
-  UnitTestsSources/SQLiteTests.cpp
   UnitTestsSources/SQLiteChromiumTests.cpp
+  UnitTestsSources/SQLiteTests.cpp
   UnitTestsSources/ServerIndexTests.cpp
+  UnitTestsSources/StreamTests.cpp
+  UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/VersionsTests.cpp
   UnitTestsSources/ZipTests.cpp
-  UnitTestsSources/LuaTests.cpp
-  UnitTestsSources/MultiThreadingTests.cpp
-  UnitTestsSources/UnitTestsMain.cpp
-  UnitTestsSources/ImageProcessingTests.cpp
-  UnitTestsSources/JpegLosslessTests.cpp
-  UnitTestsSources/StreamTests.cpp
   )
 
 
