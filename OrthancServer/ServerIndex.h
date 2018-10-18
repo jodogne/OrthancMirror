@@ -38,7 +38,6 @@
 #include "../Core/Cache/LeastRecentlyUsedIndex.h"
 #include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "ServerEnumerations.h"
 
 #include "IDatabaseWrapper.h"

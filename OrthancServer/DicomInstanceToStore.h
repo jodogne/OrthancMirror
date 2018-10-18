@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../Core/DicomFormat/DicomInstanceHasher.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "DicomInstanceOrigin.h"
 #include "ServerEnumerations.h"
@@ -49,7 +50,7 @@ namespace Orthanc
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
   private:
-    struct PImpl;
+    class PImpl;
     boost::shared_ptr<PImpl>  pimpl_;
 
   public:
@@ -84,5 +85,7 @@ namespace Orthanc
     const Json::Value& GetJson();
 
     bool LookupTransferSyntax(std::string& result);
+
+    DicomInstanceHasher& GetHasher();
   };
 }

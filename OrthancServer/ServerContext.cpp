@@ -316,10 +316,7 @@ namespace Orthanc
     {
       StorageAccessor accessor(area_);
 
-      {
-        DicomInstanceHasher hasher(dicom.GetSummary());
-        resultPublicId = hasher.HashInstance();
-      }
+      resultPublicId = dicom.GetHasher().HashInstance();
 
       Json::Value simplifiedTags;
       ServerToolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
