@@ -33,56 +33,77 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "DicomInstanceOrigin.h"
-#include "ServerEnumerations.h"
+#include "../ServerEnumerations.h"
+#include "../../Core/DicomFormat/DicomMap.h"
 
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class ParsedDicomFile;
-
-  class DicomInstanceToStore
+  class DicomTagConstraint : public boost::noncopyable
   {
-  public:
-    typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
-
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl>  pimpl_;
+    class NormalizedString;
+    class RegularExpression;
+
+    bool                    hasTagInfo_;
+    DicomTagType            tagType_;
+    ResourceType            level_;
+    DicomTag                tag_;
+    ConstraintType          constraintType_;
+    std::set<std::string>   values_;
+    bool                    caseSensitive_;
+
+    boost::shared_ptr<RegularExpression>  regex_;
 
   public:
-    DicomInstanceToStore();
+    DicomTagConstraint(const DicomTag& tag,
+                       ConstraintType type,
+                       const std::string& value,
+                       bool caseSensitive);
 
-    void SetOrigin(const DicomInstanceOrigin& origin);
+    DicomTagConstraint(const DicomTag& tag,
+                       ConstraintType type,
+                       bool caseSensitive);
+
+    bool HasTagInfo() const
+    {
+      return hasTagInfo_;
+    }
+
+    void SetTagInfo(DicomTagType tagType,
+                    ResourceType level);
+
+    DicomTagType GetTagType() const;
+
+    const ResourceType GetLevel() const;
+
+    const DicomTag& GetTag() const
+    {
+      return tag_;
+    }
+
+    ConstraintType GetConstraintType() const
+    {
+      return constraintType_;
+    }
     
-    const DicomInstanceOrigin& GetOrigin() const;
-    
-    void SetBuffer(const std::string& dicom);
+    bool IsCaseSensitive() const
+    {
+      return caseSensitive_;
+    }
 
-    void SetParsedDicomFile(ParsedDicomFile& parsed);
+    void AddValue(const std::string& value);
 
-    void SetSummary(const DicomMap& summary);
+    const std::string& GetValue() const;
 
-    void SetJson(const Json::Value& json);
+    const std::set<std::string>& GetValues() const
+    {
+      return values_;
+    }
 
-    const MetadataMap& GetMetadata() const;
+    bool IsMatch(const std::string& value);
 
-    MetadataMap& GetMetadata();
-
-    void AddMetadata(ResourceType level,
-                     MetadataType metadata,
-                     const std::string& value);
-
-    const char* GetBufferData();
-
-    size_t GetBufferSize();
-
-    const DicomMap& GetSummary();
-    
-    const Json::Value& GetJson();
-
-    bool LookupTransferSyntax(std::string& result);
+    bool IsMatch(const DicomMap& value);
   };
 }

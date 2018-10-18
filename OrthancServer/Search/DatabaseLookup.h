@@ -33,56 +33,72 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "DicomInstanceOrigin.h"
-#include "ServerEnumerations.h"
-
-#include <boost/shared_ptr.hpp>
+#include "DicomTagConstraint.h"
 
 namespace Orthanc
 {
-  class ParsedDicomFile;
-
-  class DicomInstanceToStore
+  class DatabaseLookup : public boost::noncopyable
   {
-  public:
-    typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
-
   private:
-    struct PImpl;
-    boost::shared_ptr<PImpl>  pimpl_;
+    class TagInfo
+    {
+    private:
+      DicomTagType  type_;
+      ResourceType  level_;
+
+    public:
+      TagInfo() :
+        type_(DicomTagType_Generic),
+        level_(ResourceType_Instance)
+      {
+      }
+
+      TagInfo(DicomTagType type,
+              ResourceType level) :
+        type_(type),
+        level_(level)
+      {
+      }
+
+      DicomTagType GetType() const
+      {
+        return type_;
+      }
+
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+    };
+
+    std::vector<DicomTagConstraint*>  constraints_;
+    std::map<DicomTag, TagInfo>       tags_;
+
+    void LoadTags(ResourceType level);
 
   public:
-    DicomInstanceToStore();
+    DatabaseLookup();
 
-    void SetOrigin(const DicomInstanceOrigin& origin);
-    
-    const DicomInstanceOrigin& GetOrigin() const;
-    
-    void SetBuffer(const std::string& dicom);
+    ~DatabaseLookup();
 
-    void SetParsedDicomFile(ParsedDicomFile& parsed);
+    void Reserve(size_t n)
+    {
+      constraints_.reserve(n);
+    }
 
-    void SetSummary(const DicomMap& summary);
+    size_t GetConstraintsCount() const
+    {
+      return constraints_.size();
+    }
 
-    void SetJson(const Json::Value& json);
+    const DicomTagConstraint& GetConstraint(size_t index) const;
 
-    const MetadataMap& GetMetadata() const;
+    void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
 
-    MetadataMap& GetMetadata();
+    bool IsMatch(const DicomMap& value);
 
-    void AddMetadata(ResourceType level,
-                     MetadataType metadata,
-                     const std::string& value);
-
-    const char* GetBufferData();
-
-    size_t GetBufferSize();
-
-    const DicomMap& GetSummary();
-    
-    const Json::Value& GetJson();
-
-    bool LookupTransferSyntax(std::string& result);
+    void AddDicomConstraint(const DicomTag& tag,
+                            const std::string& dicomQuery,
+                            bool caseSensitivePN);
   };
 }
