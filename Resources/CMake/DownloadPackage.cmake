@@ -78,9 +78,9 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 
       if ("${MD5}" STREQUAL "no-check")
         message(WARNING "Not checking the MD5 of: ${Url}")
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60)
+        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60)
       else()
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 60 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
+        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
       endif()
 
     else()
