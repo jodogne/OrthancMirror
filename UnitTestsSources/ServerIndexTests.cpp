@@ -820,6 +820,11 @@ TEST(ServerIndex, AttachmentRecycling)
     ids.push_back(hasher.HashStudy());
     ids.push_back(hasher.HashSeries());
     ids.push_back(hasher.HashInstance());
+
+    ASSERT_EQ(hasher.HashPatient(), toStore.GetHasher().HashPatient());
+    ASSERT_EQ(hasher.HashStudy(), toStore.GetHasher().HashStudy());
+    ASSERT_EQ(hasher.HashSeries(), toStore.GetHasher().HashSeries());
+    ASSERT_EQ(hasher.HashInstance(), toStore.GetHasher().HashInstance());
   }
 
   index.ComputeStatistics(tmp);
@@ -884,6 +889,7 @@ TEST(ServerIndex, Overwrite)
       DicomInstanceToStore toStore;
       toStore.SetSummary(instance);
       toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+      ASSERT_EQ(id, toStore.GetHasher().HashInstance());
 
       std::string id2;
       ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore));
