@@ -208,7 +208,8 @@ namespace Orthanc
 
   static void StoreCreatedInstance(std::string& id /* out */,
                                    RestApiPostCall& call,
-                                   ParsedDicomFile& dicom)
+                                   ParsedDicomFile& dicom,
+                                   bool sendAnswer)
   {
     DicomInstanceToStore toStore;
     toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
@@ -220,6 +221,11 @@ namespace Orthanc
     if (status == StoreStatus_Failure)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance);
+    }
+
+    if (sendAnswer)
+    {
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
     }
   }
 
@@ -356,7 +362,7 @@ namespace Orthanc
         dicom->ReplacePlainString(DICOM_TAG_INSTANCE_NUMBER, boost::lexical_cast<std::string>(i + 1));
         dicom->ReplacePlainString(DICOM_TAG_IMAGE_INDEX, boost::lexical_cast<std::string>(i + 1));
 
-        StoreCreatedInstance(someInstance, call, *dicom);
+        StoreCreatedInstance(someInstance, call, *dicom, false);
       }
     }
     catch (OrthancException&)
@@ -583,10 +589,7 @@ namespace Orthanc
     }
 
     std::string id;
-    StoreCreatedInstance(id, call, dicom);
-    OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
-
-    return;
+    StoreCreatedInstance(id, call, dicom, true);
   }
 
 
@@ -610,8 +613,7 @@ namespace Orthanc
       CreateDicomV1(dicom, call, request);
 
       std::string id;
-      StoreCreatedInstance(id, call, dicom);
-      OrthancRestApi::GetApi(call).AnswerStoredResource(call, id, ResourceType_Instance, StoreStatus_Success);
+      StoreCreatedInstance(id, call, dicom, true);
     }
   }
 
