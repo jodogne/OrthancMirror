@@ -44,6 +44,7 @@ namespace Orthanc
 {
   class ServerContext;
   class ServerIndex;
+  class DicomInstanceToStore;
 
   class OrthancRestApi : public RestApi
   {
@@ -92,6 +93,10 @@ namespace Orthanc
     static ServerContext& GetContext(RestApiCall& call);
 
     static ServerIndex& GetIndex(RestApiCall& call);
+
+    void AnswerStoredInstance(RestApiPostCall& call,
+                              DicomInstanceToStore& instance,
+                              StoreStatus status) const;
 
     void AnswerStoredResource(RestApiPostCall& call,
                               const std::string& publicId,
