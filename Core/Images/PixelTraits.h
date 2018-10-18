@@ -34,7 +34,6 @@
 #pragma once
 
 #include "../Enumerations.h"
-#include "../OrthancException.h"
 
 #include <limits>
 
@@ -55,10 +54,13 @@ namespace Orthanc
     ORTHANC_FORCE_INLINE
     static PixelType IntegerToPixel(int64_t value)
     {
-      if (value < static_cast<int64_t>(std::numeric_limits<PixelType>::min()) ||
-          value > static_cast<int64_t>(std::numeric_limits<PixelType>::max()))
+      if (value < static_cast<int64_t>(std::numeric_limits<PixelType>::min()))
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        return std::numeric_limits<PixelType>::min();
+      }
+      else if (value > static_cast<int64_t>(std::numeric_limits<PixelType>::max()))
+      {
+        return std::numeric_limits<PixelType>::max();        
       }
       else
       {
