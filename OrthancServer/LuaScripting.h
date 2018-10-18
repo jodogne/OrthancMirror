@@ -34,6 +34,7 @@
 #pragma once
 
 #include "DicomInstanceToStore.h"
+#include "ServerIndexChange.h"
 #include "ServerJobs/LuaJobManager.h"
 
 #include "../Core/MultiThreading/SharedMessageQueue.h"

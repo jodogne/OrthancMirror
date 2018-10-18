@@ -33,165 +33,47 @@
 
 #pragma once
 
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/OrthancException.h"
+#include "../Core/DicomFormat/DicomMap.h"
 #include "DicomInstanceOrigin.h"
-#include "ServerIndex.h"
+#include "ServerEnumerations.h"
+
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
+
   class DicomInstanceToStore
   {
+  public:
+    typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
   private:
-    template <typename T>
-    class SmartContainer
-    {
-    private:
-      T* content_;
-      bool toDelete_;
-      bool isReadOnly_;
-
-      void Deallocate()
-      {
-        if (content_ && toDelete_)
-        {
-          delete content_;
-          toDelete_ = false;
-          content_ = NULL;
-        }
-      }
-
-    public:
-      SmartContainer() : content_(NULL), toDelete_(false), isReadOnly_(true)
-      {
-      }
-
-      ~SmartContainer()
-      {
-        Deallocate();
-      }
-
-      void Allocate()
-      {
-        Deallocate();
-        content_ = new T;
-        toDelete_ = true;
-        isReadOnly_ = false;
-      }
-
-      void TakeOwnership(T* content)
-      {
-        if (content == NULL)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-
-        Deallocate();
-        content_ = content;
-        toDelete_ = true;
-        isReadOnly_ = false;
-      }
-
-      void SetReference(T& content)   // Read and write assign, without transfering ownership
-      {
-        Deallocate();
-        content_ = &content;
-        toDelete_ = false;
-        isReadOnly_ = false;
-      }
-
-      void SetConstReference(const T& content)   // Read-only assign, without transfering ownership
-      {
-        Deallocate();
-        content_ = &const_cast<T&>(content);
-        toDelete_ = false;
-        isReadOnly_ = true;
-      }
-
-      bool HasContent() const
-      {
-        return content_ != NULL;
-      }
-
-      T& GetContent()
-      {
-        if (content_ == NULL)
-        {
-          throw OrthancException(ErrorCode_BadSequenceOfCalls);
-        }
-
-        if (isReadOnly_)
-        {
-          throw OrthancException(ErrorCode_ReadOnly);
-        }
-
-        return *content_;
-      }
-
-      const T& GetConstContent() const
-      {
-        if (content_ == NULL)
-        {
-          throw OrthancException(ErrorCode_BadSequenceOfCalls);
-        }
-
-        return *content_;
-      }
-    };
-
-    DicomInstanceOrigin              origin_;
-    SmartContainer<std::string>      buffer_;
-    SmartContainer<ParsedDicomFile>  parsed_;
-    SmartContainer<DicomMap>         summary_;
-    SmartContainer<Json::Value>      json_;
-    ServerIndex::MetadataMap         metadata_;
-
-    void ComputeMissingInformation();
+    struct PImpl;
+    boost::shared_ptr<PImpl>  pimpl_;
 
   public:
-    void SetOrigin(const DicomInstanceOrigin& origin)
-    {
-      origin_ = origin;
-    }
+    DicomInstanceToStore();
+
+    void SetOrigin(const DicomInstanceOrigin& origin);
     
-    const DicomInstanceOrigin& GetOrigin() const
-    {
-      return origin_;
-    }
+    const DicomInstanceOrigin& GetOrigin() const;
     
-    void SetBuffer(const std::string& dicom)
-    {
-      buffer_.SetConstReference(dicom);
-    }
+    void SetBuffer(const std::string& dicom);
 
-    void SetParsedDicomFile(ParsedDicomFile& parsed)
-    {
-      parsed_.SetReference(parsed);
-    }
+    void SetParsedDicomFile(ParsedDicomFile& parsed);
 
-    void SetSummary(const DicomMap& summary)
-    {
-      summary_.SetConstReference(summary);
-    }
+    void SetSummary(const DicomMap& summary);
 
-    void SetJson(const Json::Value& json)
-    {
-      json_.SetConstReference(json);
-    }
+    void SetJson(const Json::Value& json);
+
+    const MetadataMap& GetMetadata() const;
+
+    MetadataMap& GetMetadata();
 
     void AddMetadata(ResourceType level,
                      MetadataType metadata,
                      const std::string& value);
-
-    const ServerIndex::MetadataMap& GetMetadata() const
-    {
-      return metadata_;
-    }
-
-    ServerIndex::MetadataMap& GetMetadata()
-    {
-      return metadata_;
-    }
 
     const char* GetBufferData();
 
