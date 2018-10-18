@@ -49,8 +49,6 @@
 
 #include "IIncomingHttpRequestFilter.h"
 
-#include "../OrthancException.h"
-
 #include <list>
 #include <map>
 #include <set>
@@ -60,6 +58,7 @@
 namespace Orthanc
 {
   class ChunkStore;
+  class OrthancException;
 
   class IHttpExceptionFormatter : public boost::noncopyable
   {
