@@ -38,6 +38,7 @@
 
 #include "../Logging.h"
 #include "../ChunkedBuffer.h"
+#include "../OrthancException.h"
 #include "HttpToolbox.h"
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
