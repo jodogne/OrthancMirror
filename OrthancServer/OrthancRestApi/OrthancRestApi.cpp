@@ -40,20 +40,46 @@
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            ResourceType resourceType,
-                                            StoreStatus status) const
+  static void SetupResourceAnswer(Json::Value& result,
+                                  const std::string& publicId,
+                                  ResourceType resourceType,
+                                  StoreStatus status)
   {
-    Json::Value result = Json::objectValue;
+    result = Json::objectValue;
 
     if (status != StoreStatus_Failure)
     {
       result["ID"] = publicId;
       result["Path"] = GetBasePath(resourceType, publicId);
     }
-
+    
     result["Status"] = EnumerationToString(status);
+  }
+
+
+  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
+                                            DicomInstanceToStore& instance,
+                                            StoreStatus status) const
+  {
+    Json::Value result;
+    SetupResourceAnswer(result, instance.GetHasher().HashInstance(), 
+                        ResourceType_Instance, status);
+
+    result["ParentPatient"] = instance.GetHasher().HashPatient();
+    result["ParentStudy"] = instance.GetHasher().HashStudy();
+    result["ParentSeries"] = instance.GetHasher().HashSeries();
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
+                                            const std::string& publicId,
+                                            ResourceType resourceType,
+                                            StoreStatus status) const
+  {
+    Json::Value result;
+    SetupResourceAnswer(result, publicId, resourceType, status);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -100,7 +126,7 @@ namespace Orthanc
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
 
-    OrthancRestApi::GetApi(call).AnswerStoredResource(call, publicId, ResourceType_Instance, status);
+    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
   }
 
 
