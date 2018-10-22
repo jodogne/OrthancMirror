@@ -42,8 +42,10 @@
 #  include "../SystemToolbox.h"
 #endif
 
-#include "../Toolbox.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
+#include "Image.h"
+#include "ImageProcessing.h"
 
 #include <stdio.h>
 #include <memory>
@@ -335,4 +337,84 @@ namespace Orthanc
     DrawInternal(target, utf8, x, y, color);
   }
 
+
+  void Font::ComputeTextExtent(unsigned int& width,
+                               unsigned int& height,
+                               const std::string& utf8) const
+  {
+    width = 0;
+    
+#if ORTHANC_ENABLE_LOCALE == 1
+    std::string s = Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1);
+#else
+    // If the locale support is disabled, simply drop non-ASCII
+    // characters from the source UTF-8 string
+    std::string s = Toolbox::ConvertToAscii(utf8);
+#endif
+
+    // Compute the text extent
+    unsigned int x = 0;
+    unsigned int countLines = 0;
+    
+    for (size_t i = 0; i < s.size(); i++)
+    {
+      if (s[i] == '\n')
+      {
+        // Go to the next line
+        x = 0;
+
+        countLines ++;
+      }
+      else
+      {
+        Characters::const_iterator c = characters_.find(s[i]);
+        if (c != characters_.end())
+        {
+          x += c->second->advance_;
+
+          if (countLines == 0)
+          {
+            countLines = 1;
+          }
+          
+          if (x > width)
+          {
+            width = x;
+          }
+        }
+      }
+    }
+
+    height = countLines * (maxHeight_ + 1);
+  }
+
+
+  ImageAccessor* Font::Render(const std::string& utf8,
+                              PixelFormat format,
+                              uint8_t r,
+                              uint8_t g,
+                              uint8_t b) const
+  {
+    unsigned int width, height;
+    ComputeTextExtent(width, height, utf8);
+    
+    std::auto_ptr<ImageAccessor>  target(new Image(format, width, height, false));
+    ImageProcessing::Set(*target, 0, 0, 0, 255);
+    Draw(*target, utf8, 0, 0, r, g, b);
+
+    return target.release();
+  }
+
+
+  ImageAccessor* Font::RenderAlpha(const std::string& utf8) const
+  {
+    unsigned int width, height;
+    ComputeTextExtent(width, height, utf8);
+
+    std::auto_ptr<ImageAccessor>  target(new Image(PixelFormat_Grayscale8, width, height, false));
+    ImageProcessing::Set(*target, 0);
+    Draw(*target, utf8, 0, 0, 255);
+
+    return target.release();
+  }
 }

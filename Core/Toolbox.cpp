@@ -624,6 +624,14 @@ namespace Orthanc
 #endif
 
 
+  static bool IsAsciiCharacter(uint8_t c)
+  {
+    return (c != 0 &&
+            c <= 127 &&
+            (c == '\n' || !iscntrl(c)));
+  }
+
+
   bool Toolbox::IsAsciiString(const void* data,
                               size_t size)
   {
@@ -631,7 +639,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < size; i++, p++)
     {
-      if (*p > 127 || *p == 0 || iscntrl(*p))
+      if (!IsAsciiCharacter(*p))
       {
         return false;
       }
@@ -654,7 +662,7 @@ namespace Orthanc
     result.reserve(source.size() + 1);
     for (size_t i = 0; i < source.size(); i++)
     {
-      if (source[i] <= 127 && source[i] >= 0 && !iscntrl(source[i]))
+      if (IsAsciiCharacter(source[i]))
       {
         result.push_back(source[i]);
       }

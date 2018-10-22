@@ -472,6 +472,12 @@ TEST(Toolbox, IsAsciiString)
   s[2] = '\0';
   ASSERT_EQ(10u, s.size());
   ASSERT_FALSE(Toolbox::IsAsciiString(s));
+
+  ASSERT_TRUE(Toolbox::IsAsciiString("Hello\nworld"));
+  ASSERT_FALSE(Toolbox::IsAsciiString("Hello\rworld"));
+
+  ASSERT_EQ("Hello\nworld", Toolbox::ConvertToAscii("Hello\nworld"));
+  ASSERT_EQ("Helloworld", Toolbox::ConvertToAscii("Hello\r\tworld"));
 }
 
 
