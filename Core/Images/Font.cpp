@@ -354,7 +354,7 @@ namespace Orthanc
 
     // Compute the text extent
     unsigned int x = 0;
-    unsigned int countLines = 0;
+    unsigned int y = 0;
     
     for (size_t i = 0; i < s.size(); i++)
     {
@@ -362,8 +362,7 @@ namespace Orthanc
       {
         // Go to the next line
         x = 0;
-
-        countLines ++;
+        y += (maxHeight_ + 1);
       }
       else
       {
@@ -372,9 +371,10 @@ namespace Orthanc
         {
           x += c->second->advance_;
 
-          if (countLines == 0)
+          unsigned int bottom = y + c->second->top_ + c->second->height_;
+          if (bottom > height)
           {
-            countLines = 1;
+            height = bottom;
           }
           
           if (x > width)
@@ -384,8 +384,6 @@ namespace Orthanc
         }
       }
     }
-
-    height = countLines * (maxHeight_ + 1);
   }
 
 
