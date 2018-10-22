@@ -111,5 +111,17 @@ namespace Orthanc
               uint8_t r,
               uint8_t g,
               uint8_t b) const;
+
+    void ComputeTextExtent(unsigned int& width,
+                           unsigned int& height,
+                           const std::string& utf8) const;
+
+    ImageAccessor* Render(const std::string& utf8,
+                          PixelFormat format,
+                          uint8_t r,
+                          uint8_t g,
+                          uint8_t b) const;
+
+    ImageAccessor* RenderAlpha(const std::string& utf8) const;
   };
 }
