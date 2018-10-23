@@ -919,6 +919,7 @@ namespace Orthanc
     httpCompression_ = true;
     exceptionFormatter_ = NULL;
     realm_ = ORTHANC_REALM;
+    threadsCount_ = 50;  // Default value in mongoose
 
 #if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
@@ -957,6 +958,7 @@ namespace Orthanc
     if (!IsRunning())
     {
       std::string port = boost::lexical_cast<std::string>(port_);
+      std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
 
       if (ssl_)
       {
@@ -975,6 +977,9 @@ namespace Orthanc
         // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
         "keep_alive_timeout_ms", (keepAlive_ ? "500" : "0"),
 #endif
+
+        // Set the number of threads
+        "num_threads", numThreads.c_str(),
         
         // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
@@ -1124,5 +1129,17 @@ namespace Orthanc
     }
 
     return *handler_;
+  }
+
+
+  void MongooseServer::SetThreadsCount(unsigned int threads)
+  {
+    if (threads <= 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    Stop();
+    threadsCount_ = threads;
   }
 }
