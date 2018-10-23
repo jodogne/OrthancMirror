@@ -134,17 +134,48 @@ namespace Orthanc
   }
 
 
+  static void MemsetZeroInternal(ImageAccessor& image)
+  {      
+    const unsigned int height = image.GetHeight();
+    const size_t lineSize = image.GetBytesPerPixel() * image.GetWidth();
+    const size_t pitch = image.GetPitch();
+
+    uint8_t *p = reinterpret_cast<uint8_t*>(image.GetBuffer());
+    
+    for (unsigned int y = 0; y < height; y++)
+    {
+      memset(p, 0, lineSize);
+      p += pitch;
+    }
+  }
+
+
   template <typename PixelType>
   static void SetInternal(ImageAccessor& image,
                           int64_t constant)
   {
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    if (constant == 0 &&
+        (image.GetFormat() == PixelFormat_Grayscale8 ||
+         image.GetFormat() == PixelFormat_Grayscale16 ||
+         image.GetFormat() == PixelFormat_Grayscale32 ||
+         image.GetFormat() == PixelFormat_Grayscale64 ||
+         image.GetFormat() == PixelFormat_SignedGrayscale16))
     {
-      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+      MemsetZeroInternal(image);
+    }
+    else
+    {
+      const unsigned int width = image.GetWidth();
+      const unsigned int height = image.GetHeight();
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      for (unsigned int y = 0; y < height; y++)
       {
-        *p = static_cast<PixelType>(constant);
+        PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+        for (unsigned int x = 0; x < width; x++, p++)
+        {
+          *p = static_cast<PixelType>(constant);
+        }
       }
     }
   }
@@ -334,7 +365,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
 
-    unsigned int lineSize = GetBytesPerPixel(source.GetFormat()) * source.GetWidth();
+    unsigned int lineSize = source.GetBytesPerPixel() * source.GetWidth();
 
     assert(source.GetPitch() >= lineSize && target.GetPitch() >= lineSize);
 
@@ -701,51 +732,23 @@ namespace Orthanc
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        memset(image.GetBuffer(), static_cast<uint8_t>(value), image.GetPitch() * image.GetHeight());
+        SetInternal<uint8_t>(image, value);
         return;
 
       case PixelFormat_Grayscale16:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint16_t>(image, value);
-        }
+        SetInternal<uint16_t>(image, value);
         return;
 
       case PixelFormat_Grayscale32:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint32_t>(image, value);
-        }
+        SetInternal<uint32_t>(image, value);
         return;
 
       case PixelFormat_Grayscale64:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint64_t>(image, value);
-        }
+        SetInternal<uint64_t>(image, value);
         return;
 
       case PixelFormat_SignedGrayscale16:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<int16_t>(image, value);
-        }
+        SetInternal<int16_t>(image, value);
         return;
 
       case PixelFormat_Float32:
