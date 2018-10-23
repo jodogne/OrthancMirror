@@ -752,6 +752,7 @@ static bool StartHttpServer(ServerContext& context,
   // HTTP server
   MyIncomingHttpRequestFilter httpFilter(context, plugins);
   MongooseServer httpServer;
+  //httpServer.SetThreadsCount(50);
   httpServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042));
   httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
   httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));

@@ -96,6 +96,7 @@ namespace Orthanc
     bool httpCompression_;
     IHttpExceptionFormatter* exceptionFormatter_;
     std::string realm_;
+    unsigned int threadsCount_;
   
     bool IsRunning() const;
 
@@ -197,6 +198,13 @@ namespace Orthanc
     void SetRealm(const std::string& realm)
     {
       realm_ = realm;
+    }
+
+    void SetThreadsCount(unsigned int threads);
+
+    unsigned int GetThreadsCount() const
+    {
+      return threadsCount_;
     }
   };
 }
