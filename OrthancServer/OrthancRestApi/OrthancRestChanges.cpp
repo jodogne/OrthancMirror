@@ -98,7 +98,7 @@ namespace Orthanc
   static void DeleteChanges(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteChanges();
-    call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
 
@@ -130,7 +130,7 @@ namespace Orthanc
   static void DeleteExports(RestApiDeleteCall& call)
   {
     OrthancRestApi::GetIndex(call).DeleteExportedResources();
-    call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
   
 

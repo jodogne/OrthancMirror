@@ -580,7 +580,7 @@ namespace Orthanc
   }
 
 
-  std::string SystemToolbox::AutodetectMimeType(const std::string& path)
+  MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
   {
     std::string extension = boost::filesystem::extension(path);
     Toolbox::ToLowerCase(extension);
@@ -589,60 +589,60 @@ namespace Orthanc
     // Text types
     if (extension == ".txt")
     {
-      return MIME_PLAIN_TEXT;
+      return MimeType_PlainText;
     }
     else if (extension == ".html")
     {
-      return "text/html";
+      return MimeType_Html;
     }
     else if (extension == ".xml")
     {
-      return MIME_XML;
+      return MimeType_Xml;
     }
     else if (extension == ".css")
     {
-      return "text/css";
+      return MimeType_Css;
     }
 
     // Application types
     else if (extension == ".js")
     {
-      return "application/javascript";
+      return MimeType_JavaScript;
     }
     else if (extension == ".json")
     {
-      return MIME_JSON;
+      return MimeType_Json;
     }
     else if (extension == ".pdf")
     {
-      return MIME_PDF;
+      return MimeType_Pdf;
     }
     else if (extension == ".wasm")
     {
-      return "application/wasm";
+      return MimeType_WebAssembly;
     }
 
     // Images types
     else if (extension == ".jpg" ||
              extension == ".jpeg")
     {
-      return MIME_JPEG;
+      return MimeType_Jpeg;
     }
     else if (extension == ".gif")
     {
-      return "image/gif";
+      return MimeType_Gif;
     }
     else if (extension == ".png")
     {
-      return MIME_PNG;
+      return MimeType_Png;
     }
     else if (extension == ".pam")
     {
-      return MIME_PAM;
+      return MimeType_Pam;
     }
     else
     {
-      return "";
+      return MimeType_Binary;
     }
   }
 }

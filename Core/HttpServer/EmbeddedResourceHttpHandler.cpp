@@ -78,14 +78,14 @@ namespace Orthanc
     }
 
     std::string resourcePath = Toolbox::FlattenUri(uri, baseUri_.size());
-    std::string contentType = SystemToolbox::AutodetectMimeType(resourcePath);
+    MimeType contentType = SystemToolbox::AutodetectMimeType(resourcePath);
 
     try
     {
       const void* buffer = EmbeddedResources::GetDirectoryResourceBuffer(resourceId_, resourcePath.c_str());
       size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
 
-      output.SetContentType(contentType.c_str());
+      output.SetContentType(contentType);
       output.Answer(buffer, size);
     }
     catch (OrthancException&)

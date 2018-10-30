@@ -88,14 +88,14 @@ namespace Orthanc
   {
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
     OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
-    call.GetOutput().AnswerBuffer("{}", MIME_JSON);
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
   void OrthancRestApi::ShutdownOrthanc(RestApiPostCall& call)
   {
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
-    call.GetOutput().AnswerBuffer("{}", MIME_JSON);
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     LOG(WARNING) << "Shutdown request received";
   }
 

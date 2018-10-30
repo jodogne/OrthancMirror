@@ -54,10 +54,19 @@ namespace Orthanc
   static const char* const MIME_JPEG = "image/jpeg";
   static const char* const MIME_JPEG2000 = "image/jp2";
   static const char* const MIME_JSON = "application/json";
+  static const char* const MIME_JSON_UTF8 = "application/json; charset=utf-8";
+  static const char* const MIME_XML_UTF8 = "application/xml; charset=utf-8";
   static const char* const MIME_PDF = "application/pdf";
   static const char* const MIME_PNG = "image/png";
   static const char* const MIME_XML = "application/xml";
+  static const char* const MIME_XML_2 = "text/xml";
+  static const char* const MIME_HTML = "text/html";
   static const char* const MIME_PLAIN_TEXT = "text/plain";
+  static const char* const MIME_GZIP = "application/gzip";
+  static const char* const MIME_JAVASCRIPT = "application/javascript";
+  static const char* const MIME_CSS = "text/css";
+  static const char* const MIME_GIF = "image/gif";
+  static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
 
   /**
    * "No Internet Media Type (aka MIME type, content type) for PBM has
@@ -67,6 +76,27 @@ namespace Orthanc
    * formats."  http://netpbm.sourceforge.net/doc/pam.html
    **/
   static const char* const MIME_PAM = "image/x-portable-arbitrarymap";
+
+
+  enum MimeType
+  {
+    MimeType_Binary,
+    MimeType_Dicom,
+    MimeType_Html,
+    MimeType_Jpeg,
+    MimeType_Jpeg2000,
+    MimeType_Json,
+    MimeType_Pam,
+    MimeType_Pdf,
+    MimeType_PlainText,
+    MimeType_Png,
+    MimeType_Xml,
+    MimeType_Gzip,
+    MimeType_JavaScript,
+    MimeType_Css,
+    MimeType_WebAssembly,
+    MimeType_Gif
+  };
 
   
   enum Endianness
@@ -684,6 +714,8 @@ namespace Orthanc
 
   const char* EnumerationToString(JobState state);
 
+  const char* EnumerationToString(MimeType mime);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
@@ -704,6 +736,8 @@ namespace Orthanc
   JobState StringToJobState(const std::string& state);
   
   RequestOrigin StringToRequestOrigin(const std::string& origin);
+
+  MimeType StringToMimeType(const std::string& mime);
   
   unsigned int GetBytesPerPixel(PixelFormat format);
 
