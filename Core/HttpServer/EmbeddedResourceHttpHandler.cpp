@@ -36,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 #include "HttpOutput.h"
 
 #include <stdio.h>
@@ -77,7 +78,7 @@ namespace Orthanc
     }
 
     std::string resourcePath = Toolbox::FlattenUri(uri, baseUri_.size());
-    std::string contentType = Toolbox::AutodetectMimeType(resourcePath);
+    std::string contentType = SystemToolbox::AutodetectMimeType(resourcePath);
 
     try
     {

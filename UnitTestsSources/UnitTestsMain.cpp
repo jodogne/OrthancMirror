@@ -301,26 +301,30 @@ TEST(Uri, Child)
 
 TEST(Uri, AutodetectMimeType)
 {
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("../NOTES"));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType(""));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("/"));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("a/a"));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType("../NOTES"));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType(""));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType("/"));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType("a/a"));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType("..\\a\\"));
+  ASSERT_EQ("", SystemToolbox::AutodetectMimeType("..\\a\\a"));
 
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../NOTES.txt"));
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../coucou.xml/NOTES.txt"));
-  ASSERT_EQ("application/xml", Toolbox::AutodetectMimeType("../.xml"));
+  ASSERT_EQ("text/plain", SystemToolbox::AutodetectMimeType("../NOTES.txt"));
+  ASSERT_EQ("text/plain", SystemToolbox::AutodetectMimeType("../coucou.xml/NOTES.txt"));
+  ASSERT_EQ("application/xml", SystemToolbox::AutodetectMimeType("..\\coucou.\\NOTES.xml"));
+  ASSERT_EQ("application/xml", SystemToolbox::AutodetectMimeType("../.xml"));
+  ASSERT_EQ("application/xml", SystemToolbox::AutodetectMimeType("../.XmL"));
 
-  ASSERT_EQ("application/javascript", Toolbox::AutodetectMimeType("NOTES.js"));
-  ASSERT_EQ("application/json", Toolbox::AutodetectMimeType("NOTES.json"));
-  ASSERT_EQ("application/pdf", Toolbox::AutodetectMimeType("NOTES.pdf"));
-  ASSERT_EQ("text/css", Toolbox::AutodetectMimeType("NOTES.css"));
-  ASSERT_EQ("text/html", Toolbox::AutodetectMimeType("NOTES.html"));
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("NOTES.txt"));
-  ASSERT_EQ("application/xml", Toolbox::AutodetectMimeType("NOTES.xml"));
-  ASSERT_EQ("image/gif", Toolbox::AutodetectMimeType("NOTES.gif"));
-  ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpg"));
-  ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpeg"));
-  ASSERT_EQ("image/png", Toolbox::AutodetectMimeType("NOTES.png"));
+  ASSERT_EQ("application/javascript", SystemToolbox::AutodetectMimeType("NOTES.js"));
+  ASSERT_EQ("application/json", SystemToolbox::AutodetectMimeType("NOTES.json"));
+  ASSERT_EQ("application/pdf", SystemToolbox::AutodetectMimeType("NOTES.pdf"));
+  ASSERT_EQ("text/css", SystemToolbox::AutodetectMimeType("NOTES.css"));
+  ASSERT_EQ("text/html", SystemToolbox::AutodetectMimeType("NOTES.html"));
+  ASSERT_EQ("text/plain", SystemToolbox::AutodetectMimeType("NOTES.txt"));
+  ASSERT_EQ("application/xml", SystemToolbox::AutodetectMimeType("NOTES.xml"));
+  ASSERT_EQ("image/gif", SystemToolbox::AutodetectMimeType("NOTES.gif"));
+  ASSERT_EQ("image/jpeg", SystemToolbox::AutodetectMimeType("NOTES.jpg"));
+  ASSERT_EQ("image/jpeg", SystemToolbox::AutodetectMimeType("NOTES.jpeg"));
+  ASSERT_EQ("image/png", SystemToolbox::AutodetectMimeType("NOTES.png"));
 }
 
 TEST(Toolbox, ComputeMD5)
