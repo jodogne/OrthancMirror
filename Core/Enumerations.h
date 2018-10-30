@@ -47,6 +47,28 @@
 
 namespace Orthanc
 {
+  static const char* const URI_SCHEME_PREFIX_BINARY = "data:application/octet-stream;base64,";
+
+  static const char* const MIME_BINARY = "application/octet-stream";
+  static const char* const MIME_DICOM = "application/dicom";
+  static const char* const MIME_JPEG = "image/jpeg";
+  static const char* const MIME_JPEG2000 = "image/jp2";
+  static const char* const MIME_JSON = "application/json";
+  static const char* const MIME_PDF = "application/pdf";
+  static const char* const MIME_PNG = "image/png";
+  static const char* const MIME_XML = "application/xml";
+  static const char* const MIME_PLAIN_TEXT = "text/plain";
+
+  /**
+   * "No Internet Media Type (aka MIME type, content type) for PBM has
+   * been registered with IANA, but the unofficial value
+   * image/x-portable-arbitrarymap is assigned by this specification,
+   * to be consistent with conventional values for the older Netpbm
+   * formats."  http://netpbm.sourceforge.net/doc/pam.html
+   **/
+  static const char* const MIME_PAM = "image/x-portable-arbitrarymap";
+
+  
   enum Endianness
   {
     Endianness_Unknown,

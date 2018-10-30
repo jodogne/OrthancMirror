@@ -69,7 +69,7 @@ namespace Orthanc
   {
     if (contentType_.empty())
     {
-      return "application/octet-stream";
+      return MIME_BINARY;
     }
     else
     {

@@ -308,7 +308,7 @@ TEST(Uri, AutodetectMimeType)
 
   ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../NOTES.txt"));
   ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../coucou.xml/NOTES.txt"));
-  ASSERT_EQ("text/xml", Toolbox::AutodetectMimeType("../.xml"));
+  ASSERT_EQ("application/xml", Toolbox::AutodetectMimeType("../.xml"));
 
   ASSERT_EQ("application/javascript", Toolbox::AutodetectMimeType("NOTES.js"));
   ASSERT_EQ("application/json", Toolbox::AutodetectMimeType("NOTES.json"));
@@ -316,7 +316,7 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_EQ("text/css", Toolbox::AutodetectMimeType("NOTES.css"));
   ASSERT_EQ("text/html", Toolbox::AutodetectMimeType("NOTES.html"));
   ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("NOTES.txt"));
-  ASSERT_EQ("text/xml", Toolbox::AutodetectMimeType("NOTES.xml"));
+  ASSERT_EQ("application/xml", Toolbox::AutodetectMimeType("NOTES.xml"));
   ASSERT_EQ("image/gif", Toolbox::AutodetectMimeType("NOTES.gif"));
   ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpg"));
   ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpeg"));

@@ -589,7 +589,7 @@ namespace Orthanc
     std::string contentType = stream.GetContentType();
     if (contentType.empty())
     {
-      contentType = "application/octet-stream";
+      contentType = MIME_BINARY;
     }
 
     stateMachine_.SetContentType(contentType.c_str());

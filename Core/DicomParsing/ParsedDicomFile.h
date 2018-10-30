@@ -183,11 +183,8 @@ namespace Orthanc
 
     void EmbedImage(const ImageAccessor& accessor);
 
-#if (ORTHANC_ENABLE_JPEG == 1 &&  \
-     ORTHANC_ENABLE_PNG == 1)
     void EmbedImage(const std::string& mime,
                     const std::string& content);
-#endif
 
     Encoding GetEncoding() const;
 
