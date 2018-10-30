@@ -33,8 +33,9 @@
 
 #pragma once
 
+#include "../Enumerations.h"
+
 #include <stdint.h>
-#include <string>
 #include <boost/noncopyable.hpp>
 #include <json/value.h>
 
@@ -92,7 +93,7 @@ namespace Orthanc
 
     void FormatDataUriScheme(std::string& target) const
     {
-      FormatDataUriScheme(target, "application/octet-stream");
+      FormatDataUriScheme(target, MIME_BINARY);
     }
 #endif
 

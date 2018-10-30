@@ -67,7 +67,7 @@ namespace Orthanc
       if (connection.Echo())
       {
         // Echo has succeeded
-        call.GetOutput().AnswerBuffer("{}", "application/json");
+        call.GetOutput().AnswerBuffer("{}", MIME_JSON);
         return;
       }
     }
@@ -589,14 +589,14 @@ namespace Orthanc
   static void GetQueryLevel(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(EnumerationToString(query.GetHandler().GetLevel()), "text/plain");
+    call.GetOutput().AnswerBuffer(EnumerationToString(query.GetHandler().GetLevel()), MIME_PLAIN_TEXT);
   }
 
 
   static void GetQueryModality(RestApiGetCall& call)
   {
     QueryAccessor query(call);
-    call.GetOutput().AnswerBuffer(query.GetHandler().GetModalitySymbolicName(), "text/plain");
+    call.GetOutput().AnswerBuffer(query.GetHandler().GetModalitySymbolicName(), MIME_PLAIN_TEXT);
   }
 
 
@@ -604,7 +604,7 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     context.GetQueryRetrieveArchive().Remove(call.GetUriComponent("id", ""));
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
   }
 
 
@@ -798,7 +798,7 @@ namespace Orthanc
     }
 
     // Move has succeeded
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    call.GetOutput().AnswerBuffer("{}", MIME_JSON);
   }
 
 
@@ -958,7 +958,7 @@ namespace Orthanc
       RemoteModalityParameters modality;
       modality.Unserialize(json);
       Configuration::UpdateModality(context, call.GetUriComponent("id", ""), modality);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
     }
   }
 
@@ -968,7 +968,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Configuration::RemoveModality(context, call.GetUriComponent("id", ""));
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
   }
 
 
@@ -983,7 +983,7 @@ namespace Orthanc
       WebServiceParameters peer;
       peer.Unserialize(json);
       Configuration::UpdatePeer(context, call.GetUriComponent("id", ""), peer);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
     }
   }
 
@@ -993,7 +993,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Configuration::RemovePeer(context, call.GetUriComponent("id", ""));
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MIME_PLAIN_TEXT);
   }
 
 

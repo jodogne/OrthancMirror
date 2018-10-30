@@ -336,7 +336,7 @@ namespace Orthanc
       for (size_t i = 0; i < members.size(); i++)
       {
         const std::string& name = members[i];
-        std::string mime = "application/octet-stream";
+        std::string mime = MIME_BINARY;
 
         const Json::Value& value = parameter[name];
         int contentType;
