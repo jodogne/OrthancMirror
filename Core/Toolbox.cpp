@@ -519,22 +519,25 @@ namespace Orthanc
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding)
   {
-    if (sourceEncoding == Encoding_Utf8)
-    {
-      // Already in UTF-8: No conversion is required
-      return source;
-    }
-
-    if (sourceEncoding == Encoding_Ascii)
-    {
-      return ConvertToAscii(source);
-    }
-
-    const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
-
+    // The "::skip" flag makes boost skip invalid UTF-8
+    // characters. This can occur in badly-encoded DICOM files.
+    
     try
     {
-      return boost::locale::conv::to_utf<char>(source, encoding);
+      if (sourceEncoding == Encoding_Utf8)
+      {
+        // Already in UTF-8: No conversion is required
+        return boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+      }
+      else if (sourceEncoding == Encoding_Ascii)
+      {
+        return ConvertToAscii(source);
+      }
+      else
+      {
+        const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
+        return boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+      }
     }
     catch (std::runtime_error&)
     {
@@ -549,22 +552,25 @@ namespace Orthanc
   std::string Toolbox::ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding)
   {
-    if (targetEncoding == Encoding_Utf8)
-    {
-      // Already in UTF-8: No conversion is required
-      return source;
-    }
-
-    if (targetEncoding == Encoding_Ascii)
-    {
-      return ConvertToAscii(source);
-    }
-
-    const char* encoding = GetBoostLocaleEncoding(targetEncoding);
-
+    // The "::skip" flag makes boost skip invalid UTF-8
+    // characters. This can occur in badly-encoded DICOM files.
+    
     try
     {
-      return boost::locale::conv::from_utf<char>(source, encoding);
+      if (targetEncoding == Encoding_Utf8)
+      {
+        // Already in UTF-8: No conversion is required.
+        return boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+      }
+      else if (targetEncoding == Encoding_Ascii)
+      {
+        return ConvertToAscii(source);
+      }
+      else
+      {
+        const char* encoding = GetBoostLocaleEncoding(targetEncoding);
+        return boost::locale::conv::from_utf<char>(source, encoding, boost::locale::conv::skip);
+      }
     }
     catch (std::runtime_error&)
     {
@@ -1427,9 +1433,9 @@ namespace Orthanc
      * "utf_to_utf" in order to convert to/from std::wstring.
      **/
 
-    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source);
+    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source, boost::locale::conv::skip);
     w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
-    return boost::locale::conv::utf_to_utf<char>(w);
+    return boost::locale::conv::utf_to_utf<char>(w, boost::locale::conv::skip);
   }
 #endif
 

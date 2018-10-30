@@ -444,6 +444,19 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ(0x00, static_cast<unsigned char>(utf8[14]));  // Null-terminated string
 }
 
+
+TEST(Toolbox, FixUtf8)
+{
+  // This is a Latin-1 test string: "crane" with a circumflex accent
+  const unsigned char latin1[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
+
+  std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
+
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1), Encoding_Latin1));
+  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8));
+}
+
+
 TEST(Toolbox, UrlDecode)
 {
   std::string s;
