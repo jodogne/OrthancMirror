@@ -1183,7 +1183,9 @@ namespace Orthanc
     ReplacePlainString(DICOM_TAG_COLUMNS, boost::lexical_cast<std::string>(accessor.GetWidth()));
     ReplacePlainString(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
     ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
-    ReplacePlainString(DICOM_TAG_NUMBER_OF_FRAMES, "1");
+
+    // The "Number of frames" must only be present in multi-frame images
+    //ReplacePlainString(DICOM_TAG_NUMBER_OF_FRAMES, "1");
 
     if (accessor.GetFormat() == PixelFormat_SignedGrayscale16)
     {
@@ -1194,14 +1196,14 @@ namespace Orthanc
       ReplacePlainString(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
     }
 
-    ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
-    SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2"); // by default, greyscale images are in MONOCHROME2
-
     unsigned int bytesPerPixel = 0;
 
     switch (accessor.GetFormat())
     {
       case PixelFormat_Grayscale8:
+        // By default, grayscale images are MONOCHROME2
+        SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+
         ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "8");
         ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
@@ -1216,10 +1218,18 @@ namespace Orthanc
         ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 3;
+
+        // "Planar configuration" must only present if "Samples per
+        // Pixel" is greater than 1
+        ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
+
         break;
 
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
+        // By default, grayscale images are MONOCHROME2
+        SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+
         ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "16");
         ReplacePlainString(DICOM_TAG_BITS_STORED, "16");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "15");
