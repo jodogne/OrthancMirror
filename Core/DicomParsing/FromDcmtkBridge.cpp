@@ -1511,7 +1511,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     const std::string* decoded = &utf8Value;
 
     if (decodeDataUriScheme &&
-        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
+        boost::starts_with(utf8Value, URI_SCHEME_PREFIX_BINARY))
     {
       std::string mime;
       if (!Toolbox::DecodeDataUriScheme(mime, binary, utf8Value))

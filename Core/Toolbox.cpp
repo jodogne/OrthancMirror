@@ -328,11 +328,11 @@ namespace Orthanc
       // http://en.wikipedia.org/wiki/Mime_types
       // Text types
       if (!strcmp(extension, "txt"))
-        contentType = "text/plain";
+        contentType = MIME_PLAIN_TEXT;
       else if (!strcmp(extension, "html"))
         contentType = "text/html";
       else if (!strcmp(extension, "xml"))
-        contentType = "text/xml";
+        contentType = MIME_XML;
       else if (!strcmp(extension, "css"))
         contentType = "text/css";
 
@@ -340,19 +340,21 @@ namespace Orthanc
       else if (!strcmp(extension, "js"))
         contentType = "application/javascript";
       else if (!strcmp(extension, "json"))
-        contentType = "application/json";
+        contentType = MIME_JSON;
       else if (!strcmp(extension, "pdf"))
-        contentType = "application/pdf";
+        contentType = MIME_PDF;
       else if (!strcmp(extension, "wasm"))
         contentType = "application/wasm";
 
       // Images types
       else if (!strcmp(extension, "jpg") || !strcmp(extension, "jpeg"))
-        contentType = "image/jpeg";
+        contentType = MIME_JPEG;
       else if (!strcmp(extension, "gif"))
         contentType = "image/gif";
       else if (!strcmp(extension, "png"))
-        contentType = "image/png";
+        contentType = MIME_PNG;
+      else if (!strcmp(extension, "pam"))
+        contentType = MIME_PAM;
     }
 
     return contentType;
