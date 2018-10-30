@@ -100,5 +100,7 @@ namespace Orthanc
                      bool utc);
 
     unsigned int GetHardwareConcurrency();
+
+    std::string AutodetectMimeType(const std::string& path);
   }
 }

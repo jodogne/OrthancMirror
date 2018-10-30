@@ -117,8 +117,6 @@ namespace Orthanc
     bool IsChildUri(const UriComponents& baseUri,
                     const UriComponents& testedUri);
 
-    std::string AutodetectMimeType(const std::string& path);
-
     std::string FlattenUri(const UriComponents& components,
                            size_t fromLevel = 0);
 

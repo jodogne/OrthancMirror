@@ -36,6 +36,7 @@
 
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -47,7 +48,7 @@ namespace Orthanc
 
     if (contentType_.empty())
     {
-      contentType_ = Toolbox::AutodetectMimeType(filename);
+      contentType_ = SystemToolbox::AutodetectMimeType(filename);
     }
   }
 

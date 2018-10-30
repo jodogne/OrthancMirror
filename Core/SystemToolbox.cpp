@@ -578,4 +578,71 @@ namespace Orthanc
       return threads;
     }
   }
+
+
+  std::string SystemToolbox::AutodetectMimeType(const std::string& path)
+  {
+    std::string extension = boost::filesystem::extension(path);
+    Toolbox::ToLowerCase(extension);
+
+    // http://en.wikipedia.org/wiki/Mime_types
+    // Text types
+    if (extension == ".txt")
+    {
+      return MIME_PLAIN_TEXT;
+    }
+    else if (extension == ".html")
+    {
+      return "text/html";
+    }
+    else if (extension == ".xml")
+    {
+      return MIME_XML;
+    }
+    else if (extension == ".css")
+    {
+      return "text/css";
+    }
+
+    // Application types
+    else if (extension == ".js")
+    {
+      return "application/javascript";
+    }
+    else if (extension == ".json")
+    {
+      return MIME_JSON;
+    }
+    else if (extension == ".pdf")
+    {
+      return MIME_PDF;
+    }
+    else if (extension == ".wasm")
+    {
+      return "application/wasm";
+    }
+
+    // Images types
+    else if (extension == ".jpg" ||
+             extension == ".jpeg")
+    {
+      return MIME_JPEG;
+    }
+    else if (extension == ".gif")
+    {
+      return "image/gif";
+    }
+    else if (extension == ".png")
+    {
+      return MIME_PNG;
+    }
+    else if (extension == ".pam")
+    {
+      return MIME_PAM;
+    }
+    else
+    {
+      return "";
+    }
+  }
 }
