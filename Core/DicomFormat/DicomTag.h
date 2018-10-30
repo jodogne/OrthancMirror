@@ -175,6 +175,14 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_IMAGE_COMMENTS(0x0020, 0x4000);
   static const DicomTag DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION(0x0018, 0x1400);
   static const DicomTag DICOM_TAG_CONTRAST_BOLUS_AGENT(0x0018, 0x0010);
+  static const DicomTag DICOM_TAG_STUDY_ID(0x0020, 0x0010);
+  static const DicomTag DICOM_TAG_SERIES_NUMBER(0x0020, 0x0011);
+  static const DicomTag DICOM_TAG_PATIENT_SEX(0x0010, 0x0040);
+  static const DicomTag DICOM_TAG_LATERALITY(0x0020, 0x0060);
+  static const DicomTag DICOM_TAG_BODY_PART_EXAMINED(0x0018, 0x0015);
+  static const DicomTag DICOM_TAG_VIEW_POSITION(0x0018, 0x5101);
+  static const DicomTag DICOM_TAG_MANUFACTURER(0x0008, 0x0070);
+  static const DicomTag DICOM_TAG_PATIENT_ORIENTATION(0x0020, 0x0020);
 
   // Tags used within the Stone of Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
