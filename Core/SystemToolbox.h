@@ -101,6 +101,6 @@ namespace Orthanc
 
     unsigned int GetHardwareConcurrency();
 
-    std::string AutodetectMimeType(const std::string& path);
+    MimeType AutodetectMimeType(const std::string& path);
   }
 }

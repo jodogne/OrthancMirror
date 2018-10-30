@@ -1019,6 +1019,64 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(MimeType mime)
+  {
+    switch (mime)
+    {
+      case MimeType_Binary:
+        return MIME_BINARY;
+        
+      case MimeType_Dicom:
+        return MIME_DICOM;
+        
+      case MimeType_Jpeg:
+        return MIME_JPEG;
+        
+      case MimeType_Jpeg2000:
+        return MIME_JPEG2000;
+        
+      case MimeType_Json:
+        return MIME_JSON;
+        
+      case MimeType_Pdf:
+        return MIME_PDF;
+        
+      case MimeType_Png:
+        return MIME_PNG;
+        
+      case MimeType_Xml:
+        return MIME_XML;
+        
+      case MimeType_PlainText:
+        return MIME_PLAIN_TEXT;
+                
+      case MimeType_Pam:
+        return MIME_PAM;
+                
+      case MimeType_Html:
+        return MIME_HTML;
+                
+      case MimeType_Gzip:
+        return MIME_GZIP;
+                
+      case MimeType_JavaScript:
+        return MIME_JAVASCRIPT;
+                
+      case MimeType_Css:
+        return MIME_CSS;
+                
+      case MimeType_WebAssembly:
+        return MIME_WEB_ASSEMBLY;
+                
+      case MimeType_Gif:
+        return MIME_GIF;
+                
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
   
 
   Encoding StringToEncoding(const char* encoding)
@@ -1529,6 +1587,80 @@ namespace Orthanc
     else if (origin == "Lua")
     {
       return RequestOrigin_Lua;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  MimeType StringToMimeType(const std::string& mime)
+  {
+    if (mime == MIME_BINARY)
+    {
+      return MimeType_Binary;
+    }
+    else if (mime == MIME_DICOM)
+    {
+      return MimeType_Dicom;
+    }
+    else if (mime == MIME_JPEG)
+    {
+      return MimeType_Jpeg;
+    }
+    else if (mime == MIME_JPEG2000)
+    {
+      return MimeType_Jpeg2000;
+    }
+    else if (mime == MIME_JSON)
+    {
+      return MimeType_Json;
+    }
+    else if (mime == MIME_PDF)
+    {
+      return MimeType_Pdf;
+    }
+    else if (mime == MIME_PNG)
+    {
+      return MimeType_Png;
+    }
+    else if (mime == MIME_XML ||
+             mime == MIME_XML_2)
+    {
+      return MimeType_Xml;
+    }
+    else if (mime == MIME_PLAIN_TEXT)
+    {
+      return MimeType_PlainText;
+    }
+    else if (mime == MIME_PAM)
+    {
+      return MimeType_Pam;
+    }
+    else if (mime == MIME_HTML)
+    {
+      return MimeType_Html;
+    }
+    else if (mime == MIME_GZIP)
+    {
+      return MimeType_Gzip;
+    }
+    else if (mime == MIME_JAVASCRIPT)
+    {
+      return MimeType_JavaScript;
+    }
+    else if (mime == MIME_CSS)
+    {
+      return MimeType_Css;
+    }
+    else if (mime == MIME_WEB_ASSEMBLY)
+    {
+      return MimeType_WebAssembly;
+    }
+    else if (mime == MIME_GIF)
+    {
+      return MimeType_Gif;
     }
     else
     {

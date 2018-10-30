@@ -99,19 +99,19 @@ namespace Orthanc
     std::string level = call.GetArgument("level", "");
     if (level == "patient")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient), MIME_PLAIN_TEXT);
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient), MimeType_PlainText);
     }
     else if (level == "study")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study), MIME_PLAIN_TEXT);
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study), MimeType_PlainText);
     }
     else if (level == "series")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series), MIME_PLAIN_TEXT);
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series), MimeType_PlainText);
     }
     else if (level == "instance")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), MIME_PLAIN_TEXT);
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), MimeType_PlainText);
     }
   }
 
@@ -128,13 +128,13 @@ namespace Orthanc
       lock.GetLua().Execute(result, command);
     }
 
-    call.GetOutput().AnswerBuffer(result, MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer(result, MimeType_PlainText);
   }
 
   template <bool UTC>
   static void GetNowIsoString(RestApiGetCall& call)
   {
-    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), MimeType_PlainText);
   }
 
 
@@ -142,14 +142,14 @@ namespace Orthanc
   {
     std::string statement;
     GetFileResource(statement, EmbeddedResources::DICOM_CONFORMANCE_STATEMENT);
-    call.GetOutput().AnswerBuffer(statement, MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
   }
 
 
   static void GetDefaultEncoding(RestApiGetCall& call)
   {
     Encoding encoding = GetDefaultDicomEncoding();
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
 
 
@@ -159,7 +159,7 @@ namespace Orthanc
 
     Configuration::SetDefaultEncoding(encoding);
 
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MIME_PLAIN_TEXT);
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
 
 
@@ -265,7 +265,7 @@ namespace Orthanc
 #endif
     }
 
-    call.GetOutput().AnswerBuffer(s, "application/javascript");
+    call.GetOutput().AnswerBuffer(s, MimeType_JavaScript);
   }
 
 
@@ -357,7 +357,7 @@ namespace Orthanc
     
     if (ok)
     {
-      call.GetOutput().AnswerBuffer("{}", MIME_JSON);
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
   }
 

@@ -84,7 +84,7 @@ namespace Orthanc
     {
       // The archive is now created: Prepare the sending of the ZIP file
       FilesystemHttpSender sender(tmp->GetPath());
-      sender.SetContentType("application/zip");
+      sender.SetContentType(MimeType_Gzip);
       sender.SetContentFilename(filename);
 
       // Send the ZIP

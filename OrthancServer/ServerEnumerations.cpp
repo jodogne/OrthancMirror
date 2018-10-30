@@ -176,13 +176,13 @@ namespace Orthanc
     switch (type)
     {
       case FileContentType_Dicom:
-        return MIME_DICOM;
+        return EnumerationToString(MimeType_Dicom);
 
       case FileContentType_DicomAsJson:
-        return MIME_JSON;
+        return MIME_JSON_UTF8;
 
       default:
-        return MIME_BINARY;
+        return EnumerationToString(MimeType_Binary);
     }
   }
 
