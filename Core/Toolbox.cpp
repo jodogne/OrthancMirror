@@ -310,57 +310,6 @@ namespace Orthanc
   }
 
 
-  std::string Toolbox::AutodetectMimeType(const std::string& path)
-  {
-    std::string contentType;
-    size_t lastDot = path.rfind('.');
-    size_t lastSlash = path.rfind('/');
-
-    if (lastDot == std::string::npos ||
-        (lastSlash != std::string::npos && lastDot < lastSlash))
-    {
-      // No trailing dot, unable to detect the content type
-    }
-    else
-    {
-      const char* extension = &path[lastDot + 1];
-    
-      // http://en.wikipedia.org/wiki/Mime_types
-      // Text types
-      if (!strcmp(extension, "txt"))
-        contentType = MIME_PLAIN_TEXT;
-      else if (!strcmp(extension, "html"))
-        contentType = "text/html";
-      else if (!strcmp(extension, "xml"))
-        contentType = MIME_XML;
-      else if (!strcmp(extension, "css"))
-        contentType = "text/css";
-
-      // Application types
-      else if (!strcmp(extension, "js"))
-        contentType = "application/javascript";
-      else if (!strcmp(extension, "json"))
-        contentType = MIME_JSON;
-      else if (!strcmp(extension, "pdf"))
-        contentType = MIME_PDF;
-      else if (!strcmp(extension, "wasm"))
-        contentType = "application/wasm";
-
-      // Images types
-      else if (!strcmp(extension, "jpg") || !strcmp(extension, "jpeg"))
-        contentType = MIME_JPEG;
-      else if (!strcmp(extension, "gif"))
-        contentType = "image/gif";
-      else if (!strcmp(extension, "png"))
-        contentType = MIME_PNG;
-      else if (!strcmp(extension, "pam"))
-        contentType = MIME_PAM;
-    }
-
-    return contentType;
-  }
-
-
   std::string Toolbox::FlattenUri(const UriComponents& components,
                                   size_t fromLevel)
   {
