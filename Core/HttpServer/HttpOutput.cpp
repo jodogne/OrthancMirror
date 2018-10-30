@@ -322,6 +322,7 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
+  
   void HttpOutput::Answer(const void* buffer, 
                           size_t length)
   {

@@ -97,9 +97,7 @@ namespace Orthanc
       std::string s;
       Toolbox::JsonToXml(s, value);
 
-      std::string mime = std::string(MIME_XML) + "; charset=utf-8";
-      output_.SetContentType(mime.c_str());
-      
+      output_.SetContentType(MIME_XML_UTF8);
       output_.Answer(s);
 #else
       LOG(ERROR) << "Orthanc was compiled without XML support";
@@ -108,18 +106,18 @@ namespace Orthanc
     }
     else
     {
-      std::string mime = std::string(MIME_JSON) + "; charset=utf-8";
-      output_.SetContentType(mime.c_str());
-      
       Json::StyledWriter writer;
-      output_.Answer(writer.write(value));
+      std::string s = writer.write(value);
+      
+      output_.SetContentType(MIME_JSON_UTF8);      
+      output_.Answer(s);
     }
 
     alreadySent_ = true;
   }
 
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
-                                   const std::string& contentType)
+                                   MimeType contentType)
   {
     AnswerBuffer(buffer.size() == 0 ? NULL : buffer.c_str(),
                  buffer.size(), contentType);
@@ -127,10 +125,10 @@ namespace Orthanc
 
   void RestApiOutput::AnswerBuffer(const void* buffer,
                                    size_t length,
-                                   const std::string& contentType)
+                                   MimeType contentType)
   {
     CheckStatus();
-    output_.SetContentType(contentType.c_str());
+    output_.SetContentType(contentType);
     output_.Answer(buffer, length);
     alreadySent_ = true;
   }

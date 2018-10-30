@@ -1367,7 +1367,7 @@ namespace Orthanc
       {
         PngWriter writer;
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType("image/png");
+        translatedOutput->SetContentType(MimeType_Png);
         break;
       }
 
@@ -1376,7 +1376,7 @@ namespace Orthanc
         JpegWriter writer;
         writer.SetQuality(p.quality);
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType("image/jpeg");
+        translatedOutput->SetContentType(MimeType_Jpeg);
         break;
       }
 

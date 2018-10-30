@@ -258,7 +258,7 @@ namespace Orthanc
 
       virtual std::string GetContentType()
       {
-        return "";
+        return EnumerationToString(MimeType_Binary);
       }
 
       virtual uint64_t  GetContentLength()
@@ -362,14 +362,14 @@ namespace Orthanc
             {
               if (pixelItem->getLength() == 0)
               {
-                output.AnswerBuffer(NULL, 0, MIME_BINARY);
+                output.AnswerBuffer(NULL, 0, MimeType_Binary);
                 return true;
               }
 
               Uint8* buffer = NULL;
               if (pixelItem->getUint8Array(buffer).good() && buffer)
               {
-                output.AnswerBuffer(buffer, pixelItem->getLength(), MIME_BINARY);
+                output.AnswerBuffer(buffer, pixelItem->getLength(), MimeType_Binary);
                 return true;
               }
             }
@@ -825,7 +825,7 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
     {
-      output.AnswerBuffer(serialized, MIME_BINARY);
+      output.AnswerBuffer(serialized, MimeType_Binary);
     }
   }
 #endif
@@ -1064,44 +1064,46 @@ namespace Orthanc
 
   bool ParsedDicomFile::EmbedContentInternal(const std::string& dataUriScheme)
   {
-    std::string mime, content;
-    if (!Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme))
+    std::string mimeString, content;
+    if (!Toolbox::DecodeDataUriScheme(mimeString, content, dataUriScheme))
     {
       return false;
     }
 
-    Toolbox::ToLowerCase(mime);
+    Toolbox::ToLowerCase(mimeString);
+    MimeType mime = StringToMimeType(mimeString);
 
-    if (mime == MIME_PNG)
+    switch (mime)
     {
+      case MimeType_Png:
 #if ORTHANC_ENABLE_PNG == 1
-      EmbedImage(mime, content);
+        EmbedImage(mime, content);
+        break;
 #else
-      LOG(ERROR) << "Orthanc was compiled without support of PNG";
-      throw OrthancException(ErrorCode_NotImplemented);
+        LOG(ERROR) << "Orthanc was compiled without support of PNG";
+        throw OrthancException(ErrorCode_NotImplemented);
 #endif
-    }
-    else if (mime == MIME_JPEG)
-    {
+
+      case MimeType_Jpeg:
 #if ORTHANC_ENABLE_JPEG == 1
-      EmbedImage(mime, content);
+        EmbedImage(mime, content);
+        break;
 #else
-      LOG(ERROR) << "Orthanc was compiled without support of JPEG";
-      throw OrthancException(ErrorCode_NotImplemented);
+        LOG(ERROR) << "Orthanc was compiled without support of JPEG";
+        throw OrthancException(ErrorCode_NotImplemented);
 #endif
-    }
-    else if (mime == MIME_PAM)
-    {
-      EmbedImage(mime, content);
-    }
-    else if (mime == MIME_PDF)
-    {
-      EmbedPdf(content);
-    }
-    else
-    {
-      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
-      throw OrthancException(ErrorCode_NotImplemented);
+
+      case MimeType_Pam:
+        EmbedImage(mime, content);
+        break;
+
+      case MimeType_Pdf:
+        EmbedPdf(content);
+        break;
+
+      default:
+        LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
+        throw OrthancException(ErrorCode_NotImplemented);
     }
 
     return true;
@@ -1117,38 +1119,42 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedImage(const std::string& mime,
+  void ParsedDicomFile::EmbedImage(MimeType mime,
                                    const std::string& content)
   {
-#if ORTHANC_ENABLE_JPEG == 1
-    if (mime == MIME_JPEG)
+    switch (mime)
     {
-      JpegReader reader;
-      reader.ReadFromMemory(content);
-      EmbedImage(reader);
-      return;
-    }
+    
+#if ORTHANC_ENABLE_JPEG == 1
+      case MimeType_Jpeg:
+      {
+        JpegReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
 #endif
     
 #if ORTHANC_ENABLE_PNG == 1
-    if (mime == MIME_PNG)
-    {
-      PngReader reader;
-      reader.ReadFromMemory(content);
-      EmbedImage(reader);
-      return;
-    }
+      case MimeType_Png:
+      {
+        PngReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
 #endif
 
-    if (mime == MIME_PAM)
-    {
-      PamReader reader;
-      reader.ReadFromMemory(content);
-      EmbedImage(reader);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
+      case MimeType_Pam:
+      {
+        PamReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -1471,7 +1477,7 @@ namespace Orthanc
 
 
   void ParsedDicomFile::GetRawFrame(std::string& target,
-                                    std::string& mime,
+                                    MimeType& mime,
                                     unsigned int frameId)
   {
     if (pimpl_->frameIndex_.get() == NULL)
@@ -1485,16 +1491,16 @@ namespace Orthanc
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
-        mime = MIME_JPEG;
+        mime = MimeType_Jpeg;
         break;
        
       case EXS_JPEG2000LosslessOnly:
       case EXS_JPEG2000:
-        mime = MIME_JPEG2000;
+        mime = MimeType_Jpeg2000;
         break;
 
       default:
-        mime = MIME_BINARY;
+        mime = MimeType_Binary;
         break;
     }
   }

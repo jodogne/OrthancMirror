@@ -183,7 +183,7 @@ namespace Orthanc
 
     void EmbedImage(const ImageAccessor& accessor);
 
-    void EmbedImage(const std::string& mime,
+    void EmbedImage(MimeType mime,
                     const std::string& content);
 
     Encoding GetEncoding() const;
@@ -220,7 +220,7 @@ namespace Orthanc
     bool ExtractPdf(std::string& pdf);
 
     void GetRawFrame(std::string& target, // OUT
-                     std::string& mime,   // OUT
+                     MimeType& mime,   // OUT
                      unsigned int frameId);  // IN
 
     unsigned int GetFramesCount() const;
