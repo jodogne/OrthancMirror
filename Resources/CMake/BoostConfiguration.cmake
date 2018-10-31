@@ -94,7 +94,7 @@ if (BOOST_STATIC)
   endif()
 
   include_directories(
-    ${BOOST_SOURCES_DIR}
+    BEFORE ${BOOST_SOURCES_DIR}
     )
 
   add_definitions(
