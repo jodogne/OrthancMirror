@@ -353,6 +353,7 @@ namespace Orthanc
                                const std::string& utf8) const
   {
     width = 0;
+    height = 0;
     
 #if ORTHANC_ENABLE_LOCALE == 1
     std::string s = Toolbox::ConvertFromUtf8(utf8, Encoding_Latin1);
