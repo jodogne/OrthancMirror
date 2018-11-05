@@ -948,7 +948,7 @@ namespace Orthanc
     {
       case PixelFormat_Float32:
       {
-        assert(sizeof(float) == 32);
+        assert(sizeof(float) == 4);
         float a, b;
         GetMinMaxValueInternal<float>(a, b, image);
         minValue = a;
