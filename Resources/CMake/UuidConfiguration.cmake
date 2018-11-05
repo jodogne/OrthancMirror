@@ -8,7 +8,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     DownloadPackage(${E2FSPROGS_MD5} ${E2FSPROGS_URL} "${E2FSPROGS_SOURCES_DIR}")
 
     include_directories(
-      ${E2FSPROGS_SOURCES_DIR}/lib
+      BEFORE ${E2FSPROGS_SOURCES_DIR}/lib
       )
 
     set(UUID_SOURCES
