@@ -5,7 +5,30 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     SET(E2FSPROGS_URL "http://www.orthanc-server.com/downloads/third-party/e2fsprogs-1.43.8.tar.gz")
     SET(E2FSPROGS_MD5 "670b7a74a8ead5333acf21b9afc92b3c")
 
+    if (IS_DIRECTORY "${E2FSPROGS_SOURCES_DIR}")
+      set(FirstRun OFF)
+    else()
+      set(FirstRun ON)
+    endif()
+
     DownloadPackage(${E2FSPROGS_MD5} ${E2FSPROGS_URL} "${E2FSPROGS_SOURCES_DIR}")
+
+    
+    ##
+    ## Patch for OS X, in order to be compatible with Cocoa (used in Stone)
+    ## 
+
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${ORTHANC_ROOT}/Resources/Patches/e2fsprogs-1.43.8-apple.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (FirstRun AND Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+
 
     include_directories(
       BEFORE ${E2FSPROGS_SOURCES_DIR}/lib
