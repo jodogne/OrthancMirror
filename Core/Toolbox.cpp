@@ -1490,6 +1490,53 @@ namespace Orthanc
 #endif
     return s;
   }
+
+
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+
+    class VariableFormatter
+    {
+    public:
+      typedef std::map<std::string, std::string>   Dictionary;
+
+    private:
+      const Dictionary& dictionary_;
+
+    public:
+      VariableFormatter(const Dictionary& dictionary) :
+        dictionary_(dictionary)
+      {
+      }
+  
+      template<typename Out>
+      Out operator()(const boost::smatch& what,
+                     Out out) const
+      {
+        Dictionary::const_iterator found = dictionary_.find(what[1]);
+    
+        if (found != dictionary_.end())
+        {
+          const std::string& value = found->second;
+          out = std::copy(value.begin(), value.end(), out);
+        }
+    
+        return out;
+      }
+    };
+  }
+
+  
+  std::string Toolbox::SubstituteVariables(const std::string& source,
+                                           const std::map<std::string, std::string>& dictionary)
+  {
+    const boost::regex pattern("\\${(.*?)}");
+
+    VariableFormatter formatter(dictionary);
+
+    return boost::regex_replace(source, pattern, formatter);
+  }
 }
 
 

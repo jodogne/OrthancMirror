@@ -38,6 +38,7 @@
 #if defined(_WIN32)
 #  include <windows.h>
 #  include <process.h>   // For "_spawnvp()" and "_getpid()"
+#  include <stdlib.h>    // For "environ"
 #else
 #  include <unistd.h>    // For "execvp()"
 #  include <sys/wait.h>  // For "waitpid()"
@@ -70,6 +71,51 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
+
+
+/*=========================================================================
+  The section below comes from the Boost 1.68.0 project:
+  https://github.com/boostorg/program_options/blob/boost-1.68.0/src/parsers.cpp
+  
+  Copyright Vladimir Prus 2002-2004.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt
+  or copy at http://www.boost.org/LICENSE_1_0.txt)
+  =========================================================================*/
+
+// The 'environ' should be declared in some cases. E.g. Linux man page says:
+// (This variable must be declared in the user program, but is declared in 
+// the header file unistd.h in case the header files came from libc4 or libc5, 
+// and in case they came from glibc and _GNU_SOURCE was defined.) 
+// To be safe, declare it here.
+
+// It appears that on Mac OS X the 'environ' variable is not
+// available to dynamically linked libraries.
+// See: http://article.gmane.org/gmane.comp.lib.boost.devel/103843
+// See: http://lists.gnu.org/archive/html/bug-guile/2004-01/msg00013.html
+#if defined(__APPLE__) && defined(__DYNAMIC__)
+// The proper include for this is crt_externs.h, however it's not
+// available on iOS. The right replacement is not known. See
+// https://svn.boost.org/trac/boost/ticket/5053
+extern "C"
+{
+  extern char ***_NSGetEnviron(void);
+}
+#  define environ (*_NSGetEnviron()) 
+#else
+#  if defined(__MWERKS__)
+#    include <crtl.h>
+#  else
+#    if !defined(_WIN32) || defined(__COMO_VERSION__)
+extern char** environ;
+#    endif
+#  endif
+#endif
+
+
+/*=========================================================================
+  End of section from the Boost 1.68.0 project
+  =========================================================================*/
 
 
 namespace Orthanc
@@ -643,6 +689,25 @@ namespace Orthanc
     else
     {
       return MimeType_Binary;
+    }
+  }
+
+
+  void SystemToolbox::GetEnvironmentVariables(std::map<std::string, std::string>& env)
+  {
+    env.clear();
+    
+    for (char **p = environ; *p != NULL; p++)
+    {
+      std::string v(*p);
+      size_t pos = v.find('=');
+
+      if (pos != std::string::npos)
+      {
+        std::string key = v.substr(0, pos);
+        std::string value = v.substr(pos + 1);
+        env[key] = value;
+      } 
     }
   }
 }

@@ -236,6 +236,9 @@ namespace Orthanc
     void FinalizeOpenSsl();
 
     std::string GenerateUuid();
+
+    std::string SubstituteVariables(const std::string& source,
+                                    const std::map<std::string, std::string>& dictionary);
   }
 }
 

@@ -1162,6 +1162,26 @@ TEST(Toolbox, LinesIterator)
 }
 
 
+TEST(Toolbox, SubstituteVariables)
+{
+  std::map<std::string, std::string> env;
+  env["NOPE"] = "nope";
+  env["WORLD"] = "world";
+
+  ASSERT_EQ("Hello world\r\nWorld \r\nDone world\r\n",
+            Toolbox::SubstituteVariables(
+              "Hello ${WORLD}\r\nWorld ${HELLO}\r\nDone ${WORLD}\r\n",
+              env));
+
+  SystemToolbox::GetEnvironmentVariables(env);
+  ASSERT_TRUE(env.find("NOPE") == env.end());
+
+  // The "PATH" environment variable should always be available on
+  // machines running the unit tests
+  ASSERT_TRUE(env.find("PATH") != env.end());
+}
+
+
 int main(int argc, char **argv)
 {
   Logging::Initialize();
