@@ -43,6 +43,7 @@
 
 #include "Enumerations.h"
 
+#include <map>
 #include <vector>
 #include <string>
 #include <stdint.h>
@@ -102,5 +103,7 @@ namespace Orthanc
     unsigned int GetHardwareConcurrency();
 
     MimeType AutodetectMimeType(const std::string& path);
+
+    void GetEnvironmentVariables(std::map<std::string, std::string>& env);
   }
 }
