@@ -1514,12 +1514,54 @@ namespace Orthanc
       Out operator()(const boost::smatch& what,
                      Out out) const
       {
-        Dictionary::const_iterator found = dictionary_.find(what[1]);
-    
-        if (found != dictionary_.end())
+        if (!what[1].str().empty())
         {
-          const std::string& value = found->second;
-          out = std::copy(value.begin(), value.end(), out);
+          // Variable without a default value
+          Dictionary::const_iterator found = dictionary_.find(what[1]);
+    
+          if (found != dictionary_.end())
+          {
+            const std::string& value = found->second;
+            out = std::copy(value.begin(), value.end(), out);
+          }
+        }
+        else
+        {
+          // Variable with a default value
+          std::string key;
+          std::string defaultValue;
+          
+          if (!what[2].str().empty())
+          {
+            key = what[2].str();
+            defaultValue = what[3].str();
+          }
+          else if (!what[4].str().empty())
+          {
+            key = what[4].str();
+            defaultValue = what[5].str();
+          }
+          else if (!what[6].str().empty())
+          {
+            key = what[6].str();
+            defaultValue = what[7].str();
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          Dictionary::const_iterator found = dictionary_.find(key);
+    
+          if (found == dictionary_.end())
+          {
+            out = std::copy(defaultValue.begin(), defaultValue.end(), out);
+          }
+          else
+          {
+            const std::string& value = found->second;
+            out = std::copy(value.begin(), value.end(), out);
+          }
         }
     
         return out;
@@ -1531,7 +1573,10 @@ namespace Orthanc
   std::string Toolbox::SubstituteVariables(const std::string& source,
                                            const std::map<std::string, std::string>& dictionary)
   {
-    const boost::regex pattern("\\${(.*?)}");
+    const boost::regex pattern("\\${([^:]*?)}|"                 // ${what[1]}
+                               "\\${([^:]*?):-([^'\"]*?)}|"     // ${what[2]:-what[3]}
+                               "\\${([^:]*?):-\"([^\"]*?)\"}|"  // ${what[4]:-"what[5]"}
+                               "\\${([^:]*?):-'([^']*?)'}");    // ${what[6]:-'what[7]'}
 
     VariableFormatter formatter(dictionary);
 

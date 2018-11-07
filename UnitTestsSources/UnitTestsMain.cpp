@@ -1173,12 +1173,20 @@ TEST(Toolbox, SubstituteVariables)
               "Hello ${WORLD}\r\nWorld ${HELLO}\r\nDone ${WORLD}\r\n",
               env));
 
+  ASSERT_EQ("world A a B world C 'c' D {\"a\":\"b\"} E ",
+            Toolbox::SubstituteVariables(
+              "${WORLD} A ${WORLD2:-a} B ${WORLD:-b} C ${WORLD2:-\"'c'\"} D ${WORLD2:-'{\"a\":\"b\"}'} E ${WORLD2:-}",
+              env));
+  
   SystemToolbox::GetEnvironmentVariables(env);
   ASSERT_TRUE(env.find("NOPE") == env.end());
 
   // The "PATH" environment variable should always be available on
   // machines running the unit tests
   ASSERT_TRUE(env.find("PATH") != env.end());
+
+  ASSERT_EQ("A" + env["PATH"] + "B",
+            Toolbox::SubstituteVariables("A${PATH}B", env));
 }
 
 
