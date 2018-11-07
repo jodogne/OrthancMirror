@@ -118,6 +118,9 @@ namespace Orthanc
   static void AddFileToConfiguration(Json::Value& target,
                                      const boost::filesystem::path& path)
   {
+    std::map<std::string, std::string> env;
+    SystemToolbox::GetEnvironmentVariables(env);
+    
     LOG(WARNING) << "Reading the configuration from: " << path;
 
     Json::Value config;
@@ -125,6 +128,8 @@ namespace Orthanc
     {
       std::string content;
       SystemToolbox::ReadFile(content, path.string());
+
+      content = Toolbox::SubstituteVariables(content, env);
 
       Json::Value tmp;
       Json::Reader reader;
@@ -144,6 +149,7 @@ namespace Orthanc
     }
     else
     {
+      // Merge the newly-added file with the previous content of "target"
       Json::Value::Members members = config.getMemberNames();
       for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
       {

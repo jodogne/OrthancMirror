@@ -6,6 +6,7 @@ General
 -------
 
 * Possibility to restrict the allowed DICOM commands for each modality
+* The Orthanc configuration file can use environment variables
 
 Orthanc Explorer
 ----------------
