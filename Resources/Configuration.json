@@ -273,7 +273,9 @@
   // peers in HTTPS requests. From curl documentation ("--cacert"
   // option): "Tells curl to use the specified certificate file to
   // verify the peers. The file may contain multiple CA
-  // certificates. The certificate(s) must be in PEM format."
+  // certificates. The certificate(s) must be in PEM format." On
+  // Debian-based systems, this option can be set to
+  // "/etc/ssl/certs/ca-certificates.crt"
   "HttpsCACertificates" : "",
 
 
