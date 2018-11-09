@@ -94,12 +94,12 @@ namespace
     std::auto_ptr<Image>  image_;
 
   protected:
-    virtual void SetUp() 
+    virtual void SetUp() ORTHANC_OVERRIDE
     {
       image_.reset(new Image(ImageTraits::PixelTraits::GetPixelFormat(), 7, 9, false));
     }
 
-    virtual void TearDown()
+    virtual void TearDown() ORTHANC_OVERRIDE
     {
       image_.reset(NULL);
     }
