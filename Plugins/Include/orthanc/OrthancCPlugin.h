@@ -1679,11 +1679,16 @@ extern "C"
    * OrthancPluginInitialize() public function.
    *
    * Each REST callback is guaranteed to run in mutual exclusion.
-   * 
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pathRegularExpression Regular expression for the URI. May contain groups.
+   * @param pathRegularExpression Regular expression for the URI. May contain groups. 
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallbackNoLock()
+   *
+   * @note
+   * The regular expression is case sensitive and must follow the
+   * [Perl syntax](https://www.boost.org/doc/libs/1_67_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html).
+   *
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
@@ -1711,13 +1716,19 @@ extern "C"
    * will NOT be invoked in mutual exclusion. This can be useful for
    * high-performance plugins that must handle concurrent requests
    * (Orthanc uses a pool of threads, one thread being assigned to
-   * each incoming HTTP request). Of course, it is up to the plugin to
-   * implement the required locking mechanisms.
+   * each incoming HTTP request). Of course, if using this function,
+   * it is up to the plugin to implement the required locking
+   * mechanisms.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param pathRegularExpression Regular expression for the URI. May contain groups.
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallback()
+   *
+   * @note
+   * The regular expression is case sensitive and must follow the
+   * [Perl syntax](https://www.boost.org/doc/libs/1_67_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html).
+   *
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallbackNoLock(
