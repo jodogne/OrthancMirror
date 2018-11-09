@@ -1573,10 +1573,10 @@ namespace Orthanc
   std::string Toolbox::SubstituteVariables(const std::string& source,
                                            const std::map<std::string, std::string>& dictionary)
   {
-    const boost::regex pattern("\\${([^:]*?)}|"                 // ${what[1]}
-                               "\\${([^:]*?):-([^'\"]*?)}|"     // ${what[2]:-what[3]}
-                               "\\${([^:]*?):-\"([^\"]*?)\"}|"  // ${what[4]:-"what[5]"}
-                               "\\${([^:]*?):-'([^']*?)'}");    // ${what[6]:-'what[7]'}
+    const boost::regex pattern("\\$\\{([^:]*?)\\}|"                 // ${what[1]}
+                               "\\$\\{([^:]*?):-([^'\"]*?)\\}|"     // ${what[2]:-what[3]}
+                               "\\$\\{([^:]*?):-\"([^\"]*?)\"\\}|"  // ${what[4]:-"what[5]"}
+                               "\\$\\{([^:]*?):-'([^']*?)'\\}");    // ${what[6]:-'what[7]'}
 
     VariableFormatter formatter(dictionary);
 
