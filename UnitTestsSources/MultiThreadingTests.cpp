@@ -93,15 +93,15 @@ namespace
     {
     }
 
-    virtual void Start()
+    virtual void Start() ORTHANC_OVERRIDE
     {
     }
 
-    virtual void Reset()
+    virtual void Reset() ORTHANC_OVERRIDE
     {
     }
     
-    virtual JobStepResult Step()
+    virtual JobStepResult Step() ORTHANC_OVERRIDE
     {
       if (fails_)
       {
@@ -118,28 +118,28 @@ namespace
       }
     }
 
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual float GetProgress()
+    virtual float GetProgress() ORTHANC_OVERRIDE
     {
       return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
     }
 
-    virtual void GetJobType(std::string& type)
+    virtual void GetJobType(std::string& type) ORTHANC_OVERRIDE
     {
       type = "DummyJob";
     }
 
-    virtual bool Serialize(Json::Value& value)
+    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE
     {
       value = Json::objectValue;
       value["Type"] = "DummyJob";
       return true;
     }
 
-    virtual void GetPublicContent(Json::Value& value)
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE
     {
       value["hello"] = "world";
     }
@@ -152,12 +152,12 @@ namespace
     bool   trailingStepDone_;
     
   protected:
-    virtual bool HandleInstance(const std::string& instance)
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE
     {
       return (instance != "nope");
     }
 
-    virtual bool HandleTrailingStep()
+    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE
     {
       if (HasTrailingStep())
       {
@@ -201,11 +201,11 @@ namespace
       return trailingStepDone_;
     }
     
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void GetJobType(std::string& s)
+    virtual void GetJobType(std::string& s) ORTHANC_OVERRIDE
     {
       s = "DummyInstancesJob";
     }
@@ -215,7 +215,7 @@ namespace
   class DummyUnserializer : public GenericJobUnserializer
   {
   public:
-    virtual IJob* UnserializeJob(const Json::Value& value)
+    virtual IJob* UnserializeJob(const Json::Value& value) ORTHANC_OVERRIDE
     {
       if (SerializationToolbox::ReadString(value, "Type") == "DummyInstancesJob")
       {
@@ -1286,7 +1286,7 @@ namespace
       context_->SetupJobsEngine(true, false);
     }
 
-    virtual ~OrthancJobsSerialization()
+    virtual ~OrthancJobsSerialization() ORTHANC_OVERRIDE
     {
       context_->Stop();
       context_.reset(NULL);

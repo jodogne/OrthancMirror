@@ -142,22 +142,22 @@ namespace
       destroyed = false;
     }
 
-    virtual ~MyFunc()
+    virtual ~MyFunc() ORTHANC_OVERRIDE
     {
       destroyed = true;
     }
 
-    virtual const char* GetName() const
+    virtual const char* GetName() const ORTHANC_OVERRIDE
     {
       return "MYFUNC";
     }
 
-    virtual unsigned int GetCardinality() const
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
     {
       return 2;
     }
 
-    virtual void Compute(SQLite::FunctionContext& context)
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
     {
       context.SetIntResult(1000 + context.GetIntValue(0) * context.GetIntValue(1));
     }
@@ -168,17 +168,17 @@ namespace
   public:
     std::set<int> deleted_;
 
-    virtual const char* GetName() const
+    virtual const char* GetName() const ORTHANC_OVERRIDE
     {
       return "MYDELETE";
     }
 
-    virtual unsigned int GetCardinality() const
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
     {
       return 1;
     }
 
-    virtual void Compute(SQLite::FunctionContext& context)
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
     {
       deleted_.insert(context.GetIntValue(0));
       context.SetNullResult();
