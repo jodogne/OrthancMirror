@@ -170,8 +170,7 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
-          throw;
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: " << e.What();
         }
       }
       else
@@ -181,10 +180,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "Not reloading the jobs from the last execution of Orthanc";
+      LOG(INFO) << "Not reloading the jobs from the last execution of Orthanc";
     }
-
-    //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
 
     jobsEngine_.GetRegistry().SetObserver(*this);
     jobsEngine_.Start();
