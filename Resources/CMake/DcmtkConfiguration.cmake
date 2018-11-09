@@ -324,6 +324,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     -DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER}
     )
 
+  if (NOT ENABLE_DCMTK_LOG)
+    # Disable logging internal to DCMTK
+    # https://groups.google.com/d/msg/orthanc-users/v2SzzAmY948/VxT1QVGiBAAJ
+    add_definitions(
+      -DDCMTK_LOG4CPLUS_DISABLE_FATAL=1
+      -DDCMTK_LOG4CPLUS_DISABLE_ERROR=1
+      -DDCMTK_LOG4CPLUS_DISABLE_WARN=1
+      -DDCMTK_LOG4CPLUS_DISABLE_INFO=1
+      -DDCMTK_LOG4CPLUS_DISABLE_DEBUG=1
+      )
+  endif()
+
   include_directories(
     #${DCMTK_SOURCES_DIR}
     ${DCMTK_SOURCES_DIR}/config/include

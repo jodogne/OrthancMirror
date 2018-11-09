@@ -31,6 +31,7 @@ Maintenance
 * Fix: Allow creation of MONOCHROME1 grayscale images in tools/create-dicom
 * Remove invalid characters from badly-encoded UTF-8 strings (impacts PostgreSQL)
 * Orthanc starts even if jobs from a previous execution cannot be unserialized
+* New CMake option "ENABLE_DCMTK_LOG" to disable logging internal to DCMTK
 
 
 Version 1.4.2 (2018-09-20)
