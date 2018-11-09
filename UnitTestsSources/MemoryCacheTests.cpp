@@ -186,7 +186,7 @@ namespace
     {
     }
 
-    virtual ~Integer()
+    virtual ~Integer() ORTHANC_OVERRIDE
     {
       LOG(INFO) << "Removing cache entry for " << value_;
       log_ += boost::lexical_cast<std::string>(value_) + " ";
@@ -198,7 +198,7 @@ namespace
   public:
     std::string log_;
 
-    Orthanc::IDynamicObject* Provide(const std::string& s)
+    virtual Orthanc::IDynamicObject* Provide(const std::string& s) ORTHANC_OVERRIDE
     {
       LOG(INFO) << "Providing " << s;
       return new Integer(log_, boost::lexical_cast<int>(s));

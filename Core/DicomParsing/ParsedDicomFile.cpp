@@ -246,27 +246,28 @@ namespace Orthanc
 
       virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/,
                                                    bool /*deflateAllowed*/)
+        ORTHANC_OVERRIDE
       {
         // No support for compression
         return HttpCompression_None;
       }
 
-      virtual bool HasContentFilename(std::string& filename)
+      virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE
       {
         return false;
       }
 
-      virtual std::string GetContentType()
+      virtual std::string GetContentType() ORTHANC_OVERRIDE
       {
         return EnumerationToString(MimeType_Binary);
       }
 
-      virtual uint64_t  GetContentLength()
+      virtual uint64_t  GetContentLength() ORTHANC_OVERRIDE
       {
         return length_;
       }
  
-      virtual bool ReadNextChunk()
+      virtual bool ReadNextChunk() ORTHANC_OVERRIDE
       {
         assert(offset_ <= length_);
 
@@ -299,12 +300,12 @@ namespace Orthanc
         }
       }
  
-      virtual const char *GetChunkContent()
+      virtual const char *GetChunkContent() ORTHANC_OVERRIDE
       {
         return chunk_.c_str();
       }
  
-      virtual size_t GetChunkSize()
+      virtual size_t GetChunkSize() ORTHANC_OVERRIDE
       {
         return chunkSize_;
       }

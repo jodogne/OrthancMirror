@@ -36,6 +36,7 @@
 #include <string>
 
 
+// Macro "ORTHANC_FORCE_INLINE" forces a function/method to be inlined
 #if defined(_MSC_VER)
 #  define ORTHANC_FORCE_INLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__) || defined(__EMSCRIPTEN__)
@@ -45,28 +46,32 @@
 #endif
 
 
+// Macros "ORTHANC_OVERRIDE" and "ORTHANC_FINAL" wrap the "override"
+// and "final" keywords introduced in C++11, to do compile-time
+// checking of virtual methods
+#if __cplusplus >= 201103L
+// C++11 is enabled
+#  define ORTHANC_OVERRIDE  override
+#  define ORTHANC_FINAL     final
+#else
+// C++11 is disabled
+#  define ORTHANC_OVERRIDE
+#  define ORTHANC_FINAL
+#endif
+
+
 namespace Orthanc
 {
   static const char* const URI_SCHEME_PREFIX_BINARY = "data:application/octet-stream;base64,";
 
   static const char* const MIME_BINARY = "application/octet-stream";
-  static const char* const MIME_DICOM = "application/dicom";
   static const char* const MIME_JPEG = "image/jpeg";
-  static const char* const MIME_JPEG2000 = "image/jp2";
   static const char* const MIME_JSON = "application/json";
   static const char* const MIME_JSON_UTF8 = "application/json; charset=utf-8";
-  static const char* const MIME_XML_UTF8 = "application/xml; charset=utf-8";
   static const char* const MIME_PDF = "application/pdf";
   static const char* const MIME_PNG = "image/png";
   static const char* const MIME_XML = "application/xml";
-  static const char* const MIME_XML_2 = "text/xml";
-  static const char* const MIME_HTML = "text/html";
-  static const char* const MIME_PLAIN_TEXT = "text/plain";
-  static const char* const MIME_GZIP = "application/gzip";
-  static const char* const MIME_JAVASCRIPT = "application/javascript";
-  static const char* const MIME_CSS = "text/css";
-  static const char* const MIME_GIF = "image/gif";
-  static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
+  static const char* const MIME_XML_UTF8 = "application/xml; charset=utf-8";
 
   /**
    * "No Internet Media Type (aka MIME type, content type) for PBM has
