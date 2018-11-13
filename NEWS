@@ -16,6 +16,7 @@ Orthanc Explorer
 
 REST API
 --------
+
 * API Version has been upgraded to 1.2
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
