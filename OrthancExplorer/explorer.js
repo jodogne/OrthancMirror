@@ -839,7 +839,7 @@ function DeleteResource(path)
     success: function(s) {
       var ancestor = s.RemainingAncestor;
       if (ancestor == null)
-        $.mobile.changePage('#find-patients');
+        $.mobile.changePage('#lookup');
       else
         $.mobile.changePage('#' + ancestor.Type.toLowerCase() + '?uuid=' + ancestor.ID);
     }
