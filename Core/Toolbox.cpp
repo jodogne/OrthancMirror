@@ -40,8 +40,13 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp> 
-#include <boost/uuid/sha1.hpp>
+#include <boost/regex.hpp>
+
+#if BOOST_VERSION >= 106600
+#  include <boost/uuid/detail/sha1.hpp>
+#else
+#  include <boost/uuid/sha1.hpp>
+#endif
  
 #include <string>
 #include <stdint.h>
@@ -51,6 +56,8 @@
 
 
 #if ORTHANC_ENABLE_MD5 == 1
+// TODO - Could be replaced by <boost/uuid/detail/md5.hpp> starting
+// with Boost >= 1.66.0
 #  include "../Resources/ThirdParty/md5/md5.h"
 #endif
 
