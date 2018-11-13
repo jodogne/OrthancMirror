@@ -33,6 +33,8 @@ Maintenance
 * Remove invalid characters from badly-encoded UTF-8 strings (impacts PostgreSQL)
 * Orthanc starts even if jobs from a previous execution cannot be unserialized
 * New CMake option "ENABLE_DCMTK_LOG" to disable logging internal to DCMTK
+* Upgraded dependencies for static and Windows builds:
+  - boost 1.68.0
 
 
 Version 1.4.2 (2018-09-20)
