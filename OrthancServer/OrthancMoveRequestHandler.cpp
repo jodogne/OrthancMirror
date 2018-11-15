@@ -238,7 +238,7 @@ namespace Orthanc
                                               const std::string& originatorAet,
                                               uint16_t originatorId)
   {
-    bool synchronous = Configuration::GetGlobalBoolParameter("SynchronousCMove", false);
+    bool synchronous = Configuration::GetGlobalBoolParameter("SynchronousCMove", true);
 
     if (synchronous)
     {
