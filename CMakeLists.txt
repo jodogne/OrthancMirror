@@ -58,6 +58,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp
+  OrthancServer/OrthancConfiguration.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
   OrthancServer/OrthancInitialization.cpp

@@ -710,4 +710,31 @@ namespace Orthanc
       } 
     }
   }
+
+
+  std::string SystemToolbox::InterpretRelativePath(const std::string& baseDirectory,
+                                                   const std::string& relativePath)
+  {
+    boost::filesystem::path base(baseDirectory);
+    boost::filesystem::path relative(relativePath);
+
+    /**
+       The following lines should be equivalent to this one: 
+
+       return (base / relative).string();
+
+       However, for some unknown reason, some versions of Boost do not
+       make the proper path resolution when "baseDirectory" is an
+       absolute path. So, a hack is used below.
+    **/
+
+    if (relative.is_absolute())
+    {
+      return relative.string();
+    }
+    else
+    {
+      return (base / relative).string();
+    }
+  }
 }

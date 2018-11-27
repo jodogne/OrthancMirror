@@ -499,10 +499,10 @@ TEST(Toolbox, IsAsciiString)
 
 
 #if defined(__linux__)
-TEST(OrthancInitialization, AbsoluteDirectory)
+TEST(Toolbox, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", Configuration::InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", SystemToolbox::InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", SystemToolbox::InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
 
