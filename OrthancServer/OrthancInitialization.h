@@ -89,9 +89,6 @@ namespace Orthanc
 
     static void SetupRegisteredUsers(MongooseServer& httpServer);
 
-    static std::string InterpretRelativePath(const std::string& baseDirectory,
-                                             const std::string& relativePath);
-
     static std::string InterpretStringParameterAsPath(const std::string& parameter);
 
     static void GetGlobalListOfStringsParameter(std::list<std::string>& target,

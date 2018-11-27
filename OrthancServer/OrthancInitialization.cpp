@@ -743,36 +743,10 @@ namespace Orthanc
   }
 
 
-  std::string Configuration::InterpretRelativePath(const std::string& baseDirectory,
-                                                   const std::string& relativePath)
-  {
-    boost::filesystem::path base(baseDirectory);
-    boost::filesystem::path relative(relativePath);
-
-    /**
-       The following lines should be equivalent to this one: 
-
-       return (base / relative).string();
-
-       However, for some unknown reason, some versions of Boost do not
-       make the proper path resolution when "baseDirectory" is an
-       absolute path. So, a hack is used below.
-    **/
-
-    if (relative.is_absolute())
-    {
-      return relative.string();
-    }
-    else
-    {
-      return (base / relative).string();
-    }
-  }
-
   std::string Configuration::InterpretStringParameterAsPath(const std::string& parameter)
   {
     boost::recursive_mutex::scoped_lock lock(globalMutex_);
-    return InterpretRelativePath(defaultDirectory_.string(), parameter);
+    return SystemToolbox::InterpretRelativePath(defaultDirectory_.string(), parameter);
   }
 
 
