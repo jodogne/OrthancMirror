@@ -105,5 +105,8 @@ namespace Orthanc
     MimeType AutodetectMimeType(const std::string& path);
 
     void GetEnvironmentVariables(std::map<std::string, std::string>& env);
+
+    std::string InterpretRelativePath(const std::string& baseDirectory,
+                                      const std::string& relativePath);
   }
 }
