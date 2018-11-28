@@ -529,7 +529,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange)
+      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange || e.GetErrorCode() == ErrorCode_UnknownResource)
       {
         // The frame number is out of the range for this DICOM
         // instance, the resource is not existent
@@ -544,6 +544,7 @@ namespace Orthanc
 
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
+      return;
     }
 
     ImageToEncode image(decoded, mode, invert);
