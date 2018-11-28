@@ -183,6 +183,9 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_VIEW_POSITION(0x0018, 0x5101);
   static const DicomTag DICOM_TAG_MANUFACTURER(0x0008, 0x0070);
   static const DicomTag DICOM_TAG_PATIENT_ORIENTATION(0x0020, 0x0020);
+  static const DicomTag DICOM_TAG_PATIENT_COMMENTS(0x0010, 0x4000);
+  static const DicomTag DICOM_TAG_PATIENT_SPECIES_DESCRIPTION(0x0010, 0x2201);
+  static const DicomTag DICOM_TAG_STUDY_COMMENTS(0x0032, 0x4000);
 
   // Tags used within the Stone of Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
