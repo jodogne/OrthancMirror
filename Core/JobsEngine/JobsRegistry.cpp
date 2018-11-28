@@ -292,7 +292,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(INFO) << "Job backup is not supported for job of type: " << jobType_;
+        VLOG(1) << "Job backup is not supported for job of type: " << jobType_;
         return false;
       }
     }
