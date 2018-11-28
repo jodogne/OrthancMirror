@@ -271,6 +271,7 @@ namespace Orthanc
   {
     if (tags.type() != Json::objectValue)
     {
+      LOG(ERROR) << "Tags field is not an array";
       throw OrthancException(ErrorCode_BadRequest);
     }
 
@@ -296,11 +297,13 @@ namespace Orthanc
             tag != DICOM_TAG_STUDY_TIME &&
             dicom.HasTag(tag))
         {
+          LOG(ERROR) << EnumerationToString(ErrorCode_CreateDicomOverrideTag) << ": " << name;
           throw OrthancException(ErrorCode_CreateDicomOverrideTag);
         }
 
         if (tag == DICOM_TAG_PIXEL_DATA)
         {
+          LOG(ERROR) << EnumerationToString(ErrorCode_CreateDicomUseContent);
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
         else
