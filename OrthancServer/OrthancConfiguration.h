@@ -46,6 +46,7 @@
 namespace Orthanc
 {
   class MongooseServer;
+  class ServerIndex;
   
   class OrthancConfiguration : public boost::noncopyable
   {
@@ -56,6 +57,7 @@ namespace Orthanc
     std::string              configurationAbsolutePath_;
     FontRegistry             fontRegistry_;
     const char*              configurationFileArg_;
+    ServerIndex*             serverIndex_;
 
     OrthancConfiguration() :
       configurationFileArg_(NULL)
@@ -201,5 +203,9 @@ namespace Orthanc
     void SetDefaultEncoding(Encoding encoding);
 
     bool HasConfigurationChanged() const;
+
+    void SetServerIndex(ServerIndex& index);
+
+    void ResetServerIndex();
   };
 }
