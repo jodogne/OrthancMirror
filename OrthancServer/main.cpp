@@ -1031,6 +1031,54 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
 }
 
 
+
+namespace
+{
+  class ServerContextConfigurator : public boost::noncopyable
+  {
+  private:
+    ServerContext&   context_;
+    OrthancPlugins*  plugins_;
+
+  public:
+    ServerContextConfigurator(ServerContext& context,
+                              OrthancPlugins* plugins) :
+      context_(context),
+      plugins_(plugins)
+    {
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().SetServerIndex(context.GetIndex());
+      }
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (plugins_ != NULL)
+      {
+        plugins_->SetServerContext(context_);
+        context_.SetPlugins(*plugins_);
+      }
+#endif
+    }
+
+    ~ServerContextConfigurator()
+    {
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().ResetServerIndex();
+      }
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (plugins_ != NULL)
+      {
+        plugins_->ResetServerContext();
+        context_.ResetPlugins();
+      }
+#endif
+    }
+  };
+}
+
+
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
                                    OrthancPlugins *plugins,
@@ -1081,41 +1129,10 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       (lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10));
   }
 
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-  if (plugins)
   {
-    plugins->SetServerContext(context);
-    context.SetPlugins(*plugins);
+    ServerContextConfigurator configurator(context, plugins);
+    return ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
-#endif
-
-  bool restart = false;
-  ErrorCode error = ErrorCode_Success;
-
-  try
-  {
-    restart = ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
-  }
-  catch (OrthancException& e)
-  {
-    error = e.GetErrorCode();
-  }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-  if (plugins)
-  {
-    plugins->ResetServerContext();
-    context.ResetPlugins();
-  }
-#endif
-
-  if (error != ErrorCode_Success)
-  {
-    throw OrthancException(error);
-  }
-
-  return restart;
 }
 
 
