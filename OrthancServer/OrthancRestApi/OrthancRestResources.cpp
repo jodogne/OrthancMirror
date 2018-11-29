@@ -39,7 +39,7 @@
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
@@ -987,17 +987,22 @@ namespace Orthanc
     {
       allowed = true;
     }
-    else if (Configuration::GetGlobalBoolParameter("StoreDicom", true) &&
-             contentType == FileContentType_DicomAsJson)
-    {
-      allowed = true;
-    }
     else
     {
-      // It is forbidden to delete internal attachments, except for
-      // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
-      // would be automatically reconstructed on the next GET call)
-      allowed = false;
+      OrthancConfiguration::ReaderLock lock;
+
+      if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true) &&
+          contentType == FileContentType_DicomAsJson)
+      {
+        allowed = true;
+      }
+      else
+      {
+        // It is forbidden to delete internal attachments, except for
+        // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
+        // would be automatically reconstructed on the next GET call)
+        allowed = false;
+      }
     }
 
     if (allowed) 

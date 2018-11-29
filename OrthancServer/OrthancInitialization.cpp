@@ -39,22 +39,14 @@
 #endif
 
 #include "OrthancInitialization.h"
-#include "ServerContext.h"
 
-#include "../Core/HttpClient.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
-#include "../Core/Toolbox.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
 
-#include "ServerEnumerations.h"
 #include "DatabaseWrapper.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
-#include <curl/curl.h>
-#include <boost/thread/recursive_mutex.hpp>
+#include "OrthancConfiguration.h"
 
 #include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
 
@@ -62,245 +54,11 @@
 
 namespace Orthanc
 {
-  static boost::recursive_mutex globalMutex_;
-  static Json::Value configuration_;
-  static boost::filesystem::path defaultDirectory_;
-  static std::string configurationAbsolutePath_;
-  static FontRegistry fontRegistry_;
-  static const char* configurationFileArg_ = NULL;
-
-
-  static std::string GetGlobalStringParameterInternal(const std::string& parameter,
-                                                      const std::string& defaultValue)
+  static void RegisterUserMetadata(const Json::Value& config)
   {
-    if (configuration_.isMember(parameter))
+    if (config.isMember("UserMetadata"))
     {
-      if (configuration_[parameter].type() != Json::stringValue)
-      {
-        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a string";
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-      else
-      {
-        return configuration_[parameter].asString();
-      }
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
-
-  static bool GetGlobalBoolParameterInternal(const std::string& parameter,
-                                             bool defaultValue)
-  {
-    if (configuration_.isMember(parameter))
-    {
-      if (configuration_[parameter].type() != Json::booleanValue)
-      {
-        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a Boolean (true or false)";
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-      else
-      {
-        return configuration_[parameter].asBool();
-      }
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
-
-
-  static void AddFileToConfiguration(Json::Value& target,
-                                     const boost::filesystem::path& path)
-  {
-    std::map<std::string, std::string> env;
-    SystemToolbox::GetEnvironmentVariables(env);
-    
-    LOG(WARNING) << "Reading the configuration from: " << path;
-
-    Json::Value config;
-
-    {
-      std::string content;
-      SystemToolbox::ReadFile(content, path.string());
-
-      content = Toolbox::SubstituteVariables(content, env);
-
-      Json::Value tmp;
-      Json::Reader reader;
-      if (!reader.parse(content, tmp) ||
-          tmp.type() != Json::objectValue)
-      {
-        LOG(ERROR) << "The configuration file does not follow the JSON syntax: " << path;
-        throw OrthancException(ErrorCode_BadJson);
-      }
-
-      Toolbox::CopyJsonWithoutComments(config, tmp);
-    }
-
-    if (target.size() == 0)
-    {
-      target = config;
-    }
-    else
-    {
-      // Merge the newly-added file with the previous content of "target"
-      Json::Value::Members members = config.getMemberNames();
-      for (Json::Value::ArrayIndex i = 0; i < members.size(); i++)
-      {
-        if (target.isMember(members[i]))
-        {
-          LOG(ERROR) << "The configuration section \"" << members[i] << "\" is defined in 2 different configuration files";
-          throw OrthancException(ErrorCode_BadFileFormat);          
-        }
-        else
-        {
-          target[members[i]] = config[members[i]];
-        }
-      }
-    }
-  }
-
-
-  static void ScanFolderForConfiguration(Json::Value& target,
-                                         const char* folder)
-  {
-    using namespace boost::filesystem;
-
-    LOG(WARNING) << "Scanning folder \"" << folder << "\" for configuration files";
-
-    directory_iterator end_it; // default construction yields past-the-end
-    for (directory_iterator it(folder);
-         it != end_it;
-         ++it)
-    {
-      if (!is_directory(it->status()))
-      {
-        std::string extension = boost::filesystem::extension(it->path());
-        Toolbox::ToLowerCase(extension);
-
-        if (extension == ".json")
-        {
-          AddFileToConfiguration(target, it->path().string());
-        }
-      }
-    }
-  }
-
-
-  static void ReadConfiguration(Json::Value& target,
-                                const char* configurationFile)
-  {
-    target = Json::objectValue;
-
-    if (configurationFile)
-    {
-      if (!boost::filesystem::exists(configurationFile))
-      {
-        LOG(ERROR) << "Inexistent path to configuration: " << configurationFile;
-        throw OrthancException(ErrorCode_InexistentFile);
-      }
-      
-      if (boost::filesystem::is_directory(configurationFile))
-      {
-        ScanFolderForConfiguration(target, configurationFile);
-      }
-      else
-      {
-        AddFileToConfiguration(target, configurationFile);
-      }
-    }
-    else
-    {
-#if ORTHANC_STANDALONE == 1
-      // No default path for the standalone configuration
-      LOG(WARNING) << "Using the default Orthanc configuration";
-      return;
-
-#else
-      // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc source code
-
-      boost::filesystem::path p = ORTHANC_PATH;
-      p /= "Resources";
-      p /= "Configuration.json";
-
-      AddFileToConfiguration(target, p);
-#endif
-    }
-  }
-
-
-
-  static void ReadGlobalConfiguration(const char* configurationFile)
-  {
-    // Read the content of the configuration
-    configurationFileArg_ = configurationFile;
-    ReadConfiguration(configuration_, configurationFile);
-
-    // Adapt the paths to the configurations
-    defaultDirectory_ = boost::filesystem::current_path();
-    configurationAbsolutePath_ = "";
-
-    if (configurationFile)
-    {
-      if (boost::filesystem::is_directory(configurationFile))
-      {
-        defaultDirectory_ = boost::filesystem::path(configurationFile);
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).parent_path().string();
-      }
-      else
-      {
-        defaultDirectory_ = boost::filesystem::path(configurationFile).parent_path();
-        configurationAbsolutePath_ = boost::filesystem::absolute(configurationFile).string();
-      }
-    }
-    else
-    {
-#if ORTHANC_STANDALONE != 1
-      // In a non-standalone build, we use the
-      // "Resources/Configuration.json" from the Orthanc source code
-
-      boost::filesystem::path p = ORTHANC_PATH;
-      p /= "Resources";
-      p /= "Configuration.json";
-      configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
-#endif
-    }
-  }
-
-
-  static void ValidateGlobalConfiguration()
-  {
-    std::set<std::string> ids;
-
-    Configuration::GetListOfOrthancPeers(ids);
-    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
-    {
-      WebServiceParameters peer;
-      Configuration::GetOrthancPeer(peer, *it);
-      peer.CheckClientCertificate();
-    }
-
-    Configuration::GetListOfDicomModalities(ids);
-    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
-    {
-      RemoteModalityParameters modality;
-      Configuration::GetDicomModalityUsingSymbolicName(modality, *it);
-    }
-  }
-
-
-  static void RegisterUserMetadata()
-  {
-    if (configuration_.isMember("UserMetadata"))
-    {
-      const Json::Value& parameter = configuration_["UserMetadata"];
+      const Json::Value& parameter = config["UserMetadata"];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -332,11 +90,11 @@ namespace Orthanc
   }
 
 
-  static void RegisterUserContentType()
+  static void RegisterUserContentType(const Json::Value& config)
   {
-    if (configuration_.isMember("UserContentType"))
+    if (config.isMember("UserContentType"))
     {
-      const Json::Value& parameter = configuration_["UserContentType"];
+      const Json::Value& parameter = config["UserContentType"];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -464,29 +222,28 @@ namespace Orthanc
 
   void OrthancInitialize(const char* configurationFile)
   {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
+    OrthancConfiguration::WriterLock lock;
 
     Toolbox::InitializeOpenSsl();
 
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
-    ReadGlobalConfiguration(configurationFile);
-    ValidateGlobalConfiguration();
+    lock.GetConfiguration().Read(configurationFile);
 
-    if (configuration_.isMember("Locale"))
+    if (lock.GetJson().isMember("Locale"))
     {
-      std::string locale = GetGlobalStringParameterInternal("Locale", "");
-      Toolbox::InitializeGlobalLocale(configuration_["Locale"].asCString());
+      std::string locale = lock.GetConfiguration().GetStringParameter("Locale", "");
+      Toolbox::InitializeGlobalLocale(lock.GetJson()["Locale"].asCString());
     }
     else
     {
       Toolbox::InitializeGlobalLocale(NULL);
     }
 
-    if (configuration_.isMember("DefaultEncoding"))
+    if (lock.GetJson().isMember("DefaultEncoding"))
     {
-      std::string encoding = GetGlobalStringParameterInternal("DefaultEncoding", "");
+      std::string encoding = lock.GetConfiguration().GetStringParameter("DefaultEncoding", "");
       SetDefaultDicomEncoding(StringToEncoding(encoding.c_str()));
     }
     else
@@ -494,22 +251,23 @@ namespace Orthanc
       SetDefaultDicomEncoding(ORTHANC_DEFAULT_DICOM_ENCODING);
     }
 
-    if (configuration_.isMember("Pkcs11"))
+    if (lock.GetJson().isMember("Pkcs11"))
     {
-      ConfigurePkcs11(configuration_["Pkcs11"]);
+      ConfigurePkcs11(lock.GetJson()["Pkcs11"]);
     }
 
     HttpClient::GlobalInitialize();
 
-    RegisterUserMetadata();
-    RegisterUserContentType();
+    RegisterUserMetadata(lock.GetJson());
+    RegisterUserContentType(lock.GetJson());
 
-    FromDcmtkBridge::InitializeDictionary(GetGlobalBoolParameterInternal("LoadPrivateDictionary", true));
-    LoadCustomDictionary(configuration_);
+    bool loadPrivate = lock.GetConfiguration().GetBooleanParameter("LoadPrivateDictionary", true);
+    FromDcmtkBridge::InitializeDictionary(loadPrivate);
+    LoadCustomDictionary(lock.GetJson());
 
     FromDcmtkBridge::InitializeCodecs();
 
-    fontRegistry_.AddFromResource(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
+    lock.GetConfiguration().RegisterFont(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
 
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
@@ -519,7 +277,8 @@ namespace Orthanc
 
   void OrthancFinalize()
   {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
+    OrthancConfiguration::WriterLock lock;
+
     HttpClient::GlobalFinalize();
     FromDcmtkBridge::FinalizeCodecs();
     Toolbox::FinalizeOpenSsl();
@@ -527,505 +286,16 @@ namespace Orthanc
   }
 
 
-  std::string Configuration::GetGlobalStringParameter(const std::string& parameter,
-                                                      const std::string& defaultValue)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-    return GetGlobalStringParameterInternal(parameter, defaultValue);
-  }
-
-
-  int Configuration::GetGlobalIntegerParameter(const std::string& parameter,
-                                               int defaultValue)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (configuration_.isMember(parameter))
-    {
-      if (configuration_[parameter].type() != Json::intValue)
-      {
-        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be an integer";
-        throw OrthancException(ErrorCode_BadParameterType);
-      }
-      else
-      {
-        return configuration_[parameter].asInt();
-      }
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
-
-  unsigned int Configuration::GetGlobalUnsignedIntegerParameter(const std::string& parameter,
-                                                                unsigned int defaultValue)
-  {
-    int v = GetGlobalIntegerParameter(parameter, defaultValue);
-
-    if (v < 0)
-    {
-      LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a positive integer";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-    else
-    {
-      return static_cast<unsigned int>(v);
-    }
-  }
-
-
-  bool Configuration::GetGlobalBoolParameter(const std::string& parameter,
-                                             bool defaultValue)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-    return GetGlobalBoolParameterInternal(parameter, defaultValue);
-  }
-
-
-  void Configuration::GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
-                                                        const std::string& name)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("DicomModalities"))
-    {
-      LOG(ERROR) << "No modality with symbolic name: " << name;
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-
-    const Json::Value& modalities = configuration_["DicomModalities"];
-    if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
-    {
-      LOG(ERROR) << "No modality with symbolic name: " << name;
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-
-    try
-    {
-      modality.Unserialize(modalities[name]);
-    }
-    catch (OrthancException&)
-    {
-      LOG(ERROR) << "Syntax error in the definition of DICOM modality \"" << name 
-                 << "\". Please check your configuration file.";
-      throw;
-    }
-  }
-
-
-  bool Configuration::GetOrthancPeer(WebServiceParameters& peer,
-                                     const std::string& name)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    if (!configuration_.isMember("OrthancPeers"))
-    {
-      return false;
-    }
-
-    try
-    {
-      const Json::Value& modalities = configuration_["OrthancPeers"];
-      if (modalities.type() != Json::objectValue ||
-          !modalities.isMember(name))
-      {
-        return false;
-      }
-      else
-      {
-        peer.Unserialize(modalities[name]);
-        return true;
-      }
-    }
-    catch (OrthancException&)
-    {
-      LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
-                 << "\". Please check your configuration file.";
-      throw;
-    }
-  }
-
-
-  static bool ReadKeys(std::set<std::string>& target,
-                       const char* parameter,
-                       bool onlyAlphanumeric)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    target.clear();
-  
-    if (!configuration_.isMember(parameter))
-    {
-      return true;
-    }
-
-    const Json::Value& modalities = configuration_[parameter];
-    if (modalities.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad format of the \"DicomModalities\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    Json::Value::Members members = modalities.getMemberNames();
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      if (onlyAlphanumeric)
-      {
-        for (size_t j = 0; j < members[i].size(); j++)
-        {
-          if (!isalnum(members[i][j]) && members[i][j] != '-')
-          {
-            return false;
-          }
-        }
-      }
-
-      target.insert(members[i]);
-    }
-
-    return true;
-  }
-
-
-  void Configuration::GetListOfDicomModalities(std::set<std::string>& target)
-  {
-    target.clear();
-
-    if (!ReadKeys(target, "DicomModalities", true))
-    {
-      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of the modalities";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-  }
-
-
-  void Configuration::GetListOfOrthancPeers(std::set<std::string>& target)
-  {
-    target.clear();
-
-    if (!ReadKeys(target, "OrthancPeers", true))
-    {
-      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of Orthanc peers";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-  }
-
-
-
-  void Configuration::SetupRegisteredUsers(MongooseServer& httpServer)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    httpServer.ClearUsers();
-
-    if (!configuration_.isMember("RegisteredUsers"))
-    {
-      return;
-    }
-
-    const Json::Value& users = configuration_["RegisteredUsers"];
-    if (users.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Badly formatted list of users";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    Json::Value::Members usernames = users.getMemberNames();
-    for (size_t i = 0; i < usernames.size(); i++)
-    {
-      const std::string& username = usernames[i];
-      std::string password = users[username].asString();
-      httpServer.RegisterUser(username.c_str(), password.c_str());
-    }
-  }
-
-
-  std::string Configuration::InterpretStringParameterAsPath(const std::string& parameter)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-    return SystemToolbox::InterpretRelativePath(defaultDirectory_.string(), parameter);
-  }
-
-
-  void Configuration::GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                                      const std::string& key)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-    target.clear();
-  
-    if (!configuration_.isMember(key))
-    {
-      return;
-    }
-
-    const Json::Value& lst = configuration_[key];
-
-    if (lst.type() != Json::arrayValue)
-    {
-      LOG(ERROR) << "Badly formatted list of strings";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
-    {
-      target.push_back(lst[i].asString());
-    }    
-  }
-
-
-  bool Configuration::IsSameAETitle(const std::string& aet1,
-                                    const std::string& aet2)
-  {
-    if (GetGlobalBoolParameter("StrictAetComparison", false))
-    {
-      // Case-sensitive matching
-      return aet1 == aet2;
-    }
-    else
-    {
-      // Case-insensitive matching (default)
-      std::string tmp1, tmp2;
-      Toolbox::ToLowerCase(tmp1, aet1);
-      Toolbox::ToLowerCase(tmp2, aet2);
-      return tmp1 == tmp2;
-    }
-  }
-
-
-  bool Configuration::LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
-                                                      const std::string& aet)
-  {
-    std::set<std::string> modalities;
-    GetListOfDicomModalities(modalities);
-
-    for (std::set<std::string>::const_iterator 
-           it = modalities.begin(); it != modalities.end(); ++it)
-    {
-      try
-      {
-        GetDicomModalityUsingSymbolicName(modality, *it);
-
-        if (IsSameAETitle(aet, modality.GetApplicationEntityTitle()))
-        {
-          return true;
-        }
-      }
-      catch (OrthancException&)
-      {
-      }
-    }
-
-    return false;
-  }
-
-
-  bool Configuration::IsKnownAETitle(const std::string& aet,
-                                     const std::string& ip)
-  {
-    RemoteModalityParameters modality;
-    
-    if (!LookupDicomModalityUsingAETitle(modality, aet))
-    {
-      LOG(WARNING) << "Modality \"" << aet
-                   << "\" is not listed in the \"DicomModalities\" configuration option";
-      return false;
-    }
-    else if (!Configuration::GetGlobalBoolParameter("DicomCheckModalityHost", false) ||
-             ip == modality.GetHost())
-    {
-      return true;
-    }
-    else
-    {
-      LOG(WARNING) << "Forbidding access from AET \"" << aet
-                   << "\" given its hostname (" << ip << ") does not match "
-                   << "the \"DicomModalities\" configuration option ("
-                   << modality.GetHost() << " was expected)";
-      return false;
-    }
-  }
-
-
-  RemoteModalityParameters Configuration::GetModalityUsingSymbolicName(const std::string& name)
-  {
-    RemoteModalityParameters modality;
-    GetDicomModalityUsingSymbolicName(modality, name);
-
-    return modality;
-  }
-
-
-  RemoteModalityParameters Configuration::GetModalityUsingAet(const std::string& aet)
-  {
-    RemoteModalityParameters modality;
-
-    if (LookupDicomModalityUsingAETitle(modality, aet))
-    {
-      return modality;
-    }
-    else
-    {
-      LOG(ERROR) << "Unknown modality for AET: " << aet;
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-  }
-
-
-  void Configuration::UpdateModality(ServerContext& context,
-                                     const std::string& symbolicName,
-                                     const RemoteModalityParameters& modality)
-  {
-    {
-      boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-      if (!configuration_.isMember("DicomModalities"))
-      {
-        configuration_["DicomModalities"] = Json::objectValue;
-      }
-
-      Json::Value& modalities = configuration_["DicomModalities"];
-      if (modalities.type() != Json::objectValue)
-      {
-        LOG(ERROR) << "Bad file format for modality: " << symbolicName;
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      modalities.removeMember(symbolicName);
-
-      Json::Value v;
-      modality.Serialize(v, true /* force advanced format */);
-      modalities[symbolicName] = v;
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (context.HasPlugins())
-    {
-      context.GetPlugins().SignalUpdatedModalities();
-    }
-#endif
-  }
-  
-
-  void Configuration::RemoveModality(ServerContext& context,
-                                     const std::string& symbolicName)
-  {
-    {
-      boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-      if (!configuration_.isMember("DicomModalities"))
-      {
-        LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      Json::Value& modalities = configuration_["DicomModalities"];
-      if (modalities.type() != Json::objectValue)
-      {
-        LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      modalities.removeMember(symbolicName.c_str());
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (context.HasPlugins())
-    {
-      context.GetPlugins().SignalUpdatedModalities();
-    }
-#endif
-  }
-
-
-  void Configuration::UpdatePeer(ServerContext& context,
-                                 const std::string& symbolicName,
-                                 const WebServiceParameters& peer)
-  {
-    peer.CheckClientCertificate();
-
-    {
-      boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-      if (!configuration_.isMember("OrthancPeers"))
-      {
-        LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-        configuration_["OrthancPeers"] = Json::objectValue;
-      }
-
-      Json::Value& peers = configuration_["OrthancPeers"];
-      if (peers.type() != Json::objectValue)
-      {
-        LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      peers.removeMember(symbolicName);
-
-      Json::Value v;
-      peer.Serialize(v, 
-                     false /* use simple format if possible */, 
-                     true  /* include passwords */);
-      peers[symbolicName] = v;
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (context.HasPlugins())
-    {
-      context.GetPlugins().SignalUpdatedPeers();
-    }
-#endif
-  }
-  
-
-  void Configuration::RemovePeer(ServerContext& context,
-                                 const std::string& symbolicName)
-  {
-    {
-      boost::recursive_mutex::scoped_lock lock(globalMutex_);
-
-      if (!configuration_.isMember("OrthancPeers"))
-      {
-        LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      Json::Value& peers = configuration_["OrthancPeers"];
-      if (peers.type() != Json::objectValue)
-      {
-        LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-        throw OrthancException(ErrorCode_BadFileFormat);
-      }
-
-      peers.removeMember(symbolicName.c_str());
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (context.HasPlugins())
-    {
-      context.GetPlugins().SignalUpdatedPeers();
-    }
-#endif
-  }
-
-
-  
-  const std::string& Configuration::GetConfigurationAbsolutePath()
-  {
-    return configurationAbsolutePath_;
-  }
-
-
   static IDatabaseWrapper* CreateSQLiteWrapper()
   {
-    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    OrthancConfiguration::ReaderLock lock;
+
+    std::string storageDirectoryStr = 
+      lock.GetConfiguration().GetStringParameter("StorageDirectory", "OrthancStorage");
 
     // Open the database
-    boost::filesystem::path indexDirectory = Configuration::InterpretStringParameterAsPath(
-      Configuration::GetGlobalStringParameter("IndexDirectory", storageDirectoryStr));
+    boost::filesystem::path indexDirectory = lock.GetConfiguration().InterpretStringParameterAsPath(
+      lock.GetConfiguration().GetStringParameter("IndexDirectory", storageDirectoryStr));
 
     LOG(WARNING) << "SQLite index directory: " << indexDirectory;
 
@@ -1094,12 +364,17 @@ namespace Orthanc
 
   static IStorageArea* CreateFilesystemStorage()
   {
-    std::string storageDirectoryStr = Configuration::GetGlobalStringParameter("StorageDirectory", "OrthancStorage");
+    OrthancConfiguration::ReaderLock lock;
 
-    boost::filesystem::path storageDirectory = Configuration::InterpretStringParameterAsPath(storageDirectoryStr);
+    std::string storageDirectoryStr = 
+      lock.GetConfiguration().GetStringParameter("StorageDirectory", "OrthancStorage");
+
+    boost::filesystem::path storageDirectory = 
+      lock.GetConfiguration().InterpretStringParameterAsPath(storageDirectoryStr);
+
     LOG(WARNING) << "Storage directory: " << storageDirectory;
 
-    if (Configuration::GetGlobalBoolParameter("StoreDicom", true))
+    if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true))
     {
       return new FilesystemStorage(storageDirectory.string());
     }
@@ -1111,66 +386,14 @@ namespace Orthanc
   }
 
 
-  IDatabaseWrapper* Configuration::CreateDatabaseWrapper()
+  IDatabaseWrapper* CreateDatabaseWrapper()
   {
     return CreateSQLiteWrapper();
   }
 
 
-  IStorageArea* Configuration::CreateStorageArea()
+  IStorageArea* CreateStorageArea()
   {
     return CreateFilesystemStorage();
   }  
-
-
-  void Configuration::GetConfiguration(Json::Value& result)
-  {
-    boost::recursive_mutex::scoped_lock lock(globalMutex_);
-    result = configuration_;
-  }
-
-
-  void Configuration::FormatConfiguration(std::string& result)
-  {
-    Json::Value config;
-    GetConfiguration(config);
-
-    Json::StyledWriter w;
-    result = w.write(config);
-  }
-
-
-  const FontRegistry& Configuration::GetFontRegistry()
-  {
-    return fontRegistry_;
-  }
-
-
-  void Configuration::SetDefaultEncoding(Encoding encoding)
-  {
-    SetDefaultDicomEncoding(encoding);
-
-    {
-      // Propagate the encoding to the configuration file that is
-      // stored in memory
-      boost::recursive_mutex::scoped_lock lock(globalMutex_);
-      configuration_["DefaultEncoding"] = EnumerationToString(encoding);
-    }
-  }
-
-
-  bool Configuration::HasConfigurationChanged()
-  {
-    Json::Value starting;
-    GetConfiguration(starting);
-
-    Json::Value current;
-    ReadConfiguration(current, configurationFileArg_);
-
-    Json::FastWriter writer;
-    std::string a = writer.write(starting);
-    std::string b = writer.write(current);
-
-    return a != b;
-  }
 }
