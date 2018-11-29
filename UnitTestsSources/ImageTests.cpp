@@ -43,9 +43,10 @@
 #include "../Core/Images/PngWriter.h"
 #include "../Core/Images/PamReader.h"
 #include "../Core/Images/PamWriter.h"
+#include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 #include "../Core/TemporaryFile.h"
-#include "../OrthancServer/OrthancInitialization.h"  // For the FontRegistry
+#include "../OrthancServer/OrthancConfiguration.h"  // For the FontRegistry
 
 #include <stdint.h>
 
@@ -264,8 +265,12 @@ TEST(Font, Basic)
   Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480, false);
   memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
 
-  ASSERT_GE(1u, Orthanc::Configuration::GetFontRegistry().GetSize());
-  Orthanc::Configuration::GetFontRegistry().GetFont(0).Draw(s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
+  {
+    Orthanc::OrthancConfiguration::ReaderLock lock;
+    ASSERT_GE(1u, lock.GetConfiguration().GetFontRegistry().GetSize());
+    lock.GetConfiguration().GetFontRegistry().GetFont(0).Draw
+      (s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
+  }
 
   Orthanc::PngWriter w;
   w.WriteToFile("UnitTestsResults/font.png", s);

@@ -40,7 +40,7 @@
 
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
@@ -1931,7 +1931,13 @@ namespace Orthanc
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleep)
   {
-    int stableAge = Configuration::GetGlobalUnsignedIntegerParameter("StableAge", 60);
+    int stableAge;
+    
+    {
+      OrthancConfiguration::ReaderLock lock;
+      stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
+    }
+
     if (stableAge <= 0)
     {
       stableAge = 60;

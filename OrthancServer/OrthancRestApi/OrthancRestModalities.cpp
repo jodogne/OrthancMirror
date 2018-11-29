@@ -37,7 +37,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../QueryRetrieveHandler.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
 #include "../ServerJobs/DicomMoveScuJob.h"
@@ -47,6 +47,13 @@
 
 namespace Orthanc
 {
+  static RemoteModalityParameters MyGetModalityUsingSymbolicName(const std::string& name)
+  {
+    OrthancConfiguration::ReaderLock lock;
+    return lock.GetConfiguration().GetModalityUsingSymbolicName(name);
+  }
+
+
   /***************************************************************************
    * DICOM C-Echo SCU
    ***************************************************************************/
@@ -57,7 +64,7 @@ namespace Orthanc
 
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     try
     {
@@ -181,7 +188,7 @@ namespace Orthanc
 
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
     
     DicomFindAnswers answers(false);
 
@@ -216,7 +223,7 @@ namespace Orthanc
       
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomFindAnswers answers(false);
 
@@ -252,7 +259,7 @@ namespace Orthanc
          
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomFindAnswers answers(false);
 
@@ -289,7 +296,7 @@ namespace Orthanc
          
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomFindAnswers answers(false);
 
@@ -331,7 +338,7 @@ namespace Orthanc
  
     const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
     RemoteModalityParameters remote =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomUserConnection connection(localAet, remote);
     connection.Open();
@@ -696,6 +703,13 @@ namespace Orthanc
       }
     }
 
+    bool logExportedResources;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      logExportedResources = lock.GetConfiguration().GetBooleanParameter("LogExportedResources", false);
+    }
+
     for (Json::Value::ArrayIndex i = 0; i < resources->size(); i++)
     {
       if (!(*resources) [i].isString())
@@ -709,7 +723,7 @@ namespace Orthanc
         return false;
       }
 
-      if (Configuration::GetGlobalBoolParameter("LogExportedResources", false))
+      if (logExportedResources)
       {
         context.GetIndex().LogExportedResource(stripped, remote);
       }
@@ -740,7 +754,7 @@ namespace Orthanc
         (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
 
       job->SetLocalAet(localAet);
-      job->SetRemoteModality(Configuration::GetModalityUsingSymbolicName(remote));
+      job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
 
       if (moveOriginatorID != 0)
       {
@@ -784,7 +798,7 @@ namespace Orthanc
       (request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
 
     const RemoteModalityParameters source =
-      Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomUserConnection connection(localAet, source);
     connection.Open();
@@ -815,8 +829,10 @@ namespace Orthanc
 
   static void ListPeers(RestApiGetCall& call)
   {
+    OrthancConfiguration::ReaderLock lock;
+
     OrthancRestApi::SetOfStrings peers;
-    Configuration::GetListOfOrthancPeers(peers);
+    lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
     if (call.HasArgument("expand"))
     {
@@ -826,7 +842,7 @@ namespace Orthanc
       {
         WebServiceParameters peer;
         
-        if (Configuration::GetOrthancPeer(peer, *it))
+        if (lock.GetConfiguration().GetOrthancPeer(peer, *it))
         {
           Json::Value jsonPeer = Json::objectValue;
           // only return the minimum information to identify the
@@ -857,8 +873,10 @@ namespace Orthanc
 
   static void ListPeerOperations(RestApiGetCall& call)
   {
+    OrthancConfiguration::ReaderLock lock;
+
     OrthancRestApi::SetOfStrings peers;
-    Configuration::GetListOfOrthancPeers(peers);
+    lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingPeer(peers, id))
@@ -878,8 +896,10 @@ namespace Orthanc
 
     if (GetInstancesToExport(request, *job, remote, call))
     {
+      OrthancConfiguration::ReaderLock lock;
+
       WebServiceParameters peer;
-      if (Configuration::GetOrthancPeer(peer, remote))
+      if (lock.GetConfiguration().GetOrthancPeer(peer, remote))
       {
         job->SetPeer(peer);    
         OrthancRestApi::GetApi(call).SubmitCommandsJob
@@ -904,8 +924,10 @@ namespace Orthanc
 
   static void ListModalities(RestApiGetCall& call)
   {
+    OrthancConfiguration::ReaderLock lock;
+
     OrthancRestApi::SetOfStrings modalities;
-    Configuration::GetListOfDicomModalities(modalities);
+    lock.GetConfiguration().GetListOfDicomModalities(modalities);
 
     if (call.HasArgument("expand"))
     {
@@ -913,7 +935,7 @@ namespace Orthanc
       for (OrthancRestApi::SetOfStrings::const_iterator
              it = modalities.begin(); it != modalities.end(); ++it)
       {
-        const RemoteModalityParameters& remote = Configuration::GetModalityUsingSymbolicName(*it);
+        const RemoteModalityParameters& remote = lock.GetConfiguration().GetModalityUsingSymbolicName(*it);
         
         Json::Value info;
         remote.Serialize(info, true /* force advanced format */);
@@ -936,8 +958,10 @@ namespace Orthanc
 
   static void ListModalityOperations(RestApiGetCall& call)
   {
+    OrthancConfiguration::ReaderLock lock;
+
     OrthancRestApi::SetOfStrings modalities;
-    Configuration::GetListOfDicomModalities(modalities);
+    lock.GetConfiguration().GetListOfDicomModalities(modalities);
 
     std::string id = call.GetUriComponent("id", "");
     if (IsExistingModality(modalities, id))
@@ -957,7 +981,14 @@ namespace Orthanc
     {
       RemoteModalityParameters modality;
       modality.Unserialize(json);
-      Configuration::UpdateModality(context, call.GetUriComponent("id", ""), modality);
+
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().UpdateModality(call.GetUriComponent("id", ""), modality);
+      }
+
+      context.SignalUpdatedModalities();
+
       call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
   }
@@ -967,7 +998,13 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    Configuration::RemoveModality(context, call.GetUriComponent("id", ""));
+    {
+      OrthancConfiguration::WriterLock lock;
+      lock.GetConfiguration().RemoveModality(call.GetUriComponent("id", ""));
+    }
+
+    context.SignalUpdatedModalities();
+
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
@@ -982,7 +1019,14 @@ namespace Orthanc
     {
       WebServiceParameters peer;
       peer.Unserialize(json);
-      Configuration::UpdatePeer(context, call.GetUriComponent("id", ""), peer);
+
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().UpdatePeer(call.GetUriComponent("id", ""), peer);
+      }
+
+      context.SignalUpdatedPeers();
+
       call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
   }
@@ -992,7 +1036,13 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    Configuration::RemovePeer(context, call.GetUriComponent("id", ""));
+    {
+      OrthancConfiguration::WriterLock lock;
+      lock.GetConfiguration().RemovePeer(call.GetUriComponent("id", ""));
+    }
+
+    context.SignalUpdatedPeers();
+
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
@@ -1006,7 +1056,7 @@ namespace Orthanc
     {
       const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
       RemoteModalityParameters remote =
-        Configuration::GetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+        MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
       std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
 

@@ -474,9 +474,8 @@ namespace Orthanc
   }
 
     
-  void OrthancConfiguration::GetGlobalListOfStringsParameter(
-    std::list<std::string>& target,
-    const std::string& key) const
+  void OrthancConfiguration::GetListOfStringsParameter(std::list<std::string>& target,
+                                                       const std::string& key) const
   {
     target.clear();
   
