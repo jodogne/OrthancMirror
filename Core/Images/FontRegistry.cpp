@@ -88,4 +88,18 @@ namespace Orthanc
       return *fonts_[i];
     }
   }
+
+  const Font* FontRegistry::FindFont(const std::string& fontName) const
+  {
+    for (Fonts::const_iterator it = fonts_.begin(); it != fonts_.end(); it++)
+    {
+      if ((*it)->GetName() == fontName)
+      {
+        return *it;
+      }
+    }
+
+    return NULL;
+  }
+
 }
