@@ -736,7 +736,8 @@ static bool WaitForExit(ServerContext& context,
       }
       else
       {
-        LOG(WARNING) << "A SIGHUP signal has been received, but is ignored as the configuration has not changed";
+        LOG(WARNING) << "A SIGHUP signal has been received, but is ignored "
+                     << "as the configuration has not changed on the disk";
         Logging::Flush();
         continue;
       }
@@ -1131,6 +1132,12 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
   {
     ServerContextConfigurator configurator(context, plugins);
+
+    {
+      OrthancConfiguration::WriterLock lock;
+      lock.GetConfiguration().LoadModalitiesAndPeers();
+    }
+
     return ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
 }
