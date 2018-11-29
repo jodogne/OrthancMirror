@@ -198,6 +198,10 @@
     //}
   },
 
+  // Whether to store the DICOM modalities in the Orthanc database
+  // instead of in this configuration file (new in Orthanc 1.4.3)
+  "DicomModalitiesInDatabase" : false,
+
   // Whether the Orthanc SCP allows incoming C-Echo requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0
@@ -247,6 +251,10 @@
     //   "Pkcs11" : false
     // }
   },
+
+  // Whether to store the Orthanc peers in the Orthanc database
+  // instead of in this configuration file (new in Orthanc 1.4.3)
+  "OrthancPeersInDatabase" : false,
 
   // Parameters of the HTTP proxy to be used by Orthanc. If set to the
   // empty string, no HTTP proxy is used. For instance:

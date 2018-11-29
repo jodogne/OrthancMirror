@@ -71,13 +71,15 @@ namespace Orthanc
 
     void LoadModalitiesFromJson(const Json::Value& source);
     
-    void SaveModalitiesToJson(Json::Value& target);
-    
     void LoadPeersFromJson(const Json::Value& source);
     
-    void SavePeersToJson(Json::Value& target);
+    void LoadModalities();
     
-    void LoadModalitiesAndPeers();
+    void LoadPeers();
+    
+    void SaveModalitiesToJson(Json::Value& target);
+    
+    void SavePeersToJson(Json::Value& target);
     
     void SaveModalities();
     
@@ -152,6 +154,8 @@ namespace Orthanc
     }
 
     void Read(const char* configurationFile);
+
+    void LoadModalitiesAndPeers();
     
     void RegisterFont(EmbeddedResources::FileResourceId resource)
     {

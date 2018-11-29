@@ -7,6 +7,9 @@ General
 
 * Possibility to restrict the allowed DICOM commands for each modality
 * The Orthanc configuration file can use environment variables
+* New configuration options:
+  - "DicomModalitiesInDatabase" to store the definitions of modalities in the database
+  - "OrthancPeersInDatabase" to store the definitions of Orthanc peers in the database
 
 Orthanc Explorer
 ----------------
