@@ -498,13 +498,30 @@ namespace Orthanc
 
   static void ListQueryAnswers(RestApiGetCall& call)
   {
+    const bool expand = call.HasArgument("expand");
+    const bool simplify = call.HasArgument("simplify");
+    
     QueryAccessor query(call);
     size_t count = query.GetHandler().GetAnswersCount();
 
     Json::Value result = Json::arrayValue;
     for (size_t i = 0; i < count; i++)
     {
-      result.append(boost::lexical_cast<std::string>(i));
+      if (expand)
+      {
+        // New in Orthanc 1.4.3
+        DicomMap value;
+        query.GetHandler().GetAnswer(value, i);
+        
+        Json::Value json = Json::objectValue;
+        FromDcmtkBridge::ToJson(json, value, simplify);
+
+        result.append(json);
+      }
+      else
+      {
+        result.append(boost::lexical_cast<std::string>(i));
+      }
     }
 
     call.GetOutput().AnswerJson(result);
