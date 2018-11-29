@@ -40,7 +40,7 @@
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "Search/LookupResource.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
@@ -229,11 +229,16 @@ namespace Orthanc
 #endif
     done_(false),
     haveJobsChanged_(false),
-    isJobsEngineUnserialized_(false),
-    queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
-    defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
+    isJobsEngineUnserialized_(false)
   {
-    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    {
+      OrthancConfiguration::ReaderLock lock;
+      queryRetrieveArchive_.reset(
+        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 10)));
+      defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+      jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+    }
+
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
 
     listeners_.push_back(ServerListener(luaListener_, "Lua"));
@@ -818,5 +823,27 @@ namespace Orthanc
     {
       job.AddInstance(*it);
     }
+  }
+
+
+  void ServerContext::SignalUpdatedModalities()
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalUpdatedModalities();
+    }
+#endif
+  }
+
+   
+  void ServerContext::SignalUpdatedPeers()
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalUpdatedPeers();
+    }
+#endif
   }
 }

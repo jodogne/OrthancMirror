@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "LuaScripting.h"
 
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ServerContext.h"
 
@@ -414,7 +414,11 @@ namespace Orthanc
   int LuaScripting::GetOrthancConfiguration(lua_State *state)
   {
     Json::Value configuration;
-    Configuration::GetConfiguration(configuration);
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      configuration = lock.GetJson();
+    }
 
     LuaContext::GetLuaContext(state).PushJson(configuration);
 
@@ -445,7 +449,12 @@ namespace Orthanc
       }
 
       std::string name = parameters["Modality"].asString();
-      RemoteModalityParameters modality = Configuration::GetModalityUsingSymbolicName(name);
+      RemoteModalityParameters modality;
+
+      {
+        OrthancConfiguration::ReaderLock configLock;
+        modality = configLock.GetConfiguration().GetModalityUsingSymbolicName(name);
+      }
 
       // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
       return lock.AddStoreScuOperation(localAet, modality);
@@ -453,10 +462,11 @@ namespace Orthanc
 
     if (operation == "store-peer")
     {
+      OrthancConfiguration::ReaderLock configLock;
       std::string name = parameters["Peer"].asString();
 
       WebServiceParameters peer;
-      if (Configuration::GetOrthancPeer(peer, name))
+      if (configLock.GetConfiguration().GetOrthancPeer(peer, name))
       {
         return lock.AddStorePeerOperation(peer);
       }
@@ -742,17 +752,19 @@ namespace Orthanc
 
   void LuaScripting::LoadGlobalConfiguration()
   {
+    OrthancConfiguration::ReaderLock configLock;
+
     lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
 
     std::list<std::string> luaScripts;
-    Configuration::GetGlobalListOfStringsParameter(luaScripts, "LuaScripts");
+    configLock.GetConfiguration().GetListOfStringsParameter(luaScripts, "LuaScripts");
 
     LuaScripting::Lock lock(*this);
 
     for (std::list<std::string>::const_iterator
            it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
-      std::string path = Configuration::InterpretStringParameterAsPath(*it);
+      std::string path = configLock.GetConfiguration().InterpretStringParameterAsPath(*it);
       LOG(INFO) << "Installing the Lua scripts from: " << path;
       std::string script;
       SystemToolbox::ReadFile(script, path);
