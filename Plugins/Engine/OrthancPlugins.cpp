@@ -48,7 +48,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
-#include "../../OrthancServer/OrthancInitialization.h"
+#include "../../OrthancServer/OrthancConfiguration.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../OrthancServer/Search/HierarchicalMatcher.h"
@@ -271,8 +271,10 @@ namespace Orthanc
     public:
       OrthancPeers()
       {
+        OrthancConfiguration::ReaderLock lock;
+
         std::set<std::string> peers;
-        Configuration::GetListOfOrthancPeers(peers);
+        lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
         names_.reserve(peers.size());
         parameters_.reserve(peers.size());
@@ -281,7 +283,7 @@ namespace Orthanc
                it = peers.begin(); it != peers.end(); ++it)
         {
           WebServiceParameters peer;
-          if (Configuration::GetOrthancPeer(peer, *it))
+          if (lock.GetConfiguration().GetOrthancPeer(peer, *it))
           {
             names_.push_back(*it);
             parameters_.push_back(peer);
@@ -2105,19 +2107,23 @@ namespace Orthanc
   {
     const _OrthancPluginGetFontInfo& p = *reinterpret_cast<const _OrthancPluginGetFontInfo*>(parameters);
 
-    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+    {
+      OrthancConfiguration::ReaderLock lock;
 
-    if (p.name != NULL)
-    {
-      *(p.name) = font.GetName().c_str();
-    }
-    else if (p.size != NULL)
-    {
-      *(p.size) = font.GetSize();
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
+      const Font& font = lock.GetConfiguration().GetFontRegistry().GetFont(p.fontIndex);
+
+      if (p.name != NULL)
+      {
+        *(p.name) = font.GetName().c_str();
+      }
+      else if (p.size != NULL)
+      {
+        *(p.size) = font.GetSize();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
@@ -2127,9 +2133,12 @@ namespace Orthanc
     const _OrthancPluginDrawText& p = *reinterpret_cast<const _OrthancPluginDrawText*>(parameters);
 
     ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
-    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
 
-    font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      const Font& font = lock.GetConfiguration().GetFontRegistry().GetFont(p.fontIndex);
+      font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+    }
   }
 
 
@@ -2392,15 +2401,25 @@ namespace Orthanc
 
       case _OrthancPluginService_GetConfigurationPath:
       {
-        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = 
-          CopyString(Configuration::GetConfigurationAbsolutePath());
+        std::string s;
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          s = lock.GetConfiguration().GetConfigurationAbsolutePath();
+        }
+
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
 
       case _OrthancPluginService_GetConfiguration:
       {
         std::string s;
-        Configuration::FormatConfiguration(s);
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          lock.GetConfiguration().Format(s);
+        }
 
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
@@ -2665,7 +2684,12 @@ namespace Orthanc
       {
         const _OrthancPluginReturnSingleValue& p =
           *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
-        *(p.resultUint32) = Configuration::GetFontRegistry().GetSize();
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          *(p.resultUint32) = lock.GetConfiguration().GetFontRegistry().GetSize();
+        }
+
         return true;
       }
 

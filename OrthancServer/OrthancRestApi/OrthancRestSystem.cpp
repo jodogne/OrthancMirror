@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
@@ -55,12 +55,16 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
 
     result["ApiVersion"] = ORTHANC_API_VERSION;
-    result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
-    result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
-    result["DicomPort"] = Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242);
-    result["HttpPort"] = Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042);
-    result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
     result["Version"] = ORTHANC_VERSION;
+    result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      result["DicomAet"] = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+      result["DicomPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242);
+      result["HttpPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042);
+      result["Name"] = lock.GetConfiguration().GetStringParameter("Name", "");
+    }
 
     result["StorageAreaPlugin"] = Json::nullValue;
     result["DatabaseBackendPlugin"] = Json::nullValue;
@@ -157,7 +161,10 @@ namespace Orthanc
   {
     Encoding encoding = StringToEncoding(call.GetBodyData());
 
-    Configuration::SetDefaultEncoding(encoding);
+    {
+      OrthancConfiguration::WriterLock lock;
+      lock.GetConfiguration().SetDefaultEncoding(encoding);
+    }
 
     call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
