@@ -71,5 +71,7 @@ namespace Orthanc
     }
 
     const Font& GetFont(size_t i) const;
+
+    const Font* FindFont(const std::string& fontName) const;
   };
 }
