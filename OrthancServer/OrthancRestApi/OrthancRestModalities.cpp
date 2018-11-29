@@ -842,7 +842,7 @@ namespace Orthanc
       {
         WebServiceParameters peer;
         
-        if (lock.GetConfiguration().GetOrthancPeer(peer, *it))
+        if (lock.GetConfiguration().LookupOrthancPeer(peer, *it))
         {
           Json::Value jsonPeer = Json::objectValue;
           // only return the minimum information to identify the
@@ -899,7 +899,7 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
 
       WebServiceParameters peer;
-      if (lock.GetConfiguration().GetOrthancPeer(peer, remote))
+      if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
       {
         job->SetPeer(peer);    
         OrthancRestApi::GetApi(call).SubmitCommandsJob

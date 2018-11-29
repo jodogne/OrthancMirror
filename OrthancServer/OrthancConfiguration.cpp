@@ -42,6 +42,11 @@
 
 #include "ServerIndex.h"
 
+
+static const char* const DICOM_MODALITIES = "DicomModalities";
+static const char* const ORTHANC_PEERS = "OrthancPeers";
+
+
 namespace Orthanc
 {
   static void AddFileToConfiguration(Json::Value& target,
@@ -84,7 +89,8 @@ namespace Orthanc
       {
         if (target.isMember(members[i]))
         {
-          LOG(ERROR) << "The configuration section \"" << members[i] << "\" is defined in 2 different configuration files";
+          LOG(ERROR) << "The configuration section \"" << members[i]
+                     << "\" is defined in 2 different configuration files";
           throw OrthancException(ErrorCode_BadFileFormat);          
         }
         else
@@ -164,25 +170,145 @@ namespace Orthanc
     }
   }
 
-    
-  void OrthancConfiguration::ValidateConfiguration() const
+
+  static void CheckAlphanumeric(const std::string& s)
   {
-    std::set<std::string> ids;
-
-    GetListOfOrthancPeers(ids);
-    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+    for (size_t j = 0; j < s.size(); j++)
     {
-      WebServiceParameters peer;
-      GetOrthancPeer(peer, *it);
-      peer.CheckClientCertificate();
+      if (!isalnum(s[j]) && 
+          s[j] != '-')
+      {
+        LOG(ERROR) << "Only alphanumeric and dash characters are allowed "
+                   << "in the names of modalities/peers, but found: " << s;
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+  }
+
+
+  void OrthancConfiguration::LoadModalitiesFromJson(const Json::Value& source)
+  {
+    modalities_.clear();
+
+    if (source.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Bad format of the \"" << DICOM_MODALITIES << "\" configuration section";
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    GetListOfDicomModalities(ids);
-    for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
     {
+      const std::string& name = members[i];
+      CheckAlphanumeric(name);
+
       RemoteModalityParameters modality;
-      GetDicomModalityUsingSymbolicName(modality, *it);
+      modality.Unserialize(source[name]);
+      modalities_[name] = modality;
     }
+  }
+
+
+  void OrthancConfiguration::SaveModalitiesToJson(Json::Value& target)
+  {
+    target = Json::objectValue;
+
+    for (Modalities::const_iterator it = modalities_.begin(); it != modalities_.end(); ++it)
+    {
+      Json::Value modality;
+      it->second.Serialize(modality, true /* force advanced format */);
+
+      target[it->first] = modality;
+    }
+  }
+
+    
+  void OrthancConfiguration::LoadPeersFromJson(const Json::Value& source)
+  {
+    peers_.clear();
+
+    if (source.type() != Json::objectValue)
+    {
+      LOG(ERROR) << "Bad format of the \"" << ORTHANC_PEERS << "\" configuration section";
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const std::string& name = members[i];
+      CheckAlphanumeric(name);
+
+      WebServiceParameters peer;
+      peer.Unserialize(source[name]);
+      peers_[name] = peer;
+    }
+  }
+
+
+  void OrthancConfiguration::SavePeersToJson(Json::Value& target)
+  {
+    target = Json::objectValue;
+
+    for (Peers::const_iterator it = peers_.begin(); it != peers_.end(); ++it)
+    {
+      Json::Value peer;
+      it->second.Serialize(peer, 
+                           false /* use simple format if possible */, 
+                           true  /* include passwords */);
+
+      target[it->first] = peer;
+    }
+  }  
+    
+    
+  void OrthancConfiguration::LoadModalitiesAndPeers()
+  {
+    if (json_.isMember(DICOM_MODALITIES))
+    {
+      LoadModalitiesFromJson(json_[DICOM_MODALITIES]);
+    }
+    else
+    {
+      // TODO - Read from DB
+      modalities_.clear();
+    }
+
+    if (json_.isMember(ORTHANC_PEERS))
+    {
+      LoadPeersFromJson(json_[ORTHANC_PEERS]);
+    }
+    else
+    {
+      // TODO - Read from DB
+      peers_.clear();
+    }
+  }
+
+
+  void OrthancConfiguration::SaveModalities()
+  {
+    if (!modalities_.empty() ||
+        json_.isMember(DICOM_MODALITIES))
+    {
+      SaveModalitiesToJson(json_[DICOM_MODALITIES]);
+    }
+
+    // TODO - Write to DB
+  }
+
+
+  void OrthancConfiguration::SavePeers()
+  {
+    if (!peers_.empty() ||
+        json_.isMember(ORTHANC_PEERS))
+    {
+      SavePeersToJson(json_[ORTHANC_PEERS]);
+    }
+
+    // TODO - Write to DB
   }
 
 
@@ -314,7 +440,7 @@ namespace Orthanc
 #endif
     }
 
-    ValidateConfiguration();
+    LoadModalitiesAndPeers();
   }
 
 
@@ -322,111 +448,46 @@ namespace Orthanc
     RemoteModalityParameters& modality,
     const std::string& name) const
   {
-    if (!json_.isMember("DicomModalities"))
+    Modalities::const_iterator found = modalities_.find(name);
+
+    if (found == modalities_.end())
     {
       LOG(ERROR) << "No modality with symbolic name: " << name;
       throw OrthancException(ErrorCode_InexistentItem);
     }
-
-    const Json::Value& modalities = json_["DicomModalities"];
-    if (modalities.type() != Json::objectValue ||
-        !modalities.isMember(name))
+    else
     {
-      LOG(ERROR) << "No modality with symbolic name: " << name;
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-
-    try
-    {
-      modality.Unserialize(modalities[name]);
-    }
-    catch (OrthancException&)
-    {
-      LOG(ERROR) << "Syntax error in the definition of DICOM modality \"" << name 
-                 << "\". Please check your configuration file.";
-      throw;
+      modality = found->second;
     }
   }
 
 
-  bool OrthancConfiguration::GetOrthancPeer(WebServiceParameters& peer,
-                                            const std::string& name) const
+  bool OrthancConfiguration::LookupOrthancPeer(WebServiceParameters& peer,
+                                               const std::string& name) const
   {
-    if (!json_.isMember("OrthancPeers"))
+    Peers::const_iterator found = peers_.find(name);
+
+    if (found == peers_.end())
     {
+      LOG(ERROR) << "No peer with symbolic name: " << name;
       return false;
     }
-
-    try
+    else
     {
-      const Json::Value& modalities = json_["OrthancPeers"];
-      if (modalities.type() != Json::objectValue ||
-          !modalities.isMember(name))
-      {
-        return false;
-      }
-      else
-      {
-        peer.Unserialize(modalities[name]);
-        return true;
-      }
-    }
-    catch (OrthancException&)
-    {
-      LOG(ERROR) << "Syntax error in the definition of peer \"" << name 
-                 << "\". Please check your configuration file.";
-      throw;
-    }
-  }
-
-
-  bool OrthancConfiguration::ReadKeys(std::set<std::string>& target,
-                                      const char* parameter,
-                                      bool onlyAlphanumeric) const
-  {
-    target.clear();
-  
-    if (!json_.isMember(parameter))
-    {
+      peer = found->second;
       return true;
     }
-
-    const Json::Value& modalities = json_[parameter];
-    if (modalities.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad format of the \"DicomModalities\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    Json::Value::Members members = modalities.getMemberNames();
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      if (onlyAlphanumeric)
-      {
-        for (size_t j = 0; j < members[i].size(); j++)
-        {
-          if (!isalnum(members[i][j]) && members[i][j] != '-')
-          {
-            return false;
-          }
-        }
-      }
-
-      target.insert(members[i]);
-    }
-
-    return true;
   }
 
 
   void OrthancConfiguration::GetListOfDicomModalities(std::set<std::string>& target) const
   {
     target.clear();
-      
-    if (!ReadKeys(target, "DicomModalities", true))
+
+    for (Modalities::const_iterator 
+           it = modalities_.begin(); it != modalities_.end(); ++it)
     {
-      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of the modalities";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      target.insert(it->first);
     }
   }
 
@@ -435,10 +496,9 @@ namespace Orthanc
   {
     target.clear();
 
-    if (!ReadKeys(target, "OrthancPeers", true))
+    for (Peers::const_iterator it = peers_.begin(); it != peers_.end(); ++it)
     {
-      LOG(ERROR) << "Only alphanumeric and dash characters are allowed in the names of Orthanc peers";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      target.insert(it->first);
     }
   }
 
@@ -520,27 +580,15 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::LookupDicomModalityUsingAETitle(
-    RemoteModalityParameters& modality,
-    const std::string& aet) const
+  bool OrthancConfiguration::LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
+                                                             const std::string& aet) const
   {
-    std::set<std::string> modalities;
-    GetListOfDicomModalities(modalities);
-
-    for (std::set<std::string>::const_iterator 
-           it = modalities.begin(); it != modalities.end(); ++it)
+    for (Modalities::const_iterator it = modalities_.begin(); it != modalities_.end(); ++it)
     {
-      try
+      if (IsSameAETitle(aet, it->second.GetApplicationEntityTitle()))
       {
-        GetDicomModalityUsingSymbolicName(modality, *it);
-
-        if (IsSameAETitle(aet, modality.GetApplicationEntityTitle()))
-        {
-          return true;
-        }
-      }
-      catch (OrthancException&)
-      {
+        modality = it->second;
+        return true;
       }
     }
 
@@ -575,8 +623,8 @@ namespace Orthanc
   }
 
 
-  RemoteModalityParameters OrthancConfiguration::GetModalityUsingSymbolicName(
-    const std::string& name) const
+  RemoteModalityParameters 
+  OrthancConfiguration::GetModalityUsingSymbolicName(const std::string& name) const
   {
     RemoteModalityParameters modality;
     GetDicomModalityUsingSymbolicName(modality, name);
@@ -585,8 +633,8 @@ namespace Orthanc
   }
 
     
-  RemoteModalityParameters OrthancConfiguration::GetModalityUsingAet(
-    const std::string& aet) const
+  RemoteModalityParameters 
+  OrthancConfiguration::GetModalityUsingAet(const std::string& aet) const
   {
     RemoteModalityParameters modality;
       
@@ -605,42 +653,15 @@ namespace Orthanc
   void OrthancConfiguration::UpdateModality(const std::string& symbolicName,
                                             const RemoteModalityParameters& modality)
   {
-    if (!json_.isMember("DicomModalities"))
-    {
-      json_["DicomModalities"] = Json::objectValue;
-    }
-
-    Json::Value& modalities = json_["DicomModalities"];
-    if (modalities.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad file format for modality: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    modalities.removeMember(symbolicName);
-
-    Json::Value v;
-    modality.Serialize(v, true /* force advanced format */);
-    modalities[symbolicName] = v;
+    modalities_[symbolicName] = modality;
+    SaveModalities();
   }
 
 
   void OrthancConfiguration::RemoveModality(const std::string& symbolicName)
   {
-    if (!json_.isMember("DicomModalities"))
-    {
-      LOG(ERROR) << "No modality with symbolic name: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    Json::Value& modalities = json_["DicomModalities"];
-    if (modalities.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad file format for the \"DicomModalities\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    modalities.removeMember(symbolicName.c_str());
+    modalities_.erase(symbolicName);
+    SaveModalities();
   }
 
     
@@ -649,45 +670,15 @@ namespace Orthanc
   {
     peer.CheckClientCertificate();
 
-    if (!json_.isMember("OrthancPeers"))
-    {
-      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-      json_["OrthancPeers"] = Json::objectValue;
-    }
-
-    Json::Value& peers = json_["OrthancPeers"];
-    if (peers.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    peers.removeMember(symbolicName);
-
-    Json::Value v;
-    peer.Serialize(v, 
-                   false /* use simple format if possible */, 
-                   true  /* include passwords */);
-    peers[symbolicName] = v;
+    peers_[symbolicName] = peer;
+    SavePeers();
   }
 
 
   void OrthancConfiguration::RemovePeer(const std::string& symbolicName)
   {
-    if (!json_.isMember("OrthancPeers"))
-    {
-      LOG(ERROR) << "No peer with symbolic name: " << symbolicName;
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    Json::Value& peers = json_["OrthancPeers"];
-    if (peers.type() != Json::objectValue)
-    {
-      LOG(ERROR) << "Bad file format for the \"OrthancPeers\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    peers.removeMember(symbolicName.c_str());
+    peers_.erase(symbolicName);
+    SavePeers();
   }
 
 

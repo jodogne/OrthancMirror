@@ -466,7 +466,7 @@ namespace Orthanc
       std::string name = parameters["Peer"].asString();
 
       WebServiceParameters peer;
-      if (configLock.GetConfiguration().GetOrthancPeer(peer, name))
+      if (configLock.GetConfiguration().LookupOrthancPeer(peer, name))
       {
         return lock.AddStorePeerOperation(peer);
       }
