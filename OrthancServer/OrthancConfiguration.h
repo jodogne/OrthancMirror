@@ -51,12 +51,17 @@ namespace Orthanc
   class OrthancConfiguration : public boost::noncopyable
   {
   private:
+    typedef std::map<std::string, RemoteModalityParameters>   Modalities;
+    typedef std::map<std::string, WebServiceParameters>       Peers;
+
     boost::shared_mutex      mutex_;
     Json::Value              json_;
     boost::filesystem::path  defaultDirectory_;
     std::string              configurationAbsolutePath_;
     FontRegistry             fontRegistry_;
     const char*              configurationFileArg_;
+    Modalities               modalities_;
+    Peers                    peers_;
     ServerIndex*             serverIndex_;
 
     OrthancConfiguration() :
@@ -64,8 +69,20 @@ namespace Orthanc
     {
     }
 
-    void ValidateConfiguration() const;
+    void LoadModalitiesFromJson(const Json::Value& source);
     
+    void SaveModalitiesToJson(Json::Value& target);
+    
+    void LoadPeersFromJson(const Json::Value& source);
+    
+    void SavePeersToJson(Json::Value& target);
+    
+    void LoadModalitiesAndPeers();
+    
+    void SaveModalities();
+    
+    void SavePeers();
+
     static OrthancConfiguration& GetInstance();
 
   public:
@@ -156,12 +173,8 @@ namespace Orthanc
     void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
                                            const std::string& name) const;
 
-    bool GetOrthancPeer(WebServiceParameters& peer,
-                        const std::string& name) const;
-
-    bool ReadKeys(std::set<std::string>& target,
-                  const char* parameter,
-                  bool onlyAlphanumeric) const;
+    bool LookupOrthancPeer(WebServiceParameters& peer,
+                           const std::string& name) const;
 
     void GetListOfDicomModalities(std::set<std::string>& target) const;
 

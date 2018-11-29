@@ -283,7 +283,7 @@ namespace Orthanc
                it = peers.begin(); it != peers.end(); ++it)
         {
           WebServiceParameters peer;
-          if (lock.GetConfiguration().GetOrthancPeer(peer, *it))
+          if (lock.GetConfiguration().LookupOrthancPeer(peer, *it))
           {
             names_.push_back(*it);
             parameters_.push_back(peer);
