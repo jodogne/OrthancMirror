@@ -41,10 +41,12 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/lock_types.hpp>
 
 namespace Orthanc
 {
   class MongooseServer;
+  class ServerIndex;
   
   class OrthancConfiguration : public boost::noncopyable
   {
@@ -55,6 +57,7 @@ namespace Orthanc
     std::string              configurationAbsolutePath_;
     FontRegistry             fontRegistry_;
     const char*              configurationFileArg_;
+    ServerIndex*             serverIndex_;
 
     OrthancConfiguration() :
       configurationFileArg_(NULL)
@@ -66,14 +69,14 @@ namespace Orthanc
     static OrthancConfiguration& GetInstance();
 
   public:
-    class Reader : public boost::noncopyable
+    class ReaderLock : public boost::noncopyable
     {
     private:
       OrthancConfiguration&                    configuration_;
       boost::shared_lock<boost::shared_mutex>  lock_;
 
     public:
-      Reader() :
+      ReaderLock() :
         configuration_(GetInstance()),
         lock_(configuration_.mutex_)
       {
@@ -91,14 +94,14 @@ namespace Orthanc
     };
 
 
-    class Writer : public boost::noncopyable
+    class WriterLock : public boost::noncopyable
     {
     private:
       OrthancConfiguration&                    configuration_;
       boost::unique_lock<boost::shared_mutex>  lock_;
 
     public:
-      Writer() :
+      WriterLock() :
         configuration_(GetInstance()),
         lock_(configuration_.mutex_)
       {
@@ -120,11 +123,6 @@ namespace Orthanc
       }
     };
 
-
-    const Json::Value& GetContent() const
-    {
-      return json_;
-    }
 
     const std::string& GetConfigurationAbsolutePath() const
     {
@@ -173,8 +171,8 @@ namespace Orthanc
 
     std::string InterpretStringParameterAsPath(const std::string& parameter) const;
     
-    void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                         const std::string& key) const;
+    void GetListOfStringsParameter(std::list<std::string>& target,
+                                   const std::string& key) const;
     
     bool IsSameAETitle(const std::string& aet1,
                        const std::string& aet2) const;
@@ -205,5 +203,9 @@ namespace Orthanc
     void SetDefaultEncoding(Encoding encoding);
 
     bool HasConfigurationChanged() const;
+
+    void SetServerIndex(ServerIndex& index);
+
+    void ResetServerIndex();
   };
 }
