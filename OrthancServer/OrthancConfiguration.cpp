@@ -44,8 +44,9 @@
 
 
 static const char* const DICOM_MODALITIES = "DicomModalities";
+static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
 static const char* const ORTHANC_PEERS = "OrthancPeers";
-
+static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 
 namespace Orthanc
 {
@@ -210,20 +211,6 @@ namespace Orthanc
   }
 
 
-  void OrthancConfiguration::SaveModalitiesToJson(Json::Value& target)
-  {
-    target = Json::objectValue;
-
-    for (Modalities::const_iterator it = modalities_.begin(); it != modalities_.end(); ++it)
-    {
-      Json::Value modality;
-      it->second.Serialize(modality, true /* force advanced format */);
-
-      target[it->first] = modality;
-    }
-  }
-
-    
   void OrthancConfiguration::LoadPeersFromJson(const Json::Value& source)
   {
     peers_.clear();
@@ -248,6 +235,101 @@ namespace Orthanc
   }
 
 
+  void OrthancConfiguration::LoadModalities()
+  {
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
+    {
+      // Modalities are stored in the database
+      if (serverIndex_ == NULL)
+      {
+        throw Orthanc::OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, "{}");
+
+        Json::Reader reader;
+        Json::Value modalities;
+        if (reader.parse(property, modalities))
+        {
+          LoadModalitiesFromJson(modalities);
+        }
+        else
+        {
+          LOG(ERROR) << "Cannot unserialize the list of modalities from the Orthanc database";
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+    else
+    {
+      // Modalities are stored in the configuration files
+      if (json_.isMember(DICOM_MODALITIES))
+      {
+        LoadModalitiesFromJson(json_[DICOM_MODALITIES]);
+      }
+      else
+      {
+        modalities_.clear();
+      }
+    }
+  }
+
+  void OrthancConfiguration::LoadPeers()
+  {
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
+    {
+      // Peers are stored in the database
+      if (serverIndex_ == NULL)
+      {
+        throw Orthanc::OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, "{}");
+
+        Json::Reader reader;
+        Json::Value peers;
+        if (reader.parse(property, peers))
+        {
+          LoadPeersFromJson(peers);
+        }
+        else
+        {
+          LOG(ERROR) << "Cannot unserialize the list of peers from the Orthanc database";
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+    else
+    {
+      // Peers are stored in the configuration files
+      if (json_.isMember(ORTHANC_PEERS))
+      {
+        LoadPeersFromJson(json_[ORTHANC_PEERS]);
+      }
+      else
+      {
+        peers_.clear();
+      }
+    }
+  }
+
+
+  void OrthancConfiguration::SaveModalitiesToJson(Json::Value& target)
+  {
+    target = Json::objectValue;
+
+    for (Modalities::const_iterator it = modalities_.begin(); it != modalities_.end(); ++it)
+    {
+      Json::Value modality;
+      it->second.Serialize(modality, true /* force advanced format */);
+
+      target[it->first] = modality;
+    }
+  }
+
+    
   void OrthancConfiguration::SavePeersToJson(Json::Value& target)
   {
     target = Json::objectValue;
@@ -264,51 +346,67 @@ namespace Orthanc
   }  
     
     
-  void OrthancConfiguration::LoadModalitiesAndPeers()
-  {
-    if (json_.isMember(DICOM_MODALITIES))
-    {
-      LoadModalitiesFromJson(json_[DICOM_MODALITIES]);
-    }
-    else
-    {
-      // TODO - Read from DB
-      modalities_.clear();
-    }
-
-    if (json_.isMember(ORTHANC_PEERS))
-    {
-      LoadPeersFromJson(json_[ORTHANC_PEERS]);
-    }
-    else
-    {
-      // TODO - Read from DB
-      peers_.clear();
-    }
-  }
-
-
   void OrthancConfiguration::SaveModalities()
   {
-    if (!modalities_.empty() ||
-        json_.isMember(DICOM_MODALITIES))
+    if (GetBooleanParameter(DICOM_MODALITIES_IN_DB, false))
     {
-      SaveModalitiesToJson(json_[DICOM_MODALITIES]);
-    }
+      // Modalities are stored in the database
+      if (serverIndex_ == NULL)
+      {
+        throw Orthanc::OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        Json::Value modalities;
+        SaveModalitiesToJson(modalities);
 
-    // TODO - Write to DB
+        Json::FastWriter writer;
+        std::string s = writer.write(modalities);
+
+        serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, s);
+      }
+    }
+    else
+    {
+      // Modalities are stored in the configuration files
+      if (!modalities_.empty() ||
+          json_.isMember(DICOM_MODALITIES))
+      {
+        SaveModalitiesToJson(json_[DICOM_MODALITIES]);
+      }
+    }
   }
 
 
   void OrthancConfiguration::SavePeers()
   {
-    if (!peers_.empty() ||
-        json_.isMember(ORTHANC_PEERS))
+    if (GetBooleanParameter(ORTHANC_PEERS_IN_DB, false))
     {
-      SavePeersToJson(json_[ORTHANC_PEERS]);
-    }
+      // Peers are stored in the database
+      if (serverIndex_ == NULL)
+      {
+        throw Orthanc::OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        Json::Value peers;
+        SavePeersToJson(peers);
 
-    // TODO - Write to DB
+        Json::FastWriter writer;
+        std::string s = writer.write(peers);
+
+        serverIndex_->SetGlobalProperty(GlobalProperty_Peers, s);
+      }
+    }
+    else
+    {
+      // Peers are stored in the configuration files
+      if (!peers_.empty() ||
+          json_.isMember(ORTHANC_PEERS))
+      {
+        SavePeersToJson(json_[ORTHANC_PEERS]);
+      }
+    }
   }
 
 
@@ -439,8 +537,13 @@ namespace Orthanc
       configurationAbsolutePath_ = boost::filesystem::absolute(p).string();
 #endif
     }
+  }
 
-    LoadModalitiesAndPeers();
+
+  void OrthancConfiguration::LoadModalitiesAndPeers()
+  {
+    LoadModalities();
+    LoadPeers();
   }
 
 
