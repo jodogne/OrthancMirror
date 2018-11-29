@@ -40,6 +40,8 @@
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
 
+#include "ServerIndex.h"
+
 namespace Orthanc
 {
   static void AddFileToConfiguration(Json::Value& target,
@@ -474,9 +476,8 @@ namespace Orthanc
   }
 
     
-  void OrthancConfiguration::GetGlobalListOfStringsParameter(
-    std::list<std::string>& target,
-    const std::string& key) const
+  void OrthancConfiguration::GetListOfStringsParameter(std::list<std::string>& target,
+                                                       const std::string& key) const
   {
     target.clear();
   
@@ -717,5 +718,17 @@ namespace Orthanc
     std::string b = writer.write(current);
 
     return a != b;
+  }
+
+
+  void OrthancConfiguration::SetServerIndex(ServerIndex& index)
+  {
+    serverIndex_ = &index;
+  }
+
+
+  void OrthancConfiguration::ResetServerIndex()
+  {
+    serverIndex_ = NULL;
   }
 }

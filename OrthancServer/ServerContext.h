@@ -180,7 +180,7 @@ namespace Orthanc
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
         
-    SharedArchive  queryRetrieveArchive_;
+    std::auto_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
 
@@ -301,7 +301,7 @@ namespace Orthanc
 
     SharedArchive& GetQueryRetrieveArchive()
     {
-      return queryRetrieveArchive_;
+      return *queryRetrieveArchive_;
     }
 
     const std::string& GetDefaultLocalApplicationEntityTitle() const
@@ -346,5 +346,9 @@ namespace Orthanc
 
     void AddChildInstances(SetOfInstancesJob& job,
                            const std::string& publicId);
+
+    void SignalUpdatedModalities();
+
+    void SignalUpdatedPeers();
   };
 }

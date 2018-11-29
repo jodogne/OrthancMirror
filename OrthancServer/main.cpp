@@ -36,19 +36,21 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "../Core/Logging.h"
-#include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
-#include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/DicomNetworking/DicomServer.h"
-#include "OrthancInitialization.h"
-#include "ServerContext.h"
-#include "OrthancFindRequestHandler.h"
-#include "OrthancMoveRequestHandler.h"
-#include "ServerToolbox.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
+#include "../Core/HttpServer/FilesystemHttpHandler.h"
+#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/Logging.h"
+#include "../Core/Lua/LuaFunctionCall.h"
+#include "../Plugins/Engine/OrthancPlugins.h"
+#include "OrthancConfiguration.h"
+#include "OrthancFindRequestHandler.h"
+#include "OrthancInitialization.h"
+#include "OrthancMoveRequestHandler.h"
+#include "ServerContext.h"
+#include "ServerToolbox.h"
 
 using namespace Orthanc;
 
@@ -89,19 +91,21 @@ public:
 
 
 
-class ModalitiesFromConfiguration : public Orthanc::DicomServer::IRemoteModalities
+class ModalitiesFromConfiguration : public DicomServer::IRemoteModalities
 {
 public:
   virtual bool IsSameAETitle(const std::string& aet1,
                              const std::string& aet2) 
   {
-    return Orthanc::Configuration::IsSameAETitle(aet1, aet2);
+    OrthancConfiguration::ReaderLock lock;
+    return lock.GetConfiguration().IsSameAETitle(aet1, aet2);
   }
 
   virtual bool LookupAETitle(RemoteModalityParameters& modality,
                              const std::string& aet) 
   {
-    return Orthanc::Configuration::LookupDicomModalityUsingAETitle(modality, aet);
+    OrthancConfiguration::ReaderLock lock;
+    return lock.GetConfiguration().LookupDicomModalityUsingAETitle(modality, aet);
   }
 };
 
@@ -128,8 +132,11 @@ public:
   {
     std::auto_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
 
-    result->SetMaxResults(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindResults", 0));
-    result->SetMaxInstances(Configuration::GetGlobalUnsignedIntegerParameter("LimitFindInstances", 0));
+    {
+      OrthancConfiguration::ReaderLock lock;
+      result->SetMaxResults(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0));
+      result->SetMaxInstances(lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0));
+    }
 
     if (result->GetMaxResults() == 0)
     {
@@ -176,8 +183,9 @@ public:
   OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
   {
-    alwaysAllowEcho_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowEcho", true);
-    alwaysAllowStore_ = Configuration::GetGlobalBoolParameter("DicomAlwaysAllowStore", true);
+    OrthancConfiguration::ReaderLock lock;
+    alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
+    alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
   }
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
@@ -187,9 +195,16 @@ public:
     LOG(INFO) << "Incoming connection from AET " << remoteAet
               << " on IP " << remoteIp << ", calling AET " << calledAet;
 
-    return (alwaysAllowEcho_ ||
-            alwaysAllowStore_ ||
-            Configuration::IsKnownAETitle(remoteAet, remoteIp));
+    if (alwaysAllowEcho_ ||
+        alwaysAllowStore_)
+    {
+      return true;
+    }
+    else
+    {
+      OrthancConfiguration::ReaderLock lock;
+      return lock.GetConfiguration().IsKnownAETitle(remoteAet, remoteIp);
+    }
   }
 
   virtual bool IsAllowedRequest(const std::string& remoteIp,
@@ -197,7 +212,7 @@ public:
                                 const std::string& calledAet,
                                 DicomRequestType type)
   {
-    LOG(INFO) << "Incoming " << Orthanc::EnumerationToString(type) << " request from AET "
+    LOG(INFO) << "Incoming " << EnumerationToString(type) << " request from AET "
               << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
     
     if (type == DicomRequestType_Echo &&
@@ -214,9 +229,10 @@ public:
     }
     else
     {
+      OrthancConfiguration::ReaderLock lock;
+
       RemoteModalityParameters modality;
-    
-      if (Configuration::LookupDicomModalityUsingAETitle(modality, remoteAet))
+      if (lock.GetConfiguration().LookupDicomModalityUsingAETitle(modality, remoteAet))
       {
         return modality.IsRequestAllowed(type);
       }
@@ -283,7 +299,10 @@ public:
       }
     }
 
-    return Configuration::GetGlobalBoolParameter(configuration, true);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      return lock.GetConfiguration().GetBooleanParameter(configuration, true);
+    }
   }
 
 
@@ -308,7 +327,10 @@ public:
       }
     }
 
-    return Configuration::GetGlobalBoolParameter(configuration, false);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      return lock.GetConfiguration().GetBooleanParameter(configuration, false);
+    }
   }
 };
 
@@ -652,11 +674,22 @@ static void PrintErrors(const char* path)
 static void LoadPlugins(OrthancPlugins& plugins)
 {
   std::list<std::string> path;
-  Configuration::GetGlobalListOfStringsParameter(path, "Plugins");
+
+  {
+    OrthancConfiguration::ReaderLock lock;
+    lock.GetConfiguration().GetListOfStringsParameter(path, "Plugins");
+  }
+
   for (std::list<std::string>::const_iterator
          it = path.begin(); it != path.end(); ++it)
   {
-    std::string path = Configuration::InterpretStringParameterAsPath(*it);
+    std::string path;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      path = lock.GetConfiguration().InterpretStringParameterAsPath(*it);
+    }
+
     LOG(WARNING) << "Loading plugin(s) from: " << path;
     plugins.GetManager().RegisterPlugin(path);
   }  
@@ -693,7 +726,8 @@ static bool WaitForExit(ServerContext& context,
     {
       // Handling of SIGHUP
 
-      if (Configuration::HasConfigurationChanged())
+      OrthancConfiguration::ReaderLock lock;
+      if (lock.GetConfiguration().HasConfigurationChanged())
       {
         LOG(WARNING) << "A SIGHUP signal has been received, resetting Orthanc";
         Logging::Flush();
@@ -740,58 +774,74 @@ static bool StartHttpServer(ServerContext& context,
                             OrthancRestApi& restApi,
                             OrthancPlugins* plugins)
 {
-  if (!Configuration::GetGlobalBoolParameter("HttpServerEnabled", true))
+  bool httpServerEnabled;
+
+  {
+    OrthancConfiguration::ReaderLock lock;
+    httpServerEnabled = lock.GetConfiguration().GetBooleanParameter("HttpServerEnabled", true);
+  }
+
+  if (!httpServerEnabled)
   {
     LOG(WARNING) << "The HTTP server is disabled";
     return WaitForExit(context, restApi);
   }
-
-  MyHttpExceptionFormatter exceptionFormatter(Configuration::GetGlobalBoolParameter("HttpDescribeErrors", true), plugins);
-  
-
-  // HTTP server
-  MyIncomingHttpRequestFilter httpFilter(context, plugins);
-  MongooseServer httpServer;
-  //httpServer.SetThreadsCount(50);
-  httpServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042));
-  httpServer.SetRemoteAccessAllowed(Configuration::GetGlobalBoolParameter("RemoteAccessAllowed", false));
-  httpServer.SetKeepAliveEnabled(Configuration::GetGlobalBoolParameter("KeepAlive", false));
-  httpServer.SetHttpCompressionEnabled(Configuration::GetGlobalBoolParameter("HttpCompressionEnabled", true));
-  httpServer.SetIncomingHttpRequestFilter(httpFilter);
-  httpServer.SetHttpExceptionFormatter(exceptionFormatter);
-
-  httpServer.SetAuthenticationEnabled(Configuration::GetGlobalBoolParameter("AuthenticationEnabled", false));
-  Configuration::SetupRegisteredUsers(httpServer);
-
-  if (Configuration::GetGlobalBoolParameter("SslEnabled", false))
-  {
-    std::string certificate = Configuration::InterpretStringParameterAsPath(
-      Configuration::GetGlobalStringParameter("SslCertificate", "certificate.pem"));
-    httpServer.SetSslEnabled(true);
-    httpServer.SetSslCertificate(certificate.c_str());
-  }
   else
   {
-    httpServer.SetSslEnabled(false);
-  }
+    MyIncomingHttpRequestFilter httpFilter(context, plugins);
+    MongooseServer httpServer;
+    bool httpDescribeErrors;
 
-  httpServer.Register(context.GetHttpHandler());
-
-  if (httpServer.GetPortNumber() < 1024)
-  {
-    LOG(WARNING) << "The HTTP port is privileged (" 
-                 << httpServer.GetPortNumber() << " is below 1024), "
-                 << "make sure you run Orthanc as root/administrator";
-  }
-
-  httpServer.Start();
+    {
+      OrthancConfiguration::ReaderLock lock;
+      
+      httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors", true);
   
-  bool restart = WaitForExit(context, restApi);
+      // HTTP server
+      //httpServer.SetThreadsCount(50);
+      httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
+      httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
+      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", false));
+      httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
+      httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
 
-  httpServer.Stop();
-  LOG(WARNING) << "    HTTP server has stopped";
+      lock.GetConfiguration().SetupRegisteredUsers(httpServer);
 
-  return restart;
+      if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))
+      {
+        std::string certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
+          lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
+        httpServer.SetSslEnabled(true);
+        httpServer.SetSslCertificate(certificate.c_str());
+      }
+      else
+      {
+        httpServer.SetSslEnabled(false);
+      }
+    }
+
+    MyHttpExceptionFormatter exceptionFormatter(httpDescribeErrors, plugins);
+        
+    httpServer.SetIncomingHttpRequestFilter(httpFilter);
+    httpServer.SetHttpExceptionFormatter(exceptionFormatter);
+    httpServer.Register(context.GetHttpHandler());
+
+    if (httpServer.GetPortNumber() < 1024)
+    {
+      LOG(WARNING) << "The HTTP port is privileged (" 
+                   << httpServer.GetPortNumber() << " is below 1024), "
+                   << "make sure you run Orthanc as root/administrator";
+    }
+
+    httpServer.Start();
+  
+    bool restart = WaitForExit(context, restApi);
+
+    httpServer.Stop();
+    LOG(WARNING) << "    HTTP server has stopped";
+
+    return restart;
+  }
 }
 
 
@@ -799,84 +849,96 @@ static bool StartDicomServer(ServerContext& context,
                              OrthancRestApi& restApi,
                              OrthancPlugins* plugins)
 {
-  if (!Configuration::GetGlobalBoolParameter("DicomServerEnabled", true))
+  bool dicomServerEnabled;
+
+  {
+    OrthancConfiguration::ReaderLock lock;
+    dicomServerEnabled = lock.GetConfiguration().GetBooleanParameter("DicomServerEnabled", true);
+  }
+
+  if (!dicomServerEnabled)
   {
     LOG(WARNING) << "The DICOM server is disabled";
     return StartHttpServer(context, restApi, plugins);
   }
-
-  MyDicomServerFactory serverFactory(context);
-  OrthancApplicationEntityFilter dicomFilter(context);
-  ModalitiesFromConfiguration modalities;
+  else
+  {
+    MyDicomServerFactory serverFactory(context);
+    OrthancApplicationEntityFilter dicomFilter(context);
+    ModalitiesFromConfiguration modalities;
   
-  // Setup the DICOM server  
-  DicomServer dicomServer;
-  dicomServer.SetRemoteModalities(modalities);
-  dicomServer.SetCalledApplicationEntityTitleCheck(Configuration::GetGlobalBoolParameter("DicomCheckCalledAet", false));
-  dicomServer.SetStoreRequestHandlerFactory(serverFactory);
-  dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-  dicomServer.SetFindRequestHandlerFactory(serverFactory);
-  dicomServer.SetAssociationTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScpTimeout", 30));
+    // Setup the DICOM server  
+    DicomServer dicomServer;
+    dicomServer.SetRemoteModalities(modalities);
+    dicomServer.SetStoreRequestHandlerFactory(serverFactory);
+    dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+    dicomServer.SetFindRequestHandlerFactory(serverFactory);
 
+    {
+      OrthancConfiguration::ReaderLock lock;
+      dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
+      dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
+      dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
+      dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC"));
+    }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
-  if (plugins != NULL)
-  {
-    if (plugins->HasWorklistHandler())
+    if (plugins != NULL)
     {
-      dicomServer.SetWorklistRequestHandlerFactory(*plugins);
-    }
+      if (plugins->HasWorklistHandler())
+      {
+        dicomServer.SetWorklistRequestHandlerFactory(*plugins);
+      }
 
-    if (plugins->HasFindHandler())
-    {
-      dicomServer.SetFindRequestHandlerFactory(*plugins);
-    }
+      if (plugins->HasFindHandler())
+      {
+        dicomServer.SetFindRequestHandlerFactory(*plugins);
+      }
 
-    if (plugins->HasMoveHandler())
-    {
-      dicomServer.SetMoveRequestHandlerFactory(*plugins);
+      if (plugins->HasMoveHandler())
+      {
+        dicomServer.SetMoveRequestHandlerFactory(*plugins);
+      }
     }
-  }
 #endif
 
-  dicomServer.SetPortNumber(Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242));
-  dicomServer.SetApplicationEntityTitle(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"));
-  dicomServer.SetApplicationEntityFilter(dicomFilter);
+    dicomServer.SetApplicationEntityFilter(dicomFilter);
 
-  if (dicomServer.GetPortNumber() < 1024)
-  {
-    LOG(WARNING) << "The DICOM port is privileged (" 
-                 << dicomServer.GetPortNumber() << " is below 1024), "
-                 << "make sure you run Orthanc as root/administrator";
+    if (dicomServer.GetPortNumber() < 1024)
+    {
+      LOG(WARNING) << "The DICOM port is privileged (" 
+                   << dicomServer.GetPortNumber() << " is below 1024), "
+                   << "make sure you run Orthanc as root/administrator";
+    }
+
+    dicomServer.Start();
+    LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
+                 << " on port: " << dicomServer.GetPortNumber();
+
+    bool restart = false;
+    ErrorCode error = ErrorCode_Success;
+
+    try
+    {
+      restart = StartHttpServer(context, restApi, plugins);
+    }
+    catch (OrthancException& e)
+    {
+      error = e.GetErrorCode();
+    }
+
+    dicomServer.Stop();
+    LOG(WARNING) << "    DICOM server has stopped";
+
+    serverFactory.Done();
+
+    if (error != ErrorCode_Success)
+    {
+      throw OrthancException(error);
+    }
+
+    return restart;
   }
-
-  dicomServer.Start();
-  LOG(WARNING) << "DICOM server listening with AET " << dicomServer.GetApplicationEntityTitle() 
-               << " on port: " << dicomServer.GetPortNumber();
-
-  bool restart = false;
-  ErrorCode error = ErrorCode_Success;
-
-  try
-  {
-    restart = StartHttpServer(context, restApi, plugins);
-  }
-  catch (OrthancException& e)
-  {
-    error = e.GetErrorCode();
-  }
-
-  dicomServer.Stop();
-  LOG(WARNING) << "    DICOM server has stopped";
-
-  serverFactory.Done();
-
-  if (error != ErrorCode_Success)
-  {
-    throw OrthancException(error);
-  }
-
-  return restart;
 }
 
 
@@ -969,86 +1031,108 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
 }
 
 
+
+namespace
+{
+  class ServerContextConfigurator : public boost::noncopyable
+  {
+  private:
+    ServerContext&   context_;
+    OrthancPlugins*  plugins_;
+
+  public:
+    ServerContextConfigurator(ServerContext& context,
+                              OrthancPlugins* plugins) :
+      context_(context),
+      plugins_(plugins)
+    {
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().SetServerIndex(context.GetIndex());
+      }
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (plugins_ != NULL)
+      {
+        plugins_->SetServerContext(context_);
+        context_.SetPlugins(*plugins_);
+      }
+#endif
+    }
+
+    ~ServerContextConfigurator()
+    {
+      {
+        OrthancConfiguration::WriterLock lock;
+        lock.GetConfiguration().ResetServerIndex();
+      }
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (plugins_ != NULL)
+      {
+        plugins_->ResetServerContext();
+        context_.ResetPlugins();
+      }
+#endif
+    }
+  };
+}
+
+
 static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    IStorageArea& storageArea,
                                    OrthancPlugins *plugins,
                                    bool loadJobsFromDatabase)
 {
-  // These configuration options must be set before creating the
-  // ServerContext, otherwise the possible Lua scripts will not be
-  // able to properly issue HTTP/HTTPS queries
-  HttpClient::ConfigureSsl(Configuration::GetGlobalBoolParameter("HttpsVerifyPeers", true),
-                           Configuration::InterpretStringParameterAsPath
-                           (Configuration::GetGlobalStringParameter("HttpsCACertificates", "")));
-  HttpClient::SetDefaultVerbose(Configuration::GetGlobalBoolParameter("HttpVerbose", false));
-  HttpClient::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("HttpTimeout", 0));
-  HttpClient::SetDefaultProxy(Configuration::GetGlobalStringParameter("HttpProxy", ""));
-
-  DicomUserConnection::SetDefaultTimeout(Configuration::GetGlobalUnsignedIntegerParameter("DicomScuTimeout", 10));
-
   ServerContext context(database, storageArea, false /* not running unit tests */);
-  context.SetCompressionEnabled(Configuration::GetGlobalBoolParameter("StorageCompression", false));
-  context.SetStoreMD5ForAttachments(Configuration::GetGlobalBoolParameter("StoreMD5ForAttachments", true));
 
-  // New option in Orthanc 1.4.2
-  context.GetIndex().SetOverwriteInstances(Configuration::GetGlobalBoolParameter("OverwriteInstances", false));
+  {
+    OrthancConfiguration::ReaderLock lock;
 
-  try
-  {
-    context.GetIndex().SetMaximumPatientCount(Configuration::GetGlobalUnsignedIntegerParameter("MaximumPatientCount", 0));
-  }
-  catch (...)
-  {
-    context.GetIndex().SetMaximumPatientCount(0);
-  }
+    // These configuration options must be set before creating the
+    // ServerContext, otherwise the possible Lua scripts will not be
+    // able to properly issue HTTP/HTTPS queries
+    HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
+                             lock.GetConfiguration().InterpretStringParameterAsPath
+                             (lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "")));
+    HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose", false));
+    HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout", 0));
+    HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
+    
+    DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
+    context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
+    context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
-  try
-  {
-    uint64_t size = Configuration::GetGlobalUnsignedIntegerParameter("MaximumStorageSize", 0);
-    context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
-  }
-  catch (...)
-  {
-    context.GetIndex().SetMaximumStorageSize(0);
-  }
+    // New option in Orthanc 1.4.2
+    context.GetIndex().SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
 
-  context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
-    (Configuration::GetGlobalUnsignedIntegerParameter("JobsHistorySize", 10));
+    try
+    {
+      context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
+    }
+    catch (...)
+    {
+      context.GetIndex().SetMaximumPatientCount(0);
+    }
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-  if (plugins)
-  {
-    plugins->SetServerContext(context);
-    context.SetPlugins(*plugins);
-  }
-#endif
+    try
+    {
+      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+      context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+    }
+    catch (...)
+    {
+      context.GetIndex().SetMaximumStorageSize(0);
+    }
 
-  bool restart = false;
-  ErrorCode error = ErrorCode_Success;
-
-  try
-  {
-    restart = ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
-  }
-  catch (OrthancException& e)
-  {
-    error = e.GetErrorCode();
+    context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
+      (lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10));
   }
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-  if (plugins)
   {
-    plugins->ResetServerContext();
-    context.ResetPlugins();
+    ServerContextConfigurator configurator(context, plugins);
+    return ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
-#endif
-
-  if (error != ErrorCode_Success)
-  {
-    throw OrthancException(error);
-  }
-
-  return restart;
 }
 
 
@@ -1105,7 +1189,7 @@ static bool ConfigurePlugins(int argc,
   }
   else
   {
-    databasePtr.reset(Configuration::CreateDatabaseWrapper());
+    databasePtr.reset(CreateDatabaseWrapper());
     database = databasePtr.get();
   }
 
@@ -1116,7 +1200,7 @@ static bool ConfigurePlugins(int argc,
   }
   else
   {
-    storage.reset(Configuration::CreateStorageArea());
+    storage.reset(CreateStorageArea());
   }
 
   assert(database != NULL);
@@ -1127,8 +1211,8 @@ static bool ConfigurePlugins(int argc,
 
 #elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
-  databasePtr.reset(Configuration::CreateDatabaseWrapper());
-  storage.reset(Configuration::CreateStorageArea());
+  databasePtr.reset(lock.GetConfiguration().CreateDatabaseWrapper());
+  storage.reset(lock.GetConfiguration().CreateStorageArea());
 
   return ConfigureDatabase(*databasePtr, *storage, NULL,
                            upgradeDatabase, loadJobsFromDatabase);
