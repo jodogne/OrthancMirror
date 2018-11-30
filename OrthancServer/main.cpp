@@ -1085,8 +1085,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    OrthancPlugins *plugins,
                                    bool loadJobsFromDatabase)
 {
-  ServerContext context(database, storageArea, false /* not running unit tests */);
-
+  size_t maxCompletedJobs;
+  
   {
     OrthancConfiguration::ReaderLock lock;
 
@@ -1101,6 +1101,15 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
     DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
+
+    maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
+  }
+  
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);
+
+  {
+    OrthancConfiguration::ReaderLock lock;
+
     context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
     context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
@@ -1125,9 +1134,6 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     {
       context.GetIndex().SetMaximumStorageSize(0);
     }
-
-    context.GetJobsEngine().GetRegistry().SetMaxCompletedJobs
-      (lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10));
   }
 
   {

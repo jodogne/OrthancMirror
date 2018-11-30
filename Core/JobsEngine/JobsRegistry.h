@@ -71,6 +71,13 @@ namespace Orthanc
     };
     
   private:
+    enum CompletedReason
+    {
+      CompletedReason_Success,
+      CompletedReason_Failure,
+      CompletedReason_Canceled
+    };
+    
     class JobHandler;
 
     struct PriorityComparator
@@ -115,7 +122,7 @@ namespace Orthanc
                          bool success);
     
     void MarkRunningAsCompleted(JobHandler& job,
-                                bool success);
+                                CompletedReason reason);
 
     void MarkRunningAsRetry(JobHandler& job,
                             unsigned int timeout);
@@ -130,23 +137,25 @@ namespace Orthanc
     void RemoveRetryJob(JobHandler* handler);
       
     void SubmitInternal(std::string& id,
-                        JobHandler* handler,
-                        bool keepLastChangeTime);
+                        JobHandler* handler);
     
   public:
-    JobsRegistry() :
-      maxCompletedJobs_(10),
+    JobsRegistry(size_t maxCompletedJobs) :
+      maxCompletedJobs_(maxCompletedJobs),
       observer_(NULL)
     {
     }
 
     JobsRegistry(IJobUnserializer& unserializer,
-                 const Json::Value& s);
+                 const Json::Value& s,
+                 size_t maxCompletedJobs);
 
     ~JobsRegistry();
 
     void SetMaxCompletedJobs(size_t i);
     
+    size_t GetMaxCompletedJobs();
+
     void ListJobs(std::set<std::string>& target);
 
     bool GetJobInfo(JobInfo& target,

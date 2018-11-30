@@ -71,6 +71,8 @@ namespace Orthanc
     std::list<IObserver*>             observers_;
     TimeoutDicomConnectionManager     connectionManager_;
 
+    void NotifyDone() const;
+
   public:
     SequenceOfOperationsJob();
 
@@ -96,8 +98,8 @@ namespace Orthanc
 
     public:
       Lock(SequenceOfOperationsJob& that) :
-      that_(that),
-      lock_(that.mutex_)
+        that_(that),
+        lock_(that.mutex_)
       {
       }
 
