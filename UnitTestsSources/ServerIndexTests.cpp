@@ -677,7 +677,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */);
+  ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -777,7 +777,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */);
+  ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -865,7 +865,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     DatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */);
+    ServerContext context(db, storage, true /* running unit tests */, 10);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 

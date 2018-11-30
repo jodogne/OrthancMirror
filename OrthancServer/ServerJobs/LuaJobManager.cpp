@@ -143,6 +143,7 @@ namespace Orthanc
       // Need to create a new job, as the previous one is either
       // finished, or is getting too long
       that_.currentJob_ = new SequenceOfOperationsJob;
+      that_.currentJob_->Register(that_);
       that_.currentJob_->SetDescription("Lua");
 
       {

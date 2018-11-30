@@ -214,7 +214,8 @@ namespace Orthanc
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
-                               bool unitTesting) :
+                               bool unitTesting,
+                               size_t maxCompletedJobs) :
     index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
@@ -224,6 +225,7 @@ namespace Orthanc
     mainLua_(*this),
     filterLua_(*this),
     luaListener_(*this),
+    jobsEngine_(maxCompletedJobs),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif

@@ -329,7 +329,7 @@ static bool CheckErrorCode(JobsRegistry& registry,
 
 TEST(JobsRegistry, Priority)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string i1, i2, i3, i4;
   registry.Submit(i1, new DummyJob(), 10);
@@ -408,7 +408,7 @@ TEST(JobsRegistry, Priority)
 
 TEST(JobsRegistry, Simultaneous)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string i1, i2;
   registry.Submit(i1, new DummyJob(), 20);
@@ -438,7 +438,7 @@ TEST(JobsRegistry, Simultaneous)
 
 TEST(JobsRegistry, Resubmit)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -482,7 +482,7 @@ TEST(JobsRegistry, Resubmit)
 
 TEST(JobsRegistry, Retry)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -519,7 +519,7 @@ TEST(JobsRegistry, Retry)
 
 TEST(JobsRegistry, PausePending)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -542,7 +542,7 @@ TEST(JobsRegistry, PausePending)
 
 TEST(JobsRegistry, PauseRunning)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -580,7 +580,7 @@ TEST(JobsRegistry, PauseRunning)
 
 TEST(JobsRegistry, PauseRetry)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -617,7 +617,7 @@ TEST(JobsRegistry, PauseRetry)
 
 TEST(JobsRegistry, Cancel)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -711,7 +711,7 @@ TEST(JobsRegistry, Cancel)
 
 TEST(JobsEngine, SubmitAndWait)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
@@ -731,7 +731,7 @@ TEST(JobsEngine, SubmitAndWait)
 
 TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
@@ -771,7 +771,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 
 TEST(JobsEngine, DISABLED_Lua)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(2);
   engine.Start();
@@ -1282,7 +1282,7 @@ namespace
     OrthancJobsSerialization()
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */));
+      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10));
       context_->SetupJobsEngine(true, false);
     }
 
@@ -1704,7 +1704,7 @@ TEST(JobsSerialization, Registry)
   std::string i1, i2;
 
   {
-    JobsRegistry registry;
+    JobsRegistry registry(10);
     registry.Submit(i1, new DummyJob(), 10);
     registry.Submit(i2, new SequenceOfOperationsJob(), 30);
     registry.Serialize(s);
@@ -1712,7 +1712,7 @@ TEST(JobsSerialization, Registry)
 
   {
     DummyUnserializer unserializer;
-    JobsRegistry registry(unserializer, s);
+    JobsRegistry registry(unserializer, s, 10);
 
     Json::Value t;
     registry.Serialize(t);

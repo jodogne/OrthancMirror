@@ -156,9 +156,9 @@ namespace Orthanc
   }
 
 
-  JobsEngine::JobsEngine() :
+  JobsEngine::JobsEngine(size_t maxCompletedJobs) :
     state_(State_Setup),
-    registry_(new JobsRegistry),
+    registry_(new JobsRegistry(maxCompletedJobs)),
     threadSleep_(200),
     workers_(1)
   {
@@ -198,7 +198,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    registry_.reset(new JobsRegistry(unserializer, serialized));
+    assert(registry_.get() != NULL);
+    const size_t maxCompletedJobs = registry_->GetMaxCompletedJobs();
+    registry_.reset(new JobsRegistry(unserializer, serialized, maxCompletedJobs));
   }
 
 

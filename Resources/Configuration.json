@@ -430,7 +430,9 @@
 
   // Maximum number of completed jobs that are kept in memory. A
   // processing job is considered as complete once it is tagged as
-  // "Success" or "Failure".
+  // "Success" or "Failure". Since Orthanc 1.4.3, a value of "0"
+  // indicates to keep no job in memory (i.e. jobs are removed from
+  // the history as soon as they are completed).
   "JobsHistorySize" : 10,
 
   // Specifies how Orthanc reacts when it receives a DICOM instance
