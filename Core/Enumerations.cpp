@@ -1979,6 +1979,27 @@ namespace Orthanc
       case ErrorCode_DatabaseUnavailable:
         return HttpStatus_503_ServiceUnavailable;
 
+      case ErrorCode_CreateDicomNotString:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomOverrideTag:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomUseContent:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomNoPayload:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomUseDataUriScheme:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomBadParent:
+        return HttpStatus_400_BadRequest;
+
+      case ErrorCode_CreateDicomParentIsInstance:
+        return HttpStatus_400_BadRequest;
+
       default:
         return HttpStatus_500_InternalServerError;
     }
