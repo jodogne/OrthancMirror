@@ -302,17 +302,19 @@ namespace Orthanc
             tmp != level ||
             !FindOneChildInstance(instance, database, resource, level))
         {
-          LOG(ERROR) << "Cannot find an instance for " << EnumerationToString(level) 
-                     << " with identifier " << *it;
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Cannot find an instance for " +
+                                 std::string(EnumerationToString(level)) +
+                                 " with identifier " + *it);
         }
 
         // Get the DICOM file attached to some instances in the resource
         FileInfo attachment;
         if (!database.LookupAttachment(attachment, instance, FileContentType_Dicom))
         {
-          LOG(ERROR) << "Cannot retrieve the DICOM file associated with instance " << database.GetPublicId(instance);
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Cannot retrieve the DICOM file associated with instance " +
+                                 database.GetPublicId(instance));
         }
 
         try
