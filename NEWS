@@ -28,6 +28,11 @@ REST API
 * New options to URI "/queries/.../answers": "?expand" and "?simplify"
 * New "Details" field in HTTP answers on error (cf. "HttpDescribeErrors" option)
 
+Plugins
+-------
+
+* New function in the SDK: "OrthancPluginSetHttpErrorDetails()"
+
 Maintenance
 -----------
 

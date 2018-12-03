@@ -119,7 +119,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     4
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -451,6 +451,7 @@ extern "C"
     _OrthancPluginService_SendHttpStatus = 2010,
     _OrthancPluginService_CompressAndAnswerImage = 2011,
     _OrthancPluginService_SendMultipartItem2 = 2012,
+    _OrthancPluginService_SetHttpErrorDetails = 2013,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -6425,6 +6426,42 @@ extern "C"
 
     context->InvokeService(context, _OrthancPluginService_RegisterJobsUnserializer, &params);
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              details;
+  } _OrthancPluginSetHttpErrorDetails;
+
+  /**
+   * @brief Provide a detailed description for an HTTP error.
+   *
+   * This function sets the detailed description associated with an
+   * HTTP error. This description will be displayed in the "Details"
+   * field of the JSON body of the HTTP answer. It is only taken into
+   * consideration if the REST callback returns an error code that is
+   * different from "OrthancPluginErrorCode_Success", and if the
+   * "HttpDescribeErrors" configuration option of Orthanc is set to
+   * "true".
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param details The details of the error message.
+   * @ingroup REST
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetHttpErrorDetails(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              details)
+  {
+    _OrthancPluginSetHttpErrorDetails params;
+    params.output = output;
+    params.details = details;
+    context->InvokeService(context, _OrthancPluginService_SetHttpErrorDetails, &params);
+  }
+
 
 
 #ifdef  __cplusplus
