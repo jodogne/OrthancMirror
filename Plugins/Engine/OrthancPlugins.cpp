@@ -319,6 +319,47 @@ namespace Orthanc
     
 
   public:
+    class PluginHttpOutput : public boost::noncopyable
+    {
+    private:
+      HttpOutput&                 output_;
+      std::auto_ptr<std::string>  errorDetails_;
+
+    public:
+      PluginHttpOutput(HttpOutput& output) :
+        output_(output)
+      {
+      }
+
+      HttpOutput& GetOutput()
+      {
+        return output_;
+      }
+
+      void SetErrorDetails(const std::string& details)
+      {
+        errorDetails_.reset(new std::string(details));
+      }
+
+      bool HasErrorDetails() const
+      {
+        return errorDetails_.get() != NULL;
+      }
+
+      const std::string& GetErrorDetails() const
+      {
+        if (errorDetails_.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          return *errorDetails_;
+        }
+      }
+    };
+
+    
     class RestCallback : public boost::noncopyable
     {
     private:
@@ -326,7 +367,7 @@ namespace Orthanc
       OrthancPluginRestCallback callback_;
       bool                      lock_;
 
-      OrthancPluginErrorCode InvokeInternal(HttpOutput& output,
+      OrthancPluginErrorCode InvokeInternal(PluginHttpOutput& output,
                                             const std::string& flatUri,
                                             const OrthancPluginHttpRequest& request)
       {
@@ -351,7 +392,7 @@ namespace Orthanc
       }
 
       OrthancPluginErrorCode Invoke(boost::recursive_mutex& restCallbackMutex,
-                                    HttpOutput& output,
+                                    PluginHttpOutput& output,
                                     const std::string& flatUri,
                                     const OrthancPluginHttpRequest& request)
       {
@@ -1025,7 +1066,10 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
+
+    PImpl::PluginHttpOutput pluginOutput(output);
+
+    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, pluginOutput, flatUri, request);
 
     if (error == OrthancPluginErrorCode_Success && 
         output.IsWritingMultipart())
@@ -1040,7 +1084,15 @@ namespace Orthanc
     else
     {
       GetErrorDictionary().LogError(error, false);
-      throw OrthancException(static_cast<ErrorCode>(error));
+
+      if (pluginOutput.HasErrorDetails())
+      {
+        throw OrthancException(static_cast<ErrorCode>(error), pluginOutput.GetErrorDetails());
+      }
+      else
+      {
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
     }
   }
 
@@ -1247,9 +1299,9 @@ namespace Orthanc
     const _OrthancPluginAnswerBuffer& p = 
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SetContentType(p.mimeType);
-    translatedOutput->Answer(p.answer, p.answerSize);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SetContentType(p.mimeType);
+    translatedOutput.Answer(p.answer, p.answerSize);
   }
 
 
@@ -1258,8 +1310,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->Redirect(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.Redirect(p.argument);
   }
 
 
@@ -1268,8 +1320,8 @@ namespace Orthanc
     const _OrthancPluginSendHttpStatusCode& p = 
       *reinterpret_cast<const _OrthancPluginSendHttpStatusCode*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendStatus(static_cast<HttpStatus>(p.status));
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendStatus(static_cast<HttpStatus>(p.status));
   }
 
 
@@ -1278,16 +1330,16 @@ namespace Orthanc
     const _OrthancPluginSendHttpStatus& p = 
       *reinterpret_cast<const _OrthancPluginSendHttpStatus*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     HttpStatus status = static_cast<HttpStatus>(p.status);
 
     if (p.bodySize > 0 && p.body != NULL)
     {
-      translatedOutput->SendStatus(status, p.body, p.bodySize);
+      translatedOutput.SendStatus(status, p.body, p.bodySize);
     }
     else
     {
-      translatedOutput->SendStatus(status);
+      translatedOutput.SendStatus(status);
     }
   }
 
@@ -1297,8 +1349,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendUnauthorized(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendUnauthorized(p.argument);
   }
 
 
@@ -1307,8 +1359,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendMethodNotAllowed(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendMethodNotAllowed(p.argument);
   }
 
 
@@ -1317,8 +1369,8 @@ namespace Orthanc
     const _OrthancPluginSetHttpHeader& p = 
       *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SetCookie(p.key, p.value);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SetCookie(p.key, p.value);
   }
 
 
@@ -1327,8 +1379,18 @@ namespace Orthanc
     const _OrthancPluginSetHttpHeader& p = 
       *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->AddHeader(p.key, p.value);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.AddHeader(p.key, p.value);
+  }
+
+
+  void OrthancPlugins::SetHttpErrorDetails(const void* parameters)
+  {
+    const _OrthancPluginSetHttpErrorDetails& p = 
+      *reinterpret_cast<const _OrthancPluginSetHttpErrorDetails*>(parameters);
+
+    PImpl::PluginHttpOutput* output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output);
+    output->SetErrorDetails(p.details);
   }
 
 
@@ -1357,7 +1419,7 @@ namespace Orthanc
     const _OrthancPluginCompressAndAnswerImage& p = 
       *reinterpret_cast<const _OrthancPluginCompressAndAnswerImage*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
 
     ImageAccessor accessor;
     accessor.AssignReadOnly(Plugins::Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
@@ -1370,7 +1432,7 @@ namespace Orthanc
       {
         PngWriter writer;
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType(MimeType_Png);
+        translatedOutput.SetContentType(MimeType_Png);
         break;
       }
 
@@ -1379,7 +1441,7 @@ namespace Orthanc
         JpegWriter writer;
         writer.SetQuality(p.quality);
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType(MimeType_Jpeg);
+        translatedOutput.SetContentType(MimeType_Jpeg);
         break;
       }
 
@@ -1387,7 +1449,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    translatedOutput->Answer(compressed);
+    translatedOutput.Answer(compressed);
   }
 
 
@@ -2285,10 +2347,10 @@ namespace Orthanc
     const _OrthancPluginAnswerBuffer& p =
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
-    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
 
     std::map<std::string, std::string> headers;  // No custom headers
-    output->SendMultipartItem(p.answer, p.answerSize, headers);
+    output.SendMultipartItem(p.answer, p.answerSize, headers);
   }
 
 
@@ -2298,7 +2360,7 @@ namespace Orthanc
     // connection was closed by the HTTP client.
     const _OrthancPluginSendMultipartItem2& p =
       *reinterpret_cast<const _OrthancPluginSendMultipartItem2*>(parameters);
-    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     
     std::map<std::string, std::string> headers;
     for (uint32_t i = 0; i < p.headersCount; i++)
@@ -2306,7 +2368,7 @@ namespace Orthanc
       headers[p.headersKeys[i]] = p.headersValues[i];
     }
     
-    output->SendMultipartItem(p.answer, p.answerSize, headers);
+    output.SendMultipartItem(p.answer, p.answerSize, headers);
   }
       
 
@@ -2510,6 +2572,10 @@ namespace Orthanc
         SetHttpHeader(parameters);
         return true;
 
+      case _OrthancPluginService_SetHttpErrorDetails:
+        SetHttpErrorDetails(parameters);
+        return true;
+
       case _OrthancPluginService_LookupPatient:
       case _OrthancPluginService_LookupStudy:
       case _OrthancPluginService_LookupStudyWithAccessionNumber:
@@ -2573,8 +2639,8 @@ namespace Orthanc
       {
         const _OrthancPluginStartMultipartAnswer& p =
           *reinterpret_cast<const _OrthancPluginStartMultipartAnswer*>(parameters);
-        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
-        output->StartMultipart(p.subType, p.contentType);
+        HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+        output.StartMultipart(p.subType, p.contentType);
         return true;
       }
 
