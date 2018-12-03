@@ -33,19 +33,39 @@
 
 #pragma once
 
+#include "Enumerations.h"
+#include "Logging.h"
+
 #include <stdint.h>
 #include <string>
-#include "Enumerations.h"
+#include <memory>
 
 namespace Orthanc
 {
   class OrthancException
   {
-  protected:
+  private:
+    OrthancException();  // Forbidden
+    
+    OrthancException& operator= (const OrthancException&);  // Forbidden
+
     ErrorCode  errorCode_;
     HttpStatus httpStatus_;
 
+    // New in Orthanc 1.4.3
+    std::auto_ptr<std::string>  details_;
+    
   public:
+    OrthancException(const OrthancException& other) : 
+      errorCode_(other.errorCode_),
+      httpStatus_(other.httpStatus_)
+    {
+      if (other.details_.get() != NULL)
+      {
+        details_.reset(new std::string(*other.details_));
+      }
+    }
+
     explicit OrthancException(ErrorCode errorCode) : 
       errorCode_(errorCode),
       httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
@@ -53,10 +73,29 @@ namespace Orthanc
     }
 
     OrthancException(ErrorCode errorCode,
+                     const std::string& details) :
+      errorCode_(errorCode),
+      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
+      details_(new std::string(details))
+    {
+      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+    }
+
+    OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus) :
       errorCode_(errorCode),
       httpStatus_(httpStatus)
     {
+    }
+
+    OrthancException(ErrorCode errorCode,
+                     HttpStatus httpStatus,
+                     const std::string& details) :
+      errorCode_(errorCode),
+      httpStatus_(httpStatus),
+      details_(new std::string(details))
+    {
+      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
     }
 
     ErrorCode GetErrorCode() const
@@ -72,6 +111,23 @@ namespace Orthanc
     const char* What() const
     {
       return EnumerationToString(errorCode_);
+    }
+
+    bool HasDetails() const
+    {
+      return details_.get() != NULL;
+    }
+
+    const char* GetDetails() const
+    {
+      if (details_.get() == NULL)
+      {
+        return "";
+      }
+      else
+      {
+        return details_->c_str();
+      }
     }
   };
 }
