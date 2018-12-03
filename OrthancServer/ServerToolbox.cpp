@@ -78,7 +78,10 @@ namespace Orthanc
                       const Json::Value& source,
                       DicomToJsonFormat format)
     {
-      assert(source.isObject());
+      if (!source.isObject())
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+      }
 
       target = Json::objectValue;
       Json::Value::Members members = source.getMemberNames();
