@@ -482,6 +482,11 @@ public:
       message["OrthancError"] = EnumerationToString(errorCode);
       message["OrthancStatus"] = errorCode;
 
+      if (exception.HasDetails())
+      {
+        message["Details"] = exception.GetDetails();
+      }
+
       std::string info = message.toStyledString();
       output.SendStatus(httpStatus, info);
     }
