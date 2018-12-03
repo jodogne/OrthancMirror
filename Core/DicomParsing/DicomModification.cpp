@@ -256,8 +256,8 @@ namespace Orthanc
       {
         if (!identifierGenerator_->Apply(mapped, original, level, currentSource_))
         {
-          LOG(ERROR) << "Unable to generate an anonymized ID";
-          throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Unable to generate an anonymized ID");
         }
       }
 
@@ -873,28 +873,28 @@ namespace Orthanc
     // Sanity checks at the patient level
     if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
     {
-      LOG(ERROR) << "When modifying a patient, her PatientID is required to be modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying a patient, her PatientID is required to be modified");
     }
 
     if (!allowManualIdentifiers_)
     {
       if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a patient, the StudyInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the StudyInstanceUID cannot be manually modified");
       }
 
       if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a patient, the SeriesInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the SeriesInstanceUID cannot be manually modified");
       }
 
       if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a patient, the SopInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the SopInstanceUID cannot be manually modified");
       }
     }
 
@@ -902,22 +902,22 @@ namespace Orthanc
     // Sanity checks at the study level
     if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
-      LOG(ERROR) << "When modifying a study, the parent PatientID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying a study, the parent PatientID cannot be manually modified");
     }
 
     if (!allowManualIdentifiers_)
     {
       if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a study, the SeriesInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the SeriesInstanceUID cannot be manually modified");
       }
 
       if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a study, the SopInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the SopInstanceUID cannot be manually modified");
       }
     }
 
@@ -925,22 +925,22 @@ namespace Orthanc
     // Sanity checks at the series level
     if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
-      LOG(ERROR) << "When modifying a series, the parent PatientID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying a series, the parent PatientID cannot be manually modified");
     }
 
     if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
-      LOG(ERROR) << "When modifying a series, the parent StudyInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying a series, the parent StudyInstanceUID cannot be manually modified");
     }
 
     if (!allowManualIdentifiers_)
     {
       if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
       {
-        LOG(ERROR) << "When modifying a series, the SopInstanceUID cannot be manually modified";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the SopInstanceUID cannot be manually modified");
       }
     }
 
@@ -948,20 +948,20 @@ namespace Orthanc
     // Sanity checks at the instance level
     if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_PATIENT_ID))
     {
-      LOG(ERROR) << "When modifying an instance, the parent PatientID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying an instance, the parent PatientID cannot be manually modified");
     }
 
     if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
-      LOG(ERROR) << "When modifying an instance, the parent StudyInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying an instance, the parent StudyInstanceUID cannot be manually modified");
     }
 
     if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
     {
-      LOG(ERROR) << "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified");
     }
 
 
@@ -1082,10 +1082,10 @@ namespace Orthanc
 
       if (!force && IsDatabaseKey(tag))
       {
-        LOG(ERROR) << "Marking tag \"" << name << "\" as to be "
-                   << (operation == DicomModification::TagOperation_Keep ? "kept" : "removed")
-                   << " requires the \"Force\" option to be set to true";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Marking tag \"" + name + "\" as to be " +
+                               (operation == DicomModification::TagOperation_Keep ? "kept" : "removed") +
+                               " requires the \"Force\" option to be set to true");
       }
 
       switch (operation)
@@ -1126,9 +1126,9 @@ namespace Orthanc
 
       if (!force && IsDatabaseKey(tag))
       {
-        LOG(ERROR) << "Marking tag \"" << name << "\" as to be replaced "
-                   << "requires the \"Force\" option to be set to true";
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Marking tag \"" + name + "\" as to be replaced " +
+                               "requires the \"Force\" option to be set to true");
       }
 
       target.Replace(tag, value, false);
@@ -1153,8 +1153,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Member \"" << member << "\" should be a Boolean value";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Member \"" + member + "\" should be a Boolean value");
     }
   }
 
@@ -1271,8 +1271,8 @@ namespace Orthanc
   {
     if (identifierGenerator_ != NULL)
     {
-      LOG(ERROR) << "Cannot serialize a DicomModification with a custom identifier generator";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot serialize a DicomModification with a custom identifier generator");
     }
 
     value = Json::objectValue;

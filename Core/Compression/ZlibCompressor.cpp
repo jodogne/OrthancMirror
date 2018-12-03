@@ -117,8 +117,8 @@ namespace Orthanc
 
     if (!HasPrefixWithUncompressedSize())
     {
-      LOG(ERROR) << "Cannot guess the uncompressed size of a zlib-encoded buffer";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot guess the uncompressed size of a zlib-encoded buffer");
     }
 
     uint64_t uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);

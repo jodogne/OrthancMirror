@@ -119,16 +119,16 @@ namespace Orthanc
 
     if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
     {
-      LOG(ERROR) << "Cannot read embedded dictionary. Under Windows, make sure that " 
-                 << "your TEMP directory does not contain special characters.";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot read embedded dictionary. Under Windows, make sure that " 
+                             "your TEMP directory does not contain special characters.");
     }
 #else
     if (!dictionary.loadFromMemory(content))
     {
-      LOG(ERROR) << "Cannot read embedded dictionary. Under Windows, make sure that " 
-                 << "your TEMP directory does not contain special characters.";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot read embedded dictionary. Under Windows, make sure that " 
+                             "your TEMP directory does not contain special characters.");
     }
 #endif
   }
@@ -289,8 +289,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
     {
-      LOG(ERROR) << "No DICOM dictionary loaded, check environment variable: " << DCM_DICT_ENVIRONMENT_VARIABLE;
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "No DICOM dictionary loaded, check environment variable: " +
+                             std::string(DCM_DICT_ENVIRONMENT_VARIABLE));
     }
 
     {
@@ -298,8 +299,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       DcmTag key(0x0010, 0x1030); // This is PatientWeight
       if (key.getEVR() != EVR_DS)
       {
-        LOG(ERROR) << "The DICOM dictionary has not been correctly read";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "The DICOM dictionary has not been correctly read");
       }
     }
   }
@@ -370,8 +371,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         char buf[128];
         sprintf(buf, "Trying to register private tag (%04x,%04x), but it must have an odd group >= 0x0009",
                 tag.GetGroup(), tag.GetElement());
-        LOG(ERROR) << buf;
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange, std::string(buf));
       }
 
       entry.reset(new DcmDictEntry(tag.GetGroup(),
@@ -392,8 +392,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
       if (locker->findEntry(name.c_str()))
       {
-        LOG(ERROR) << "Cannot register two tags with the same symbolic name \"" << name << "\"";
-        throw OrthancException(ErrorCode_AlreadyExistingTag);
+        throw OrthancException(ErrorCode_AlreadyExistingTag,
+                               "Cannot register two tags with the same symbolic name \"" + name + "\"");
       }
 
       locker->addEntry(entry.release());
@@ -1673,9 +1673,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     if (!ok)
     {
-      LOG(ERROR) << "While creating a DICOM instance, tag (" << tag.Format()
-                 << ") has out-of-range value: \"" << *decoded << "\"";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "While creating a DICOM instance, tag (" + tag.Format() +
+                             ") has out-of-range value: \"" + (*decoded) + "\"");
     }
   }
 
@@ -1800,8 +1800,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
             (value.asString().length() != 0 &&
              !GetDicomEncoding(encoding, value.asCString())))
         {
-          LOG(ERROR) << "Unknown encoding while creating DICOM from JSON: " << value;
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Unknown encoding while creating DICOM from JSON: " +
+                                 value.toStyledString());
         }
 
         if (value.asString().length() == 0)
@@ -1924,8 +1925,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     result->transferInit();
     if (!result->read(is).good())
     {
-      LOG(ERROR) << "Cannot parse an invalid DICOM file (size: " << size << " bytes)";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Cannot parse an invalid DICOM file (size: " +
+                             boost::lexical_cast<std::string>(size) + " bytes)");
     }
 
     result->loadAllDataIntoMemory();
@@ -2044,8 +2046,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     if (output.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table";
-      throw OrthancException(ErrorCode_LuaBadOutput);
+      throw OrthancException(ErrorCode_LuaBadOutput,
+                             "Lua: IncomingFindRequestFilter must return a table");
     }
 
     Json::Value::Members members = output.getMemberNames();
@@ -2054,8 +2056,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     {
       if (output[members[i]].type() != Json::stringValue)
       {
-        LOG(ERROR) << "Lua: IncomingFindRequestFilter must return a table mapping names of DICOM tags to strings";
-        throw OrthancException(ErrorCode_LuaBadOutput);
+        throw OrthancException(ErrorCode_LuaBadOutput,
+                               "Lua: IncomingFindRequestFilter must return a table "
+                               "mapping names of DICOM tags to strings");
       }
 
       DicomTag tag(ParseTag(members[i]));
@@ -2186,8 +2189,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
           std::string s = Toolbox::ConvertFromUtf8(newValue, encoding);
           if (element.putString(s.c_str()) != EC_Normal)
           {
-            LOG(ERROR) << "Cannot replace value of tag: " << tag.Format();
-            throw OrthancException(ErrorCode_InternalError);
+            throw OrthancException(ErrorCode_InternalError,
+                                   "Cannot replace value of tag: " + tag.Format());
           }
 
           break;

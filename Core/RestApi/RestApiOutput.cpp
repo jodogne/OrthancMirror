@@ -100,8 +100,8 @@ namespace Orthanc
       output_.SetContentType(MIME_XML_UTF8);
       output_.Answer(s);
 #else
-      LOG(ERROR) << "Orthanc was compiled without XML support";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Orthanc was compiled without XML support");
 #endif
     }
     else
