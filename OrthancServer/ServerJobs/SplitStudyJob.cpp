@@ -43,10 +43,11 @@ namespace Orthanc
   {
     if (allowedTags_.find(tag) == allowedTags_.end())
     {
-      LOG(ERROR) << "Cannot modify the following tag while splitting a study "
-                 << "(not in the patient/study modules): "
-                 << FromDcmtkBridge::GetTagName(tag, "") << " (" << tag.Format() << ")";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Cannot modify the following tag while splitting a study "
+                             "(not in the patient/study modules): " +
+                             FromDcmtkBridge::GetTagName(tag, "") +
+                             " (" + tag.Format() + ")");
     }
   }
 
@@ -173,8 +174,8 @@ namespace Orthanc
     if (!context_.GetIndex().LookupResourceType(type, sourceStudy) ||
         type != ResourceType_Study)
     {
-      LOG(ERROR) << "Cannot split unknown study: " << sourceStudy;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot split unknown study " + sourceStudy);
     }
   }
   
@@ -209,8 +210,8 @@ namespace Orthanc
     else if (!context_.GetIndex().LookupParent(parent, series, ResourceType_Study) ||
              parent != sourceStudy_)
     {
-      LOG(ERROR) << "This series does not belong to the study to be split: " << series;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "This series does not belong to the study to be split: " + series);
     }
     else
     {

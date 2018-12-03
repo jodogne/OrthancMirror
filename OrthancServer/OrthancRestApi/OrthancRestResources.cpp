@@ -151,14 +151,16 @@ namespace Orthanc
     {
       if (!call.HasArgument("limit"))
       {
-        LOG(ERROR) << "Missing \"limit\" argument for GET request against: " << call.FlattenUri();
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"limit\" argument for GET request against: " +
+                               call.FlattenUri());
       }
 
       if (!call.HasArgument("since"))
       {
-        LOG(ERROR) << "Missing \"since\" argument for GET request against: " << call.FlattenUri();
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"since\" argument for GET request against: " +
+                               call.FlattenUri());
       }
 
       size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
@@ -440,8 +442,9 @@ namespace Orthanc
 
         if (!ok)
         {
-          LOG(ERROR) << "Bad quality for a JPEG encoding (must be a number between 0 and 100): " << v;
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(
+            ErrorCode_BadRequest,
+            "Bad quality for a JPEG encoding (must be a number between 0 and 100): " + v);
         }
       }
 

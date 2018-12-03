@@ -67,8 +67,8 @@ namespace Orthanc
 
         if (!parameter[name].isInt())
         {
-          LOG(ERROR) << "Not a number in this user-defined metadata: " << name;
-          throw OrthancException(ErrorCode_BadParameterType);
+          throw OrthancException(ErrorCode_BadParameterType,
+                                 "Not a number in this user-defined metadata: " + name);
         }
 
         int metadata = parameter[name].asInt();        
@@ -119,8 +119,8 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "Not a number in this user-defined attachment type: " << name;
-          throw OrthancException(ErrorCode_BadParameterType);
+          throw OrthancException(ErrorCode_BadParameterType,
+                                 "Not a number in this user-defined attachment type: " + name);
         }
 
         LOG(INFO) << "Registering user-defined attachment type: " << name << " (index " 
@@ -183,8 +183,9 @@ namespace Orthanc
         !config.isMember("Module") ||
         config["Module"].type() != Json::stringValue)
     {
-      LOG(ERROR) << "No path to the PKCS#11 module (DLL or .so) is provided for HTTPS client authentication";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "No path to the PKCS#11 module (DLL or .so) is provided "
+                             "for HTTPS client authentication");
     }
 
     std::string pin;
@@ -196,8 +197,8 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "The PIN number in the PKCS#11 configuration must be a string";
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The PIN number in the PKCS#11 configuration must be a string");
       }
     }
 
@@ -210,8 +211,8 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "The Verbose option in the PKCS#11 configuration must be a Boolean";
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The Verbose option in the PKCS#11 configuration must be a Boolean");
       }
     }
 

@@ -71,8 +71,8 @@ namespace Orthanc
       if (!reader.parse(content, tmp) ||
           tmp.type() != Json::objectValue)
       {
-        LOG(ERROR) << "The configuration file does not follow the JSON syntax: " << path;
-        throw OrthancException(ErrorCode_BadJson);
+        throw OrthancException(ErrorCode_BadJson,
+                               "The configuration file does not follow the JSON syntax: " + path.string());
       }
 
       Toolbox::CopyJsonWithoutComments(config, tmp);
@@ -90,9 +90,9 @@ namespace Orthanc
       {
         if (target.isMember(members[i]))
         {
-          LOG(ERROR) << "The configuration section \"" << members[i]
-                     << "\" is defined in 2 different configuration files";
-          throw OrthancException(ErrorCode_BadFileFormat);          
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "The configuration section \"" + members[i] +
+                                 "\" is defined in 2 different configuration files");
         }
         else
         {

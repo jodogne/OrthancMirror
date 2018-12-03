@@ -134,8 +134,8 @@ namespace Orthanc
     if (modification_.get() == NULL ||
         output_.get() == NULL)
     {
-      LOG(ERROR) << "No modification was provided for this job";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "No modification was provided for this job");
     }
 
       
@@ -212,8 +212,8 @@ namespace Orthanc
     std::string modifiedInstance;
     if (context_.Store(modifiedInstance, toStore) != StoreStatus_Success)
     {
-      LOG(ERROR) << "Error while storing a modified instance " << instance;
-      throw OrthancException(ErrorCode_CannotStoreInstance);
+      throw OrthancException(ErrorCode_CannotStoreInstance,
+                             "Error while storing a modified instance " + instance);
     }
 
     assert(modifiedInstance == modifiedHasher.HashInstance());

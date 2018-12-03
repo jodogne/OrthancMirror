@@ -552,8 +552,8 @@ namespace Orthanc
         levelTmp->IsNull() ||
         levelTmp->IsBinary())
     {
-      LOG(ERROR) << "C-FIND request without the tag 0008,0052 (QueryRetrieveLevel)";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "C-FIND request without the tag 0008,0052 (QueryRetrieveLevel)");
     }
 
     ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());
