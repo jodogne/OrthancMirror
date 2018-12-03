@@ -36,6 +36,14 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* ou
   char buffer[1024];
   uint32_t i;
 
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    // NB: Calling "OrthancPluginSendMethodNotAllowed(context, output, "GET");"
+    // is preferable. This is a sample to demonstrate "OrthancPluginSetHttpErrorDetails()".
+    OrthancPluginSetHttpErrorDetails(context, output, "This Callback1() can only be used by a GET call");
+    return OrthancPluginErrorCode_ParameterOutOfRange;
+  }
+  
   sprintf(buffer, "Callback on URL [%s] with body [%s]\n", url, request->body);
   OrthancPluginLogWarning(context, buffer);
 
@@ -184,7 +192,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* ou
   if (request->method != OrthancPluginHttpMethod_Get)
   {
     OrthancPluginSendMethodNotAllowed(context, output, "GET");
-    return 0;
+    return OrthancPluginErrorCode_Success;
   }
 
   isBuiltIn = strcmp("plugins", request->groups[0]);
@@ -301,22 +309,51 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeT
                                                             OrthancPluginResourceType resourceType,
                                                             const char* resourceId)
 {
-  char info[1024];
   OrthancPluginMemoryBuffer tmp;
+  memset(&tmp, 0, sizeof(tmp));
 
-  sprintf(info, "Change %d on resource %s of type %d", changeType, resourceId, resourceType);
+  char info[1024];
+  sprintf(info, "Change %d on resource %s of type %d", changeType,
+          (resourceId == NULL ? "<none>" : resourceId), resourceType);
   OrthancPluginLogWarning(context, info);
 
-  if (changeType == OrthancPluginChangeType_NewInstance)
+  switch (changeType)
   {
-    sprintf(info, "/instances/%s/metadata/AnonymizedFrom", resourceId);
-    if (OrthancPluginRestApiGet(context, &tmp, info) == 0)
+    case OrthancPluginChangeType_NewInstance:
     {
-      sprintf(info, "  Instance %s comes from the anonymization of instance", resourceId);
-      strncat(info, (const char*) tmp.data, tmp.size);
-      OrthancPluginLogWarning(context, info);
-      OrthancPluginFreeMemoryBuffer(context, &tmp);
+      sprintf(info, "/instances/%s/metadata/AnonymizedFrom", resourceId);
+      if (OrthancPluginRestApiGet(context, &tmp, info) == 0)
+      {
+        sprintf(info, "  Instance %s comes from the anonymization of instance", resourceId);
+        strncat(info, (const char*) tmp.data, tmp.size);
+        OrthancPluginLogWarning(context, info);
+        OrthancPluginFreeMemoryBuffer(context, &tmp);
+      }
+
+      break;
     }
+
+    case OrthancPluginChangeType_OrthancStarted:
+    {
+      /* Make REST requests to the built-in Orthanc API */
+      OrthancPluginRestApiGet(context, &tmp, "/changes");
+      OrthancPluginFreeMemoryBuffer(context, &tmp);
+      OrthancPluginRestApiGet(context, &tmp, "/changes?limit=1");
+      OrthancPluginFreeMemoryBuffer(context, &tmp);
+
+      /* Play with PUT by defining a new target modality. */
+      sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
+      OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
+
+      break;
+    }
+
+    case OrthancPluginChangeType_OrthancStopped:
+      OrthancPluginLogWarning(context, "Orthanc has stopped");
+      break;
+
+    default:
+      break;
   }
 
   return OrthancPluginErrorCode_Success;
@@ -357,7 +394,6 @@ ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  m
 
 ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 {
-  OrthancPluginMemoryBuffer tmp;
   char info[1024], *s;
   int counter, i;
   OrthancPluginDictionaryEntry entry;
@@ -425,19 +461,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginSetDescription(context, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");
   OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
 
-  /* Make REST requests to the built-in Orthanc API */
-  memset(&tmp, 0, sizeof(tmp));
-  OrthancPluginRestApiGet(context, &tmp, "/changes");
-  OrthancPluginFreeMemoryBuffer(context, &tmp);
-  OrthancPluginRestApiGet(context, &tmp, "/changes?limit=1");
-  OrthancPluginFreeMemoryBuffer(context, &tmp);
-  
-  /* Play with PUT by defining a new target modality. */
-  sprintf(info, "[ \"STORESCP\", \"localhost\", 2000 ]");
-  OrthancPluginRestApiPut(context, &tmp, "/modalities/demo", info, strlen(info));
-
   customError = OrthancPluginRegisterErrorCode(context, 4, 402, "Hello world");
-
+  
   OrthancPluginRegisterDictionaryTag(context, 0x0014, 0x1020, OrthancPluginValueRepresentation_DA,
                                      "ValidationExpiryDate", 1, 1);
 
