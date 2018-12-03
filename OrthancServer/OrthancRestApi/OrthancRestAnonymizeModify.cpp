@@ -297,13 +297,11 @@ namespace Orthanc
             tag != DICOM_TAG_STUDY_TIME &&
             dicom.HasTag(tag))
         {
-          LOG(ERROR) << EnumerationToString(ErrorCode_CreateDicomOverrideTag) << ": " << name;
-          throw OrthancException(ErrorCode_CreateDicomOverrideTag);
+          throw OrthancException(ErrorCode_CreateDicomOverrideTag, name);
         }
 
         if (tag == DICOM_TAG_PIXEL_DATA)
         {
-          LOG(ERROR) << EnumerationToString(ErrorCode_CreateDicomUseContent);
           throw OrthancException(ErrorCode_CreateDicomUseContent);
         }
         else
