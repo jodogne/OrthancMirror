@@ -78,7 +78,9 @@ namespace Orthanc
       httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
       details_(new std::string(details))
     {
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+#endif
     }
 
     OrthancException(ErrorCode errorCode,
@@ -95,7 +97,9 @@ namespace Orthanc
       httpStatus_(httpStatus),
       details_(new std::string(details))
     {
+#if ORTHANC_ENABLE_LOGGING == 1
       LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+#endif
     }
 
     ErrorCode GetErrorCode() const

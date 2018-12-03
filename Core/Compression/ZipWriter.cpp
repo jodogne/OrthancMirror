@@ -124,8 +124,8 @@ namespace Orthanc
 
     if (path_.size() == 0)
     {
-      LOG(ERROR) << "Please call SetOutputPath() before creating the file";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "Please call SetOutputPath() before creating the file");
     }
 
     hasFileInZip_ = false;
@@ -168,8 +168,8 @@ namespace Orthanc
   {
     if (level >= 10)
     {
-      LOG(ERROR) << "ZIP compression level must be between 0 (no compression) and 9 (highest compression)";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "ZIP compression level must be between 0 (no compression) and 9 (highest compression)");
     }
 
     Close();
@@ -228,8 +228,7 @@ namespace Orthanc
   {
     if (!hasFileInZip_)
     {
-      LOG(ERROR) << "Call first OpenFile()";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "Call first OpenFile()");
     }
 
     const size_t maxBytesInAStep = std::numeric_limits<int32_t>::max();

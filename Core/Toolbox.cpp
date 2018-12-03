@@ -1392,8 +1392,8 @@ namespace Orthanc
     if (!ok &&
         !SetGlobalLocale(NULL))
     {
-      LOG(ERROR) << "Cannot initialize global locale";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot initialize global locale");
     }
 
   }
@@ -1409,8 +1409,8 @@ namespace Orthanc
   {
     if (globalLocale_.get() == NULL)
     {
-      LOG(ERROR) << "No global locale was set, call Toolbox::InitializeGlobalLocale()";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "No global locale was set, call Toolbox::InitializeGlobalLocale()");
     }
 
     /**

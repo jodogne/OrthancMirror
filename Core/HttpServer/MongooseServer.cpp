@@ -813,8 +813,8 @@ namespace Orthanc
         // Now convert native exceptions as OrthancException
         catch (boost::bad_lexical_cast&)
         {
-          LOG(ERROR) << "Syntax error in some user-supplied data";
-          throw OrthancException(ErrorCode_BadParameterType);
+          throw OrthancException(ErrorCode_BadParameterType,
+                                 "Syntax error in some user-supplied data");
         }
         catch (std::runtime_error&)
         {
@@ -823,13 +823,13 @@ namespace Orthanc
         }
         catch (std::bad_alloc&)
         {
-          LOG(ERROR) << "The server hosting Orthanc is running out of memory";
-          throw OrthancException(ErrorCode_NotEnoughMemory);
+          throw OrthancException(ErrorCode_NotEnoughMemory,
+                                 "The server hosting Orthanc is running out of memory");
         }
         catch (...)
         {
-          LOG(ERROR) << "An unhandled exception was generated inside the HTTP server";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "An unhandled exception was generated inside the HTTP server");
         }
       }
       catch (OrthancException& e)

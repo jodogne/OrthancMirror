@@ -87,8 +87,9 @@ namespace Orthanc
     if (value <= 0 || 
         value >= 65535)
     {
-      LOG(ERROR) << "A TCP port number must be in range [1..65534], but found: " << value;
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "A TCP port number must be in range [1..65534], but found: " +
+                             boost::lexical_cast<std::string>(value));
     }
   }
 

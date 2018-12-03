@@ -292,8 +292,9 @@ namespace Orthanc
 
           if (!cond.good())
           {
-            LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
-            throw OrthancException(ErrorCode_InternalError);
+            throw OrthancException(ErrorCode_InternalError,
+                                   "Error while sending a DICOM field: " +
+                                   std::string(cond.text()));
           }
 
           return true;
@@ -955,8 +956,8 @@ namespace Orthanc
     }
     else if (tmp->IsBinary())
     {
-      LOG(ERROR) << "Invalid binary string in the SpecificCharacterSet (0008,0005) tag";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Invalid binary string in the SpecificCharacterSet (0008,0005) tag");
     }
     else if (tmp->IsNull() ||
              tmp->GetContent().empty())
@@ -973,9 +974,9 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \""
-                   << tmp->GetContent() << "\"";        
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \"" +
+                               tmp->GetContent() + "\"");
       }
     }
 
@@ -1081,8 +1082,8 @@ namespace Orthanc
         EmbedImage(mime, content);
         break;
 #else
-        LOG(ERROR) << "Orthanc was compiled without support of PNG";
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Orthanc was compiled without support of PNG");
 #endif
 
       case MimeType_Jpeg:
@@ -1090,8 +1091,8 @@ namespace Orthanc
         EmbedImage(mime, content);
         break;
 #else
-        LOG(ERROR) << "Orthanc was compiled without support of JPEG";
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Orthanc was compiled without support of JPEG");
 #endif
 
       case MimeType_Pam:
@@ -1103,8 +1104,8 @@ namespace Orthanc
         break;
 
       default:
-        LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Unsupported MIME type for the content of a new DICOM file: " + mime);
     }
 
     return true;
@@ -1369,8 +1370,7 @@ namespace Orthanc
     if (pdf.size() < 5 ||  // (*)
         strncmp("%PDF-", pdf.c_str(), 5) != 0)
     {
-      LOG(ERROR) << "Not a PDF file";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
     }
 
     InvalidateCache();

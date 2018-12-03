@@ -187,17 +187,17 @@ namespace Orthanc
       ENGINE* engine = ENGINE_new();
       if (!engine)
       {
-        LOG(ERROR) << "Cannot create an OpenSSL engine for PKCS#11";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot create an OpenSSL engine for PKCS#11");
       }
 
       // Create a PKCS#11 context using libp11
       context_ = pkcs11_new();
       if (!context_)
       {
-        LOG(ERROR) << "Cannot create a libp11 context for PKCS#11";
         ENGINE_free(engine);
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot create a libp11 context for PKCS#11");
       }
 
       if (!ENGINE_set_id(engine, PKCS11_ENGINE_ID) ||
@@ -223,10 +223,10 @@ namespace Orthanc
           // Make OpenSSL know about our PKCS#11 engine
           !ENGINE_add(engine))
       {
-        LOG(ERROR) << "Cannot initialize the OpenSSL engine for PKCS#11";
         pkcs11_finish(context_);
         ENGINE_free(engine);
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot initialize the OpenSSL engine for PKCS#11");
       }
 
       // If the "ENGINE_add" worked, it gets a structural
@@ -253,28 +253,29 @@ namespace Orthanc
     {
       if (pkcs11Initialized_)
       {
-        LOG(ERROR) << "The PKCS#11 engine has already been initialized";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "The PKCS#11 engine has already been initialized");
       }
 
       if (module.empty() ||
           !SystemToolbox::IsRegularFile(module))
       {
-        LOG(ERROR) << "The PKCS#11 module must be a path to one shared library (DLL or .so)";
-        throw OrthancException(ErrorCode_InexistentFile);
+        throw OrthancException(
+          ErrorCode_InexistentFile,
+          "The PKCS#11 module must be a path to one shared library (DLL or .so)");
       }
 
       ENGINE* engine = LoadEngine();
       if (!engine)
       {
-        LOG(ERROR) << "Cannot create an OpenSSL engine for PKCS#11";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot create an OpenSSL engine for PKCS#11");
       }
 
       if (!ENGINE_ctrl_cmd_string(engine, "MODULE_PATH", module.c_str(), 0))
       {
-        LOG(ERROR) << "Cannot configure the OpenSSL dynamic engine for PKCS#11";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot configure the OpenSSL dynamic engine for PKCS#11");
       }
 
       if (verbose)
@@ -285,14 +286,14 @@ namespace Orthanc
       if (!pin.empty() &&
           !ENGINE_ctrl_cmd_string(engine, "PIN", pin.c_str(), 0)) 
       {
-        LOG(ERROR) << "Cannot set the PIN code for PKCS#11";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot set the PIN code for PKCS#11");
       }
   
       if (!ENGINE_init(engine))
       {
-        LOG(ERROR) << "Cannot initialize the OpenSSL dynamic engine for PKCS#11";
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot initialize the OpenSSL dynamic engine for PKCS#11");
       }
 
       LOG(WARNING) << "The PKCS#11 engine has been successfully initialized";
