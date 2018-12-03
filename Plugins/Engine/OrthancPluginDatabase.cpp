@@ -280,8 +280,8 @@ namespace Orthanc
   {
     if (extensions_.getAllInternalIds == NULL)
     {
-      LOG(ERROR) << "The database plugin does not implement the GetAllInternalIds primitive";
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      throw OrthancException(ErrorCode_DatabasePlugin,
+                             "The database plugin does not implement the GetAllInternalIds primitive");
     }
 
     ResetAnswers();
@@ -618,8 +618,8 @@ namespace Orthanc
   {
     if (extensions_.lookupIdentifier3 == NULL)
     {
-      LOG(ERROR) << "The database plugin does not implement the LookupIdentifier3 primitive";
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      throw OrthancException(ErrorCode_DatabasePlugin,
+                             "The database plugin does not implement the LookupIdentifier3 primitive");
     }
 
     OrthancPluginDicomTag tmp;
@@ -736,8 +736,8 @@ namespace Orthanc
   {
     if (extensions_.clearMainDicomTags == NULL)
     {
-      LOG(ERROR) << "Your custom index plugin does not implement the ClearMainDicomTags() extension";
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      throw OrthancException(ErrorCode_DatabasePlugin,
+                             "Your custom index plugin does not implement the ClearMainDicomTags() extension");
     }
 
     CheckSuccess(extensions_.clearMainDicomTags(payload_, id));
@@ -971,14 +971,15 @@ namespace Orthanc
           break;
 
         default:
-          LOG(ERROR) << "Unhandled type of answer for custom index plugin: " << answer.type;
-          throw OrthancException(ErrorCode_DatabasePlugin);
+          throw OrthancException(ErrorCode_DatabasePlugin,
+                                 "Unhandled type of answer for custom index plugin: " +
+                                 boost::lexical_cast<std::string>(answer.type));
       }
     }
     else if (type_ != answer.type)
     {
-      LOG(ERROR) << "Error in the plugin protocol: Cannot change the answer type";
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      throw OrthancException(ErrorCode_DatabasePlugin,
+                             "Error in the plugin protocol: Cannot change the answer type");
     }
 
     switch (answer.type)
@@ -1098,8 +1099,9 @@ namespace Orthanc
       }
 
       default:
-        LOG(ERROR) << "Unhandled type of answer for custom index plugin: " << answer.type;
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        throw OrthancException(ErrorCode_DatabasePlugin,
+                               "Unhandled type of answer for custom index plugin: " +
+                               boost::lexical_cast<std::string>(answer.type));
     }
   }
 }
