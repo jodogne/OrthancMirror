@@ -61,8 +61,8 @@ namespace Orthanc
   {
     if (study == targetStudy_)
     {
-      LOG(ERROR) << "Cannot merge a study into the same study: " << study;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot merge a study into the same study: " + study);
     }
     else
     {
@@ -183,8 +183,8 @@ namespace Orthanc
     if (!context_.GetIndex().LookupResourceType(type, targetStudy) ||
         type != ResourceType_Study)
     {
-      LOG(ERROR) << "Cannot merge into an unknown study: " << targetStudy;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot merge into an unknown study: " + targetStudy);
     }
 
 
@@ -257,8 +257,8 @@ namespace Orthanc
     }
     else if (!context_.GetIndex().LookupResourceType(level, studyOrSeries))
     {
-      LOG(ERROR) << "Cannot find this resource: " << studyOrSeries;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot find this resource: " + studyOrSeries);
     }
     else
     {
@@ -273,9 +273,10 @@ namespace Orthanc
           break;
           
         default:
-          LOG(ERROR) << "This resource is neither a study, nor a series: "
-                     << studyOrSeries << " is a " << EnumerationToString(level);
-          throw OrthancException(ErrorCode_UnknownResource);
+          throw OrthancException(ErrorCode_UnknownResource,
+                                 "This resource is neither a study, nor a series: " +
+                                 studyOrSeries + " is a " +
+                                 std::string(EnumerationToString(level)));
       }
     }    
   }
@@ -291,14 +292,14 @@ namespace Orthanc
     }
     else if (!context_.GetIndex().LookupParent(parent, series, ResourceType_Study))
     {
-      LOG(ERROR) << "This resource is not a series: " << series;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "This resource is not a series: " + series);
     }
     else if (parent == targetStudy_)
     {
-      LOG(ERROR) << "Cannot merge series " << series
-                 << " into its parent study " << targetStudy_;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot merge series " + series +
+                             " into its parent study " + targetStudy_);
     }
     else
     {
@@ -318,8 +319,8 @@ namespace Orthanc
     else if (!context_.GetIndex().LookupResourceType(actualLevel, study) ||
              actualLevel != ResourceType_Study)
     {
-      LOG(ERROR) << "This resource is not a study: " << study;
-      throw OrthancException(ErrorCode_UnknownResource);
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "This resource is not a study: " + study);
     }
     else
     {

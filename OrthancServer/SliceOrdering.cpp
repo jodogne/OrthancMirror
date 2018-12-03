@@ -407,8 +407,8 @@ namespace Orthanc
     if (!SortUsingPositions() &&
         !SortUsingIndexInSeries())
     {
-      LOG(ERROR) << "Unable to order the slices of the series " << seriesId;
-      throw OrthancException(ErrorCode_CannotOrderSlices);
+      throw OrthancException(ErrorCode_CannotOrderSlices,
+                             "Unable to order the slices of series " + seriesId);
     }
   }
 

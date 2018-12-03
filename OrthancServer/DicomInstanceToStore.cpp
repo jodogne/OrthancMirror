@@ -188,8 +188,8 @@ namespace Orthanc
         if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
                                                  *parsed_.GetContent().GetDcmtkObject().getDataset()))
         {
-          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Unable to serialize a DICOM file to a memory buffer");
         }
       }
 

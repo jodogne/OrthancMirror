@@ -924,8 +924,8 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "No peer with symbolic name: " << remote;
-        throw OrthancException(ErrorCode_UnknownResource);
+        throw OrthancException(ErrorCode_UnknownResource,
+                               "No peer with symbolic name: " + remote);
       }
     }
   }

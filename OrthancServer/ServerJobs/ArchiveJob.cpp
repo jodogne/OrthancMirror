@@ -812,8 +812,8 @@ namespace Orthanc
   
   void ArchiveJob::Reset()
   {
-    LOG(ERROR) << "Cannot resubmit the creation of an archive";
-    throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                           "Cannot resubmit the creation of an archive");
   }
 
   

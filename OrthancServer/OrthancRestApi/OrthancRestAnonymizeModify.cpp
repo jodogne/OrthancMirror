@@ -271,8 +271,7 @@ namespace Orthanc
   {
     if (tags.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Tags field is not an array";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest, "Tags field is not an array");
     }
 
     // Inject the user-specified tags
@@ -410,8 +409,8 @@ namespace Orthanc
         const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
         if (!GetDicomEncoding(encoding, tmp))
         {
-          LOG(ERROR) << "Unknown specific character set: " << std::string(tmp);
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Unknown specific character set: " + std::string(tmp));
         }
       }
       else

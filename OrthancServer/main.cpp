@@ -1003,9 +1003,10 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
 
   if (currentVersion > ORTHANC_DATABASE_VERSION)
   {
-    LOG(ERROR) << "The version of the database schema (" << currentVersion
-               << ") is too recent for this version of Orthanc. Please upgrade Orthanc.";
-    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
+                           "The version of the database schema (" +
+                           boost::lexical_cast<std::string>(currentVersion) +
+                           ") is too recent for this version of Orthanc. Please upgrade Orthanc.");
   }
 
   LOG(WARNING) << "Upgrading the database from schema version "
@@ -1026,8 +1027,9 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   currentVersion = database.GetDatabaseVersion();
   if (ORTHANC_DATABASE_VERSION != currentVersion)
   {
-    LOG(ERROR) << "The database schema was not properly upgraded, it is still at version " << currentVersion;
-    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
+                           "The database schema was not properly upgraded, it is still at version " +
+                           boost::lexical_cast<std::string>(currentVersion));
   }
   else
   {
@@ -1171,10 +1173,11 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
   }
   else if (currentVersion != ORTHANC_DATABASE_VERSION)
   {
-    LOG(ERROR) << "The database schema must be changed from version "
-               << currentVersion << " to " << ORTHANC_DATABASE_VERSION 
-               << ": Please run Orthanc with the \"--upgrade\" argument";
-    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+    throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
+                           "The database schema must be changed from version " +
+                           boost::lexical_cast<std::string>(currentVersion) + " to " +
+                           boost::lexical_cast<std::string>(ORTHANC_DATABASE_VERSION) +
+                           ": Please run Orthanc with the \"--upgrade\" argument");
   }
 
   bool success = ConfigureServerContext
