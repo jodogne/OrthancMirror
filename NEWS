@@ -26,6 +26,7 @@ REST API
 * POST-ing a DICOM file to "/instances" also answers the patient/study/series ID
 * GET "/modalities/..." now returns a JSON object instead of a JSON array
 * New options to URI "/queries/.../answers": "?expand" and "?simplify"
+* New "Details" field in HTTP answers on error (cf. "HttpDescribeErrors" option)
 
 Maintenance
 -----------

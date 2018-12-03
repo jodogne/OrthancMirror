@@ -107,11 +107,8 @@ namespace Orthanc
   {
     if (readOnly_)
     {
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "Trying to write on a read-only image";
-#endif
-
-      throw OrthancException(ErrorCode_ReadOnly);
+      throw OrthancException(ErrorCode_ReadOnly,
+                             "Trying to write to a read-only image");
     }
 
     return buffer_;
@@ -135,11 +132,8 @@ namespace Orthanc
   {
     if (readOnly_)
     {
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "Trying to write on a read-only image";
-#endif
-
-      throw OrthancException(ErrorCode_ReadOnly);
+      throw OrthancException(ErrorCode_ReadOnly,
+                             "Trying to write to a read-only image");
     }
 
     if (buffer_ != NULL)
@@ -299,10 +293,8 @@ namespace Orthanc
   {
     if (readOnly_)
     {
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "Trying to modify the format of a read-only image";
-#endif
-      throw OrthancException(ErrorCode_ReadOnly);
+      throw OrthancException(ErrorCode_ReadOnly,
+                             "Trying to modify the format of a read-only image");
     }
 
     if (::Orthanc::GetBytesPerPixel(format) != ::Orthanc::GetBytesPerPixel(format_))

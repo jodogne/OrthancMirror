@@ -672,9 +672,11 @@ namespace Orthanc
           break;
         
         default:
-          LOG(ERROR) << "A job should not be loaded from state: "
-                     << EnumerationToString(handler->GetState());
-          throw OrthancException(ErrorCode_InternalError);
+        {
+          std::string details = ("A job should not be loaded from state: " +
+                                 std::string(EnumerationToString(handler->GetState())));
+          throw OrthancException(ErrorCode_InternalError, details);
+        }
       }
 
       LOG(INFO) << "New job submitted with priority " << priority << ": " << id;

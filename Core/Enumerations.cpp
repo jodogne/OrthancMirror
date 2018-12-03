@@ -1373,8 +1373,7 @@ namespace Orthanc
 
       if (throwIfUnsupported)
       {
-        LOG(ERROR) << s;
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange, s);
       }
       else
       {
@@ -1510,8 +1509,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Unknown modality manufacturer: \"" << manufacturer << "\"";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unknown modality manufacturer: \"" + manufacturer + "\"");
     }
 
     if (obsolete)
