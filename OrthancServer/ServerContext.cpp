@@ -538,8 +538,8 @@ namespace Orthanc
       if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
                          result.c_str(), result.size()))
       {
-        LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot associate the DICOM-as-JSON summary to instance: " + instancePublicId);
       }
     }
   }
@@ -598,8 +598,9 @@ namespace Orthanc
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
-      LOG(WARNING) << "Unable to read attachment " << EnumerationToString(content) << " of instance " << instancePublicId;
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(content) +
+                             " of instance " + instancePublicId);
     }
 
     if (uncompressIfNeeded)

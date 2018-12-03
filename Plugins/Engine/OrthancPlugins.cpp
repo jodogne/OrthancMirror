@@ -733,7 +733,8 @@ namespace Orthanc
           OrthancPluginErrorCode error = apply_(driver_);
           if (error != OrthancPluginErrorCode_Success)
           {
-            LOG(ERROR) << "Error while doing C-Move from plugin: " << EnumerationToString(static_cast<ErrorCode>(error));
+            LOG(ERROR) << "Error while doing C-Move from plugin: "
+                       << EnumerationToString(static_cast<ErrorCode>(error));
             return Status_Failure;
           }
           else
@@ -816,8 +817,8 @@ namespace Orthanc
 
       if (driver == NULL)
       {
-        LOG(ERROR) << "Plugin cannot create a driver for an incoming C-MOVE request";
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_Plugin,
+                               "Plugin cannot create a driver for an incoming C-MOVE request");
       }
 
       unsigned int size = params_.getMoveSize(driver);
@@ -1144,8 +1145,8 @@ namespace Orthanc
 
     if (pimpl_->worklistCallback_ != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle modality worklists";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle modality worklists");
     }
     else
     {
@@ -1164,8 +1165,8 @@ namespace Orthanc
 
     if (pimpl_->findCallback_ != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle C-FIND requests";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-FIND requests");
     }
     else
     {
@@ -1184,8 +1185,8 @@ namespace Orthanc
 
     if (pimpl_->moveCallbacks_.callback != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle C-MOVE requests";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-MOVE requests");
     }
     else
     {
@@ -2320,8 +2321,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "Cannot invoke this service without a custom database back-end");
     }
   }
 
@@ -3195,8 +3196,8 @@ namespace Orthanc
 
         if (pimpl_->database_.get() == NULL)
         {
-          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
-          throw OrthancException(ErrorCode_DatabasePlugin);
+          throw OrthancException(ErrorCode_DatabasePlugin,
+                                 "The service ReconstructMainDicomTags can only be invoked by custom database plugins");
         }
 
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);

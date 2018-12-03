@@ -134,12 +134,13 @@ namespace Orthanc
   {
     target = Json::objectValue;
 
-    if (configurationFile)
+    if (configurationFile != NULL)
     {
       if (!boost::filesystem::exists(configurationFile))
       {
-        LOG(ERROR) << "Inexistent path to configuration: " << configurationFile;
-        throw OrthancException(ErrorCode_InexistentFile);
+        throw OrthancException(ErrorCode_InexistentFile,
+                               "Inexistent path to configuration: " +
+                               std::string(configurationFile));
       }
       
       if (boost::filesystem::is_directory(configurationFile))
@@ -179,9 +180,9 @@ namespace Orthanc
       if (!isalnum(s[j]) && 
           s[j] != '-')
       {
-        LOG(ERROR) << "Only alphanumeric and dash characters are allowed "
-                   << "in the names of modalities/peers, but found: " << s;
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Only alphanumeric and dash characters are allowed "
+                               "in the names of modalities/peers, but found: " + s);
       }
     }
   }
@@ -193,8 +194,9 @@ namespace Orthanc
 
     if (source.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Bad format of the \"" << DICOM_MODALITIES << "\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Bad format of the \"" + std::string(DICOM_MODALITIES) +
+                             "\" configuration section");
     }
 
     Json::Value::Members members = source.getMemberNames();
@@ -217,8 +219,9 @@ namespace Orthanc
 
     if (source.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Bad format of the \"" << ORTHANC_PEERS << "\" configuration section";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Bad format of the \"" + std::string(ORTHANC_PEERS) +
+                             "\" configuration section");
     }
 
     Json::Value::Members members = source.getMemberNames();
@@ -256,8 +259,8 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "Cannot unserialize the list of modalities from the Orthanc database";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Cannot unserialize the list of modalities from the Orthanc database");
         }
       }
     }
@@ -296,8 +299,8 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "Cannot unserialize the list of peers from the Orthanc database";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Cannot unserialize the list of peers from the Orthanc database");
         }
       }
     }
@@ -424,8 +427,8 @@ namespace Orthanc
     {
       if (json_[parameter].type() != Json::stringValue)
       {
-        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a string";
-        throw OrthancException(ErrorCode_BadParameterType);
+        throw OrthancException(ErrorCode_BadParameterType,
+                               "The configuration option \"" + parameter + "\" must be a string");
       }
       else
       {
@@ -446,8 +449,8 @@ namespace Orthanc
     {
       if (json_[parameter].type() != Json::intValue)
       {
-        LOG(ERROR) << "The configuration option \"" << parameter << "\" must be an integer";
-        throw OrthancException(ErrorCode_BadParameterType);
+        throw OrthancException(ErrorCode_BadParameterType,
+                               "The configuration option \"" + parameter + "\" must be an integer");
       }
       else
       {
@@ -469,8 +472,8 @@ namespace Orthanc
 
     if (v < 0)
     {
-      LOG(ERROR) << "The configuration option \"" << parameter << "\" must be a positive integer";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "The configuration option \"" + parameter + "\" must be a positive integer");
     }
     else
     {
@@ -486,9 +489,9 @@ namespace Orthanc
     {
       if (json_[parameter].type() != Json::booleanValue)
       {
-        LOG(ERROR) << "The configuration option \"" << parameter
-                   << "\" must be a Boolean (true or false)";
-        throw OrthancException(ErrorCode_BadParameterType);
+        throw OrthancException(ErrorCode_BadParameterType,
+                               "The configuration option \"" + parameter +
+                               "\" must be a Boolean (true or false)");
       }
       else
       {
@@ -555,8 +558,8 @@ namespace Orthanc
 
     if (found == modalities_.end())
     {
-      LOG(ERROR) << "No modality with symbolic name: " << name;
-      throw OrthancException(ErrorCode_InexistentItem);
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "No modality with symbolic name: " + name);
     }
     else
     {
@@ -618,8 +621,7 @@ namespace Orthanc
     const Json::Value& users = json_["RegisteredUsers"];
     if (users.type() != Json::objectValue)
     {
-      LOG(ERROR) << "Badly formatted list of users";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
     }
 
     Json::Value::Members usernames = users.getMemberNames();
@@ -653,8 +655,7 @@ namespace Orthanc
 
     if (lst.type() != Json::arrayValue)
     {
-      LOG(ERROR) << "Badly formatted list of strings";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings");
     }
 
     for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
@@ -747,8 +748,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Unknown modality for AET: " << aet;
-      throw OrthancException(ErrorCode_InexistentItem);
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Unknown modality for AET: " + aet);
     }
   }
 
