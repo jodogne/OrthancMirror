@@ -499,7 +499,11 @@ namespace OrthancPlugins
         if (HasGlobalContext() &&
             e.HasDetails())
         {
-          OrthancPluginSetHttpErrorDetails(GetGlobalContext(), output, e.GetDetails());
+          // The "false" instructs Orthanc not to log the detailed
+          // error message. This is to avoid duplicating the details,
+          // because "OrthancException" already does it on construction.
+          OrthancPluginSetHttpErrorDetails
+            (GetGlobalContext(), output, e.GetDetails(), false);
         }
 #endif
 
