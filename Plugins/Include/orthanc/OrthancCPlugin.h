@@ -6462,6 +6462,7 @@ extern "C"
     _OrthancPluginSetHttpErrorDetails params;
     params.output = output;
     params.details = details;
+    params.log = log;
     context->InvokeService(context, _OrthancPluginService_SetHttpErrorDetails, &params);
   }
 
