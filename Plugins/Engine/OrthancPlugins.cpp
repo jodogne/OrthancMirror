@@ -324,10 +324,12 @@ namespace Orthanc
     private:
       HttpOutput&                 output_;
       std::auto_ptr<std::string>  errorDetails_;
+      bool                        logDetails_;
 
     public:
       PluginHttpOutput(HttpOutput& output) :
-        output_(output)
+        output_(output),
+        logDetails_(false)
       {
       }
 
@@ -336,14 +338,21 @@ namespace Orthanc
         return output_;
       }
 
-      void SetErrorDetails(const std::string& details)
+      void SetErrorDetails(const std::string& details,
+                           bool logDetails)
       {
         errorDetails_.reset(new std::string(details));
+        logDetails_ = logDetails;
       }
 
       bool HasErrorDetails() const
       {
         return errorDetails_.get() != NULL;
+      }
+
+      bool IsLogDetails() const
+      {
+        return logDetails_;
       }
 
       const std::string& GetErrorDetails() const
@@ -1069,7 +1078,8 @@ namespace Orthanc
 
     PImpl::PluginHttpOutput pluginOutput(output);
 
-    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, pluginOutput, flatUri, request);
+    OrthancPluginErrorCode error = callback->Invoke
+      (pimpl_->restCallbackMutex_, pluginOutput, flatUri, request);
 
     if (error == OrthancPluginErrorCode_Success && 
         output.IsWritingMultipart())
@@ -1087,7 +1097,9 @@ namespace Orthanc
 
       if (pluginOutput.HasErrorDetails())
       {
-        throw OrthancException(static_cast<ErrorCode>(error), pluginOutput.GetErrorDetails());
+        throw OrthancException(static_cast<ErrorCode>(error),
+                               pluginOutput.GetErrorDetails(),
+                               pluginOutput.IsLogDetails());
       }
       else
       {
@@ -1389,8 +1401,9 @@ namespace Orthanc
     const _OrthancPluginSetHttpErrorDetails& p = 
       *reinterpret_cast<const _OrthancPluginSetHttpErrorDetails*>(parameters);
 
-    PImpl::PluginHttpOutput* output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output);
-    output->SetErrorDetails(p.details);
+    PImpl::PluginHttpOutput* output =
+      reinterpret_cast<PImpl::PluginHttpOutput*>(p.output);
+    output->SetErrorDetails(p.details, p.log);
   }
 
 

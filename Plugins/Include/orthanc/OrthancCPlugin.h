@@ -6433,6 +6433,7 @@ extern "C"
   {
     OrthancPluginRestOutput* output;
     const char*              details;
+    uint8_t                  log;
   } _OrthancPluginSetHttpErrorDetails;
 
   /**
@@ -6449,12 +6450,14 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param output The HTTP connection to the client application.
    * @param details The details of the error message.
+   * @param log Whether to also write the detailed error to the Orthanc logs.
    * @ingroup REST
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSetHttpErrorDetails(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
-    const char*              details)
+    const char*              details,
+    uint8_t                  log)
   {
     _OrthancPluginSetHttpErrorDetails params;
     params.output = output;

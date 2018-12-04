@@ -73,13 +73,17 @@ namespace Orthanc
     }
 
     OrthancException(ErrorCode errorCode,
-                     const std::string& details) :
+                     const std::string& details,
+                     bool log = true) :
       errorCode_(errorCode),
       httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
       details_(new std::string(details))
     {
 #if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+      if (log)
+      {
+        LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+      }
 #endif
     }
 
@@ -92,13 +96,17 @@ namespace Orthanc
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
-                     const std::string& details) :
+                     const std::string& details,
+                     bool log = true) :
       errorCode_(errorCode),
       httpStatus_(httpStatus),
       details_(new std::string(details))
     {
 #if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+      if (log)
+      {
+        LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+      }
 #endif
     }
 
