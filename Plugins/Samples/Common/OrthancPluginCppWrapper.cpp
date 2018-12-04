@@ -39,6 +39,45 @@
 
 namespace OrthancPlugins
 {
+  static OrthancPluginContext* globalContext_ = NULL;
+
+  
+  void SetGlobalContext(OrthancPluginContext* context)
+  {
+    if (context == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NullPointer);
+    }        
+    else if (globalContext_ == NULL)
+    {
+      globalContext_ = context;
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadSequenceOfCalls);      
+    }
+  }
+
+  
+  bool HasGlobalContext()
+  {
+    return globalContext_ != NULL;
+  }
+  
+
+  OrthancPluginContext* GetGlobalContext()
+  {
+    if (globalContext_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadSequenceOfCalls);      
+    }
+    else
+    {
+      return globalContext_;
+    }
+  }
+
+
   void MemoryBuffer::Check(OrthancPluginErrorCode code)
   {
     if (code != OrthancPluginErrorCode_Success)
@@ -76,8 +115,7 @@ namespace OrthancPlugins
   }
 
 
-  MemoryBuffer::MemoryBuffer(OrthancPluginContext* context) :
-    context_(context)
+  MemoryBuffer::MemoryBuffer()
   {
     buffer_.data = NULL;
     buffer_.size = 0;
@@ -88,7 +126,7 @@ namespace OrthancPlugins
   {
     if (buffer_.data != NULL)
     {
-      OrthancPluginFreeMemoryBuffer(context_, &buffer_);
+      OrthancPluginFreeMemoryBuffer(GetGlobalContext(), &buffer_);
       buffer_.data = NULL;
       buffer_.size = 0;
     }
@@ -144,7 +182,7 @@ namespace OrthancPlugins
     Json::Reader reader;
     if (!reader.parse(tmp, tmp + buffer_.size, target))
     {
-      OrthancPluginLogError(context_, "Cannot convert some memory buffer to JSON");
+      LogError("Cannot convert some memory buffer to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
@@ -157,11 +195,11 @@ namespace OrthancPlugins
 
     if (applyPlugins)
     {
-      return CheckHttp(OrthancPluginRestApiGetAfterPlugins(context_, &buffer_, uri.c_str()));
+      return CheckHttp(OrthancPluginRestApiGetAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str()));
     }
     else
     {
-      return CheckHttp(OrthancPluginRestApiGet(context_, &buffer_, uri.c_str()));
+      return CheckHttp(OrthancPluginRestApiGet(GetGlobalContext(), &buffer_, uri.c_str()));
     }
   }
 
@@ -175,11 +213,11 @@ namespace OrthancPlugins
 
     if (applyPlugins)
     {
-      return CheckHttp(OrthancPluginRestApiPostAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPostAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
     }
     else
     {
-      return CheckHttp(OrthancPluginRestApiPost(context_, &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPost(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
     }
   }
 
@@ -193,11 +231,11 @@ namespace OrthancPlugins
 
     if (applyPlugins)
     {
-      return CheckHttp(OrthancPluginRestApiPutAfterPlugins(context_, &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPutAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
     }
     else
     {
-      return CheckHttp(OrthancPluginRestApiPut(context_, &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPut(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
     }
   }
 
@@ -228,7 +266,7 @@ namespace OrthancPlugins
     Json::FastWriter writer;
     std::string s = writer.write(tags);
     
-    Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), NULL, flags));
+    Check(OrthancPluginCreateDicom(GetGlobalContext(), &buffer_, s.c_str(), NULL, flags));
   }
 
   void MemoryBuffer::CreateDicom(const Json::Value& tags,
@@ -240,21 +278,21 @@ namespace OrthancPlugins
     Json::FastWriter writer;
     std::string s = writer.write(tags);
 
-    Check(OrthancPluginCreateDicom(context_, &buffer_, s.c_str(), pixelData.GetObject(), flags));
+    Check(OrthancPluginCreateDicom(GetGlobalContext(), &buffer_, s.c_str(), pixelData.GetObject(), flags));
   }
 
 
   void MemoryBuffer::ReadFile(const std::string& path)
   {
     Clear();
-    Check(OrthancPluginReadFile(context_, &buffer_, path.c_str()));
+    Check(OrthancPluginReadFile(GetGlobalContext(), &buffer_, path.c_str()));
   }
 
 
   void MemoryBuffer::GetDicomQuery(const OrthancPluginWorklistQuery* query)
   {
     Clear();
-    Check(OrthancPluginWorklistGetDicomQuery(context_, &buffer_, query));
+    Check(OrthancPluginWorklistGetDicomQuery(GetGlobalContext(), &buffer_, query));
   }
 
 
@@ -276,7 +314,7 @@ namespace OrthancPlugins
   {
     if (str_ != NULL)
     {
-      OrthancPluginFreeString(context_, str_);
+      OrthancPluginFreeString(GetGlobalContext(), str_);
       str_ = NULL;
     }
   }
@@ -299,14 +337,14 @@ namespace OrthancPlugins
   {
     if (str_ == NULL)
     {
-      OrthancPluginLogError(context_, "Cannot convert an empty memory buffer to JSON");
+      LogError("Cannot convert an empty memory buffer to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
     Json::Reader reader;
     if (!reader.parse(str_, target))
     {
-      OrthancPluginLogError(context_, "Cannot convert some memory buffer to JSON");
+      LogError("Cannot convert some memory buffer to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
@@ -317,8 +355,9 @@ namespace OrthancPlugins
                                  OrthancPluginDicomToJsonFlags flags,
                                  uint32_t maxStringLength)
   {
-    OrthancString str(context_);
-    str.Assign(OrthancPluginDicomBufferToJson(context_, GetData(), GetSize(), format, flags, maxStringLength));
+    OrthancString str;
+    str.Assign(OrthancPluginDicomBufferToJson
+               (GetGlobalContext(), GetData(), GetSize(), format, flags, maxStringLength));
     str.ToJson(target);
   }
 
@@ -328,7 +367,7 @@ namespace OrthancPlugins
                              const std::string& password)
   {
     Clear();
-    return CheckHttp(OrthancPluginHttpGet(context_, &buffer_, url.c_str(),
+    return CheckHttp(OrthancPluginHttpGet(GetGlobalContext(), &buffer_, url.c_str(),
                                           username.empty() ? NULL : username.c_str(),
                                           password.empty() ? NULL : password.c_str()));
   }
@@ -340,7 +379,7 @@ namespace OrthancPlugins
                               const std::string& password)
   {
     Clear();
-    return CheckHttp(OrthancPluginHttpPost(context_, &buffer_, url.c_str(),
+    return CheckHttp(OrthancPluginHttpPost(GetGlobalContext(), &buffer_, url.c_str(),
                                            body.c_str(), body.size(),
                                            username.empty() ? NULL : username.c_str(),
                                            password.empty() ? NULL : password.c_str()));
@@ -353,7 +392,7 @@ namespace OrthancPlugins
                              const std::string& password)
   {
     Clear();
-    return CheckHttp(OrthancPluginHttpPut(context_, &buffer_, url.c_str(),
+    return CheckHttp(OrthancPluginHttpPut(GetGlobalContext(), &buffer_, url.c_str(),
                                           body.empty() ? NULL : body.c_str(),
                                           body.size(),
                                           username.empty() ? NULL : username.c_str(),
@@ -364,17 +403,16 @@ namespace OrthancPlugins
   void MemoryBuffer::GetDicomInstance(const std::string& instanceId)
   {
     Clear();
-    Check(OrthancPluginGetDicomForInstance(context_, &buffer_, instanceId.c_str()));
+    Check(OrthancPluginGetDicomForInstance(GetGlobalContext(), &buffer_, instanceId.c_str()));
   }
 
   
-  bool HttpDelete(OrthancPluginContext* context_,
-                  const std::string& url,
+  bool HttpDelete(const std::string& url,
                   const std::string& username,
                   const std::string& password)
   {
     OrthancPluginErrorCode error = OrthancPluginHttpDelete
-        (context_, url.c_str(),
+        (GetGlobalContext(), url.c_str(),
          username.empty() ? NULL : username.c_str(),
          password.empty() ? NULL : password.c_str());
 
@@ -394,15 +432,41 @@ namespace OrthancPlugins
   }
   
 
-  OrthancConfiguration::OrthancConfiguration(OrthancPluginContext* context) :
-    context_(context)
+  void LogError(const std::string& message)
   {
-    OrthancString str(context);
-    str.Assign(OrthancPluginGetConfiguration(context));
+    if (HasGlobalContext())
+    {
+      OrthancPluginLogError(GetGlobalContext(), message.c_str());
+    }
+  }
+
+  
+  void LogWarning(const std::string& message)
+  {
+    if (HasGlobalContext())
+    {
+      OrthancPluginLogWarning(GetGlobalContext(), message.c_str());
+    }
+  }
+
+  
+  void LogInfo(const std::string& message)
+  {
+    if (HasGlobalContext())
+    {
+      OrthancPluginLogInfo(GetGlobalContext(), message.c_str());
+    }
+  }
+
+
+  OrthancConfiguration::OrthancConfiguration()
+  {
+    OrthancString str;
+    str.Assign(OrthancPluginGetConfiguration(GetGlobalContext()));
 
     if (str.GetContent() == NULL)
     {
-      OrthancPluginLogError(context, "Cannot access the Orthanc configuration");
+      LogError("Cannot access the Orthanc configuration");
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
@@ -410,21 +474,8 @@ namespace OrthancPlugins
 
     if (configuration_.type() != Json::objectValue)
     {
-      OrthancPluginLogError(context, "Unable to read the Orthanc configuration");
+      LogError("Unable to read the Orthanc configuration");
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-    }
-  }
-
-
-  OrthancPluginContext* OrthancConfiguration::GetContext() const
-  {
-    if (context_ == NULL)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
-    }
-    else
-    {
-      return context_;
     }
   }
 
@@ -456,7 +507,6 @@ namespace OrthancPlugins
   {
     assert(configuration_.type() == Json::objectValue);
 
-    target.context_ = context_;
     target.path_ = GetPath(key);
 
     if (!configuration_.isMember(key))
@@ -467,11 +517,8 @@ namespace OrthancPlugins
     {
       if (configuration_[key].type() != Json::objectValue)
       {
-        if (context_ != NULL)
-        {
-          std::string s = "The configuration section \"" + target.path_ + "\" is not an associative array as expected";
-          OrthancPluginLogError(context_, s.c_str());
-        }
+        LogError("The configuration section \"" + target.path_ +
+                 "\" is not an associative array as expected");
 
         ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
       }
@@ -493,11 +540,8 @@ namespace OrthancPlugins
 
     if (configuration_[key].type() != Json::stringValue)
     {
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not a string as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not a string as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -528,11 +572,8 @@ namespace OrthancPlugins
       return true;
 
     default:
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not an integer as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not an integer as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -550,11 +591,8 @@ namespace OrthancPlugins
 
     if (tmp < 0)
     {
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not a positive integer as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not a positive integer as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -578,11 +616,8 @@ namespace OrthancPlugins
 
     if (configuration_[key].type() != Json::booleanValue)
     {
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not a Boolean as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not a Boolean as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -617,11 +652,8 @@ namespace OrthancPlugins
       return true;
 
     default:
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not an integer as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not an integer as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -680,12 +712,8 @@ namespace OrthancPlugins
       break;
     }
 
-    if (context_ != NULL)
-    {
-      std::string s = ("The configuration option \"" + GetPath(key) +
-                       "\" is not a list of strings as expected");
-      OrthancPluginLogError(context_, s.c_str());
-    }
+    LogError("The configuration option \"" + GetPath(key) +
+             "\" is not a list of strings as expected");
 
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
@@ -805,11 +833,8 @@ namespace OrthancPlugins
 
     if (configuration_[key].type() != Json::objectValue)
     {
-      if (context_ != NULL)
-      {
-        std::string s = "The configuration option \"" + GetPath(key) + "\" is not a string as expected";
-        OrthancPluginLogError(context_, s.c_str());
-      }
+      LogError("The configuration option \"" + GetPath(key) +
+               "\" is not a string as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
@@ -826,11 +851,8 @@ namespace OrthancPlugins
       }
       else
       {
-        if (context_ != NULL)
-        {
-          std::string s = "The configuration option \"" + GetPath(key) + "\" is not a dictionary mapping strings to strings";
-          OrthancPluginLogError(context_, s.c_str());
-        }
+        LogError("The configuration option \"" + GetPath(key) +
+                 "\" is not a dictionary mapping strings to strings");
 
         ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
       }
@@ -842,7 +864,7 @@ namespace OrthancPlugins
   {
     if (image_ != NULL)
     {
-      OrthancPluginFreeImage(context_, image_);
+      OrthancPluginFreeImage(GetGlobalContext(), image_);
       image_ = NULL;
     }
   }
@@ -852,66 +874,51 @@ namespace OrthancPlugins
   {
     if (image_ == NULL)
     {
-      OrthancPluginLogError(context_, "Trying to access a NULL image");
+      LogError("Trying to access a NULL image");
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
 
 
-  OrthancImage::OrthancImage(OrthancPluginContext*  context) :
-    context_(context),
+  OrthancImage::OrthancImage() :
     image_(NULL)
   {
-    if (context == NULL)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
-    }
   }
 
 
-  OrthancImage::OrthancImage(OrthancPluginContext*  context,
-                             OrthancPluginImage*    image) :
-    context_(context),
+  OrthancImage::OrthancImage(OrthancPluginImage*  image) :
     image_(image)
   {
-    if (context == NULL)
+  }
+  
+
+  OrthancImage::OrthancImage(OrthancPluginPixelFormat  format,
+                             uint32_t                  width,
+                             uint32_t                  height)
+  {
+    image_ = OrthancPluginCreateImage(GetGlobalContext(), format, width, height);
+
+    if (image_ == NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
+      LogError("Cannot create an image");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
   }
   
 
-  OrthancImage::OrthancImage(OrthancPluginContext*     context,
-                             OrthancPluginPixelFormat  format,
-                             uint32_t                  width,
-                             uint32_t                  height) :
-    context_(context)
-  {
-    if (context == NULL)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
-    }
-    else
-    {
-      image_ = OrthancPluginCreateImage(context, format, width, height);
-    }
-  }
-
-  OrthancImage::OrthancImage(OrthancPluginContext*     context,
-                             OrthancPluginPixelFormat  format,
+  OrthancImage::OrthancImage(OrthancPluginPixelFormat  format,
                              uint32_t                  width,
                              uint32_t                  height,
                              uint32_t                  pitch,
-                             void*                     buffer) :
-    context_(context)
+                             void*                     buffer)
   {
-    if (context == NULL)
+    image_ = OrthancPluginCreateImageAccessor
+      (GetGlobalContext(), format, width, height, pitch, buffer);
+
+    if (image_ == NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
-    }
-    else
-    {
-      image_ = OrthancPluginCreateImageAccessor(context, format, width, height, pitch, buffer);
+      LogError("Cannot create an image accessor");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
   }
 
@@ -919,10 +926,12 @@ namespace OrthancPlugins
                                         size_t size)
   {
     Clear();
-    image_ = OrthancPluginUncompressImage(context_, data, size, OrthancPluginImageFormat_Png);
+    
+    image_ = OrthancPluginUncompressImage(GetGlobalContext(), data, size, OrthancPluginImageFormat_Png);
+
     if (image_ == NULL)
     {
-      OrthancPluginLogError(context_, "Cannot uncompress a PNG image");
+      LogError("Cannot uncompress a PNG image");
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
@@ -932,10 +941,10 @@ namespace OrthancPlugins
                                          size_t size)
   {
     Clear();
-    image_ = OrthancPluginUncompressImage(context_, data, size, OrthancPluginImageFormat_Jpeg);
+    image_ = OrthancPluginUncompressImage(GetGlobalContext(), data, size, OrthancPluginImageFormat_Jpeg);
     if (image_ == NULL)
     {
-      OrthancPluginLogError(context_, "Cannot uncompress a JPEG image");
+      LogError("Cannot uncompress a JPEG image");
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
@@ -946,10 +955,10 @@ namespace OrthancPlugins
                                       unsigned int frame)
   {
     Clear();
-    image_ = OrthancPluginDecodeDicomImage(context_, data, size, frame);
+    image_ = OrthancPluginDecodeDicomImage(GetGlobalContext(), data, size, frame);
     if (image_ == NULL)
     {
-      OrthancPluginLogError(context_, "Cannot uncompress a DICOM image");
+      LogError("Cannot uncompress a DICOM image");
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
   }
@@ -958,35 +967,35 @@ namespace OrthancPlugins
   OrthancPluginPixelFormat OrthancImage::GetPixelFormat()
   {
     CheckImageAvailable();
-    return OrthancPluginGetImagePixelFormat(context_, image_);
+    return OrthancPluginGetImagePixelFormat(GetGlobalContext(), image_);
   }
 
 
   unsigned int OrthancImage::GetWidth()
   {
     CheckImageAvailable();
-    return OrthancPluginGetImageWidth(context_, image_);
+    return OrthancPluginGetImageWidth(GetGlobalContext(), image_);
   }
 
 
   unsigned int OrthancImage::GetHeight()
   {
     CheckImageAvailable();
-    return OrthancPluginGetImageHeight(context_, image_);
+    return OrthancPluginGetImageHeight(GetGlobalContext(), image_);
   }
 
 
   unsigned int OrthancImage::GetPitch()
   {
     CheckImageAvailable();
-    return OrthancPluginGetImagePitch(context_, image_);
+    return OrthancPluginGetImagePitch(GetGlobalContext(), image_);
   }
 
 
   const void* OrthancImage::GetBuffer()
   {
     CheckImageAvailable();
-    return OrthancPluginGetImageBuffer(context_, image_);
+    return OrthancPluginGetImageBuffer(GetGlobalContext(), image_);
   }
 
 
@@ -995,7 +1004,7 @@ namespace OrthancPlugins
     CheckImageAvailable();
     
     OrthancPluginMemoryBuffer tmp;
-    OrthancPluginCompressPngImage(context_, &tmp, GetPixelFormat(),
+    OrthancPluginCompressPngImage(GetGlobalContext(), &tmp, GetPixelFormat(),
                                   GetWidth(), GetHeight(), GetPitch(), GetBuffer());
 
     target.Assign(tmp);
@@ -1008,7 +1017,7 @@ namespace OrthancPlugins
     CheckImageAvailable();
     
     OrthancPluginMemoryBuffer tmp;
-    OrthancPluginCompressJpegImage(context_, &tmp, GetPixelFormat(),
+    OrthancPluginCompressJpegImage(GetGlobalContext(), &tmp, GetPixelFormat(),
                                    GetWidth(), GetHeight(), GetPitch(), GetBuffer(), quality);
     
     target.Assign(tmp);
@@ -1018,7 +1027,7 @@ namespace OrthancPlugins
   void OrthancImage::AnswerPngImage(OrthancPluginRestOutput* output)
   {
     CheckImageAvailable();
-    OrthancPluginCompressAndAnswerPngImage(context_, output, GetPixelFormat(),
+    OrthancPluginCompressAndAnswerPngImage(GetGlobalContext(), output, GetPixelFormat(),
                                            GetWidth(), GetHeight(), GetPitch(), GetBuffer());
   }
 
@@ -1027,16 +1036,14 @@ namespace OrthancPlugins
                                      uint8_t quality)
   {
     CheckImageAvailable();
-    OrthancPluginCompressAndAnswerJpegImage(context_, output, GetPixelFormat(),
+    OrthancPluginCompressAndAnswerJpegImage(GetGlobalContext(), output, GetPixelFormat(),
                                             GetWidth(), GetHeight(), GetPitch(), GetBuffer(), quality);
   }
 
 
 
 #if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
-  FindMatcher::FindMatcher(OrthancPluginContext*              context,
-                           const OrthancPluginWorklistQuery*  worklist) :
-    context_(context),
+  FindMatcher::FindMatcher(const OrthancPluginWorklistQuery* worklist) :
     matcher_(NULL),
     worklist_(worklist)
   {
@@ -1047,14 +1054,12 @@ namespace OrthancPlugins
   }
 
 
-  void FindMatcher::SetupDicom(OrthancPluginContext*  context,
-                               const void*            query,
-                               uint32_t               size)
+  void FindMatcher::SetupDicom(const void*  query,
+                               uint32_t     size)
   {
-    context_ = context;
     worklist_ = NULL;
 
-    matcher_ = OrthancPluginCreateFindMatcher(context_, query, size);
+    matcher_ = OrthancPluginCreateFindMatcher(GetGlobalContext(), query, size);
     if (matcher_ == NULL)
     {
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
@@ -1068,7 +1073,7 @@ namespace OrthancPlugins
 
     if (matcher_ != NULL)
     {
-      OrthancPluginFreeFindMatcher(context_, matcher_);
+      OrthancPluginFreeFindMatcher(GetGlobalContext(), matcher_);
     }
   }
 
@@ -1081,11 +1086,11 @@ namespace OrthancPlugins
 
     if (matcher_ != NULL)
     {
-      result = OrthancPluginFindMatcherIsMatch(context_, matcher_, dicom, size);
+      result = OrthancPluginFindMatcherIsMatch(GetGlobalContext(), matcher_, dicom, size);
     }
     else if (worklist_ != NULL)
     {
-      result = OrthancPluginWorklistIsMatch(context_, worklist_, dicom, size);
+      result = OrthancPluginWorklistIsMatch(GetGlobalContext(), worklist_, dicom, size);
     }
     else
     {
@@ -1110,11 +1115,11 @@ namespace OrthancPlugins
 
 
   bool RestApiGet(Json::Value& result,
-                  OrthancPluginContext* context,
                   const std::string& uri,
                   bool applyPlugins)
   {
-    MemoryBuffer answer(context);
+    MemoryBuffer answer;
+    
     if (!answer.RestApiGet(uri, applyPlugins))
     {
       return false;
@@ -1128,13 +1133,13 @@ namespace OrthancPlugins
 
 
   bool RestApiPost(Json::Value& result,
-                   OrthancPluginContext* context,
                    const std::string& uri,
                    const char* body,
                    size_t bodySize,
                    bool applyPlugins)
   {
-    MemoryBuffer answer(context);
+    MemoryBuffer answer;
+    
     if (!answer.RestApiPost(uri, body, bodySize, applyPlugins))
     {
       return false;
@@ -1148,24 +1153,23 @@ namespace OrthancPlugins
 
 
   bool RestApiPost(Json::Value& result,
-                   OrthancPluginContext* context,
                    const std::string& uri,
                    const Json::Value& body,
                    bool applyPlugins)
   {
     Json::FastWriter writer;
-    return RestApiPost(result, context, uri, writer.write(body), applyPlugins);
+    return RestApiPost(result, uri, writer.write(body), applyPlugins);
   }
 
 
   bool RestApiPut(Json::Value& result,
-                  OrthancPluginContext* context,
                   const std::string& uri,
                   const char* body,
                   size_t bodySize,
                   bool applyPlugins)
   {
-    MemoryBuffer answer(context);
+    MemoryBuffer answer;
+    
     if (!answer.RestApiPut(uri, body, bodySize, applyPlugins))
     {
       return false;
@@ -1179,29 +1183,27 @@ namespace OrthancPlugins
 
 
   bool RestApiPut(Json::Value& result,
-                  OrthancPluginContext* context,
                   const std::string& uri,
                   const Json::Value& body,
                   bool applyPlugins)
   {
     Json::FastWriter writer;
-    return RestApiPut(result, context, uri, writer.write(body), applyPlugins);
+    return RestApiPut(result, uri, writer.write(body), applyPlugins);
   }
 
 
-  bool RestApiDelete(OrthancPluginContext* context,
-                     const std::string& uri,
+  bool RestApiDelete(const std::string& uri,
                      bool applyPlugins)
   {
     OrthancPluginErrorCode error;
 
     if (applyPlugins)
     {
-      error = OrthancPluginRestApiDeleteAfterPlugins(context, uri.c_str());
+      error = OrthancPluginRestApiDeleteAfterPlugins(GetGlobalContext(), uri.c_str());
     }
     else
     {
-      error = OrthancPluginRestApiDelete(context, uri.c_str());
+      error = OrthancPluginRestApiDelete(GetGlobalContext(), uri.c_str());
     }
 
     if (error == OrthancPluginErrorCode_Success)
@@ -1220,35 +1222,31 @@ namespace OrthancPlugins
   }
 
 
-  void ReportMinimalOrthancVersion(OrthancPluginContext* context,
-                                   unsigned int major,
+  void ReportMinimalOrthancVersion(unsigned int major,
                                    unsigned int minor,
                                    unsigned int revision)
   {
-    std::string s = ("Your version of the Orthanc core (" +
-                     std::string(context->orthancVersion) +
-                     ") is too old to run this plugin (version " +
-                     boost::lexical_cast<std::string>(major) + "." +
-                     boost::lexical_cast<std::string>(minor) + "." +
-                     boost::lexical_cast<std::string>(revision) +
-                     " is required)");
-    
-    OrthancPluginLogError(context, s.c_str());
+    LogError("Your version of the Orthanc core (" +
+             std::string(GetGlobalContext()->orthancVersion) +
+             ") is too old to run this plugin (version " +
+             boost::lexical_cast<std::string>(major) + "." +
+             boost::lexical_cast<std::string>(minor) + "." +
+             boost::lexical_cast<std::string>(revision) +
+             " is required)");
   }
 
 
-  bool CheckMinimalOrthancVersion(OrthancPluginContext* context,
-                                  unsigned int major,
+  bool CheckMinimalOrthancVersion(unsigned int major,
                                   unsigned int minor,
                                   unsigned int revision)
   {
-    if (context == NULL)
+    if (!HasGlobalContext())
     {
-      OrthancPluginLogError(context, "Bad Orthanc context in the plugin");
+      LogError("Bad Orthanc context in the plugin");
       return false;
     }
 
-    if (!strcmp(context->orthancVersion, "mainline"))
+    if (!strcmp(GetGlobalContext()->orthancVersion, "mainline"))
     {
       // Assume compatibility with the mainline
       return true;
@@ -1262,7 +1260,7 @@ namespace OrthancPlugins
     #else
         sscanf
     #endif
-        (context->orthancVersion, "%4d.%4d.%4d", &aa, &bb, &cc) != 3 ||
+        (GetGlobalContext()->orthancVersion, "%4d.%4d.%4d", &aa, &bb, &cc) != 3 ||
         aa < 0 ||
         bb < 0 ||
         cc < 0)
@@ -1326,38 +1324,31 @@ namespace OrthancPlugins
     }
     else
     {
-      std::string s = "Inexistent peer: " + name;
-      OrthancPluginLogError(context_, s.c_str());
+      LogError("Inexistent peer: " + name);
       ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }
   }
 
 
-  OrthancPeers::OrthancPeers(OrthancPluginContext* context) :
-    context_(context),
+  OrthancPeers::OrthancPeers() :
     peers_(NULL),
     timeout_(0)
   {
-    if (context_ == NULL)
-    {
-      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
-    }
-
-    peers_ = OrthancPluginGetPeers(context_);
+    peers_ = OrthancPluginGetPeers(GetGlobalContext());
 
     if (peers_ == NULL)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
     }
 
-    uint32_t count = OrthancPluginGetPeersCount(context_, peers_);
+    uint32_t count = OrthancPluginGetPeersCount(GetGlobalContext(), peers_);
 
     for (uint32_t i = 0; i < count; i++)
     {
-      const char* name = OrthancPluginGetPeerName(context_, peers_, i);
+      const char* name = OrthancPluginGetPeerName(GetGlobalContext(), peers_, i);
       if (name == NULL)
       {
-        OrthancPluginFreePeers(context_, peers_);
+        OrthancPluginFreePeers(GetGlobalContext(), peers_);
         ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
       }
 
@@ -1370,7 +1361,7 @@ namespace OrthancPlugins
   {
     if (peers_ != NULL)
     {
-      OrthancPluginFreePeers(context_, peers_);
+      OrthancPluginFreePeers(GetGlobalContext(), peers_);
     }
   }
 
@@ -1400,7 +1391,7 @@ namespace OrthancPlugins
     }
     else
     {
-      const char* s = OrthancPluginGetPeerName(context_, peers_, static_cast<uint32_t>(index));
+      const char* s = OrthancPluginGetPeerName(GetGlobalContext(), peers_, static_cast<uint32_t>(index));
       if (s == NULL)
       {
         ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
@@ -1421,7 +1412,7 @@ namespace OrthancPlugins
     }
     else
     {
-      const char* s = OrthancPluginGetPeerUrl(context_, peers_, static_cast<uint32_t>(index));
+      const char* s = OrthancPluginGetPeerUrl(GetGlobalContext(), peers_, static_cast<uint32_t>(index));
       if (s == NULL)
       {
         ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
@@ -1450,7 +1441,7 @@ namespace OrthancPlugins
     }
     else
     {
-      const char* s = OrthancPluginGetPeerUserProperty(context_, peers_, static_cast<uint32_t>(index), key.c_str());
+      const char* s = OrthancPluginGetPeerUserProperty(GetGlobalContext(), peers_, static_cast<uint32_t>(index), key.c_str());
       if (s == NULL)
       {
         return false;
@@ -1484,7 +1475,7 @@ namespace OrthancPlugins
     OrthancPluginMemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (context_, &answer, NULL, &status, peers_,
+        (GetGlobalContext(), &answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Get, uri.c_str(),
          0, NULL, NULL, NULL, 0, timeout_);
 
@@ -1514,7 +1505,7 @@ namespace OrthancPlugins
                            size_t index,
                            const std::string& uri) const
   {
-    MemoryBuffer buffer(context_);
+    MemoryBuffer buffer;
 
     if (DoGet(buffer, index, uri))
     {
@@ -1532,7 +1523,7 @@ namespace OrthancPlugins
                            const std::string& name,
                            const std::string& uri) const
   {
-    MemoryBuffer buffer(context_);
+    MemoryBuffer buffer;
 
     if (DoGet(buffer, name, uri))
     {
@@ -1562,7 +1553,7 @@ namespace OrthancPlugins
                             const std::string& uri,
                             const std::string& body) const
   {
-    MemoryBuffer buffer(context_);
+    MemoryBuffer buffer;
 
     if (DoPost(buffer, index, uri, body))
     {
@@ -1581,7 +1572,7 @@ namespace OrthancPlugins
                             const std::string& uri,
                             const std::string& body) const
   {
-    MemoryBuffer buffer(context_);
+    MemoryBuffer buffer;
 
     if (DoPost(buffer, name, uri, body))
     {
@@ -1608,7 +1599,7 @@ namespace OrthancPlugins
     OrthancPluginMemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (context_, &answer, NULL, &status, peers_,
+        (GetGlobalContext(), &answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
          0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
@@ -1636,13 +1627,13 @@ namespace OrthancPlugins
     OrthancPluginMemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (context_, &answer, NULL, &status, peers_,
+        (GetGlobalContext(), &answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
          0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      OrthancPluginFreeMemoryBuffer(context_, &answer);
+      OrthancPluginFreeMemoryBuffer(GetGlobalContext(), &answer);
       return (status == 200);
     }
     else
@@ -1673,13 +1664,13 @@ namespace OrthancPlugins
     OrthancPluginMemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (context_, &answer, NULL, &status, peers_,
+        (GetGlobalContext(), &answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
          0, NULL, NULL, NULL, 0, timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      OrthancPluginFreeMemoryBuffer(context_, &answer);
+      OrthancPluginFreeMemoryBuffer(GetGlobalContext(), &answer);
       return (status == 200);
     }
     else
@@ -1888,8 +1879,7 @@ namespace OrthancPlugins
   }
 
 
-  OrthancPluginJob* OrthancJob::Create(OrthancPluginContext* context,
-                                       OrthancJob* job)
+  OrthancPluginJob* OrthancJob::Create(OrthancJob* job)
   {
     if (job == NULL)
     {
@@ -1897,9 +1887,9 @@ namespace OrthancPlugins
     }
 
     OrthancPluginJob* orthanc = OrthancPluginCreateJob(
-          context, job, CallbackFinalize, job->jobType_.c_str(),
-          CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
-          CallbackStep, CallbackStop, CallbackReset);
+      GetGlobalContext(), job, CallbackFinalize, job->jobType_.c_str(),
+      CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
+      CallbackStep, CallbackStop, CallbackReset);
 
     if (orthanc == NULL)
     {
@@ -1912,25 +1902,24 @@ namespace OrthancPlugins
   }
 
   
-  std::string OrthancJob::Submit(OrthancPluginContext* context,
-                                 OrthancJob* job,
+  std::string OrthancJob::Submit(OrthancJob* job,
                                  int priority)
   {
-    OrthancPluginJob* orthanc = Create(context, job);
+    OrthancPluginJob* orthanc = Create(job);
     
-    char* id = OrthancPluginSubmitJob(context, orthanc, priority);
+    char* id = OrthancPluginSubmitJob(GetGlobalContext(), orthanc, priority);
 
     if (id == NULL)
     {
-      OrthancPluginLogError(context, "Plugin cannot submit job");
-      OrthancPluginFreeJob(context, orthanc);
+      LogError("Plugin cannot submit job");
+      OrthancPluginFreeJob(GetGlobalContext(), orthanc);
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_Plugin);
     }
     else
     {
       std::string tmp(id);
       tmp.assign(id);
-      OrthancPluginFreeString(context, id);
+      OrthancPluginFreeString(GetGlobalContext(), id);
 
       return tmp;
     }
