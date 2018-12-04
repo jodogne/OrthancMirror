@@ -71,6 +71,12 @@
 #  define HAS_ORTHANC_PLUGIN_JOB    0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 4, 3)
+#  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  1
+#else
+#  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  0
+#endif
+
 
 
 namespace OrthancPlugins
@@ -489,7 +495,7 @@ namespace OrthancPlugins
       }
       catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
       {
-#if HAS_ORTHANC_EXCEPTION == 1
+#if HAS_ORTHANC_EXCEPTION == 1 && HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS == 1
         if (HasGlobalContext() &&
             e.HasDetails())
         {
