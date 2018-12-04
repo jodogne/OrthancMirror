@@ -28,7 +28,6 @@
 #include <iostream>
 #include <algorithm>
 
-static OrthancPluginContext* context_ = NULL;
 static std::string folder_;
 static bool filterIssuerAet_ = false;
 
@@ -40,18 +39,18 @@ static bool MatchWorklist(OrthancPluginWorklistAnswers*      answers,
                            const OrthancPlugins::FindMatcher& matcher,
                            const std::string& path)
 {
-  OrthancPlugins::MemoryBuffer dicom(context_);
+  OrthancPlugins::MemoryBuffer dicom;
   dicom.ReadFile(path);
 
   if (matcher.IsMatch(dicom))
   {
     // This DICOM file matches the worklist query, add it to the answers
     OrthancPluginErrorCode code = OrthancPluginWorklistAddAnswer
-      (context_, answers, query, dicom.GetData(), dicom.GetSize());
+      (OrthancPlugins::GetGlobalContext(), answers, query, dicom.GetData(), dicom.GetSize());
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError(context_, "Error while adding an answer to a worklist request");
+      OrthancPlugins::LogError("Error while adding an answer to a worklist request");
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
 
@@ -66,7 +65,7 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
                                                   const char*                       issuerAet)
 {
   // Extract the DICOM instance underlying the C-Find query
-  OrthancPlugins::MemoryBuffer dicom(context_);
+  OrthancPlugins::MemoryBuffer dicom;
   dicom.GetDicomQuery(query);
 
   // Convert the DICOM as JSON, and dump it to the user in "--verbose" mode
@@ -74,12 +73,12 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
   dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short,
                     static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
 
-  OrthancPlugins::LogInfo(context_, "Received worklist query from remote modality " +
+  OrthancPlugins::LogInfo("Received worklist query from remote modality " +
                           std::string(issuerAet) + ":\n" + json.toStyledString());
 
   if (!filterIssuerAet_)
   {
-    return new OrthancPlugins::FindMatcher(context_, query);
+    return new OrthancPlugins::FindMatcher(query);
   }
   else
   {
@@ -126,9 +125,10 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
     }
 
     // Encode the modified JSON as a DICOM instance, then convert it to a C-Find matcher
-    OrthancPlugins::MemoryBuffer modified(context_);
+    OrthancPlugins::MemoryBuffer modified;
     modified.CreateDicom(json, OrthancPluginCreateDicomFlags_None);
-    return new OrthancPlugins::FindMatcher(context_, modified);
+    
+    return new OrthancPlugins::FindMatcher(modified);
   }
 }
 
@@ -170,7 +170,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
             // We found a worklist (i.e. a DICOM find with extension ".wl"), match it against the query
             if (MatchWorklist(answers, query, *matcher, it->path().string()))
             {
-              OrthancPlugins::LogInfo(context_, "Worklist matched: " + it->path().string());
+              OrthancPlugins::LogInfo("Worklist matched: " + it->path().string());
               matchedWorklistCount++;
             }
           }
@@ -179,17 +179,17 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
       std::ostringstream message;
       message << "Worklist C-Find: parsed " << parsedFilesCount << " files, found " << matchedWorklistCount << " match(es)";
-      OrthancPlugins::LogInfo(context_, message.str());
+      OrthancPlugins::LogInfo(message.str());
 
     }
     catch (fs::filesystem_error&)
     {
-      OrthancPlugins::LogError(context_, "Inexistent folder while scanning for worklists: " + source.string());
+      OrthancPlugins::LogError("Inexistent folder while scanning for worklists: " + source.string());
       return OrthancPluginErrorCode_DirectoryExpected;
     }
 
     // Uncomment the following line if too many answers are to be returned
-    // OrthancPluginMarkWorklistAnswersIncomplete(context_, answers);
+    // OrthancPluginMarkWorklistAnswersIncomplete(OrthancPlugins::GetGlobalContext(), answers);
 
     return OrthancPluginErrorCode_Success;
   }
@@ -204,22 +204,21 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    context_ = c;
+    OrthancPlugins::SetGlobalContext(c);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
     {
-      OrthancPlugins::ReportMinimalOrthancVersion(context_,
-                                                  ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
+      OrthancPlugins::ReportMinimalOrthancVersion(ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
                                                   ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
                                                   ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       return -1;
     }
 
-    OrthancPlugins::LogWarning(context_, "Sample worklist plugin is initializing");
-    OrthancPluginSetDescription(context_, "Serve DICOM modality worklists from a folder with Orthanc.");
+    OrthancPlugins::LogWarning("Sample worklist plugin is initializing");
+    OrthancPluginSetDescription(c, "Serve DICOM modality worklists from a folder with Orthanc.");
 
-    OrthancPlugins::OrthancConfiguration configuration(context_);
+    OrthancPlugins::OrthancConfiguration configuration;
 
     OrthancPlugins::OrthancConfiguration worklists;
     configuration.GetSection(worklists, "Worklists");
@@ -229,12 +228,12 @@ extern "C"
     {
       if (worklists.LookupStringValue(folder_, "Database"))
       {
-        OrthancPlugins::LogWarning(context_, "The database of worklists will be read from folder: " + folder_);
-        OrthancPluginRegisterWorklistCallback(context_, Callback);
+        OrthancPlugins::LogWarning("The database of worklists will be read from folder: " + folder_);
+        OrthancPluginRegisterWorklistCallback(OrthancPlugins::GetGlobalContext(), Callback);
       }
       else
       {
-        OrthancPlugins::LogError(context_, "The configuration option \"Worklists.Database\" must contain a path");
+        OrthancPlugins::LogError("The configuration option \"Worklists.Database\" must contain a path");
         return -1;
       }
 
@@ -242,7 +241,7 @@ extern "C"
     }
     else
     {
-      OrthancPlugins::LogWarning(context_, "Worklist server is disabled by the configuration file");
+      OrthancPlugins::LogWarning("Worklist server is disabled by the configuration file");
     }
 
     return 0;
@@ -251,7 +250,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPluginLogWarning(context_, "Sample worklist plugin is finalizing");
+    OrthancPlugins::LogWarning("Sample worklist plugin is finalizing");
   }
 
 
