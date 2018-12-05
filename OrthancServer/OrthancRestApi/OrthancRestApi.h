@@ -103,8 +103,8 @@ namespace Orthanc
                               ResourceType resourceType,
                               StoreStatus status) const;
 
-    bool IsSynchronousJobRequest(bool isDefaultSynchronous,
-                                 const Json::Value& body) const;
+    static bool IsSynchronousJobRequest(bool isDefaultSynchronous,
+                                        const Json::Value& body);
     
     void SubmitGenericJob(RestApiPostCall& call,
                           IJob* job,
