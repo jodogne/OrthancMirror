@@ -42,15 +42,7 @@ namespace OrthancPlugins
   // This class is thread-safe
   class OrthancPluginConnection : public IOrthancConnection
   {
-  private:
-    OrthancPluginContext*   context_;
-
   public:
-    OrthancPluginConnection(OrthancPluginContext* context) :
-    context_(context)
-    {
-    }
-
     virtual void RestApiGet(std::string& result,
                             const std::string& uri);
 
