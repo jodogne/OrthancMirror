@@ -114,9 +114,10 @@ namespace Orthanc
   }
 
 
-  static void SubmitJob(RestApiCall& call,
+  static void SubmitJob(RestApiOutput& output,
                         ServerContext& context,
                         std::auto_ptr<ArchiveJob>& job,
+                        bool synchronous,
                         const std::string& filename)
   {
     if (job.get() == NULL)
@@ -126,25 +127,32 @@ namespace Orthanc
 
     job->SetDescription("REST API");
 
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    job->SetSynchronousTarget(tmp);
-    
-    Json::Value publicContent;
-    if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-        (publicContent, job.release(), 0 /* TODO priority */))
+    if (synchronous)
     {
-      // The archive is now created: Prepare the sending of the ZIP file
-      FilesystemHttpSender sender(tmp->GetPath());
-      sender.SetContentType(MimeType_Gzip);
-      sender.SetContentFilename(filename);
+      boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+      job->SetSynchronousTarget(tmp);
+    
+      Json::Value publicContent;
+      if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+          (publicContent, job.release(), 0 /* TODO priority */))
+      {
+        // The archive is now created: Prepare the sending of the ZIP file
+        FilesystemHttpSender sender(tmp->GetPath());
+        sender.SetContentType(MimeType_Gzip);
+        sender.SetContentFilename(filename);
 
-      // Send the ZIP
-      call.GetOutput().AnswerStream(sender);
+        // Send the ZIP
+        output.AnswerStream(sender);
+      }
+      else
+      {
+        output.SignalError(HttpStatus_500_InternalServerError);
+      }
     }
     else
     {
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-    }      
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
   
@@ -160,7 +168,7 @@ namespace Orthanc
       
       std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, extended));
       AddResourcesOfInterest(*job, body);
-      SubmitJob(call, context, job, "Archive.zip");
+      SubmitJob(call.GetOutput(), context, job, synchronous, "Archive.zip");
     }
     else
     {
@@ -183,7 +191,7 @@ namespace Orthanc
       
       std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, extended));
       AddResourcesOfInterest(*job, body);
-      SubmitJob(call, context, job, "Archive.zip");
+      SubmitJob(call.GetOutput(), context, job, synchronous, "Archive.zip");
     }
     else
     {
@@ -202,7 +210,7 @@ namespace Orthanc
     std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, false));
     job->AddResource(id);
 
-    SubmitJob(call, context, job, id + ".zip");
+    SubmitJob(call.GetOutput(), context, job, true /* synchronous */, id + ".zip");
   }
 
 
@@ -215,7 +223,7 @@ namespace Orthanc
     std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, call.HasArgument("extended")));
     job->AddResource(id);
 
-    SubmitJob(call, context, job, id + ".zip");
+    SubmitJob(call.GetOutput(), context, job, true /* synchronous */, id + ".zip");
   }
 
 
