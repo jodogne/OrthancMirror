@@ -63,11 +63,12 @@ namespace Orthanc
     uint64_t                              uncompressedSize_;
 
   public:
-    ArchiveJob(boost::shared_ptr<TemporaryFile>& synchronousTarget,
-               ServerContext& context,
+    ArchiveJob(ServerContext& context,
                bool isMedia,
                bool enableExtendedSopClass);
 
+    void SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& synchronousTarget);
+    
     void SetDescription(const std::string& description)
     {
       description_ = description;

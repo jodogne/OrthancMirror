@@ -778,11 +778,9 @@ namespace Orthanc
   };
 
 
-  ArchiveJob::ArchiveJob(boost::shared_ptr<TemporaryFile>& synchronousTarget,
-                         ServerContext& context,
+  ArchiveJob::ArchiveJob(ServerContext& context,
                          bool isMedia,
                          bool enableExtendedSopClass) :
-    synchronousTarget_(synchronousTarget),
     context_(context),
     archive_(new ArchiveIndex(ResourceType_Patient)),  // root
     isMedia_(isMedia),
@@ -791,9 +789,22 @@ namespace Orthanc
     instancesCount_(0),
     uncompressedSize_(0)
   {
-    if (synchronousTarget.get() == NULL)
+  }
+
+
+  void ArchiveJob::SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& target)
+  {
+    if (target.get() == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (synchronousTarget_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      synchronousTarget_ = target;
     }
   }
 
@@ -819,6 +830,11 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
+    if (synchronousTarget_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
     if (writer_.get() != NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);

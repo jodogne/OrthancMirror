@@ -1475,8 +1475,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   // ArchiveJob
 
   {
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    ArchiveJob job(tmp, GetContext(), false, false);
+    ArchiveJob job(GetContext(), false, false);
     ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
   }
 
