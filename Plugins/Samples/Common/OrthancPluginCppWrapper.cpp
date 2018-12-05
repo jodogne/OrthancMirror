@@ -1113,6 +1113,32 @@ namespace OrthancPlugins
 
 #endif /* HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1 */
 
+  void AnswerJson(const Json::Value& value,
+                  OrthancPluginRestOutput* output
+                  )
+  {
+    Json::StyledWriter writer;
+    std::string bodyString = writer.write(value);
+
+    OrthancPluginAnswerBuffer(GetGlobalContext(), output, bodyString.c_str(), bodyString.size(), "application/json");
+  }
+
+  bool RestApiGetString(std::string& result,
+                        const std::string& uri,
+                        bool applyPlugins)
+  {
+    MemoryBuffer answer;
+    if (!answer.RestApiGet(uri, applyPlugins))
+    {
+      return false;
+    }
+    else
+    {
+      answer.ToString(result);
+      return true;
+    }
+  }
+
 
   bool RestApiGet(Json::Value& result,
                   const std::string& uri,
@@ -1311,6 +1337,58 @@ namespace OrthancPlugins
     }
   }
 
+  const char* GetMimeType(const std::string& path)
+  {
+    size_t dot = path.find_last_of('.');
+
+    std::string extension = (dot == std::string::npos) ? "" : path.substr(dot);
+    std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
+
+    if (extension == ".html")
+    {
+      return "text/html";
+    }
+    else if (extension == ".css")
+    {
+      return "text/css";
+    }
+    else if (extension == ".js")
+    {
+      return "application/javascript";
+    }
+    else if (extension == ".gif")
+    {
+      return "image/gif";
+    }
+    else if (extension == ".svg")
+    {
+      return "image/svg+xml";
+    }
+    else if (extension == ".json")
+    {
+      return "application/json";
+    }
+    else if (extension == ".xml")
+    {
+      return "application/xml";
+    }
+    else if (extension == ".wasm")
+    {
+      return "application/wasm";
+    }
+    else if (extension == ".png")
+    {
+      return "image/png";
+    }
+    else if (extension == ".jpg" || extension == ".jpeg")
+    {
+      return "image/jpeg";
+    }
+    else
+    {
+      return "application/octet-stream";
+    }
+  }
 
 
 
