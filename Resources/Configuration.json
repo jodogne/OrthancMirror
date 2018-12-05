@@ -440,5 +440,12 @@
   // instance replaces the old one. If set to "false", the new
   // instance is discarded and the old one is kept. Up to Orthanc
   // 1.4.1, the implicit behavior corresponded to "false".
-  "OverwriteInstances" : false
+  "OverwriteInstances" : false,
+
+  // Maximum number of ZIP/media archives that are maintained by
+  // Orthanc, as a response to the asynchronous creation of archives.
+  // The least recently used archives get deleted as new archives are
+  // generated. This option was introduced in Orthanc 1.4.3, and has
+  // no effect on the synchronous generation of archives.
+  "MediaArchiveSize" : 1
 }

@@ -173,6 +173,78 @@ namespace Orthanc
   static const char* KEY_PRIORITY = "Priority";
   static const char* KEY_SYNCHRONOUS = "Synchronous";
   static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+
+  
+  bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
+                                               const Json::Value& body) const
+  {
+    if (body.isMember(KEY_SYNCHRONOUS))
+    {
+      return SerializationToolbox::ReadBoolean(body, KEY_SYNCHRONOUS);
+    }
+    else if (body.isMember(KEY_ASYNCHRONOUS))
+    {
+      return !SerializationToolbox::ReadBoolean(body, KEY_ASYNCHRONOUS);
+    }
+    else
+    {
+      return isDefaultSynchronous;
+    }
+  }
+
+
+  void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
+                                        IJob* job,
+                                        bool isDefaultSynchronous,
+                                        const Json::Value& body) const
+  {
+    std::auto_ptr<IJob> raii(job);
+    
+    if (job == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    int priority = 0;
+
+    if (body.isMember(KEY_PRIORITY))
+    {
+      priority = SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
+    }
+
+    if (IsSynchronousJobRequest(isDefaultSynchronous, body))
+    {
+      Json::Value successContent;
+      if (context_.GetJobsEngine().GetRegistry().SubmitAndWait
+          (successContent, raii.release(), priority))
+      {
+        // Success in synchronous execution
+        call.GetOutput().AnswerJson(successContent);
+      }
+      else
+      {
+        // Error during synchronous execution
+        call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+      }
+    }
+    else
+    {
+      // Asynchronous mode: Submit the job, but don't wait for its completion
+      std::string id;
+      context_.GetJobsEngine().GetRegistry().Submit(id, raii.release(), priority);
+
+      Json::Value v;
+      v["ID"] = id;
+      v["Path"] = "/jobs/" + id;
+      call.GetOutput().AnswerJson(v);
+    }
+  }
+
   
   void OrthancRestApi::SubmitCommandsJob(RestApiPostCall& call,
                                          SetOfCommandsJob* job,
@@ -202,66 +274,6 @@ namespace Orthanc
       job->SetPermissive(false);
     }
 
-    int priority = 0;
-
-    if (body.isMember(KEY_PRIORITY))
-    {
-      priority = SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
-    }
-
-    bool synchronous = isDefaultSynchronous;
-    
-    if (body.isMember(KEY_SYNCHRONOUS))
-    {
-      synchronous = SerializationToolbox::ReadBoolean(body, KEY_SYNCHRONOUS);
-    }
-    else if (body.isMember(KEY_ASYNCHRONOUS))
-    {
-      synchronous = !SerializationToolbox::ReadBoolean(body, KEY_ASYNCHRONOUS);
-    }
-
-    if (synchronous)
-    {
-      Json::Value successContent;
-      if (context_.GetJobsEngine().GetRegistry().SubmitAndWait
-          (successContent, raii.release(), priority))
-      {
-        // Success in synchronous execution
-        call.GetOutput().AnswerJson(successContent);
-      }
-      else
-      {
-        // Error during synchronous execution
-        call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-      }
-    }
-    else
-    {
-      // Asynchronous mode: Submit the job, but don't wait for its completion
-      std::string id;
-      context_.GetJobsEngine().GetRegistry().Submit(id, raii.release(), priority);
-
-      Json::Value v;
-      v["ID"] = id;
-      v["Path"] = "/jobs/" + id;
-      call.GetOutput().AnswerJson(v);
-    }
-  }
-  
-
-  void OrthancRestApi::SubmitCommandsJob(RestApiPostCall& call,
-                                         SetOfCommandsJob* job,
-                                         bool isDefaultSynchronous) const
-  {
-    std::auto_ptr<SetOfCommandsJob> raii(job);
-    
-    Json::Value body;
-    
-    if (!call.ParseJsonRequest(body))
-    {
-      body = Json::objectValue;
-    }
-
-    SubmitCommandsJob(call, raii.release(), isDefaultSynchronous, body);
+    SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 }

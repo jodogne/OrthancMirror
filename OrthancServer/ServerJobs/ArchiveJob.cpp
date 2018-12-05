@@ -778,11 +778,11 @@ namespace Orthanc
   };
 
 
-  ArchiveJob::ArchiveJob(boost::shared_ptr<TemporaryFile>& target,
+  ArchiveJob::ArchiveJob(boost::shared_ptr<TemporaryFile>& synchronousTarget,
                          ServerContext& context,
                          bool isMedia,
                          bool enableExtendedSopClass) :
-    target_(target),
+    synchronousTarget_(synchronousTarget),
     context_(context),
     archive_(new ArchiveIndex(ResourceType_Patient)),  // root
     isMedia_(isMedia),
@@ -791,7 +791,7 @@ namespace Orthanc
     instancesCount_(0),
     uncompressedSize_(0)
   {
-    if (target.get() == NULL)
+    if (synchronousTarget.get() == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
@@ -824,7 +824,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    writer_.reset(new ZipWriterIterator(*target_, context_, *archive_,
+    writer_.reset(new ZipWriterIterator(*synchronousTarget_, context_, *archive_,
                                         isMedia_, enableExtendedSopClass_));
 
     instancesCount_ = writer_->GetInstancesCount();
@@ -836,7 +836,7 @@ namespace Orthanc
   {
     assert(writer_.get() != NULL);
 
-    if (target_.unique())
+    if (synchronousTarget_.unique())
     {
       LOG(WARNING) << "A client has disconnected while creating an archive";
       return JobStepResult::Failure(ErrorCode_NetworkProtocol);          
