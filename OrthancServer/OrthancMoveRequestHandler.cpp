@@ -70,7 +70,8 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \""
+                  << targetAet << "\" in synchronous mode";
 
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
@@ -133,7 +134,8 @@ namespace Orthanc
         job_(new DicomModalityStoreJob(context)),
         position_(0)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \""
+                  << targetAet << "\" in asynchronous mode";
 
         job_->SetDescription("C-MOVE");
         job_->SetPermissive(true);
