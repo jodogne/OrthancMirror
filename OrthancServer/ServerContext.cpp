@@ -235,8 +235,11 @@ namespace Orthanc
   {
     {
       OrthancConfiguration::ReaderLock lock;
+
       queryRetrieveArchive_.reset(
         new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 10)));
+      mediaArchive_.reset(
+        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
       defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
       jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
     }

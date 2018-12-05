@@ -50,7 +50,7 @@ namespace Orthanc
     class ZipCommands;
     class ZipWriterIterator;
     
-    boost::shared_ptr<TemporaryFile>      target_;
+    boost::shared_ptr<TemporaryFile>      synchronousTarget_;
     ServerContext&                        context_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;
@@ -63,7 +63,7 @@ namespace Orthanc
     uint64_t                              uncompressedSize_;
 
   public:
-    ArchiveJob(boost::shared_ptr<TemporaryFile>& target,
+    ArchiveJob(boost::shared_ptr<TemporaryFile>& synchronousTarget,
                ServerContext& context,
                bool isMedia,
                bool enableExtendedSopClass);
