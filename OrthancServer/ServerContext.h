@@ -189,6 +189,8 @@ namespace Orthanc
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
 
+    std::auto_ptr<SharedArchive>  mediaArchive_;
+    
   public:
     class DicomCacheLocker : public boost::noncopyable
     {
@@ -308,6 +310,11 @@ namespace Orthanc
     SharedArchive& GetQueryRetrieveArchive()
     {
       return *queryRetrieveArchive_;
+    }
+
+    SharedArchive& GetMediaArchive()
+    {
+      return *mediaArchive_;
     }
 
     const std::string& GetDefaultLocalApplicationEntityTitle() const
