@@ -419,6 +419,10 @@ namespace OrthancPlugins
                   const std::string& uri,
                   bool applyPlugins);
 
+  bool RestApiGetString(std::string& result,
+                        const std::string& uri,
+                        bool applyPlugins);
+
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
                    const char* body,
@@ -465,6 +469,13 @@ namespace OrthancPlugins
   bool HttpDelete(const std::string& url,
                   const std::string& username,
                   const std::string& password);
+
+  void AnswerJson(const Json::Value& value,
+                  OrthancPluginRestOutput* output
+                  );
+
+  const char* GetMimeType(const std::string& path);
+
 
   void LogError(const std::string& message);
 
