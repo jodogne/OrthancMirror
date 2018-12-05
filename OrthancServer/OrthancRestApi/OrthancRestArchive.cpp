@@ -35,38 +35,86 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../ServerJobs/ArchiveJob.h"
 
 namespace Orthanc
 {
-  static bool AddResourcesOfInterest(ArchiveJob& job,
-                                     RestApiPostCall& call)
+  static const char* const KEY_RESOURCES = "Resources";
+  static const char* const KEY_EXTENDED = "Extended";
+  
+  static void AddResourcesOfInterestFromArray(ArchiveJob& job,
+                                              const Json::Value& resources)
   {
-    Json::Value resources;
-    if (call.ParseJsonRequest(resources) &&
-        resources.type() == Json::arrayValue)
+    if (resources.type() != Json::arrayValue)
     {
-      for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Expected a list of strings (Orthanc identifiers)");
+    }
+    
+    for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+    {
+      if (resources[i].type() != Json::stringValue)
       {
-        if (resources[i].type() != Json::stringValue)
-        {
-          return false;   // Bad request
-        }
-
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Expected a list of strings (Orthanc identifiers)");
+      }
+      else
+      {
         job.AddResource(resources[i].asString());
       }
+    }
+  }
 
-      return true;
+  
+  static void AddResourcesOfInterest(ArchiveJob& job         /* inout */,
+                                     const Json::Value& body /* in */)
+  {
+    if (body.type() == Json::arrayValue)
+    {
+      AddResourcesOfInterestFromArray(job, body);
+    }
+    else if (body.type() == Json::objectValue)
+    {
+      if (body.isMember(KEY_RESOURCES))
+      {
+        AddResourcesOfInterestFromArray(job, body[KEY_RESOURCES]);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Missing field " + std::string(KEY_RESOURCES) +
+                               " in the JSON body");
+      }
     }
     else
     {
-      return false;
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+
+  static void GetJobParameters(bool& synchronous,         /* out */
+                               bool& extended,            /* out */
+                               const Json::Value& body,   /* in */
+                               const bool defaultExtended /* in */)
+  {
+    synchronous = OrthancRestApi::IsSynchronousJobRequest
+      (true /* synchronous by default */, body);
+
+    if (body.type() == Json::objectValue &&
+        body.isMember(KEY_EXTENDED))
+    {
+      extended = SerializationToolbox::ReadBoolean(body, KEY_EXTENDED);
+    }
+    else
+    {
+      extended = defaultExtended;
     }
   }
 
 
   static void SubmitJob(RestApiCall& call,
-                        boost::shared_ptr<TemporaryFile>& tmp,
                         ServerContext& context,
                         std::auto_ptr<ArchiveJob>& job,
                         const std::string& filename)
@@ -78,6 +126,9 @@ namespace Orthanc
 
     job->SetDescription("REST API");
 
+    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+    job->SetSynchronousTarget(tmp);
+    
     Json::Value publicContent;
     if (context.GetJobsEngine().GetRegistry().SubmitAndWait
         (publicContent, job.release(), 0 /* TODO priority */))
@@ -101,27 +152,43 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, false, false));
-
-    if (AddResourcesOfInterest(*job, call))
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
     {
-      SubmitJob(call, tmp, context, job, "Archive.zip");
+      bool synchronous, extended;
+      GetJobParameters(synchronous, extended, body, false /* by default, not extended */);
+      
+      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, extended));
+      AddResourcesOfInterest(*job, body);
+      SubmitJob(call, context, job, "Archive.zip");
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Expected a list of resources to archive in the body");
     }
   }  
 
   
-  template <bool Extended>
+  template <bool DEFAULT_EXTENDED>
   static void CreateBatchMedia(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, true, Extended));
-
-    if (AddResourcesOfInterest(*job, call))
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
     {
-      SubmitJob(call, tmp, context, job, "Archive.zip");
+      bool synchronous, extended;
+      GetJobParameters(synchronous, extended, body, DEFAULT_EXTENDED);
+      
+      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, extended));
+      AddResourcesOfInterest(*job, body);
+      SubmitJob(call, context, job, "Archive.zip");
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Expected a list of resources to archive in the body");
     }
   }
   
@@ -132,11 +199,10 @@ namespace Orthanc
 
     std::string id = call.GetUriComponent("id", "");
 
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, false, false));
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, false));
     job->AddResource(id);
 
-    SubmitJob(call, tmp, context, job, id + ".zip");
+    SubmitJob(call, context, job, id + ".zip");
   }
 
 
@@ -146,11 +212,10 @@ namespace Orthanc
 
     std::string id = call.GetUriComponent("id", "");
 
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(tmp, context, true, call.HasArgument("extended")));
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, call.HasArgument("extended")));
     job->AddResource(id);
 
-    SubmitJob(call, tmp, context, job, id + ".zip");
+    SubmitJob(call, context, job, id + ".zip");
   }
 
 

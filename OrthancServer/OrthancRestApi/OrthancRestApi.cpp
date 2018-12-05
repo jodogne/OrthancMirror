@@ -176,9 +176,13 @@ namespace Orthanc
 
   
   bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
-                                               const Json::Value& body) const
+                                               const Json::Value& body)
   {
-    if (body.isMember(KEY_SYNCHRONOUS))
+    if (body.type() != Json::objectValue)
+    {
+      return isDefaultSynchronous;
+    }
+    else if (body.isMember(KEY_SYNCHRONOUS))
     {
       return SerializationToolbox::ReadBoolean(body, KEY_SYNCHRONOUS);
     }
