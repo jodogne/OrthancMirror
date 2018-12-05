@@ -134,7 +134,8 @@ Code refactoring
   Release() and Acquire())
 * Avoid direct calls to FromDcmtkBridge (make most of its 
   methods private), go through ParsedDicomFile wherever possible
-
+* avoid boost::bad_lexical_cast exception at least in happy path 
+  by using boost::conversion::try_lexical_convert
 
 =================
 Platform-specific
