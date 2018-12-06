@@ -261,9 +261,25 @@ TEST(LRU, SharedArchive)
   for (int i = 1; i < 100; i++)
   {
     a.Add(new S("Item " + boost::lexical_cast<std::string>(i)));
+    
     // Continuously protect the two first items
-    try { Orthanc::SharedArchive::Accessor(a, first);  } catch (Orthanc::OrthancException&) {}
-    try { Orthanc::SharedArchive::Accessor(a, second); } catch (Orthanc::OrthancException&) {}
+    {
+      Orthanc::SharedArchive::Accessor accessor(a, first);
+      ASSERT_TRUE(accessor.IsValid());
+      ASSERT_EQ("First item", dynamic_cast<S&>(accessor.GetItem()).GetValue());
+    }
+
+    {
+      Orthanc::SharedArchive::Accessor accessor(a, second);
+      ASSERT_TRUE(accessor.IsValid());
+      ASSERT_EQ("Second item", dynamic_cast<S&>(accessor.GetItem()).GetValue());
+    }
+
+    {
+      Orthanc::SharedArchive::Accessor accessor(a, "nope");
+      ASSERT_FALSE(accessor.IsValid());
+      ASSERT_THROW(accessor.GetItem(), Orthanc::OrthancException);
+    }
   }
 
   std::list<std::string> i;

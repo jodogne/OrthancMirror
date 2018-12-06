@@ -143,6 +143,13 @@ namespace
     {
       value["hello"] = "world";
     }
+
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key) ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 
 
