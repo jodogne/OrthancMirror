@@ -40,7 +40,7 @@
 
 #include "ServerIndexChange.h"
 #include "EmbeddedResources.h"
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "ServerToolbox.h"
 #include "../Core/Toolbox.h"
@@ -621,8 +621,6 @@ namespace Orthanc
 
     instanceMetadata.clear();
 
-    DicomInstanceHasher hasher(instanceToStore.GetSummary());
-
     try
     {
       Transaction t(*this);
@@ -631,14 +629,14 @@ namespace Orthanc
       {
         ResourceType type;
         int64_t tmp;
-        if (db_.LookupResource(tmp, type, hasher.HashInstance()))
+        if (db_.LookupResource(tmp, type, instanceToStore.GetHasher().HashInstance()))
         {
           assert(type == ResourceType_Instance);
 
           if (overwrite_)
           {
             // Overwrite the old instance
-            LOG(INFO) << "Overwriting instance: " << hasher.HashInstance();
+            LOG(INFO) << "Overwriting instance: " << instanceToStore.GetHasher().HashInstance();
             db_.DeleteResource(tmp);
           }
           else
@@ -658,10 +656,10 @@ namespace Orthanc
         instanceSize += it->GetCompressedSize();
       }
 
-      Recycle(instanceSize, hasher.HashPatient());
+      Recycle(instanceSize, instanceToStore.GetHasher().HashPatient());
 
       // Create the instance
-      int64_t instance = CreateResource(hasher.HashInstance(), ResourceType_Instance);
+      int64_t instance = CreateResource(instanceToStore.GetHasher().HashInstance(), ResourceType_Instance);
       ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
 
       // Detect up to which level the patient/study/series/instance
@@ -674,26 +672,26 @@ namespace Orthanc
       {
         ResourceType dummy;
 
-        if (db_.LookupResource(series, dummy, hasher.HashSeries()))
+        if (db_.LookupResource(series, dummy, instanceToStore.GetHasher().HashSeries()))
         {
           assert(dummy == ResourceType_Series);
           // The patient, the study and the series already exist
 
-          bool ok = (db_.LookupResource(patient, dummy, hasher.HashPatient()) &&
-                     db_.LookupResource(study, dummy, hasher.HashStudy()));
+          bool ok = (db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient()) &&
+                     db_.LookupResource(study, dummy, instanceToStore.GetHasher().HashStudy()));
           assert(ok);
         }
-        else if (db_.LookupResource(study, dummy, hasher.HashStudy()))
+        else if (db_.LookupResource(study, dummy, instanceToStore.GetHasher().HashStudy()))
         {
           assert(dummy == ResourceType_Study);
 
           // New series: The patient and the study already exist
           isNewSeries = true;
 
-          bool ok = db_.LookupResource(patient, dummy, hasher.HashPatient());
+          bool ok = db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient());
           assert(ok);
         }
-        else if (db_.LookupResource(patient, dummy, hasher.HashPatient()))
+        else if (db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient()))
         {
           assert(dummy == ResourceType_Patient);
 
@@ -713,21 +711,21 @@ namespace Orthanc
       // Create the series if needed
       if (isNewSeries)
       {
-        series = CreateResource(hasher.HashSeries(), ResourceType_Series);
+        series = CreateResource(instanceToStore.GetHasher().HashSeries(), ResourceType_Series);
         ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
       }
 
       // Create the study if needed
       if (isNewStudy)
       {
-        study = CreateResource(hasher.HashStudy(), ResourceType_Study);
+        study = CreateResource(instanceToStore.GetHasher().HashStudy(), ResourceType_Study);
         ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
       }
 
       // Create the patient if needed
       if (isNewPatient)
       {
-        patient = CreateResource(hasher.HashPatient(), ResourceType_Patient);
+        patient = CreateResource(instanceToStore.GetHasher().HashPatient(), ResourceType_Patient);
         ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
       }
 
@@ -853,13 +851,13 @@ namespace Orthanc
       SeriesStatus seriesStatus = GetSeriesStatus(series);
       if (seriesStatus == SeriesStatus_Complete)
       {
-        LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, hasher.HashSeries());
+        LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, instanceToStore.GetHasher().HashSeries());
       }
 
       // Mark the parent resources of this instance as unstable
-      MarkAsUnstable(series, ResourceType_Series, hasher.HashSeries());
-      MarkAsUnstable(study, ResourceType_Study, hasher.HashStudy());
-      MarkAsUnstable(patient, ResourceType_Patient, hasher.HashPatient());
+      MarkAsUnstable(series, ResourceType_Series, instanceToStore.GetHasher().HashSeries());
+      MarkAsUnstable(study, ResourceType_Study, instanceToStore.GetHasher().HashStudy());
+      MarkAsUnstable(patient, ResourceType_Patient, instanceToStore.GetHasher().HashPatient());
 
       t.Commit(instanceSize);
 
@@ -1933,7 +1931,13 @@ namespace Orthanc
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleep)
   {
-    int stableAge = Configuration::GetGlobalUnsignedIntegerParameter("StableAge", 60);
+    int stableAge;
+    
+    {
+      OrthancConfiguration::ReaderLock lock;
+      stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
+    }
+
     if (stableAge <= 0)
     {
       stableAge = 60;

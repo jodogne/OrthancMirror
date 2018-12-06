@@ -119,8 +119,9 @@ namespace Orthanc
   
     if (result == NULL)
     {
-      LOG(ERROR) << "Shared library does not expose function \"" << name << "\"";
-      throw OrthancException(ErrorCode_SharedLibrary);
+      throw OrthancException(
+        ErrorCode_SharedLibrary,
+        "Shared library does not expose function \"" + name + "\"");
     }
     else
     {

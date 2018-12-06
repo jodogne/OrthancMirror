@@ -40,8 +40,13 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp> 
-#include <boost/uuid/sha1.hpp>
+#include <boost/regex.hpp>
+
+#if BOOST_VERSION >= 106600
+#  include <boost/uuid/detail/sha1.hpp>
+#else
+#  include <boost/uuid/sha1.hpp>
+#endif
  
 #include <string>
 #include <stdint.h>
@@ -51,6 +56,8 @@
 
 
 #if ORTHANC_ENABLE_MD5 == 1
+// TODO - Could be replaced by <boost/uuid/detail/md5.hpp> starting
+// with Boost >= 1.66.0
 #  include "../Resources/ThirdParty/md5/md5.h"
 #endif
 
@@ -310,55 +317,6 @@ namespace Orthanc
   }
 
 
-  std::string Toolbox::AutodetectMimeType(const std::string& path)
-  {
-    std::string contentType;
-    size_t lastDot = path.rfind('.');
-    size_t lastSlash = path.rfind('/');
-
-    if (lastDot == std::string::npos ||
-        (lastSlash != std::string::npos && lastDot < lastSlash))
-    {
-      // No trailing dot, unable to detect the content type
-    }
-    else
-    {
-      const char* extension = &path[lastDot + 1];
-    
-      // http://en.wikipedia.org/wiki/Mime_types
-      // Text types
-      if (!strcmp(extension, "txt"))
-        contentType = "text/plain";
-      else if (!strcmp(extension, "html"))
-        contentType = "text/html";
-      else if (!strcmp(extension, "xml"))
-        contentType = "text/xml";
-      else if (!strcmp(extension, "css"))
-        contentType = "text/css";
-
-      // Application types
-      else if (!strcmp(extension, "js"))
-        contentType = "application/javascript";
-      else if (!strcmp(extension, "json"))
-        contentType = "application/json";
-      else if (!strcmp(extension, "pdf"))
-        contentType = "application/pdf";
-      else if (!strcmp(extension, "wasm"))
-        contentType = "application/wasm";
-
-      // Images types
-      else if (!strcmp(extension, "jpg") || !strcmp(extension, "jpeg"))
-        contentType = "image/jpeg";
-      else if (!strcmp(extension, "gif"))
-        contentType = "image/gif";
-      else if (!strcmp(extension, "png"))
-        contentType = "image/png";
-    }
-
-    return contentType;
-  }
-
-
   std::string Toolbox::FlattenUri(const UriComponents& components,
                                   size_t fromLevel)
   {
@@ -568,22 +526,25 @@ namespace Orthanc
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding)
   {
-    if (sourceEncoding == Encoding_Utf8)
-    {
-      // Already in UTF-8: No conversion is required
-      return source;
-    }
-
-    if (sourceEncoding == Encoding_Ascii)
-    {
-      return ConvertToAscii(source);
-    }
-
-    const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
-
+    // The "::skip" flag makes boost skip invalid UTF-8
+    // characters. This can occur in badly-encoded DICOM files.
+    
     try
     {
-      return boost::locale::conv::to_utf<char>(source, encoding);
+      if (sourceEncoding == Encoding_Utf8)
+      {
+        // Already in UTF-8: No conversion is required
+        return boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+      }
+      else if (sourceEncoding == Encoding_Ascii)
+      {
+        return ConvertToAscii(source);
+      }
+      else
+      {
+        const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
+        return boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+      }
     }
     catch (std::runtime_error&)
     {
@@ -598,22 +559,25 @@ namespace Orthanc
   std::string Toolbox::ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding)
   {
-    if (targetEncoding == Encoding_Utf8)
-    {
-      // Already in UTF-8: No conversion is required
-      return source;
-    }
-
-    if (targetEncoding == Encoding_Ascii)
-    {
-      return ConvertToAscii(source);
-    }
-
-    const char* encoding = GetBoostLocaleEncoding(targetEncoding);
-
+    // The "::skip" flag makes boost skip invalid UTF-8
+    // characters. This can occur in badly-encoded DICOM files.
+    
     try
     {
-      return boost::locale::conv::from_utf<char>(source, encoding);
+      if (targetEncoding == Encoding_Utf8)
+      {
+        // Already in UTF-8: No conversion is required.
+        return boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+      }
+      else if (targetEncoding == Encoding_Ascii)
+      {
+        return ConvertToAscii(source);
+      }
+      else
+      {
+        const char* encoding = GetBoostLocaleEncoding(targetEncoding);
+        return boost::locale::conv::from_utf<char>(source, encoding, boost::locale::conv::skip);
+      }
     }
     catch (std::runtime_error&)
     {
@@ -624,6 +588,14 @@ namespace Orthanc
 #endif
 
 
+  static bool IsAsciiCharacter(uint8_t c)
+  {
+    return (c != 0 &&
+            c <= 127 &&
+            (c == '\n' || !iscntrl(c)));
+  }
+
+
   bool Toolbox::IsAsciiString(const void* data,
                               size_t size)
   {
@@ -631,7 +603,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < size; i++, p++)
     {
-      if (*p > 127 || *p == 0 || iscntrl(*p))
+      if (!IsAsciiCharacter(*p))
       {
         return false;
       }
@@ -654,7 +626,7 @@ namespace Orthanc
     result.reserve(source.size() + 1);
     for (size_t i = 0; i < source.size(); i++)
     {
-      if (source[i] <= 127 && source[i] >= 0 && !iscntrl(source[i]))
+      if (IsAsciiCharacter(source[i]))
       {
         result.push_back(source[i]);
       }
@@ -1420,8 +1392,8 @@ namespace Orthanc
     if (!ok &&
         !SetGlobalLocale(NULL))
     {
-      LOG(ERROR) << "Cannot initialize global locale";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot initialize global locale");
     }
 
   }
@@ -1437,8 +1409,8 @@ namespace Orthanc
   {
     if (globalLocale_.get() == NULL)
     {
-      LOG(ERROR) << "No global locale was set, call Toolbox::InitializeGlobalLocale()";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "No global locale was set, call Toolbox::InitializeGlobalLocale()");
     }
 
     /**
@@ -1468,9 +1440,9 @@ namespace Orthanc
      * "utf_to_utf" in order to convert to/from std::wstring.
      **/
 
-    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source);
+    std::wstring w = boost::locale::conv::utf_to_utf<wchar_t>(source, boost::locale::conv::skip);
     w = boost::algorithm::to_upper_copy<std::wstring>(w, *globalLocale_);
-    return boost::locale::conv::utf_to_utf<char>(w);
+    return boost::locale::conv::utf_to_utf<char>(w, boost::locale::conv::skip);
   }
 #endif
 
@@ -1524,6 +1496,98 @@ namespace Orthanc
     uuid_unparse ( uuid, s );
 #endif
     return s;
+  }
+
+
+  namespace
+  {
+    // Anonymous namespace to avoid clashes between compilation modules
+
+    class VariableFormatter
+    {
+    public:
+      typedef std::map<std::string, std::string>   Dictionary;
+
+    private:
+      const Dictionary& dictionary_;
+
+    public:
+      VariableFormatter(const Dictionary& dictionary) :
+        dictionary_(dictionary)
+      {
+      }
+  
+      template<typename Out>
+      Out operator()(const boost::smatch& what,
+                     Out out) const
+      {
+        if (!what[1].str().empty())
+        {
+          // Variable without a default value
+          Dictionary::const_iterator found = dictionary_.find(what[1]);
+    
+          if (found != dictionary_.end())
+          {
+            const std::string& value = found->second;
+            out = std::copy(value.begin(), value.end(), out);
+          }
+        }
+        else
+        {
+          // Variable with a default value
+          std::string key;
+          std::string defaultValue;
+          
+          if (!what[2].str().empty())
+          {
+            key = what[2].str();
+            defaultValue = what[3].str();
+          }
+          else if (!what[4].str().empty())
+          {
+            key = what[4].str();
+            defaultValue = what[5].str();
+          }
+          else if (!what[6].str().empty())
+          {
+            key = what[6].str();
+            defaultValue = what[7].str();
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          Dictionary::const_iterator found = dictionary_.find(key);
+    
+          if (found == dictionary_.end())
+          {
+            out = std::copy(defaultValue.begin(), defaultValue.end(), out);
+          }
+          else
+          {
+            const std::string& value = found->second;
+            out = std::copy(value.begin(), value.end(), out);
+          }
+        }
+    
+        return out;
+      }
+    };
+  }
+
+  
+  std::string Toolbox::SubstituteVariables(const std::string& source,
+                                           const std::map<std::string, std::string>& dictionary)
+  {
+    const boost::regex pattern("\\$\\{([^:]*?)\\}|"                 // ${what[1]}
+                               "\\$\\{([^:]*?):-([^'\"]*?)\\}|"     // ${what[2]:-what[3]}
+                               "\\$\\{([^:]*?):-\"([^\"]*?)\"\\}|"  // ${what[4]:-"what[5]"}
+                               "\\$\\{([^:]*?):-'([^']*?)'\\}");    // ${what[6]:-'what[7]'}
+
+    VariableFormatter formatter(dictionary);
+
+    return boost::regex_replace(source, pattern, formatter);
   }
 }
 

@@ -293,7 +293,13 @@ TEST(Lua, Http)
   // OpenSSL/HTTPS support is disabled in curl
   const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
 
+#if LUA_VERSION_NUM >= 502
+  // Since Lua >= 5.2.0, the function "loadstring" has been replaced by "load"
+  lua.Execute("JSON = load(HttpGet('" + BASE + "JSON.lua')) ()");
+#else
   lua.Execute("JSON = loadstring(HttpGet('" + BASE + "JSON.lua')) ()");
+#endif
+
   const std::string url(BASE + "Product.json");
 #endif
 

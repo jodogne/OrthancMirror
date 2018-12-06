@@ -59,6 +59,7 @@ set(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionar
 set(USE_DCMTK_360 OFF CACHE BOOL "Use older DCMTK version 3.6.0 in static builds (instead of default 3.6.2)")
 set(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 set(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
+set(ENABLE_DCMTK_LOG ON CACHE BOOL "Enable logging internal to DCMTK")
 set(ENABLE_DCMTK_JPEG ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
 set(ENABLE_DCMTK_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompression")
 

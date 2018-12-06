@@ -82,8 +82,10 @@
 #include "ParsedDicomFile.h"
 
 #include "FromDcmtkBridge.h"
-#include "ToDcmtkBridge.h"
 #include "Internals/DicomFrameIndex.h"
+#include "ToDcmtkBridge.h"
+
+#include "../Images/PamReader.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
@@ -160,8 +162,6 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
-  static const char* CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
-
   static void ParseTagAndGroup(DcmTagKey& key,
                                const std::string& tag)
   {
@@ -246,27 +246,28 @@ namespace Orthanc
 
       virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/,
                                                    bool /*deflateAllowed*/)
+        ORTHANC_OVERRIDE
       {
         // No support for compression
         return HttpCompression_None;
       }
 
-      virtual bool HasContentFilename(std::string& filename)
+      virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE
       {
         return false;
       }
 
-      virtual std::string GetContentType()
+      virtual std::string GetContentType() ORTHANC_OVERRIDE
       {
-        return "";
+        return EnumerationToString(MimeType_Binary);
       }
 
-      virtual uint64_t  GetContentLength()
+      virtual uint64_t  GetContentLength() ORTHANC_OVERRIDE
       {
         return length_;
       }
  
-      virtual bool ReadNextChunk()
+      virtual bool ReadNextChunk() ORTHANC_OVERRIDE
       {
         assert(offset_ <= length_);
 
@@ -291,20 +292,21 @@ namespace Orthanc
 
           if (!cond.good())
           {
-            LOG(ERROR) << "Error while sending a DICOM field: " << cond.text();
-            throw OrthancException(ErrorCode_InternalError);
+            throw OrthancException(ErrorCode_InternalError,
+                                   "Error while sending a DICOM field: " +
+                                   std::string(cond.text()));
           }
 
           return true;
         }
       }
  
-      virtual const char *GetChunkContent()
+      virtual const char *GetChunkContent() ORTHANC_OVERRIDE
       {
         return chunk_.c_str();
       }
  
-      virtual size_t GetChunkSize()
+      virtual size_t GetChunkSize() ORTHANC_OVERRIDE
       {
         return chunkSize_;
       }
@@ -362,14 +364,14 @@ namespace Orthanc
             {
               if (pixelItem->getLength() == 0)
               {
-                output.AnswerBuffer(NULL, 0, CONTENT_TYPE_OCTET_STREAM);
+                output.AnswerBuffer(NULL, 0, MimeType_Binary);
                 return true;
               }
 
               Uint8* buffer = NULL;
               if (pixelItem->getUint8Array(buffer).good() && buffer)
               {
-                output.AnswerBuffer(buffer, pixelItem->getLength(), CONTENT_TYPE_OCTET_STREAM);
+                output.AnswerBuffer(buffer, pixelItem->getLength(), MimeType_Binary);
                 return true;
               }
             }
@@ -692,7 +694,7 @@ namespace Orthanc
     const std::string* decoded = &utf8Value;
 
     if (decodeDataUriScheme &&
-        boost::starts_with(utf8Value, "data:application/octet-stream;base64,"))
+        boost::starts_with(utf8Value, URI_SCHEME_PREFIX_BINARY))
     {
       std::string mime;
       if (!Toolbox::DecodeDataUriScheme(mime, binary, utf8Value))
@@ -825,7 +827,7 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
     {
-      output.AnswerBuffer(serialized, CONTENT_TYPE_OCTET_STREAM);
+      output.AnswerBuffer(serialized, MimeType_Binary);
     }
   }
 #endif
@@ -954,8 +956,8 @@ namespace Orthanc
     }
     else if (tmp->IsBinary())
     {
-      LOG(ERROR) << "Invalid binary string in the SpecificCharacterSet (0008,0005) tag";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Invalid binary string in the SpecificCharacterSet (0008,0005) tag");
     }
     else if (tmp->IsNull() ||
              tmp->GetContent().empty())
@@ -972,9 +974,9 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \""
-                   << tmp->GetContent() << "\"";        
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Unsupported value for the SpecificCharacterSet (0008,0005) tag: \"" +
+                               tmp->GetContent() + "\"");
       }
     }
 
@@ -1064,40 +1066,46 @@ namespace Orthanc
 
   bool ParsedDicomFile::EmbedContentInternal(const std::string& dataUriScheme)
   {
-    std::string mime, content;
-    if (!Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme))
+    std::string mimeString, content;
+    if (!Toolbox::DecodeDataUriScheme(mimeString, content, dataUriScheme))
     {
       return false;
     }
 
-    Toolbox::ToLowerCase(mime);
+    Toolbox::ToLowerCase(mimeString);
+    MimeType mime = StringToMimeType(mimeString);
 
-    if (mime == "image/png")
+    switch (mime)
     {
+      case MimeType_Png:
 #if ORTHANC_ENABLE_PNG == 1
-      EmbedImage(mime, content);
+        EmbedImage(mime, content);
+        break;
 #else
-      LOG(ERROR) << "Orthanc was compiled without support of PNG";
-      throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Orthanc was compiled without support of PNG");
 #endif
-    }
-    else if (mime == "image/jpeg")
-    {
+
+      case MimeType_Jpeg:
 #if ORTHANC_ENABLE_JPEG == 1
-      EmbedImage(mime, content);
+        EmbedImage(mime, content);
+        break;
 #else
-      LOG(ERROR) << "Orthanc was compiled without support of JPEG";
-      throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Orthanc was compiled without support of JPEG");
 #endif
-    }
-    else if (mime == "application/pdf")
-    {
-      EmbedPdf(content);
-    }
-    else
-    {
-      LOG(ERROR) << "Unsupported MIME type for the content of a new DICOM file: " << mime;
-      throw OrthancException(ErrorCode_NotImplemented);
+
+      case MimeType_Pam:
+        EmbedImage(mime, content);
+        break;
+
+      case MimeType_Pdf:
+        EmbedPdf(content);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Unsupported MIME type for the content of a new DICOM file: " + mime);
     }
 
     return true;
@@ -1113,29 +1121,44 @@ namespace Orthanc
   }
 
 
-#if (ORTHANC_ENABLE_JPEG == 1 &&                \
-     ORTHANC_ENABLE_PNG == 1)
-  void ParsedDicomFile::EmbedImage(const std::string& mime,
+  void ParsedDicomFile::EmbedImage(MimeType mime,
                                    const std::string& content)
   {
-    if (mime == "image/png")
+    switch (mime)
     {
-      PngReader reader;
-      reader.ReadFromMemory(content);
-      EmbedImage(reader);
-    }
-    else if (mime == "image/jpeg")
-    {
-      JpegReader reader;
-      reader.ReadFromMemory(content);
-      EmbedImage(reader);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
+    
+#if ORTHANC_ENABLE_JPEG == 1
+      case MimeType_Jpeg:
+      {
+        JpegReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
+#endif
+    
+#if ORTHANC_ENABLE_PNG == 1
+      case MimeType_Png:
+      {
+        PngReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
+#endif
+
+      case MimeType_Pam:
+      {
+        PamReader reader;
+        reader.ReadFromMemory(content);
+        EmbedImage(reader);
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
-#endif
 
 
   void ParsedDicomFile::EmbedImage(const ImageAccessor& accessor)
@@ -1162,7 +1185,9 @@ namespace Orthanc
     ReplacePlainString(DICOM_TAG_COLUMNS, boost::lexical_cast<std::string>(accessor.GetWidth()));
     ReplacePlainString(DICOM_TAG_ROWS, boost::lexical_cast<std::string>(accessor.GetHeight()));
     ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "1");
-    ReplacePlainString(DICOM_TAG_NUMBER_OF_FRAMES, "1");
+
+    // The "Number of frames" must only be present in multi-frame images
+    //ReplacePlainString(DICOM_TAG_NUMBER_OF_FRAMES, "1");
 
     if (accessor.GetFormat() == PixelFormat_SignedGrayscale16)
     {
@@ -1173,14 +1198,14 @@ namespace Orthanc
       ReplacePlainString(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
     }
 
-    ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
-    SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2"); // by default, greyscale images are in MONOCHROME2
-
     unsigned int bytesPerPixel = 0;
 
     switch (accessor.GetFormat())
     {
       case PixelFormat_Grayscale8:
+        // By default, grayscale images are MONOCHROME2
+        SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+
         ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "8");
         ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
@@ -1195,10 +1220,18 @@ namespace Orthanc
         ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 3;
+
+        // "Planar configuration" must only present if "Samples per
+        // Pixel" is greater than 1
+        ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
+
         break;
 
       case PixelFormat_Grayscale16:
       case PixelFormat_SignedGrayscale16:
+        // By default, grayscale images are MONOCHROME2
+        SetIfAbsent(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2");
+
         ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "16");
         ReplacePlainString(DICOM_TAG_BITS_STORED, "16");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "15");
@@ -1337,8 +1370,7 @@ namespace Orthanc
     if (pdf.size() < 5 ||  // (*)
         strncmp("%PDF-", pdf.c_str(), 5) != 0)
     {
-      LOG(ERROR) << "Not a PDF file";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
     }
 
     InvalidateCache();
@@ -1346,7 +1378,7 @@ namespace Orthanc
     ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
     ReplacePlainString(FromDcmtkBridge::Convert(DCM_Modality), "OT");
     ReplacePlainString(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
-    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), "application/pdf");
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
     //ReplacePlainString(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
     std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
@@ -1388,7 +1420,7 @@ namespace Orthanc
     if (!GetTagValue(sop, DICOM_TAG_SOP_CLASS_UID) ||
         !GetTagValue(mime, FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument)) ||
         sop != UID_EncapsulatedPDFStorage ||
-        mime != "application/pdf")
+        mime != MIME_PDF)
     {
       return false;
     }
@@ -1456,7 +1488,7 @@ namespace Orthanc
 
 
   void ParsedDicomFile::GetRawFrame(std::string& target,
-                                    std::string& mime,
+                                    MimeType& mime,
                                     unsigned int frameId)
   {
     if (pimpl_->frameIndex_.get() == NULL)
@@ -1470,16 +1502,16 @@ namespace Orthanc
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
-        mime = "image/jpeg";
+        mime = MimeType_Jpeg;
         break;
        
       case EXS_JPEG2000LosslessOnly:
       case EXS_JPEG2000:
-        mime = "image/jp2";
+        mime = MimeType_Jpeg2000;
         break;
 
       default:
-        mime = "application/octet-stream";
+        mime = MimeType_Binary;
         break;
     }
   }

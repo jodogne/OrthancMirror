@@ -47,7 +47,6 @@ namespace Orthanc
   static const char* JOB = "Job";
   static const char* JOBS = "Jobs";
   static const char* JOBS_REGISTRY = "JobsRegistry";
-  static const char* MAX_COMPLETED_JOBS = "MaxCompletedJobs";
   static const char* CREATION_TIME = "CreationTime";
   static const char* LAST_CHANGE_TIME = "LastChangeTime";
   static const char* RUNTIME = "Runtime";
@@ -264,7 +263,7 @@ namespace Orthanc
         // as a "RunningJob" instance is running. We do not use a
         // mutex at the "JobHandler" level, as serialization would be
         // blocked while a step in the job is running. Instead, we
-        // save a snapshot of the serialized job.
+        // save a snapshot of the serialized job. (*)
 
         if (lastStatus_.HasSerialized())
         {
@@ -292,7 +291,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(INFO) << "Job backup is not supported for job of type: " << jobType_;
+        VLOG(1) << "Job backup is not supported for job of type: " << jobType_;
         return false;
       }
     }
@@ -435,20 +434,19 @@ namespace Orthanc
 
   void JobsRegistry::ForgetOldCompletedJobs()
   {
-    if (maxCompletedJobs_ != 0)
+    while (completedJobs_.size() > maxCompletedJobs_)
     {
-      while (completedJobs_.size() > maxCompletedJobs_)
-      {
-        assert(completedJobs_.front() != NULL);
+      assert(completedJobs_.front() != NULL);
 
-        std::string id = completedJobs_.front()->GetId();
-        assert(jobsIndex_.find(id) != jobsIndex_.end());
+      std::string id = completedJobs_.front()->GetId();
+      assert(jobsIndex_.find(id) != jobsIndex_.end());
 
-        jobsIndex_.erase(id);
-        delete(completedJobs_.front());
-        completedJobs_.pop_front();
-      }
+      jobsIndex_.erase(id);
+      delete(completedJobs_.front());
+      completedJobs_.pop_front();
     }
+
+    CheckInvariants();
   }
 
 
@@ -458,26 +456,48 @@ namespace Orthanc
     job.SetState(success ? JobState_Success : JobState_Failure);
 
     completedJobs_.push_back(&job);
-    ForgetOldCompletedJobs();
-
     someJobComplete_.notify_all();
   }
 
 
   void JobsRegistry::MarkRunningAsCompleted(JobHandler& job,
-                                            bool success)
+                                            CompletedReason reason)
   {
-    LOG(INFO) << "Job has completed with " << (success ? "success" : "failure")
-              << ": " << job.GetId();
+    const char* tmp;
+
+    switch (reason)
+    {
+      case CompletedReason_Success:
+        tmp = "success";
+        break;
+
+      case CompletedReason_Failure:
+        tmp = "success";
+        break;
+
+      case CompletedReason_Canceled:
+        tmp = "cancel";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    LOG(INFO) << "Job has completed with " << tmp << ": " << job.GetId();
 
     CheckInvariants();
 
     assert(job.GetState() == JobState_Running);
-    SetCompletedJob(job, success);
+    SetCompletedJob(job, reason == CompletedReason_Success);
+
+    if (reason == CompletedReason_Canceled)
+    {
+      job.SetLastErrorCode(ErrorCode_CanceledJob);
+    }
 
     if (observer_ != NULL)
     {
-      if (success)
+      if (reason == CompletedReason_Success)
       {
         observer_->SignalJobSuccess(job.GetId());
       }
@@ -487,7 +507,9 @@ namespace Orthanc
       }
     }
 
-    CheckInvariants();
+    // WARNING: The following call might make "job" invalid if the job
+    // history size is empty
+    ForgetOldCompletedJobs();
   }
 
 
@@ -558,8 +580,14 @@ namespace Orthanc
 
     maxCompletedJobs_ = n;
     ForgetOldCompletedJobs();
+  }
 
+
+  size_t JobsRegistry::GetMaxCompletedJobs()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
     CheckInvariants();
+    return maxCompletedJobs_;
   }
 
 
@@ -603,18 +631,45 @@ namespace Orthanc
   }
 
 
-  void JobsRegistry::SubmitInternal(std::string& id,
-                                    JobHandler* handlerRaw,
-                                    bool keepLastChangeTime)
+  bool JobsRegistry::GetJobOutput(std::string& output,
+                                  MimeType& mime,
+                                  const std::string& job,
+                                  const std::string& key)
   {
-    if (handlerRaw == NULL)
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::const_iterator found = jobsIndex_.find(job);
+
+    if (found == jobsIndex_.end())
+    {
+      return false;
+    }
+    else
+    {
+      const JobHandler& handler = *found->second;
+
+      if (handler.GetState() == JobState_Success)
+      {
+        return handler.GetJob().GetOutput(output, mime, key);
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+
+
+  void JobsRegistry::SubmitInternal(std::string& id,
+                                    JobHandler* handler)
+  {
+    if (handler == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
     
-    std::auto_ptr<JobHandler>  handler(handlerRaw);
-
-    boost::posix_time::ptime lastChangeTime = handler->GetLastStateChangeTime();
+    std::auto_ptr<JobHandler>  protection(handler);
 
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -623,13 +678,15 @@ namespace Orthanc
       id = handler->GetId();
       int priority = handler->GetPriority();
 
+      jobsIndex_.insert(std::make_pair(id, protection.release()));
+
       switch (handler->GetState())
       {
         case JobState_Pending:
         case JobState_Retry:
         case JobState_Running:
           handler->SetState(JobState_Pending);
-          pendingJobs_.push(handler.get());
+          pendingJobs_.push(handler);
           pendingJobAvailable_.notify_one();
           break;
  
@@ -645,17 +702,12 @@ namespace Orthanc
           break;
         
         default:
-          LOG(ERROR) << "A job should not be loaded from state: "
-                     << EnumerationToString(handler->GetState());
-          throw OrthancException(ErrorCode_InternalError);
+        {
+          std::string details = ("A job should not be loaded from state: " +
+                                 std::string(EnumerationToString(handler->GetState())));
+          throw OrthancException(ErrorCode_InternalError, details);
+        }
       }
-
-      if (keepLastChangeTime)
-      {
-        handler->SetLastStateChangeTime(lastChangeTime);
-      }
-    
-      jobsIndex_.insert(std::make_pair(id, handler.release()));
 
       LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
 
@@ -664,7 +716,9 @@ namespace Orthanc
         observer_->SignalJobSubmitted(id);
       }
 
-      CheckInvariants();
+      // WARNING: The following call might make "handler" invalid if
+      // the job history size is empty
+      ForgetOldCompletedJobs();
     }
   }
 
@@ -673,7 +727,7 @@ namespace Orthanc
                             IJob* job,        // Takes ownership
                             int priority)
   {
-    SubmitInternal(id, new JobHandler(job, priority), false);
+    SubmitInternal(id, new JobHandler(job, priority));
   }
 
 
@@ -681,7 +735,7 @@ namespace Orthanc
                             int priority)
   {
     std::string id;
-    SubmitInternal(id, new JobHandler(job, priority), false);
+    SubmitInternal(id, new JobHandler(job, priority));
   }
 
 
@@ -904,7 +958,10 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      CheckInvariants();
+      // WARNING: The following call might make "handler" invalid if
+      // the job history size is empty
+      ForgetOldCompletedJobs();
+
       return true;
     }
   }
@@ -1091,17 +1148,12 @@ namespace Orthanc
       switch (targetState_)
       {
         case JobState_Failure:
-          registry_.MarkRunningAsCompleted(*handler_, false);
-
-          if (canceled_)
-          {
-            handler_->SetLastErrorCode(ErrorCode_CanceledJob);
-          }
-          
+          registry_.MarkRunningAsCompleted
+            (*handler_, canceled_ ? CompletedReason_Canceled : CompletedReason_Failure);
           break;
 
         case JobState_Success:
-          registry_.MarkRunningAsCompleted(*handler_, true);
+          registry_.MarkRunningAsCompleted(*handler_, CompletedReason_Success);
           break;
 
         case JobState_Paused:
@@ -1293,7 +1345,6 @@ namespace Orthanc
 
     target = Json::objectValue;
     target[TYPE] = JOBS_REGISTRY;
-    target[MAX_COMPLETED_JOBS] = static_cast<unsigned int>(maxCompletedJobs_);
     target[JOBS] = Json::objectValue;
     
     for (JobsIndex::const_iterator it = jobsIndex_.begin(); 
@@ -1309,7 +1360,9 @@ namespace Orthanc
 
 
   JobsRegistry::JobsRegistry(IJobUnserializer& unserializer,
-                             const Json::Value& s) :
+                             const Json::Value& s,
+                             size_t maxCompletedJobs) :
+    maxCompletedJobs_(maxCompletedJobs),
     observer_(NULL)
   {
     if (SerializationToolbox::ReadString(s, TYPE) != JOBS_REGISTRY ||
@@ -1319,17 +1372,28 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    maxCompletedJobs_ = SerializationToolbox::ReadUnsignedInteger(s, MAX_COMPLETED_JOBS);
-
     Json::Value::Members members = s[JOBS].getMemberNames();
 
     for (Json::Value::Members::const_iterator it = members.begin();
          it != members.end(); ++it)
     {
       std::auto_ptr<JobHandler> job(new JobHandler(unserializer, s[JOBS][*it], *it));
-      
+
+      const boost::posix_time::ptime lastChangeTime = job->GetLastStateChangeTime();
+
       std::string id;
-      SubmitInternal(id, job.release(), true);
+      SubmitInternal(id, job.release());
+
+      // Check whether the job has not been removed (which could be
+      // the case if the "maxCompletedJobs_" value gets smaller)
+      JobsIndex::iterator found = jobsIndex_.find(id);
+      if (found != jobsIndex_.end())
+      {
+        // The job still lies in the history: Update the time of its
+        // last change to the time that was serialized
+        assert(found->second != NULL);
+        found->second->SetLastStateChangeTime(lastChangeTime);
+      }
     }
   }
 }

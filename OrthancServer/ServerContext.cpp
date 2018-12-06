@@ -40,7 +40,7 @@
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "Search/LookupResource.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
@@ -170,8 +170,7 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Cannot unserialize the jobs engine: " << e.What();
-          throw;
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: " << e.What();
         }
       }
       else
@@ -181,10 +180,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "Not reloading the jobs from the last execution of Orthanc";
+      LOG(INFO) << "Not reloading the jobs from the last execution of Orthanc";
     }
-
-    //jobsEngine_.GetRegistry().SetMaxCompleted   // TODO
 
     jobsEngine_.GetRegistry().SetObserver(*this);
     jobsEngine_.Start();
@@ -217,7 +214,8 @@ namespace Orthanc
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
-                               bool unitTesting) :
+                               bool unitTesting,
+                               size_t maxCompletedJobs) :
     index_(*this, database, (unitTesting ? 20 : 500)),
     area_(area),
     compressionEnabled_(false),
@@ -227,16 +225,25 @@ namespace Orthanc
     mainLua_(*this),
     filterLua_(*this),
     luaListener_(*this),
+    jobsEngine_(maxCompletedJobs),
 #if ORTHANC_ENABLE_PLUGINS == 1
     plugins_(NULL),
 #endif
     done_(false),
     haveJobsChanged_(false),
-    isJobsEngineUnserialized_(false),
-    queryRetrieveArchive_(Configuration::GetGlobalUnsignedIntegerParameter("QueryRetrieveSize", 10)),
-    defaultLocalAet_(Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC"))
+    isJobsEngineUnserialized_(false)
   {
-    jobsEngine_.SetWorkersCount(Configuration::GetGlobalUnsignedIntegerParameter("ConcurrentJobs", 2));
+    {
+      OrthancConfiguration::ReaderLock lock;
+
+      queryRetrieveArchive_.reset(
+        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 10)));
+      mediaArchive_.reset(
+        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
+      defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+      jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+    }
+
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
 
     listeners_.push_back(ServerListener(luaListener_, "Lua"));
@@ -316,10 +323,7 @@ namespace Orthanc
     {
       StorageAccessor accessor(area_);
 
-      {
-        DicomInstanceHasher hasher(dicom.GetSummary());
-        resultPublicId = hasher.HashInstance();
-      }
+      resultPublicId = dicom.GetHasher().HashInstance();
 
       Json::Value simplifiedTags;
       ServerToolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
@@ -537,8 +541,8 @@ namespace Orthanc
       if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
                          result.c_str(), result.size()))
       {
-        LOG(WARNING) << "Cannot associate the DICOM-as-JSON summary to instance: " << instancePublicId;
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot associate the DICOM-as-JSON summary to instance: " + instancePublicId);
       }
     }
   }
@@ -597,8 +601,9 @@ namespace Orthanc
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, instancePublicId, content))
     {
-      LOG(WARNING) << "Unable to read attachment " << EnumerationToString(content) << " of instance " << instancePublicId;
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(content) +
+                             " of instance " + instancePublicId);
     }
 
     if (uncompressIfNeeded)
@@ -824,5 +829,27 @@ namespace Orthanc
     {
       job.AddInstance(*it);
     }
+  }
+
+
+  void ServerContext::SignalUpdatedModalities()
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalUpdatedModalities();
+    }
+#endif
+  }
+
+   
+  void ServerContext::SignalUpdatedPeers()
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalUpdatedPeers();
+    }
+#endif
   }
 }

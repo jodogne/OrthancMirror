@@ -149,8 +149,8 @@ namespace Orthanc
        */
       jpeg_destroy_compress(&cinfo);
       fclose(fp);
-      LOG(ERROR) << "Error during JPEG encoding: " << jerr.GetMessage();
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Error during JPEG encoding: " + jerr.GetMessage());
     }
 
     // Do not allocate data on the stack below this line!
@@ -193,8 +193,8 @@ namespace Orthanc
         free(data);
       }
 
-      LOG(ERROR) << "Error during JPEG encoding: " << jerr.GetMessage();
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Error during JPEG encoding: " + jerr.GetMessage());
     }
 
     // Do not allocate data on the stack below this line!

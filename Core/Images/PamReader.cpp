@@ -244,4 +244,11 @@ namespace Orthanc
     content_ = buffer;
     ParseContent();
   }
+
+  void PamReader::ReadFromMemory(const void* buffer,
+                                 size_t size)
+  {
+    content_.assign(reinterpret_cast<const char*>(buffer), size);
+    ParseContent();
+  }
 }

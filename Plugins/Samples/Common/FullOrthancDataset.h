@@ -65,5 +65,10 @@ namespace OrthancPlugins
 
     virtual bool GetSequenceSize(size_t& size,
                                  const DicomPath& path) const;
+
+    FullOrthancDataset* Clone() const
+    {
+      return new FullOrthancDataset(this->root_);
+    }
   };
 }

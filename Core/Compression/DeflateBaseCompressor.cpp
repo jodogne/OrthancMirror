@@ -45,8 +45,8 @@ namespace Orthanc
   {
     if (level >= 10)
     {
-      LOG(ERROR) << "Zlib compression level must be between 0 (no compression) and 9 (highest compression)";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Zlib compression level must be between 0 (no compression) and 9 (highest compression)");
     }
 
     compressionLevel_ = level;
@@ -63,8 +63,7 @@ namespace Orthanc
 
     if (compressedSize < sizeof(uint64_t))
     {
-      LOG(ERROR) << "The compressed buffer is ill-formed";
-      throw OrthancException(ErrorCode_CorruptedFile);
+      throw OrthancException(ErrorCode_CorruptedFile, "The compressed buffer is ill-formed");
     }
 
     uint64_t size;

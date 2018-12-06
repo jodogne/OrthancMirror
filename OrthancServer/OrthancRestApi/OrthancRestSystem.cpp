@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
@@ -55,12 +55,16 @@ namespace Orthanc
     Json::Value result = Json::objectValue;
 
     result["ApiVersion"] = ORTHANC_API_VERSION;
-    result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
-    result["DicomAet"] = Configuration::GetGlobalStringParameter("DicomAet", "ORTHANC");
-    result["DicomPort"] = Configuration::GetGlobalUnsignedIntegerParameter("DicomPort", 4242);
-    result["HttpPort"] = Configuration::GetGlobalUnsignedIntegerParameter("HttpPort", 8042);
-    result["Name"] = Configuration::GetGlobalStringParameter("Name", "");
     result["Version"] = ORTHANC_VERSION;
+    result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      result["DicomAet"] = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+      result["DicomPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242);
+      result["HttpPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042);
+      result["Name"] = lock.GetConfiguration().GetStringParameter("Name", "");
+    }
 
     result["StorageAreaPlugin"] = Json::nullValue;
     result["DatabaseBackendPlugin"] = Json::nullValue;
@@ -99,19 +103,19 @@ namespace Orthanc
     std::string level = call.GetArgument("level", "");
     if (level == "patient")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient), MimeType_PlainText);
     }
     else if (level == "study")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study), MimeType_PlainText);
     }
     else if (level == "series")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series), MimeType_PlainText);
     }
     else if (level == "instance")
     {
-      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), "text/plain");
+      call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), MimeType_PlainText);
     }
   }
 
@@ -128,13 +132,13 @@ namespace Orthanc
       lock.GetLua().Execute(result, command);
     }
 
-    call.GetOutput().AnswerBuffer(result, "text/plain");
+    call.GetOutput().AnswerBuffer(result, MimeType_PlainText);
   }
 
   template <bool UTC>
   static void GetNowIsoString(RestApiGetCall& call)
   {
-    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), "text/plain");
+    call.GetOutput().AnswerBuffer(SystemToolbox::GetNowIsoString(UTC), MimeType_PlainText);
   }
 
 
@@ -142,14 +146,14 @@ namespace Orthanc
   {
     std::string statement;
     GetFileResource(statement, EmbeddedResources::DICOM_CONFORMANCE_STATEMENT);
-    call.GetOutput().AnswerBuffer(statement, "text/plain");
+    call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
   }
 
 
   static void GetDefaultEncoding(RestApiGetCall& call)
   {
     Encoding encoding = GetDefaultDicomEncoding();
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
 
 
@@ -157,9 +161,12 @@ namespace Orthanc
   {
     Encoding encoding = StringToEncoding(call.GetBodyData());
 
-    Configuration::SetDefaultEncoding(encoding);
+    {
+      OrthancConfiguration::WriterLock lock;
+      lock.GetConfiguration().SetDefaultEncoding(encoding);
+    }
 
-    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), "text/plain");
+    call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
 
 
@@ -265,7 +272,7 @@ namespace Orthanc
 #endif
     }
 
-    call.GetOutput().AnswerBuffer(s, "application/javascript");
+    call.GetOutput().AnswerBuffer(s, MimeType_JavaScript);
   }
 
 
@@ -318,6 +325,27 @@ namespace Orthanc
   }
 
 
+  static void GetJobOutput(RestApiGetCall& call)
+  {
+    std::string job = call.GetUriComponent("id", "");
+    std::string key = call.GetUriComponent("key", "");
+
+    std::string value;
+    MimeType mime;
+    
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().GetJobOutput(value, mime, job, key))
+    {
+      call.GetOutput().AnswerBuffer(value, mime);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Job has no such output: " + key);
+    }
+  }
+
+
   enum JobAction
   {
     JobAction_Cancel,
@@ -357,7 +385,7 @@ namespace Orthanc
     
     if (ok)
     {
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
   }
 
@@ -385,5 +413,6 @@ namespace Orthanc
     Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
     Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
+    Register("/jobs/{id}/{key}", GetJobOutput);
   }
 }

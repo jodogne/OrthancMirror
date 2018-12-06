@@ -60,16 +60,16 @@ namespace
     {
     }
 
-    virtual ~SQLConnectionTest()
+    virtual ~SQLConnectionTest() ORTHANC_OVERRIDE
     {
     }
 
-    virtual void SetUp() 
+    virtual void SetUp() ORTHANC_OVERRIDE
     {
       db_.OpenInMemory();
     }
 
-    virtual void TearDown() 
+    virtual void TearDown() ORTHANC_OVERRIDE
     {
       db_.Close();
     }
@@ -274,7 +274,7 @@ namespace
   class SQLTransactionTest : public SQLConnectionTest
   {
   public:
-    virtual void SetUp()
+    virtual void SetUp() ORTHANC_OVERRIDE
     {
       SQLConnectionTest::SetUp();
       ASSERT_TRUE(db().Execute("CREATE TABLE foo (a, b)"));

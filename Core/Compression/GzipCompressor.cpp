@@ -271,8 +271,8 @@ namespace Orthanc
       // The uncompressed size was not that properly guess, presumably
       // because of a file size over 4GB. Should fallback to
       // stream-based decompression.
-      LOG(ERROR) << "The uncompressed size of a gzip-encoded buffer was not properly guessed";
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "The uncompressed size of a gzip-encoded buffer was not properly guessed");
     }
   }
 }

@@ -5,7 +5,9 @@
 
 -- Download and install the JSON module for Lua by Jeffrey Friedl
 -- http://regex.info/blog/lua/json
-JSON = (loadstring(HttpGet('http://regex.info/code/JSON.lua'))) ()
+
+-- NOTE : Replace "load" by "loadstring" for Lua <= 5.1
+JSON = (load(HttpGet('http://regex.info/code/JSON.lua'))) ()
 
 SetHttpCredentials('alice', 'alicePassword')
 
