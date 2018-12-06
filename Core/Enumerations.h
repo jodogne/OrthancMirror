@@ -100,7 +100,8 @@ namespace Orthanc
     MimeType_JavaScript,
     MimeType_Css,
     MimeType_WebAssembly,
-    MimeType_Gif
+    MimeType_Gif,
+    MimeType_Zip
   };
 
   

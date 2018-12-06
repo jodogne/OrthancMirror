@@ -21,6 +21,7 @@ REST API
 --------
 
 * API Version has been upgraded to 1.2
+* Asynchronous generation of ZIP archives and DICOM medias
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
 * POST-ing a DICOM file to "/instances" also answers the patient/study/series ID

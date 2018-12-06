@@ -211,10 +211,11 @@ namespace Orthanc
   }
   
 
-  void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
+  void OrthancRestApi::SubmitGenericJob(RestApiOutput& output,
+                                        ServerContext& context,
                                         IJob* job,
-                                        bool isDefaultSynchronous,
-                                        const Json::Value& body) const
+                                        bool synchronous,
+                                        int priority)
   {
     std::auto_ptr<IJob> raii(job);
     
@@ -223,38 +224,52 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    if (body.type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-
-    if (IsSynchronousJobRequest(isDefaultSynchronous, body))
+    if (synchronous)
     {
       Json::Value successContent;
-      if (context_.GetJobsEngine().GetRegistry().SubmitAndWait
-          (successContent, raii.release(), GetJobRequestPriority(body)))
+      if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+          (successContent, raii.release(), priority))
       {
         // Success in synchronous execution
-        call.GetOutput().AnswerJson(successContent);
+        output.AnswerJson(successContent);
       }
       else
       {
         // Error during synchronous execution
-        call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+        output.SignalError(HttpStatus_500_InternalServerError);
       }
     }
     else
     {
       // Asynchronous mode: Submit the job, but don't wait for its completion
       std::string id;
-      context_.GetJobsEngine().GetRegistry().Submit
-        (id, raii.release(), GetJobRequestPriority(body));
+      context.GetJobsEngine().GetRegistry().Submit
+        (id, raii.release(), priority);
 
       Json::Value v;
       v["ID"] = id;
       v["Path"] = "/jobs/" + id;
-      call.GetOutput().AnswerJson(v);
+      output.AnswerJson(v);
     }
+  }
+
+  
+  void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
+                                        IJob* job,
+                                        bool isDefaultSynchronous,
+                                        const Json::Value& body) const
+  {
+    std::auto_ptr<IJob> raii(job);
+
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    bool synchronous = IsSynchronousJobRequest(isDefaultSynchronous, body);
+    int priority = GetJobRequestPriority(body);
+
+    SubmitGenericJob(call.GetOutput(), context_, raii.release(), synchronous, priority);
   }
 
   
@@ -265,11 +280,6 @@ namespace Orthanc
   {
     std::auto_ptr<SetOfCommandsJob> raii(job);
     
-    if (job == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-
     if (body.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);

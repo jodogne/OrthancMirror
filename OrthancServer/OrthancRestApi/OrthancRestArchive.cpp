@@ -155,7 +155,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      OrthancRestApi::SubmitGenericJob(output, context, job.release(), false, priority);
     }
   }
 

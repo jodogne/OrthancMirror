@@ -47,7 +47,12 @@
 
 static const uint64_t MEGA_BYTES = 1024 * 1024;
 static const uint64_t GIGA_BYTES = 1024 * 1024 * 1024;
-static const char* MEDIA_IMAGES_FOLDER = "IMAGES"; 
+
+static const char* const MEDIA_IMAGES_FOLDER = "IMAGES"; 
+static const char* const KEY_DESCRIPTION = "Description";
+static const char* const KEY_INSTANCES_COUNT = "InstancesCount";
+static const char* const KEY_UNCOMPRESSED_SIZE_MB = "UncompressedSizeMB";
+
 
 namespace Orthanc
 {
@@ -791,6 +796,15 @@ namespace Orthanc
   {
   }
 
+  
+  ArchiveJob::~ArchiveJob()
+  {
+    if (!mediaArchiveId_.empty())
+    {
+      context_.GetMediaArchive().Remove(mediaArchiveId_);
+    }
+  }
+
 
   void ArchiveJob::SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& target)
   {
@@ -798,7 +812,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
-    else if (synchronousTarget_.get() != NULL)
+    else if (writer_.get() != NULL ||  // Already started
+             synchronousTarget_.get() != NULL ||
+             asynchronousTarget_.get() != NULL)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -809,15 +825,30 @@ namespace Orthanc
   }
 
 
+  void ArchiveJob::SetDescription(const std::string& description)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      description_ = description;
+    }
+  }
+
+  
   void ArchiveJob::AddResource(const std::string& publicId)
   {
     if (writer_.get() != NULL)   // Already started
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-        
-    ResourceIdentifiers resource(context_.GetIndex(), publicId);
-    archive_->Add(context_.GetIndex(), resource);
+    else
+    {
+      ResourceIdentifiers resource(context_.GetIndex(), publicId);
+      archive_->Add(context_.GetIndex(), resource);
+    }
   }
 
   
@@ -830,9 +861,16 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
+    TemporaryFile* target = NULL;
+    
     if (synchronousTarget_.get() == NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      asynchronousTarget_.reset(new TemporaryFile);
+      target = asynchronousTarget_.get();
+    }
+    else
+    {
+      target = synchronousTarget_.get();
     }
     
     if (writer_.get() != NULL)
@@ -840,19 +878,59 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    writer_.reset(new ZipWriterIterator(*synchronousTarget_, context_, *archive_,
+    writer_.reset(new ZipWriterIterator(*target, context_, *archive_,
                                         isMedia_, enableExtendedSopClass_));
 
     instancesCount_ = writer_->GetInstancesCount();
     uncompressedSize_ = writer_->GetUncompressedSize();
   }
 
+
+
+  namespace
+  {
+    class DynamicTemporaryFile : public IDynamicObject
+    {
+    private:
+      std::auto_ptr<TemporaryFile>   file_;
+
+    public:
+      DynamicTemporaryFile(TemporaryFile* f) : file_(f)
+      {
+        if (f == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+      }
+
+      const TemporaryFile& GetFile() const
+      {
+        assert(file_.get() != NULL);
+        return *file_;
+      }
+    };
+  }
   
+
+  void ArchiveJob::FinalizeTarget()
+  {
+    writer_.reset();  // Flush all the results
+
+    if (asynchronousTarget_.get() != NULL)
+    {
+      // Asynchronous behavior: Move the resulting file into the media archive
+      mediaArchiveId_ = context_.GetMediaArchive().Add(
+        new DynamicTemporaryFile(asynchronousTarget_.release()));
+    }
+  }
+    
+
   JobStepResult ArchiveJob::Step()
   {
     assert(writer_.get() != NULL);
 
-    if (synchronousTarget_.unique())
+    if (synchronousTarget_.get() != NULL &&
+        synchronousTarget_.unique())
     {
       LOG(WARNING) << "A client has disconnected while creating an archive";
       return JobStepResult::Failure(ErrorCode_NetworkProtocol);          
@@ -860,7 +938,7 @@ namespace Orthanc
         
     if (writer_->GetStepsCount() == 0)
     {
-      writer_.reset();  // Flush all the results
+      FinalizeTarget();
       return JobStepResult::Success();
     }
     else
@@ -871,7 +949,7 @@ namespace Orthanc
 
       if (currentStep_ == writer_->GetStepsCount())
       {
-        writer_.reset();  // Flush all the results
+        FinalizeTarget();
         return JobStepResult::Success();
       }
       else
@@ -909,12 +987,41 @@ namespace Orthanc
     }
   }
 
-    
+
   void ArchiveJob::GetPublicContent(Json::Value& value)
   {
-    value["Description"] = description_;
-    value["InstancesCount"] = instancesCount_;
-    value["UncompressedSizeMB"] =
+    value = Json::objectValue;
+    value[KEY_DESCRIPTION] = description_;
+    value[KEY_INSTANCES_COUNT] = instancesCount_;
+    value[KEY_UNCOMPRESSED_SIZE_MB] =
       static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
+  }
+
+
+  bool ArchiveJob::GetOutput(std::string& output,
+                             MimeType& mime,
+                             const std::string& key)
+  {   
+    if (key == "archive" &&
+        !mediaArchiveId_.empty())
+    {
+      SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+
+      if (accessor.IsValid())
+      {
+        const DynamicTemporaryFile& f = dynamic_cast<DynamicTemporaryFile&>(accessor.GetItem());
+        f.GetFile().Read(output);
+        mime = MimeType_Zip;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }    
+    else
+    {
+      return false;
+    }
   }
 }
