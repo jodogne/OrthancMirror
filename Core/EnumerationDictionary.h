@@ -37,7 +37,6 @@
 
 #include "Toolbox.h"
 #include <boost/lexical_cast.hpp>
-#include <boost/lexical_cast/try_lexical_convert.hpp>
 #include <string>
 #include <map>
 
@@ -85,10 +84,9 @@ namespace Orthanc
 
       Enumeration Translate(const std::string& str) const
       {
-        int numericalValue; // at this stage, we don't know if str is an alias or a numerical value
-        if (boost::conversion::try_lexical_convert<int>(str, numericalValue))
+        if (Toolbox::IsInteger(str))
         {
-          return static_cast<Enumeration>(numericalValue);
+          return static_cast<Enumeration>(boost::lexical_cast<int>(str));
         }
 
         typename StringToEnumeration::const_iterator
