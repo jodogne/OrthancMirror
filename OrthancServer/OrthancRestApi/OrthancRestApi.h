@@ -108,6 +108,12 @@ namespace Orthanc
     
     static unsigned int GetJobRequestPriority(const Json::Value& body);
     
+    static void SubmitGenericJob(RestApiOutput& output,
+                                 ServerContext& context,
+                                 IJob* job,
+                                 bool synchronous,
+                                 int priority);
+    
     void SubmitGenericJob(RestApiPostCall& call,
                           IJob* job,
                           bool isDefaultSynchronous,

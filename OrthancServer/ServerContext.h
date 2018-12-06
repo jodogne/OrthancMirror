@@ -164,11 +164,13 @@ namespace Orthanc
     LuaScripting mainLua_;
     LuaScripting filterLua_;
     LuaServerListener  luaListener_;
-
+    std::auto_ptr<SharedArchive>  mediaArchive_;
+    
     // The "JobsEngine" must be *after* "LuaScripting", as
     // "LuaScripting" embeds "LuaJobManager" that registers as an
     // observer to "SequenceOfOperationsJob", whose lifetime
-    // corresponds to that of "JobsEngine"
+    // corresponds to that of "JobsEngine". It must also be after
+    // "mediaArchive_", as jobs might access this archive.
     JobsEngine jobsEngine_;
     
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -189,8 +191,6 @@ namespace Orthanc
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
 
-    std::auto_ptr<SharedArchive>  mediaArchive_;
-    
   public:
     class DicomCacheLocker : public boost::noncopyable
     {

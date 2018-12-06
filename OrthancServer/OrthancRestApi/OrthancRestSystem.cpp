@@ -325,6 +325,27 @@ namespace Orthanc
   }
 
 
+  static void GetJobOutput(RestApiGetCall& call)
+  {
+    std::string job = call.GetUriComponent("id", "");
+    std::string key = call.GetUriComponent("key", "");
+
+    std::string value;
+    MimeType mime;
+    
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().GetJobOutput(value, mime, job, key))
+    {
+      call.GetOutput().AnswerBuffer(value, mime);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Job has no such output: " + key);
+    }
+  }
+
+
   enum JobAction
   {
     JobAction_Cancel,
@@ -392,5 +413,6 @@ namespace Orthanc
     Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
     Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
+    Register("/jobs/{id}/{key}", GetJobOutput);
   }
 }
