@@ -125,6 +125,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
+  ${ORTHANC_ROOT}/Core/EnumerationDictionary.h
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
   ${ORTHANC_ROOT}/Core/FileStorage/MemoryStorageArea.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
