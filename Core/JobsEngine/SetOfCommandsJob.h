@@ -131,5 +131,12 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value);
     
     virtual bool Serialize(Json::Value& target);
+
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key)
+    {
+      return false;
+    }
   };
 }

@@ -263,7 +263,7 @@ namespace Orthanc
         // as a "RunningJob" instance is running. We do not use a
         // mutex at the "JobHandler" level, as serialization would be
         // blocked while a step in the job is running. Instead, we
-        // save a snapshot of the serialized job.
+        // save a snapshot of the serialized job. (*)
 
         if (lastStatus_.HasSerialized())
         {
@@ -627,6 +627,36 @@ namespace Orthanc
                        handler.GetLastStateChangeTime(),
                        handler.GetRuntime());
       return true;
+    }
+  }
+
+
+  bool JobsRegistry::GetJobOutput(std::string& output,
+                                  MimeType& mime,
+                                  const std::string& job,
+                                  const std::string& key)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::const_iterator found = jobsIndex_.find(job);
+
+    if (found == jobsIndex_.end())
+    {
+      return false;
+    }
+    else
+    {
+      const JobHandler& handler = *found->second;
+
+      if (handler.GetState() == JobState_Success)
+      {
+        return handler.GetJob().GetOutput(output, mime, key);
+      }
+      else
+      {
+        return false;
+      }
     }
   }
 

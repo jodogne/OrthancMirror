@@ -51,6 +51,7 @@ namespace Orthanc
     class ZipWriterIterator;
     
     boost::shared_ptr<TemporaryFile>      synchronousTarget_;
+    std::auto_ptr<TemporaryFile>          asynchronousTarget_;
     ServerContext&                        context_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;
@@ -61,18 +62,20 @@ namespace Orthanc
     size_t                                currentStep_;
     unsigned int                          instancesCount_;
     uint64_t                              uncompressedSize_;
+    std::string                           mediaArchiveId_;
 
+    void FinalizeTarget();
+    
   public:
     ArchiveJob(ServerContext& context,
                bool isMedia,
                bool enableExtendedSopClass);
-
-    void SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& synchronousTarget);
     
-    void SetDescription(const std::string& description)
-    {
-      description_ = description;
-    }
+    virtual ~ArchiveJob();
+    
+    void SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& synchronousTarget);
+
+    void SetDescription(const std::string& description);
 
     const std::string& GetDescription() const
     {
@@ -101,5 +104,9 @@ namespace Orthanc
     {
       return false;  // Cannot serialize this kind of job
     }
+
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key);
   };
 }

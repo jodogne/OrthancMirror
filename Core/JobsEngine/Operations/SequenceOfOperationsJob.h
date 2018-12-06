@@ -147,6 +147,13 @@ namespace Orthanc
 
     virtual bool Serialize(Json::Value& value);
 
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key)
+    {
+      return false;
+    }
+
     void AwakeTrailingSleep()
     {
       operationAdded_.notify_one();

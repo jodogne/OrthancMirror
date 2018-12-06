@@ -161,6 +161,11 @@ namespace Orthanc
     bool GetJobInfo(JobInfo& target,
                     const std::string& id);
 
+    bool GetJobOutput(std::string& output,
+                      MimeType& mime,
+                      const std::string& job,
+                      const std::string& key);
+
     void Serialize(Json::Value& target);
     
     void Submit(std::string& id,
