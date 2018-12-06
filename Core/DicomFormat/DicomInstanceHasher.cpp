@@ -53,7 +53,7 @@ namespace Orthanc
         seriesUid_.size() == 0 ||
         instanceUid_.size() == 0)
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "missing StudyInstanceUID, SeriesInstanceUID or SOPInstanceUID");
     }
   }
 

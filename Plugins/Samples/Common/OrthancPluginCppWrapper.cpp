@@ -1152,7 +1152,10 @@ namespace OrthancPlugins
     }
     else
     {
-      answer.ToJson(result);
+      if (!answer.IsEmpty())
+      {
+        answer.ToJson(result);
+      }
       return true;
     }
   }
@@ -1172,7 +1175,10 @@ namespace OrthancPlugins
     }
     else
     {
-      answer.ToJson(result);
+      if (!answer.IsEmpty())
+      {
+        answer.ToJson(result);
+      }
       return true;
     }
   }
@@ -1202,7 +1208,10 @@ namespace OrthancPlugins
     }
     else
     {
-      answer.ToJson(result);
+      if (!answer.IsEmpty()) // i.e, on a PUT to metadata/..., orthand returns an empty response
+      {
+        answer.ToJson(result);
+      }
       return true;
     }
   }
