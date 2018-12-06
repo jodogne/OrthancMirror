@@ -1123,6 +1123,16 @@ namespace OrthancPlugins
     OrthancPluginAnswerBuffer(GetGlobalContext(), output, bodyString.c_str(), bodyString.size(), "application/json");
   }
 
+  void AnswerHttpError(uint16_t httpError, OrthancPluginRestOutput *output)
+  {
+    OrthancPluginSendHttpStatusCode(GetGlobalContext(), output, httpError);
+  }
+
+  void AnswerMethodNotAllowed(OrthancPluginRestOutput *output, const char* allowedMethods)
+  {
+    OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowedMethods);
+  }
+
   bool RestApiGetString(std::string& result,
                         const std::string& uri,
                         bool applyPlugins)
