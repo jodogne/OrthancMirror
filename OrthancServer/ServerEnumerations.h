@@ -93,8 +93,10 @@ namespace Orthanc
     GlobalProperty_FlushSleep = 2,
     GlobalProperty_AnonymizationSequence = 3,
     GlobalProperty_JobsRegistry = 5,
-    GlobalProperty_TotalCompressedSize = 6,     // Reserved for Orthanc > 1.4.1
-    GlobalProperty_TotalUncompressedSize = 7,   // Reserved for Orthanc > 1.4.1
+    GlobalProperty_TotalCompressedSize = 6,     // Reserved for Orthanc > 1.4.3
+    GlobalProperty_TotalUncompressedSize = 7,   // Reserved for Orthanc > 1.4.3
+    GlobalProperty_Modalities = 20,             // New in Orthanc 1.4.3
+    GlobalProperty_Peers = 21,                  // New in Orthanc 1.4.3
 
     // Reserved values for internal use by the database plugins
     GlobalProperty_DatabasePatchLevel = 4,

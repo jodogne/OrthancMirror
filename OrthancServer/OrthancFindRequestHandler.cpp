@@ -38,7 +38,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Core/Logging.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "Search/LookupResource.h"
 #include "ServerToolbox.h"
 
@@ -258,16 +258,21 @@ namespace Orthanc
         // The metadata "SopClassUid" is available for each of these instances
         StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
       }
-      else if (Configuration::GetGlobalBoolParameter("AllowFindSopClassesInStudy", false))
-      {
-        ExtractTagFromInstancesOnDisk(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
-        StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
-      }
       else
       {
-        result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, "", false);
-        LOG(WARNING) << "The handling of \"SOP Classes in Study\" (0008,0062) "
-                     << "in C-FIND requests is disabled";
+        OrthancConfiguration::ReaderLock lock;
+
+        if (lock.GetConfiguration().GetBooleanParameter("AllowFindSopClassesInStudy", false))
+        {
+          ExtractTagFromInstancesOnDisk(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
+          StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+        }
+        else
+        {
+          result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, "", false);
+          LOG(WARNING) << "The handling of \"SOP Classes in Study\" (0008,0062) "
+                       << "in C-FIND requests is disabled";
+        }
       }
     }
   }
@@ -547,8 +552,8 @@ namespace Orthanc
         levelTmp->IsNull() ||
         levelTmp->IsBinary())
     {
-      LOG(ERROR) << "C-FIND request without the tag 0008,0052 (QueryRetrieveLevel)";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "C-FIND request without the tag 0008,0052 (QueryRetrieveLevel)");
     }
 
     ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());
@@ -590,7 +595,12 @@ namespace Orthanc
 
     LookupResource lookup(level);
 
-    const bool caseSensitivePN = Configuration::GetGlobalBoolParameter("CaseSensitivePN", false);
+    bool caseSensitivePN;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
+    }
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {

@@ -65,5 +65,11 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value) = 0;
 
     virtual bool Serialize(Json::Value& value) = 0;
+
+    // This function can only be called if the job has reached its
+    // "success" state
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key) = 0;
   };
 }

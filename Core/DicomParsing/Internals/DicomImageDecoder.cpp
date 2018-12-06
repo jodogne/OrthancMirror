@@ -633,8 +633,8 @@ namespace Orthanc
                              &dataset, frame, startFragment, &uncompressed[0],
                              uncompressed.size(), decompressedColorModel).good())
       {
-        LOG(ERROR) << "Cannot decode a palette image";
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Cannot decode a palette image");
       }
 
       return DecodeLookupTable(target, info, dataset,
@@ -648,8 +648,8 @@ namespace Orthanc
                              &dataset, frame, startFragment, target->GetBuffer(), 
                              target->GetSize(), decompressedColorModel).good())
       {
-        LOG(ERROR) << "Cannot decode a non-palette image";
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Cannot decode a non-palette image");
       }
 
       return target.release();
@@ -806,8 +806,8 @@ namespace Orthanc
       }
     }
 
-    LOG(ERROR) << "Cannot decode a DICOM image with the built-in decoder";
-    throw OrthancException(ErrorCode_BadFileFormat);
+    throw OrthancException(ErrorCode_BadFileFormat,
+                           "Cannot decode a DICOM image with the built-in decoder");
   }
 
 

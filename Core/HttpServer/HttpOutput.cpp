@@ -151,8 +151,9 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "Because of keep-alive connections, the entire body must be sent at once or Content-Length must be given";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "Because of keep-alive connections, the entire body must "
+                               "be sent at once or Content-Length must be given");
       }
     }
 
@@ -198,8 +199,8 @@ namespace Orthanc
     if (hasContentLength_ &&
         contentPosition_ + length > contentLength_)
     {
-      LOG(ERROR) << "The body size exceeds what was declared with SetContentSize()";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "The body size exceeds what was declared with SetContentSize()");
     }
 
     if (length > 0)
@@ -233,15 +234,15 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "The body size has not reached what was declared with SetContentSize()";
-          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+          throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                 "The body size has not reached what was declared with SetContentSize()");
         }
 
         break;
 
       case State_WritingMultipart:
-        LOG(ERROR) << "Cannot invoke CloseBody() with multipart outputs";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "Cannot invoke CloseBody() with multipart outputs");
 
       case State_Done:
         return;  // Ignore
@@ -296,8 +297,8 @@ namespace Orthanc
         status == HttpStatus_401_Unauthorized ||
         status == HttpStatus_405_MethodNotAllowed)
     {
-      LOG(ERROR) << "Please use the dedicated methods to this HTTP status code in HttpOutput";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Please use the dedicated methods to this HTTP status code in HttpOutput");
     }
     
     stateMachine_.SetHttpStatus(status);
@@ -322,6 +323,7 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
+  
   void HttpOutput::Answer(const void* buffer, 
                           size_t length)
   {
@@ -407,8 +409,8 @@ namespace Orthanc
 
     if (keepAlive_)
     {
-      LOG(ERROR) << "Multipart answers are not implemented together with keep-alive connections";
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "Multipart answers are not implemented together with keep-alive connections");
     }
 
     if (state_ != State_WritingHeader)
@@ -432,9 +434,9 @@ namespace Orthanc
     {
       if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
       {
-        LOG(ERROR) << "The only headers that can be set in multipart answers "
-                   << "are Set-Cookie (here: " << *it << " is set)";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "The only headers that can be set in multipart answers "
+                               "are Set-Cookie (here: " + *it + " is set)");
       }
 
       header += *it;
@@ -589,7 +591,7 @@ namespace Orthanc
     std::string contentType = stream.GetContentType();
     if (contentType.empty())
     {
-      contentType = "application/octet-stream";
+      contentType = MIME_BINARY;
     }
 
     stateMachine_.SetContentType(contentType.c_str());

@@ -366,8 +366,8 @@ namespace Orthanc
 
     if (!ok)
     {
-      LOG(ERROR) << "Incompatible version of the Orthanc database: " << tmp;
-      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
+      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
+                             "Incompatible version of the Orthanc database: " + tmp);
     }
 
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;

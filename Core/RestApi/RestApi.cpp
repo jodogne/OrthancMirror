@@ -197,12 +197,12 @@ namespace Orthanc
         Toolbox::TokenizeString(accepted, it->second, ';');
         for (size_t i = 0; i < accepted.size(); i++)
         {
-          if (accepted[i] == "application/xml")
+          if (accepted[i] == MIME_XML)
           {
             wrappedOutput.SetConvertJsonToXml(true);
           }
 
-          if (accepted[i] == "application/json")
+          if (accepted[i] == MIME_JSON)
           {
             wrappedOutput.SetConvertJsonToXml(false);
           }

@@ -110,7 +110,21 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void AnswerFile(HttpOutput& output,
                     const FileInfo& info,
+                    MimeType mime)
+    {
+      AnswerFile(output, info, EnumerationToString(mime));
+    }
+
+    void AnswerFile(HttpOutput& output,
+                    const FileInfo& info,
                     const std::string& mime);
+
+    void AnswerFile(RestApiOutput& output,
+                    const FileInfo& info,
+                    MimeType mime)
+    {
+      AnswerFile(output, info, EnumerationToString(mime));
+    }
 
     void AnswerFile(RestApiOutput& output,
                     const FileInfo& info,

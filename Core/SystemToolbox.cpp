@@ -38,6 +38,7 @@
 #if defined(_WIN32)
 #  include <windows.h>
 #  include <process.h>   // For "_spawnvp()" and "_getpid()"
+#  include <stdlib.h>    // For "environ"
 #else
 #  include <unistd.h>    // For "execvp()"
 #  include <sys/wait.h>  // For "waitpid()"
@@ -70,6 +71,51 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
+
+
+/*=========================================================================
+  The section below comes from the Boost 1.68.0 project:
+  https://github.com/boostorg/program_options/blob/boost-1.68.0/src/parsers.cpp
+  
+  Copyright Vladimir Prus 2002-2004.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt
+  or copy at http://www.boost.org/LICENSE_1_0.txt)
+  =========================================================================*/
+
+// The 'environ' should be declared in some cases. E.g. Linux man page says:
+// (This variable must be declared in the user program, but is declared in 
+// the header file unistd.h in case the header files came from libc4 or libc5, 
+// and in case they came from glibc and _GNU_SOURCE was defined.) 
+// To be safe, declare it here.
+
+// It appears that on Mac OS X the 'environ' variable is not
+// available to dynamically linked libraries.
+// See: http://article.gmane.org/gmane.comp.lib.boost.devel/103843
+// See: http://lists.gnu.org/archive/html/bug-guile/2004-01/msg00013.html
+#if defined(__APPLE__) && defined(__DYNAMIC__)
+// The proper include for this is crt_externs.h, however it's not
+// available on iOS. The right replacement is not known. See
+// https://svn.boost.org/trac/boost/ticket/5053
+extern "C"
+{
+  extern char ***_NSGetEnviron(void);
+}
+#  define environ (*_NSGetEnviron()) 
+#else
+#  if defined(__MWERKS__)
+#    include <crtl.h>
+#  else
+#    if !defined(_WIN32) || defined(__COMO_VERSION__)
+extern char** environ;
+#    endif
+#  endif
+#endif
+
+
+/*=========================================================================
+  End of section from the Boost 1.68.0 project
+  =========================================================================*/
 
 
 namespace Orthanc
@@ -170,8 +216,8 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      LOG(ERROR) << "The path does not point to a regular file: " << path;
-      throw OrthancException(ErrorCode_RegularFileExpected);
+      throw OrthancException(ErrorCode_RegularFileExpected,
+                             "The path does not point to a regular file: " + path);
     }
 
     boost::filesystem::ifstream f;
@@ -198,8 +244,8 @@ namespace Orthanc
   {
     if (!IsRegularFile(path))
     {
-      LOG(ERROR) << "The path does not point to a regular file: " << path;
-      throw OrthancException(ErrorCode_RegularFileExpected);
+      throw OrthancException(ErrorCode_RegularFileExpected,
+                             "The path does not point to a regular file: " + path);
     }
 
     boost::filesystem::ifstream f;
@@ -438,11 +484,7 @@ namespace Orthanc
     if (pid == -1)
     {
       // Error in fork()
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "Cannot fork a child process";
-#endif
-
-      throw OrthancException(ErrorCode_SystemCommand);
+      throw OrthancException(ErrorCode_SystemCommand, "Cannot fork a child process");
     }
     else if (pid == 0)
     {
@@ -461,11 +503,9 @@ namespace Orthanc
 
     if (status != 0)
     {
-#if ORTHANC_ENABLE_LOGGING == 1
-      LOG(ERROR) << "System command failed with status code " << status;
-#endif
-
-      throw OrthancException(ErrorCode_SystemCommand);
+      throw OrthancException(ErrorCode_SystemCommand,
+                             "System command failed with status code " +
+                             boost::lexical_cast<std::string>(status));
     }
   }
 
@@ -576,6 +616,119 @@ namespace Orthanc
     else
     {
       return threads;
+    }
+  }
+
+
+  MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
+  {
+    std::string extension = boost::filesystem::extension(path);
+    Toolbox::ToLowerCase(extension);
+
+    // http://en.wikipedia.org/wiki/Mime_types
+    // Text types
+    if (extension == ".txt")
+    {
+      return MimeType_PlainText;
+    }
+    else if (extension == ".html")
+    {
+      return MimeType_Html;
+    }
+    else if (extension == ".xml")
+    {
+      return MimeType_Xml;
+    }
+    else if (extension == ".css")
+    {
+      return MimeType_Css;
+    }
+
+    // Application types
+    else if (extension == ".js")
+    {
+      return MimeType_JavaScript;
+    }
+    else if (extension == ".json")
+    {
+      return MimeType_Json;
+    }
+    else if (extension == ".pdf")
+    {
+      return MimeType_Pdf;
+    }
+    else if (extension == ".wasm")
+    {
+      return MimeType_WebAssembly;
+    }
+
+    // Images types
+    else if (extension == ".jpg" ||
+             extension == ".jpeg")
+    {
+      return MimeType_Jpeg;
+    }
+    else if (extension == ".gif")
+    {
+      return MimeType_Gif;
+    }
+    else if (extension == ".png")
+    {
+      return MimeType_Png;
+    }
+    else if (extension == ".pam")
+    {
+      return MimeType_Pam;
+    }
+    else
+    {
+      return MimeType_Binary;
+    }
+  }
+
+
+  void SystemToolbox::GetEnvironmentVariables(std::map<std::string, std::string>& env)
+  {
+    env.clear();
+    
+    for (char **p = environ; *p != NULL; p++)
+    {
+      std::string v(*p);
+      size_t pos = v.find('=');
+
+      if (pos != std::string::npos)
+      {
+        std::string key = v.substr(0, pos);
+        std::string value = v.substr(pos + 1);
+        env[key] = value;
+      } 
+    }
+  }
+
+
+  std::string SystemToolbox::InterpretRelativePath(const std::string& baseDirectory,
+                                                   const std::string& relativePath)
+  {
+    boost::filesystem::path base(baseDirectory);
+    boost::filesystem::path relative(relativePath);
+
+    /**
+       The following lines should be equivalent to this one: 
+
+       return (base / relative).string();
+
+       However, for some unknown reason, some versions of Boost do not
+       make the proper path resolution when "baseDirectory" is an
+       absolute path. So, a hack is used below.
+    **/
+
+    if (relative.is_absolute())
+    {
+      return relative.string();
+    }
+    else
+    {
+      return (base / relative).string();
     }
   }
 }

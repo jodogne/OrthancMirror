@@ -47,7 +47,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::stringValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "String value expected in field: " + field);
       }
       else
       {
@@ -64,7 +65,8 @@ namespace Orthanc
           (value[field.c_str()].type() != Json::intValue &&
            value[field.c_str()].type() != Json::uintValue))
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Integer value expected in field: " + field);
       }
       else
       {
@@ -80,7 +82,8 @@ namespace Orthanc
 
       if (tmp < 0)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Unsigned integer value expected in field: " + field);
       }
       else
       {
@@ -96,7 +99,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::booleanValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Boolean value expected in field: " + field);
       }
       else
       {
@@ -113,7 +117,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::arrayValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "List of strings expected in field: " + field);
       }
 
       const Json::Value& arr = value[field.c_str()];
@@ -124,7 +129,8 @@ namespace Orthanc
       {
         if (arr[i].type() != Json::stringValue)
         {
-          throw OrthancException(ErrorCode_BadFileFormat);        
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "List of strings expected in field: " + field);
         }
         else
         {
@@ -172,7 +178,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::arrayValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Set of DICOM tags expected in field: " + field);
       }
 
       const Json::Value& arr = value[field.c_str()];
@@ -186,7 +193,8 @@ namespace Orthanc
         if (arr[i].type() != Json::stringValue ||
             !DicomTag::ParseHexadecimal(tag, arr[i].asCString()))
         {
-          throw OrthancException(ErrorCode_BadFileFormat);        
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Set of DICOM tags expected in field: " + field);
         }
         else
         {
@@ -204,7 +212,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::objectValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Associative array of strings to strings expected in field: " + field);
       }
 
       const Json::Value& source = value[field.c_str()];
@@ -219,7 +228,8 @@ namespace Orthanc
 
         if (tmp.type() != Json::stringValue)
         {
-          throw OrthancException(ErrorCode_BadFileFormat);        
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Associative array of string to strings expected in field: " + field);
         }
         else
         {
@@ -237,7 +247,8 @@ namespace Orthanc
           !value.isMember(field.c_str()) ||
           value[field.c_str()].type() != Json::objectValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Associative array of DICOM tags to strings expected in field: " + field);
       }
 
       const Json::Value& source = value[field.c_str()];
@@ -255,7 +266,8 @@ namespace Orthanc
         if (!DicomTag::ParseHexadecimal(tag, members[i].c_str()) ||
             tmp.type() != Json::stringValue)
         {
-          throw OrthancException(ErrorCode_BadFileFormat);        
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Associative array of DICOM tags to strings expected in field: " + field);
         }
         else
         {

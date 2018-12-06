@@ -93,15 +93,15 @@ namespace
     {
     }
 
-    virtual void Start()
+    virtual void Start() ORTHANC_OVERRIDE
     {
     }
 
-    virtual void Reset()
+    virtual void Reset() ORTHANC_OVERRIDE
     {
     }
     
-    virtual JobStepResult Step()
+    virtual JobStepResult Step() ORTHANC_OVERRIDE
     {
       if (fails_)
       {
@@ -118,30 +118,37 @@ namespace
       }
     }
 
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual float GetProgress()
+    virtual float GetProgress() ORTHANC_OVERRIDE
     {
       return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
     }
 
-    virtual void GetJobType(std::string& type)
+    virtual void GetJobType(std::string& type) ORTHANC_OVERRIDE
     {
       type = "DummyJob";
     }
 
-    virtual bool Serialize(Json::Value& value)
+    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE
     {
       value = Json::objectValue;
       value["Type"] = "DummyJob";
       return true;
     }
 
-    virtual void GetPublicContent(Json::Value& value)
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE
     {
       value["hello"] = "world";
+    }
+
+    virtual bool GetOutput(std::string& output,
+                           MimeType& mime,
+                           const std::string& key) ORTHANC_OVERRIDE
+    {
+      return false;
     }
   };
 
@@ -152,12 +159,12 @@ namespace
     bool   trailingStepDone_;
     
   protected:
-    virtual bool HandleInstance(const std::string& instance)
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE
     {
       return (instance != "nope");
     }
 
-    virtual bool HandleTrailingStep()
+    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE
     {
       if (HasTrailingStep())
       {
@@ -201,11 +208,11 @@ namespace
       return trailingStepDone_;
     }
     
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void GetJobType(std::string& s)
+    virtual void GetJobType(std::string& s) ORTHANC_OVERRIDE
     {
       s = "DummyInstancesJob";
     }
@@ -215,7 +222,7 @@ namespace
   class DummyUnserializer : public GenericJobUnserializer
   {
   public:
-    virtual IJob* UnserializeJob(const Json::Value& value)
+    virtual IJob* UnserializeJob(const Json::Value& value) ORTHANC_OVERRIDE
     {
       if (SerializationToolbox::ReadString(value, "Type") == "DummyInstancesJob")
       {
@@ -329,7 +336,7 @@ static bool CheckErrorCode(JobsRegistry& registry,
 
 TEST(JobsRegistry, Priority)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string i1, i2, i3, i4;
   registry.Submit(i1, new DummyJob(), 10);
@@ -408,7 +415,7 @@ TEST(JobsRegistry, Priority)
 
 TEST(JobsRegistry, Simultaneous)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string i1, i2;
   registry.Submit(i1, new DummyJob(), 20);
@@ -438,7 +445,7 @@ TEST(JobsRegistry, Simultaneous)
 
 TEST(JobsRegistry, Resubmit)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -482,7 +489,7 @@ TEST(JobsRegistry, Resubmit)
 
 TEST(JobsRegistry, Retry)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -519,7 +526,7 @@ TEST(JobsRegistry, Retry)
 
 TEST(JobsRegistry, PausePending)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -542,7 +549,7 @@ TEST(JobsRegistry, PausePending)
 
 TEST(JobsRegistry, PauseRunning)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -580,7 +587,7 @@ TEST(JobsRegistry, PauseRunning)
 
 TEST(JobsRegistry, PauseRetry)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -617,7 +624,7 @@ TEST(JobsRegistry, PauseRetry)
 
 TEST(JobsRegistry, Cancel)
 {
-  JobsRegistry registry;
+  JobsRegistry registry(10);
 
   std::string id;
   registry.Submit(id, new DummyJob(), 10);
@@ -711,7 +718,7 @@ TEST(JobsRegistry, Cancel)
 
 TEST(JobsEngine, SubmitAndWait)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
@@ -731,7 +738,7 @@ TEST(JobsEngine, SubmitAndWait)
 
 TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(3);
   engine.Start();
@@ -771,7 +778,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
 
 TEST(JobsEngine, DISABLED_Lua)
 {
-  JobsEngine engine;
+  JobsEngine engine(10);
   engine.SetThreadSleep(10);
   engine.SetWorkersCount(2);
   engine.Start();
@@ -1282,11 +1289,11 @@ namespace
     OrthancJobsSerialization()
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */));
+      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10));
       context_->SetupJobsEngine(true, false);
     }
 
-    virtual ~OrthancJobsSerialization()
+    virtual ~OrthancJobsSerialization() ORTHANC_OVERRIDE
     {
       context_->Stop();
       context_.reset(NULL);
@@ -1475,8 +1482,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   // ArchiveJob
 
   {
-    boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
-    ArchiveJob job(tmp, GetContext(), false, false);
+    ArchiveJob job(GetContext(), false, false);
     ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
   }
 
@@ -1704,7 +1710,7 @@ TEST(JobsSerialization, Registry)
   std::string i1, i2;
 
   {
-    JobsRegistry registry;
+    JobsRegistry registry(10);
     registry.Submit(i1, new DummyJob(), 10);
     registry.Submit(i2, new SequenceOfOperationsJob(), 30);
     registry.Serialize(s);
@@ -1712,7 +1718,7 @@ TEST(JobsSerialization, Registry)
 
   {
     DummyUnserializer unserializer;
-    JobsRegistry registry(unserializer, s);
+    JobsRegistry registry(unserializer, s, 10);
 
     Json::Value t;
     registry.Serialize(t);

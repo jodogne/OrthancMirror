@@ -105,9 +105,8 @@ namespace Orthanc
           
       std::string description(lua_tostring(context_.lua_, -1));
       lua_pop(context_.lua_, 1); /* pop error message from the stack */
-      LOG(ERROR) << description;
 
-      throw OrthancException(ErrorCode_CannotExecuteLua);
+      throw OrthancException(ErrorCode_CannotExecuteLua, description);
     }
 
     if (lua_gettop(context_.lua_) < numOutputs)

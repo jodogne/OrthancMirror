@@ -200,9 +200,9 @@ namespace Orthanc
           assert(data.modalities_ != NULL);
           if (!data.modalities_->LookupAETitle(modality, *data.remoteAet_))
           {
-            LOG(ERROR) << "Modality with AET \"" << *data.remoteAet_
-                       << "\" is not defined in the \"DicomModalities\" configuration option";
-            throw OrthancException(ErrorCode_UnknownModality);
+            throw OrthancException(ErrorCode_UnknownModality,
+                                   "Modality with AET \"" + (*data.remoteAet_) +
+                                   "\" is not defined in the \"DicomModalities\" configuration option");
           }
 
           

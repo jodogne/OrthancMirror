@@ -92,8 +92,7 @@ namespace Orthanc
     if (!Toolbox::StartsWith(url, "http://") &&
         !Toolbox::StartsWith(url, "https://"))
     {
-      LOG(ERROR) << "Bad URL: " << url;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Bad URL: " + url);
     }
 
     // Add trailing slash if needed
@@ -142,8 +141,9 @@ namespace Orthanc
 
     if (certificateKeyPassword.empty())
     {
-      LOG(ERROR) << "The password for the HTTPS certificate is not provided: " << certificateFile;
-      throw OrthancException(ErrorCode_BadFileFormat);      
+      throw OrthancException(
+        ErrorCode_BadFileFormat,
+        "The password for the HTTPS certificate is not provided: " + certificateFile);
     }
 
     certificateFile_ = certificateFile;
@@ -173,8 +173,8 @@ namespace Orthanc
     }
     else if (peer.size() == 2)
     {
-      LOG(ERROR) << "The HTTP password is not provided";
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "The HTTP password is not provided");
     }
     else if (peer.size() == 3)
     {
@@ -364,8 +364,9 @@ namespace Orthanc
   {
     if (IsReservedKey(key))
     {
-      LOG(ERROR) << "Cannot use this reserved key to name an user property: " << key;
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(
+        ErrorCode_ParameterOutOfRange,
+        "Cannot use this reserved key to name an user property: " + key);
     }
     else
     {
@@ -488,15 +489,15 @@ namespace Orthanc
     {
       if (!SystemToolbox::IsRegularFile(certificateFile_))
       {
-        LOG(ERROR) << "Cannot open certificate file: " << certificateFile_;
-        throw OrthancException(ErrorCode_InexistentFile);
+        throw OrthancException(ErrorCode_InexistentFile,
+                               "Cannot open certificate file: " + certificateFile_);
       }
 
       if (!certificateKeyFile_.empty() && 
           !SystemToolbox::IsRegularFile(certificateKeyFile_))
       {
-        LOG(ERROR) << "Cannot open key file: " << certificateKeyFile_;
-        throw OrthancException(ErrorCode_InexistentFile);
+        throw OrthancException(ErrorCode_InexistentFile,
+                               "Cannot open key file: " + certificateKeyFile_);
       }
     }
   }

@@ -55,8 +55,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Cannot unserialize job of type: " << type;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Cannot unserialize job of type: " + type);
     }
   }
 
@@ -71,8 +71,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Cannot unserialize operation of type: " << type;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Cannot unserialize operation of type: " + type);
     }
   }
 
@@ -91,8 +91,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Cannot unserialize value of type: " << type;
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Cannot unserialize value of type: " + type);
     }
   }
 }
