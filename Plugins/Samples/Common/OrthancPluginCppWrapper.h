@@ -140,6 +140,11 @@ namespace OrthancPlugins
       return buffer_.size;
     }
 
+    bool IsEmpty() const
+    {
+      return GetSize() == 0 || GetData() == NULL;
+    }
+
     void Clear();
 
     void ToString(std::string& target) const;
@@ -441,6 +446,15 @@ namespace OrthancPlugins
   {
     return RestApiPost(result, uri, body.empty() ? NULL : body.c_str(), 
                        body.size(), applyPlugins);
+  }
+
+  inline bool RestApiPost(Json::Value& result,
+                          const std::string& uri,
+                          const MemoryBuffer& body,
+                          bool applyPlugins)
+  {
+    return RestApiPost(result, uri, body.GetData(),
+                       body.GetSize(), applyPlugins);
   }
 
   bool RestApiPut(Json::Value& result,
