@@ -196,6 +196,20 @@ namespace Orthanc
     }
   }
 
+  
+  unsigned int OrthancRestApi::GetJobRequestPriority(const Json::Value& body)
+  {
+    if (body.type() != Json::objectValue ||
+        !body.isMember(KEY_PRIORITY))
+    {
+      return 0;   // Default priority
+    }
+    else 
+    {
+      return SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
+    }
+  }
+  
 
   void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
                                         IJob* job,
@@ -214,18 +228,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    int priority = 0;
-
-    if (body.isMember(KEY_PRIORITY))
-    {
-      priority = SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
-    }
-
     if (IsSynchronousJobRequest(isDefaultSynchronous, body))
     {
       Json::Value successContent;
       if (context_.GetJobsEngine().GetRegistry().SubmitAndWait
-          (successContent, raii.release(), priority))
+          (successContent, raii.release(), GetJobRequestPriority(body)))
       {
         // Success in synchronous execution
         call.GetOutput().AnswerJson(successContent);
@@ -240,7 +247,8 @@ namespace Orthanc
     {
       // Asynchronous mode: Submit the job, but don't wait for its completion
       std::string id;
-      context_.GetJobsEngine().GetRegistry().Submit(id, raii.release(), priority);
+      context_.GetJobsEngine().GetRegistry().Submit
+        (id, raii.release(), GetJobRequestPriority(body));
 
       Json::Value v;
       v["ID"] = id;
