@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -48,10 +48,10 @@
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
 #define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
-   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
-    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
-     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
-      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
+  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
+  (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
+  (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
+  ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
 #endif
 
 
@@ -205,12 +205,12 @@ namespace OrthancPlugins
     bool HttpGet(const std::string& url,
                  const std::string& username,
                  const std::string& password);
- 
+
     bool HttpPost(const std::string& url,
                   const std::string& body,
                   const std::string& username,
                   const std::string& password);
- 
+
     bool HttpPut(const std::string& url,
                  const std::string& body,
                  const std::string& username,
@@ -444,7 +444,7 @@ namespace OrthancPlugins
                           const std::string& body,
                           bool applyPlugins)
   {
-    return RestApiPost(result, uri, body.empty() ? NULL : body.c_str(), 
+    return RestApiPost(result, uri, body.empty() ? NULL : body.c_str(),
                        body.size(), applyPlugins);
   }
 
@@ -473,7 +473,7 @@ namespace OrthancPlugins
                          const std::string& body,
                          bool applyPlugins)
   {
-    return RestApiPut(result, uri, body.empty() ? NULL : body.c_str(), 
+    return RestApiPut(result, uri, body.empty() ? NULL : body.c_str(),
                       body.size(), applyPlugins);
   }
 
@@ -485,8 +485,12 @@ namespace OrthancPlugins
                   const std::string& password);
 
   void AnswerJson(const Json::Value& value,
-                  OrthancPluginRestOutput* output
-                  );
+                  OrthancPluginRestOutput* output);
+
+  void AnswerHttpError(uint16_t httpError,
+                       OrthancPluginRestOutput* output);
+
+  void AnswerMethodNotAllowed(OrthancPluginRestOutput* output, const char* allowedMethods);
 
   const char* GetMimeType(const std::string& path);
 
@@ -528,7 +532,7 @@ namespace OrthancPlugins
           // error message. This is to avoid duplicating the details,
           // because "OrthancException" already does it on construction.
           OrthancPluginSetHttpErrorDetails
-            (GetGlobalContext(), output, e.GetDetails(), false);
+              (GetGlobalContext(), output, e.GetDetails(), false);
         }
 #endif
 
@@ -553,12 +557,12 @@ namespace OrthancPlugins
     if (isThreadSafe)
     {
       OrthancPluginRegisterRestCallbackNoLock
-        (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
+          (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
     }
     else
     {
       OrthancPluginRegisterRestCallback
-        (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
+          (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
     }
   }
 
@@ -623,11 +627,11 @@ namespace OrthancPlugins
     bool DoGet(Json::Value& target,
                size_t index,
                const std::string& uri) const;
-      
+
     bool DoGet(Json::Value& target,
                const std::string& name,
                const std::string& uri) const;
-      
+
     bool DoPost(MemoryBuffer& target,
                 size_t index,
                 const std::string& uri,
@@ -642,7 +646,7 @@ namespace OrthancPlugins
                 size_t index,
                 const std::string& uri,
                 const std::string& body) const;
-      
+
     bool DoPost(Json::Value& target,
                 const std::string& name,
                 const std::string& uri,
