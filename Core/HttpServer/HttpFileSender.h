@@ -44,6 +44,11 @@ namespace Orthanc
     std::string filename_;
 
   public:
+    void SetContentType(MimeType contentType)
+    {
+      contentType_ = EnumerationToString(contentType);
+    }
+
     void SetContentType(const std::string& contentType)
     {
       contentType_ = contentType;

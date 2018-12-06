@@ -159,8 +159,9 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "Quality parameter out of range in a HTTP request (must be between 0 and 1): " << value;
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(
+            ErrorCode_BadRequest,
+            "Quality parameter out of range in a HTTP request (must be between 0 and 1): " + value);
         }
       }
     }

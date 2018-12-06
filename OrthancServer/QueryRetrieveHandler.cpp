@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "QueryRetrieveHandler.h"
 
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
@@ -119,7 +119,11 @@ namespace Orthanc
   {
     Invalidate();
     modalityName_ = symbolicName;
-    Configuration::GetDicomModalityUsingSymbolicName(modality_, symbolicName);
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      lock.GetConfiguration().GetDicomModalityUsingSymbolicName(modality_, symbolicName);
+    }
   }
 
 

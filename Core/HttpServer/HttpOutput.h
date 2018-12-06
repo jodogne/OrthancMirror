@@ -165,9 +165,14 @@ namespace Orthanc
       SendStatus(status, message.c_str(), message.size());
     }
 
-    void SetContentType(const char* contentType)
+    void SetContentType(MimeType contentType)
     {
-      stateMachine_.SetContentType(contentType);
+      stateMachine_.SetContentType(EnumerationToString(contentType));
+    }
+    
+    void SetContentType(const std::string& contentType)
+    {
+      stateMachine_.SetContentType(contentType.c_str());
     }
 
     void SetContentFilename(const char* filename)

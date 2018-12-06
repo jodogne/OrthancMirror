@@ -316,8 +316,8 @@ namespace Orthanc
   {
     if (modalities_ == NULL)
     {
-      LOG(ERROR) << "No list of modalities was provided to the DICOM server";
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "No list of modalities was provided to the DICOM server");
     }
     
     Stop();
@@ -327,8 +327,8 @@ namespace Orthanc
       (NET_ACCEPTOR, OFstatic_cast(int, port_), /*opt_acse_timeout*/ 30, &pimpl_->network_);
     if (cond.bad())
     {
-      LOG(ERROR) << "cannot create network: " << cond.text();
-      throw OrthancException(ErrorCode_DicomPortInUse);
+      throw OrthancException(ErrorCode_DicomPortInUse,
+                             "cannot create network: " + std::string(cond.text()));
     }
 
     continue_ = true;

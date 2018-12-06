@@ -40,20 +40,46 @@
 
 namespace Orthanc
 {
-  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
-                                            const std::string& publicId,
-                                            ResourceType resourceType,
-                                            StoreStatus status) const
+  static void SetupResourceAnswer(Json::Value& result,
+                                  const std::string& publicId,
+                                  ResourceType resourceType,
+                                  StoreStatus status)
   {
-    Json::Value result = Json::objectValue;
+    result = Json::objectValue;
 
     if (status != StoreStatus_Failure)
     {
       result["ID"] = publicId;
       result["Path"] = GetBasePath(resourceType, publicId);
     }
-
+    
     result["Status"] = EnumerationToString(status);
+  }
+
+
+  void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
+                                            DicomInstanceToStore& instance,
+                                            StoreStatus status) const
+  {
+    Json::Value result;
+    SetupResourceAnswer(result, instance.GetHasher().HashInstance(), 
+                        ResourceType_Instance, status);
+
+    result["ParentPatient"] = instance.GetHasher().HashPatient();
+    result["ParentStudy"] = instance.GetHasher().HashStudy();
+    result["ParentSeries"] = instance.GetHasher().HashSeries();
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+
+  void OrthancRestApi::AnswerStoredResource(RestApiPostCall& call,
+                                            const std::string& publicId,
+                                            ResourceType resourceType,
+                                            StoreStatus status) const
+  {
+    Json::Value result;
+    SetupResourceAnswer(result, publicId, resourceType, status);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -62,14 +88,14 @@ namespace Orthanc
   {
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
     OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
   void OrthancRestApi::ShutdownOrthanc(RestApiPostCall& call)
   {
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     LOG(WARNING) << "Shutdown request received";
   }
 
@@ -100,7 +126,7 @@ namespace Orthanc
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
 
-    OrthancRestApi::GetApi(call).AnswerStoredResource(call, publicId, ResourceType_Instance, status);
+    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
   }
 
 
@@ -147,6 +173,105 @@ namespace Orthanc
   static const char* KEY_PRIORITY = "Priority";
   static const char* KEY_SYNCHRONOUS = "Synchronous";
   static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+
+  
+  bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
+                                               const Json::Value& body)
+  {
+    if (body.type() != Json::objectValue)
+    {
+      return isDefaultSynchronous;
+    }
+    else if (body.isMember(KEY_SYNCHRONOUS))
+    {
+      return SerializationToolbox::ReadBoolean(body, KEY_SYNCHRONOUS);
+    }
+    else if (body.isMember(KEY_ASYNCHRONOUS))
+    {
+      return !SerializationToolbox::ReadBoolean(body, KEY_ASYNCHRONOUS);
+    }
+    else
+    {
+      return isDefaultSynchronous;
+    }
+  }
+
+  
+  unsigned int OrthancRestApi::GetJobRequestPriority(const Json::Value& body)
+  {
+    if (body.type() != Json::objectValue ||
+        !body.isMember(KEY_PRIORITY))
+    {
+      return 0;   // Default priority
+    }
+    else 
+    {
+      return SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
+    }
+  }
+  
+
+  void OrthancRestApi::SubmitGenericJob(RestApiOutput& output,
+                                        ServerContext& context,
+                                        IJob* job,
+                                        bool synchronous,
+                                        int priority)
+  {
+    std::auto_ptr<IJob> raii(job);
+    
+    if (job == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (synchronous)
+    {
+      Json::Value successContent;
+      if (context.GetJobsEngine().GetRegistry().SubmitAndWait
+          (successContent, raii.release(), priority))
+      {
+        // Success in synchronous execution
+        output.AnswerJson(successContent);
+      }
+      else
+      {
+        // Error during synchronous execution
+        output.SignalError(HttpStatus_500_InternalServerError);
+      }
+    }
+    else
+    {
+      // Asynchronous mode: Submit the job, but don't wait for its completion
+      std::string id;
+      context.GetJobsEngine().GetRegistry().Submit
+        (id, raii.release(), priority);
+
+      Json::Value v;
+      v["ID"] = id;
+      v["Path"] = "/jobs/" + id;
+      output.AnswerJson(v);
+    }
+  }
+
+  
+  void OrthancRestApi::SubmitGenericJob(RestApiPostCall& call,
+                                        IJob* job,
+                                        bool isDefaultSynchronous,
+                                        const Json::Value& body) const
+  {
+    std::auto_ptr<IJob> raii(job);
+
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    bool synchronous = IsSynchronousJobRequest(isDefaultSynchronous, body);
+    int priority = GetJobRequestPriority(body);
+
+    SubmitGenericJob(call.GetOutput(), context_, raii.release(), synchronous, priority);
+  }
+
   
   void OrthancRestApi::SubmitCommandsJob(RestApiPostCall& call,
                                          SetOfCommandsJob* job,
@@ -155,11 +280,6 @@ namespace Orthanc
   {
     std::auto_ptr<SetOfCommandsJob> raii(job);
     
-    if (job == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-
     if (body.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
@@ -176,66 +296,6 @@ namespace Orthanc
       job->SetPermissive(false);
     }
 
-    int priority = 0;
-
-    if (body.isMember(KEY_PRIORITY))
-    {
-      priority = SerializationToolbox::ReadInteger(body, KEY_PRIORITY);
-    }
-
-    bool synchronous = isDefaultSynchronous;
-    
-    if (body.isMember(KEY_SYNCHRONOUS))
-    {
-      synchronous = SerializationToolbox::ReadBoolean(body, KEY_SYNCHRONOUS);
-    }
-    else if (body.isMember(KEY_ASYNCHRONOUS))
-    {
-      synchronous = !SerializationToolbox::ReadBoolean(body, KEY_ASYNCHRONOUS);
-    }
-
-    if (synchronous)
-    {
-      Json::Value successContent;
-      if (context_.GetJobsEngine().GetRegistry().SubmitAndWait
-          (successContent, raii.release(), priority))
-      {
-        // Success in synchronous execution
-        call.GetOutput().AnswerJson(successContent);
-      }
-      else
-      {
-        // Error during synchronous execution
-        call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
-      }
-    }
-    else
-    {
-      // Asynchronous mode: Submit the job, but don't wait for its completion
-      std::string id;
-      context_.GetJobsEngine().GetRegistry().Submit(id, raii.release(), priority);
-
-      Json::Value v;
-      v["ID"] = id;
-      v["Path"] = "/jobs/" + id;
-      call.GetOutput().AnswerJson(v);
-    }
-  }
-  
-
-  void OrthancRestApi::SubmitCommandsJob(RestApiPostCall& call,
-                                         SetOfCommandsJob* job,
-                                         bool isDefaultSynchronous) const
-  {
-    std::auto_ptr<SetOfCommandsJob> raii(job);
-    
-    Json::Value body;
-    
-    if (!call.ParseJsonRequest(body))
-    {
-      body = Json::objectValue;
-    }
-
-    SubmitCommandsJob(call, raii.release(), isDefaultSynchronous, body);
+    SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 }

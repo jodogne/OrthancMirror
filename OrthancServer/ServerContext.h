@@ -160,12 +160,19 @@ namespace Orthanc
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
     MemoryCache dicomCache_;
-    JobsEngine jobsEngine_;
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;
     LuaServerListener  luaListener_;
-
+    std::auto_ptr<SharedArchive>  mediaArchive_;
+    
+    // The "JobsEngine" must be *after* "LuaScripting", as
+    // "LuaScripting" embeds "LuaJobManager" that registers as an
+    // observer to "SequenceOfOperationsJob", whose lifetime
+    // corresponds to that of "JobsEngine". It must also be after
+    // "mediaArchive_", as jobs might access this archive.
+    JobsEngine jobsEngine_;
+    
 #if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPlugins* plugins_;
 #endif
@@ -180,7 +187,7 @@ namespace Orthanc
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
         
-    SharedArchive  queryRetrieveArchive_;
+    std::auto_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
 
@@ -206,7 +213,8 @@ namespace Orthanc
 
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
-                  bool unitTesting);
+                  bool unitTesting,
+                  size_t maxCompletedJobs);
 
     ~ServerContext();
 
@@ -301,7 +309,12 @@ namespace Orthanc
 
     SharedArchive& GetQueryRetrieveArchive()
     {
-      return queryRetrieveArchive_;
+      return *queryRetrieveArchive_;
+    }
+
+    SharedArchive& GetMediaArchive()
+    {
+      return *mediaArchive_;
     }
 
     const std::string& GetDefaultLocalApplicationEntityTitle() const
@@ -346,5 +359,9 @@ namespace Orthanc
 
     void AddChildInstances(SetOfInstancesJob& job,
                            const std::string& publicId);
+
+    void SignalUpdatedModalities();
+
+    void SignalUpdatedPeers();
   };
 }

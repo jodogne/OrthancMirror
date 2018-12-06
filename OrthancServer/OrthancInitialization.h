@@ -33,108 +33,16 @@
 
 #pragma once
 
-#include <string>
-#include <set>
-#include <json/json.h>
-#include <stdint.h>
-
 #include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/HttpServer/MongooseServer.h"
-#include "../Core/Images/FontRegistry.h"
-#include "../Core/WebServiceParameters.h"
-#include "../Core/DicomNetworking/RemoteModalityParameters.h"
-
 #include "IDatabaseWrapper.h"
-#include "ServerEnumerations.h"
-
 
 namespace Orthanc
 {
-  class ServerContext;
-
   void OrthancInitialize(const char* configurationFile = NULL);
 
   void OrthancFinalize();
 
-  class Configuration
-  {
-  private:
-    Configuration();  // Forbidden, this is a static class
+  IDatabaseWrapper* CreateDatabaseWrapper();
 
-  public:
-    static std::string GetGlobalStringParameter(const std::string& parameter,
-                                                const std::string& defaultValue);
-
-    static int GetGlobalIntegerParameter(const std::string& parameter,
-                                         int defaultValue);
-
-    static unsigned int GetGlobalUnsignedIntegerParameter(const std::string& parameter,
-                                                          unsigned int defaultValue);
-
-    static bool GetGlobalBoolParameter(const std::string& parameter,
-                                       bool defaultValue);
-
-    static void GetDicomModalityUsingSymbolicName(RemoteModalityParameters& modality,
-                                                  const std::string& name);
-
-    static bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
-                                                const std::string& aet);
-
-    static bool GetOrthancPeer(WebServiceParameters& peer,
-                               const std::string& name);
-
-    static void GetListOfDicomModalities(std::set<std::string>& target);
-
-    static void GetListOfOrthancPeers(std::set<std::string>& target);
-
-    static void SetupRegisteredUsers(MongooseServer& httpServer);
-
-    static std::string InterpretRelativePath(const std::string& baseDirectory,
-                                             const std::string& relativePath);
-
-    static std::string InterpretStringParameterAsPath(const std::string& parameter);
-
-    static void GetGlobalListOfStringsParameter(std::list<std::string>& target,
-                                                const std::string& key);
-
-    static bool IsKnownAETitle(const std::string& aet,
-                               const std::string& ip);
-
-    static bool IsSameAETitle(const std::string& aet1,
-                              const std::string& aet2);
-
-    static RemoteModalityParameters GetModalityUsingSymbolicName(const std::string& name);
-
-    static RemoteModalityParameters GetModalityUsingAet(const std::string& aet);
-
-    static void UpdateModality(ServerContext& context,
-                               const std::string& symbolicName,
-                               const RemoteModalityParameters& modality);
-
-    static void RemoveModality(ServerContext& context,
-                               const std::string& symbolicName);
-
-    static void UpdatePeer(ServerContext& context,
-                           const std::string& symbolicName,
-                           const WebServiceParameters& peer);
-
-    static void RemovePeer(ServerContext& context,
-                           const std::string& symbolicName);
-
-    static const std::string& GetConfigurationAbsolutePath();
-
-    static IDatabaseWrapper* CreateDatabaseWrapper();
-
-    static IStorageArea* CreateStorageArea();
-
-    static void GetConfiguration(Json::Value& result);
-
-    static void FormatConfiguration(std::string& result);
-
-    static const FontRegistry& GetFontRegistry();
-
-    static void SetDefaultEncoding(Encoding encoding);
-
-    static bool HasConfigurationChanged();
-  };
+  IStorageArea* CreateStorageArea();
 }

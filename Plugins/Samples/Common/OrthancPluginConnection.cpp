@@ -40,7 +40,7 @@ namespace OrthancPlugins
   void OrthancPluginConnection::RestApiGet(std::string& result,
                                            const std::string& uri) 
   {
-    OrthancPlugins::MemoryBuffer buffer(context_);
+    OrthancPlugins::MemoryBuffer buffer;
 
     if (buffer.RestApiGet(uri, false))
     {
@@ -57,7 +57,7 @@ namespace OrthancPlugins
                                             const std::string& uri,
                                             const std::string& body)
   {
-    OrthancPlugins::MemoryBuffer buffer(context_);
+    OrthancPlugins::MemoryBuffer buffer;
 
     if (buffer.RestApiPost(uri, body.c_str(), body.size(), false))
     {
@@ -74,7 +74,7 @@ namespace OrthancPlugins
                                            const std::string& uri,
                                            const std::string& body)
   {
-    OrthancPlugins::MemoryBuffer buffer(context_);
+    OrthancPlugins::MemoryBuffer buffer;
 
     if (buffer.RestApiPut(uri, body.c_str(), body.size(), false))
     {
@@ -89,9 +89,9 @@ namespace OrthancPlugins
 
   void OrthancPluginConnection::RestApiDelete(const std::string& uri)
   {
-    OrthancPlugins::MemoryBuffer buffer(context_);
+    OrthancPlugins::MemoryBuffer buffer;
 
-    if (!::OrthancPlugins::RestApiDelete(context_, uri, false))
+    if (!::OrthancPlugins::RestApiDelete(uri, false))
     {
       ORTHANC_PLUGINS_THROW_EXCEPTION(UnknownResource);
     }

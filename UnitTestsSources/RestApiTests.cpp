@@ -286,7 +286,7 @@ namespace
     virtual bool Visit(const RestApiHierarchy::Resource& resource,
                        const UriComponents& uri,
                        const IHttpHandler::Arguments& components,
-                       const UriComponents& trailing)
+                       const UriComponents& trailing) ORTHANC_OVERRIDE
     {
       return resource.Handle(*(RestApiGetCall*) NULL);
     }
@@ -381,7 +381,7 @@ namespace
     }
 
     virtual void Handle(const std::string& type,
-                        const std::string& subtype)
+                        const std::string& subtype) ORTHANC_OVERRIDE
     {
       type_ = type;
       subtype_ = subtype;

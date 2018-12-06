@@ -47,6 +47,8 @@ namespace Orthanc
     {
       delete it->second;
       archive_.erase(it);
+
+      lru_.Invalidate(id);
     }
   }
 
@@ -59,7 +61,7 @@ namespace Orthanc
 
     if (it == that.archive_.end())
     {
-      throw OrthancException(ErrorCode_InexistentItem);
+      item_ = NULL;
     }
     else
     {
@@ -67,6 +69,20 @@ namespace Orthanc
       item_ = it->second;
     }
   }
+
+
+  IDynamicObject& SharedArchive::Accessor::GetItem() const
+  {
+    if (item_ == NULL)
+    {
+      // "IsValid()" should have been called
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return *item_;
+    }
+  }  
 
 
   SharedArchive::SharedArchive(size_t maxSize) : 
@@ -96,12 +112,12 @@ namespace Orthanc
     if (archive_.size() == maxSize_)
     {
       // The quota has been reached, remove the oldest element
-      std::string oldest = lru_.RemoveOldest();
-      RemoveInternal(oldest);
+      RemoveInternal(lru_.GetOldest());
     }
 
     std::string id = Toolbox::GenerateUuid();
     RemoveInternal(id);  // Should never be useful because of UUID
+
     archive_[id] = obj;
     lru_.Add(id);
 
@@ -113,7 +129,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     RemoveInternal(id);      
-    lru_.Invalidate(id);
   }
 
 
@@ -121,14 +136,14 @@ namespace Orthanc
   {
     items.clear();
 
-    boost::mutex::scoped_lock lock(mutex_);
-
-    for (Archive::const_iterator it = archive_.begin();
-         it != archive_.end(); ++it)
     {
-      items.push_back(it->first);
+      boost::mutex::scoped_lock lock(mutex_);
+
+      for (Archive::const_iterator it = archive_.begin();
+           it != archive_.end(); ++it)
+      {
+        items.push_back(it->first);
+      }
     }
   }
 }
-
-

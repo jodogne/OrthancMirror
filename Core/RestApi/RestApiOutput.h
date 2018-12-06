@@ -75,11 +75,11 @@ namespace Orthanc
     void AnswerJson(const Json::Value& value);
 
     void AnswerBuffer(const std::string& buffer,
-                      const std::string& contentType);
+                      MimeType contentType);
 
     void AnswerBuffer(const void* buffer,
                       size_t length,
-                      const std::string& contentType);
+                      MimeType contentType);
 
     void SignalError(HttpStatus status);
 

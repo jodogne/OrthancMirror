@@ -70,20 +70,21 @@ namespace
     }
 
     virtual void SignalRemainingAncestor(ResourceType type,
-                                         const std::string& publicId) 
+                                         const std::string& publicId)
+      ORTHANC_OVERRIDE
     {
       ancestorId_ = publicId;
       ancestorType_ = type;
     }
 
-    virtual void SignalFileDeleted(const FileInfo& info)
+    virtual void SignalFileDeleted(const FileInfo& info) ORTHANC_OVERRIDE
     {
       const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }       
 
-    virtual void SignalChange(const ServerIndexChange& change)
+    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
     {
       if (change.GetChangeType() == ChangeType_Deleted)
       {
@@ -108,7 +109,7 @@ namespace
     {
     }
 
-    virtual void SetUp() 
+    virtual void SetUp()  ORTHANC_OVERRIDE
     {
       listener_.reset(new TestDatabaseListener);
 
@@ -126,7 +127,7 @@ namespace
       index_->Open();
     }
 
-    virtual void TearDown()
+    virtual void TearDown() ORTHANC_OVERRIDE
     {
       index_->Close();
       index_.reset(NULL);
@@ -676,7 +677,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */);
+  ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -776,7 +777,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   DatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */);
+  ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -820,6 +821,11 @@ TEST(ServerIndex, AttachmentRecycling)
     ids.push_back(hasher.HashStudy());
     ids.push_back(hasher.HashSeries());
     ids.push_back(hasher.HashInstance());
+
+    ASSERT_EQ(hasher.HashPatient(), toStore.GetHasher().HashPatient());
+    ASSERT_EQ(hasher.HashStudy(), toStore.GetHasher().HashStudy());
+    ASSERT_EQ(hasher.HashSeries(), toStore.GetHasher().HashSeries());
+    ASSERT_EQ(hasher.HashInstance(), toStore.GetHasher().HashInstance());
   }
 
   index.ComputeStatistics(tmp);
@@ -859,7 +865,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     DatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */);
+    ServerContext context(db, storage, true /* running unit tests */, 10);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -884,6 +890,7 @@ TEST(ServerIndex, Overwrite)
       DicomInstanceToStore toStore;
       toStore.SetSummary(instance);
       toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+      ASSERT_EQ(id, toStore.GetHasher().HashInstance());
 
       std::string id2;
       ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore));

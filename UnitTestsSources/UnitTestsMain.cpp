@@ -301,26 +301,30 @@ TEST(Uri, Child)
 
 TEST(Uri, AutodetectMimeType)
 {
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("../NOTES"));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType(""));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("/"));
-  ASSERT_EQ("", Toolbox::AutodetectMimeType("a/a"));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("../NOTES"));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType(""));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("/"));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("a/a"));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("..\\a\\"));
+  ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("..\\a\\a"));
 
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../NOTES.txt"));
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("../coucou.xml/NOTES.txt"));
-  ASSERT_EQ("text/xml", Toolbox::AutodetectMimeType("../.xml"));
+  ASSERT_EQ(MimeType_PlainText, SystemToolbox::AutodetectMimeType("../NOTES.txt"));
+  ASSERT_EQ(MimeType_PlainText, SystemToolbox::AutodetectMimeType("../coucou.xml/NOTES.txt"));
+  ASSERT_EQ(MimeType_Xml, SystemToolbox::AutodetectMimeType("..\\coucou.\\NOTES.xml"));
+  ASSERT_EQ(MimeType_Xml, SystemToolbox::AutodetectMimeType("../.xml"));
+  ASSERT_EQ(MimeType_Xml, SystemToolbox::AutodetectMimeType("../.XmL"));
 
-  ASSERT_EQ("application/javascript", Toolbox::AutodetectMimeType("NOTES.js"));
-  ASSERT_EQ("application/json", Toolbox::AutodetectMimeType("NOTES.json"));
-  ASSERT_EQ("application/pdf", Toolbox::AutodetectMimeType("NOTES.pdf"));
-  ASSERT_EQ("text/css", Toolbox::AutodetectMimeType("NOTES.css"));
-  ASSERT_EQ("text/html", Toolbox::AutodetectMimeType("NOTES.html"));
-  ASSERT_EQ("text/plain", Toolbox::AutodetectMimeType("NOTES.txt"));
-  ASSERT_EQ("text/xml", Toolbox::AutodetectMimeType("NOTES.xml"));
-  ASSERT_EQ("image/gif", Toolbox::AutodetectMimeType("NOTES.gif"));
-  ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpg"));
-  ASSERT_EQ("image/jpeg", Toolbox::AutodetectMimeType("NOTES.jpeg"));
-  ASSERT_EQ("image/png", Toolbox::AutodetectMimeType("NOTES.png"));
+  ASSERT_EQ(MimeType_JavaScript, SystemToolbox::AutodetectMimeType("NOTES.js"));
+  ASSERT_EQ(MimeType_Json, SystemToolbox::AutodetectMimeType("NOTES.json"));
+  ASSERT_EQ(MimeType_Pdf, SystemToolbox::AutodetectMimeType("NOTES.pdf"));
+  ASSERT_EQ(MimeType_Css, SystemToolbox::AutodetectMimeType("NOTES.css"));
+  ASSERT_EQ(MimeType_Html, SystemToolbox::AutodetectMimeType("NOTES.html"));
+  ASSERT_EQ(MimeType_PlainText, SystemToolbox::AutodetectMimeType("NOTES.txt"));
+  ASSERT_EQ(MimeType_Xml, SystemToolbox::AutodetectMimeType("NOTES.xml"));
+  ASSERT_EQ(MimeType_Gif, SystemToolbox::AutodetectMimeType("NOTES.gif"));
+  ASSERT_EQ(MimeType_Jpeg, SystemToolbox::AutodetectMimeType("NOTES.jpg"));
+  ASSERT_EQ(MimeType_Jpeg, SystemToolbox::AutodetectMimeType("NOTES.jpeg"));
+  ASSERT_EQ(MimeType_Png, SystemToolbox::AutodetectMimeType("NOTES.png"));
 }
 
 TEST(Toolbox, ComputeMD5)
@@ -440,6 +444,19 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ(0x00, static_cast<unsigned char>(utf8[14]));  // Null-terminated string
 }
 
+
+TEST(Toolbox, FixUtf8)
+{
+  // This is a Latin-1 test string: "crane" with a circumflex accent
+  const unsigned char latin1[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
+
+  std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
+
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1), Encoding_Latin1));
+  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8));
+}
+
+
 TEST(Toolbox, UrlDecode)
 {
   std::string s;
@@ -472,14 +489,20 @@ TEST(Toolbox, IsAsciiString)
   s[2] = '\0';
   ASSERT_EQ(10u, s.size());
   ASSERT_FALSE(Toolbox::IsAsciiString(s));
+
+  ASSERT_TRUE(Toolbox::IsAsciiString("Hello\nworld"));
+  ASSERT_FALSE(Toolbox::IsAsciiString("Hello\rworld"));
+
+  ASSERT_EQ("Hello\nworld", Toolbox::ConvertToAscii("Hello\nworld"));
+  ASSERT_EQ("Helloworld", Toolbox::ConvertToAscii("Hello\r\tworld"));
 }
 
 
 #if defined(__linux__)
-TEST(OrthancInitialization, AbsoluteDirectory)
+TEST(Toolbox, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", Configuration::InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", Configuration::InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", SystemToolbox::InterpretRelativePath("/tmp", "hello"));
+  ASSERT_EQ("/tmp", SystemToolbox::InterpretRelativePath("/tmp", "/tmp"));
 }
 #endif
 
@@ -686,6 +709,26 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(JobState_Paused, StringToJobState(EnumerationToString(JobState_Paused)));
   ASSERT_EQ(JobState_Retry, StringToJobState(EnumerationToString(JobState_Retry)));
   ASSERT_THROW(StringToJobState("nope"), OrthancException);
+
+  ASSERT_EQ(MimeType_Binary, StringToMimeType(EnumerationToString(MimeType_Binary)));
+  ASSERT_EQ(MimeType_Dicom, StringToMimeType(EnumerationToString(MimeType_Dicom)));
+  ASSERT_EQ(MimeType_Jpeg, StringToMimeType(EnumerationToString(MimeType_Jpeg)));
+  ASSERT_EQ(MimeType_Jpeg2000, StringToMimeType(EnumerationToString(MimeType_Jpeg2000)));
+  ASSERT_EQ(MimeType_Json, StringToMimeType(EnumerationToString(MimeType_Json)));
+  ASSERT_EQ(MimeType_Pdf, StringToMimeType(EnumerationToString(MimeType_Pdf)));
+  ASSERT_EQ(MimeType_Png, StringToMimeType(EnumerationToString(MimeType_Png)));
+  ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
+  ASSERT_EQ(MimeType_Xml, StringToMimeType("application/xml"));
+  ASSERT_EQ(MimeType_Xml, StringToMimeType("text/xml"));
+  ASSERT_EQ(MimeType_PlainText, StringToMimeType(EnumerationToString(MimeType_PlainText)));
+  ASSERT_EQ(MimeType_Pam, StringToMimeType(EnumerationToString(MimeType_Pam)));
+  ASSERT_EQ(MimeType_Html, StringToMimeType(EnumerationToString(MimeType_Html)));
+  ASSERT_EQ(MimeType_Gzip, StringToMimeType(EnumerationToString(MimeType_Gzip)));
+  ASSERT_EQ(MimeType_JavaScript, StringToMimeType(EnumerationToString(MimeType_JavaScript)));
+  ASSERT_EQ(MimeType_Gif, StringToMimeType(EnumerationToString(MimeType_Gif)));
+  ASSERT_EQ(MimeType_WebAssembly, StringToMimeType(EnumerationToString(MimeType_WebAssembly)));
+  ASSERT_EQ(MimeType_Css, StringToMimeType(EnumerationToString(MimeType_Css)));
+  ASSERT_THROW(StringToMimeType("nope"), OrthancException);
 }
 
 
@@ -1116,6 +1159,34 @@ TEST(Toolbox, LinesIterator)
     ASSERT_FALSE(it.GetLine(s)); it.Next();
     ASSERT_FALSE(it.GetLine(s));
   }
+}
+
+
+TEST(Toolbox, SubstituteVariables)
+{
+  std::map<std::string, std::string> env;
+  env["NOPE"] = "nope";
+  env["WORLD"] = "world";
+
+  ASSERT_EQ("Hello world\r\nWorld \r\nDone world\r\n",
+            Toolbox::SubstituteVariables(
+              "Hello ${WORLD}\r\nWorld ${HELLO}\r\nDone ${WORLD}\r\n",
+              env));
+
+  ASSERT_EQ("world A a B world C 'c' D {\"a\":\"b\"} E ",
+            Toolbox::SubstituteVariables(
+              "${WORLD} A ${WORLD2:-a} B ${WORLD:-b} C ${WORLD2:-\"'c'\"} D ${WORLD2:-'{\"a\":\"b\"}'} E ${WORLD2:-}",
+              env));
+  
+  SystemToolbox::GetEnvironmentVariables(env);
+  ASSERT_TRUE(env.find("NOPE") == env.end());
+
+  // The "PATH" environment variable should always be available on
+  // machines running the unit tests
+  ASSERT_TRUE(env.find("PATH") != env.end());
+
+  ASSERT_EQ("A" + env["PATH"] + "B",
+            Toolbox::SubstituteVariables("A${PATH}B", env));
 }
 
 

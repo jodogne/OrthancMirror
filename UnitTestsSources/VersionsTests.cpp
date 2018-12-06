@@ -104,7 +104,7 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_STREQ("1_67", BOOST_LIB_VERSION);
+  ASSERT_STREQ("1_68", BOOST_LIB_VERSION);
 }
 
 TEST(Versions, CurlStatic)
@@ -141,7 +141,7 @@ TEST(Versions, CurlSslStatic)
 
 TEST(Version, LuaStatic)
 {
-  ASSERT_STREQ("Lua 5.1.5", LUA_RELEASE);
+  ASSERT_STREQ("Lua 5.3.5", LUA_RELEASE);
 }
 
 TEST(Version, LibIconvStatic)

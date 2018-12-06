@@ -96,25 +96,28 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PUGIXML == 1
       std::string s;
       Toolbox::JsonToXml(s, value);
-      output_.SetContentType("application/xml; charset=utf-8");
+
+      output_.SetContentType(MIME_XML_UTF8);
       output_.Answer(s);
 #else
-      LOG(ERROR) << "Orthanc was compiled without XML support";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Orthanc was compiled without XML support");
 #endif
     }
     else
     {
       Json::StyledWriter writer;
-      output_.SetContentType("application/json; charset=utf-8");
-      output_.Answer(writer.write(value));
+      std::string s = writer.write(value);
+      
+      output_.SetContentType(MIME_JSON_UTF8);      
+      output_.Answer(s);
     }
 
     alreadySent_ = true;
   }
 
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
-                                   const std::string& contentType)
+                                   MimeType contentType)
   {
     AnswerBuffer(buffer.size() == 0 ? NULL : buffer.c_str(),
                  buffer.size(), contentType);
@@ -122,10 +125,10 @@ namespace Orthanc
 
   void RestApiOutput::AnswerBuffer(const void* buffer,
                                    size_t length,
-                                   const std::string& contentType)
+                                   MimeType contentType)
   {
     CheckStatus();
-    output_.SetContentType(contentType.c_str());
+    output_.SetContentType(contentType);
     output_.Answer(buffer, length);
     alreadySent_ = true;
   }

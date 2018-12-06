@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LuaJobManager.h"
 
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../../Core/Logging.h"
 
 #include "../../Core/JobsEngine/Operations/LogJobOperation.h"
@@ -68,7 +68,11 @@ namespace Orthanc
     priority_(0),
     trailingTimeout_(5000)
   {
-    dicomTimeout_ = Configuration::GetGlobalUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      dicomTimeout_ = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
+    }
+
     LOG(INFO) << "Lua: DICOM associations will be closed after "
               << dicomTimeout_ << " seconds of inactivity";
   }
@@ -139,6 +143,7 @@ namespace Orthanc
       // Need to create a new job, as the previous one is either
       // finished, or is getting too long
       that_.currentJob_ = new SequenceOfOperationsJob;
+      that_.currentJob_->Register(that_);
       that_.currentJob_->SetDescription("Lua");
 
       {

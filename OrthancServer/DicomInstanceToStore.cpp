@@ -146,14 +146,18 @@ namespace Orthanc
   }
 
 
-  struct DicomInstanceToStore::PImpl
+  class DicomInstanceToStore::PImpl
   {
-    DicomInstanceOrigin              origin_;
-    SmartContainer<std::string>      buffer_;
-    SmartContainer<ParsedDicomFile>  parsed_;
-    SmartContainer<DicomMap>         summary_;
-    SmartContainer<Json::Value>      json_;
-    MetadataMap                      metadata_;
+  public:
+    DicomInstanceOrigin                  origin_;
+    SmartContainer<std::string>          buffer_;
+    SmartContainer<ParsedDicomFile>      parsed_;
+    SmartContainer<DicomMap>             summary_;
+    SmartContainer<Json::Value>          json_;
+    MetadataMap                          metadata_;
+
+  private:
+    std::auto_ptr<DicomInstanceHasher>  hasher_;
 
     void ComputeMissingInformation()
     {
@@ -184,8 +188,8 @@ namespace Orthanc
         if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
                                                  *parsed_.GetContent().GetDcmtkObject().getDataset()))
         {
-          LOG(ERROR) << "Unable to serialize a DICOM file to a memory buffer";
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Unable to serialize a DICOM file to a memory buffer");
         }
       }
 
@@ -225,6 +229,7 @@ namespace Orthanc
     }
 
 
+  public:
     const char* GetBufferData()
     {
       ComputeMissingInformation();
@@ -284,6 +289,22 @@ namespace Orthanc
     }
 
 
+    DicomInstanceHasher& GetHasher()
+    {
+      if (hasher_.get() == NULL)
+      {
+        hasher_.reset(new DicomInstanceHasher(GetSummary()));
+      }
+
+      if (hasher_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      return *hasher_;
+    }
+
+    
     bool LookupTransferSyntax(std::string& result)
     {
       ComputeMissingInformation();
@@ -395,5 +416,11 @@ namespace Orthanc
   bool DicomInstanceToStore::LookupTransferSyntax(std::string& result)
   {
     return pimpl_->LookupTransferSyntax(result);
+  }
+
+
+  DicomInstanceHasher& DicomInstanceToStore::GetHasher()
+  {
+    return pimpl_->GetHasher();
   }
 }

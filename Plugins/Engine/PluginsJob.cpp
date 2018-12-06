@@ -148,8 +148,8 @@ namespace Orthanc
       if (!reader.parse(content, value) ||
           value.type() != Json::objectValue)
       {
-        LOG(ERROR) << "A job plugin must provide a JSON object as its public content";
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_Plugin,
+                               "A job plugin must provide a JSON object as its public content");
       }
     }
   }
@@ -169,8 +169,8 @@ namespace Orthanc
       if (!reader.parse(serialized, value) ||
           value.type() != Json::objectValue)
       {
-        LOG(ERROR) << "A job plugin must provide a JSON object as its serialized content";
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_Plugin,
+                               "A job plugin must provide a JSON object as its serialized content");
       }
 
 
@@ -178,8 +178,8 @@ namespace Orthanc
       
       if (value.isMember(KEY_TYPE))
       {
-        LOG(ERROR) << "The \"Type\" field is for reserved use for serialized job";
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_Plugin,
+                               "The \"Type\" field is for reserved use for serialized job");
       }
 
       value[KEY_TYPE] = type_;

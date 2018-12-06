@@ -53,12 +53,15 @@ namespace Orthanc
     const TargetType minValue = std::numeric_limits<TargetType>::min();
     const TargetType maxValue = std::numeric_limits<TargetType>::max();
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
       const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
 
-      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
+      for (unsigned int x = 0; x < width; x++, t++, s++)
       {
         if (static_cast<int32_t>(*s) < static_cast<int32_t>(minValue))
         {
@@ -83,14 +86,41 @@ namespace Orthanc
   {
     assert(sizeof(float) == 4);
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       float* t = reinterpret_cast<float*>(target.GetRow(y));
       const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
 
-      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s++)
+      for (unsigned int x = 0; x < width; x++, t++, s++)
       {
         *t = static_cast<float>(*s);
+      }
+    }
+  }
+
+
+  template <PixelFormat TargetFormat>
+  static void ConvertFloatToGrayscale(ImageAccessor& target,
+                                      const ImageAccessor& source)
+  {
+    typedef typename PixelTraits<TargetFormat>::PixelType  TargetType;
+    
+    assert(sizeof(float) == 4);
+
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      TargetType* q = reinterpret_cast<TargetType*>(target.GetRow(y));
+      const float* p = reinterpret_cast<const float*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < width; x++, p++, q++)
+      {
+        PixelTraits<TargetFormat>::FloatToPixel(*q, *p);
       }
     }
   }
@@ -105,12 +135,15 @@ namespace Orthanc
     const TargetType minValue = std::numeric_limits<TargetType>::min();
     const TargetType maxValue = std::numeric_limits<TargetType>::max();
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
       const uint8_t* s = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
 
-      for (unsigned int x = 0; x < source.GetWidth(); x++, t++, s += 3)
+      for (unsigned int x = 0; x < width; x++, t++, s += 3)
       {
         // Y = 0.2126 R + 0.7152 G + 0.0722 B
         int32_t v = (2126 * static_cast<int32_t>(s[0]) +
@@ -134,17 +167,48 @@ namespace Orthanc
   }
 
 
+  static void MemsetZeroInternal(ImageAccessor& image)
+  {      
+    const unsigned int height = image.GetHeight();
+    const size_t lineSize = image.GetBytesPerPixel() * image.GetWidth();
+    const size_t pitch = image.GetPitch();
+
+    uint8_t *p = reinterpret_cast<uint8_t*>(image.GetBuffer());
+    
+    for (unsigned int y = 0; y < height; y++)
+    {
+      memset(p, 0, lineSize);
+      p += pitch;
+    }
+  }
+
+
   template <typename PixelType>
   static void SetInternal(ImageAccessor& image,
                           int64_t constant)
   {
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    if (constant == 0 &&
+        (image.GetFormat() == PixelFormat_Grayscale8 ||
+         image.GetFormat() == PixelFormat_Grayscale16 ||
+         image.GetFormat() == PixelFormat_Grayscale32 ||
+         image.GetFormat() == PixelFormat_Grayscale64 ||
+         image.GetFormat() == PixelFormat_SignedGrayscale16))
     {
-      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+      MemsetZeroInternal(image);
+    }
+    else
+    {
+      const unsigned int width = image.GetWidth();
+      const unsigned int height = image.GetHeight();
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      for (unsigned int y = 0; y < height; y++)
       {
-        *p = static_cast<PixelType>(constant);
+        PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+        for (unsigned int x = 0; x < width; x++, p++)
+        {
+          *p = static_cast<PixelType>(constant);
+        }
       }
     }
   }
@@ -167,9 +231,10 @@ namespace Orthanc
     minValue = std::numeric_limits<PixelType>::max();
     maxValue = std::numeric_limits<PixelType>::min();
 
+    const unsigned int height = source.GetHeight();
     const unsigned int width = source.GetWidth();
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    for (unsigned int y = 0; y < height; y++)
     {
       const PixelType* p = reinterpret_cast<const PixelType*>(source.GetConstRow(y));
 
@@ -202,11 +267,14 @@ namespace Orthanc
     const int64_t minValue = std::numeric_limits<PixelType>::min();
     const int64_t maxValue = std::numeric_limits<PixelType>::max();
 
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++)
       {
         int64_t v = static_cast<int64_t>(*p) + constant;
 
@@ -240,9 +308,11 @@ namespace Orthanc
 
     const int64_t minValue = std::numeric_limits<PixelType>::min();
     const int64_t maxValue = std::numeric_limits<PixelType>::max();
-    const unsigned int width = image.GetWidth();
 
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
     {
       PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
 
@@ -334,7 +404,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
 
-    unsigned int lineSize = GetBytesPerPixel(source.GetFormat()) * source.GetWidth();
+    unsigned int lineSize = source.GetBytesPerPixel() * source.GetWidth();
 
     assert(source.GetPitch() >= lineSize && target.GetPitch() >= lineSize);
 
@@ -353,6 +423,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_IncompatibleImageSize);
     }
+
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
 
     if (source.GetFormat() == target.GetFormat())
     {
@@ -451,14 +524,15 @@ namespace Orthanc
       return;
     }
 
+    
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_RGBA32)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++, q++)
+        for (unsigned int x = 0; x < width; x++, q++)
         {
           *q = static_cast<uint8_t>((2126 * static_cast<uint32_t>(p[0]) +
                                      7152 * static_cast<uint32_t>(p[1]) +
@@ -473,11 +547,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_Grayscale8 &&
         source.GetFormat() == PixelFormat_BGRA32)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++, q++)
+        for (unsigned int x = 0; x < width; x++, q++)
         {
           *q = static_cast<uint8_t>((2126 * static_cast<uint32_t>(p[2]) +
                                      7152 * static_cast<uint32_t>(p[1]) +
@@ -492,11 +566,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_RGB24 &&
         source.GetFormat() == PixelFormat_RGBA32)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = p[0];
           q[1] = p[1];
@@ -512,11 +586,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_RGB24 &&
         source.GetFormat() == PixelFormat_BGRA32)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = p[2];
           q[1] = p[1];
@@ -532,11 +606,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_RGBA32 &&
         source.GetFormat() == PixelFormat_RGB24)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = p[0];
           q[1] = p[1];
@@ -553,11 +627,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_RGB24 &&
         source.GetFormat() == PixelFormat_Grayscale8)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = *p;
           q[1] = *p;
@@ -574,11 +648,11 @@ namespace Orthanc
          target.GetFormat() == PixelFormat_BGRA32) &&
         source.GetFormat() == PixelFormat_Grayscale8)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = *p;
           q[1] = *p;
@@ -595,11 +669,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_BGRA32 &&
         source.GetFormat() == PixelFormat_Grayscale16)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint16_t* p = reinterpret_cast<const uint16_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           uint8_t value = (*p < 256 ? *p : 255);
           q[0] = value;
@@ -617,11 +691,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_BGRA32 &&
         source.GetFormat() == PixelFormat_SignedGrayscale16)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const int16_t* p = reinterpret_cast<const int16_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           uint8_t value;
           if (*p < 0)
@@ -652,11 +726,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_BGRA32 &&
         source.GetFormat() == PixelFormat_RGB24)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = p[2];
           q[1] = p[1];
@@ -673,11 +747,11 @@ namespace Orthanc
     if (target.GetFormat() == PixelFormat_RGB24 &&
         source.GetFormat() == PixelFormat_RGB48)
     {
-      for (unsigned int y = 0; y < source.GetHeight(); y++)
+      for (unsigned int y = 0; y < height; y++)
       {
         const uint16_t* p = reinterpret_cast<const uint16_t*>(source.GetConstRow(y));
         uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-        for (unsigned int x = 0; x < source.GetWidth(); x++)
+        for (unsigned int x = 0; x < width; x++)
         {
           q[0] = p[0] >> 8;
           q[1] = p[1] >> 8;
@@ -687,6 +761,20 @@ namespace Orthanc
         }
       }
 
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale16 &&
+        source.GetFormat() == PixelFormat_Float32)
+    {
+      ConvertFloatToGrayscale<PixelFormat_Grayscale16>(target, source);
+      return;
+    }
+
+    if (target.GetFormat() == PixelFormat_Grayscale8 &&
+        source.GetFormat() == PixelFormat_Float32)
+    {
+      ConvertFloatToGrayscale<PixelFormat_Grayscale8>(target, source);
       return;
     }
 
@@ -701,51 +789,23 @@ namespace Orthanc
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        memset(image.GetBuffer(), static_cast<uint8_t>(value), image.GetPitch() * image.GetHeight());
+        SetInternal<uint8_t>(image, value);
         return;
 
       case PixelFormat_Grayscale16:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint16_t>(image, value);
-        }
+        SetInternal<uint16_t>(image, value);
         return;
 
       case PixelFormat_Grayscale32:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint32_t>(image, value);
-        }
+        SetInternal<uint32_t>(image, value);
         return;
 
       case PixelFormat_Grayscale64:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<uint64_t>(image, value);
-        }
+        SetInternal<uint64_t>(image, value);
         return;
 
       case PixelFormat_SignedGrayscale16:
-        if (value == 0)
-        {
-          memset(image.GetBuffer(), 0, image.GetPitch() * image.GetHeight());
-        }
-        else
-        {
-          SetInternal<int16_t>(image, value);
-        }
+        SetInternal<int16_t>(image, value);
         return;
 
       case PixelFormat_Float32:
@@ -797,11 +857,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }    
 
-    for (unsigned int y = 0; y < image.GetHeight(); y++)
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
     {
       uint8_t* q = reinterpret_cast<uint8_t*>(image.GetRow(y));
 
-      for (unsigned int x = 0; x < image.GetWidth(); x++)
+      for (unsigned int x = 0; x < width; x++)
       {
         for (unsigned int i = 0; i < size; i++)
         {
@@ -885,7 +948,7 @@ namespace Orthanc
     {
       case PixelFormat_Float32:
       {
-        assert(sizeof(float) == 32);
+        assert(sizeof(float) == 4);
         float a, b;
         GetMinMaxValueInternal<float>(a, b, image);
         minValue = a;
@@ -1016,15 +1079,18 @@ namespace Orthanc
 
   void ImageProcessing::Invert(ImageAccessor& image)
   {
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
       {
-        for (unsigned int y = 0; y < image.GetHeight(); y++)
+        for (unsigned int y = 0; y < height; y++)
         {
           uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
 
-          for (unsigned int x = 0; x < image.GetWidth(); x++, p++)
+          for (unsigned int x = 0; x < width; x++, p++)
           {
             *p = 255 - (*p);
           }

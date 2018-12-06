@@ -48,7 +48,7 @@
 #include "../../Core/Toolbox.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
-#include "../../OrthancServer/OrthancInitialization.h"
+#include "../../OrthancServer/OrthancConfiguration.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
 #include "../../OrthancServer/Search/HierarchicalMatcher.h"
@@ -271,8 +271,10 @@ namespace Orthanc
     public:
       OrthancPeers()
       {
+        OrthancConfiguration::ReaderLock lock;
+
         std::set<std::string> peers;
-        Configuration::GetListOfOrthancPeers(peers);
+        lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
         names_.reserve(peers.size());
         parameters_.reserve(peers.size());
@@ -281,7 +283,7 @@ namespace Orthanc
                it = peers.begin(); it != peers.end(); ++it)
         {
           WebServiceParameters peer;
-          if (Configuration::GetOrthancPeer(peer, *it))
+          if (lock.GetConfiguration().LookupOrthancPeer(peer, *it))
           {
             names_.push_back(*it);
             parameters_.push_back(peer);
@@ -317,6 +319,56 @@ namespace Orthanc
     
 
   public:
+    class PluginHttpOutput : public boost::noncopyable
+    {
+    private:
+      HttpOutput&                 output_;
+      std::auto_ptr<std::string>  errorDetails_;
+      bool                        logDetails_;
+
+    public:
+      PluginHttpOutput(HttpOutput& output) :
+        output_(output),
+        logDetails_(false)
+      {
+      }
+
+      HttpOutput& GetOutput()
+      {
+        return output_;
+      }
+
+      void SetErrorDetails(const std::string& details,
+                           bool logDetails)
+      {
+        errorDetails_.reset(new std::string(details));
+        logDetails_ = logDetails;
+      }
+
+      bool HasErrorDetails() const
+      {
+        return errorDetails_.get() != NULL;
+      }
+
+      bool IsLogDetails() const
+      {
+        return logDetails_;
+      }
+
+      const std::string& GetErrorDetails() const
+      {
+        if (errorDetails_.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          return *errorDetails_;
+        }
+      }
+    };
+
+    
     class RestCallback : public boost::noncopyable
     {
     private:
@@ -324,7 +376,7 @@ namespace Orthanc
       OrthancPluginRestCallback callback_;
       bool                      lock_;
 
-      OrthancPluginErrorCode InvokeInternal(HttpOutput& output,
+      OrthancPluginErrorCode InvokeInternal(PluginHttpOutput& output,
                                             const std::string& flatUri,
                                             const OrthancPluginHttpRequest& request)
       {
@@ -349,7 +401,7 @@ namespace Orthanc
       }
 
       OrthancPluginErrorCode Invoke(boost::recursive_mutex& restCallbackMutex,
-                                    HttpOutput& output,
+                                    PluginHttpOutput& output,
                                     const std::string& flatUri,
                                     const OrthancPluginHttpRequest& request)
       {
@@ -731,7 +783,8 @@ namespace Orthanc
           OrthancPluginErrorCode error = apply_(driver_);
           if (error != OrthancPluginErrorCode_Success)
           {
-            LOG(ERROR) << "Error while doing C-Move from plugin: " << EnumerationToString(static_cast<ErrorCode>(error));
+            LOG(ERROR) << "Error while doing C-Move from plugin: "
+                       << EnumerationToString(static_cast<ErrorCode>(error));
             return Status_Failure;
           }
           else
@@ -814,8 +867,8 @@ namespace Orthanc
 
       if (driver == NULL)
       {
-        LOG(ERROR) << "Plugin cannot create a driver for an incoming C-MOVE request";
-        throw OrthancException(ErrorCode_Plugin);
+        throw OrthancException(ErrorCode_Plugin,
+                               "Plugin cannot create a driver for an incoming C-MOVE request");
       }
 
       unsigned int size = params_.getMoveSize(driver);
@@ -1022,7 +1075,11 @@ namespace Orthanc
     }
 
     assert(callback != NULL);
-    OrthancPluginErrorCode error = callback->Invoke(pimpl_->restCallbackMutex_, output, flatUri, request);
+
+    PImpl::PluginHttpOutput pluginOutput(output);
+
+    OrthancPluginErrorCode error = callback->Invoke
+      (pimpl_->restCallbackMutex_, pluginOutput, flatUri, request);
 
     if (error == OrthancPluginErrorCode_Success && 
         output.IsWritingMultipart())
@@ -1037,7 +1094,17 @@ namespace Orthanc
     else
     {
       GetErrorDictionary().LogError(error, false);
-      throw OrthancException(static_cast<ErrorCode>(error));
+
+      if (pluginOutput.HasErrorDetails())
+      {
+        throw OrthancException(static_cast<ErrorCode>(error),
+                               pluginOutput.GetErrorDetails(),
+                               pluginOutput.IsLogDetails());
+      }
+      else
+      {
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
     }
   }
 
@@ -1142,8 +1209,8 @@ namespace Orthanc
 
     if (pimpl_->worklistCallback_ != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle modality worklists";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle modality worklists");
     }
     else
     {
@@ -1162,8 +1229,8 @@ namespace Orthanc
 
     if (pimpl_->findCallback_ != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle C-FIND requests";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-FIND requests");
     }
     else
     {
@@ -1182,8 +1249,8 @@ namespace Orthanc
 
     if (pimpl_->moveCallbacks_.callback != NULL)
     {
-      LOG(ERROR) << "Can only register one plugin to handle C-MOVE requests";
-      throw OrthancException(ErrorCode_Plugin);
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin to handle C-MOVE requests");
     }
     else
     {
@@ -1244,9 +1311,9 @@ namespace Orthanc
     const _OrthancPluginAnswerBuffer& p = 
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SetContentType(p.mimeType);
-    translatedOutput->Answer(p.answer, p.answerSize);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SetContentType(p.mimeType);
+    translatedOutput.Answer(p.answer, p.answerSize);
   }
 
 
@@ -1255,8 +1322,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->Redirect(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.Redirect(p.argument);
   }
 
 
@@ -1265,8 +1332,8 @@ namespace Orthanc
     const _OrthancPluginSendHttpStatusCode& p = 
       *reinterpret_cast<const _OrthancPluginSendHttpStatusCode*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendStatus(static_cast<HttpStatus>(p.status));
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendStatus(static_cast<HttpStatus>(p.status));
   }
 
 
@@ -1275,16 +1342,16 @@ namespace Orthanc
     const _OrthancPluginSendHttpStatus& p = 
       *reinterpret_cast<const _OrthancPluginSendHttpStatus*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     HttpStatus status = static_cast<HttpStatus>(p.status);
 
     if (p.bodySize > 0 && p.body != NULL)
     {
-      translatedOutput->SendStatus(status, p.body, p.bodySize);
+      translatedOutput.SendStatus(status, p.body, p.bodySize);
     }
     else
     {
-      translatedOutput->SendStatus(status);
+      translatedOutput.SendStatus(status);
     }
   }
 
@@ -1294,8 +1361,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendUnauthorized(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendUnauthorized(p.argument);
   }
 
 
@@ -1304,8 +1371,8 @@ namespace Orthanc
     const _OrthancPluginOutputPlusArgument& p = 
       *reinterpret_cast<const _OrthancPluginOutputPlusArgument*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SendMethodNotAllowed(p.argument);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SendMethodNotAllowed(p.argument);
   }
 
 
@@ -1314,8 +1381,8 @@ namespace Orthanc
     const _OrthancPluginSetHttpHeader& p = 
       *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->SetCookie(p.key, p.value);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.SetCookie(p.key, p.value);
   }
 
 
@@ -1324,8 +1391,19 @@ namespace Orthanc
     const _OrthancPluginSetHttpHeader& p = 
       *reinterpret_cast<const _OrthancPluginSetHttpHeader*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
-    translatedOutput->AddHeader(p.key, p.value);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+    translatedOutput.AddHeader(p.key, p.value);
+  }
+
+
+  void OrthancPlugins::SetHttpErrorDetails(const void* parameters)
+  {
+    const _OrthancPluginSetHttpErrorDetails& p = 
+      *reinterpret_cast<const _OrthancPluginSetHttpErrorDetails*>(parameters);
+
+    PImpl::PluginHttpOutput* output =
+      reinterpret_cast<PImpl::PluginHttpOutput*>(p.output);
+    output->SetErrorDetails(p.details, p.log);
   }
 
 
@@ -1354,7 +1432,7 @@ namespace Orthanc
     const _OrthancPluginCompressAndAnswerImage& p = 
       *reinterpret_cast<const _OrthancPluginCompressAndAnswerImage*>(parameters);
 
-    HttpOutput* translatedOutput = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
 
     ImageAccessor accessor;
     accessor.AssignReadOnly(Plugins::Convert(p.pixelFormat), p.width, p.height, p.pitch, p.buffer);
@@ -1367,7 +1445,7 @@ namespace Orthanc
       {
         PngWriter writer;
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType("image/png");
+        translatedOutput.SetContentType(MimeType_Png);
         break;
       }
 
@@ -1376,7 +1454,7 @@ namespace Orthanc
         JpegWriter writer;
         writer.SetQuality(p.quality);
         writer.WriteToMemory(compressed, accessor);
-        translatedOutput->SetContentType("image/jpeg");
+        translatedOutput.SetContentType(MimeType_Jpeg);
         break;
       }
 
@@ -1384,7 +1462,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    translatedOutput->Answer(compressed);
+    translatedOutput.Answer(compressed);
   }
 
 
@@ -2105,19 +2183,23 @@ namespace Orthanc
   {
     const _OrthancPluginGetFontInfo& p = *reinterpret_cast<const _OrthancPluginGetFontInfo*>(parameters);
 
-    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
+    {
+      OrthancConfiguration::ReaderLock lock;
 
-    if (p.name != NULL)
-    {
-      *(p.name) = font.GetName().c_str();
-    }
-    else if (p.size != NULL)
-    {
-      *(p.size) = font.GetSize();
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_InternalError);
+      const Font& font = lock.GetConfiguration().GetFontRegistry().GetFont(p.fontIndex);
+
+      if (p.name != NULL)
+      {
+        *(p.name) = font.GetName().c_str();
+      }
+      else if (p.size != NULL)
+      {
+        *(p.size) = font.GetSize();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
@@ -2127,9 +2209,12 @@ namespace Orthanc
     const _OrthancPluginDrawText& p = *reinterpret_cast<const _OrthancPluginDrawText*>(parameters);
 
     ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
-    const Font& font = Configuration::GetFontRegistry().GetFont(p.fontIndex);
 
-    font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      const Font& font = lock.GetConfiguration().GetFontRegistry().GetFont(p.fontIndex);
+      font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
+    }
   }
 
 
@@ -2275,10 +2360,10 @@ namespace Orthanc
     const _OrthancPluginAnswerBuffer& p =
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
-    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
 
     std::map<std::string, std::string> headers;  // No custom headers
-    output->SendMultipartItem(p.answer, p.answerSize, headers);
+    output.SendMultipartItem(p.answer, p.answerSize, headers);
   }
 
 
@@ -2288,7 +2373,7 @@ namespace Orthanc
     // connection was closed by the HTTP client.
     const _OrthancPluginSendMultipartItem2& p =
       *reinterpret_cast<const _OrthancPluginSendMultipartItem2*>(parameters);
-    HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
+    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     
     std::map<std::string, std::string> headers;
     for (uint32_t i = 0; i < p.headersCount; i++)
@@ -2296,7 +2381,7 @@ namespace Orthanc
       headers[p.headersKeys[i]] = p.headersValues[i];
     }
     
-    output->SendMultipartItem(p.answer, p.answerSize, headers);
+    output.SendMultipartItem(p.answer, p.answerSize, headers);
   }
       
 
@@ -2311,8 +2396,8 @@ namespace Orthanc
     }
     else
     {
-      LOG(ERROR) << "Cannot invoke this service without a custom database back-end";
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest,
+                             "Cannot invoke this service without a custom database back-end");
     }
   }
 
@@ -2392,15 +2477,25 @@ namespace Orthanc
 
       case _OrthancPluginService_GetConfigurationPath:
       {
-        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = 
-          CopyString(Configuration::GetConfigurationAbsolutePath());
+        std::string s;
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          s = lock.GetConfiguration().GetConfigurationAbsolutePath();
+        }
+
+        *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
 
       case _OrthancPluginService_GetConfiguration:
       {
         std::string s;
-        Configuration::FormatConfiguration(s);
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          lock.GetConfiguration().Format(s);
+        }
 
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
@@ -2490,6 +2585,10 @@ namespace Orthanc
         SetHttpHeader(parameters);
         return true;
 
+      case _OrthancPluginService_SetHttpErrorDetails:
+        SetHttpErrorDetails(parameters);
+        return true;
+
       case _OrthancPluginService_LookupPatient:
       case _OrthancPluginService_LookupStudy:
       case _OrthancPluginService_LookupStudyWithAccessionNumber:
@@ -2553,8 +2652,8 @@ namespace Orthanc
       {
         const _OrthancPluginStartMultipartAnswer& p =
           *reinterpret_cast<const _OrthancPluginStartMultipartAnswer*>(parameters);
-        HttpOutput* output = reinterpret_cast<HttpOutput*>(p.output);
-        output->StartMultipart(p.subType, p.contentType);
+        HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
+        output.StartMultipart(p.subType, p.contentType);
         return true;
       }
 
@@ -2665,7 +2764,12 @@ namespace Orthanc
       {
         const _OrthancPluginReturnSingleValue& p =
           *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
-        *(p.resultUint32) = Configuration::GetFontRegistry().GetSize();
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          *(p.resultUint32) = lock.GetConfiguration().GetFontRegistry().GetSize();
+        }
+
         return true;
       }
 
@@ -3171,8 +3275,8 @@ namespace Orthanc
 
         if (pimpl_->database_.get() == NULL)
         {
-          LOG(ERROR) << "The service ReconstructMainDicomTags can only be invoked by custom database plugins";
-          throw OrthancException(ErrorCode_DatabasePlugin);
+          throw OrthancException(ErrorCode_DatabasePlugin,
+                                 "The service ReconstructMainDicomTags can only be invoked by custom database plugins");
         }
 
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);

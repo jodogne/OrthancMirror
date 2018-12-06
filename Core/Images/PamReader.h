@@ -54,5 +54,8 @@ namespace Orthanc
 #endif
 
     void ReadFromMemory(const std::string& buffer);
+
+    void ReadFromMemory(const void* buffer,
+                        size_t size);
   };
 }

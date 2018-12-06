@@ -119,7 +119,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     4
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -451,6 +451,7 @@ extern "C"
     _OrthancPluginService_SendHttpStatus = 2010,
     _OrthancPluginService_CompressAndAnswerImage = 2011,
     _OrthancPluginService_SendMultipartItem2 = 2012,
+    _OrthancPluginService_SetHttpErrorDetails = 2013,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -1679,11 +1680,16 @@ extern "C"
    * OrthancPluginInitialize() public function.
    *
    * Each REST callback is guaranteed to run in mutual exclusion.
-   * 
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pathRegularExpression Regular expression for the URI. May contain groups.
+   * @param pathRegularExpression Regular expression for the URI. May contain groups. 
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallbackNoLock()
+   *
+   * @note
+   * The regular expression is case sensitive and must follow the
+   * [Perl syntax](https://www.boost.org/doc/libs/1_67_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html).
+   *
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallback(
@@ -1711,13 +1717,19 @@ extern "C"
    * will NOT be invoked in mutual exclusion. This can be useful for
    * high-performance plugins that must handle concurrent requests
    * (Orthanc uses a pool of threads, one thread being assigned to
-   * each incoming HTTP request). Of course, it is up to the plugin to
-   * implement the required locking mechanisms.
+   * each incoming HTTP request). Of course, if using this function,
+   * it is up to the plugin to implement the required locking
+   * mechanisms.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param pathRegularExpression Regular expression for the URI. May contain groups.
    * @param callback The callback function to handle the REST call.
    * @see OrthancPluginRegisterRestCallback()
+   *
+   * @note
+   * The regular expression is case sensitive and must follow the
+   * [Perl syntax](https://www.boost.org/doc/libs/1_67_0/libs/regex/doc/html/boost_regex/syntax/perl_syntax.html).
+   *
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRestCallbackNoLock(
@@ -6414,6 +6426,46 @@ extern "C"
 
     context->InvokeService(context, _OrthancPluginService_RegisterJobsUnserializer, &params);
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              details;
+    uint8_t                  log;
+  } _OrthancPluginSetHttpErrorDetails;
+
+  /**
+   * @brief Provide a detailed description for an HTTP error.
+   *
+   * This function sets the detailed description associated with an
+   * HTTP error. This description will be displayed in the "Details"
+   * field of the JSON body of the HTTP answer. It is only taken into
+   * consideration if the REST callback returns an error code that is
+   * different from "OrthancPluginErrorCode_Success", and if the
+   * "HttpDescribeErrors" configuration option of Orthanc is set to
+   * "true".
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param details The details of the error message.
+   * @param log Whether to also write the detailed error to the Orthanc logs.
+   * @ingroup REST
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetHttpErrorDetails(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              details,
+    uint8_t                  log)
+  {
+    _OrthancPluginSetHttpErrorDetails params;
+    params.output = output;
+    params.details = details;
+    params.log = log;
+    context->InvokeService(context, _OrthancPluginService_SetHttpErrorDetails, &params);
+  }
+
 
 
 #ifdef  __cplusplus

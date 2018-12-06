@@ -77,8 +77,9 @@ extern "C"
 #if ORTHANC_ENABLE_SSL == 1
     return GetHttpStatus(curl_easy_perform(curl), curl, status);
 #else
-    LOG(ERROR) << "Orthanc was compiled without SSL support, cannot make HTTPS request";
-    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
+                                    "Orthanc was compiled without SSL support, "
+                                    "cannot make HTTPS request");
 #endif
   }
 }
@@ -220,15 +221,15 @@ namespace Orthanc
   {
     if (code == CURLE_NOT_BUILT_IN)
     {
-      LOG(ERROR) << "Your libcurl does not contain a required feature, "
-                 << "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Your libcurl does not contain a required feature, "
+                             "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF");
     }
 
     if (code != CURLE_OK)
     {
-      LOG(ERROR) << "libCURL error: " + std::string(curl_easy_strerror(code));
-      throw OrthancException(ErrorCode_NetworkProtocol);
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "libCURL error: " + std::string(curl_easy_strerror(code)));
     }
 
     return code;
@@ -502,8 +503,8 @@ namespace Orthanc
     if (!clientCertificateFile_.empty() &&
         pkcs11Enabled_)
     {
-      LOG(ERROR) << "Cannot enable both client certificates and PKCS#11 authentication";
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Cannot enable both client certificates and PKCS#11 authentication");
     }
 
     if (pkcs11Enabled_)
@@ -517,12 +518,13 @@ namespace Orthanc
       }
       else
       {
-        LOG(ERROR) << "Cannot use PKCS#11 for a HTTPS request, because it has not been initialized";
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "Cannot use PKCS#11 for a HTTPS request, "
+                               "because it has not been initialized");
       }
 #else
-      LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS#11";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "This version of Orthanc is compiled without support for PKCS#11");
 #endif
     }
     else if (!clientCertificateFile_.empty())
@@ -544,8 +546,9 @@ namespace Orthanc
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLKEY, clientCertificateKeyFile_.c_str()));
       }
 #else
-      LOG(ERROR) << "This version of Orthanc is compiled without OpenSSL support, cannot use HTTPS client authentication";
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "This version of Orthanc is compiled without OpenSSL support, "
+                             "cannot use HTTPS client authentication");
 #endif
     }
 
@@ -836,15 +839,15 @@ namespace Orthanc
 
     if (!SystemToolbox::IsRegularFile(certificateFile))
     {
-      LOG(ERROR) << "Cannot open certificate file: " << certificateFile;
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "Cannot open certificate file: " + certificateFile);
     }
 
     if (!certificateKeyFile.empty() && 
         !SystemToolbox::IsRegularFile(certificateKeyFile))
     {
-      LOG(ERROR) << "Cannot open key file: " << certificateKeyFile;
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "Cannot open key file: " + certificateKeyFile);
     }
 
     clientCertificateFile_ = certificateFile;
@@ -862,8 +865,8 @@ namespace Orthanc
               << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
     GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
 #else
-    LOG(ERROR) << "This version of Orthanc is compiled without support for PKCS#11";
-    throw OrthancException(ErrorCode_InternalError);
+    throw OrthancException(ErrorCode_InternalError,
+                           "This version of Orthanc is compiled without support for PKCS#11");
 #endif
   }
 }

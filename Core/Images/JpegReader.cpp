@@ -121,8 +121,9 @@ namespace Orthanc
     {
       jpeg_destroy_decompress(&cinfo);
       fclose(fp);
-      LOG(ERROR) << "Error during JPEG decoding: " << jerr.GetMessage();
-      throw OrthancException(ErrorCode_InternalError);
+
+      throw OrthancException(ErrorCode_InternalError,
+                             "Error during JPEG decoding: " + jerr.GetMessage());
     }
 
     // Below this line, we are under the scope of a "setjmp"
@@ -159,8 +160,8 @@ namespace Orthanc
     if (setjmp(jerr.GetJumpBuffer())) 
     {
       jpeg_destroy_decompress(&cinfo);
-      LOG(ERROR) << "Error during JPEG decoding: " << jerr.GetMessage();
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Error during JPEG decoding: " + jerr.GetMessage());
     }
 
     // Below this line, we are under the scope of a "setjmp"

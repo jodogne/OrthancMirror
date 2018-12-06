@@ -135,7 +135,6 @@ Code refactoring
 * Avoid direct calls to FromDcmtkBridge (make most of its 
   methods private), go through ParsedDicomFile wherever possible
 
-
 =================
 Platform-specific
 =================

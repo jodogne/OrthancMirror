@@ -421,37 +421,44 @@
     "Description": "Cannot store an instance"
   },
   {
-    "Code": 2019, 
+    "Code": 2019,
+    "HttpStatus": 400, 
     "Name": "CreateDicomNotString", 
     "Description": "Only string values are supported when creating DICOM instances"
   },
   {
-    "Code": 2020, 
+    "Code": 2020,
+    "HttpStatus": 400, 
     "Name": "CreateDicomOverrideTag", 
     "Description": "Trying to override a value inherited from a parent module"
   },
   {
-    "Code": 2021, 
+    "Code": 2021,
+    "HttpStatus": 400, 
     "Name": "CreateDicomUseContent", 
     "Description": "Use \\\"Content\\\" to inject an image into a new DICOM instance"
   },
   {
-    "Code": 2022, 
+    "Code": 2022,
+    "HttpStatus": 400, 
     "Name": "CreateDicomNoPayload", 
     "Description": "No payload is present for one instance in the series"
   },
   {
-    "Code": 2023, 
+    "Code": 2023,
+    "HttpStatus": 400, 
     "Name": "CreateDicomUseDataUriScheme", 
     "Description": "The payload of the DICOM instance must be specified according to Data URI scheme"
   },
   {
-    "Code": 2024, 
+    "Code": 2024,
+    "HttpStatus": 400, 
     "Name": "CreateDicomBadParent", 
     "Description": "Trying to attach a new DICOM instance to an inexistent resource"
   },
   {
-    "Code": 2025, 
+    "Code": 2025,
+    "HttpStatus": 400, 
     "Name": "CreateDicomParentIsInstance", 
     "Description": "Trying to attach a new DICOM instance to an instance (must be a series, study or patient)"
   },

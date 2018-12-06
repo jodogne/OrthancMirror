@@ -44,6 +44,7 @@ namespace Orthanc
 {
   class ServerContext;
   class ServerIndex;
+  class DicomInstanceToStore;
 
   class OrthancRestApi : public RestApi
   {
@@ -93,18 +94,34 @@ namespace Orthanc
 
     static ServerIndex& GetIndex(RestApiCall& call);
 
+    void AnswerStoredInstance(RestApiPostCall& call,
+                              DicomInstanceToStore& instance,
+                              StoreStatus status) const;
+
     void AnswerStoredResource(RestApiPostCall& call,
                               const std::string& publicId,
                               ResourceType resourceType,
                               StoreStatus status) const;
 
+    static bool IsSynchronousJobRequest(bool isDefaultSynchronous,
+                                        const Json::Value& body);
+    
+    static unsigned int GetJobRequestPriority(const Json::Value& body);
+    
+    static void SubmitGenericJob(RestApiOutput& output,
+                                 ServerContext& context,
+                                 IJob* job,
+                                 bool synchronous,
+                                 int priority);
+    
+    void SubmitGenericJob(RestApiPostCall& call,
+                          IJob* job,
+                          bool isDefaultSynchronous,
+                          const Json::Value& body) const;
+
     void SubmitCommandsJob(RestApiPostCall& call,
                            SetOfCommandsJob* job,
                            bool isDefaultSynchronous,
                            const Json::Value& body) const;
-
-    void SubmitCommandsJob(RestApiPostCall& call,
-                           SetOfCommandsJob* job,
-                           bool isDefaultSynchronous) const;
   };
 }

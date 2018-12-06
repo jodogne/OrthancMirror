@@ -117,8 +117,6 @@ namespace Orthanc
     bool IsChildUri(const UriComponents& baseUri,
                     const UriComponents& testedUri);
 
-    std::string AutodetectMimeType(const std::string& path);
-
     std::string FlattenUri(const UriComponents& components,
                            size_t fromLevel = 0);
 
@@ -238,6 +236,9 @@ namespace Orthanc
     void FinalizeOpenSsl();
 
     std::string GenerateUuid();
+
+    std::string SubstituteVariables(const std::string& source,
+                                    const std::map<std::string, std::string>& dictionary);
   }
 }
 

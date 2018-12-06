@@ -148,6 +148,8 @@ namespace Orthanc
 
     void SetHttpHeader(const void* parameters);
 
+    void SetHttpErrorDetails(const void* parameters);
+
     void BufferCompression(const void* parameters);
 
     void UncompressImage(const void* parameters);

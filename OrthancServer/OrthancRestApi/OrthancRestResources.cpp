@@ -39,7 +39,7 @@
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
-#include "../OrthancInitialization.h"
+#include "../OrthancConfiguration.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
@@ -151,14 +151,16 @@ namespace Orthanc
     {
       if (!call.HasArgument("limit"))
       {
-        LOG(ERROR) << "Missing \"limit\" argument for GET request against: " << call.FlattenUri();
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"limit\" argument for GET request against: " +
+                               call.FlattenUri());
       }
 
       if (!call.HasArgument("since"))
       {
-        LOG(ERROR) << "Missing \"since\" argument for GET request against: " << call.FlattenUri();
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"since\" argument for GET request against: " +
+                               call.FlattenUri());
       }
 
       size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
@@ -201,7 +203,7 @@ namespace Orthanc
   {
     std::string publicId = call.GetUriComponent("id", "");
     bool isProtected = OrthancRestApi::GetIndex(call).IsProtectedPatient(publicId);
-    call.GetOutput().AnswerBuffer(isProtected ? "1" : "0", "text/plain");
+    call.GetOutput().AnswerBuffer(isProtected ? "1" : "0", MimeType_PlainText);
   }
 
 
@@ -218,12 +220,12 @@ namespace Orthanc
     if (body == "0")
     {
       context.GetIndex().SetProtectedPatient(publicId, false);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else if (body == "1")
     {
       context.GetIndex().SetProtectedPatient(publicId, true);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else
     {
@@ -256,7 +258,7 @@ namespace Orthanc
     call.BodyToString(target);
     SystemToolbox::WriteFile(dicom, target);
 
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
@@ -284,7 +286,7 @@ namespace Orthanc
       // is present
       std::string full;
       context.ReadDicomAsJson(full, publicId);
-      call.GetOutput().AnswerBuffer(full, "application/json");
+      call.GetOutput().AnswerBuffer(full, MimeType_Json);
     }
   }
 
@@ -340,7 +342,7 @@ namespace Orthanc
       std::auto_ptr<ImageAccessor>&  image_;
       ImageExtractionMode            mode_;
       bool                           invert_;
-      std::string                    format_;
+      MimeType                       format_;
       std::string                    answer_;
 
     public:
@@ -360,27 +362,19 @@ namespace Orthanc
 
       void EncodeUsingPng()
       {
-        format_ = "image/png";
+        format_ = MimeType_Png;
         DicomImageDecoder::ExtractPngImage(answer_, image_, mode_, invert_);
       }
 
       void EncodeUsingPam()
       {
-        /**
-         * "No Internet Media Type (aka MIME type, content type) for
-         * PBM has been registered with IANA, but the unofficial value
-         * image/x-portable-arbitrarymap is assigned by this
-         * specification, to be consistent with conventional values
-         * for the older Netpbm formats."
-         * http://netpbm.sourceforge.net/doc/pam.html
-         **/
-        format_ = "image/x-portable-arbitrarymap";
+        format_ = MimeType_Pam;
         DicomImageDecoder::ExtractPamImage(answer_, image_, mode_, invert_);
       }
 
       void EncodeUsingJpeg(uint8_t quality)
       {
-        format_ = "image/jpeg";
+        format_ = MimeType_Jpeg;
         DicomImageDecoder::ExtractJpegImage(answer_, image_, mode_, invert_, quality);
       }
     };
@@ -448,8 +442,9 @@ namespace Orthanc
 
         if (!ok)
         {
-          LOG(ERROR) << "Bad quality for a JPEG encoding (must be a number between 0 and 100): " << v;
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(
+            ErrorCode_BadRequest,
+            "Bad quality for a JPEG encoding (must be a number between 0 and 100): " + v);
         }
       }
 
@@ -537,7 +532,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange)
+      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange || e.GetErrorCode() == ErrorCode_UnknownResource)
       {
         // The frame number is out of the range for this DICOM
         // instance, the resource is not existent
@@ -552,19 +547,20 @@ namespace Orthanc
 
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
+      return;
     }
 
     ImageToEncode image(decoded, mode, invert);
 
     HttpContentNegociation negociation;
     EncodePng png(image);
-    negociation.Register("image/png", png);
+    negociation.Register(MIME_PNG, png);
 
     EncodeJpeg jpeg(image, call);
-    negociation.Register("image/jpeg", jpeg);
+    negociation.Register(MIME_JPEG, jpeg);
 
     EncodePam pam(image);
-    negociation.Register("image/x-portable-arbitrarymap", pam);
+    negociation.Register(MIME_PAM, pam);
 
     if (negociation.Apply(call.GetHttpHeaders()))
     {
@@ -604,7 +600,7 @@ namespace Orthanc
     std::string result;
     decoded->ToMatlabString(result);
 
-    call.GetOutput().AnswerBuffer(result, "text/plain");
+    call.GetOutput().AnswerBuffer(result, MimeType_PlainText);
   }
 
 
@@ -624,7 +620,8 @@ namespace Orthanc
     }
 
     std::string publicId = call.GetUriComponent("id", "");
-    std::string raw, mime;
+    std::string raw;
+    MimeType mime;
 
     {
       ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
@@ -636,7 +633,7 @@ namespace Orthanc
       GzipCompressor gzip;
       std::string compressed;
       gzip.Compress(compressed, raw.empty() ? NULL : raw.c_str(), raw.size());
-      call.GetOutput().AnswerBuffer(compressed, "application/gzip");
+      call.GetOutput().AnswerBuffer(compressed, MimeType_Gzip);
     }
     else
     {
@@ -717,7 +714,7 @@ namespace Orthanc
     std::string value;
     if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, metadata))
     {
-      call.GetOutput().AnswerBuffer(value, "text/plain");
+      call.GetOutput().AnswerBuffer(value, MimeType_PlainText);
     }
   }
 
@@ -733,7 +730,7 @@ namespace Orthanc
     if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
     {      
       OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else
     {
@@ -757,7 +754,7 @@ namespace Orthanc
     {
       // It is forbidden to modify internal metadata
       OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
-      call.GetOutput().AnswerBuffer("", "text/plain");
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else
     {
@@ -858,7 +855,7 @@ namespace Orthanc
       // Return the raw data (possibly compressed), as stored on the filesystem
       std::string content;
       context.ReadAttachment(content, publicId, type, false);
-      call.GetOutput().AnswerBuffer(content, "application/octet-stream");
+      call.GetOutput().AnswerBuffer(content, MimeType_Binary);
     }
   }
 
@@ -868,7 +865,7 @@ namespace Orthanc
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
-      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), "text/plain");
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), MimeType_PlainText);
     }
   }
 
@@ -878,7 +875,7 @@ namespace Orthanc
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
-      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), "text/plain");
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), MimeType_PlainText);
     }
   }
 
@@ -889,7 +886,7 @@ namespace Orthanc
     if (GetAttachmentInfo(info, call) &&
         info.GetUncompressedMD5() != "")
     {
-      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), "text/plain");
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), MimeType_PlainText);
     }
   }
 
@@ -900,7 +897,7 @@ namespace Orthanc
     if (GetAttachmentInfo(info, call) &&
         info.GetCompressedMD5() != "")
     {
-      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), "text/plain");
+      call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), MimeType_PlainText);
     }
   }
 
@@ -950,7 +947,7 @@ namespace Orthanc
     if (ok)
     {
       LOG(INFO) << "The attachment " << name << " of resource " << publicId << " has the right MD5";
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
     {
@@ -971,7 +968,7 @@ namespace Orthanc
     if (IsUserContentType(contentType) &&  // It is forbidden to modify internal attachments
         context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
     {
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
     {
@@ -993,23 +990,28 @@ namespace Orthanc
     {
       allowed = true;
     }
-    else if (Configuration::GetGlobalBoolParameter("StoreDicom", true) &&
-             contentType == FileContentType_DicomAsJson)
-    {
-      allowed = true;
-    }
     else
     {
-      // It is forbidden to delete internal attachments, except for
-      // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
-      // would be automatically reconstructed on the next GET call)
-      allowed = false;
+      OrthancConfiguration::ReaderLock lock;
+
+      if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true) &&
+          contentType == FileContentType_DicomAsJson)
+      {
+        allowed = true;
+      }
+      else
+      {
+        // It is forbidden to delete internal attachments, except for
+        // the "DICOM as JSON" summary as of Orthanc 1.2.0 (this summary
+        // would be automatically reconstructed on the next GET call)
+        allowed = false;
+      }
     }
 
     if (allowed) 
     {
       OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
-      call.GetOutput().AnswerBuffer("{}", "application/json");
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
     {
@@ -1028,7 +1030,7 @@ namespace Orthanc
     FileContentType contentType = StringToContentType(name);
 
     OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, contentType, compression);
-    call.GetOutput().AnswerBuffer("{}", "application/json");
+    call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
@@ -1038,7 +1040,7 @@ namespace Orthanc
     if (GetAttachmentInfo(info, call))
     {
       std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
-      call.GetOutput().AnswerBuffer(answer, "text/plain");
+      call.GetOutput().AnswerBuffer(answer, MimeType_PlainText);
     }
   }
 
@@ -1475,7 +1477,7 @@ namespace Orthanc
 
     if (locker.GetDicom().ExtractPdf(pdf))
     {
-      call.GetOutput().AnswerBuffer(pdf, "application/pdf");
+      call.GetOutput().AnswerBuffer(pdf, MimeType_Pdf);
       return;
     }
   }
@@ -1537,7 +1539,7 @@ namespace Orthanc
       }
     }
 
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
 
@@ -1546,7 +1548,7 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""));
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
 
@@ -1563,7 +1565,7 @@ namespace Orthanc
       ServerToolbox::ReconstructResource(context, *study);
     }
     
-    call.GetOutput().AnswerBuffer("", "text/plain");
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
 

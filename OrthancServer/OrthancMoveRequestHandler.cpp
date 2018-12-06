@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
-#include "OrthancInitialization.h"
+#include "OrthancConfiguration.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
@@ -70,7 +70,8 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \""
+                  << targetAet << "\" in synchronous mode";
 
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
@@ -81,7 +82,10 @@ namespace Orthanc
           instances_.push_back(*it);
         }
 
-        remote_ = Configuration::GetModalityUsingAet(targetAet);
+        {
+          OrthancConfiguration::ReaderLock lock;
+          remote_ = lock.GetConfiguration().GetModalityUsingAet(targetAet);
+        }
       }
 
       virtual unsigned int GetSubOperationCount() const
@@ -130,12 +134,17 @@ namespace Orthanc
         job_(new DicomModalityStoreJob(context)),
         position_(0)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \"" << targetAet << "\"";
+        LOG(INFO) << "Sending resource " << publicId << " to modality \""
+                  << targetAet << "\" in asynchronous mode";
 
         job_->SetDescription("C-MOVE");
         job_->SetPermissive(true);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
-        job_->SetRemoteModality(Configuration::GetModalityUsingAet(targetAet));
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          job_->SetRemoteModality(lock.GetConfiguration().GetModalityUsingAet(targetAet));
+        }
 
         if (originatorId != 0)
         {
@@ -238,7 +247,12 @@ namespace Orthanc
                                               const std::string& originatorAet,
                                               uint16_t originatorId)
   {
-    bool synchronous = Configuration::GetGlobalBoolParameter("SynchronousCMove", false);
+    bool synchronous;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      synchronous = lock.GetConfiguration().GetBooleanParameter("SynchronousCMove", true);
+    }
 
     if (synchronous)
     {
