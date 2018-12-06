@@ -211,6 +211,32 @@ namespace Orthanc
   }
 
 
+  template <bool IS_MEDIA,
+            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  static void CreateSinglePost(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string id = call.GetUriComponent("id", "");
+
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
+    {
+      bool synchronous, extended;
+      int priority;
+      GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
+      
+      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+      job->AddResource(id);
+      SubmitJob(call.GetOutput(), context, job, priority, synchronous, id + ".zip");
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+
+    
   void OrthancRestApi::RegisterArchive()
   {
     Register("/patients/{id}/archive",
@@ -220,12 +246,26 @@ namespace Orthanc
     Register("/series/{id}/archive",
              CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
 
+    Register("/patients/{id}/archive",
+             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
+    Register("/studies/{id}/archive",
+             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
+    Register("/series/{id}/archive",
+             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
+
     Register("/patients/{id}/media",
              CreateSingleGet<true /* media */, false /* not extended by default */>);
     Register("/studies/{id}/media",
              CreateSingleGet<true /* media */, false /* not extended by default */>);
     Register("/series/{id}/media",
              CreateSingleGet<true /* media */, false /* not extended by default */>);
+
+    Register("/patients/{id}/media",
+             CreateSinglePost<true /* media */, false /* not extended by default */>);
+    Register("/studies/{id}/media",
+             CreateSinglePost<true /* media */, false /* not extended by default */>);
+    Register("/series/{id}/media",
+             CreateSinglePost<true /* media */, false /* not extended by default */>);
 
     Register("/tools/create-archive",
              CreateBatch<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
