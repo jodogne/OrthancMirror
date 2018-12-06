@@ -106,6 +106,8 @@ namespace Orthanc
     static bool IsSynchronousJobRequest(bool isDefaultSynchronous,
                                         const Json::Value& body);
     
+    static unsigned int GetJobRequestPriority(const Json::Value& body);
+    
     void SubmitGenericJob(RestApiPostCall& call,
                           IJob* job,
                           bool isDefaultSynchronous,

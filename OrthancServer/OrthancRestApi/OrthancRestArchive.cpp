@@ -96,11 +96,14 @@ namespace Orthanc
 
   static void GetJobParameters(bool& synchronous,         /* out */
                                bool& extended,            /* out */
+                               int& priority,             /* out */
                                const Json::Value& body,   /* in */
                                const bool defaultExtended /* in */)
   {
     synchronous = OrthancRestApi::IsSynchronousJobRequest
       (true /* synchronous by default */, body);
+
+    priority = OrthancRestApi::GetJobRequestPriority(body);
 
     if (body.type() == Json::objectValue &&
         body.isMember(KEY_EXTENDED))
@@ -117,6 +120,7 @@ namespace Orthanc
   static void SubmitJob(RestApiOutput& output,
                         ServerContext& context,
                         std::auto_ptr<ArchiveJob>& job,
+                        int priority,
                         bool synchronous,
                         const std::string& filename)
   {
@@ -134,7 +138,7 @@ namespace Orthanc
     
       Json::Value publicContent;
       if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-          (publicContent, job.release(), 0 /* TODO priority */))
+          (publicContent, job.release(), priority))
       {
         // The archive is now created: Prepare the sending of the ZIP file
         FilesystemHttpSender sender(tmp->GetPath());
@@ -156,7 +160,9 @@ namespace Orthanc
   }
 
   
-  static void CreateBatchArchive(RestApiPostCall& call)
+  template <bool IS_MEDIA,
+            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  static void CreateBatch(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -164,34 +170,12 @@ namespace Orthanc
     if (call.ParseJsonRequest(body))
     {
       bool synchronous, extended;
-      GetJobParameters(synchronous, extended, body, false /* by default, not extended */);
+      int priority;
+      GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
       
-      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, extended));
+      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       AddResourcesOfInterest(*job, body);
-      SubmitJob(call.GetOutput(), context, job, synchronous, "Archive.zip");
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadFileFormat,
-                             "Expected a list of resources to archive in the body");
-    }
-  }  
-
-  
-  template <bool DEFAULT_EXTENDED>
-  static void CreateBatchMedia(RestApiPostCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    Json::Value body;
-    if (call.ParseJsonRequest(body))
-    {
-      bool synchronous, extended;
-      GetJobParameters(synchronous, extended, body, DEFAULT_EXTENDED);
-      
-      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, extended));
-      AddResourcesOfInterest(*job, body);
-      SubmitJob(call.GetOutput(), context, job, synchronous, "Archive.zip");
+      SubmitJob(call.GetOutput(), context, job, priority, synchronous, "Archive.zip");
     }
     else
     {
@@ -201,44 +185,53 @@ namespace Orthanc
   }
   
 
-  static void CreateArchive(RestApiGetCall& call)
+  template <bool IS_MEDIA,
+            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  static void CreateSingleGet(RestApiGetCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string id = call.GetUriComponent("id", "");
 
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, false, false));
+    bool extended;
+    if (IS_MEDIA)
+    {
+      extended = call.HasArgument("extended");
+    }
+    else
+    {
+      extended = false;
+    }
+    
+    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
     job->AddResource(id);
 
-    SubmitJob(call.GetOutput(), context, job, true /* synchronous */, id + ".zip");
-  }
-
-
-  static void CreateMedia(RestApiGetCall& call)
-  {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    std::string id = call.GetUriComponent("id", "");
-
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, true, call.HasArgument("extended")));
-    job->AddResource(id);
-
-    SubmitJob(call.GetOutput(), context, job, true /* synchronous */, id + ".zip");
+    SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
+              true /* synchronous */, id + ".zip");
   }
 
 
   void OrthancRestApi::RegisterArchive()
   {
-    Register("/patients/{id}/archive", CreateArchive);
-    Register("/studies/{id}/archive", CreateArchive);
-    Register("/series/{id}/archive", CreateArchive);
+    Register("/patients/{id}/archive",
+             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
+    Register("/studies/{id}/archive",
+             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
+    Register("/series/{id}/archive",
+             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
 
-    Register("/patients/{id}/media", CreateMedia);
-    Register("/studies/{id}/media", CreateMedia);
-    Register("/series/{id}/media", CreateMedia);
+    Register("/patients/{id}/media",
+             CreateSingleGet<true /* media */, false /* not extended by default */>);
+    Register("/studies/{id}/media",
+             CreateSingleGet<true /* media */, false /* not extended by default */>);
+    Register("/series/{id}/media",
+             CreateSingleGet<true /* media */, false /* not extended by default */>);
 
-    Register("/tools/create-archive", CreateBatchArchive);
-    Register("/tools/create-media", CreateBatchMedia<false>);
-    Register("/tools/create-media-extended", CreateBatchMedia<true>);
+    Register("/tools/create-archive",
+             CreateBatch<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
+    Register("/tools/create-media",
+             CreateBatch<true /* media */, false /* not extended by default */>);
+    Register("/tools/create-media-extended",
+             CreateBatch<true /* media */, true /* extended by default */>);
   }
 }
