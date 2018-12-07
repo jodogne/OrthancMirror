@@ -36,10 +36,33 @@
 
 #include "OrthancException.h"
 
+#if ORTHANC_ENABLE_DCMTK == 1
+#  include "DicomParsing/FromDcmtkBridge.h"
+#endif
+
 namespace Orthanc
 {
   namespace SerializationToolbox
   {
+    static bool ParseTagInternal(DicomTag& tag,
+                                 const char* name)
+    {
+#if ORTHANC_ENABLE_DCMTK == 1
+      try
+      {
+        tag = FromDcmtkBridge::ParseTag(name);
+        return true;
+      }
+      catch (OrthancException& e)
+      {
+        return false;
+      }
+#else
+      return DicomTag::ParseHexadecimal(tag, name))
+#endif   
+    }
+
+    
     std::string ReadString(const Json::Value& value,
                            const std::string& field)
     {
@@ -191,7 +214,7 @@ namespace Orthanc
         DicomTag tag(0, 0);
 
         if (arr[i].type() != Json::stringValue ||
-            !DicomTag::ParseHexadecimal(tag, arr[i].asCString()))
+            !ParseTagInternal(tag, arr[i].asCString()))
         {
           throw OrthancException(ErrorCode_BadFileFormat,
                                  "Set of DICOM tags expected in field: " + field);
@@ -263,7 +286,7 @@ namespace Orthanc
 
         DicomTag tag(0, 0);
 
-        if (!DicomTag::ParseHexadecimal(tag, members[i].c_str()) ||
+        if (!ParseTagInternal(tag, members[i].c_str()) ||
             tmp.type() != Json::stringValue)
         {
           throw OrthancException(ErrorCode_BadFileFormat,

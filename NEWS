@@ -26,8 +26,12 @@ REST API
 * New URI: "/studies/.../split" to split a study
 * POST-ing a DICOM file to "/instances" also answers the patient/study/series ID
 * GET "/modalities/..." now returns a JSON object instead of a JSON array
-* New options to URI "/queries/.../answers": "?expand" and "?simplify"
 * New "Details" field in HTTP answers on error (cf. "HttpDescribeErrors" option)
+* New options to URI "/queries/.../answers": "?expand" and "?simplify"
+* New URIs to launch new C-FIND to explore the hierarchy of a C-FIND answer:
+  - "/queries/.../answers/.../query-instances" to C-FIND child instances
+  - "/queries/.../answers/.../query-series" to C-FIND child series
+  - "/queries/.../answers/.../query-studies" to C-FIND child studies
 
 Plugins
 -------
