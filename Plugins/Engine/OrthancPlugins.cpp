@@ -3080,6 +3080,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_AutodetectMimeType:
+      {
+        const _OrthancPluginRetrieveStaticString& p =
+          *reinterpret_cast<const _OrthancPluginRetrieveStaticString*>(parameters);
+        *p.result = EnumerationToString(SystemToolbox::AutodetectMimeType(p.argument));
+        return true;
+      }
+
       default:
         return false;
     }
