@@ -649,7 +649,8 @@ namespace Orthanc
     {
       return MimeType_JavaScript;
     }
-    else if (extension == ".json")
+    else if (extension == ".json" ||
+             extension == ".nmf"  /* manifest */)
     {
       return MimeType_Json;
     }
@@ -660,6 +661,14 @@ namespace Orthanc
     else if (extension == ".wasm")
     {
       return MimeType_WebAssembly;
+    }
+    else if (extension == ".nexe")
+    {
+      return MimeType_NaCl;
+    }
+    else if (extension == ".pexe")
+    {
+      return MimeType_PNaCl;
     }
 
     // Images types
@@ -680,8 +689,21 @@ namespace Orthanc
     {
       return MimeType_Pam;
     }
+    else if (extension == ".svg")
+    {
+      return MimeType_Svg;
+    }
+
+    // Various types
+    else if (extension == ".woff")
+    {
+      return MimeType_Woff;
+    }
+
+    // Default type
     else
     {
+      LOG(INFO) << "Unknown MIME type for extension \"" << extension << "\"";
       return MimeType_Binary;
     }
   }

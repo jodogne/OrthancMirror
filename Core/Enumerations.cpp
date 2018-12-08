@@ -51,8 +51,12 @@ namespace Orthanc
   static const char* const MIME_HTML = "text/html";
   static const char* const MIME_JAVASCRIPT = "application/javascript";
   static const char* const MIME_JPEG2000 = "image/jp2";
+  static const char* const MIME_NACL = "application/x-nacl";
   static const char* const MIME_PLAIN_TEXT = "text/plain";
+  static const char* const MIME_PNACL = "application/x-pnacl";
+  static const char* const MIME_SVG = "image/svg+xml";
   static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
+  static const char* const MIME_WOFF = "application/x-font-woff";
   static const char* const MIME_XML_2 = "text/xml";
   static const char* const MIME_ZIP = "application/zip";
 
@@ -1088,6 +1092,18 @@ namespace Orthanc
       case MimeType_Zip:
         return MIME_ZIP;
                 
+      case MimeType_NaCl:
+        return MIME_NACL;
+                
+      case MimeType_PNaCl:
+        return MIME_PNACL;
+                
+      case MimeType_Svg:
+        return MIME_SVG;
+                
+      case MimeType_Woff:
+        return MIME_WOFF;
+                
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1679,6 +1695,22 @@ namespace Orthanc
     else if (mime == MIME_ZIP)
     {
       return MimeType_Zip;
+    }
+    else if (mime == MIME_NACL)
+    {
+      return MimeType_NaCl;
+    }
+    else if (mime == MIME_PNACL)
+    {
+      return MimeType_PNaCl;
+    }
+    else if (mime == MIME_SVG)
+    {
+      return MimeType_Svg;
+    }
+    else if (mime == MIME_WOFF)
+    {
+      return MimeType_Woff;
     }
     else
     {

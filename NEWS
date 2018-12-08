@@ -36,7 +36,9 @@ REST API
 Plugins
 -------
 
-* New function in the SDK: "OrthancPluginSetHttpErrorDetails()"
+* New functions in the SDK:
+  - "OrthancPluginSetHttpErrorDetails()"
+  - "OrthancPluginAutodetectMimeType()"
 
 Maintenance
 -----------
