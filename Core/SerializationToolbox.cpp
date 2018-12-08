@@ -58,7 +58,7 @@ namespace Orthanc
         return false;
       }
 #else
-      return DicomTag::ParseHexadecimal(tag, name))
+      return DicomTag::ParseHexadecimal(tag, name);
 #endif   
     }
 
