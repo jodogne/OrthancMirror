@@ -50,27 +50,27 @@ namespace Orthanc
     {
     }
   };
+  
 
   /**
-   * This class is a simple implementation of a IDynamicObject that stores a single typed value
+   * This class is a simple implementation of a IDynamicObject that
+   * stores a single typed value.
    */
   template <typename T>
-  class SingleValueObject : public Orthanc::IDynamicObject
+  class SingleValueObject : public IDynamicObject
   {
   private:
-    T                  value_;
+    T  value_;
+    
   public:
-    SingleValueObject(const T& value) :
+    explicit SingleValueObject(const T& value) :
       value_(value)
-    {
-    }
-    virtual ~SingleValueObject()
     {
     }
 
     const T& GetValue() const
     {
-        return value_;
+      return value_;
     }
   };
 }
