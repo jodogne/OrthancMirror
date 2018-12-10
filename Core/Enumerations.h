@@ -86,21 +86,25 @@ namespace Orthanc
   enum MimeType
   {
     MimeType_Binary,
+    MimeType_Css,
     MimeType_Dicom,
+    MimeType_Gif,
+    MimeType_Gzip,
     MimeType_Html,
+    MimeType_JavaScript,
     MimeType_Jpeg,
     MimeType_Jpeg2000,
     MimeType_Json,
+    MimeType_NaCl,
+    MimeType_PNaCl,
     MimeType_Pam,
     MimeType_Pdf,
     MimeType_PlainText,
     MimeType_Png,
-    MimeType_Xml,
-    MimeType_Gzip,
-    MimeType_JavaScript,
-    MimeType_Css,
+    MimeType_Svg,
     MimeType_WebAssembly,
-    MimeType_Gif,
+    MimeType_Xml,
+    MimeType_Woff,  // Web Open Font Format
     MimeType_Zip
   };
 

@@ -562,6 +562,34 @@ else()
 endif()
 
 
+
+#####################################################################
+## Configuration of Orthanc versioning macros (new in Orthanc 1.5.0)
+#####################################################################
+
+if (ORTHANC_VERSION STREQUAL "mainline")
+  set(ORTHANC_VERSION_MAJOR "999")
+  set(ORTHANC_VERSION_MINOR "999")
+  set(ORTHANC_VERSION_REVISION "999")
+else()
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\1" ORTHANC_VERSION_MAJOR    ${ORTHANC_VERSION})
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\2" ORTHANC_VERSION_MINOR    ${ORTHANC_VERSION})
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\3" ORTHANC_VERSION_REVISION ${ORTHANC_VERSION})
+
+  if (NOT ORTHANC_VERSION STREQUAL
+      "${ORTHANC_VERSION_MAJOR}.${ORTHANC_VERSION_MINOR}.${ORTHANC_VERSION_REVISION}")
+    message(FATAL_ERROR "Error in the (x.y.z) format of the Orthanc version: ${ORTHANC_VERSION}")
+  endif()
+endif()
+
+add_definitions(
+  -DORTHANC_VERSION_MAJOR=${ORTHANC_VERSION_MAJOR}
+  -DORTHANC_VERSION_MINOR=${ORTHANC_VERSION_MINOR}
+  -DORTHANC_VERSION_REVISION=${ORTHANC_VERSION_REVISION}
+  )
+
+
+
 #####################################################################
 ## Gathering of all the source code
 #####################################################################

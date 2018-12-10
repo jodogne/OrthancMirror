@@ -52,7 +52,7 @@ namespace Orthanc
     ErrorCode  errorCode_;
     HttpStatus httpStatus_;
 
-    // New in Orthanc 1.4.3
+    // New in Orthanc 1.5.0
     std::auto_ptr<std::string>  details_;
     
   public:
