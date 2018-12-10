@@ -492,7 +492,9 @@ namespace OrthancPlugins
 
   void AnswerMethodNotAllowed(OrthancPluginRestOutput* output, const char* allowedMethods);
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 4, 3)
   const char* AutodetectMimeType(const std::string& path);
+#endif
 
   void LogError(const std::string& message);
 
