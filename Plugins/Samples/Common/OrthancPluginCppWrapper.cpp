@@ -1357,6 +1357,7 @@ namespace OrthancPlugins
   }
 
   
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 4, 3)
   const char* AutodetectMimeType(const std::string& path)
   {
     const char* mime = OrthancPluginAutodetectMimeType(GetGlobalContext(), path.c_str());
@@ -1371,6 +1372,7 @@ namespace OrthancPlugins
       return mime;
     }
   }
+#endif
 
 
 #if HAS_ORTHANC_PLUGIN_PEERS == 1
