@@ -1779,11 +1779,13 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
+  void ServerIndex::GetStatisticsInternal(/* out */ uint64_t& diskSize, 
                                           /* out */ uint64_t& uncompressedSize, 
                                           /* out */ unsigned int& countStudies, 
                                           /* out */ unsigned int& countSeries, 
                                           /* out */ unsigned int& countInstances, 
+                                          /* out */ uint64_t& dicomDiskSize, 
+                                          /* out */ uint64_t& dicomUncompressedSize, 
                                           /* in  */ int64_t id,
                                           /* in  */ ResourceType type)
   {
@@ -1793,8 +1795,10 @@ namespace Orthanc
     countInstances = 0;
     countSeries = 0;
     countStudies = 0;
-    compressedSize = 0;
+    diskSize = 0;
     uncompressedSize = 0;
+    dicomDiskSize = 0;
+    dicomUncompressedSize = 0;
 
     while (!toExplore.empty())
     {
@@ -1813,7 +1817,13 @@ namespace Orthanc
         FileInfo attachment;
         if (db_.LookupAttachment(attachment, resource, *it))
         {
-          compressedSize += attachment.GetCompressedSize();
+          if (attachment.GetContentType() == FileContentType_Dicom)
+          {
+            dicomDiskSize += attachment.GetCompressedSize();
+            dicomUncompressedSize += attachment.GetUncompressedSize();
+          }
+          
+          diskSize += attachment.GetCompressedSize();
           uncompressedSize += attachment.GetUncompressedSize();
         }
       }
@@ -1875,18 +1885,25 @@ namespace Orthanc
     }
 
     uint64_t uncompressedSize;
-    uint64_t compressedSize;
+    uint64_t diskSize;
+    uint64_t dicomUncompressedSize;
+    uint64_t dicomDiskSize;
     unsigned int countStudies;
     unsigned int countSeries;
     unsigned int countInstances;
-    GetStatisticsInternal(compressedSize, uncompressedSize, countStudies, 
-                          countSeries, countInstances, top, type);
+    GetStatisticsInternal(diskSize, uncompressedSize, countStudies, 
+                          countSeries, countInstances, dicomDiskSize, dicomUncompressedSize, top, type);
 
     target = Json::objectValue;
-    target["DiskSize"] = boost::lexical_cast<std::string>(compressedSize);
-    target["DiskSizeMB"] = static_cast<unsigned int>(compressedSize / MEGA_BYTES);
+    target["DiskSize"] = boost::lexical_cast<std::string>(diskSize);
+    target["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
     target["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
     target["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+
+    target["DicomDiskSize"] = boost::lexical_cast<std::string>(dicomDiskSize);
+    target["DicomDiskSizeMB"] = static_cast<unsigned int>(dicomDiskSize / MEGA_BYTES);
+    target["DicomUncompressedSize"] = boost::lexical_cast<std::string>(dicomUncompressedSize);
+    target["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGA_BYTES);
 
     switch (type)
     {
@@ -1907,11 +1924,13 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetStatistics(/* out */ uint64_t& compressedSize, 
+  void ServerIndex::GetStatistics(/* out */ uint64_t& diskSize, 
                                   /* out */ uint64_t& uncompressedSize, 
                                   /* out */ unsigned int& countStudies, 
                                   /* out */ unsigned int& countSeries, 
                                   /* out */ unsigned int& countInstances, 
+                                  /* out */ uint64_t& dicomDiskSize, 
+                                  /* out */ uint64_t& dicomUncompressedSize, 
                                   const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -1923,8 +1942,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    GetStatisticsInternal(compressedSize, uncompressedSize, countStudies, 
-                          countSeries, countInstances, top, type);    
+    GetStatisticsInternal(diskSize, uncompressedSize, countStudies, 
+                          countSeries, countInstances, dicomDiskSize,
+                          dicomUncompressedSize, top, type);    
   }
 
 

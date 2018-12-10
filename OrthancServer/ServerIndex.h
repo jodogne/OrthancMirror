@@ -97,11 +97,13 @@ namespace Orthanc
                         Orthanc::ResourceType type,
                         const std::string& publicId);
 
-    void GetStatisticsInternal(/* out */ uint64_t& compressedSize, 
+    void GetStatisticsInternal(/* out */ uint64_t& diskSize, 
                                /* out */ uint64_t& uncompressedSize, 
                                /* out */ unsigned int& countStudies, 
                                /* out */ unsigned int& countSeries, 
                                /* out */ unsigned int& countInstances, 
+                               /* out */ uint64_t& dicomDiskSize, 
+                               /* out */ uint64_t& dicomUncompressedSize, 
                                /* in  */ int64_t id,
                                /* in  */ ResourceType type);
 
@@ -239,11 +241,13 @@ namespace Orthanc
     void GetStatistics(Json::Value& target,
                        const std::string& publicId);
 
-    void GetStatistics(/* out */ uint64_t& compressedSize, 
+    void GetStatistics(/* out */ uint64_t& diskSize, 
                        /* out */ uint64_t& uncompressedSize, 
                        /* out */ unsigned int& countStudies, 
                        /* out */ unsigned int& countSeries, 
                        /* out */ unsigned int& countInstances, 
+                       /* out */ uint64_t& dicomDiskSize, 
+                       /* out */ uint64_t& dicomUncompressedSize, 
                        const std::string& publicId);
 
     void LookupIdentifierExact(std::list<std::string>& result,
