@@ -32,6 +32,7 @@ REST API
   - "/queries/.../answers/.../query-instances" to C-FIND child instances
   - "/queries/.../answers/.../query-series" to C-FIND child series
   - "/queries/.../answers/.../query-studies" to C-FIND child studies
+* New "DicomDiskSize" and "DicomUncompressedSize" fields in statistics about resources
 
 Plugins
 -------
