@@ -47,6 +47,11 @@
 
 namespace Orthanc
 {
+  static const char* const KEY_LEVEL = "Level";
+  static const char* const KEY_QUERY = "Query";
+  static const char* const KEY_RESOURCES = "Resources";
+
+  
   static RemoteModalityParameters MyGetModalityUsingSymbolicName(const std::string& name)
   {
     OrthancConfiguration::ReaderLock lock;
@@ -408,6 +413,27 @@ namespace Orthanc
    * DICOM C-Find and C-Move SCU => Recommended since Orthanc 0.9.0
    ***************************************************************************/
 
+  static void AnswerQueryHandler(RestApiPostCall& call,
+                                 std::auto_ptr<QueryRetrieveHandler>& handler)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    if (handler.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    handler->Run();
+    
+    std::string s = context.GetQueryRetrieveArchive().Add(handler.release());
+    Json::Value result = Json::objectValue;
+    result["ID"] = s;
+    result["Path"] = "/queries/" + s;
+    
+    call.GetOutput().AnswerJson(result);
+  }
+
+  
   static void DicomQuery(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -415,31 +441,27 @@ namespace Orthanc
 
     if (call.ParseJsonRequest(request) &&
         request.type() == Json::objectValue &&
-        request.isMember("Level") && request["Level"].type() == Json::stringValue &&
-        (!request.isMember("Query") || request["Query"].type() == Json::objectValue))
+        request.isMember(KEY_LEVEL) && request[KEY_LEVEL].type() == Json::stringValue &&
+        (!request.isMember(KEY_QUERY) || request[KEY_QUERY].type() == Json::objectValue))
     {
       std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
 
       handler->SetModality(call.GetUriComponent("id", ""));
-      handler->SetLevel(StringToResourceType(request["Level"].asCString()));
+      handler->SetLevel(StringToResourceType(request[KEY_LEVEL].asCString()));
 
-      if (request.isMember("Query"))
+      if (request.isMember(KEY_QUERY))
       {
-        Json::Value::Members tags = request["Query"].getMemberNames();
-        for (size_t i = 0; i < tags.size(); i++)
+        std::map<DicomTag, std::string> query;
+        SerializationToolbox::ReadMapOfTags(query, request, KEY_QUERY);
+
+        for (std::map<DicomTag, std::string>::const_iterator
+               it = query.begin(); it != query.end(); ++it)
         {
-          handler->SetQuery(FromDcmtkBridge::ParseTag(tags[i].c_str()),
-                            request["Query"][tags[i]].asString());
+          handler->SetQuery(it->first, it->second);
         }
       }
 
-      handler->Run();
-
-      std::string s = context.GetQueryRetrieveArchive().Add(handler.release());
-      Json::Value result = Json::objectValue;
-      result["ID"] = s;
-      result["Path"] = "/queries/" + s;
-      call.GetOutput().AnswerJson(result);
+      AnswerQueryHandler(call, handler);
     }
   }
 
@@ -469,19 +491,28 @@ namespace Orthanc
     private:
       ServerContext&            context_;
       SharedArchive::Accessor   accessor_;
-      QueryRetrieveHandler&     handler_;
+      QueryRetrieveHandler*     handler_;
 
     public:
       QueryAccessor(RestApiCall& call) :
         context_(OrthancRestApi::GetContext(call)),
         accessor_(context_.GetQueryRetrieveArchive(), call.GetUriComponent("id", "")),
-        handler_(dynamic_cast<QueryRetrieveHandler&>(accessor_.GetItem()))
+        handler_(NULL)
       {
+        if (accessor_.IsValid())
+        {
+          handler_ = &dynamic_cast<QueryRetrieveHandler&>(accessor_.GetItem());
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
       }                     
 
       QueryRetrieveHandler& GetHandler() const
       {
-        return handler_;
+        assert(handler_ != NULL);
+        return *handler_;
       }
     };
 
@@ -509,7 +540,7 @@ namespace Orthanc
     {
       if (expand)
       {
-        // New in Orthanc 1.4.3
+        // New in Orthanc 1.5.0
         DicomMap value;
         query.GetHandler().GetAnswer(value, i);
         
@@ -652,10 +683,127 @@ namespace Orthanc
     DicomMap map;
     query.GetHandler().GetAnswer(map, index);
 
-    RestApi::AutoListChildren(call);
+    Json::Value answer = Json::arrayValue;
+    answer.append("content");
+    answer.append("retrieve");
+
+    switch (query.GetHandler().GetLevel())
+    {
+      case ResourceType_Patient:
+        answer.append("query-study");
+
+      case ResourceType_Study:
+        answer.append("query-series");
+
+      case ResourceType_Series:
+        answer.append("query-instances");
+        break;
+
+      default:
+        break;
+    }
+    
+    call.GetOutput().AnswerJson(answer);
   }
 
 
+  template <ResourceType CHILDREN_LEVEL>
+  static void QueryAnswerChildren(RestApiPostCall& call)
+  {
+    // New in Orthanc 1.5.0
+    assert(CHILDREN_LEVEL == ResourceType_Study ||
+           CHILDREN_LEVEL == ResourceType_Series ||
+           CHILDREN_LEVEL == ResourceType_Instance);
+    
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
+      
+    {
+      const QueryAccessor parent(call);
+      const ResourceType level = parent.GetHandler().GetLevel();
+    
+      const size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+
+      Json::Value request;
+
+      if (index >= parent.GetHandler().GetAnswersCount())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else if (CHILDREN_LEVEL == ResourceType_Study &&
+               level != ResourceType_Patient)
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else if (CHILDREN_LEVEL == ResourceType_Series &&
+               level != ResourceType_Patient &&
+               level != ResourceType_Study)
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }      
+      else if (CHILDREN_LEVEL == ResourceType_Instance &&
+               level != ResourceType_Patient &&
+               level != ResourceType_Study &&
+               level != ResourceType_Series)
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else if (!call.ParseJsonRequest(request))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
+      }
+      else
+      {
+        handler->SetModality(parent.GetHandler().GetModalitySymbolicName());
+        handler->SetLevel(CHILDREN_LEVEL);
+
+        if (request.isMember(KEY_QUERY))
+        {
+          std::map<DicomTag, std::string> query;
+          SerializationToolbox::ReadMapOfTags(query, request, KEY_QUERY);
+
+          for (std::map<DicomTag, std::string>::const_iterator
+                 it = query.begin(); it != query.end(); ++it)
+          {
+            handler->SetQuery(it->first, it->second);
+          }
+        }
+
+        DicomMap answer;
+        parent.GetHandler().GetAnswer(answer, index);
+
+        // This switch-case mimics "DicomUserConnection::Move()"
+        switch (parent.GetHandler().GetLevel())
+        {
+          case ResourceType_Patient:
+            handler->CopyStringTag(answer, DICOM_TAG_PATIENT_ID);
+            break;
+
+          case ResourceType_Study:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            break;
+
+          case ResourceType_Series:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+            break;
+
+          case ResourceType_Instance:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SOP_INSTANCE_UID);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+      
+    AnswerQueryHandler(call, handler);
+  }
+  
 
 
   /***************************************************************************
@@ -701,12 +849,12 @@ namespace Orthanc
     else
     {
       if (request.type() != Json::objectValue ||
-          !request.isMember("Resources"))
+          !request.isMember(KEY_RESOURCES))
       {
         return false;
       }
 
-      resources = &request["Resources"];
+      resources = &request[KEY_RESOURCES];
       if (!resources->isArray())
       {
         return false;
@@ -794,20 +942,17 @@ namespace Orthanc
 
     Json::Value request;
 
-    static const char* RESOURCES = "Resources";
-    static const char* LEVEL = "Level";
-
     if (!call.ParseJsonRequest(request) ||
         request.type() != Json::objectValue ||
-        !request.isMember(RESOURCES) ||
-        !request.isMember(LEVEL) ||
-        request[RESOURCES].type() != Json::arrayValue ||
-        request[LEVEL].type() != Json::stringValue)
+        !request.isMember(KEY_RESOURCES) ||
+        !request.isMember(KEY_LEVEL) ||
+        request[KEY_RESOURCES].type() != Json::arrayValue ||
+        request[KEY_LEVEL].type() != Json::stringValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    ResourceType level = StringToResourceType(request["Level"].asCString());
+    ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
     
     std::string localAet = Toolbox::GetJsonStringField
       (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
@@ -820,10 +965,10 @@ namespace Orthanc
     DicomUserConnection connection(localAet, source);
     connection.Open();
     
-    for (Json::Value::ArrayIndex i = 0; i < request[RESOURCES].size(); i++)
+    for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
     {
       DicomMap resource;
-      FromDcmtkBridge::FromJson(resource, request[RESOURCES][i]);
+      FromDcmtkBridge::FromJson(resource, request[KEY_RESOURCES][i]);
       
       connection.Move(targetAet, level, resource);
     }
@@ -1075,7 +1220,8 @@ namespace Orthanc
       RemoteModalityParameters remote =
         MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-      std::auto_ptr<ParsedDicomFile> query(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
+      std::auto_ptr<ParsedDicomFile> query
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
 
       DicomFindAnswers answers(true);
 
@@ -1116,6 +1262,12 @@ namespace Orthanc
     Register("/queries/{id}/answers/{index}", ListQueryAnswerOperations);
     Register("/queries/{id}/answers/{index}/content", GetQueryOneAnswer);
     Register("/queries/{id}/answers/{index}/retrieve", RetrieveOneAnswer);
+    Register("/queries/{id}/answers/{index}/query-instances",
+             QueryAnswerChildren<ResourceType_Instance>);
+    Register("/queries/{id}/answers/{index}/query-series",
+             QueryAnswerChildren<ResourceType_Series>);
+    Register("/queries/{id}/answers/{index}/query-studies",
+             QueryAnswerChildren<ResourceType_Study>);
     Register("/queries/{id}/level", GetQueryLevel);
     Register("/queries/{id}/modality", GetQueryModality);
     Register("/queries/{id}/query", GetQueryArguments);

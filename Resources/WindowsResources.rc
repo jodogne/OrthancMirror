@@ -11,11 +11,11 @@ VS_VERSION_INFO VERSIONINFO
          BLOCK "${BLOCK}"
          BEGIN
             VALUE "Comments", "${RELEASE}"
-            VALUE "CompanyName", "University Hospital of Liege, Belgium"
+            VALUE "CompanyName", "Osimis SA, Belgium"
             VALUE "FileDescription", "${DESCRIPTION}"
             VALUE "FileVersion", "${VERSION_MAJOR}.${VERSION_MINOR}.0.${VERSION_PATCH}"
             VALUE "InternalName", "${PRODUCT}"
-            VALUE "LegalCopyright", "(c) 2012-${YEAR}, Sebastien Jodogne, University Hospital of Liege, Belgium"
+            VALUE "LegalCopyright", "(c) 2012-${YEAR}, Sebastien Jodogne, University Hospital of Liege, and Osimis SA, Belgium"
             VALUE "LegalTrademarks", "Licensing information is available at http://www.orthanc-server.com/"
             VALUE "OriginalFilename", "${FILENAME}"
             VALUE "ProductName", "${PRODUCT}"

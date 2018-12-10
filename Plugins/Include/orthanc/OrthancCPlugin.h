@@ -118,8 +118,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     4
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     5
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -423,7 +423,8 @@ extern "C"
     _OrthancPluginService_CallHttpClient2 = 27,
     _OrthancPluginService_GenerateUuid = 28,
     _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
-
+    _OrthancPluginService_AutodetectMimeType = 30,
+    
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
@@ -6466,6 +6467,45 @@ extern "C"
     context->InvokeService(context, _OrthancPluginService_SetHttpErrorDetails, &params);
   }
 
+
+
+  typedef struct
+  {
+    const char** result;
+    const char*  argument;
+  } _OrthancPluginRetrieveStaticString;
+
+  /**
+   * @brief Detect the MIME type of a file.
+   *
+   * This function returns the MIME type of a file by inspecting its extension.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param path Path to the file.
+   * @return The MIME type. This is a statically-allocated
+   * string, do not free it.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginAutodetectMimeType(
+    OrthancPluginContext*  context,
+    const char*            path)
+  {
+    const char* result = NULL;
+
+    _OrthancPluginRetrieveStaticString params;
+    params.result = &result;
+    params.argument = path;
+
+    if (context->InvokeService(context, _OrthancPluginService_AutodetectMimeType, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
 
 
 #ifdef  __cplusplus
