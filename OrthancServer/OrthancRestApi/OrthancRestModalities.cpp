@@ -540,7 +540,7 @@ namespace Orthanc
     {
       if (expand)
       {
-        // New in Orthanc 1.4.3
+        // New in Orthanc 1.5.0
         DicomMap value;
         query.GetHandler().GetAnswer(value, i);
         
@@ -710,7 +710,7 @@ namespace Orthanc
   template <ResourceType CHILDREN_LEVEL>
   static void QueryAnswerChildren(RestApiPostCall& call)
   {
-    // New in Orthanc 1.4.3
+    // New in Orthanc 1.5.0
     assert(CHILDREN_LEVEL == ResourceType_Study ||
            CHILDREN_LEVEL == ResourceType_Series ||
            CHILDREN_LEVEL == ResourceType_Instance);
