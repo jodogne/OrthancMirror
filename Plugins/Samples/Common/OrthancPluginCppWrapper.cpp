@@ -1356,59 +1356,23 @@ namespace OrthancPlugins
     }
   }
 
-  const char* GetMimeType(const std::string& path)
+  
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 0)
+  const char* AutodetectMimeType(const std::string& path)
   {
-    size_t dot = path.find_last_of('.');
+    const char* mime = OrthancPluginAutodetectMimeType(GetGlobalContext(), path.c_str());
 
-    std::string extension = (dot == std::string::npos) ? "" : path.substr(dot);
-    std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
-
-    if (extension == ".html")
+    if (mime == NULL)
     {
-      return "text/html";
-    }
-    else if (extension == ".css")
-    {
-      return "text/css";
-    }
-    else if (extension == ".js")
-    {
-      return "application/javascript";
-    }
-    else if (extension == ".gif")
-    {
-      return "image/gif";
-    }
-    else if (extension == ".svg")
-    {
-      return "image/svg+xml";
-    }
-    else if (extension == ".json")
-    {
-      return "application/json";
-    }
-    else if (extension == ".xml")
-    {
-      return "application/xml";
-    }
-    else if (extension == ".wasm")
-    {
-      return "application/wasm";
-    }
-    else if (extension == ".png")
-    {
-      return "image/png";
-    }
-    else if (extension == ".jpg" || extension == ".jpeg")
-    {
-      return "image/jpeg";
+      // Should never happen, just for safety
+      return "application/octet-stream";
     }
     else
     {
-      return "application/octet-stream";
+      return mime;
     }
   }
-
+#endif
 
 
 #if HAS_ORTHANC_PLUGIN_PEERS == 1

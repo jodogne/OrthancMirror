@@ -1105,7 +1105,8 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_NotImplemented,
-                               "Unsupported MIME type for the content of a new DICOM file: " + mime);
+                               "Unsupported MIME type for the content of a new DICOM file: " +
+                               std::string(EnumerationToString(mime)));
     }
 
     return true;

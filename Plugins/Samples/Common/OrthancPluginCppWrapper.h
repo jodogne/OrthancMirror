@@ -71,7 +71,7 @@
 #  define HAS_ORTHANC_PLUGIN_JOB    0
 #endif
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 4, 3)
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 0)
 #  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  1
 #else
 #  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  0
@@ -492,8 +492,9 @@ namespace OrthancPlugins
 
   void AnswerMethodNotAllowed(OrthancPluginRestOutput* output, const char* allowedMethods);
 
-  const char* GetMimeType(const std::string& path);
-
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 0)
+  const char* AutodetectMimeType(const std::string& path);
+#endif
 
   void LogError(const std::string& message);
 

@@ -325,6 +325,30 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_EQ(MimeType_Jpeg, SystemToolbox::AutodetectMimeType("NOTES.jpg"));
   ASSERT_EQ(MimeType_Jpeg, SystemToolbox::AutodetectMimeType("NOTES.jpeg"));
   ASSERT_EQ(MimeType_Png, SystemToolbox::AutodetectMimeType("NOTES.png"));
+  ASSERT_EQ(MimeType_NaCl, SystemToolbox::AutodetectMimeType("NOTES.nexe"));
+  ASSERT_EQ(MimeType_Json, SystemToolbox::AutodetectMimeType("NOTES.nmf"));
+  ASSERT_EQ(MimeType_PNaCl, SystemToolbox::AutodetectMimeType("NOTES.pexe"));
+  ASSERT_EQ(MimeType_Svg, SystemToolbox::AutodetectMimeType("NOTES.svg"));
+  ASSERT_EQ(MimeType_Woff, SystemToolbox::AutodetectMimeType("NOTES.woff"));
+
+  // Test primitives from the "RegisterDefaultExtensions()" that was
+  // present in the sample "Serve Folders plugin" of Orthanc 1.4.2
+  ASSERT_STREQ("application/javascript", EnumerationToString(SystemToolbox::AutodetectMimeType(".js")));
+  ASSERT_STREQ("application/json", EnumerationToString(SystemToolbox::AutodetectMimeType(".json")));
+  ASSERT_STREQ("application/json", EnumerationToString(SystemToolbox::AutodetectMimeType(".nmf")));
+  ASSERT_STREQ("application/octet-stream", EnumerationToString(SystemToolbox::AutodetectMimeType("")));
+  ASSERT_STREQ("application/wasm", EnumerationToString(SystemToolbox::AutodetectMimeType(".wasm")));
+  ASSERT_STREQ("application/x-font-woff", EnumerationToString(SystemToolbox::AutodetectMimeType(".woff")));
+  ASSERT_STREQ("application/x-nacl", EnumerationToString(SystemToolbox::AutodetectMimeType(".nexe")));
+  ASSERT_STREQ("application/x-pnacl", EnumerationToString(SystemToolbox::AutodetectMimeType(".pexe")));
+  ASSERT_STREQ("application/xml", EnumerationToString(SystemToolbox::AutodetectMimeType(".xml")));
+  ASSERT_STREQ("image/gif", EnumerationToString(SystemToolbox::AutodetectMimeType(".gif")));
+  ASSERT_STREQ("image/jpeg", EnumerationToString(SystemToolbox::AutodetectMimeType(".jpeg")));
+  ASSERT_STREQ("image/jpeg", EnumerationToString(SystemToolbox::AutodetectMimeType(".jpg")));
+  ASSERT_STREQ("image/png", EnumerationToString(SystemToolbox::AutodetectMimeType(".png")));
+  ASSERT_STREQ("image/svg+xml", EnumerationToString(SystemToolbox::AutodetectMimeType(".svg")));
+  ASSERT_STREQ("text/css", EnumerationToString(SystemToolbox::AutodetectMimeType(".css")));
+  ASSERT_STREQ("text/html", EnumerationToString(SystemToolbox::AutodetectMimeType(".html")));
 }
 
 TEST(Toolbox, ComputeMD5)
@@ -711,23 +735,26 @@ TEST(Toolbox, Enumerations)
   ASSERT_THROW(StringToJobState("nope"), OrthancException);
 
   ASSERT_EQ(MimeType_Binary, StringToMimeType(EnumerationToString(MimeType_Binary)));
+  ASSERT_EQ(MimeType_Css, StringToMimeType(EnumerationToString(MimeType_Css)));
   ASSERT_EQ(MimeType_Dicom, StringToMimeType(EnumerationToString(MimeType_Dicom)));
+  ASSERT_EQ(MimeType_Gif, StringToMimeType(EnumerationToString(MimeType_Gif)));
+  ASSERT_EQ(MimeType_Gzip, StringToMimeType(EnumerationToString(MimeType_Gzip)));
+  ASSERT_EQ(MimeType_Html, StringToMimeType(EnumerationToString(MimeType_Html)));
+  ASSERT_EQ(MimeType_JavaScript, StringToMimeType(EnumerationToString(MimeType_JavaScript)));
   ASSERT_EQ(MimeType_Jpeg, StringToMimeType(EnumerationToString(MimeType_Jpeg)));
   ASSERT_EQ(MimeType_Jpeg2000, StringToMimeType(EnumerationToString(MimeType_Jpeg2000)));
   ASSERT_EQ(MimeType_Json, StringToMimeType(EnumerationToString(MimeType_Json)));
+  ASSERT_EQ(MimeType_NaCl, StringToMimeType(EnumerationToString(MimeType_NaCl)));
+  ASSERT_EQ(MimeType_PNaCl, StringToMimeType(EnumerationToString(MimeType_PNaCl)));
+  ASSERT_EQ(MimeType_Pam, StringToMimeType(EnumerationToString(MimeType_Pam)));
   ASSERT_EQ(MimeType_Pdf, StringToMimeType(EnumerationToString(MimeType_Pdf)));
+  ASSERT_EQ(MimeType_PlainText, StringToMimeType(EnumerationToString(MimeType_PlainText)));
   ASSERT_EQ(MimeType_Png, StringToMimeType(EnumerationToString(MimeType_Png)));
-  ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
+  ASSERT_EQ(MimeType_Svg, StringToMimeType(EnumerationToString(MimeType_Svg)));
+  ASSERT_EQ(MimeType_WebAssembly, StringToMimeType(EnumerationToString(MimeType_WebAssembly)));
   ASSERT_EQ(MimeType_Xml, StringToMimeType("application/xml"));
   ASSERT_EQ(MimeType_Xml, StringToMimeType("text/xml"));
-  ASSERT_EQ(MimeType_PlainText, StringToMimeType(EnumerationToString(MimeType_PlainText)));
-  ASSERT_EQ(MimeType_Pam, StringToMimeType(EnumerationToString(MimeType_Pam)));
-  ASSERT_EQ(MimeType_Html, StringToMimeType(EnumerationToString(MimeType_Html)));
-  ASSERT_EQ(MimeType_Gzip, StringToMimeType(EnumerationToString(MimeType_Gzip)));
-  ASSERT_EQ(MimeType_JavaScript, StringToMimeType(EnumerationToString(MimeType_JavaScript)));
-  ASSERT_EQ(MimeType_Gif, StringToMimeType(EnumerationToString(MimeType_Gif)));
-  ASSERT_EQ(MimeType_WebAssembly, StringToMimeType(EnumerationToString(MimeType_WebAssembly)));
-  ASSERT_EQ(MimeType_Css, StringToMimeType(EnumerationToString(MimeType_Css)));
+  ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
   ASSERT_THROW(StringToMimeType("nope"), OrthancException);
 }
 
