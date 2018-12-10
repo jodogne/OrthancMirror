@@ -86,6 +86,9 @@ namespace Orthanc
       return query_;
     }
 
+    void CopyStringTag(const DicomMap& from,
+                       const DicomTag& tag);
+
     void Run();
 
     size_t GetAnswersCount();

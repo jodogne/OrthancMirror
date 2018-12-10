@@ -142,6 +142,24 @@ namespace Orthanc
   }
 
 
+  void QueryRetrieveHandler::CopyStringTag(const DicomMap& from,
+                                           const DicomTag& tag)
+  {
+    const DicomValue* value = from.TestAndGetValue(tag);
+
+    if (value == NULL ||
+        value->IsNull() ||
+        value->IsBinary())
+    {
+      throw OrthancException(ErrorCode_InexistentTag);
+    }
+    else
+    {
+      SetQuery(tag, value->GetContent());
+    }
+  }
+
+
   size_t QueryRetrieveHandler::GetAnswersCount()
   {
     Run();
