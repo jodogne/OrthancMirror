@@ -708,7 +708,7 @@ namespace Orthanc
 
 
   template <ResourceType CHILDREN_LEVEL>
-  static void AnswerQueryChildren(RestApiPostCall& call)
+  static void QueryAnswerChildren(RestApiPostCall& call)
   {
     // New in Orthanc 1.4.3
     assert(CHILDREN_LEVEL == ResourceType_Study ||
@@ -768,6 +768,35 @@ namespace Orthanc
           {
             handler->SetQuery(it->first, it->second);
           }
+        }
+
+        DicomMap answer;
+        parent.GetHandler().GetAnswer(answer, index);
+
+        // This switch-case mimics "DicomUserConnection::Move()"
+        switch (parent.GetHandler().GetLevel())
+        {
+          case ResourceType_Patient:
+            handler->CopyStringTag(answer, DICOM_TAG_PATIENT_ID);
+            break;
+
+          case ResourceType_Study:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            break;
+
+          case ResourceType_Series:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+            break;
+
+          case ResourceType_Instance:
+            handler->CopyStringTag(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+            handler->CopyStringTag(answer, DICOM_TAG_SOP_INSTANCE_UID);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
         }
       }
     }
@@ -1234,11 +1263,11 @@ namespace Orthanc
     Register("/queries/{id}/answers/{index}/content", GetQueryOneAnswer);
     Register("/queries/{id}/answers/{index}/retrieve", RetrieveOneAnswer);
     Register("/queries/{id}/answers/{index}/query-instances",
-             AnswerQueryChildren<ResourceType_Instance>);
+             QueryAnswerChildren<ResourceType_Instance>);
     Register("/queries/{id}/answers/{index}/query-series",
-             AnswerQueryChildren<ResourceType_Series>);
+             QueryAnswerChildren<ResourceType_Series>);
     Register("/queries/{id}/answers/{index}/query-studies",
-             AnswerQueryChildren<ResourceType_Study>);
+             QueryAnswerChildren<ResourceType_Study>);
     Register("/queries/{id}/level", GetQueryLevel);
     Register("/queries/{id}/modality", GetQueryModality);
     Register("/queries/{id}/query", GetQueryArguments);
