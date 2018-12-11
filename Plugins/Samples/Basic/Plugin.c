@@ -40,7 +40,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* ou
   {
     // NB: Calling "OrthancPluginSendMethodNotAllowed(context, output, "GET");"
     // is preferable. This is a sample to demonstrate "OrthancPluginSetHttpErrorDetails()".
-    OrthancPluginSetHttpErrorDetails(context, output, "This Callback1() can only be used by a GET call");
+    OrthancPluginSetHttpErrorDetails(context, output, "This Callback1() can only be used by a GET call", 1 /* log */);
     return OrthancPluginErrorCode_ParameterOutOfRange;
   }
   
