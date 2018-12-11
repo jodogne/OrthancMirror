@@ -28,7 +28,7 @@ REST API
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
 * POST-ing a DICOM file to "/instances" also answers the patient/study/series ID
-* GET "/modalities/?expand" now returns a JSON object instead of a JSON array
+* modalities returned by GET "/modalities?expand" and "/modalities/..." are now JSON objects instead of JSON arrays
 * New "Details" field in HTTP answers on error (cf. "HttpDescribeErrors" option)
 * New options to URI "/queries/.../answers": "?expand" and "?simplify"
 * New URIs to launch new C-FIND to explore the hierarchy of a C-FIND answer:
