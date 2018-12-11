@@ -521,6 +521,47 @@ namespace Orthanc
   }
 
 
+  class OrthancFindRequestHandler::LookupVisitor : public LookupResource::IVisitor
+  {
+  private:
+    DicomFindAnswers&           answers_;
+    ServerContext&              context_;
+    ResourceType                level_;
+    const DicomMap&             filteredInput_;
+    const std::list<DicomTag>&  sequencesToReturn_;
+    DicomArray                  query_;
+
+  public:
+    LookupVisitor(DicomFindAnswers&  answers,
+                  ServerContext& context,
+                  ResourceType level,
+                  const DicomMap& filteredInput,
+                  const std::list<DicomTag>& sequencesToReturn) :
+      answers_(answers),
+      context_(context),
+      level_(level),
+      filteredInput_(filteredInput),
+      sequencesToReturn_(sequencesToReturn),
+      query_(filteredInput)
+    {
+      answers_.SetComplete(false);
+    }
+      
+    virtual void MarkAsComplete()
+    {
+      answers_.SetComplete(true);
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId,
+                       const Json::Value& dicom) 
+    {
+      std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, filteredInput_));
+      AddAnswer(answers_, dicom, query_, sequencesToReturn_, counters.get());
+    }
+  };
+
+
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::list<DicomTag>& sequencesToReturn,
@@ -649,6 +690,15 @@ namespace Orthanc
 
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
+
+#if 1
+    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
+    context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
+
+#else
+    // Backup - Implementation of Orthanc <= 1.5.0
+    // TODO - Remove this code
+
     // TODO - Use ServerContext::Apply() at this point, in order to
     // share the code with the "/tools/find" REST URI
     std::vector<std::string> resources, instances;
@@ -685,6 +735,7 @@ namespace Orthanc
     LOG(INFO) << "Number of matching resources: " << answers.GetSize();
 
     answers.SetComplete(complete);
+#endif
   }
 
 

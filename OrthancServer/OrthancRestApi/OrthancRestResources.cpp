@@ -1289,7 +1289,8 @@ namespace Orthanc
       }
 
       virtual void Visit(const std::string& publicId,
-                         const Json::Value& dicom)
+                         const std::string& instanceId  /* unused */,  
+                         const Json::Value& dicom       /* unused */)
       {
         resources_.push_back(publicId);
       }
