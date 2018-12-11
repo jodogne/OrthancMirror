@@ -92,6 +92,7 @@ namespace Orthanc
       virtual void MarkAsComplete() = 0;
 
       virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId,
                          const Json::Value& dicom) = 0;
     };
 
