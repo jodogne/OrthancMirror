@@ -781,10 +781,13 @@ namespace Orthanc
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
+    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
+
     assert(resources.size() == instances.size());
 
     size_t countResults = 0;
     size_t skipped = 0;
+    bool complete = true;
 
     for (size_t i = 0; i < instances.size(); i++)
     {
@@ -802,17 +805,24 @@ namespace Orthanc
         else if (limit != 0 &&
                  countResults >= limit)
         {
-          return;  // too many results, don't mark as complete
+          // Too many results, don't mark as complete
+          complete = false;
+          break;
         }
         else
         {
-          visitor.Visit(resources[i], dicom);
+          visitor.Visit(resources[i], instances[i], dicom);
           countResults ++;
         }
       }
     }
 
-    visitor.MarkAsComplete();
+    if (complete)
+    {
+      visitor.MarkAsComplete();
+    }
+
+    LOG(INFO) << "Number of matching resources: " << countResults;
   }
 
 
