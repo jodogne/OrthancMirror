@@ -773,21 +773,19 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(bool& isComplete, 
-                            std::list<std::string>& result,
+  void ServerContext::Apply(LookupResource::IVisitor& visitor,
                             const ::Orthanc::LookupResource& lookup,
                             size_t since,
                             size_t limit)
   {
-    result.clear();
-    isComplete = true;
-
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
     assert(resources.size() == instances.size());
 
+    size_t countResults = 0;
     size_t skipped = 0;
+
     for (size_t i = 0; i < instances.size(); i++)
     {
       // TODO - Don't read the full JSON from the disk if only "main
@@ -802,17 +800,19 @@ namespace Orthanc
           skipped++;
         }
         else if (limit != 0 &&
-                 result.size() >= limit)
+                 countResults >= limit)
         {
-          isComplete = false;
-          return;  // too many results
+          return;  // too many results, don't mark as complete
         }
         else
         {
-          result.push_back(resources[i]);
+          visitor.Visit(resources[i], dicom);
+          countResults ++;
         }
       }
     }
+
+    visitor.MarkAsComplete();
   }
 
 

@@ -82,6 +82,19 @@ namespace Orthanc
                     IDatabaseWrapper& database) const;
 
   public:
+    class IVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IVisitor()
+      {
+      }
+
+      virtual void MarkAsComplete() = 0;
+
+      virtual void Visit(const std::string& publicId,
+                         const Json::Value& dicom) = 0;
+    };
+
     LookupResource(ResourceType level);
 
     ~LookupResource();

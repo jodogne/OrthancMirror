@@ -623,8 +623,6 @@ namespace Orthanc
 
       if (FilterQueryTag(value, level, tag, manufacturer))
       {
-        // TODO - Move this to "ResourceLookup::AddDicomConstraint()"
-
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
         // DICOM specifies that searches must be case sensitive, except
