@@ -1271,35 +1271,42 @@ namespace Orthanc
 
   static void Find(RestApiPostCall& call)
   {
+    static const char* const KEY_CASE_SENSITIVE = "CaseSensitive";
+    static const char* const KEY_EXPAND = "Expand";
+    static const char* const KEY_LEVEL = "Level";
+    static const char* const KEY_LIMIT = "Limit";
+    static const char* const KEY_QUERY = "Query";
+    static const char* const KEY_SINCE = "Since";
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
     if (call.ParseJsonRequest(request) &&
         request.type() == Json::objectValue &&
-        request.isMember("Level") &&
-        request.isMember("Query") &&
-        request["Level"].type() == Json::stringValue &&
-        request["Query"].type() == Json::objectValue &&
-        (!request.isMember("CaseSensitive") || request["CaseSensitive"].type() == Json::booleanValue) &&
-        (!request.isMember("Limit") || request["Limit"].type() == Json::intValue) &&
-        (!request.isMember("Since") || request["Since"].type() == Json::intValue))
+        request.isMember(KEY_LEVEL) &&
+        request.isMember(KEY_QUERY) &&
+        request[KEY_LEVEL].type() == Json::stringValue &&
+        request[KEY_QUERY].type() == Json::objectValue &&
+        (!request.isMember(KEY_CASE_SENSITIVE) || request[KEY_CASE_SENSITIVE].type() == Json::booleanValue) &&
+        (!request.isMember(KEY_LIMIT) || request[KEY_LIMIT].type() == Json::intValue) &&
+        (!request.isMember(KEY_SINCE) || request[KEY_SINCE].type() == Json::intValue))
     {
       bool expand = false;
-      if (request.isMember("Expand"))
+      if (request.isMember(KEY_EXPAND))
       {
-        expand = request["Expand"].asBool();
+        expand = request[KEY_EXPAND].asBool();
       }
 
       bool caseSensitive = false;
-      if (request.isMember("CaseSensitive"))
+      if (request.isMember(KEY_CASE_SENSITIVE))
       {
-        caseSensitive = request["CaseSensitive"].asBool();
+        caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
       }
 
       size_t limit = 0;
-      if (request.isMember("Limit"))
+      if (request.isMember(KEY_LIMIT))
       {
-        int tmp = request["Limit"].asInt();
+        int tmp = request[KEY_LIMIT].asInt();
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1309,9 +1316,9 @@ namespace Orthanc
       }
 
       size_t since = 0;
-      if (request.isMember("Since"))
+      if (request.isMember(KEY_SINCE))
       {
-        int tmp = request["Since"].asInt();
+        int tmp = request[KEY_SINCE].asInt();
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1320,20 +1327,20 @@ namespace Orthanc
         since = static_cast<size_t>(tmp);
       }
 
-      std::string level = request["Level"].asString();
+      std::string level = request[KEY_LEVEL].asString();
 
       LookupResource query(StringToResourceType(level.c_str()));
 
-      Json::Value::Members members = request["Query"].getMemberNames();
+      Json::Value::Members members = request[KEY_QUERY].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
       {
-        if (request["Query"][members[i]].type() != Json::stringValue)
+        if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
         {
           throw OrthancException(ErrorCode_BadRequest);
         }
 
         query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                 request["Query"][members[i]].asString(),
+                                 request[KEY_QUERY][members[i]].asString(),
                                  caseSensitive);
       }
 
