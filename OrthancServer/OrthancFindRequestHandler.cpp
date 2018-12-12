@@ -690,52 +690,8 @@ namespace Orthanc
 
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
-
-#if 1
     LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
     context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
-
-#else
-    // Backup - Implementation of Orthanc <= 1.5.0
-    // TODO - Remove this code
-
-    // TODO - Use ServerContext::Apply() at this point, in order to
-    // share the code with the "/tools/find" REST URI
-    std::vector<std::string> resources, instances;
-    context_.GetIndex().FindCandidates(resources, instances, lookup);
-
-    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
-
-    assert(resources.size() == instances.size());
-    bool complete = true;
-
-    for (size_t i = 0; i < instances.size(); i++)
-    {
-      // TODO - Don't read the full JSON from the disk if only "main
-      // DICOM tags" are to be returned
-      Json::Value dicom;
-      context_.ReadDicomAsJson(dicom, instances[i]);
-      
-      if (lookup.IsMatch(dicom))
-      {
-        if (limit != 0 &&
-            answers.GetSize() >= limit)
-        {
-          complete = false;
-          break;
-        }
-        else
-        {
-          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, *filteredInput));
-          AddAnswer(answers, dicom, query, sequencesToReturn, counters.get());
-        }
-      }
-    }
-
-    LOG(INFO) << "Number of matching resources: " << answers.GetSize();
-
-    answers.SetComplete(complete);
-#endif
   }
 
 

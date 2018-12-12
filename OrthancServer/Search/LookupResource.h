@@ -70,7 +70,7 @@ namespace Orthanc
 
     ResourceType                    level_;
     Levels                          levels_;
-    Constraints                     unoptimizedConstraints_; 
+    Constraints                     unoptimizedConstraints_;   // Constraints on non-main DICOM tags
     std::auto_ptr<ListConstraint>   modalitiesInStudy_;
 
     bool AddInternal(ResourceType level,

@@ -982,6 +982,45 @@ namespace Orthanc
   }
 
   
+  void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson)
+  {
+    Clear();
+    
+    Json::Value::Members tags = dicomAsJson.getMemberNames();
+    for (Json::Value::Members::const_iterator
+           it = tags.begin(); it != tags.end(); ++it)
+    {
+      DicomTag tag(0, 0);
+      if (!DicomTag::ParseHexadecimal(tag, it->c_str()))
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+
+      const Json::Value& value = dicomAsJson[*it];
+
+      if (value.type() != Json::objectValue ||
+          !value.isMember("Type") ||
+          !value.isMember("Value") ||
+          value["Type"].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+
+      if (value["Type"] == "String")
+      {
+        if (value["Value"].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_CorruptedFile);
+        }
+        else
+        {
+          SetValue(tag, value["Value"].asString(), false /* not binary */);
+        }
+      }
+    }
+  }
+
+
   void DicomMap::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
