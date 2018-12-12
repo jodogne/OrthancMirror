@@ -781,7 +781,7 @@ namespace Orthanc
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
-    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
+    LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
     assert(resources.size() == instances.size());
 

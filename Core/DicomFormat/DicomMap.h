@@ -217,6 +217,8 @@ namespace Orthanc
     bool ParseDouble(double& result,
                      const DicomTag& tag) const;
 
+    void FromDicomAsJson(const Json::Value& dicomAsJson);
+    
     void Serialize(Json::Value& target) const;
 
     void Unserialize(const Json::Value& source);
