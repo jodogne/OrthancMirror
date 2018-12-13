@@ -38,6 +38,7 @@
 #include "LuaScripting.h"
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
+#include "Search/LookupResource.h"
 
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/Cache/SharedArchive.h"
@@ -334,8 +335,7 @@ namespace Orthanc
 
     void Stop();
 
-    void Apply(bool& isComplete, 
-               std::list<std::string>& result,
+    void Apply(LookupResource::IVisitor& visitor,
                const ::Orthanc::LookupResource& lookup,
                size_t since,
                size_t limit);

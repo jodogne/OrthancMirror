@@ -70,7 +70,7 @@ namespace Orthanc
 
     ResourceType                    level_;
     Levels                          levels_;
-    Constraints                     unoptimizedConstraints_; 
+    Constraints                     unoptimizedConstraints_;   // Constraints on non-main DICOM tags
     std::auto_ptr<ListConstraint>   modalitiesInStudy_;
 
     bool AddInternal(ResourceType level,
@@ -82,6 +82,20 @@ namespace Orthanc
                     IDatabaseWrapper& database) const;
 
   public:
+    class IVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IVisitor()
+      {
+      }
+
+      virtual void MarkAsComplete() = 0;
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId,
+                         const Json::Value& dicom) = 0;
+    };
+
     LookupResource(ResourceType level);
 
     ~LookupResource();

@@ -521,6 +521,47 @@ namespace Orthanc
   }
 
 
+  class OrthancFindRequestHandler::LookupVisitor : public LookupResource::IVisitor
+  {
+  private:
+    DicomFindAnswers&           answers_;
+    ServerContext&              context_;
+    ResourceType                level_;
+    const DicomMap&             filteredInput_;
+    const std::list<DicomTag>&  sequencesToReturn_;
+    DicomArray                  query_;
+
+  public:
+    LookupVisitor(DicomFindAnswers&  answers,
+                  ServerContext& context,
+                  ResourceType level,
+                  const DicomMap& filteredInput,
+                  const std::list<DicomTag>& sequencesToReturn) :
+      answers_(answers),
+      context_(context),
+      level_(level),
+      filteredInput_(filteredInput),
+      sequencesToReturn_(sequencesToReturn),
+      query_(filteredInput)
+    {
+      answers_.SetComplete(false);
+    }
+      
+    virtual void MarkAsComplete()
+    {
+      answers_.SetComplete(true);
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId,
+                       const Json::Value& dicom) 
+    {
+      std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, filteredInput_));
+      AddAnswer(answers_, dicom, query_, sequencesToReturn_, counters.get());
+    }
+  };
+
+
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::list<DicomTag>& sequencesToReturn,
@@ -623,8 +664,6 @@ namespace Orthanc
 
       if (FilterQueryTag(value, level, tag, manufacturer))
       {
-        // TODO - Move this to "ResourceLookup::AddDicomConstraint()"
-
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
         // DICOM specifies that searches must be case sensitive, except
@@ -651,42 +690,8 @@ namespace Orthanc
 
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
-    // TODO - Use ServerContext::Apply() at this point, in order to
-    // share the code with the "/tools/find" REST URI
-    std::vector<std::string> resources, instances;
-    context_.GetIndex().FindCandidates(resources, instances, lookup);
-
-    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
-
-    assert(resources.size() == instances.size());
-    bool complete = true;
-
-    for (size_t i = 0; i < instances.size(); i++)
-    {
-      // TODO - Don't read the full JSON from the disk if only "main
-      // DICOM tags" are to be returned
-      Json::Value dicom;
-      context_.ReadDicomAsJson(dicom, instances[i]);
-      
-      if (lookup.IsMatch(dicom))
-      {
-        if (limit != 0 &&
-            answers.GetSize() >= limit)
-        {
-          complete = false;
-          break;
-        }
-        else
-        {
-          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, *filteredInput));
-          AddAnswer(answers, dicom, query, sequencesToReturn, counters.get());
-        }
-      }
-    }
-
-    LOG(INFO) << "Number of matching resources: " << answers.GetSize();
-
-    answers.SetComplete(complete);
+    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
+    context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
 

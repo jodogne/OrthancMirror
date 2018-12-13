@@ -1269,6 +1269,43 @@ namespace Orthanc
   }
 
 
+  namespace 
+  {
+    class FindVisitor : public LookupResource::IVisitor
+    {
+    private:
+      bool                    isComplete_;
+      std::list<std::string>  resources_;
+
+    public:
+      FindVisitor() :
+        isComplete_(false)
+      {
+      }
+
+      virtual void MarkAsComplete()
+      {
+        isComplete_ = true;  // Unused information as of Orthanc 1.5.0
+      }
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId  /* unused */,  
+                         const Json::Value& dicom       /* unused */)
+      {
+        resources_.push_back(publicId);
+      }
+
+      void Answer(RestApiOutput& output,
+                  ServerIndex& index,
+                  ResourceType level,
+                  bool expand) const
+      {
+        AnswerListOfResources(output, index, resources_, level, expand);
+      }
+    };
+  }
+
+
   static void Find(RestApiPostCall& call)
   {
     static const char* const KEY_CASE_SENSITIVE = "CaseSensitive";
@@ -1281,15 +1318,43 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
-    if (call.ParseJsonRequest(request) &&
-        request.type() == Json::objectValue &&
-        request.isMember(KEY_LEVEL) &&
-        request.isMember(KEY_QUERY) &&
-        request[KEY_LEVEL].type() == Json::stringValue &&
-        request[KEY_QUERY].type() == Json::objectValue &&
-        (!request.isMember(KEY_CASE_SENSITIVE) || request[KEY_CASE_SENSITIVE].type() == Json::booleanValue) &&
-        (!request.isMember(KEY_LIMIT) || request[KEY_LIMIT].type() == Json::intValue) &&
-        (!request.isMember(KEY_SINCE) || request[KEY_SINCE].type() == Json::intValue))
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "The body must contain a JSON object");
+    }
+    else if (!request.isMember(KEY_LEVEL) ||
+             request[KEY_LEVEL].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LEVEL) + "\" is missing, or should be a string");
+    }
+    else if (!request.isMember(KEY_QUERY) &&
+             request[KEY_QUERY].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_QUERY) + "\" is missing, or should be a JSON object");
+    }
+    else if (request.isMember(KEY_CASE_SENSITIVE) && 
+             request[KEY_CASE_SENSITIVE].type() != Json::booleanValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" should be a Boolean");
+    }
+    else if (request.isMember(KEY_LIMIT) && 
+             request[KEY_LIMIT].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LIMIT) + "\" should be an integer");
+    }
+    else if (request.isMember(KEY_SINCE) &&
+             request[KEY_SINCE].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_SINCE) + "\" should be an integer");
+    }
+    else
     {
       bool expand = false;
       if (request.isMember(KEY_EXPAND))
@@ -1309,7 +1374,8 @@ namespace Orthanc
         int tmp = request[KEY_LIMIT].asInt();
         if (tmp < 0)
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_LIMIT) + "\" should be a positive integer");
         }
 
         limit = static_cast<size_t>(tmp);
@@ -1321,7 +1387,8 @@ namespace Orthanc
         int tmp = request[KEY_SINCE].asInt();
         if (tmp < 0)
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_SINCE) + "\" should be a positive integer");
         }
 
         since = static_cast<size_t>(tmp);
@@ -1336,7 +1403,8 @@ namespace Orthanc
       {
         if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
         {
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Tag \"" + members[i] + "\" should be associated with a string");
         }
 
         query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
@@ -1344,15 +1412,9 @@ namespace Orthanc
                                  caseSensitive);
       }
 
-      bool isComplete;
-      std::list<std::string> resources;
-      context.Apply(isComplete, resources, query, since, limit);
-      AnswerListOfResources(call.GetOutput(), context.GetIndex(),
-                            resources, query.GetLevel(), expand);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadRequest);
+      FindVisitor visitor;
+      context.Apply(visitor, query, since, limit);
+      visitor.Answer(call.GetOutput(), context.GetIndex(), query.GetLevel(), expand);
     }
   }
 

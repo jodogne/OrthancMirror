@@ -773,21 +773,22 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(bool& isComplete, 
-                            std::list<std::string>& result,
+  void ServerContext::Apply(LookupResource::IVisitor& visitor,
                             const ::Orthanc::LookupResource& lookup,
                             size_t since,
                             size_t limit)
   {
-    result.clear();
-    isComplete = true;
-
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
+    LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
+
     assert(resources.size() == instances.size());
 
+    size_t countResults = 0;
     size_t skipped = 0;
+    bool complete = true;
+
     for (size_t i = 0; i < instances.size(); i++)
     {
       // TODO - Don't read the full JSON from the disk if only "main
@@ -802,17 +803,26 @@ namespace Orthanc
           skipped++;
         }
         else if (limit != 0 &&
-                 result.size() >= limit)
+                 countResults >= limit)
         {
-          isComplete = false;
-          return;  // too many results
+          // Too many results, don't mark as complete
+          complete = false;
+          break;
         }
         else
         {
-          result.push_back(resources[i]);
+          visitor.Visit(resources[i], instances[i], dicom);
+          countResults ++;
         }
       }
     }
+
+    if (complete)
+    {
+      visitor.MarkAsComplete();
+    }
+
+    LOG(INFO) << "Number of matching resources: " << countResults;
   }
 
 
