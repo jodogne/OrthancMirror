@@ -275,6 +275,10 @@ namespace Orthanc
                           ResourceType expectedType,
                           ResourceType levelOfInterest);
 
+    // Only applicable at the instance level
+    bool GetAllMainDicomTags(DicomMap& result,
+                             const std::string& instancePublicId);
+
     bool LookupResourceType(ResourceType& type,
                             const std::string& publicId);
 

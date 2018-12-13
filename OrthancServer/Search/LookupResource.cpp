@@ -113,6 +113,7 @@ namespace Orthanc
     }
     else
     {
+      // This is not a main DICOM tag
       return false;
     }
   }

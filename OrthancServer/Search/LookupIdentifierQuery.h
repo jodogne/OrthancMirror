@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include "../ServerToolbox.h"
 #include "../IDatabaseWrapper.h"
 
 #include "SetOfResources.h"
@@ -79,12 +78,7 @@ namespace Orthanc
     public:
       SingleConstraint(const DicomTag& tag,
                        IdentifierConstraintType type,
-                       const std::string& value) : 
-        tag_(tag),
-        type_(type),
-        value_(ServerToolbox::NormalizeIdentifier(value))
-      {
-      }
+                       const std::string& value);
 
       const DicomTag& GetTag() const
       {
@@ -113,12 +107,7 @@ namespace Orthanc
     public:
       RangeConstraint(const DicomTag& tag,
                       const std::string& start,
-                      const std::string& end) : 
-        tag_(tag),
-        start_(ServerToolbox::NormalizeIdentifier(start)),
-        end_(ServerToolbox::NormalizeIdentifier(end))
-      {
-      }
+                      const std::string& end);
 
       const DicomTag& GetTag() const
       {
@@ -189,10 +178,7 @@ namespace Orthanc
 
     ~LookupIdentifierQuery();
 
-    bool IsIdentifier(const DicomTag& tag)
-    {
-      return ServerToolbox::IsIdentifier(tag, level_);
-    }
+    bool IsIdentifier(const DicomTag& tag);
 
     void AddConstraint(DicomTag tag,
                        IdentifierConstraintType type,
