@@ -64,6 +64,8 @@ namespace Orthanc
 
       void Apply(SetOfResources& candidates,
                  IDatabaseWrapper& database) const;
+
+      bool IsMatch(const DicomMap& dicom) const;
     };
 
     typedef std::map<ResourceType, Level*>  Levels;
@@ -89,11 +91,14 @@ namespace Orthanc
       {
       }
 
+      virtual bool IsDicomAsJsonNeeded() const = 0;
+      
       virtual void MarkAsComplete() = 0;
 
       virtual void Visit(const std::string& publicId,
                          const std::string& instanceId,
-                         const Json::Value& dicom) = 0;
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson) = 0;
     };
 
     LookupResource(ResourceType level);
@@ -117,6 +122,11 @@ namespace Orthanc
     void FindCandidates(std::list<int64_t>& result,
                         IDatabaseWrapper& database) const;
 
-    bool IsMatch(const Json::Value& dicomAsJson) const;
+    bool HasOnlyMainDicomTags() const
+    {
+      return unoptimizedConstraints_.empty();
+    }
+
+    bool IsMatch(const DicomMap& dicom) const;
   };
 }

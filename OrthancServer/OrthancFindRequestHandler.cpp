@@ -365,7 +365,8 @@ namespace Orthanc
 
 
   static void AddAnswer(DicomFindAnswers& answers,
-                        const Json::Value& resource,
+                        const DicomMap& mainDicomTags,
+                        const Json::Value* dicomAsJson,  // only used for sequences
                         const DicomArray& query,
                         const std::list<DicomTag>& sequencesToReturn,
                         const DicomMap* counters)
@@ -383,19 +384,25 @@ namespace Orthanc
       {
         // Do not include the encoding, this is handled by class ParsedDicomFile
       }
-      else
+      else if (dicomAsJson != NULL)
       {
         std::string tag = query.GetElement(i).GetTag().Format();
         std::string value;
-        if (resource.isMember(tag))
+        if (dicomAsJson->isMember(tag))
         {
-          value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
+          value = dicomAsJson->get(tag, Json::arrayValue).get("Value", "").asString();
           result.SetValue(query.GetElement(i).GetTag(), value, false);
         }
         else
         {
           result.SetValue(query.GetElement(i).GetTag(), "", false);
         }
+      }
+      else
+      {
+        // Best-effort
+        // TODO
+        throw OrthancException(ErrorCode_NotImplemented);
       }
     }
 
@@ -413,7 +420,8 @@ namespace Orthanc
     {
       LOG(WARNING) << "The C-FIND request does not return any DICOM tag";
     }
-    else if (sequencesToReturn.empty())
+    else if (sequencesToReturn.empty() ||
+             dicomAsJson == NULL)
     {
       answers.Add(result);
     }
@@ -424,7 +432,8 @@ namespace Orthanc
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)
       {
-        const Json::Value& source = resource[tag->Format()];
+        assert(dicomAsJson != NULL);
+        const Json::Value& source = (*dicomAsJson) [tag->Format()];
 
         if (source.type() == Json::objectValue &&
             source.isMember("Type") &&
@@ -546,6 +555,30 @@ namespace Orthanc
     {
       answers_.SetComplete(false);
     }
+
+    virtual bool IsDicomAsJsonNeeded() const
+    {
+#if 1
+      return true;
+
+#else
+      // TODO
+      
+      // Ask the "DICOM-as-JSON" attachment only if sequences are to
+      // be returned OR if "query_" contains non-main DICOM tags!
+
+      // TODO - configuration option
+      bool findFromDatabase;
+      
+      {
+        // New configuration option in 1.5.1
+        OrthancConfiguration::ReaderLock lock;
+        findFromDatabase = lock.GetConfiguration().GetUnsignedIntegerParameter("FindFromDatabase", false);
+      }      
+
+      return !sequencesToReturn_.empty();
+#endif
+    }
       
     virtual void MarkAsComplete()
     {
@@ -554,10 +587,11 @@ namespace Orthanc
 
     virtual void Visit(const std::string& publicId,
                        const std::string& instanceId,
-                       const Json::Value& dicom) 
+                       const DicomMap& mainDicomTags,
+                       const Json::Value* dicomAsJson) 
     {
       std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, filteredInput_));
-      AddAnswer(answers_, dicom, query_, sequencesToReturn_, counters.get());
+      AddAnswer(answers_, mainDicomTags, dicomAsJson, query_, sequencesToReturn_, counters.get());
     }
   };
 
@@ -689,6 +723,7 @@ namespace Orthanc
      **/
 
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
+
 
     LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
     context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
