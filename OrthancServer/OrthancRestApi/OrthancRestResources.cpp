@@ -1283,14 +1283,20 @@ namespace Orthanc
       {
       }
 
+      virtual bool IsDicomAsJsonNeeded() const
+      {
+        return false;   // (*)
+      }
+      
       virtual void MarkAsComplete()
       {
         isComplete_ = true;  // Unused information as of Orthanc 1.5.0
       }
 
       virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId  /* unused */,  
-                         const Json::Value& dicom       /* unused */)
+                         const std::string& instanceId   /* unused     */,
+                         const DicomMap& mainDicomTags   /* unused     */,
+                         const Json::Value* dicomAsJson  /* unused (*) */) 
       {
         resources_.push_back(publicId);
       }

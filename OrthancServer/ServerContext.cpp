@@ -788,13 +788,36 @@ namespace Orthanc
     size_t countResults = 0;
     size_t skipped = 0;
     bool complete = true;
-
+    
     for (size_t i = 0; i < instances.size(); i++)
     {
-      // TODO - Don't read the full JSON from the disk if only "main
-      // DICOM tags" are to be returned
-      Json::Value dicom;
-      ReadDicomAsJson(dicom, instances[i]);
+      // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
+      // the disk if only "main DICOM tags" are to be returned
+
+      std::auto_ptr<Json::Value> dicomAsJson;
+
+      bool hasOnlyMainDicomTags;
+      DicomMap dicom;
+      
+      if (lookup.HasOnlyMainDicomTags() &&
+          GetIndex().GetAllMainDicomTags(dicom, instances[i]))
+      {
+        // Case (1): The main DICOM tags, as stored in the database,
+        // are sufficient to look for match
+        hasOnlyMainDicomTags = true;
+      }
+      else
+      {
+        // Case (2): Need to read the "DICOM-as-JSON" attachment from
+        // the storage area
+        dicomAsJson.reset(new Json::Value);
+        ReadDicomAsJson(*dicomAsJson, instances[i]);
+
+        dicom.FromDicomAsJson(*dicomAsJson);
+
+        // This map contains the entire JSON, i.e. more than the main DICOM tags
+        hasOnlyMainDicomTags = false;   
+      }
       
       if (lookup.IsMatch(dicom))
       {
@@ -811,7 +834,28 @@ namespace Orthanc
         }
         else
         {
-          visitor.Visit(resources[i], instances[i], dicom);
+          if (dicomAsJson.get() == NULL &&
+              visitor.IsDicomAsJsonNeeded())
+          {
+            dicomAsJson.reset(new Json::Value);
+            ReadDicomAsJson(*dicomAsJson, instances[i]);
+          }
+
+          if (hasOnlyMainDicomTags)
+          {
+            // This is Case (1): The variable "dicom" only contains the main DICOM tags
+            visitor.Visit(resources[i], instances[i], dicom, dicomAsJson.get());
+          }
+          else
+          {
+            // Remove the non-main DICOM tags from "dicom" if Case (2)
+            // was used, for consistency with Case (1)
+
+            DicomMap mainDicomTags;
+            mainDicomTags.ExtractMainDicomTags(dicom);
+            visitor.Visit(resources[i], instances[i], mainDicomTags, dicomAsJson.get());            
+          }
+            
           countResults ++;
         }
       }
