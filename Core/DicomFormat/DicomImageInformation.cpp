@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -195,17 +195,23 @@ namespace Orthanc
       numberOfFrames_ = 1;
     }
 
-    if ((bitsAllocated_ != 8 && bitsAllocated_ != 16 && 
-         bitsAllocated_ != 24 && bitsAllocated_ != 32) ||
-        numberOfFrames_ == 0 ||
-        (planarConfiguration != 0 && planarConfiguration != 1))
+    if (bitsAllocated_ != 8 && bitsAllocated_ != 16 &&
+        bitsAllocated_ != 24 && bitsAllocated_ != 32)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: " + boost::lexical_cast<std::string>(bitsAllocated_) + " bits allocated");
+    }
+    else if (numberOfFrames_ == 0)
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported (no frames)");
+    }
+    else if (planarConfiguration != 0 && planarConfiguration != 1)
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: planar configuration is " + boost::lexical_cast<std::string>(planarConfiguration));
     }
 
     if (samplesPerPixel_ == 0)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: samples per pixel is 0");
     }
 
     bytesPerValue_ = bitsAllocated_ / 8;
@@ -279,8 +285,8 @@ namespace Orthanc
       }
     }
 
-    if (GetBitsStored() == 8 && 
-        GetChannelCount() == 3 && 
+    if (GetBitsStored() == 8 &&
+        GetChannelCount() == 3 &&
         !IsSigned() &&
         (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
     {
@@ -294,9 +300,9 @@ namespace Orthanc
 
   size_t DicomImageInformation::GetFrameSize() const
   {
-    return (GetHeight() * 
-            GetWidth() * 
-            GetBytesPerValue() * 
+    return (GetHeight() *
+            GetWidth() *
+            GetBytesPerValue() *
             GetChannelCount());
   }
 }
