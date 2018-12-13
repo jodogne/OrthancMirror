@@ -2,6 +2,13 @@ Pending changes in the mainline
 ===============================
 
 
+Maintenance
+-----------
+
+* "/tools/create-dicom" is more tolerant to invalid specific character set
+
+
+
 Version 1.5.0 (2018-12-10)
 ==========================
 
