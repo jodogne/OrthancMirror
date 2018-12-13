@@ -2,6 +2,11 @@ Pending changes in the mainline
 ===============================
 
 
+General
+-------
+
+* Optimization: On finds, do not read JSON (disk) if main DICOM tags (DB) are sufficient
+
 Maintenance
 -----------
 
