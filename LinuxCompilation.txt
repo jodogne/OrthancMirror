@@ -115,8 +115,8 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 
 
 
-SUPPORTED - Ubuntu 14.04 LTS
-----------------------------
+SUPPORTED - Ubuntu 14.04 LTS and 16.04 LTS
+------------------------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
