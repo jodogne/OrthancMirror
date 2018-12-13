@@ -504,3 +504,44 @@ TEST(DicomMap, DicomAsJson)
   //std::cout << toStore.GetJson() << std::endl;
   //a.Print(stdout);
 }
+
+
+
+TEST(DicomMap, ExtractMainDicomTags)
+{
+  DicomMap b;
+  b.SetValue(DICOM_TAG_PATIENT_NAME, "E", false);
+
+  {
+    DicomMap a;
+    a.SetValue(DICOM_TAG_PATIENT_NAME, "A", false);
+    a.SetValue(DICOM_TAG_STUDY_DESCRIPTION, "B", false);
+    a.SetValue(DICOM_TAG_SERIES_DESCRIPTION, "C", false);
+    a.SetValue(DICOM_TAG_NUMBER_OF_FRAMES, "D", false);
+    a.SetValue(DICOM_TAG_SLICE_THICKNESS, "F", false);
+    b.ExtractMainDicomTags(a);
+  }
+
+  ASSERT_EQ(4u, b.GetSize());
+  ASSERT_EQ("A", b.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
+  ASSERT_EQ("B", b.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
+  ASSERT_EQ("C", b.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent());
+  ASSERT_EQ("D", b.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+  ASSERT_FALSE(b.HasTag(DICOM_TAG_SLICE_THICKNESS));
+
+  b.SetValue(DICOM_TAG_PATIENT_NAME, "G", false);
+
+  {
+    DicomMap a;
+    a.SetValue(DICOM_TAG_PATIENT_NAME, "A", false);
+    a.SetValue(DICOM_TAG_SLICE_THICKNESS, "F", false);
+    b.Merge(a);
+  }
+
+  ASSERT_EQ(5u, b.GetSize());
+  ASSERT_EQ("G", b.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
+  ASSERT_EQ("B", b.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
+  ASSERT_EQ("C", b.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent());
+  ASSERT_EQ("D", b.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
+  ASSERT_EQ("F", b.GetValue(DICOM_TAG_SLICE_THICKNESS).GetContent());
+}
