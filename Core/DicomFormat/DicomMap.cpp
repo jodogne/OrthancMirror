@@ -1021,6 +1021,54 @@ namespace Orthanc
   }
 
 
+  void DicomMap::Merge(const DicomMap& other)
+  {
+    for (Map::const_iterator it = other.map_.begin();
+         it != other.map_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (map_.find(it->first) == map_.end())
+      {
+        map_[it->first] = it->second->Clone();
+      }
+    }
+  }
+
+
+  void DicomMap::ExtractMainDicomTagsInternal(const DicomMap& other,
+                                              ResourceType level)
+  {
+    const DicomTag* tags = NULL;
+    size_t size = 0;
+
+    LoadMainDicomTags(tags, size, level);
+    assert(tags != NULL && size > 0);
+
+    for (size_t i = 0; i < size; i++)
+    {
+      Map::const_iterator found = other.map_.find(tags[i]);
+
+      if (found != other.map_.end() &&
+          map_.find(tags[i]) == map_.end())
+      {
+        assert(found->second != NULL);
+        map_[tags[i]] = found->second->Clone();
+      }
+    }
+  }
+    
+
+  void DicomMap::ExtractMainDicomTags(const DicomMap& other)
+  {
+    Clear();
+    ExtractMainDicomTagsInternal(other, ResourceType_Patient);
+    ExtractMainDicomTagsInternal(other, ResourceType_Study);
+    ExtractMainDicomTagsInternal(other, ResourceType_Series);
+    ExtractMainDicomTagsInternal(other, ResourceType_Instance);
+  }    
+
+
   void DicomMap::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;

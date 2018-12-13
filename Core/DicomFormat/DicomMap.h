@@ -59,7 +59,7 @@ namespace Orthanc
                   uint16_t element, 
                   DicomValue* value);
 
-    void SetValue(DicomTag tag, 
+    void SetValue(DicomTag tag,
                   DicomValue* value);
 
     void ExtractTags(DicomMap& source,
@@ -67,6 +67,9 @@ namespace Orthanc
                      size_t count) const;
    
     static void GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level);
+
+    void ExtractMainDicomTagsInternal(const DicomMap& other,
+                                      ResourceType level);
 
   public:
     DicomMap()
@@ -218,6 +221,10 @@ namespace Orthanc
                      const DicomTag& tag) const;
 
     void FromDicomAsJson(const Json::Value& dicomAsJson);
+
+    void Merge(const DicomMap& other);
+
+    void ExtractMainDicomTags(const DicomMap& other); 
     
     void Serialize(Json::Value& target) const;
 
