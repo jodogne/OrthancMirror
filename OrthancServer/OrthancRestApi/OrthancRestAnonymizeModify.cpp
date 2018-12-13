@@ -440,6 +440,7 @@ namespace Orthanc
       // Select one existing child instance of the parent resource, to
       // retrieve all its tags
       Json::Value siblingTags;
+      std::string siblingInstanceId;
 
       {
         // Retrieve all the instances of the parent resource
@@ -452,7 +453,8 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        context.ReadDicomAsJson(siblingTags, siblingInstances.front());
+        siblingInstanceId = siblingInstances.front();
+        context.ReadDicomAsJson(siblingTags, siblingInstanceId);
       }
 
 
@@ -463,11 +465,14 @@ namespace Orthanc
         if (siblingTags.isMember(SPECIFIC_CHARACTER_SET))
         {
           Encoding encoding;
+
           if (!siblingTags[SPECIFIC_CHARACTER_SET].isMember("Value") ||
               siblingTags[SPECIFIC_CHARACTER_SET]["Value"].type() != Json::stringValue ||
               !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET]["Value"].asCString()))
           {
-            throw OrthancException(ErrorCode_CreateDicomParentEncoding);
+            LOG(WARNING) << "Instance with an incorrect Specific Character Set, "
+                         << "using the default Orthanc encoding: " << siblingInstanceId;
+            encoding = GetDefaultDicomEncoding();
           }
 
           dicom.SetEncoding(encoding);
