@@ -471,7 +471,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ("6", tmp);
   ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
   ASSERT_EQ("World", tmp);
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseTracksSizeOfAttachments));
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
   ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());

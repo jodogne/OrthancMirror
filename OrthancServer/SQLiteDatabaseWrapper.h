@@ -36,7 +36,6 @@
 #include "IDatabaseWrapper.h"
 
 #include "../Core/SQLite/Connection.h"
-#include "../Core/SQLite/Transaction.h"
 
 namespace Orthanc
 {
@@ -53,6 +52,8 @@ namespace Orthanc
   class SQLiteDatabaseWrapper : public IDatabaseWrapper
   {
   private:
+    class Transaction;
+
     IDatabaseListener* listener_;
     SQLite::Connection db_;
     Internals::SignalRemainingAncestor* signalRemainingAncestor_;
@@ -100,10 +101,7 @@ namespace Orthanc
 
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/);
 
-    virtual SQLite::ITransaction* StartTransaction()
-    {
-      return new SQLite::Transaction(db_);
-    }
+    virtual IDatabaseWrapper::ITransaction* StartTransaction();
 
     virtual void FlushToDisk()
     {

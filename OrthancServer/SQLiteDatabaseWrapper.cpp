@@ -36,6 +36,7 @@
 
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "../Core/SQLite/Transaction.h"
 #include "EmbeddedResources.h"
 #include "ServerToolbox.h"
 
@@ -373,7 +374,7 @@ namespace Orthanc
     // New in Orthanc 1.5.1
     if (version_ == 6)
     {
-      if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseTracksSizeOfAttachments) ||
+      if (!LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) ||
           tmp != "1")
       {
         LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
@@ -539,6 +540,53 @@ namespace Orthanc
     bool done;  // Ignored
     SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
     GetChangesInternal(target, done, s, 1);
+  }
+
+
+  class SQLiteDatabaseWrapper::Transaction : public IDatabaseWrapper::ITransaction
+  {
+  private:
+    SQLiteDatabaseWrapper&              that_;
+    std::auto_ptr<SQLite::Transaction>  transaction_;
+    int64_t                             initialDiskSize_;
+
+  public:
+    Transaction(SQLiteDatabaseWrapper& that) :
+      that_(that),
+      transaction_(new SQLite::Transaction(that_.db_))
+    {
+#if defined(NDEBUG)
+      // Release mode
+      initialDiskSize_ = 0;
+#else
+      // Debug mode
+      initialDiskSize_ = static_cast<int64_t>(that_.GetTotalCompressedSize());
+#endif
+    }
+
+    virtual void Begin()
+    {
+      transaction_->Begin();
+    }
+
+    virtual void Rollback() 
+    {
+      transaction_->Rollback();
+    }
+
+    virtual void Commit(int64_t fileSizeDelta /* only used in debug */)
+    {
+      transaction_->Commit();
+
+      assert(initialDiskSize_ + fileSizeDelta >= 0 &&
+             initialDiskSize_ + fileSizeDelta == static_cast<int64_t>(that_.GetTotalCompressedSize()));
+    }
+  };
+
+
+  IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction()
+  {
+    return new Transaction(*this);
   }
 
 

@@ -2,7 +2,7 @@ CREATE TABLE GlobalIntegers(
        key INTEGER PRIMARY KEY,
        value INTEGER);
 
-INSERT INTO GlobalProperties VALUES (6, 1);  -- GlobalProperty_DatabaseTracksSizeOfAttachments
+INSERT INTO GlobalProperties VALUES (6, 1);  -- GlobalProperty_GetTotalSizeIsFast
 
 INSERT INTO GlobalIntegers SELECT 0, IFNULL(SUM(compressedSize), 0) FROM AttachedFiles;
 INSERT INTO GlobalIntegers SELECT 1, IFNULL(SUM(uncompressedSize), 0) FROM AttachedFiles;

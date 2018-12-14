@@ -48,6 +48,21 @@ namespace Orthanc
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
+    class ITransaction : public boost::noncopyable
+    {
+    public:
+      virtual ~ITransaction()
+      {
+      }
+
+      virtual void Begin() = 0;
+
+      virtual void Rollback() = 0;
+
+      virtual void Commit(int64_t fileSizeDelta) = 0;
+    };
+
+
     virtual ~IDatabaseWrapper()
     {
     }
@@ -198,7 +213,7 @@ namespace Orthanc
     virtual void SetProtectedPatient(int64_t internalId, 
                                      bool isProtected) = 0;
 
-    virtual SQLite::ITransaction* StartTransaction() = 0;
+    virtual ITransaction* StartTransaction() = 0;
 
     virtual void SetListener(IDatabaseListener& listener) = 0;
 
