@@ -224,7 +224,9 @@ namespace Orthanc
 
     void Merge(const DicomMap& other);
 
-    void ExtractMainDicomTags(const DicomMap& other); 
+    void ExtractMainDicomTags(const DicomMap& other);
+
+    bool HasOnlyMainDicomTags() const;
     
     void Serialize(Json::Value& target) const;
 
