@@ -511,6 +511,7 @@ TEST(DicomMap, ExtractMainDicomTags)
 {
   DicomMap b;
   b.SetValue(DICOM_TAG_PATIENT_NAME, "E", false);
+  ASSERT_TRUE(b.HasOnlyMainDicomTags());
 
   {
     DicomMap a;
@@ -519,6 +520,7 @@ TEST(DicomMap, ExtractMainDicomTags)
     a.SetValue(DICOM_TAG_SERIES_DESCRIPTION, "C", false);
     a.SetValue(DICOM_TAG_NUMBER_OF_FRAMES, "D", false);
     a.SetValue(DICOM_TAG_SLICE_THICKNESS, "F", false);
+    ASSERT_FALSE(a.HasOnlyMainDicomTags());
     b.ExtractMainDicomTags(a);
   }
 
@@ -528,6 +530,7 @@ TEST(DicomMap, ExtractMainDicomTags)
   ASSERT_EQ("C", b.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent());
   ASSERT_EQ("D", b.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
   ASSERT_FALSE(b.HasTag(DICOM_TAG_SLICE_THICKNESS));
+  ASSERT_TRUE(b.HasOnlyMainDicomTags());
 
   b.SetValue(DICOM_TAG_PATIENT_NAME, "G", false);
 
@@ -535,6 +538,7 @@ TEST(DicomMap, ExtractMainDicomTags)
     DicomMap a;
     a.SetValue(DICOM_TAG_PATIENT_NAME, "A", false);
     a.SetValue(DICOM_TAG_SLICE_THICKNESS, "F", false);
+    ASSERT_FALSE(a.HasOnlyMainDicomTags());
     b.Merge(a);
   }
 
@@ -544,4 +548,5 @@ TEST(DicomMap, ExtractMainDicomTags)
   ASSERT_EQ("C", b.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent());
   ASSERT_EQ("D", b.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
   ASSERT_EQ("F", b.GetValue(DICOM_TAG_SLICE_THICKNESS).GetContent());
+  ASSERT_FALSE(b.HasOnlyMainDicomTags());
 }
