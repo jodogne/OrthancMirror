@@ -64,6 +64,14 @@ namespace Orthanc
   class ServerContext : private JobsRegistry::IObserver
   {
   private:
+    enum LookupMode
+    {
+      LookupMode_DatabaseOnly,
+      LookupMode_DiskOnAnswer,
+      LookupMode_DiskOnLookupAndAnswer
+    };
+
+    
     class LuaServerListener : public IServerListener
     {
     private:
@@ -339,6 +347,10 @@ namespace Orthanc
                const ::Orthanc::LookupResource& lookup,
                size_t since,
                size_t limit);
+
+    bool LookupOrReconstructMetadata(std::string& target,
+                                     const std::string& publicId,
+                                     MetadataType type);
 
 
     /**

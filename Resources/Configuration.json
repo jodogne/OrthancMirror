@@ -384,14 +384,6 @@
      }
    **/
   
-  // If set to "true", Orthanc will still handle "SOP Classes in
-  // Study" (0008,0062) in C-FIND requests, even if the "SOP Class
-  // UID" metadata is not available in the database (which is the case
-  // if the DB was previously used by Orthanc <= 1.1.0). This option
-  // is turned off by default, as it requires intensive accesses to
-  // the hard drive.
-  "AllowFindSopClassesInStudy" : false,
-
   // If set to "false", Orthanc will not load its default dictionary
   // of private tags. This might be necessary if you cannot import a
   // DICOM file encoded using the Implicit VR Endian transfer syntax,
@@ -447,5 +439,17 @@
   // The least recently used archives get deleted as new archives are
   // generated. This option was introduced in Orthanc 1.5.0, and has
   // no effect on the synchronous generation of archives.
-  "MediaArchiveSize" : 1
+  "MediaArchiveSize" : 1,
+
+  // Performance setting to specify how Orthanc accesses the storage
+  // area during C-FIND. Three modes are available: (1) "Always"
+  // allows Orthanc to read the storage area as soon as it needs an
+  // information that is not present in its database (slowest mode),
+  // (2) "Never" prevents Orthanc from accessing the storage area, and
+  // makes it uses exclusively its database (fastest mode), and (3)
+  // "Answers" allows Orthanc to read the storage area to generate its
+  // answers, but not to filter the DICOM resources (balance between
+  // the two modes). By default, the mode is "Always", which
+  // corresponds to the behavior of Orthanc <= 1.5.0.
+  "StorageAccessOnFind" : "Always"
 }

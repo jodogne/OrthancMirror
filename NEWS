@@ -5,13 +5,15 @@ Pending changes in the mainline
 General
 -------
 
-* Optimization: On finds, do not read JSON (disk) if main DICOM tags (DB) are sufficient
+* Optimization: On C-FIND, avoid accessing the storage area whenever possible
+* New configuration option:
+  - "StorageAccessOnFind" to rule the access to the storage area during C-FIND
 
 Maintenance
 -----------
 
-* "/tools/create-dicom" is more tolerant to invalid specific character set
-
+* Removal of the "AllowFindSopClassesInStudy" old configuration option
+* "/tools/create-dicom" is more tolerant wrt. invalid specific character set
 
 
 Version 1.5.0 (2018-12-10)

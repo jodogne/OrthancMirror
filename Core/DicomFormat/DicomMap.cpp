@@ -1069,6 +1069,25 @@ namespace Orthanc
   }    
 
 
+  bool DicomMap::HasOnlyMainDicomTags() const
+  {
+    // TODO - Speed up possible by making this std::set a global variable
+
+    std::set<DicomTag> mainDicomTags;
+    GetMainDicomTags(mainDicomTags);
+
+    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    {
+      if (mainDicomTags.find(it->first) == mainDicomTags.end())
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+    
+
   void DicomMap::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
