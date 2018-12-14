@@ -50,7 +50,7 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class DatabaseWrapper : public IDatabaseWrapper
+  class SQLiteDatabaseWrapper : public IDatabaseWrapper
   {
   private:
     IDatabaseListener* listener_;
@@ -71,9 +71,9 @@ namespace Orthanc
     void ClearTable(const std::string& tableName);
 
   public:
-    DatabaseWrapper(const std::string& path);
+    SQLiteDatabaseWrapper(const std::string& path);
 
-    DatabaseWrapper();
+    SQLiteDatabaseWrapper();
 
     virtual void Open();
 

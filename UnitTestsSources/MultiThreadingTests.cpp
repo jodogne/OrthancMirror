@@ -42,7 +42,7 @@
 #include "../Core/SerializationToolbox.h"
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
-#include "../OrthancServer/DatabaseWrapper.h"
+#include "../OrthancServer/SQLiteDatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerJobs/LuaJobManager.h"
 #include "../OrthancServer/ServerJobs/OrthancJobUnserializer.h"
@@ -1281,7 +1281,7 @@ namespace
   {
   private:
     MemoryStorageArea              storage_;
-    DatabaseWrapper                db_;   // The SQLite DB is in memory
+    SQLiteDatabaseWrapper          db_;   // The SQLite DB is in memory
     std::auto_ptr<ServerContext>   context_;
     TimeoutDicomConnectionManager  manager_;
 

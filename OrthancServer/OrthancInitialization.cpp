@@ -45,7 +45,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 
-#include "DatabaseWrapper.h"
+#include "SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"
 
 #include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
@@ -308,7 +308,7 @@ namespace Orthanc
     {
     }
 
-    return new DatabaseWrapper(indexDirectory.string() + "/index");
+    return new SQLiteDatabaseWrapper(indexDirectory.string() + "/index");
   }
 
 
