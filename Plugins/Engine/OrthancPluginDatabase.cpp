@@ -47,6 +47,62 @@
 
 namespace Orthanc
 {
+  class OrthancPluginDatabase::Transaction : public IDatabaseWrapper::ITransaction
+  {
+  private:
+    OrthancPluginDatabase&  that_;
+
+    void CheckSuccess(OrthancPluginErrorCode code) const
+    {
+      if (code != OrthancPluginErrorCode_Success)
+      {
+        that_.errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+  public:
+    Transaction(OrthancPluginDatabase& that) :
+      that_(that)
+    {
+    }
+
+    virtual void Begin()
+    {
+      CheckSuccess(that_.backend_.startTransaction(that_.payload_));
+    }
+
+    virtual void Rollback()
+    {
+      CheckSuccess(that_.backend_.rollbackTransaction(that_.payload_));
+    }
+
+    virtual void Commit(int64_t diskSizeDelta)
+    {
+      if (that_.fastGetTotalSize_)
+      {
+        CheckSuccess(that_.backend_.commitTransaction(that_.payload_));
+      }
+      else
+      {
+        if (static_cast<int64_t>(that_.currentDiskSize_) + diskSizeDelta < 0)
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        uint64_t newDiskSize = (that_.currentDiskSize_ + diskSizeDelta);
+
+        assert(newDiskSize == that_.GetTotalCompressedSize());
+
+        CheckSuccess(that_.backend_.commitTransaction(that_.payload_));
+
+        // The transaction has succeeded, we can commit the new disk size
+        that_.currentDiskSize_ = newDiskSize;
+      }
+    }
+  };
+
+
   static FileInfo Convert(const OrthancPluginAttachment& attachment)
   {
     return FileInfo(attachment.uuid,
@@ -186,6 +242,35 @@ namespace Orthanc
     }
 
     memcpy(&extensions_, extensions, size);
+  }
+
+
+  void OrthancPluginDatabase::Open()
+  {
+    CheckSuccess(backend_.open(payload_));
+
+    {
+      Transaction transaction(*this);
+      transaction.Begin();
+
+      std::string tmp;
+      fastGetTotalSize_ =
+        (LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) &&
+         tmp == "1");
+      
+      if (fastGetTotalSize_)
+      {
+        currentDiskSize_ = 0;   // Unused
+      }
+      else
+      {
+        // This is the case of database plugins using Orthanc SDK <= 1.5.2
+        LOG(WARNING) << "Consider upgrading your database index plugin for best performance";
+        currentDiskSize_ = GetTotalCompressedSize();
+      }
+
+      transaction.Commit(0);
+    }
   }
 
 
@@ -786,52 +871,9 @@ namespace Orthanc
   }
 
 
-  class OrthancPluginDatabase::Transaction : public SQLite::ITransaction
+  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction()
   {
-  private:
-    const OrthancPluginDatabaseBackend& backend_;
-    void* payload_;
-    PluginsErrorDictionary&  errorDictionary_;
-
-    void CheckSuccess(OrthancPluginErrorCode code)
-    {
-      if (code != OrthancPluginErrorCode_Success)
-      {
-        errorDictionary_.LogError(code, true);
-        throw OrthancException(static_cast<ErrorCode>(code));
-      }
-    }
-
-  public:
-    Transaction(const OrthancPluginDatabaseBackend& backend,
-                void* payload,
-                PluginsErrorDictionary&  errorDictionary) :
-      backend_(backend),
-      payload_(payload),
-      errorDictionary_(errorDictionary)
-    {
-    }
-
-    virtual void Begin()
-    {
-      CheckSuccess(backend_.startTransaction(payload_));
-    }
-
-    virtual void Rollback()
-    {
-      CheckSuccess(backend_.rollbackTransaction(payload_));
-    }
-
-    virtual void Commit()
-    {
-      CheckSuccess(backend_.commitTransaction(payload_));
-    }
-  };
-
-
-  SQLite::ITransaction* OrthancPluginDatabase::StartTransaction()
-  {
-    return new Transaction(backend_, payload_, errorDictionary_);
+    return new Transaction(*this);
   }
 
 
@@ -892,7 +934,7 @@ namespace Orthanc
   {
     if (extensions_.upgradeDatabase != NULL)
     {
-      Transaction transaction(backend_, payload_, errorDictionary_);
+      Transaction transaction(*this);
       transaction.Begin();
 
       OrthancPluginErrorCode code = extensions_.upgradeDatabase(
@@ -901,7 +943,7 @@ namespace Orthanc
 
       if (code == OrthancPluginErrorCode_Success)
       {
-        transaction.Commit();
+        transaction.Commit(0);
       }
       else
       {

@@ -215,7 +215,7 @@ namespace Orthanc
   {
   private:
     ServerIndex& index_;
-    std::auto_ptr<SQLite::ITransaction> transaction_;
+    std::auto_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
 
   public:
@@ -245,7 +245,10 @@ namespace Orthanc
     {
       if (!isCommitted_)
       {
-        transaction_->Commit();
+        int64_t delta = (static_cast<int64_t>(sizeOfAddedFiles) -
+                         static_cast<int64_t>(index_.listener_->GetSizeOfFilesToRemove()));
+
+        transaction_->Commit(delta);
 
         // We can remove the files once the SQLite transaction has
         // been successfully committed. Some files might have to be
