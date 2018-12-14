@@ -89,82 +89,6 @@ namespace Orthanc
   }
 
 
-  static void ExtractTagFromMainDicomTags(std::set<std::string>& target,
-                                          ServerIndex& index,
-                                          const DicomTag& tag,
-                                          const std::list<std::string>& resources,
-                                          ResourceType level)
-  {
-    for (std::list<std::string>::const_iterator
-           it = resources.begin(); it != resources.end(); ++it)
-    {
-      DicomMap tags;
-      if (index.GetMainDicomTags(tags, *it, level, level) &&
-          tags.HasTag(tag))
-      {
-        target.insert(tags.GetValue(tag).GetContent());
-      }
-    }
-  }
-
-
-  static bool ExtractMetadata(std::set<std::string>& target,
-                              ServerIndex& index,
-                              MetadataType metadata,
-                              const std::list<std::string>& resources)
-  {
-    for (std::list<std::string>::const_iterator
-           it = resources.begin(); it != resources.end(); ++it)
-    {
-      std::string value;
-      if (index.LookupMetadata(value, *it, metadata))
-      {
-        target.insert(value);
-      }
-      else
-      {
-        // This metadata is unavailable for some resource, give up
-        return false;
-      }
-    }
-
-    return true;
-  }  
-
-
-  static void ExtractTagFromInstancesOnDisk(std::set<std::string>& target,
-                                            ServerContext& context,
-                                            const DicomTag& tag,
-                                            const std::list<std::string>& instances)
-  {
-    // WARNING: This function is slow, as it reads the JSON file
-    // summarizing each instance of interest from the hard drive.
-
-    std::string formatted = tag.Format();
-
-    for (std::list<std::string>::const_iterator
-           it = instances.begin(); it != instances.end(); ++it)
-    {
-      Json::Value dicom;
-      context.ReadDicomAsJson(dicom, *it);
-
-      if (dicom.isMember(formatted))
-      {
-        const Json::Value& source = dicom[formatted];
-
-        if (source.type() == Json::objectValue &&
-            source.isMember("Type") &&
-            source.isMember("Value") &&
-            source["Type"].asString() == "String" &&
-            source["Value"].type() == Json::stringValue)
-        {
-          target.insert(source["Value"].asString());
-        }
-      }
-    }
-  }
-
-
   static void ComputePatientCounters(DicomMap& result,
                                      ServerIndex& index,
                                      const std::string& patient,
@@ -230,7 +154,24 @@ namespace Orthanc
     if (query.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
     {
       std::set<std::string> values;
-      ExtractTagFromMainDicomTags(values, index, DICOM_TAG_MODALITY, series, ResourceType_Series);
+
+      for (std::list<std::string>::const_iterator
+             it = series.begin(); it != series.end(); ++it)
+      {
+        DicomMap tags;
+        if (index.GetMainDicomTags(tags, *it, ResourceType_Series, ResourceType_Series))
+        {
+          const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
+
+          if (value != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary())
+          {
+            values.insert(value->GetContent());
+          }
+        }
+      }
+
       StoreSetOfStrings(result, DICOM_TAG_MODALITIES_IN_STUDY, values);
     }
 
@@ -253,27 +194,17 @@ namespace Orthanc
     {
       std::set<std::string> values;
 
-      if (ExtractMetadata(values, index, MetadataType_Instance_SopClassUid, instances))
+      for (std::list<std::string>::const_iterator
+             it = instances.begin(); it != instances.end(); ++it)
       {
-        // The metadata "SopClassUid" is available for each of these instances
-        StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
+        std::string value;
+        if (context.LookupOrReconstructMetadata(value, *it, MetadataType_Instance_SopClassUid))
+        {
+          values.insert(value);
+        }
       }
-      else
-      {
-        OrthancConfiguration::ReaderLock lock;
 
-        if (lock.GetConfiguration().GetBooleanParameter("AllowFindSopClassesInStudy", false))
-        {
-          ExtractTagFromInstancesOnDisk(values, context, DICOM_TAG_SOP_CLASS_UID, instances);
-          StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
-        }
-        else
-        {
-          result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, "", false);
-          LOG(WARNING) << "The handling of \"SOP Classes in Study\" (0008,0062) "
-                       << "in C-FIND requests is disabled";
-        }
-      }
+      StoreSetOfStrings(result, DICOM_TAG_SOP_CLASSES_IN_STUDY, values);
     }
   }
 
@@ -365,11 +296,23 @@ namespace Orthanc
 
 
   static void AddAnswer(DicomFindAnswers& answers,
-                        const Json::Value& resource,
+                        const DicomMap& mainDicomTags,
+                        const Json::Value* dicomAsJson,
                         const DicomArray& query,
                         const std::list<DicomTag>& sequencesToReturn,
                         const DicomMap* counters)
   {
+    DicomMap match;
+
+    if (dicomAsJson != NULL)
+    {
+      match.FromDicomAsJson(*dicomAsJson);
+    }
+    else
+    {
+      match.Assign(mainDicomTags);
+    }
+    
     DicomMap result;
 
     for (size_t i = 0; i < query.GetSize(); i++)
@@ -385,16 +328,18 @@ namespace Orthanc
       }
       else
       {
-        std::string tag = query.GetElement(i).GetTag().Format();
-        std::string value;
-        if (resource.isMember(tag))
+        const DicomTag& tag = query.GetElement(i).GetTag();
+        const DicomValue* value = match.TestAndGetValue(tag);
+
+        if (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
         {
-          value = resource.get(tag, Json::arrayValue).get("Value", "").asString();
-          result.SetValue(query.GetElement(i).GetTag(), value, false);
+          result.SetValue(tag, value->GetContent(), false);
         }
         else
         {
-          result.SetValue(query.GetElement(i).GetTag(), "", false);
+          result.SetValue(tag, "", false);
         }
       }
     }
@@ -417,6 +362,11 @@ namespace Orthanc
     {
       answers.Add(result);
     }
+    else if (dicomAsJson == NULL)
+    {
+      LOG(WARNING) << "C-FIND query requesting a sequence, but reading JSON from disk is disabled";
+      answers.Add(result);
+    }
     else
     {
       ParsedDicomFile dicom(result);
@@ -424,7 +374,8 @@ namespace Orthanc
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)
       {
-        const Json::Value& source = resource[tag->Format()];
+        assert(dicomAsJson != NULL);
+        const Json::Value& source = (*dicomAsJson) [tag->Format()];
 
         if (source.type() == Json::objectValue &&
             source.isMember("Type") &&
@@ -519,6 +470,76 @@ namespace Orthanc
     maxInstances_(0)
   {
   }
+
+
+  class OrthancFindRequestHandler::LookupVisitor : public LookupResource::IVisitor
+  {
+  private:
+    DicomFindAnswers&           answers_;
+    ServerContext&              context_;
+    ResourceType                level_;
+    const DicomMap&             query_;
+    DicomArray                  queryAsArray_;
+    const std::list<DicomTag>&  sequencesToReturn_;
+
+  public:
+    LookupVisitor(DicomFindAnswers&  answers,
+                  ServerContext& context,
+                  ResourceType level,
+                  const DicomMap& query,
+                  const std::list<DicomTag>& sequencesToReturn) :
+      answers_(answers),
+      context_(context),
+      level_(level),
+      query_(query),
+      queryAsArray_(query),
+      sequencesToReturn_(sequencesToReturn)
+    {
+      answers_.SetComplete(false);
+    }
+
+    virtual bool IsDicomAsJsonNeeded() const
+    {
+      // Ask the "DICOM-as-JSON" attachment only if sequences are to
+      // be returned OR if "query_" contains non-main DICOM tags!
+
+      DicomMap withoutSpecialTags;
+      withoutSpecialTags.Assign(query_);
+
+      // Check out "ComputeCounters()"
+      withoutSpecialTags.Remove(DICOM_TAG_MODALITIES_IN_STUDY);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
+      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
+      withoutSpecialTags.Remove(DICOM_TAG_SOP_CLASSES_IN_STUDY);
+
+      // Check out "AddAnswer()"
+      withoutSpecialTags.Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+      withoutSpecialTags.Remove(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+      
+      return (!sequencesToReturn_.empty() ||
+              !withoutSpecialTags.HasOnlyMainDicomTags());
+    }
+      
+    virtual void MarkAsComplete()
+    {
+      answers_.SetComplete(true);
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId,
+                       const DicomMap& mainDicomTags,
+                       const Json::Value* dicomAsJson) 
+    {
+      std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
+
+      AddAnswer(answers_, mainDicomTags, dicomAsJson,
+                queryAsArray_, sequencesToReturn_, counters.get());
+    }
+  };
 
 
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
@@ -623,8 +644,6 @@ namespace Orthanc
 
       if (FilterQueryTag(value, level, tag, manufacturer))
       {
-        // TODO - Move this to "ResourceLookup::AddDicomConstraint()"
-
         ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
         // DICOM specifies that searches must be case sensitive, except
@@ -651,42 +670,9 @@ namespace Orthanc
 
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
-    // TODO - Use ServerContext::Apply() at this point, in order to
-    // share the code with the "/tools/find" REST URI
-    std::vector<std::string> resources, instances;
-    context_.GetIndex().FindCandidates(resources, instances, lookup);
 
-    LOG(INFO) << "Number of candidate resources after fast DB filtering: " << resources.size();
-
-    assert(resources.size() == instances.size());
-    bool complete = true;
-
-    for (size_t i = 0; i < instances.size(); i++)
-    {
-      // TODO - Don't read the full JSON from the disk if only "main
-      // DICOM tags" are to be returned
-      Json::Value dicom;
-      context_.ReadDicomAsJson(dicom, instances[i]);
-      
-      if (lookup.IsMatch(dicom))
-      {
-        if (limit != 0 &&
-            answers.GetSize() >= limit)
-        {
-          complete = false;
-          break;
-        }
-        else
-        {
-          std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instances[i], level, *filteredInput));
-          AddAnswer(answers, dicom, query, sequencesToReturn, counters.get());
-        }
-      }
-    }
-
-    LOG(INFO) << "Number of matching resources: " << answers.GetSize();
-
-    answers.SetComplete(complete);
+    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
+    context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
 
