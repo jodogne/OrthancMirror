@@ -370,6 +370,19 @@ namespace Orthanc
                              "Incompatible version of the Orthanc database: " + tmp);
     }
 
+    // New in Orthanc 1.5.1
+    if (version_ == 6)
+    {
+      if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseTracksSizeOfAttachments) ||
+          tmp != "1")
+      {
+        LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
+        std::string query;
+        EmbeddedResources::GetFileResource(query, EmbeddedResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+        db_.Execute(query);
+      }
+    }
+
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
     db_.Register(signalRemainingAncestor_);
   }
@@ -890,7 +903,10 @@ namespace Orthanc
     
   uint64_t SQLiteDatabaseWrapper::GetTotalCompressedSize()
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles");
+    // Old SQL query that was used in Orthanc <= 1.5.0:
+    // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles");
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=0");
     s.Run();
     return static_cast<uint64_t>(s.ColumnInt64(0));
   }
@@ -898,7 +914,10 @@ namespace Orthanc
     
   uint64_t SQLiteDatabaseWrapper::GetTotalUncompressedSize()
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles");
+    // Old SQL query that was used in Orthanc <= 1.5.0:
+    // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles");
+
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=1");
     s.Run();
     return static_cast<uint64_t>(s.ColumnInt64(0));
   }

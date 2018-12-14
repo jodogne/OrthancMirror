@@ -464,7 +464,15 @@ TEST_P(DatabaseWrapperTest, Simple)
 
   CheckTableRecordCount(0, "Resources");
   CheckTableRecordCount(0, "AttachedFiles");
-  CheckTableRecordCount(2, "GlobalProperties");
+  CheckTableRecordCount(3, "GlobalProperties");
+
+  std::string tmp;
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
+  ASSERT_EQ("6", tmp);
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
+  ASSERT_EQ("World", tmp);
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseTracksSizeOfAttachments));
+  ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
