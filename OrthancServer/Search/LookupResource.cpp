@@ -42,6 +42,19 @@
 
 namespace Orthanc
 {
+  static bool DoesDicomMapMatch(const DicomMap& dicom,
+                                const DicomTag& tag,
+                                const IFindConstraint& constraint)
+  {
+    const DicomValue* value = dicom.TestAndGetValue(tag);
+
+    return (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary() &&
+            constraint.Match(value->GetContent()));
+  }
+
+  
   LookupResource::Level::Level(ResourceType level) : level_(level)
   {
     const DicomTag* tags = NULL;
@@ -113,10 +126,39 @@ namespace Orthanc
     }
     else
     {
+      // This is not a main DICOM tag
       return false;
     }
   }
 
+
+  bool LookupResource::Level::IsMatch(const DicomMap& dicom) const
+  {
+    for (Constraints::const_iterator it = identifiersConstraints_.begin();
+         it != identifiersConstraints_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (!DoesDicomMapMatch(dicom, it->first, *it->second))
+      {
+        return false;
+      }
+    }
+
+    for (Constraints::const_iterator it = mainTagsConstraints_.begin();
+         it != mainTagsConstraints_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (!DoesDicomMapMatch(dicom, it->first, *it->second))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  
 
   LookupResource::LookupResource(ResourceType level) : level_(level)
   {
@@ -282,22 +324,22 @@ namespace Orthanc
 
 
 
-  bool LookupResource::IsMatch(const Json::Value& dicomAsJson) const
+  bool LookupResource::IsMatch(const DicomMap& dicom) const
   {
+    for (Levels::const_iterator it = levels_.begin(); it != levels_.end(); ++it)
+    {
+      if (!it->second->IsMatch(dicom))
+      {
+        return false;
+      }
+    }
+
     for (Constraints::const_iterator it = unoptimizedConstraints_.begin(); 
          it != unoptimizedConstraints_.end(); ++it)
     {
-      std::string tag = it->first.Format();
-      if (dicomAsJson.isMember(tag) &&
-          dicomAsJson[tag]["Type"] == "String")
-      {
-        std::string value = dicomAsJson[tag]["Value"].asString();
-        if (!it->second->Match(value))
-        {
-          return false;
-        }
-      }
-      else
+      assert(it->second != NULL);
+
+      if (!DoesDicomMapMatch(dicom, it->first, *it->second))
       {
         return false;
       }

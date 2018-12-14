@@ -982,6 +982,112 @@ namespace Orthanc
   }
 
   
+  void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson)
+  {
+    Clear();
+    
+    Json::Value::Members tags = dicomAsJson.getMemberNames();
+    for (Json::Value::Members::const_iterator
+           it = tags.begin(); it != tags.end(); ++it)
+    {
+      DicomTag tag(0, 0);
+      if (!DicomTag::ParseHexadecimal(tag, it->c_str()))
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+
+      const Json::Value& value = dicomAsJson[*it];
+
+      if (value.type() != Json::objectValue ||
+          !value.isMember("Type") ||
+          !value.isMember("Value") ||
+          value["Type"].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+
+      if (value["Type"] == "String")
+      {
+        if (value["Value"].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_CorruptedFile);
+        }
+        else
+        {
+          SetValue(tag, value["Value"].asString(), false /* not binary */);
+        }
+      }
+    }
+  }
+
+
+  void DicomMap::Merge(const DicomMap& other)
+  {
+    for (Map::const_iterator it = other.map_.begin();
+         it != other.map_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (map_.find(it->first) == map_.end())
+      {
+        map_[it->first] = it->second->Clone();
+      }
+    }
+  }
+
+
+  void DicomMap::ExtractMainDicomTagsInternal(const DicomMap& other,
+                                              ResourceType level)
+  {
+    const DicomTag* tags = NULL;
+    size_t size = 0;
+
+    LoadMainDicomTags(tags, size, level);
+    assert(tags != NULL && size > 0);
+
+    for (size_t i = 0; i < size; i++)
+    {
+      Map::const_iterator found = other.map_.find(tags[i]);
+
+      if (found != other.map_.end() &&
+          map_.find(tags[i]) == map_.end())
+      {
+        assert(found->second != NULL);
+        map_[tags[i]] = found->second->Clone();
+      }
+    }
+  }
+    
+
+  void DicomMap::ExtractMainDicomTags(const DicomMap& other)
+  {
+    Clear();
+    ExtractMainDicomTagsInternal(other, ResourceType_Patient);
+    ExtractMainDicomTagsInternal(other, ResourceType_Study);
+    ExtractMainDicomTagsInternal(other, ResourceType_Series);
+    ExtractMainDicomTagsInternal(other, ResourceType_Instance);
+  }    
+
+
+  bool DicomMap::HasOnlyMainDicomTags() const
+  {
+    // TODO - Speed up possible by making this std::set a global variable
+
+    std::set<DicomTag> mainDicomTags;
+    GetMainDicomTags(mainDicomTags);
+
+    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    {
+      if (mainDicomTags.find(it->first) == mainDicomTags.end())
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+    
+
   void DicomMap::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;

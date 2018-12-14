@@ -38,9 +38,10 @@
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
 #include "../OrthancServer/DatabaseWrapper.h"
+#include "../OrthancServer/Search/LookupIdentifierQuery.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerIndex.h"
-#include "../OrthancServer/Search/LookupIdentifierQuery.h"
+#include "../OrthancServer/ServerToolbox.h"
 
 #include <ctype.h>
 #include <algorithm>

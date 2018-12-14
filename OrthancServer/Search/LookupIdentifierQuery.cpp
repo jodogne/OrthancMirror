@@ -34,9 +34,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "LookupIdentifierQuery.h"
 
-#include "../../Core/OrthancException.h"
-#include "SetOfResources.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/OrthancException.h"
+#include "../ServerToolbox.h"
+#include "SetOfResources.h"
 
 #include <cassert>
 
@@ -44,6 +45,28 @@
 
 namespace Orthanc
 {
+  LookupIdentifierQuery::SingleConstraint::
+  SingleConstraint(const DicomTag& tag,
+                   IdentifierConstraintType type,
+                   const std::string& value) : 
+    tag_(tag),
+    type_(type),
+    value_(ServerToolbox::NormalizeIdentifier(value))
+  {
+  }
+
+
+  LookupIdentifierQuery::RangeConstraint::
+  RangeConstraint(const DicomTag& tag,
+                  const std::string& start,
+                  const std::string& end) : 
+    tag_(tag),
+    start_(ServerToolbox::NormalizeIdentifier(start)),
+    end_(ServerToolbox::NormalizeIdentifier(end))
+  {
+  }
+
+
   LookupIdentifierQuery::Disjunction::~Disjunction()
   {
     for (size_t i = 0; i < singleConstraints_.size(); i++)
@@ -81,6 +104,12 @@ namespace Orthanc
     {
       delete *it;
     }
+  }
+
+
+  bool LookupIdentifierQuery::IsIdentifier(const DicomTag& tag)
+  {
+    return ServerToolbox::IsIdentifier(tag, level_);
   }
 
 
