@@ -2248,6 +2248,78 @@ namespace Orthanc
   }
 
 
+  bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
+                                        const std::string& instancePublicId)
+  {
+    result.Clear();
+    
+    boost::mutex::scoped_lock lock(mutex_);
+
+    // Lookup for the requested resource
+    int64_t instance;
+    ResourceType type;
+    if (!db_.LookupResource(instance, type, instancePublicId) ||
+        type != ResourceType_Instance)
+    {
+      return false;
+    }
+    else
+    {
+      DicomMap tmp;
+
+      db_.GetMainDicomTags(tmp, instance);
+      result.Merge(tmp);
+
+      int64_t series;
+      if (!db_.LookupParent(series, instance))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      tmp.Clear();
+      db_.GetMainDicomTags(tmp, series);
+      result.Merge(tmp);
+
+      int64_t study;
+      if (!db_.LookupParent(study, series))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      tmp.Clear();
+      db_.GetMainDicomTags(tmp, study);
+      result.Merge(tmp);
+
+#ifndef NDEBUG
+      {
+        // Sanity test to check that all the main DICOM tags from the
+        // patient level are copied at the study level
+        
+        int64_t patient;
+        if (!db_.LookupParent(patient, study))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        tmp.Clear();
+        db_.GetMainDicomTags(tmp, study);
+
+        std::set<DicomTag> patientTags;
+        tmp.GetTags(patientTags);
+
+        for (std::set<DicomTag>::const_iterator
+               it = patientTags.begin(); it != patientTags.end(); ++it)
+        {
+          assert(result.HasTag(*it));
+        }
+      }
+#endif
+      
+      return true;
+    }
+  }
+
+
   bool ServerIndex::LookupResourceType(ResourceType& type,
                                        const std::string& publicId)
   {

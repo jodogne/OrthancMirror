@@ -41,6 +41,8 @@ namespace Orthanc
   class OrthancFindRequestHandler : public IFindRequestHandler
   {
   private:
+    class LookupVisitor;
+
     ServerContext& context_;
     unsigned int   maxResults_;
     unsigned int   maxInstances_;

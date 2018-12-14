@@ -773,27 +773,91 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(bool& isComplete, 
-                            std::list<std::string>& result,
+  void ServerContext::Apply(LookupResource::IVisitor& visitor,
                             const ::Orthanc::LookupResource& lookup,
                             size_t since,
                             size_t limit)
   {
-    result.clear();
-    isComplete = true;
+    LookupMode mode;
+      
+    {
+      // New configuration option in 1.5.1
+      OrthancConfiguration::ReaderLock lock;
+
+      std::string value = lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always");
+
+      if (value == "Always")
+      {
+        mode = LookupMode_DiskOnLookupAndAnswer;
+      }
+      else if (value == "Never")
+      {
+        mode = LookupMode_DatabaseOnly;
+      }
+      else if (value == "Answers")
+      {
+        mode = LookupMode_DiskOnAnswer;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Configuration option \"StorageAccessOnFind\" "
+                               "should be \"Always\", \"Never\" or \"Answers\": " + value);
+      }
+    }      
+
 
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
+    LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
+
     assert(resources.size() == instances.size());
 
+    size_t countResults = 0;
     size_t skipped = 0;
+    bool complete = true;
+
+    const bool isDicomAsJsonNeeded = visitor.IsDicomAsJsonNeeded();
+    
     for (size_t i = 0; i < instances.size(); i++)
     {
-      // TODO - Don't read the full JSON from the disk if only "main
-      // DICOM tags" are to be returned
-      Json::Value dicom;
-      ReadDicomAsJson(dicom, instances[i]);
+      // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
+      // the disk if only "main DICOM tags" are to be returned
+
+      std::auto_ptr<Json::Value> dicomAsJson;
+
+      bool hasOnlyMainDicomTags;
+      DicomMap dicom;
+      
+      if (mode == LookupMode_DatabaseOnly ||
+          mode == LookupMode_DiskOnAnswer ||
+          lookup.HasOnlyMainDicomTags())
+      {
+        // Case (1): The main DICOM tags, as stored in the database,
+        // are sufficient to look for match
+
+        if (!GetIndex().GetAllMainDicomTags(dicom, instances[i]))
+        {
+          // The instance has been removed during the execution of the
+          // lookup, ignore it
+          continue;
+        }
+        
+        hasOnlyMainDicomTags = true;
+      }
+      else
+      {
+        // Case (2): Need to read the "DICOM-as-JSON" attachment from
+        // the storage area
+        dicomAsJson.reset(new Json::Value);
+        ReadDicomAsJson(*dicomAsJson, instances[i]);
+
+        dicom.FromDicomAsJson(*dicomAsJson);
+
+        // This map contains the entire JSON, i.e. more than the main DICOM tags
+        hasOnlyMainDicomTags = false;   
+      }
       
       if (lookup.IsMatch(dicom))
       {
@@ -802,16 +866,119 @@ namespace Orthanc
           skipped++;
         }
         else if (limit != 0 &&
-                 result.size() >= limit)
+                 countResults >= limit)
         {
-          isComplete = false;
-          return;  // too many results
+          // Too many results, don't mark as complete
+          complete = false;
+          break;
         }
         else
         {
-          result.push_back(resources[i]);
+          if ((mode == LookupMode_DiskOnLookupAndAnswer ||
+               mode == LookupMode_DiskOnAnswer) &&
+              dicomAsJson.get() == NULL &&
+              isDicomAsJsonNeeded)
+          {
+            dicomAsJson.reset(new Json::Value);
+            ReadDicomAsJson(*dicomAsJson, instances[i]);
+          }
+
+          if (hasOnlyMainDicomTags)
+          {
+            // This is Case (1): The variable "dicom" only contains the main DICOM tags
+            visitor.Visit(resources[i], instances[i], dicom, dicomAsJson.get());
+          }
+          else
+          {
+            // Remove the non-main DICOM tags from "dicom" if Case (2)
+            // was used, for consistency with Case (1)
+
+            DicomMap mainDicomTags;
+            mainDicomTags.ExtractMainDicomTags(dicom);
+            visitor.Visit(resources[i], instances[i], mainDicomTags, dicomAsJson.get());            
+          }
+            
+          countResults ++;
         }
       }
+    }
+
+    if (complete)
+    {
+      visitor.MarkAsComplete();
+    }
+
+    LOG(INFO) << "Number of matching resources: " << countResults;
+  }
+
+
+  bool ServerContext::LookupOrReconstructMetadata(std::string& target,
+                                                  const std::string& publicId,
+                                                  MetadataType metadata)
+  {
+    // This is a backwards-compatibility function, that can
+    // reconstruct metadata that were not generated by an older
+    // release of Orthanc
+
+    if (metadata == MetadataType_Instance_SopClassUid ||
+        metadata == MetadataType_Instance_TransferSyntax)
+    {
+      if (index_.LookupMetadata(target, publicId, metadata))
+      {
+        return true;
+      }
+      else
+      {
+        // These metadata are mandatory in DICOM instances, and were
+        // introduced in Orthanc 1.2.0. The fact that
+        // "LookupMetadata()" has failed indicates that this database
+        // comes from an older release of Orthanc.
+        
+        DicomTag tag(0, 0);
+      
+        switch (metadata)
+        {
+          case MetadataType_Instance_SopClassUid:
+            tag = DICOM_TAG_SOP_CLASS_UID;
+            break;
+
+          case MetadataType_Instance_TransferSyntax:
+            tag = DICOM_TAG_TRANSFER_SYNTAX_UID;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      
+        Json::Value dicomAsJson;
+        ReadDicomAsJson(dicomAsJson, publicId);
+
+        DicomMap tags;
+        tags.FromDicomAsJson(dicomAsJson);
+
+        const DicomValue* value = tags.TestAndGetValue(tag);
+
+        if (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          target = value->GetContent();
+
+          // Store for reuse
+          index_.SetMetadata(publicId, metadata, target);
+          return true;
+        }
+        else
+        {
+          // Should never happen
+          return false;
+        }
+      }
+    }
+    else
+    {
+      // No backward
+      return index_.LookupMetadata(target, publicId, metadata);
     }
   }
 
