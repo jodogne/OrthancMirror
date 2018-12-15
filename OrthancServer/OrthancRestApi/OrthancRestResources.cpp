@@ -1271,7 +1271,7 @@ namespace Orthanc
 
   namespace 
   {
-    class FindVisitor : public LookupResource::IVisitor
+    class FindVisitor : public ServerContext::ILookupVisitor
     {
     private:
       bool                    isComplete_;

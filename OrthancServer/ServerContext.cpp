@@ -773,7 +773,7 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(LookupResource::IVisitor& visitor,
+  void ServerContext::Apply(ILookupVisitor& visitor,
                             const ::Orthanc::LookupResource& lookup,
                             size_t since,
                             size_t limit)

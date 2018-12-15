@@ -63,6 +63,25 @@ namespace Orthanc
    **/
   class ServerContext : private JobsRegistry::IObserver
   {
+  public:
+    class ILookupVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~ILookupVisitor()
+      {
+      }
+
+      virtual bool IsDicomAsJsonNeeded() const = 0;
+      
+      virtual void MarkAsComplete() = 0;
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId,
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson) = 0;
+    };
+    
+    
   private:
     enum LookupMode
     {
@@ -343,7 +362,7 @@ namespace Orthanc
 
     void Stop();
 
-    void Apply(LookupResource::IVisitor& visitor,
+    void Apply(ILookupVisitor& visitor,
                const ::Orthanc::LookupResource& lookup,
                size_t since,
                size_t limit);
