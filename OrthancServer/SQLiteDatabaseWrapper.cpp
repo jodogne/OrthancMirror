@@ -1195,4 +1195,10 @@ namespace Orthanc
       target.push_back(statement.ColumnInt64(0));
     }    
   }
+
+
+  bool SQLiteDatabaseWrapper::IsDiskSizeAbove(uint64_t threshold)
+  {
+    return GetTotalCompressedSize() > threshold;
+  }
 }

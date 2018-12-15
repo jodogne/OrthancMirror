@@ -274,5 +274,7 @@ namespace Orthanc
                                        const DicomTag& tag,
                                        const std::string& start,
                                        const std::string& end);
+
+    virtual bool IsDiskSizeAbove(uint64_t threshold);
   };
 }

@@ -268,6 +268,8 @@ namespace Orthanc
                          IStorageArea& storageArea);
 
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
+
+    virtual bool IsDiskSizeAbove(uint64_t threshold);
   };
 }
 
