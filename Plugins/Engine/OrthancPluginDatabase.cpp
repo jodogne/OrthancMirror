@@ -265,7 +265,7 @@ namespace Orthanc
       else
       {
         // This is the case of database plugins using Orthanc SDK <= 1.5.2
-        LOG(WARNING) << "Consider upgrading your database index plugin for best performance";
+        LOG(WARNING) << "Your database index plugin is not compatible with multiple Orthanc writers";
         currentDiskSize_ = GetTotalCompressedSize();
       }
 
@@ -1145,5 +1145,19 @@ namespace Orthanc
                                "Unhandled type of answer for custom index plugin: " +
                                boost::lexical_cast<std::string>(answer.type));
     }
+  }
+
+    
+  bool OrthancPluginDatabase::IsDiskSizeAbove(uint64_t threshold)
+  {
+    if (fastGetTotalSize_)
+    {
+      return GetTotalCompressedSize() > threshold;
+    }
+    else
+    {
+      assert(GetTotalCompressedSize() == currentDiskSize_);
+      return currentDiskSize_ > threshold;
+    }      
   }
 }
