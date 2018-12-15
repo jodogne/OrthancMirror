@@ -472,7 +472,7 @@ namespace Orthanc
   }
 
 
-  class OrthancFindRequestHandler::LookupVisitor : public LookupResource::IVisitor
+  class OrthancFindRequestHandler::LookupVisitor : public ServerContext::ILookupVisitor
   {
   private:
     DicomFindAnswers&           answers_;
