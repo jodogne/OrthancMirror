@@ -84,23 +84,6 @@ namespace Orthanc
                     IDatabaseWrapper& database) const;
 
   public:
-    class IVisitor : public boost::noncopyable
-    {
-    public:
-      virtual ~IVisitor()
-      {
-      }
-
-      virtual bool IsDicomAsJsonNeeded() const = 0;
-      
-      virtual void MarkAsComplete() = 0;
-
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson) = 0;
-    };
-
     LookupResource(ResourceType level);
 
     ~LookupResource();
