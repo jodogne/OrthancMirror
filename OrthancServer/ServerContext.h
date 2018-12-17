@@ -364,6 +364,7 @@ namespace Orthanc
 
     void Apply(ILookupVisitor& visitor,
                const ::Orthanc::LookupResource& lookup,
+               const DatabaseLookup& lookup2,
                size_t since,
                size_t limit);
 

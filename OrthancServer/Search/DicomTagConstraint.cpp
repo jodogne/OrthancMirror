@@ -97,13 +97,12 @@ namespace Orthanc
   DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
                                          ConstraintType type,
                                          const std::string& value,
-                                         bool caseSensitive) :
-    hasTagInfo_(false),
-    tagType_(DicomTagType_Generic),  // Dummy initialization
-    level_(ResourceType_Patient),    // Dummy initialization
+                                         bool caseSensitive,
+                                         bool mandatory) :
     tag_(tag),
     constraintType_(type),
-    caseSensitive_(caseSensitive)
+    caseSensitive_(caseSensitive),
+    mandatory_(mandatory)
   {
     if (type == ConstraintType_Equal ||
         type == ConstraintType_SmallerOrEqual ||
@@ -128,52 +127,16 @@ namespace Orthanc
 
   DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
                                          ConstraintType type,
-                                         bool caseSensitive) :
-    hasTagInfo_(false),
-    tagType_(DicomTagType_Generic),  // Dummy initialization
-    level_(ResourceType_Patient),    // Dummy initialization
+                                         bool caseSensitive,
+                                         bool mandatory) :
     tag_(tag),
     constraintType_(type),
-    caseSensitive_(caseSensitive)
+    caseSensitive_(caseSensitive),
+    mandatory_(mandatory)
   {
     if (type != ConstraintType_List)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  void DicomTagConstraint::SetTagInfo(DicomTagType tagType,
-                                      ResourceType level)
-  {
-    hasTagInfo_ = true;
-    tagType_ = tagType;
-    level_ = level;
-  }
-
-
-  DicomTagType DicomTagConstraint::GetTagType() const
-  {
-    if (!hasTagInfo_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return tagType_;
-    }
-  }
-
-
-  const ResourceType DicomTagConstraint::GetLevel() const
-  {
-    if (!hasTagInfo_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return level_;
     }
   }
 
@@ -268,8 +231,18 @@ namespace Orthanc
     const DicomValue* tmp = value.TestAndGetValue(tag_);
 
     if (tmp == NULL ||
-        tmp->IsNull() ||
-        tmp->IsBinary())
+        tmp->IsNull())
+    {
+      if (mandatory_)
+      {
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
+    else if (tmp->IsBinary())
     {
       return false;
     }

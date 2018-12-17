@@ -2452,4 +2452,29 @@ namespace Orthanc
       LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
     }
   }
+
+
+  void ServerIndex::ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                        std::vector<std::string>& instancesId,
+                                        const DatabaseLookup& lookup,
+                                        size_t limit)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    
+    db_.ApplyLookupPatients(patientsId, lookup, limit);
+    db_.FindOneChildInstance(instancesId, patientsId, ResourceType_Patient);
+  }
+
+  
+  void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                         std::vector<std::string>& instancesId,
+                                         const DatabaseLookup& lookup,
+                                         ResourceType queryLevel,
+                                         size_t limit)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    db_.ApplyLookupResources(resourcesId, lookup, queryLevel, limit);
+    db_.FindOneChildInstance(instancesId, resourcesId, queryLevel);
+  }
 }

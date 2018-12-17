@@ -34,11 +34,13 @@
 #pragma once
 
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/SQLite/ITransaction.h"
-#include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/FileStorage/FileInfo.h"
-#include "IDatabaseListener.h"
+#include "../Core/FileStorage/IStorageArea.h"
+#include "../Core/SQLite/ITransaction.h"
+
 #include "ExportedResource.h"
+#include "IDatabaseListener.h"
+#include "Search/DatabaseLookup.h"
 
 #include <list>
 #include <boost/noncopyable.hpp>
@@ -223,5 +225,18 @@ namespace Orthanc
                          IStorageArea& storageArea) = 0;
 
     virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
+
+    virtual void FindOneChildInstance(std::vector<std::string>& instancesId,
+                                      const std::vector<std::string>& resourcesId,
+                                      ResourceType level) = 0;
+
+    virtual void ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                     const DatabaseLookup& lookup,
+                                     size_t limit) = 0;
+
+    virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                      const DatabaseLookup& lookup,
+                                      ResourceType queryLevel,
+                                      size_t limit) = 0;
   };
 }
