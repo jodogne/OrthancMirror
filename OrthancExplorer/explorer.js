@@ -27,10 +27,10 @@ function DeepCopy(obj)
 
 function ChangePage(page, options)
 {
-  var first = true;
+  let first = true;
   if (options) {
-    for (var key in options) {
-      var value = options[key];
+    for (let key in options) {
+      let value = options[key];
       if (first) {
         page += '?';
         first = false;
@@ -63,7 +63,7 @@ function Refresh()
 
 
 $(document).ready(function() {
-  var $tree = $('#dicom-tree');
+  let $tree = $('#dicom-tree');
   $tree.tree({
     autoEscape: false
   });
@@ -124,7 +124,7 @@ function FormatDicomDate(s)
   if (s == undefined)
     return "No date";
 
-  var d = ParseDicomDate(s);
+  let d = ParseDicomDate(s);
   if (d == null)
     return '?';
   else
@@ -134,16 +134,16 @@ function FormatDicomDate(s)
 
 function Sort(arr, fieldExtractor, isInteger, reverse)
 {
-  var defaultValue;
+  let defaultValue;
   if (isInteger)
     defaultValue = 0;
   else
     defaultValue = '';
 
   arr.sort(function(a, b) {
-    var ta = fieldExtractor(a);
-    var tb = fieldExtractor(b);
-    var order;
+    let ta = fieldExtractor(a);
+    let tb = fieldExtractor(b);
+    let order;
 
     if (ta == undefined)
       ta = defaultValue;
@@ -226,11 +226,11 @@ function CompleteFormatting(node, link, isReverse, count)
 
 function FormatMainDicomTags(target, tags, tagsToIgnore)
 {
-  for (var i in tags)
+  for (let i in tags)
   {
     if (tagsToIgnore.indexOf(i) == -1)
     {
-      var v = tags[i];
+      let v = tags[i];
 
       if (i == "PatientBirthDate" ||
           i == "StudyDate" ||
@@ -254,7 +254,7 @@ function FormatMainDicomTags(target, tags, tagsToIgnore)
 
 function FormatPatient(patient, link, isReverse)
 {
-  var node = $('<div>').append($('<h3>').text(patient.MainDicomTags.PatientName));
+  let node = $('<div>').append($('<h3>').text(patient.MainDicomTags.PatientName));
 
   FormatMainDicomTags(node, patient.MainDicomTags, [ 
     "PatientName"
@@ -268,7 +268,7 @@ function FormatPatient(patient, link, isReverse)
 
 function FormatStudy(study, link, isReverse, includePatient)
 {
-  var label;
+  let label;
 
   if (includePatient) {
     label = study.Label;
@@ -276,7 +276,7 @@ function FormatStudy(study, link, isReverse, includePatient)
     label = study.MainDicomTags.StudyDescription;
   }
 
-  var node = $('<div>').append($('<h3>').text(label));
+  let node = $('<div>').append($('<h3>').text(label));
 
   if (includePatient) {
     FormatMainDicomTags(node, study.PatientMainDicomTags, [ 
@@ -296,7 +296,7 @@ function FormatStudy(study, link, isReverse, includePatient)
 
 function FormatSeries(series, link, isReverse)
 {
-  var c;
+  let c;
   if (series.ExpectedNumberOfInstances == null ||
       series.Instances.length == series.ExpectedNumberOfInstances)
   {
@@ -307,7 +307,7 @@ function FormatSeries(series, link, isReverse)
     c = series.Instances.length + '/' + series.ExpectedNumberOfInstances;
   }
   
-  var node = $('<div>')
+  let node = $('<div>')
       .append($('<h3>').text(series.MainDicomTags.SeriesDescription))
       .append($('<p>').append($('<em>')
                            .text('Status: ')
@@ -328,7 +328,7 @@ function FormatSeries(series, link, isReverse)
 
 function FormatInstance(instance, link, isReverse)
 {
-  var node = $('<div>').append($('<h3>').text('Instance: ' + instance.IndexInSeries));
+  let node = $('<div>').append($('<h3>').text('Instance: ' + instance.IndexInSeries));
 
   FormatMainDicomTags(node, instance.MainDicomTags, [
     "AcquisitionNumber", 
@@ -364,7 +364,7 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 $('#lookup').live('pagebeforeshow', function() {
   // NB: "GenerateDicomDate()" is defined in "query-retrieve.js"
-  var target = $('#lookup-study-date');
+  let target = $('#lookup-study-date');
   $('option', target).remove();
   target.append($('<option>').attr('value', '*').text('Any date'));
   target.append($('<option>').attr('value', GenerateDicomDate(0)).text('Today'));
@@ -382,7 +382,7 @@ $('#lookup').live('pagebeforeshow', function() {
 $('#lookup-submit').live('click', function() {
   $('#lookup-result').hide();
 
-  var lookup = {
+  let lookup = {
     'Level' : 'Study',
     'Expand' : true,
     'Limit' : LIMIT_RESOURCES + 1,
@@ -432,12 +432,12 @@ $('#lookup-submit').live('click', function() {
 
 $('#find-patients').live('pagebeforeshow', function() {
   GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(patients) {
-    var target = $('#all-patients');
+    let target = $('#all-patients');
     $('li', target).remove();
     
     SortOnDicomTag(patients, 'PatientName', false, false);
 
-    var count, showAlert;
+    let count, showAlert;
     if (patients.length <= LIMIT_RESOURCES) {
       count = patients.length;
       showAlert = false;
@@ -447,8 +447,8 @@ $('#find-patients').live('pagebeforeshow', function() {
       showAlert = true;
     }
 
-    for (var i = 0; i < count; i++) {
-      var p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
+    for (let i = 0; i < count; i++) {
+      let p = FormatPatient(patients[i], '#patient?uuid=' + patients[i].ID);
       target.append(p);
     }
 
@@ -467,14 +467,14 @@ $('#find-patients').live('pagebeforeshow', function() {
 
 function FormatListOfStudies(targetId, alertId, countId, studies)
 {
-  var target = $(targetId);
+  let target = $(targetId);
   $('li', target).remove();
 
-  for (var i = 0; i < studies.length; i++) {
-    var patient = studies[i].PatientMainDicomTags.PatientName;
-    var study = studies[i].MainDicomTags.StudyDescription;
+  for (let i = 0; i < studies.length; i++) {
+    let patient = studies[i].PatientMainDicomTags.PatientName;
+    let study = studies[i].MainDicomTags.StudyDescription;
 
-    var s;
+    let s;
     if (typeof patient === 'string') {
       s = patient;
     }
@@ -493,7 +493,7 @@ function FormatListOfStudies(targetId, alertId, countId, studies)
   Sort(studies, function(a) { return a.Label }, false, false);
 
 
-  var count, showAlert;
+  let count, showAlert;
   if (studies.length <= LIMIT_RESOURCES) {
     count = studies.length;
     showAlert = false;
@@ -503,8 +503,8 @@ function FormatListOfStudies(targetId, alertId, countId, studies)
     showAlert = true;
   }
 
-  for (var i = 0; i < count; i++) {
-    var p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
+  for (let i = 0; i < count; i++) {
+    let p = FormatStudy(studies[i], '#study?uuid=' + studies[i].ID, false, true);
     target.append(p);
   }
 
@@ -547,7 +547,7 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
 function RefreshPatient()
 {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     GetResource('/patients/' + pageData.uuid, function(patient) {
       GetResource('/patients/' + pageData.uuid + '/studies', function(studies) {
@@ -559,10 +559,10 @@ function RefreshPatient()
           .append(FormatPatient(patient))
           .listview('refresh');
 
-        var target = $('#list-studies');
+        let target = $('#list-studies');
         $('li', target).remove();
         
-        for (var i = 0; i < studies.length; i++) {
+        for (let i = 0; i < studies.length; i++) {
           if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
           {
             target.append($('<li>')
@@ -586,7 +586,7 @@ function RefreshPatient()
           async: false,
           cache: false,
           success: function (s) {
-            var v = (s == '1') ? 'on' : 'off';
+            let v = (s == '1') ? 'on' : 'off';
             $('#protection').val(v).slider('refresh');
           }
         });
@@ -602,7 +602,7 @@ function RefreshPatient()
 function RefreshStudy()
 {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     GetResource('/studies/' + pageData.uuid, function(study) {
       GetResource('/patients/' + study.ParentPatient, function(patient) {
@@ -621,9 +621,9 @@ function RefreshStudy()
           SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
           SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
 
-          var target = $('#list-series');
+          let target = $('#list-series');
           $('li', target).remove();
-          for (var i = 0; i < series.length; i++) {
+          for (let i = 0; i < series.length; i++) {
             if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
             {
               target.append($('<li>')
@@ -647,7 +647,7 @@ function RefreshStudy()
 function RefreshSeries() 
 {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     GetResource('/series/' + pageData.uuid, function(series) {
       GetResource('/studies/' + series.ParentStudy, function(study) {
@@ -671,9 +671,9 @@ function RefreshSeries()
             SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
             SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
 
-            var target = $('#list-instances');
+            let target = $('#list-instances');
             $('li', target).remove();
-            for (var i = 0; i < instances.length; i++) {
+            for (let i = 0; i < instances.length; i++) {
               target.append(FormatInstance(instances[i], '#instance?uuid=' + instances[i].ID));
             }
             target.listview('refresh');
@@ -690,7 +690,7 @@ function RefreshSeries()
 
 function EscapeHtml(value)
 {
-  var ENTITY_MAP = {
+  let ENTITY_MAP = {
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
@@ -709,11 +709,11 @@ function EscapeHtml(value)
 
 function ConvertForTree(dicom)
 {
-  var result = [];
+  let result = [];
 
-  for (var i in dicom) {
+  for (let i in dicom) {
     if (dicom[i] != null) {
-      var label = (i + '<span class="tag-name"> (<i>' +
+      let label = (i + '<span class="tag-name"> (<i>' +
                    EscapeHtml(dicom[i]["Name"]) +
                    '</i>)</span>: ');
 
@@ -740,8 +740,8 @@ function ConvertForTree(dicom)
       }
       else if (dicom[i]["Type"] == 'Sequence')
       {
-        var c = [];
-        for (var j = 0; j < dicom[i]["Value"].length; j++) {
+        let c = [];
+        for (let j = 0; j < dicom[i]["Value"].length; j++) {
           c.push({
             label: 'Item ' + j,
             children: ConvertForTree(dicom[i]["Value"][j])
@@ -763,7 +763,7 @@ function ConvertForTree(dicom)
 function RefreshInstance()
 {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     GetResource('/instances/' + pageData.uuid, function(instance) {
       GetResource('/series/' + instance.ParentSeries, function(series) {
@@ -837,7 +837,7 @@ function DeleteResource(path)
     dataType: 'json',
     async: false,
     success: function(s) {
-      var ancestor = s.RemainingAncestor;
+      let ancestor = s.RemainingAncestor;
       if (ancestor == null)
         $.mobile.changePage('#lookup');
       else
@@ -913,9 +913,9 @@ $('#instance-download-json').live('click', function(e) {
 
 $('#instance-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
-    var pdf = '../instances/' + pageData.uuid + '/pdf';
+    let pdf = '../instances/' + pageData.uuid + '/pdf';
     $.ajax({
       url: pdf,
       cache: false,
@@ -937,8 +937,8 @@ $('#instance-preview').live('click', function(e) {
           {
             // Viewing a multi-frame image
 
-            var images = [];
-            for (var i = 0; i < frames.length; i++) {
+            let images = [];
+            for (let i = 0; i < frames.length; i++) {
               images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview' ]);
             }
 
@@ -959,14 +959,14 @@ $('#instance-preview').live('click', function(e) {
 
 $('#series-preview').live('click', function(e) {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     GetResource('/series/' + pageData.uuid, function(series) {
       GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
         Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
-        var images = [];
-        for (var i = 0; i < instances.length; i++) {
+        let images = [];
+        for (let i = 0; i < instances.length; i++) {
           images.push([ '../instances/' + instances[i].ID + '/preview',
                         (i + 1).toString() + '/' + instances.length.toString() ])
         }
@@ -988,9 +988,9 @@ $('#series-preview').live('click', function(e) {
 
 function ChooseDicomModality(callback)
 {
-  var clickedModality = '';
-  var clickedPeer = '';
-  var items = $('<ul>')
+  let clickedModality = '';
+  let clickedPeer = '';
+  let items = $('<ul>')
     .attr('data-divider-theme', 'd')
     .attr('data-role', 'listview');
 
@@ -1006,9 +1006,9 @@ function ChooseDicomModality(callback)
       {
         items.append('<li data-role="list-divider">DICOM modalities</li>');
 
-        for (var i = 0; i < modalities.length; i++) {
-          var name = modalities[i];
-          var item = $('<li>')
+        for (let i = 0; i < modalities.length; i++) {
+          let name = modalities[i];
+          let item = $('<li>')
             .html('<a href="#" rel="close">' + name + '</a>')
             .attr('name', name)
             .click(function() { 
@@ -1030,9 +1030,9 @@ function ChooseDicomModality(callback)
           {
             items.append('<li data-role="list-divider">Orthanc peers</li>');
 
-            for (var i = 0; i < peers.length; i++) {
-              var name = peers[i];
-              var item = $('<li>')
+            for (let i = 0; i < peers.length; i++) {
+              let name = peers[i];
+              let item = $('<li>')
                 .html('<a href="#" rel="close">' + name + '</a>')
                 .attr('name', name)
                 .click(function() { 
@@ -1052,7 +1052,7 @@ function ChooseDicomModality(callback)
             width: '100%',
             blankContent: items,
             callbackClose: function() {
-              var timer;
+              let timer;
               function WaitForDialogToClose() {
                 if (!$('#dialog').is(':visible')) {
                   clearInterval(timer);
@@ -1071,10 +1071,10 @@ function ChooseDicomModality(callback)
 
 $('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
   ChooseDicomModality(function(modality, peer) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
-    var url;
-    var loading;
+    let url;
+    let loading;
 
     if (modality != '')
     {
@@ -1113,7 +1113,7 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
 
 
 $('#show-tag-name').live('change', function(e) {
-  var checked = e.currentTarget.checked;
+  let checked = e.currentTarget.checked;
   if (checked)
     $('.tag-name').show();
   else
@@ -1155,7 +1155,7 @@ $('#series-media').live('click', function(e) {
 
 
 $('#protection').live('change', function(e) {
-  var isProtected = e.target.value == "on";
+  let isProtected = e.target.value == "on";
   $.ajax({
     url: '../patients/' + $.mobile.pageData.uuid + '/protected',
     type: 'PUT',
@@ -1233,7 +1233,7 @@ $('#plugins').live('pagebeforeshow', function() {
     async: false,
     cache: false,
     success: function(plugins) {
-      var target = $('#all-plugins');
+      let target = $('#all-plugins');
       $('li', target).remove();
 
       plugins.map(function(id) {
@@ -1243,8 +1243,8 @@ $('#plugins').live('pagebeforeshow', function() {
           async: false,
           cache: false,
           success: function(plugin) {
-            var li = $('<li>');
-            var item = li;
+            let li = $('<li>');
+            let item = li;
 
             if ('RootUri' in plugin)
             {
@@ -1272,12 +1272,12 @@ $('#plugins').live('pagebeforeshow', function() {
 
 function ParseJobTime(s)
 {
-  var t = (s.substr(0, 4) + '-' +
+  let t = (s.substr(0, 4) + '-' +
            s.substr(4, 2) + '-' +
            s.substr(6, 5) + ':' +
            s.substr(11, 2) + ':' +
            s.substr(13));
-  var utc = new Date(t);
+  let utc = new Date(t);
 
   // Convert from UTC to local time
   return new Date(utc.getTime() - utc.getTimezoneOffset() * 60000);
@@ -1311,18 +1311,18 @@ $('#jobs').live('pagebeforeshow', function() {
     async: false,
     cache: false,
     success: function(jobs) {
-      var target = $('#all-jobs');
+      let target = $('#all-jobs');
       $('li', target).remove();
 
-      var running = $('<li>')
+      let running = $('<li>')
           .attr('data-role', 'list-divider')
           .text('Currently running');
 
-      var pending = $('<li>')
+      let pending = $('<li>')
           .attr('data-role', 'list-divider')
           .text('Pending jobs');
 
-      var inactive = $('<li>')
+      let inactive = $('<li>')
           .attr('data-role', 'list-divider')
           .text('Inactive jobs');
 
@@ -1331,8 +1331,8 @@ $('#jobs').live('pagebeforeshow', function() {
       target.append(inactive);
 
       jobs.map(function(job) {
-        var li = $('<li>');
-        var item = $('<a>');
+        let li = $('<li>');
+        let item = $('<a>');
         li.append(item);
         item.attr('href', '#job?uuid=' + job.ID);
         item.append($('<h1>').text(job.Type));
@@ -1369,7 +1369,7 @@ $('#jobs').live('pagebeforeshow', function() {
 
 $('#job').live('pagebeforeshow', function() {
   if ($.mobile.pageData) {
-    var pageData = DeepCopy($.mobile.pageData);
+    let pageData = DeepCopy($.mobile.pageData);
 
     $.ajax({
       url: '../jobs/' + pageData.uuid,
@@ -1377,15 +1377,15 @@ $('#job').live('pagebeforeshow', function() {
       async: false,
       cache: false,
       success: function(job) {
-        var target = $('#job-info');
+        let target = $('#job-info');
         $('li', target).remove();
 
         target.append($('<li>')
                       .attr('data-role', 'list-divider')
                       .text('General information about the job'));
 
-        var block = $('<li>');
-        for (var i in job) {
+        let block = $('<li>');
+        for (let i in job) {
           if (i == 'CreationTime' ||
               i == 'CompletionTime' ||
               i == 'EstimatedTimeOfArrival') {
@@ -1403,10 +1403,10 @@ $('#job').live('pagebeforeshow', function() {
                       .attr('data-role', 'list-divider')
                       .text('Detailed information'));
 
-        var block = $('<li>');
+        let block = $('<li>');
 
-        for (var item in job.Content) {
-          var value = job.Content[item];
+        for (let item in job.Content) {
+          let value = job.Content[item];
           if (typeof value !== 'string') {
             value = JSON.stringify(value);
           }
