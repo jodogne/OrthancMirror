@@ -40,44 +40,12 @@ namespace Orthanc
   class DatabaseLookup : public boost::noncopyable
   {
   private:
-    class TagInfo
-    {
-    private:
-      DicomTagType  type_;
-      ResourceType  level_;
-
-    public:
-      TagInfo() :
-        type_(DicomTagType_Generic),
-        level_(ResourceType_Instance)
-      {
-      }
-
-      TagInfo(DicomTagType type,
-              ResourceType level) :
-        type_(type),
-        level_(level)
-      {
-      }
-
-      DicomTagType GetType() const
-      {
-        return type_;
-      }
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-    };
-
     std::vector<DicomTagConstraint*>  constraints_;
-    std::map<DicomTag, TagInfo>       tags_;
-
-    void LoadTags(ResourceType level);
 
   public:
-    DatabaseLookup();
+    DatabaseLookup()
+    {
+    }
 
     ~DatabaseLookup();
 
@@ -99,6 +67,7 @@ namespace Orthanc
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,
-                            bool caseSensitivePN);
+                            bool caseSensitivePN,
+                            bool mandatoryTag);
   };
 }

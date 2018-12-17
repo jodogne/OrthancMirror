@@ -292,5 +292,16 @@ namespace Orthanc
                       ResourceType parentType);
 
     void ReconstructInstance(ParsedDicomFile& dicom);
+
+    void ApplyLookupPatients(std::vector<std::string>& patientsId,
+                             std::vector<std::string>& instancesId,
+                             const DatabaseLookup& lookup,
+                             size_t limit);
+
+    void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                              std::vector<std::string>& instancesId,
+                              const DatabaseLookup& lookup,
+                              ResourceType queryLevel,
+                              size_t limit);
   };
 }

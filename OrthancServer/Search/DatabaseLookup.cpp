@@ -39,50 +39,6 @@
 
 namespace Orthanc
 {
-  void DatabaseLookup::LoadTags(ResourceType level)
-  {
-    const DicomTag* tags = NULL;
-    size_t size;
-    
-    ServerToolbox::LoadIdentifiers(tags, size, level);
-    
-    for (size_t i = 0; i < size; i++)
-    {
-      if (tags_.find(tags[i]) == tags_.end())
-      {
-        tags_[tags[i]] = TagInfo(DicomTagType_Identifier, level);
-      }
-      else
-      {
-        // These patient-level tags are copied in the study level
-        assert(level == ResourceType_Study &&
-               (tags[i] == DICOM_TAG_PATIENT_ID ||
-                tags[i] == DICOM_TAG_PATIENT_NAME ||
-                tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
-      }
-    }
-    
-    DicomMap::LoadMainDicomTags(tags, size, level);
-    
-    for (size_t i = 0; i < size; i++)
-    {
-      if (tags_.find(tags[i]) == tags_.end())
-      {
-        tags_[tags[i]] = TagInfo(DicomTagType_Main, level);
-      }
-    }
-  }
-
-
-  DatabaseLookup::DatabaseLookup()
-  {
-    LoadTags(ResourceType_Patient);
-    LoadTags(ResourceType_Study);
-    LoadTags(ResourceType_Series);
-    LoadTags(ResourceType_Instance);
-  }
-
-
   DatabaseLookup::~DatabaseLookup()
   {
     for (size_t i = 0; i < constraints_.size(); i++)
@@ -116,17 +72,6 @@ namespace Orthanc
     else
     {
       constraints_.push_back(constraint);
-
-      std::map<DicomTag, TagInfo>::const_iterator tag = tags_.find(constraint->GetTag());
-
-      if (tag == tags_.end())
-      {
-        constraint->SetTagInfo(DicomTagType_Generic, ResourceType_Instance);
-      }
-      else
-      {
-        constraint->SetTagInfo(tag->second.GetType(), tag->second.GetLevel());
-      }
     }
   }
 
@@ -148,7 +93,8 @@ namespace Orthanc
 
   void DatabaseLookup::AddDicomConstraint(const DicomTag& tag,
                                           const std::string& dicomQuery,
-                                          bool caseSensitivePN)
+                                          bool caseSensitivePN,
+                                          bool mandatoryTag)
   {
     ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
 
@@ -214,13 +160,13 @@ namespace Orthanc
       if (!lower.empty())
       {
         AddConstraint(new DicomTagConstraint
-                      (tag, ConstraintType_GreaterOrEqual, lower, caseSensitive));
+                      (tag, ConstraintType_GreaterOrEqual, lower, caseSensitive, mandatoryTag));
       }
 
       if (!upper.empty())
       {
         AddConstraint(new DicomTagConstraint
-                      (tag, ConstraintType_SmallerOrEqual, upper, caseSensitive));
+                      (tag, ConstraintType_SmallerOrEqual, upper, caseSensitive, mandatoryTag));
       }
     }
     else if (dicomQuery.find('\\') != std::string::npos)
@@ -235,7 +181,7 @@ namespace Orthanc
       }
 
       std::auto_ptr<DicomTagConstraint> constraint
-        (new DicomTagConstraint(fixedTag, ConstraintType_List, caseSensitive));
+        (new DicomTagConstraint(fixedTag, ConstraintType_List, caseSensitive, mandatoryTag));
 
       std::vector<std::string> items;
       Toolbox::TokenizeString(items, dicomQuery, '\\');
@@ -251,12 +197,12 @@ namespace Orthanc
              dicomQuery.find('?') != std::string::npos)
     {
       AddConstraint(new DicomTagConstraint
-                    (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive));
+                    (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive, mandatoryTag));
     }
     else
     {
       AddConstraint(new DicomTagConstraint
-                    (tag, ConstraintType_Equal, dicomQuery, caseSensitive));
+                    (tag, ConstraintType_Equal, dicomQuery, caseSensitive, mandatoryTag));
     }
   }
 }
