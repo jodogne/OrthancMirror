@@ -40,6 +40,7 @@
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
 #include "../OrthancConfiguration.h"
+#include "../Search/DatabaseLookup.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
@@ -1403,6 +1404,7 @@ namespace Orthanc
       std::string level = request[KEY_LEVEL].asString();
 
       LookupResource query(StringToResourceType(level.c_str()));
+      DatabaseLookup query2;
 
       Json::Value::Members members = request[KEY_QUERY].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -1416,10 +1418,13 @@ namespace Orthanc
         query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
                                  request[KEY_QUERY][members[i]].asString(),
                                  caseSensitive);
+        query2.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                  request[KEY_QUERY][members[i]].asString(),
+                                  caseSensitive, true);
       }
 
       FindVisitor visitor;
-      context.Apply(visitor, query, since, limit);
+      context.Apply(visitor, query, query2, since, limit);
       visitor.Answer(call.GetOutput(), context.GetIndex(), query.GetLevel(), expand);
     }
   }

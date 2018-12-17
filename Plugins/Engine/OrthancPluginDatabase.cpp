@@ -1160,4 +1160,29 @@ namespace Orthanc
       return currentDiskSize_ > threshold;
     }      
   }
+
+
+  void OrthancPluginDatabase::FindOneChildInstance(std::vector<std::string>& instancesId,
+                                                   const std::vector<std::string>& resourcesId,
+                                                   ResourceType level)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+
+  void OrthancPluginDatabase::ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                                  const DatabaseLookup& lookup,
+                                                  size_t limit)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+  
+
+  void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& patientsId,
+                                                   const DatabaseLookup& lookup,
+                                                   ResourceType queryLevel,
+                                                   size_t limit)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
 }

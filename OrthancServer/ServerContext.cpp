@@ -775,6 +775,7 @@ namespace Orthanc
 
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const ::Orthanc::LookupResource& lookup,
+                            const DatabaseLookup& lookup2,
                             size_t since,
                             size_t limit)
   {
@@ -810,6 +811,34 @@ namespace Orthanc
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
+#if 1
+    {
+      std::vector<std::string> resources2, instances2;
+
+      if (lookup.GetLevel() == ResourceType_Patient)
+      {
+        GetIndex().ApplyLookupPatients(resources2, instances2, lookup2, limit /* TODO */);
+      }
+      else
+      {
+        GetIndex().ApplyLookupResources(resources2, instances2, lookup2, lookup.GetLevel(), limit /* TODO */);
+      }
+
+      std::set<std::string> r;
+      for (size_t i = 0; i < resources2.size(); i++)
+      {
+        r.insert(resources[i]);
+      }
+
+      assert(r.size() == resources.size());
+      
+      for (size_t i = 0; i < resources.size(); i++)
+      {
+        assert(r.find(resources[i]) != r.end());
+      }
+    }
+#endif
+    
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
     assert(resources.size() == instances.size());

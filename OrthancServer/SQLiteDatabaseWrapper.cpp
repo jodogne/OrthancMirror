@@ -54,7 +54,7 @@ namespace Orthanc
 
     public:
       SignalFileDeleted(IDatabaseListener& listener) :
-      listener_(listener)
+        listener_(listener)
       {
       }
 
@@ -101,7 +101,7 @@ namespace Orthanc
 
     public:
       SignalResourceDeleted(IDatabaseListener& listener) :
-      listener_(listener)
+        listener_(listener)
       {
       }
 
@@ -1200,5 +1200,248 @@ namespace Orthanc
   bool SQLiteDatabaseWrapper::IsDiskSizeAbove(uint64_t threshold)
   {
     return GetTotalCompressedSize() > threshold;
+  }
+
+
+  namespace
+  {
+    class MainDicomTagsRegistry : public boost::noncopyable
+    {
+    private:
+      class TagInfo
+      {
+      private:
+        ResourceType  level_;
+        DicomTagType  type_;
+
+      public:
+        TagInfo()
+        {
+        }
+
+        TagInfo(ResourceType level,
+                DicomTagType type) :
+          level_(level),
+          type_(type)
+        {
+        }
+
+        ResourceType GetLevel() const
+        {
+          return level_;
+        }
+
+        DicomTagType GetType() const
+        {
+          return type_;
+        }
+      };
+      
+      typedef std::map<DicomTag, TagInfo>   Registry;
+
+
+      Registry  registry_;
+      
+      void LoadTags(ResourceType level)
+      {
+        const DicomTag* tags = NULL;
+        size_t size;
+  
+        ServerToolbox::LoadIdentifiers(tags, size, level);
+  
+        for (size_t i = 0; i < size; i++)
+        {
+          if (registry_.find(tags[i]) == registry_.end())
+          {
+            registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
+          }
+          else
+          {
+            // These patient-level tags are copied in the study level
+            assert(level == ResourceType_Study &&
+                   (tags[i] == DICOM_TAG_PATIENT_ID ||
+                    tags[i] == DICOM_TAG_PATIENT_NAME ||
+                    tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+          }
+        }
+  
+        DicomMap::LoadMainDicomTags(tags, size, level);
+  
+        for (size_t i = 0; i < size; i++)
+        {
+          if (registry_.find(tags[i]) == registry_.end())
+          {
+            registry_[tags[i]] = TagInfo(level, DicomTagType_Main);
+          }
+        }
+      }
+
+    public:
+      MainDicomTagsRegistry()
+      {
+        LoadTags(ResourceType_Patient);
+        LoadTags(ResourceType_Study);
+        LoadTags(ResourceType_Series);
+        LoadTags(ResourceType_Instance); 
+      }
+
+      void LookupTag(ResourceType& level,
+                     DicomTagType& type,
+                     const DicomTag& tag) const
+      {
+        Registry::const_iterator it = registry_.find(tag);
+
+        if (it == registry_.end())
+        {
+          // Default values
+          level = ResourceType_Instance;
+          type = DicomTagType_Generic;
+        }
+        else
+        {
+          level = it->second.GetLevel();
+          type = it->second.GetType();
+        }
+      }
+    };
+  }
+  
+
+  void SQLiteDatabaseWrapper::FindOneChildInstance(std::vector<std::string>& instancesId,
+                                                   const std::vector<std::string>& resourcesId,
+                                                   ResourceType level)
+  {
+    printf("ICI 3\n");
+
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+
+
+  void SQLiteDatabaseWrapper::ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                                  const DatabaseLookup& lookup,
+                                                  size_t limit)
+  {
+    static const MainDicomTagsRegistry registry;
+    
+    printf("ICI 1\n");
+
+    std::string heading = "SELECT patient.publicId FROM Resources AS patient ";
+    std::string trailer;
+    std::vector<std::string> parameters;
+
+    for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
+    {
+      const DicomTagConstraint& constraint = lookup.GetConstraint(i);
+      
+      ResourceType level;
+      DicomTagType type;
+      registry.LookupTag(level, type, constraint.GetTag());
+
+      if (level != ResourceType_Patient)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Not a patient-level tag: (" +
+                               lookup.GetConstraint(i).GetTag().Format() + ")");
+      }
+
+      if (type == DicomTagType_Identifier ||
+          type == DicomTagType_Main)
+      {
+        std::string table = (type == DicomTagType_Identifier ? "DicomIdentifiers" : "MainDicomTags");
+        std::string tag = "t" + boost::lexical_cast<std::string>(i);
+
+        char on[128];
+        sprintf(on, " %s ON %s.id = patient.internalId AND %s.tagGroup = 0x%04x AND %s.tagElement = 0x%04x ",
+                tag.c_str(), tag.c_str(), tag.c_str(), constraint.GetTag().GetGroup(),
+                tag.c_str(), constraint.GetTag().GetElement());
+        
+        if (constraint.IsMandatory())
+        {
+          heading += "INNER JOIN " + table + std::string(on);
+        }
+        else
+        {
+          heading += "LEFT JOIN " + table + std::string(on);
+        }
+
+        trailer += "AND (";
+
+        if (!constraint.IsMandatory())
+        {
+          trailer += tag + ".value IS NULL OR ";
+        }
+
+        if (constraint.IsCaseSensitive())
+        {
+          trailer += tag + ".value ";
+        }
+        else
+        {
+          trailer += "lower(" + tag + ".value) ";
+        }
+
+        switch (constraint.GetType())
+        {
+          case ConstraintType_Equal:
+            parameters.push_back(constraint.GetValue());
+            
+            if (constraint.IsCaseSensitive())
+            {
+              trailer += "= ?";
+            }
+            else
+            {
+              trailer += "= lower(?)";
+            }
+
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        trailer += ") ";
+      }
+    }
+
+    if (limit != 0)
+    {
+      trailer += " LIMIT " + boost::lexical_cast<std::string>(limit);
+    }
+
+    std::string sql = (heading + "WHERE patient.resourceType = " +
+                       boost::lexical_cast<std::string>(ResourceType_Patient) + " " + trailer);
+
+    SQLite::Statement s(db_, sql);
+
+    printf("[%s]\n", sql.c_str());
+
+    for (size_t i = 0; i < parameters.size(); i++)
+    {
+      printf("   %d = '%s'\n", i, parameters[i].c_str());
+      s.BindString(i, parameters[i]);
+    }
+
+    patientsId.clear();
+
+    while (s.Step())
+    {
+      std::string publicId = s.ColumnString(0);
+      patientsId.push_back(publicId);
+      printf("** [%s]\n", publicId.c_str());
+    }
+    
+    throw OrthancException(ErrorCode_NotImplemented);
+  }
+  
+
+  void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                                   const DatabaseLookup& lookup,
+                                                   ResourceType queryLevel,
+                                                   size_t limit)
+  {
+    printf("ICI 2\n");
+    
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 }

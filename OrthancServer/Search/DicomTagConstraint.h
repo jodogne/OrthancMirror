@@ -46,13 +46,11 @@ namespace Orthanc
     class NormalizedString;
     class RegularExpression;
 
-    bool                    hasTagInfo_;
-    DicomTagType            tagType_;
-    ResourceType            level_;
     DicomTag                tag_;
     ConstraintType          constraintType_;
     std::set<std::string>   values_;
     bool                    caseSensitive_;
+    bool                    mandatory_;
 
     boost::shared_ptr<RegularExpression>  regex_;
 
@@ -60,30 +58,21 @@ namespace Orthanc
     DicomTagConstraint(const DicomTag& tag,
                        ConstraintType type,
                        const std::string& value,
-                       bool caseSensitive);
+                       bool caseSensitive,
+                       bool mandatory);
 
+    // For list search
     DicomTagConstraint(const DicomTag& tag,
                        ConstraintType type,
-                       bool caseSensitive);
-
-    bool HasTagInfo() const
-    {
-      return hasTagInfo_;
-    }
-
-    void SetTagInfo(DicomTagType tagType,
-                    ResourceType level);
-
-    DicomTagType GetTagType() const;
-
-    const ResourceType GetLevel() const;
+                       bool caseSensitive,
+                       bool mandatory);
 
     const DicomTag& GetTag() const
     {
       return tag_;
     }
 
-    ConstraintType GetConstraintType() const
+    ConstraintType GetType() const
     {
       return constraintType_;
     }
@@ -91,6 +80,11 @@ namespace Orthanc
     bool IsCaseSensitive() const
     {
       return caseSensitive_;
+    }
+
+    bool IsMandatory() const
+    {
+      return mandatory_;
     }
 
     void AddValue(const std::string& value);
