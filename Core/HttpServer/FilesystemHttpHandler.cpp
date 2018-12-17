@@ -163,6 +163,7 @@ namespace Orthanc
     if (SystemToolbox::IsRegularFile(p.string()))
     {
       FilesystemHttpSender sender(p);
+      sender.SetContentType(SystemToolbox::AutodetectMimeType(p.string()));
       output.Answer(sender);   // TODO COMPRESSION
     }
     else if (listDirectoryContent_ &&
