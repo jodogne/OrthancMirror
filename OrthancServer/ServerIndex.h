@@ -59,6 +59,7 @@ namespace Orthanc
     class Listener;
     class Transaction;
     class UnstableResourcePayload;
+    class MainDicomTagsRegistry;
 
     bool done_;
     boost::mutex mutex_;
@@ -72,6 +73,7 @@ namespace Orthanc
     uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
     bool         overwrite_;
+    std::auto_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
@@ -124,6 +126,10 @@ namespace Orthanc
                              int64_t instance,
                              MetadataType metadata,
                              const std::string& value);
+
+    void NormalizeLookup(DatabaseLookup& target,
+                         const DatabaseLookup& source,
+                         ResourceType level) const;
 
   public:
     ServerIndex(ServerContext& context,

@@ -226,15 +226,13 @@ namespace Orthanc
 
     virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
 
-    virtual void FindOneChildInstance(std::vector<std::string>& instancesId,
-                                      const std::vector<std::string>& resourcesId,
-                                      ResourceType level) = 0;
-
     virtual void ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                     std::vector<std::string>& instancesId,
                                      const DatabaseLookup& lookup,
                                      size_t limit) = 0;
 
     virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                      std::vector<std::string>& instancesId,
                                       const DatabaseLookup& lookup,
                                       ResourceType queryLevel,
                                       size_t limit) = 0;

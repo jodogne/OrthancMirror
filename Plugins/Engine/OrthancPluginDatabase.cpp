@@ -1162,15 +1162,8 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::FindOneChildInstance(std::vector<std::string>& instancesId,
-                                                   const std::vector<std::string>& resourcesId,
-                                                   ResourceType level)
-  {
-    throw OrthancException(ErrorCode_NotImplemented);
-  }
-
-
   void OrthancPluginDatabase::ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                                  std::vector<std::string>& instancesId,
                                                   const DatabaseLookup& lookup,
                                                   size_t limit)
   {
@@ -1179,6 +1172,7 @@ namespace Orthanc
   
 
   void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& patientsId,
+                                                   std::vector<std::string>& instancesId,
                                                    const DatabaseLookup& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)

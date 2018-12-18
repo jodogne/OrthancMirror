@@ -1418,9 +1418,9 @@ namespace Orthanc
         query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
                                  request[KEY_QUERY][members[i]].asString(),
                                  caseSensitive);
-        query2.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                  request[KEY_QUERY][members[i]].asString(),
-                                  caseSensitive, true);
+        query2.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                 request[KEY_QUERY][members[i]].asString(),
+                                 caseSensitive, true);
       }
 
       FindVisitor visitor;
