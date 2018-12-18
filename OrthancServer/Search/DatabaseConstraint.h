@@ -33,76 +33,63 @@
 
 #pragma once
 
-#include "../ServerEnumerations.h"
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <boost/shared_ptr.hpp>
+#include "DicomTagConstraint.h"
 
 namespace Orthanc
 {
-  class DicomTagConstraint : public boost::noncopyable
+  class DatabaseConstraint
   {
   private:
-    class NormalizedString;
-    class RegularExpression;
-
-    DicomTag                tag_;
-    ConstraintType          constraintType_;
-    std::set<std::string>   values_;
-    bool                    caseSensitive_;
-    bool                    mandatory_;
-
-    boost::shared_ptr<RegularExpression>  regex_;
+    ResourceType              level_;
+    DicomTag                  tag_;
+    bool                      isIdentifier_;
+    ConstraintType            constraintType_;
+    std::vector<std::string>  values_;
+    bool                      caseSensitive_;
+    bool                      mandatory_;
 
   public:
-    DicomTagConstraint(const DicomTag& tag,
-                       ConstraintType type,
-                       const std::string& value,
-                       bool caseSensitive,
-                       bool mandatory);
+    DatabaseConstraint(const DicomTagConstraint& constraint,
+                       ResourceType level,
+                       DicomTagType tagType);
 
-    // For list search
-    DicomTagConstraint(const DicomTag& tag,
-                       ConstraintType type,
-                       bool caseSensitive,
-                       bool mandatory);
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
 
     const DicomTag& GetTag() const
     {
       return tag_;
     }
 
+    bool IsIdentifier() const
+    {
+      return isIdentifier_;
+    }
+
     ConstraintType GetConstraintType() const
     {
       return constraintType_;
     }
-    
+
+    size_t GetValuesCount() const
+    {
+      return values_.size();
+    }
+
+    const std::string& GetValue(size_t index) const;
+
+    const std::string& GetSingleValue() const;
+
     bool IsCaseSensitive() const
     {
       return caseSensitive_;
-    }
-
-    void SetCaseSensitive(bool caseSensitive)
-    {
-      caseSensitive_ = caseSensitive;
     }
 
     bool IsMandatory() const
     {
       return mandatory_;
     }
-
-    void AddValue(const std::string& value);
-
-    const std::string& GetValue() const;
-
-    const std::set<std::string>& GetValues() const
-    {
-      return values_;
-    }
-
-    bool IsMatch(const std::string& value);
-
-    bool IsMatch(const DicomMap& value);
   };
 }

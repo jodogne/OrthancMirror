@@ -40,6 +40,7 @@
 
 #include "ExportedResource.h"
 #include "IDatabaseListener.h"
+#include "Search/DatabaseConstraint.h"
 #include "Search/DatabaseLookup.h"
 
 #include <list>
@@ -228,12 +229,12 @@ namespace Orthanc
 
     virtual void ApplyLookupPatients(std::vector<std::string>& patientsId,
                                      std::vector<std::string>& instancesId,
-                                     const DatabaseLookup& lookup,
+                                     const std::vector<DatabaseConstraint>& lookup,
                                      size_t limit) = 0;
 
     virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
                                       std::vector<std::string>& instancesId,
-                                      const DatabaseLookup& lookup,
+                                      const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
                                       size_t limit) = 0;
   };

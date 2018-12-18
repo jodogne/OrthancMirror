@@ -127,7 +127,7 @@ namespace Orthanc
                              MetadataType metadata,
                              const std::string& value);
 
-    void NormalizeLookup(DatabaseLookup& target,
+    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;
 
