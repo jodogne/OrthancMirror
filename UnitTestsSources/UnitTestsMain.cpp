@@ -756,8 +756,27 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(MimeType_Xml, StringToMimeType("text/xml"));
   ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
   ASSERT_THROW(StringToMimeType("nope"), OrthancException);
-}
 
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Patient));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Study));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Series));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Instance));
+
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Study, ResourceType_Patient));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Study, ResourceType_Study));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Study, ResourceType_Series));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Study, ResourceType_Instance));
+
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Series, ResourceType_Patient));
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Series, ResourceType_Study));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Series, ResourceType_Series));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Series, ResourceType_Instance));
+
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Patient));
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Study));
+  ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Series));
+  ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Instance));
+}
 
 
 #if defined(__linux__) || defined(__OpenBSD__)

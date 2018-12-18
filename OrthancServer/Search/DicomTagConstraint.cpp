@@ -100,6 +100,7 @@ namespace Orthanc
                                          bool caseSensitive,
                                          bool mandatory) :
     tag_(tag),
+    tagType_(DicomTagType_Generic),
     constraintType_(type),
     caseSensitive_(caseSensitive),
     mandatory_(mandatory)
@@ -130,6 +131,7 @@ namespace Orthanc
                                          bool caseSensitive,
                                          bool mandatory) :
     tag_(tag),
+    tagType_(DicomTagType_Generic),
     constraintType_(type),
     caseSensitive_(caseSensitive),
     mandatory_(mandatory)
@@ -140,6 +142,20 @@ namespace Orthanc
     }
   }
 
+
+  DicomTagConstraint* DicomTagConstraint::Clone() const
+  {
+    std::auto_ptr<DicomTagConstraint> clone(new DicomTagConstraint);
+    
+    clone->tag_ = tag_;
+    clone->constraintType_ = constraintType_;
+    clone->values_ = values_;
+    clone->caseSensitive_ = caseSensitive_;
+    clone->mandatory_ = mandatory_;
+
+    return clone.release();
+  }
+  
 
   void DicomTagConstraint::AddValue(const std::string& value)
   {

@@ -811,19 +811,31 @@ namespace Orthanc
     std::vector<std::string> resources, instances;
     GetIndex().FindCandidates(resources, instances, lookup);
 
+    bool complete = true;
+
 #if 1
     {
       std::vector<std::string> resources2, instances2;
 
+      size_t lookupLimit = (limit == 0 ? 0 : limit + 1);
+      
       if (lookup.GetLevel() == ResourceType_Patient)
       {
-        GetIndex().ApplyLookupPatients(resources2, instances2, lookup2, limit /* TODO */);
+        GetIndex().ApplyLookupPatients(resources2, instances2, lookup2, lookupLimit);
       }
       else
       {
-        GetIndex().ApplyLookupResources(resources2, instances2, lookup2, lookup.GetLevel(), limit /* TODO */);
+        GetIndex().ApplyLookupResources(resources2, instances2, lookup2,
+                                        lookup.GetLevel(), lookupLimit);
       }
 
+      if (limit != 0 &&
+          resources2.size() > limit)
+      {
+        complete = false;
+      }
+      
+      // Sanity checks
       std::set<std::string> r;
       for (size_t i = 0; i < resources2.size(); i++)
       {
@@ -845,7 +857,6 @@ namespace Orthanc
 
     size_t countResults = 0;
     size_t skipped = 0;
-    bool complete = true;
 
     const bool isDicomAsJsonNeeded = visitor.IsDicomAsJsonNeeded();
     
