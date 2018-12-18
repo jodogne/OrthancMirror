@@ -55,7 +55,7 @@ TEST(DatabaseLookup, SingleConstraint)
     ASSERT_FALSE(tag.IsMatch("hello"));
 
     ASSERT_TRUE(tag.IsCaseSensitive());
-    ASSERT_EQ(ConstraintType_Equal, tag.GetType());
+    ASSERT_EQ(ConstraintType_Equal, tag.GetConstraintType());
 
     DicomMap m;
     ASSERT_FALSE(tag.IsMatch(m));
@@ -91,7 +91,7 @@ TEST(DatabaseLookup, SingleConstraint)
     ASSERT_TRUE(tag.IsMatch("hello"));
 
     ASSERT_FALSE(tag.IsCaseSensitive());
-    ASSERT_EQ(ConstraintType_Wildcard, tag.GetType());
+    ASSERT_EQ(ConstraintType_Wildcard, tag.GetConstraintType());
   }
 
   {
@@ -150,7 +150,7 @@ TEST(DatabaseLookup, FromDicom)
     DatabaseLookup lookup;
     lookup.AddDicomConstraint(DICOM_TAG_PATIENT_ID, "HELLO", true, true);
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
-    ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetConstraintType());
     ASSERT_EQ("HELLO", lookup.GetConstraint(0).GetValue());
     ASSERT_TRUE(lookup.GetConstraint(0).IsCaseSensitive());
   }
@@ -185,7 +185,7 @@ TEST(DatabaseLookup, FromDicom)
     lookup.AddDicomConstraint(DICOM_TAG_SERIES_DESCRIPTION, "2012-2016", false, true);
 
     // This is not a data VR
-    ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetConstraintType());
   }
 
   {
@@ -195,12 +195,12 @@ TEST(DatabaseLookup, FromDicom)
     // This is a data VR => range is effective
     ASSERT_EQ(2u, lookup.GetConstraintsCount());
 
-    ASSERT_TRUE(lookup.GetConstraint(0).GetType() != lookup.GetConstraint(1).GetType());
+    ASSERT_TRUE(lookup.GetConstraint(0).GetConstraintType() != lookup.GetConstraint(1).GetConstraintType());
 
     for (size_t i = 0; i < 2; i++)
     {
-      ASSERT_TRUE(lookup.GetConstraint(i).GetType() == ConstraintType_SmallerOrEqual ||
-                  lookup.GetConstraint(i).GetType() == ConstraintType_GreaterOrEqual);
+      ASSERT_TRUE(lookup.GetConstraint(i).GetConstraintType() == ConstraintType_SmallerOrEqual ||
+                  lookup.GetConstraint(i).GetConstraintType() == ConstraintType_GreaterOrEqual);
     }
   }
 
@@ -209,7 +209,7 @@ TEST(DatabaseLookup, FromDicom)
     lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "2012-", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
-    ASSERT_EQ(ConstraintType_GreaterOrEqual, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_GreaterOrEqual, lookup.GetConstraint(0).GetConstraintType());
     ASSERT_EQ("2012", lookup.GetConstraint(0).GetValue());
   }
 
@@ -219,7 +219,7 @@ TEST(DatabaseLookup, FromDicom)
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_PATIENT_BIRTH_DATE,  lookup.GetConstraint(0).GetTag());
-    ASSERT_EQ(ConstraintType_SmallerOrEqual, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_SmallerOrEqual, lookup.GetConstraint(0).GetConstraintType());
     ASSERT_EQ("2016", lookup.GetConstraint(0).GetValue());
   }
 
@@ -229,7 +229,7 @@ TEST(DatabaseLookup, FromDicom)
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_MODALITY,  lookup.GetConstraint(0).GetTag());
-    ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetConstraintType());
 
     const std::set<std::string>& values = lookup.GetConstraint(0).GetValues();
     ASSERT_EQ(2u, values.size());
@@ -244,7 +244,7 @@ TEST(DatabaseLookup, FromDicom)
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_STUDY_DESCRIPTION, lookup.GetConstraint(0).GetTag());
-    ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetConstraintType());
 
     const std::set<std::string>& values = lookup.GetConstraint(0).GetValues();
     ASSERT_EQ(2u, values.size());
@@ -258,7 +258,7 @@ TEST(DatabaseLookup, FromDicom)
     lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE*O", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
-    ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetConstraintType());
   }
 
   {
@@ -266,7 +266,7 @@ TEST(DatabaseLookup, FromDicom)
     lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE?O", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
-    ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetType());
+    ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetConstraintType());
   }
 
   {

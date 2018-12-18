@@ -47,6 +47,7 @@ namespace Orthanc
     class RegularExpression;
 
     DicomTag                tag_;
+    DicomTagType            tagType_;
     ConstraintType          constraintType_;
     std::set<std::string>   values_;
     bool                    caseSensitive_;
@@ -54,6 +55,12 @@ namespace Orthanc
 
     boost::shared_ptr<RegularExpression>  regex_;
 
+    DicomTagConstraint() :
+      tag_(0, 0),
+      tagType_(DicomTagType_Generic)
+    {
+    }
+    
   public:
     DicomTagConstraint(const DicomTag& tag,
                        ConstraintType type,
@@ -67,12 +74,25 @@ namespace Orthanc
                        bool caseSensitive,
                        bool mandatory);
 
+    DicomTagConstraint* Clone() const;    
+
     const DicomTag& GetTag() const
     {
       return tag_;
     }
 
-    ConstraintType GetType() const
+    DicomTagType GetTagType() const
+    {
+      return tagType_;
+    }
+
+    // Set by "ServerIndex::NormalizeLookup()"
+    void SetTagType(DicomTagType type)
+    {
+      tagType_ = type;
+    }
+    
+    ConstraintType GetConstraintType() const
     {
       return constraintType_;
     }
@@ -80,6 +100,11 @@ namespace Orthanc
     bool IsCaseSensitive() const
     {
       return caseSensitive_;
+    }
+
+    void SetCaseSensitive(bool caseSensitive)
+    {
+      caseSensitive_ = caseSensitive;
     }
 
     bool IsMandatory() const

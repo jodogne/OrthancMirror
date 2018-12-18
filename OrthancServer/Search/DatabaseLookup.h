@@ -42,6 +42,11 @@ namespace Orthanc
   private:
     std::vector<DicomTagConstraint*>  constraints_;
 
+    void AddDicomConstraintInternal(const DicomTag& tag,
+                                    ValueRepresentation vr,
+                                    const std::string& dicomQuery,
+                                    bool caseSensitive,
+                                    bool mandatoryTag);
   public:
     DatabaseLookup()
     {
@@ -69,5 +74,10 @@ namespace Orthanc
                             const std::string& dicomQuery,
                             bool caseSensitivePN,
                             bool mandatoryTag);
+
+    void AddRestConstraint(const DicomTag& tag,
+                           const std::string& dicomQuery,
+                           bool caseSensitive,
+                           bool mandatoryTag);
   };
 }

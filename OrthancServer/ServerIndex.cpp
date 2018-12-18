@@ -299,6 +299,107 @@ namespace Orthanc
   };
 
 
+  class ServerIndex::MainDicomTagsRegistry : public boost::noncopyable
+  {
+  private:
+    class TagInfo
+    {
+    private:
+      ResourceType  level_;
+      DicomTagType  type_;
+
+    public:
+      TagInfo()
+      {
+      }
+
+      TagInfo(ResourceType level,
+              DicomTagType type) :
+        level_(level),
+        type_(type)
+      {
+      }
+
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+
+      DicomTagType GetType() const
+      {
+        return type_;
+      }
+    };
+      
+    typedef std::map<DicomTag, TagInfo>   Registry;
+
+
+    Registry  registry_;
+      
+    void LoadTags(ResourceType level)
+    {
+      const DicomTag* tags = NULL;
+      size_t size;
+  
+      ServerToolbox::LoadIdentifiers(tags, size, level);
+  
+      for (size_t i = 0; i < size; i++)
+      {
+        if (registry_.find(tags[i]) == registry_.end())
+        {
+          registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
+        }
+        else
+        {
+          // These patient-level tags are copied in the study level
+          assert(level == ResourceType_Study &&
+                 (tags[i] == DICOM_TAG_PATIENT_ID ||
+                  tags[i] == DICOM_TAG_PATIENT_NAME ||
+                  tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+        }
+      }
+  
+      DicomMap::LoadMainDicomTags(tags, size, level);
+  
+      for (size_t i = 0; i < size; i++)
+      {
+        if (registry_.find(tags[i]) == registry_.end())
+        {
+          registry_[tags[i]] = TagInfo(level, DicomTagType_Main);
+        }
+      }
+    }
+
+  public:
+    MainDicomTagsRegistry()
+    {
+      LoadTags(ResourceType_Patient);
+      LoadTags(ResourceType_Study);
+      LoadTags(ResourceType_Series);
+      LoadTags(ResourceType_Instance); 
+    }
+
+    void LookupTag(ResourceType& level,
+                   DicomTagType& type,
+                   const DicomTag& tag) const
+    {
+      Registry::const_iterator it = registry_.find(tag);
+
+      if (it == registry_.end())
+      {
+        // Default values
+        level = ResourceType_Instance;
+        type = DicomTagType_Generic;
+      }
+      else
+      {
+        level = it->second.GetLevel();
+        type = it->second.GetType();
+      }
+    }
+  };
+
+
   bool ServerIndex::DeleteResource(Json::Value& target,
                                    const std::string& uuid,
                                    ResourceType expectedType)
@@ -541,7 +642,8 @@ namespace Orthanc
     db_(db),
     maximumStorageSize_(0),
     maximumPatients_(0),
-    overwrite_(false)
+    overwrite_(false),
+    mainDicomTagsRegistry_(new MainDicomTagsRegistry)
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
@@ -2454,15 +2556,92 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::NormalizeLookup(DatabaseLookup& target,
+                                    const DatabaseLookup& source,
+                                    ResourceType queryLevel) const
+  {
+    assert(mainDicomTagsRegistry_.get() != NULL);
+    
+    for (size_t i = 0; i < source.GetConstraintsCount(); i++)
+    {
+      const DicomTagConstraint& constraint = source.GetConstraint(i);
+      
+      ResourceType tagLevel;
+      DicomTagType tagType;
+      mainDicomTagsRegistry_->LookupTag(tagLevel, tagType, constraint.GetTag());
+
+      if (IsResourceLevelAboveOrEqual(tagLevel, queryLevel) &&
+          (tagType == DicomTagType_Identifier ||
+           tagType == DicomTagType_Main))
+      {
+        if (tagType == DicomTagType_Identifier)
+        {
+          if (constraint.GetConstraintType() == ConstraintType_List)
+          {
+            if (!constraint.GetValues().empty())
+            {
+              std::auto_ptr<DicomTagConstraint> normalized(
+                new DicomTagConstraint(constraint.GetTag(),
+                                       ConstraintType_List, true,
+                                       constraint.IsMandatory()));
+
+              normalized->SetTagType(tagType);
+
+              for (std::set<std::string>::const_iterator
+                     value = constraint.GetValues().begin();
+                   value != constraint.GetValues().end(); ++value)
+              {
+                normalized->AddValue(ServerToolbox::NormalizeIdentifier(*value));
+              }
+
+              target.AddConstraint(normalized.release());
+            }
+          }
+          else
+          {
+            std::string value = ServerToolbox::NormalizeIdentifier(constraint.GetValue());
+            
+            std::auto_ptr<DicomTagConstraint> normalized(
+              new DicomTagConstraint(constraint.GetTag(),
+                                     constraint.GetConstraintType(),
+                                     value, true,
+                                     constraint.IsMandatory()));
+
+            normalized->SetTagType(tagType);
+            target.AddConstraint(normalized.release());
+          }
+        }
+        else if (tagType == DicomTagType_Main)
+        {
+          std::auto_ptr<DicomTagConstraint> clone(constraint.Clone());
+          clone->SetTagType(tagType);
+          target.AddConstraint(clone.release());
+        }
+        else if (tagType == DicomTagType_Generic)
+        {
+          // This tag is not indexed in the database, skip it
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+  }
+
+
   void ServerIndex::ApplyLookupPatients(std::vector<std::string>& patientsId,
                                         std::vector<std::string>& instancesId,
                                         const DatabaseLookup& lookup,
                                         size_t limit)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    
-    db_.ApplyLookupPatients(patientsId, lookup, limit);
-    db_.FindOneChildInstance(instancesId, patientsId, ResourceType_Patient);
+    DatabaseLookup normalized;
+    NormalizeLookup(normalized, lookup, ResourceType_Patient);
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_.ApplyLookupPatients(patientsId, instancesId, normalized, limit);
+    }
   }
 
   
@@ -2472,9 +2651,12 @@ namespace Orthanc
                                          ResourceType queryLevel,
                                          size_t limit)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    DatabaseLookup normalized;
+    NormalizeLookup(normalized, lookup, queryLevel);
 
-    db_.ApplyLookupResources(resourcesId, lookup, queryLevel, limit);
-    db_.FindOneChildInstance(instancesId, resourcesId, queryLevel);
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_.ApplyLookupResources(resourcesId, instancesId, normalized, queryLevel, limit);
+    }
   }
 }
