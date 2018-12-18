@@ -839,15 +839,16 @@ namespace Orthanc
       std::set<std::string> r;
       for (size_t i = 0; i < resources2.size(); i++)
       {
-        r.insert(resources[i]);
+        r.insert(resources2[i]);
       }
 
-      assert(r.size() == resources.size());
+      printf("%d %d\n", resources2.size(), resources.size());
+      /*assert(resources2.size() >= resources.size());
       
       for (size_t i = 0; i < resources.size(); i++)
       {
         assert(r.find(resources[i]) != r.end());
-      }
+        }*/
     }
 #endif
     

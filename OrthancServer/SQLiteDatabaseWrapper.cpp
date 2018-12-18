@@ -1206,9 +1206,211 @@ namespace Orthanc
   }
 
 
+  static void FormatJoin(std::string& target,
+                         const DatabaseConstraint& constraint,
+                         size_t index)
+  {
+    std::string tag = "t" + boost::lexical_cast<std::string>(index);
+
+    if (constraint.IsMandatory())
+    {
+      target = " INNER JOIN ";
+    }
+    else
+    {
+      target = " LEFT JOIN ";
+    }
+
+    if (constraint.IsIdentifier())
+    {
+      target += "DicomIdentifiers ";
+    }
+    else
+    {
+      target += "MainDicomTags ";
+    }
+
+    target += tag + " ON " + tag + ".id = ";
+
+    switch (constraint.GetLevel())
+    {
+      case ResourceType_Patient:
+        target += "patient";
+        break;
+        
+      case ResourceType_Study:
+        target += "study";
+        break;
+        
+      case ResourceType_Series:
+        target += "series";
+        break;
+        
+      case ResourceType_Instance:
+        target += "instance";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    target += (".internalId AND " + tag + ".tagGroup = " +
+               boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
+               " AND " + tag + ".tagElement = " +
+               boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
+  }
+  
+
+  static bool FormatComparison(std::string& target,
+                               const DatabaseConstraint& constraint,
+                               size_t index,
+                               std::vector<std::string>& parameters)
+  {
+    std::string tag = "t" + boost::lexical_cast<std::string>(index);
+
+    std::string comparison;
+    
+    switch (constraint.GetConstraintType())
+    {
+      case ConstraintType_Equal:
+      case ConstraintType_SmallerOrEqual:
+      case ConstraintType_GreaterOrEqual:
+      {
+        std::string op;
+        switch (constraint.GetConstraintType())
+        {
+          case ConstraintType_Equal:
+            op = "=";
+            break;
+          
+          case ConstraintType_SmallerOrEqual:
+            op = "<=";
+            break;
+          
+          case ConstraintType_GreaterOrEqual:
+            op = ">=";
+            break;
+          
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+          
+        parameters.push_back(constraint.GetSingleValue());
+
+        if (constraint.IsCaseSensitive())
+        {
+          comparison = tag + ".value " + op + " ?";
+        }
+        else
+        {
+          comparison = "lower(" + tag + ".value) " + op + " lower(?)";
+        }
+
+        break;
+      }
+
+      case ConstraintType_List:
+      {
+        for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+        {
+          parameters.push_back(constraint.GetValue(i));
+
+          if (!comparison.empty())
+          {
+            comparison += ", ";
+          }
+            
+          if (constraint.IsCaseSensitive())
+          {
+            comparison += "?";
+          }
+          else
+          {
+            comparison += "lower(?)";
+          }
+        }
+
+        if (constraint.IsCaseSensitive())
+        {
+          comparison = tag + ".value IN (" + comparison + ")";
+        }
+        else
+        {
+          comparison = "lower(" +  tag + ".value) IN (" + comparison + ")";
+        }
+            
+        break;
+      }
+
+      case ConstraintType_Wildcard:
+      {
+        const std::string value = constraint.GetSingleValue();
+        std::string escaped;
+        escaped.reserve(value.size());
+
+        for (size_t i = 0; i < value.size(); i++)
+        {
+          if (value[i] == '*')
+          {
+            escaped += "%";
+          }
+          else if (value[i] == '?')
+          {
+            escaped += "_";
+          }
+          else if (value[i] == '%')
+          {
+            escaped += "\\%";
+          }
+          else if (value[i] == '_')
+          {
+            escaped += "\\_";
+          }
+          else if (value[i] == '\\')
+          {
+            escaped += "\\\\";
+          }
+          else
+          {
+            escaped += value[i];
+          }               
+        }
+
+        parameters.push_back(escaped);
+
+        if (constraint.IsCaseSensitive())
+        {
+          comparison = tag + ".value LIKE ? ESCAPE '\\'";
+        }
+        else
+        {
+          comparison = "lower(" + tag + ".value) LIKE lower(?) ESCAPE '\\'";
+        }
+          
+        break;
+      }
+
+      default:
+        // Don't modify "parameters"!
+        return false;
+    }
+
+    if (constraint.IsMandatory())
+    {
+      target += comparison;
+    }
+    else
+    {
+      target += tag + ".value IS NULL OR " + comparison;
+    }
+
+    return true;
+  }
+  
+  
   void SQLiteDatabaseWrapper::ApplyLookupPatients(std::vector<std::string>& patientsId,
                                                   std::vector<std::string>& instancesId,
-                                                  const DatabaseLookup& lookup,
+                                                  const std::vector<DatabaseConstraint>& lookup,
                                                   size_t limit)
   {
     printf("ICI 1\n");
@@ -1218,132 +1420,37 @@ namespace Orthanc
       s.Run();
     }
     
-    std::string heading = "CREATE TEMPORARY TABLE Lookup AS SELECT patient.publicId, patient.internalId FROM Resources AS patient ";
-    std::string trailer;
+    std::string joins, comparisons;
     std::vector<std::string> parameters;
 
-    for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
+    size_t count = 0;
+    
+    for (size_t i = 0; i < lookup.size(); i++)
     {
-      const DicomTagConstraint& constraint = lookup.GetConstraint(i);
-      
-      if (constraint.GetTagType() != DicomTagType_Identifier &&
-          constraint.GetTagType() != DicomTagType_Main)
-      {
-        // This should have been set by ServerIndex::NormalizeLookup()"
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-      
-      std::string tag = "t" + boost::lexical_cast<std::string>(i);
-
-      char on[128];
-      sprintf(
-        on, "%s JOIN %s %s ON %s.id = patient.internalId AND %s.tagGroup = 0x%04x AND %s.tagElement = 0x%04x ",
-        constraint.IsMandatory() ? "INNER" : "LEFT",
-        constraint.GetTagType() == DicomTagType_Identifier ? "DicomIdentifiers" : "MainDicomTags",
-        tag.c_str(), tag.c_str(), tag.c_str(), constraint.GetTag().GetGroup(),
-        tag.c_str(), constraint.GetTag().GetElement());
-
       std::string comparison;
+      
+      if (FormatComparison(comparison, lookup[i], count, parameters))
+      {
+        std::string join;
+        FormatJoin(join, lookup[i], count);
+        joins += join;
+
+        comparisons += " AND (" + comparison + ")";
         
-      switch (constraint.GetConstraintType())
-      {
-        case ConstraintType_Equal:
-        case ConstraintType_SmallerOrEqual:
-        case ConstraintType_GreaterOrEqual:
-        {
-          std::string op;
-          switch (constraint.GetConstraintType())
-          {
-            case ConstraintType_Equal:
-              op = "=";
-              break;
-          
-            case ConstraintType_SmallerOrEqual:
-              op = "<=";
-              break;
-          
-            case ConstraintType_GreaterOrEqual:
-              op = ">=";
-              break;
-          
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-          
-          parameters.push_back(constraint.GetValue());
-
-          if (constraint.IsCaseSensitive())
-          {
-            comparison = tag + ".value " + op + " ?";
-          }
-          else
-          {
-            comparison = "lower(" + tag + ".value) " + op + " lower(?)";
-          }
-
-          break;
-        }
-
-        case ConstraintType_List:
-          for (std::set<std::string>::const_iterator
-                 it = constraint.GetValues().begin();
-               it != constraint.GetValues().end(); ++it)
-          {
-            parameters.push_back(*it);
-
-            if (!comparison.empty())
-            {
-              comparison += ", ";
-            }
-            
-            if (constraint.IsCaseSensitive())
-            {
-              comparison += "?";
-            }
-            else
-            {
-              comparison += "lower(?)";
-            }
-          }
-
-          if (constraint.IsCaseSensitive())
-          {
-            comparison = tag + ".value IN (" + comparison + ")";
-          }
-          else
-          {
-            comparison = "lower(" +  tag + ".value) IN (" + comparison + ")";
-          }
-            
-          break;
-
-          //case ConstraintType_Wildcard:
-          //break;
-
-        default:
-          continue;
+        count ++;
       }
-
-      heading += std::string(on);
-
-      trailer += "AND (";
-
-      if (!constraint.IsMandatory())
-      {
-        trailer += tag + ".value IS NULL OR ";
-      }
-
-      trailer += comparison + ") ";
-    }
-
-    if (limit != 0)
-    {
-      trailer += " LIMIT " + boost::lexical_cast<std::string>(limit);
     }
 
     {
-      std::string sql = (heading + "WHERE patient.resourceType = " +
-                         boost::lexical_cast<std::string>(ResourceType_Patient) + " " + trailer);
+      std::string sql = ("CREATE TEMPORARY TABLE Lookup AS "
+                         "SELECT patient.publicId, patient.internalId FROM Resources AS patient" +
+                         joins + " WHERE patient.resourceType = " +
+                         boost::lexical_cast<std::string>(ResourceType_Patient) + comparisons);
+
+      if (limit != 0)
+      {
+        sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
+      }
 
       printf("[%s]\n", sql.c_str());
 
@@ -1377,18 +1484,32 @@ namespace Orthanc
         printf("** [%s] [%s]\n", patient.c_str(), instance.c_str());
       }
     }
-    
-    throw OrthancException(ErrorCode_NotImplemented);
   }
   
 
   void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                                    std::vector<std::string>& instancesId,
-                                                   const DatabaseLookup& lookup,
+                                                   const std::vector<DatabaseConstraint>& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
-    printf("ICI 2\n");
+    ResourceType upperLevel = queryLevel;
+    ResourceType lowerLevel = queryLevel;
+
+    for (size_t i = 0; i < lookup.size(); i++)
+    {
+      if (!IsResourceLevelAboveOrEqual(upperLevel, lookup[i].GetLevel()))
+      {
+        upperLevel = lookup[i].GetLevel();
+      }
+
+      if (!IsResourceLevelAboveOrEqual(lookup[i].GetLevel(), lowerLevel))
+      {
+        lowerLevel = lookup[i].GetLevel();
+      }
+    }
+    
+    printf("ICI 2: [%s] -> [%s]\n", EnumerationToString(upperLevel), EnumerationToString(lowerLevel));
     
     throw OrthancException(ErrorCode_NotImplemented);
   }

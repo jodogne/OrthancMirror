@@ -2556,11 +2556,15 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::NormalizeLookup(DatabaseLookup& target,
+
+  void ServerIndex::NormalizeLookup(std::vector<DatabaseConstraint>& target,
                                     const DatabaseLookup& source,
                                     ResourceType queryLevel) const
   {
     assert(mainDicomTagsRegistry_.get() != NULL);
+
+    target.clear();
+    target.reserve(source.GetConstraintsCount());
     
     for (size_t i = 0; i < source.GetConstraintsCount(); i++)
     {
@@ -2574,56 +2578,22 @@ namespace Orthanc
           (tagType == DicomTagType_Identifier ||
            tagType == DicomTagType_Main))
       {
-        if (tagType == DicomTagType_Identifier)
+        // Use the fact that patient-level tags are copied at the study level
+        if (queryLevel != ResourceType_Patient &&
+            tagLevel == ResourceType_Patient)
         {
-          if (constraint.GetConstraintType() == ConstraintType_List)
-          {
-            if (!constraint.GetValues().empty())
-            {
-              std::auto_ptr<DicomTagConstraint> normalized(
-                new DicomTagConstraint(constraint.GetTag(),
-                                       ConstraintType_List, true,
-                                       constraint.IsMandatory()));
-
-              normalized->SetTagType(tagType);
-
-              for (std::set<std::string>::const_iterator
-                     value = constraint.GetValues().begin();
-                   value != constraint.GetValues().end(); ++value)
-              {
-                normalized->AddValue(ServerToolbox::NormalizeIdentifier(*value));
-              }
-
-              target.AddConstraint(normalized.release());
-            }
-          }
-          else
-          {
-            std::string value = ServerToolbox::NormalizeIdentifier(constraint.GetValue());
-            
-            std::auto_ptr<DicomTagConstraint> normalized(
-              new DicomTagConstraint(constraint.GetTag(),
-                                     constraint.GetConstraintType(),
-                                     value, true,
-                                     constraint.IsMandatory()));
-
-            normalized->SetTagType(tagType);
-            target.AddConstraint(normalized.release());
-          }
+          tagLevel = ResourceType_Study;
         }
-        else if (tagType == DicomTagType_Main)
+        
+        DatabaseConstraint c(constraint, tagLevel, tagType);
+
+        // Avoid universal constraints
+        if (!(c.GetConstraintType() == ConstraintType_Equal &&
+              c.GetSingleValue() == "") &&
+            !(c.GetConstraintType() == ConstraintType_Wildcard &&
+              c.GetSingleValue() == "*"))
         {
-          std::auto_ptr<DicomTagConstraint> clone(constraint.Clone());
-          clone->SetTagType(tagType);
-          target.AddConstraint(clone.release());
-        }
-        else if (tagType == DicomTagType_Generic)
-        {
-          // This tag is not indexed in the database, skip it
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_InternalError);
+          target.push_back(c);
         }
       }
     }
@@ -2635,7 +2605,7 @@ namespace Orthanc
                                         const DatabaseLookup& lookup,
                                         size_t limit)
   {
-    DatabaseLookup normalized;
+    std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, ResourceType_Patient);
 
     {
@@ -2651,7 +2621,7 @@ namespace Orthanc
                                          ResourceType queryLevel,
                                          size_t limit)
   {
-    DatabaseLookup normalized;
+    std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
 
     {

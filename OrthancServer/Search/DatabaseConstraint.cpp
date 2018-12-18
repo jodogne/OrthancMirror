@@ -31,78 +31,78 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "DatabaseConstraint.h"
 
-#include "../ServerEnumerations.h"
-#include "../../Core/DicomFormat/DicomMap.h"
-
-#include <boost/shared_ptr.hpp>
+#include "../../Core/OrthancException.h"
+#include "../ServerToolbox.h"
 
 namespace Orthanc
 {
-  class DicomTagConstraint : public boost::noncopyable
+  DatabaseConstraint::DatabaseConstraint(const DicomTagConstraint& constraint,
+                                         ResourceType level,
+                                         DicomTagType tagType) :
+    level_(level),
+    tag_(constraint.GetTag()),
+    constraintType_(constraint.GetConstraintType()),
+    mandatory_(constraint.IsMandatory())
   {
-  private:
-    class NormalizedString;
-    class RegularExpression;
-
-    DicomTag                tag_;
-    ConstraintType          constraintType_;
-    std::set<std::string>   values_;
-    bool                    caseSensitive_;
-    bool                    mandatory_;
-
-    boost::shared_ptr<RegularExpression>  regex_;
-
-  public:
-    DicomTagConstraint(const DicomTag& tag,
-                       ConstraintType type,
-                       const std::string& value,
-                       bool caseSensitive,
-                       bool mandatory);
-
-    // For list search
-    DicomTagConstraint(const DicomTag& tag,
-                       ConstraintType type,
-                       bool caseSensitive,
-                       bool mandatory);
-
-    const DicomTag& GetTag() const
+    switch (tagType)
     {
-      return tag_;
+      case DicomTagType_Identifier:
+        isIdentifier_ = true;
+        caseSensitive_ = true;
+        break;
+
+      case DicomTagType_Main:
+        isIdentifier_ = false;
+        caseSensitive_ = constraint.IsCaseSensitive();
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
-    ConstraintType GetConstraintType() const
+    values_.reserve(constraint.GetValues().size());
+      
+    for (std::set<std::string>::const_iterator
+           it = constraint.GetValues().begin();
+         it != constraint.GetValues().end(); ++it)
     {
-      return constraintType_;
+      if (isIdentifier_)
+      {
+        values_.push_back(ServerToolbox::NormalizeIdentifier(*it));
+      }
+      else
+      {
+        values_.push_back(*it);
+      }
     }
-    
-    bool IsCaseSensitive() const
+  }
+
+  
+  const std::string& DatabaseConstraint::GetValue(size_t index) const
+  {
+    if (index >= values_.size())
     {
-      return caseSensitive_;
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    void SetCaseSensitive(bool caseSensitive)
+    else
     {
-      caseSensitive_ = caseSensitive;
+      return values_[index];
     }
+  }
 
-    bool IsMandatory() const
+
+  const std::string& DatabaseConstraint::GetSingleValue() const
+  {
+    if (values_.size() != 1)
     {
-      return mandatory_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    void AddValue(const std::string& value);
-
-    const std::string& GetValue() const;
-
-    const std::set<std::string>& GetValues() const
+    else
     {
-      return values_;
+      return values_[0];
     }
-
-    bool IsMatch(const std::string& value);
-
-    bool IsMatch(const DicomMap& value);
-  };
+  }
 }
