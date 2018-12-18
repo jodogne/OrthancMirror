@@ -39,6 +39,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/lexical_cast.hpp>
 #include <json/value.h>
+#include <vector>
 #include <list>
 #include <set>
 #include <map>
@@ -152,6 +153,10 @@ namespace OrthancPlugins
     void ToJson(Json::Value& target) const;
 
     bool RestApiGet(const std::string& uri,
+                    bool applyPlugins);
+
+    bool RestApiGet(const std::string& uri,
+                    const std::map<std::string, std::string>& httpHeaders,
                     bool applyPlugins);
 
     bool RestApiPost(const std::string& uri,
@@ -428,6 +433,11 @@ namespace OrthancPlugins
                         const std::string& uri,
                         bool applyPlugins);
 
+  bool RestApiGetString(std::string& result,
+                        const std::string& uri,
+                        const std::map<std::string, std::string>& httpHeaders,
+                        bool applyPlugins);
+
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
                    const char* body,
@@ -486,6 +496,10 @@ namespace OrthancPlugins
 
   void AnswerJson(const Json::Value& value,
                   OrthancPluginRestOutput* output);
+
+  void AnswerString(const std::string& answer,
+                    const char* mimeType,
+                    OrthancPluginRestOutput* output);
 
   void AnswerHttpError(uint16_t httpError,
                        OrthancPluginRestOutput* output);
