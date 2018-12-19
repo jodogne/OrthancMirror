@@ -40,8 +40,6 @@
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
 #include "../OrthancConfiguration.h"
-#include "../Search/DatabaseLookup.h"
-#include "../Search/LookupResource.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
@@ -1228,13 +1226,12 @@ namespace Orthanc
                                       const std::string& value,
                                       ResourceType level)
   {
-    std::list<std::string> tmp;
+    std::vector<std::string> tmp;
     index.LookupIdentifierExact(tmp, level, tag, value);
 
-    for (std::list<std::string>::const_iterator
-           it = tmp.begin(); it != tmp.end(); ++it)
+    for (size_t i = 0; i < tmp.size(); i++)
     {
-      result.push_back(std::make_pair(level, *it));
+      result.push_back(std::make_pair(level, tmp[i]));
     }
   }
 
