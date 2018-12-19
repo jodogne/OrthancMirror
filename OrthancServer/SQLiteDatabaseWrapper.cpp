@@ -1206,6 +1206,28 @@ namespace Orthanc
   }
 
 
+  static std::string FormatLevel(ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return "patients";
+        
+      case ResourceType_Study:
+        return "studies";
+        
+      case ResourceType_Series:
+        return "series";
+        
+      case ResourceType_Instance:
+        return "instances";
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }      
+  
+
   static void FormatJoin(std::string& target,
                          const DatabaseConstraint& constraint,
                          size_t index)
@@ -1230,31 +1252,8 @@ namespace Orthanc
       target += "MainDicomTags ";
     }
 
-    target += tag + " ON " + tag + ".id = ";
-
-    switch (constraint.GetLevel())
-    {
-      case ResourceType_Patient:
-        target += "patient";
-        break;
-        
-      case ResourceType_Study:
-        target += "study";
-        break;
-        
-      case ResourceType_Series:
-        target += "series";
-        break;
-        
-      case ResourceType_Instance:
-        target += "instance";
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-    
-    target += (".internalId AND " + tag + ".tagGroup = " +
+    target += (tag + " ON " + tag + ".id = " + FormatLevel(constraint.GetLevel()) +
+               ".internalId AND " + tag + ".tagGroup = " +
                boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
                " AND " + tag + ".tagElement = " +
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
@@ -1391,7 +1390,7 @@ namespace Orthanc
       }
 
       default:
-        // Don't modify "parameters"!
+        // Don't modify "parameters" in this case!
         return false;
     }
 
@@ -1406,23 +1405,94 @@ namespace Orthanc
 
     return true;
   }
-  
-  
-  void SQLiteDatabaseWrapper::ApplyLookupPatients(std::vector<std::string>& patientsId,
-                                                  std::vector<std::string>& instancesId,
-                                                  const std::vector<DatabaseConstraint>& lookup,
-                                                  size_t limit)
+
+
+  static void PrepareLookup(SQLite::Connection& db)
   {
-    printf("ICI 1\n");
+    SQLite::Statement s(db, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
+    s.Run();
+  }
 
-    {
-      SQLite::Statement s(db_, "DROP TABLE IF EXISTS Lookup");
-      s.Run();
-    }
+
+  static void AnswerLookup(std::vector<std::string>& resourcesId,
+                           std::vector<std::string>& instancesId,
+                           SQLite::Connection& db,
+                           ResourceType level)
+  {
+    resourcesId.clear();
+    instancesId.clear();
     
-    std::string joins, comparisons;
-    std::vector<std::string> parameters;
+    std::auto_ptr<SQLite::Statement> statement;
+    
+    switch (level)
+    {
+      case ResourceType_Patient:
+      {
+        statement.reset(
+          new SQLite::Statement(
+            db, SQLITE_FROM_HERE,
+            "SELECT patients.publicId, instances.publicID FROM Lookup AS patients "
+            "INNER JOIN Resources studies ON patients.internalId=studies.parentId "
+            "INNER JOIN Resources series ON studies.internalId=series.parentId "
+            "INNER JOIN Resources instances ON series.internalId=instances.parentId "
+            "GROUP BY patients.publicId"));
+      
+        break;
+      }
 
+      case ResourceType_Study:
+      {
+        statement.reset(
+          new SQLite::Statement(
+            db, SQLITE_FROM_HERE,
+            "SELECT studies.publicId, instances.publicID FROM Lookup AS studies "
+            "INNER JOIN Resources series ON studies.internalId=series.parentId "
+            "INNER JOIN Resources instances ON series.internalId=instances.parentId "
+            "GROUP BY studies.publicId"));
+      
+        break;
+      }
+
+      case ResourceType_Series:
+      {
+        statement.reset(
+          new SQLite::Statement(
+            db, SQLITE_FROM_HERE,
+            "SELECT series.publicId, instances.publicID FROM Lookup AS series "
+            "INNER JOIN Resources instances ON series.internalId=instances.parentId "
+            "GROUP BY series.publicId"));
+      
+        break;
+      }
+
+      case ResourceType_Instance:
+      {
+        statement.reset(
+          new SQLite::Statement(
+            db, SQLITE_FROM_HERE, "SELECT publicId, publicId FROM Lookup"));
+        
+        break;
+      }
+      
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    assert(statement.get() != NULL);
+      
+    while (statement->Step())
+    {
+      resourcesId.push_back(statement->ColumnString(0));
+      instancesId.push_back(statement->ColumnString(1));
+    }
+  }
+
+
+  static void FormatConstraints(std::string& joins,
+                                std::string& comparisons,
+                                std::vector<std::string>& parameters,
+                                const std::vector<DatabaseConstraint>& lookup)
+  {
     size_t count = 0;
     
     for (size_t i = 0; i < lookup.size(); i++)
@@ -1440,12 +1510,108 @@ namespace Orthanc
         count ++;
       }
     }
+  }
+                                
+  
+  
+  void SQLiteDatabaseWrapper::ApplyLookupPatients(std::vector<std::string>& patientsId,
+                                                  std::vector<std::string>& instancesId,
+                                                  const std::vector<DatabaseConstraint>& lookup,
+                                                  size_t limit)
+  {
+    PrepareLookup(db_);
+    
+    std::string joins, comparisons;
+    std::vector<std::string> parameters;
+    FormatConstraints(joins, comparisons, parameters, lookup);
 
     {
       std::string sql = ("CREATE TEMPORARY TABLE Lookup AS "
-                         "SELECT patient.publicId, patient.internalId FROM Resources AS patient" +
-                         joins + " WHERE patient.resourceType = " +
+                         "SELECT patients.publicId, patients.internalId FROM Resources AS patients" +
+                         joins + " WHERE patients.resourceType = " +
                          boost::lexical_cast<std::string>(ResourceType_Patient) + comparisons);
+
+      if (limit != 0)
+      {
+        sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
+      }
+
+      printf("[%s]\n", sql.c_str());
+
+      SQLite::Statement s(db_, sql);
+
+      for (size_t i = 0; i < parameters.size(); i++)
+      {
+        s.BindString(i, parameters[i]);
+      }
+
+      s.Run();
+    }
+
+    AnswerLookup(patientsId, instancesId, db_, ResourceType_Patient);
+  }
+
+
+  void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                                   std::vector<std::string>& instancesId,
+                                                   const std::vector<DatabaseConstraint>& lookup,
+                                                   ResourceType queryLevel,
+                                                   size_t limit)
+  {
+    assert(ResourceType_Patient < ResourceType_Study &&
+           ResourceType_Study < ResourceType_Series &&
+           ResourceType_Series < ResourceType_Instance);
+    
+    ResourceType upperLevel = queryLevel;
+    ResourceType lowerLevel = queryLevel;
+
+    for (size_t i = 0; i < lookup.size(); i++)
+    {
+      ResourceType level = lookup[i].GetLevel();
+
+      if (level < upperLevel)
+      {
+        upperLevel = level;
+      }
+
+      if (level > lowerLevel)
+      {
+        lowerLevel = level;
+      }
+    }
+    
+    printf("ICI 2: [%s] -> [%s]\n", EnumerationToString(upperLevel), EnumerationToString(lowerLevel));
+    
+    PrepareLookup(db_);
+    
+    std::string joins, comparisons;
+    std::vector<std::string> parameters;
+    FormatConstraints(joins, comparisons, parameters, lookup);
+
+    {
+      std::string sql = ("CREATE TEMPORARY TABLE Lookup AS SELECT " +
+                         FormatLevel(queryLevel) + ".publicId, " +
+                         FormatLevel(queryLevel) + ".internalId" +
+                         " FROM Resources AS " + FormatLevel(queryLevel));
+
+      for (int level = queryLevel - 1; level >= upperLevel; level--)
+      {
+        sql += (" INNER JOIN Resources " +
+                FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+                FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
+                FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
+      }
+      
+      for (int level = queryLevel + 1; level <= lowerLevel; level++)
+      {
+        sql += (" INNER JOIN Resources " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + " ON " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+                FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+      }
+      
+      sql += (joins + " WHERE " + FormatLevel(queryLevel) + ".resourceType = " +
+              boost::lexical_cast<std::string>(queryLevel) + comparisons);
 
       if (limit != 0)
       {
@@ -1465,52 +1631,6 @@ namespace Orthanc
       s.Run();
     }
 
-    {
-      SQLite::Statement s
-        (db_, "SELECT patient.publicId, instances.publicID FROM Lookup AS patient "
-         "INNER JOIN Resources studies ON patient.internalId=studies.parentId "
-         "INNER JOIN Resources series ON studies.internalId=series.parentId "
-         "INNER JOIN Resources instances ON series.internalId=instances.parentId "
-         "GROUP BY patient.publicId");
-      
-      patientsId.clear();
-
-      while (s.Step())
-      {
-        const std::string patient = s.ColumnString(0);
-        const std::string instance = s.ColumnString(1);
-        patientsId.push_back(patient);
-        instancesId.push_back(instance);
-        printf("** [%s] [%s]\n", patient.c_str(), instance.c_str());
-      }
-    }
-  }
-  
-
-  void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                   std::vector<std::string>& instancesId,
-                                                   const std::vector<DatabaseConstraint>& lookup,
-                                                   ResourceType queryLevel,
-                                                   size_t limit)
-  {
-    ResourceType upperLevel = queryLevel;
-    ResourceType lowerLevel = queryLevel;
-
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      if (!IsResourceLevelAboveOrEqual(upperLevel, lookup[i].GetLevel()))
-      {
-        upperLevel = lookup[i].GetLevel();
-      }
-
-      if (!IsResourceLevelAboveOrEqual(lookup[i].GetLevel(), lowerLevel))
-      {
-        lowerLevel = lookup[i].GetLevel();
-      }
-    }
-    
-    printf("ICI 2: [%s] -> [%s]\n", EnumerationToString(upperLevel), EnumerationToString(lowerLevel));
-    
-    throw OrthancException(ErrorCode_NotImplemented);
+    AnswerLookup(resourcesId, instancesId, db_, queryLevel);
   }
 }

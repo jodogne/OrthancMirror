@@ -2574,7 +2574,7 @@ namespace Orthanc
       DicomTagType tagType;
       mainDicomTagsRegistry_->LookupTag(tagLevel, tagType, constraint.GetTag());
 
-      if (IsResourceLevelAboveOrEqual(tagLevel, queryLevel) &&
+      if (//IsResourceLevelAboveOrEqual(tagLevel, queryLevel) &&
           (tagType == DicomTagType_Identifier ||
            tagType == DicomTagType_Main))
       {
