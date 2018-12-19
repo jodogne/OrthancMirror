@@ -44,7 +44,6 @@
 
 namespace Orthanc
 {
-  class LookupResource;
   class ServerContext;
   class DicomInstanceToStore;
   class ParsedDicomFile;
@@ -296,7 +295,7 @@ namespace Orthanc
     void ReconstructInstance(ParsedDicomFile& dicom);
 
     void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                              std::vector<std::string>& instancesId,
+                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
                               size_t limit);

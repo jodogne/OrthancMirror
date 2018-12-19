@@ -34,6 +34,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "WildcardConstraint.h"
 
+#include "../../Core/Toolbox.h"
+
 #include <boost/regex.hpp>
 
 namespace Orthanc
@@ -85,12 +87,6 @@ namespace Orthanc
     {
       return boost::regex_match(Toolbox::ToUpperCaseWithAccents(value), pimpl_->pattern_);
     }
-  }
-
-  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup,
-                                 const DicomTag& tag) const
-  {
-    lookup.AddConstraint(tag, IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
   }
 
   std::string WildcardConstraint::Format() const

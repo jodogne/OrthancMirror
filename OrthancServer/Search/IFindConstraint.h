@@ -33,7 +33,9 @@
 
 #pragma once
 
-#include "LookupIdentifierQuery.h"
+#include "../../Core/DicomFormat/DicomTag.h"
+
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -45,9 +47,6 @@ namespace Orthanc
     }
 
     virtual IFindConstraint* Clone() const = 0;
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const = 0;
 
     virtual bool Match(const std::string& value) const = 0;
 

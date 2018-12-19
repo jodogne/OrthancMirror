@@ -34,6 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ListConstraint.h"
 
+#include "../../Core/Toolbox.h"
 
 namespace Orthanc
 {
@@ -46,19 +47,6 @@ namespace Orthanc
     else
     {
       allowedValues_.insert(Toolbox::ToUpperCaseWithAccents(value));
-    }
-  }
-
-
-  void ListConstraint::Setup(LookupIdentifierQuery& lookup, 
-                             const DicomTag& tag) const
-  {
-    LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
-
-    for (std::set<std::string>::const_iterator
-           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
-    {
-      target.Add(tag, IdentifierConstraintType_Equal, *it);
     }
   }
 
