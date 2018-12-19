@@ -61,9 +61,6 @@ namespace Orthanc
       return new RangeConstraint(*this);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
-
     virtual bool Match(const std::string& value) const;
 
     virtual std::string Format() const

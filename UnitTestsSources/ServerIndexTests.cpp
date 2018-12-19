@@ -38,9 +38,7 @@
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
 #include "../OrthancServer/SQLiteDatabaseWrapper.h"
-#include "../OrthancServer/Search/LookupIdentifierQuery.h"
 #include "../OrthancServer/ServerContext.h"
-#include "../OrthancServer/ServerIndex.h"
 #include "../OrthancServer/ServerToolbox.h"
 
 #include <ctype.h>
@@ -251,16 +249,42 @@ namespace
     }
 
 
-    void DoLookup(std::list<std::string>& result,
-                  ResourceType level,
-                  const DicomTag& tag,
-                  const std::string& value)
+    void DoLookupIdentifier(std::vector<std::string>& result,
+                            ResourceType level,
+                            const DicomTag& tag,
+                            ConstraintType type,
+                            const std::string& value)
     {
-      LookupIdentifierQuery query(level);
-      query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
-      query.Apply(result, *index_);
+      assert(ServerToolbox::IsIdentifier(tag, level));
+      
+      DicomTagConstraint c(tag, type, value, true, true);
+      
+      std::vector<DatabaseConstraint> lookup;
+      lookup.push_back(DatabaseConstraint(c, level, DicomTagType_Identifier));
+      
+      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
     }
+    
 
+    void DoLookupIdentifier2(std::vector<std::string>& result,
+                             ResourceType level,
+                             const DicomTag& tag,
+                             ConstraintType type1,
+                             const std::string& value1,
+                             ConstraintType type2,
+                             const std::string& value2)
+    {
+      assert(ServerToolbox::IsIdentifier(tag, level));
+      
+      DicomTagConstraint c1(tag, type1, value1, true, true);
+      DicomTagConstraint c2(tag, type2, value2, true, true);
+      
+      std::vector<DatabaseConstraint> lookup;
+      lookup.push_back(DatabaseConstraint(c1, level, DicomTagType_Identifier));
+      lookup.push_back(DatabaseConstraint(c2, level, DicomTagType_Identifier));
+      
+      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+    }
   };
 }
 
@@ -716,64 +740,48 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
   index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
   index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
-  std::list<std::string> s;
+  std::vector<std::string> s;
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "0");
   ASSERT_EQ(2u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "a") != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "c") != s.end());
 
-  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  DoLookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, ConstraintType_Equal, "0");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "d") != s.end());
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(0u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
-    query.Apply(s, *index_);
-    ASSERT_EQ(3u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "0");
+  ASSERT_EQ(3u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "0");
-    query.Apply(s, *index_);
-    ASSERT_EQ(2u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "1");
+  ASSERT_EQ(1u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "1");
-    query.Apply(s, *index_);
-    ASSERT_EQ(1u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "2");
+  ASSERT_EQ(0u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
-    query.Apply(s, *index_);
-    ASSERT_EQ(1u, s.size());
-  }
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "0", ConstraintType_SmallerOrEqual, "0");
+  ASSERT_EQ(2u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "2");
-    query.Apply(s, *index_);
-    ASSERT_EQ(0u, s.size());
-  }
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "1", ConstraintType_SmallerOrEqual, "1");
+  ASSERT_EQ(1u, s.size());
+
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "0", ConstraintType_SmallerOrEqual, "1");
+  ASSERT_EQ(3u, s.size());
 }
 
 
@@ -858,7 +866,7 @@ TEST(ServerIndex, AttachmentRecycling)
 }
 
 
-TEST(LookupIdentifierQuery, NormalizeIdentifier)
+TEST(ServerIndex, NormalizeIdentifier)
 {
   ASSERT_EQ("H^L.LO", ServerToolbox::NormalizeIdentifier("   Hé^l.LO  %_  "));
   ASSERT_EQ("1.2.840.113619.2.176.2025", ServerToolbox::NormalizeIdentifier("   1.2.840.113619.2.176.2025  "));

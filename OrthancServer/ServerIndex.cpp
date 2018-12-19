@@ -2141,11 +2141,9 @@ namespace Orthanc
     std::vector<DatabaseConstraint> query;
     query.push_back(DatabaseConstraint(c, level, DicomTagType_Identifier));
 
-    std::vector<std::string> instancesId;
-
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_.ApplyLookupResources(result, instancesId, query, level, 0);
+      db_.ApplyLookupResources(result, NULL, query, level, 0);
     }
   }
 
@@ -2565,7 +2563,7 @@ namespace Orthanc
 
 
   void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                         std::vector<std::string>& instancesId,
+                                         std::vector<std::string>* instancesId,
                                          const DatabaseLookup& lookup,
                                          ResourceType queryLevel,
                                          size_t limit)

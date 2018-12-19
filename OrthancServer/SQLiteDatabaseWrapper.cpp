@@ -1498,11 +1498,17 @@ namespace Orthanc
 
 
   void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                   std::vector<std::string>& instancesId,
+                                                   std::vector<std::string>* instancesId,
                                                    const std::vector<DatabaseConstraint>& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
+    for (size_t i = 0; i < lookup.size(); i++)
+    {
+      std::cout << i << ": " << lookup[i].GetTag() << " - " << EnumerationToString(lookup[i].GetLevel());
+      std::cout << std::endl;
+    }
+    
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
            ResourceType_Series < ResourceType_Instance);
@@ -1584,16 +1590,33 @@ namespace Orthanc
         sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
       }
 
+      printf("[%s]\n", sql.c_str());
+
       SQLite::Statement s(db_, sql);
 
       for (size_t i = 0; i < parameters.size(); i++)
       {
+        printf("   %lu = '%s'\n", i, parameters[i].c_str());
         s.BindString(i, parameters[i]);
       }
 
       s.Run();
     }
 
-    AnswerLookup(resourcesId, instancesId, db_, queryLevel);
+    if (instancesId != NULL)
+    {
+      AnswerLookup(resourcesId, *instancesId, db_, queryLevel);
+    }
+    else
+    {
+      resourcesId.clear();
+    
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId FROM Lookup");
+        
+      while (s.Step())
+      {
+        resourcesId.push_back(s.ColumnString(0));
+      }
+    }
   }
 }
