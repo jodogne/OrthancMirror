@@ -774,8 +774,8 @@ namespace Orthanc
 
 
   void ServerContext::Apply(ILookupVisitor& visitor,
-                            const ::Orthanc::LookupResource& lookup,
-                            const DatabaseLookup& lookup2,
+                            const DatabaseLookup& lookup,
+                            ResourceType queryLevel,
                             size_t since,
                             size_t limit)
   {
@@ -807,7 +807,7 @@ namespace Orthanc
                                "should be \"Always\", \"Never\" or \"Answers\": " + value);
       }
 
-      if (lookup.GetLevel() == ResourceType_Instance)
+      if (queryLevel == ResourceType_Instance)
       {
         databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
       }
@@ -817,42 +817,14 @@ namespace Orthanc
       }
     }      
 
-
     std::vector<std::string> resources, instances;
-    GetIndex().FindCandidates(resources, instances, lookup);
 
-    bool complete = true;
+    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
+    GetIndex().ApplyLookupResources(resources, instances, lookup, queryLevel, lookupLimit);
 
-#if 1
-    {
-      std::vector<std::string> resources2, instances2;
+    bool complete = (databaseLimit == 0 ||
+                     resources.size() > databaseLimit);
 
-      size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
-      GetIndex().ApplyLookupResources(resources2, instances2, lookup2, lookup.GetLevel(), lookupLimit);
-
-      if (databaseLimit != 0 &&
-          resources2.size() > databaseLimit)
-      {
-        complete = false;
-      }
-      
-      // Sanity checks
-      std::set<std::string> r;
-      for (size_t i = 0; i < resources2.size(); i++)
-      {
-        r.insert(resources2[i]);
-      }
-
-      printf("%d %d\n", resources2.size(), resources.size());
-      assert(resources2.size() >= resources.size());
-      
-      for (size_t i = 0; i < resources.size(); i++)
-      {
-        assert(r.find(resources[i]) != r.end());
-      }
-    }
-#endif
-    
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
     assert(resources.size() == instances.size());

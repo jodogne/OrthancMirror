@@ -614,8 +614,7 @@ namespace Orthanc
      * Build up the query object.
      **/
 
-    LookupResource lookup(level);
-    DatabaseLookup lookup2;
+    DatabaseLookup lookup;
 
     bool caseSensitivePN;
 
@@ -655,8 +654,7 @@ namespace Orthanc
           sensitive = caseSensitivePN;
         }
 
-        lookup.AddDicomConstraint(tag, value, sensitive);
-        lookup2.AddDicomConstraint(tag, value, sensitive, true /* mandatory */);
+        lookup.AddDicomConstraint(tag, value, sensitive, true /* mandatory */);
       }
       else
       {
@@ -674,7 +672,7 @@ namespace Orthanc
 
 
     LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
-    context_.Apply(visitor, lookup, lookup2, 0 /* "since" is not relevant to C-FIND */, limit);
+    context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
 

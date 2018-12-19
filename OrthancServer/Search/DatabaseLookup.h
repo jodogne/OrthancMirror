@@ -68,7 +68,7 @@ namespace Orthanc
 
     void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
 
-    bool IsMatch(const DicomMap& value);
+    bool IsMatch(const DicomMap& value) const;
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,
@@ -79,5 +79,7 @@ namespace Orthanc
                            const std::string& dicomQuery,
                            bool caseSensitive,
                            bool mandatoryTag);
+
+    bool HasOnlyMainDicomTags() const;
   };
 }

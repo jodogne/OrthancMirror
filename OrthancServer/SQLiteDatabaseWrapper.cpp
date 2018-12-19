@@ -1503,12 +1503,6 @@ namespace Orthanc
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      std::cout << i << ": " << lookup[i].GetTag() << " - " << EnumerationToString(lookup[i].GetLevel());
-      std::cout << std::endl;
-    }
-    
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
            ResourceType_Series < ResourceType_Instance);
@@ -1530,8 +1524,6 @@ namespace Orthanc
         lowerLevel = level;
       }
     }
-    
-    printf("ICI 2: [%s] -> [%s]\n", EnumerationToString(upperLevel), EnumerationToString(lowerLevel));
     
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
@@ -1592,13 +1584,10 @@ namespace Orthanc
         sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
       }
 
-      printf("[%s]\n", sql.c_str());
-
       SQLite::Statement s(db_, sql);
 
       for (size_t i = 0; i < parameters.size(); i++)
       {
-        printf("   %lu = '%s'\n", i, parameters[i].c_str());
         s.BindString(i, parameters[i]);
       }
 

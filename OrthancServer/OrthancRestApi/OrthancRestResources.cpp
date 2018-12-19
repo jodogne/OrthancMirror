@@ -1401,10 +1401,9 @@ namespace Orthanc
         since = static_cast<size_t>(tmp);
       }
 
-      std::string level = request[KEY_LEVEL].asString();
+      ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      LookupResource query(StringToResourceType(level.c_str()));
-      DatabaseLookup query2;
+      DatabaseLookup query;
 
       Json::Value::Members members = request[KEY_QUERY].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -1415,17 +1414,14 @@ namespace Orthanc
                                  "Tag \"" + members[i] + "\" should be associated with a string");
         }
 
-        query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                 request[KEY_QUERY][members[i]].asString(),
-                                 caseSensitive);
-        query2.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                 request[KEY_QUERY][members[i]].asString(),
-                                 caseSensitive, true);
+        query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                request[KEY_QUERY][members[i]].asString(),
+                                caseSensitive, true);
       }
 
       FindVisitor visitor;
-      context.Apply(visitor, query, query2, since, limit);
-      visitor.Answer(call.GetOutput(), context.GetIndex(), query.GetLevel(), expand);
+      context.Apply(visitor, query, level, since, limit);
+      visitor.Answer(call.GetOutput(), context.GetIndex(), level, expand);
     }
   }
 

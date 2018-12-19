@@ -170,6 +170,9 @@ namespace Orthanc
 
       for (size_t i = 0; i < size; i++)
       {
+        // The identifiers tags are a subset of the main DICOM tags
+        assert(DicomMap::IsMainDicomTag(tags[i]));
+        
         const DicomValue* value = map.TestAndGetValue(tags[i]);
         if (value != NULL &&
             !value->IsNull() &&
