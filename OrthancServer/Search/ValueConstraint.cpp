@@ -55,12 +55,6 @@ namespace Orthanc
   }
 
 
-  void ValueConstraint::Setup(LookupIdentifierQuery& lookup,
-                              const DicomTag& tag) const
-  {
-    lookup.AddConstraint(tag, IdentifierConstraintType_Equal, value_);
-  }
-
   bool ValueConstraint::Match(const std::string& value) const
   {
     if (isCaseSensitive_)

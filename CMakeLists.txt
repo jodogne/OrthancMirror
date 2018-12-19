@@ -77,7 +77,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Search/HierarchicalMatcher.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
-  OrthancServer/Search/LookupIdentifierQuery.cpp
   OrthancServer/Search/RangeConstraint.cpp
   OrthancServer/Search/SetOfResources.cpp
   OrthancServer/Search/ValueConstraint.cpp
