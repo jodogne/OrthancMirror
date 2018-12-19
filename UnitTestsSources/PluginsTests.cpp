@@ -65,10 +65,26 @@ TEST(SharedLibrary, Basic)
   // http://www.linuxfromscratch.org/lfs/view/6.5/chapter06/glibc.html
   SharedLibrary l("libSegFault.so");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
-  ASSERT_TRUE(l.GetFunction("_init") != NULL);
-  ASSERT_TRUE(l.HasFunction("_init"));
   ASSERT_FALSE(l.HasFunction("world"));
 
+  /**
+   * On the Docker image "debian:buster-slim", the "libSegFault.so"
+   * library does exist, but does not contain any public symbol:
+   * 
+   *  $ sudo docker run -i -t --rm --entrypoint=bash debian:buster-slim
+   *  # apt-get update && apt-get install -y binutils
+   *  # nm -C /lib/x86_64-linux-gnu/libSegFault.so
+   *  nm: /lib/x86_64-linux-gnu/libSegFault.so: no symbols
+   *
+   * As a consequence, this part of the test is disabled since Orthanc
+   * 1.5.1, until we locate another shared library that is widely
+   * spread. Reference:
+   * https://groups.google.com/d/msg/orthanc-users/v-QFzpOzgJY/4Hm5NgxKBwAJ
+   **/
+  
+  //ASSERT_TRUE(l.GetFunction("_init") != NULL);
+  //ASSERT_TRUE(l.HasFunction("_init"));
+  
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
   SharedLibrary l("libdl.so");
   ASSERT_THROW(l.GetFunction("world"), OrthancException);
