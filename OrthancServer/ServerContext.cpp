@@ -780,6 +780,7 @@ namespace Orthanc
                             size_t limit)
   {
     LookupMode mode;
+    unsigned int databaseLimit;
       
     {
       // New configuration option in 1.5.1
@@ -805,6 +806,15 @@ namespace Orthanc
                                "Configuration option \"StorageAccessOnFind\" "
                                "should be \"Always\", \"Never\" or \"Answers\": " + value);
       }
+
+      if (lookup.GetLevel() == ResourceType_Instance)
+      {
+        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
+      }
+      else
+      {
+        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+      }
     }      
 
 
@@ -817,20 +827,11 @@ namespace Orthanc
     {
       std::vector<std::string> resources2, instances2;
 
-      size_t lookupLimit = (limit == 0 ? 0 : limit + 1);
-      
-      if (lookup.GetLevel() == ResourceType_Patient)
-      {
-        GetIndex().ApplyLookupPatients(resources2, instances2, lookup2, lookupLimit);
-      }
-      else
-      {
-        GetIndex().ApplyLookupResources(resources2, instances2, lookup2,
-                                        lookup.GetLevel(), lookupLimit);
-      }
+      size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
+      GetIndex().ApplyLookupResources(resources2, instances2, lookup2, lookup.GetLevel(), lookupLimit);
 
-      if (limit != 0 &&
-          resources2.size() > limit)
+      if (databaseLimit != 0 &&
+          resources2.size() > databaseLimit)
       {
         complete = false;
       }
@@ -843,12 +844,12 @@ namespace Orthanc
       }
 
       printf("%d %d\n", resources2.size(), resources.size());
-      /*assert(resources2.size() >= resources.size());
+      assert(resources2.size() >= resources.size());
       
       for (size_t i = 0; i < resources.size(); i++)
       {
         assert(r.find(resources[i]) != r.end());
-        }*/
+      }
     }
 #endif
     
