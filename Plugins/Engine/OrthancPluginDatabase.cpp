@@ -1162,15 +1162,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::ApplyLookupPatients(std::vector<std::string>& patientsId,
-                                                  std::vector<std::string>& instancesId,
-                                                  const std::vector<DatabaseConstraint>& lookup,
-                                                  size_t limit)
-  {
-    throw OrthancException(ErrorCode_NotImplemented);
-  }
-  
-
   void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& patientsId,
                                                    std::vector<std::string>& instancesId,
                                                    const std::vector<DatabaseConstraint>& lookup,

@@ -1228,38 +1228,6 @@ namespace Orthanc
   }      
   
 
-  static void FormatJoin(std::string& target,
-                         const DatabaseConstraint& constraint,
-                         size_t index)
-  {
-    std::string tag = "t" + boost::lexical_cast<std::string>(index);
-
-    if (constraint.IsMandatory())
-    {
-      target = " INNER JOIN ";
-    }
-    else
-    {
-      target = " LEFT JOIN ";
-    }
-
-    if (constraint.IsIdentifier())
-    {
-      target += "DicomIdentifiers ";
-    }
-    else
-    {
-      target += "MainDicomTags ";
-    }
-
-    target += (tag + " ON " + tag + ".id = " + FormatLevel(constraint.GetLevel()) +
-               ".internalId AND " + tag + ".tagGroup = " +
-               boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
-               " AND " + tag + ".tagElement = " +
-               boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
-  }
-  
-
   static bool FormatComparison(std::string& target,
                                const DatabaseConstraint& constraint,
                                size_t index,
@@ -1344,46 +1312,58 @@ namespace Orthanc
       case ConstraintType_Wildcard:
       {
         const std::string value = constraint.GetSingleValue();
-        std::string escaped;
-        escaped.reserve(value.size());
 
-        for (size_t i = 0; i < value.size(); i++)
+        if (value == "*")
         {
-          if (value[i] == '*')
+          if (!constraint.IsMandatory())
           {
-            escaped += "%";
+            // Universal constraint on an optional tag, ignore it
+            return false;
           }
-          else if (value[i] == '?')
-          {
-            escaped += "_";
-          }
-          else if (value[i] == '%')
-          {
-            escaped += "\\%";
-          }
-          else if (value[i] == '_')
-          {
-            escaped += "\\_";
-          }
-          else if (value[i] == '\\')
-          {
-            escaped += "\\\\";
-          }
-          else
-          {
-            escaped += value[i];
-          }               
-        }
-
-        parameters.push_back(escaped);
-
-        if (constraint.IsCaseSensitive())
-        {
-          comparison = tag + ".value LIKE ? ESCAPE '\\'";
         }
         else
         {
-          comparison = "lower(" + tag + ".value) LIKE lower(?) ESCAPE '\\'";
+          std::string escaped;
+          escaped.reserve(value.size());
+
+          for (size_t i = 0; i < value.size(); i++)
+          {
+            if (value[i] == '*')
+            {
+              escaped += "%";
+            }
+            else if (value[i] == '?')
+            {
+              escaped += "_";
+            }
+            else if (value[i] == '%')
+            {
+              escaped += "\\%";
+            }
+            else if (value[i] == '_')
+            {
+              escaped += "\\_";
+            }
+            else if (value[i] == '\\')
+            {
+              escaped += "\\\\";
+            }
+            else
+            {
+              escaped += value[i];
+            }               
+          }
+
+          parameters.push_back(escaped);
+
+          if (constraint.IsCaseSensitive())
+          {
+            comparison = tag + ".value LIKE ? ESCAPE '\\'";
+          }
+          else
+          {
+            comparison = "lower(" + tag + ".value) LIKE lower(?) ESCAPE '\\'";
+          }
         }
           
         break;
@@ -1396,23 +1376,52 @@ namespace Orthanc
 
     if (constraint.IsMandatory())
     {
-      target += comparison;
+      target = comparison;
+    }
+    else if (comparison.empty())
+    {
+      target = tag + ".value IS NULL";
     }
     else
     {
-      target += tag + ".value IS NULL OR " + comparison;
+      target = tag + ".value IS NULL OR " + comparison;
     }
 
     return true;
   }
 
 
-  static void PrepareLookup(SQLite::Connection& db)
+  static void FormatJoin(std::string& target,
+                         const DatabaseConstraint& constraint,
+                         size_t index)
   {
-    SQLite::Statement s(db, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
-    s.Run();
-  }
+    std::string tag = "t" + boost::lexical_cast<std::string>(index);
 
+    if (constraint.IsMandatory())
+    {
+      target = " INNER JOIN ";
+    }
+    else
+    {
+      target = " LEFT JOIN ";
+    }
+
+    if (constraint.IsIdentifier())
+    {
+      target += "DicomIdentifiers ";
+    }
+    else
+    {
+      target += "MainDicomTags ";
+    }
+
+    target += (tag + " ON " + tag + ".id = " + FormatLevel(constraint.GetLevel()) +
+               ".internalId AND " + tag + ".tagGroup = " +
+               boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
+               " AND " + tag + ".tagElement = " +
+               boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
+  }
+  
 
   static void AnswerLookup(std::vector<std::string>& resourcesId,
                            std::vector<std::string>& instancesId,
@@ -1488,76 +1497,18 @@ namespace Orthanc
   }
 
 
-  static void FormatConstraints(std::string& joins,
-                                std::string& comparisons,
-                                std::vector<std::string>& parameters,
-                                const std::vector<DatabaseConstraint>& lookup)
-  {
-    size_t count = 0;
-    
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      std::string comparison;
-      
-      if (FormatComparison(comparison, lookup[i], count, parameters))
-      {
-        std::string join;
-        FormatJoin(join, lookup[i], count);
-        joins += join;
-
-        comparisons += " AND (" + comparison + ")";
-        
-        count ++;
-      }
-    }
-  }
-                                
-  
-  
-  void SQLiteDatabaseWrapper::ApplyLookupPatients(std::vector<std::string>& patientsId,
-                                                  std::vector<std::string>& instancesId,
-                                                  const std::vector<DatabaseConstraint>& lookup,
-                                                  size_t limit)
-  {
-    PrepareLookup(db_);
-    
-    std::string joins, comparisons;
-    std::vector<std::string> parameters;
-    FormatConstraints(joins, comparisons, parameters, lookup);
-
-    {
-      std::string sql = ("CREATE TEMPORARY TABLE Lookup AS "
-                         "SELECT patients.publicId, patients.internalId FROM Resources AS patients" +
-                         joins + " WHERE patients.resourceType = " +
-                         boost::lexical_cast<std::string>(ResourceType_Patient) + comparisons);
-
-      if (limit != 0)
-      {
-        sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
-      }
-
-      printf("[%s]\n", sql.c_str());
-
-      SQLite::Statement s(db_, sql);
-
-      for (size_t i = 0; i < parameters.size(); i++)
-      {
-        s.BindString(i, parameters[i]);
-      }
-
-      s.Run();
-    }
-
-    AnswerLookup(patientsId, instancesId, db_, ResourceType_Patient);
-  }
-
-
   void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                                    std::vector<std::string>& instancesId,
                                                    const std::vector<DatabaseConstraint>& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
+    for (size_t i = 0; i < lookup.size(); i++)
+    {
+      std::cout << i << ": " << lookup[i].GetTag() << " - " << EnumerationToString(lookup[i].GetLevel());
+      std::cout << std::endl;
+    }
+    
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
            ResourceType_Series < ResourceType_Instance);
@@ -1582,11 +1533,34 @@ namespace Orthanc
     
     printf("ICI 2: [%s] -> [%s]\n", EnumerationToString(upperLevel), EnumerationToString(lowerLevel));
     
-    PrepareLookup(db_);
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
+      s.Run();
+    }
     
     std::string joins, comparisons;
     std::vector<std::string> parameters;
-    FormatConstraints(joins, comparisons, parameters, lookup);
+
+    size_t count = 0;
+    
+    for (size_t i = 0; i < lookup.size(); i++)
+    {
+      std::string comparison;
+      
+      if (FormatComparison(comparison, lookup[i], count, parameters))
+      {
+        std::string join;
+        FormatJoin(join, lookup[i], count);
+        joins += join;
+
+        if (!comparison.empty())
+        {
+          comparisons += " AND " + comparison;
+        }
+        
+        count ++;
+      }
+    }
 
     {
       std::string sql = ("CREATE TEMPORARY TABLE Lookup AS SELECT " +
@@ -1605,7 +1579,7 @@ namespace Orthanc
       for (int level = queryLevel + 1; level <= lowerLevel; level++)
       {
         sql += (" INNER JOIN Resources " +
-                FormatLevel(static_cast<ResourceType>(level - 1)) + " ON " +
+                FormatLevel(static_cast<ResourceType>(level)) + " ON " +
                 FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
                 FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
       }

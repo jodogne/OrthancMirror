@@ -2565,56 +2565,31 @@ namespace Orthanc
 
     target.clear();
     target.reserve(source.GetConstraintsCount());
-    
+
     for (size_t i = 0; i < source.GetConstraintsCount(); i++)
     {
-      const DicomTagConstraint& constraint = source.GetConstraint(i);
+      ResourceType level;
+      DicomTagType type;
       
-      ResourceType tagLevel;
-      DicomTagType tagType;
-      mainDicomTagsRegistry_->LookupTag(tagLevel, tagType, constraint.GetTag());
+      mainDicomTagsRegistry_->LookupTag(level, type, source.GetConstraint(i).GetTag());
 
-      if (//IsResourceLevelAboveOrEqual(tagLevel, queryLevel) &&
-          (tagType == DicomTagType_Identifier ||
-           tagType == DicomTagType_Main))
+      if (type == DicomTagType_Identifier ||
+          type == DicomTagType_Main)
       {
         // Use the fact that patient-level tags are copied at the study level
-        if (queryLevel != ResourceType_Patient &&
-            tagLevel == ResourceType_Patient)
+        if (level == ResourceType_Patient &&
+            queryLevel != ResourceType_Patient)
         {
-          tagLevel = ResourceType_Study;
+          level = ResourceType_Study;
         }
         
-        DatabaseConstraint c(constraint, tagLevel, tagType);
-
-        // Avoid universal constraints
-        if (!(c.GetConstraintType() == ConstraintType_Equal &&
-              c.GetSingleValue() == "") &&
-            !(c.GetConstraintType() == ConstraintType_Wildcard &&
-              c.GetSingleValue() == "*"))
-        {
-          target.push_back(c);
-        }
+        DatabaseConstraint c(source.GetConstraint(i), level, type);
+        target.push_back(c);
       }
     }
   }
 
 
-  void ServerIndex::ApplyLookupPatients(std::vector<std::string>& patientsId,
-                                        std::vector<std::string>& instancesId,
-                                        const DatabaseLookup& lookup,
-                                        size_t limit)
-  {
-    std::vector<DatabaseConstraint> normalized;
-    NormalizeLookup(normalized, lookup, ResourceType_Patient);
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.ApplyLookupPatients(patientsId, instancesId, normalized, limit);
-    }
-  }
-
-  
   void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                          std::vector<std::string>& instancesId,
                                          const DatabaseLookup& lookup,
