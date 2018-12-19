@@ -39,7 +39,6 @@
 #include "../Core/Logging.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "OrthancConfiguration.h"
-#include "Search/LookupResource.h"
 #include "ServerToolbox.h"
 
 #include <boost/regex.hpp> 

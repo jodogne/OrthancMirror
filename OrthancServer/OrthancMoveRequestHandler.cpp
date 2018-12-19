@@ -226,7 +226,7 @@ namespace Orthanc
 
     const std::string& content = value.GetContent();
 
-    std::list<std::string> ids;
+    std::vector<std::string> ids;
     context_.GetIndex().LookupIdentifierExact(ids, level, tag, content);
 
     if (ids.size() != 1)
@@ -235,7 +235,7 @@ namespace Orthanc
     }
     else
     {
-      publicId = ids.front();
+      publicId = ids[0];
       return true;
     }
   }

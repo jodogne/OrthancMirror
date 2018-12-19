@@ -38,7 +38,6 @@
 #include "LuaScripting.h"
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
-#include "Search/LookupResource.h"
 
 #include "../Core/Cache/MemoryCache.h"
 #include "../Core/Cache/SharedArchive.h"

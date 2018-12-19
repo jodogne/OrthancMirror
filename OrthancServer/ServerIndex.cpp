@@ -50,7 +50,6 @@
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "ServerContext.h"
 #include "DicomInstanceToStore.h"
-#include "Search/LookupResource.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
@@ -2124,7 +2123,7 @@ namespace Orthanc
 
 
 
-  void ServerIndex::LookupIdentifierExact(std::list<std::string>& result,
+  void ServerIndex::LookupIdentifierExact(std::vector<std::string>& result,
                                           ResourceType level,
                                           const DicomTag& tag,
                                           const std::string& value)
@@ -2137,11 +2136,17 @@ namespace Orthanc
     
     result.clear();
 
-    boost::mutex::scoped_lock lock(mutex_);
+    DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    LookupIdentifierQuery query(level);
-    query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
-    query.Apply(result, db_);
+    std::vector<DatabaseConstraint> query;
+    query.push_back(DatabaseConstraint(c, level, DicomTagType_Identifier));
+
+    std::vector<std::string> instancesId;
+
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      db_.ApplyLookupResources(result, instancesId, query, level, 0);
+    }
   }
 
 
@@ -2428,36 +2433,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     return db_.GetDatabaseVersion();
-  }
-
-
-  void ServerIndex::FindCandidates(std::vector<std::string>& resources,
-                                   std::vector<std::string>& instances,
-                                   const ::Orthanc::LookupResource& lookup)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-   
-    std::list<int64_t> tmp;
-    lookup.FindCandidates(tmp, db_);
-
-    resources.resize(tmp.size());
-    instances.resize(tmp.size());
-
-    size_t pos = 0;
-    for (std::list<int64_t>::const_iterator
-           it = tmp.begin(); it != tmp.end(); ++it, pos++)
-    {
-      assert(db_.GetResourceType(*it) == lookup.GetLevel());
-      
-      int64_t instance;
-      if (!ServerToolbox::FindOneChildInstance(instance, db_, *it, lookup.GetLevel()))
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      resources[pos] = db_.GetPublicId(*it);
-      instances[pos] = db_.GetPublicId(instance);
-    }
   }
 
 

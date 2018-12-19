@@ -255,7 +255,7 @@ namespace Orthanc
                        /* out */ uint64_t& dicomUncompressedSize, 
                        const std::string& publicId);
 
-    void LookupIdentifierExact(std::list<std::string>& result,
+    void LookupIdentifierExact(std::vector<std::string>& result,
                                ResourceType level,
                                const DicomTag& tag,
                                const std::string& value);
@@ -288,10 +288,6 @@ namespace Orthanc
                             const std::string& publicId);
 
     unsigned int GetDatabaseVersion();
-
-    void FindCandidates(std::vector<std::string>& resources,
-                        std::vector<std::string>& instances,
-                        const ::Orthanc::LookupResource& lookup);
 
     bool LookupParent(std::string& target,
                       const std::string& publicId,
