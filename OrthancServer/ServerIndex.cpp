@@ -2556,7 +2556,6 @@ namespace Orthanc
   }
 
 
-
   void ServerIndex::NormalizeLookup(std::vector<DatabaseConstraint>& target,
                                     const DatabaseLookup& source,
                                     ResourceType queryLevel) const

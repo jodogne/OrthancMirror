@@ -76,7 +76,7 @@ namespace Orthanc
   }
 
 
-  bool DatabaseLookup::IsMatch(const DicomMap& value)
+  bool DatabaseLookup::IsMatch(const DicomMap& value) const
   {
     for (size_t i = 0; i < constraints_.size(); i++)
     {
@@ -226,5 +226,25 @@ namespace Orthanc
   {
     AddDicomConstraintInternal(tag, FromDcmtkBridge::LookupValueRepresentation(tag),
                                dicomQuery, caseSensitive, mandatoryTag);
+  }
+
+
+  bool DatabaseLookup::HasOnlyMainDicomTags() const
+  {
+    std::set<DicomTag> mainTags;
+    DicomMap::GetMainDicomTags(mainTags);
+
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      
+      if (mainTags.find(constraints_[i]->GetTag()) == mainTags.end())
+      {
+        // This is not a main DICOM tag
+        return false;
+      }
+    }
+
+    return true;
   }
 }

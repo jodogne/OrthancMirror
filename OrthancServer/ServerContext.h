@@ -363,8 +363,8 @@ namespace Orthanc
     void Stop();
 
     void Apply(ILookupVisitor& visitor,
-               const ::Orthanc::LookupResource& lookup,
-               const DatabaseLookup& lookup2,
+               const DatabaseLookup& lookup,
+               ResourceType queryLevel,
                size_t since,
                size_t limit);
 
