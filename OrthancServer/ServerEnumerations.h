@@ -56,6 +56,7 @@ namespace Orthanc
     StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
+  // TODO REMOVE THIS
   enum IdentifierConstraintType
   {
     IdentifierConstraintType_Equal,
