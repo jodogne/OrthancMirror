@@ -263,18 +263,6 @@ namespace Orthanc
 
     virtual bool IsExistingResource(int64_t internalId);
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
-                                  ResourceType level,
-                                  const DicomTag& tag,
-                                  IdentifierConstraintType type,
-                                  const std::string& value);
-
-    virtual void LookupIdentifierRange(std::list<int64_t>& result,
-                                       ResourceType level,
-                                       const DicomTag& tag,
-                                       const std::string& start,
-                                       const std::string& end);
-
     virtual bool IsDiskSizeAbove(uint64_t threshold);
 
     virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
