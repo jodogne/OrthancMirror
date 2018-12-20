@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../IDatabaseWrapper.h"
+#include "../../OrthancServer/IDatabaseWrapper.h"
 
 #include <set>
 #include <boost/noncopyable.hpp>
