@@ -42,7 +42,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabase : public CompatibilityDatabaseWrapper
+  class OrthancPluginDatabase : public Compatibility::CompatibilityDatabaseWrapper
   {
   private:
     class Transaction;
