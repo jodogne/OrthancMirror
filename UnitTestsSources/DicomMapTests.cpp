@@ -487,7 +487,8 @@ TEST(DicomMap, DicomAsJson)
 
   ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_DESCRIPTION));  // Maximum length
   ASSERT_FALSE(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).IsBinary());
-  ASSERT_EQ(ORTHANC_MAXIMUM_TAG_LENGTH, m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent().length());
+  ASSERT_EQ(ORTHANC_MAXIMUM_TAG_LENGTH,
+            static_cast<int>(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent().length()));
 
   ASSERT_FALSE(m.GetValue(DICOM_TAG_ROWS).IsBinary());
   ASSERT_EQ("512", m.GetValue(DICOM_TAG_ROWS).GetContent());
