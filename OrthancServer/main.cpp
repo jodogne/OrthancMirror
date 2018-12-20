@@ -356,11 +356,13 @@ public:
                          const IHttpHandler::Arguments& httpHeaders,
                          const IHttpHandler::GetArguments& getArguments)
   {
+#if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&
         !plugins_->IsAllowed(method, uri, ip, username, httpHeaders, getArguments))
     {
       return false;
     }
+#endif
 
     static const char* HTTP_FILTER = "IncomingHttpRequestFilter";
 
@@ -1232,8 +1234,12 @@ static bool ConfigurePlugins(int argc,
 
 #elif ORTHANC_ENABLE_PLUGINS == 0
   // The plugins are disabled
-  databasePtr.reset(lock.GetConfiguration().CreateDatabaseWrapper());
-  storage.reset(lock.GetConfiguration().CreateStorageArea());
+
+  databasePtr.reset(CreateDatabaseWrapper());
+  storage.reset(CreateStorageArea());
+
+  assert(databasePtr.get() != NULL);
+  assert(storage.get() != NULL);
 
   return ConfigureDatabase(*databasePtr, *storage, NULL,
                            upgradeDatabase, loadJobsFromDatabase);
