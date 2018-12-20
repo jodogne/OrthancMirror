@@ -36,13 +36,13 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../Core/SharedLibrary.h"
-#include "../../OrthancServer/IDatabaseWrapper.h"
+#include "../../OrthancServer/Search/Compatibility/CompatibilityDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
 {
-  class OrthancPluginDatabase : public IDatabaseWrapper
+  class OrthancPluginDatabase : public CompatibilityDatabaseWrapper
   {
   private:
     class Transaction;
@@ -306,8 +306,7 @@ namespace Orthanc
                          IStorageArea& storageArea) 
       ORTHANC_OVERRIDE;
 
-    void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer) 
-      ORTHANC_OVERRIDE;
+    void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
 
     virtual bool IsDiskSizeAbove(uint64_t threshold) 
       ORTHANC_OVERRIDE;
