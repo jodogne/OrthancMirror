@@ -39,6 +39,7 @@
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
 #include "../../Core/Logging.h"
+#include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
 #include "../Search/LookupResource.h"
 #include "../ServerContext.h"
