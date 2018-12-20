@@ -50,7 +50,7 @@ namespace Orthanc
       {
       }
 
-      void ApplyLookupResources(std::vector<std::string>& patientsId,
+      void ApplyLookupResources(std::vector<std::string>& resourcesId,
                                 std::vector<std::string>* instancesId,
                                 const std::vector<DatabaseConstraint>& lookup,
                                 ResourceType queryLevel,

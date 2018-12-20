@@ -40,14 +40,153 @@
 namespace Orthanc
 {
   namespace Compatibility
-  {  
-    void DatabaseLookup::ApplyLookupResources(std::vector<std::string>& patientsId,
+  {
+    static void ApplyLevel(SetOfResources& candidates,
+                           const std::vector<DatabaseConstraint>& lookup,
+                           ResourceType level)
+    {
+      std::vector<DatabaseConstraint> identifiers;
+      
+      for (size_t i = 0; i < lookup.size(); i++)
+      {
+        if (lookup[i].GetLevel() == level &&
+            lookup[i].IsIdentifier())
+        {
+          identifiers.push_back(lookup[i]);
+        }
+      }
+    }
+
+
+    static std::string GetOneInstance(IDatabaseWrapper& database,
+                                      int64_t resource,
+                                      ResourceType level)
+    {
+      for (int i = level; i < ResourceType_Instance; i++)
+      {
+        assert(database.GetResourceType(resource) == static_cast<ResourceType>(i));
+
+        std::list<int64_t> children;
+        database.GetChildrenInternalId(children, resource);
+          
+        if (children.size() == 0)
+        {
+          throw OrthancException(ErrorCode_Database);
+        }
+          
+        resource = children.front();
+      }
+        
+      return database.GetPublicId(resource);
+    }
+                           
+
+    void DatabaseLookup::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                               std::vector<std::string>* instancesId,
                                               const std::vector<DatabaseConstraint>& lookup,
                                               ResourceType queryLevel,
                                               size_t limit)
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      // This is a re-implementation of
+      // "../../../Resources/Graveyard/DatabaseOptimizations/LookupResource.cpp"
+
+      assert(ResourceType_Patient < ResourceType_Study &&
+             ResourceType_Study < ResourceType_Series &&
+             ResourceType_Series < ResourceType_Instance);
+    
+      ResourceType upperLevel = queryLevel;
+      ResourceType lowerLevel = queryLevel;
+
+      for (size_t i = 0; i < lookup.size(); i++)
+      {
+        ResourceType level = lookup[i].GetLevel();
+
+        if (level < upperLevel)
+        {
+          upperLevel = level;
+        }
+
+        if (level > lowerLevel)
+        {
+          lowerLevel = level;
+        }
+      }
+
+      assert(upperLevel <= queryLevel &&
+             queryLevel <= lowerLevel);
+
+      SetOfResources candidates(database_, upperLevel);
+
+      for (int level = upperLevel; level <= lowerLevel; level++)
+      {
+        ApplyLevel(candidates, lookup, static_cast<ResourceType>(level));
+
+        if (level != lowerLevel)
+        {
+          candidates.GoDown();
+        }
+      }
+
+      std::list<int64_t> resources;
+      candidates.Flatten(resources);
+
+      // Climb up, up to queryLevel
+
+      for (int level = lowerLevel; level > queryLevel; level--)
+      {
+        std::list<int64_t> parents;
+        for (std::list<int64_t>::const_iterator
+               it = resources.begin(); it != resources.end(); ++it)
+        {
+          int64_t parent;
+          if (database_.LookupParent(parent, *it))
+          {
+            parents.push_back(parent);
+          }
+        }
+
+        resources.swap(parents);
+      }
+
+      // Apply the limit, if given
+
+      if (limit != 0 &&
+          resources.size() > limit)
+      {
+        resources.resize(limit);
+      }
+
+      // Get the public ID of all the selected resources
+
+      resourcesId.resize(resources.size());
+
+      if (instancesId != NULL)
+      {
+        instancesId->resize(resources.size());
+      }
+
+      size_t pos = 0;
+
+      for (std::list<int64_t>::const_iterator
+             it = resources.begin(); it != resources.end(); ++it, pos++)
+      {
+        assert(database_.GetResourceType(*it) == queryLevel);
+
+        resourcesId[pos] = database_.GetPublicId(*it);
+
+        if (instancesId != NULL)
+        {
+          // Collect one child instance for each of the selected resources
+          if (queryLevel == ResourceType_Instance)
+          {
+            (*instancesId) [pos] = resourcesId[pos];
+          }
+          else
+          {
+            (*instancesId) [pos] = GetOneInstance(database_, *it, queryLevel);
+          }
+        }
+      }
     }
   }
 }

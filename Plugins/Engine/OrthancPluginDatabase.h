@@ -311,7 +311,7 @@ namespace Orthanc
     virtual bool IsDiskSizeAbove(uint64_t threshold) 
       ORTHANC_OVERRIDE;
 
-    virtual void ApplyLookupResources(std::vector<std::string>& patientsId,
+    virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
                                       std::vector<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
