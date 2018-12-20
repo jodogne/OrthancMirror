@@ -320,6 +320,7 @@ TEST(FromDcmtkBridge, ValueRepresentation)
 
 TEST(FromDcmtkBridge, ValueRepresentationConversions)
 {
+#if ORTHANC_ENABLE_PLUGINS == 1
   ASSERT_EQ(1, ValueRepresentation_ApplicationEntity);
   ASSERT_EQ(1, OrthancPluginValueRepresentation_AE);
 
@@ -358,6 +359,7 @@ TEST(FromDcmtkBridge, ValueRepresentationConversions)
     ValueRepresentation orthanc = Plugins::Convert(plugins);
     ASSERT_EQ(plugins, Plugins::Convert(orthanc));
   }
+#endif
 }
 
 
