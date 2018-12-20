@@ -78,7 +78,6 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
   OrthancServer/Search/RangeConstraint.cpp
-  OrthancServer/Search/SetOfResources.cpp
   OrthancServer/Search/ValueConstraint.cpp
   OrthancServer/Search/WildcardConstraint.cpp
   OrthancServer/ServerContext.cpp
@@ -133,6 +132,7 @@ if (ENABLE_PLUGINS)
     Plugins/Engine/PluginsErrorDictionary.cpp
     Plugins/Engine/PluginsJob.cpp
     Plugins/Engine/PluginsManager.cpp
+    Plugins/Engine/SetOfResources.cpp
     )
 
   list(APPEND ORTHANC_UNIT_TESTS_SOURCES

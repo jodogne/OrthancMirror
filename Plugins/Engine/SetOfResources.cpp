@@ -31,7 +31,7 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#include "../../OrthancServer/PrecompiledHeadersServer.h"
 #include "SetOfResources.h"
 
 #include "../../Core/OrthancException.h"
