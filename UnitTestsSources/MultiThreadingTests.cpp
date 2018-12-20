@@ -1733,11 +1733,11 @@ TEST(JobsSerialization, TrailingStep)
     Json::Value s;
     
     DummyInstancesJob job;
-    ASSERT_EQ(0, job.GetCommandsCount());
-    ASSERT_EQ(0, job.GetInstancesCount());
+    ASSERT_EQ(0u, job.GetCommandsCount());
+    ASSERT_EQ(0u, job.GetInstancesCount());
 
     job.Start();
-    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_EQ(0u, job.GetPosition());
     ASSERT_FALSE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
 
@@ -1747,7 +1747,7 @@ TEST(JobsSerialization, TrailingStep)
     }
     
     ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
-    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
     {
@@ -1764,11 +1764,11 @@ TEST(JobsSerialization, TrailingStep)
     DummyInstancesJob job;
     job.AddInstance("hello");
     job.AddInstance("world");
-    ASSERT_EQ(2, job.GetCommandsCount());
-    ASSERT_EQ(2, job.GetInstancesCount());
+    ASSERT_EQ(2u, job.GetCommandsCount());
+    ASSERT_EQ(2u, job.GetInstancesCount());
 
     job.Start();
-    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_EQ(0u, job.GetPosition());
     ASSERT_FALSE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
 
@@ -1778,7 +1778,7 @@ TEST(JobsSerialization, TrailingStep)
     }
     
     ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
     {
@@ -1787,7 +1787,7 @@ TEST(JobsSerialization, TrailingStep)
     }
 
     ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
-    ASSERT_EQ(2, job.GetPosition());
+    ASSERT_EQ(2u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
     {
@@ -1802,14 +1802,14 @@ TEST(JobsSerialization, TrailingStep)
     Json::Value s;
     
     DummyInstancesJob job;
-    ASSERT_EQ(0, job.GetInstancesCount());
-    ASSERT_EQ(0, job.GetCommandsCount());
+    ASSERT_EQ(0u, job.GetInstancesCount());
+    ASSERT_EQ(0u, job.GetCommandsCount());
     job.AddTrailingStep();
-    ASSERT_EQ(0, job.GetInstancesCount());
-    ASSERT_EQ(1, job.GetCommandsCount());
+    ASSERT_EQ(0u, job.GetInstancesCount());
+    ASSERT_EQ(1u, job.GetCommandsCount());
 
     job.Start(); // This adds the trailing step
-    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_EQ(0u, job.GetPosition());
     ASSERT_TRUE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
 
@@ -1819,7 +1819,7 @@ TEST(JobsSerialization, TrailingStep)
     }
     
     ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
-    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_EQ(1u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
     {
@@ -1835,15 +1835,15 @@ TEST(JobsSerialization, TrailingStep)
     
     DummyInstancesJob job;
     job.AddInstance("hello");
-    ASSERT_EQ(1, job.GetInstancesCount());
-    ASSERT_EQ(1, job.GetCommandsCount());
+    ASSERT_EQ(1u, job.GetInstancesCount());
+    ASSERT_EQ(1u, job.GetCommandsCount());
     job.AddTrailingStep();
-    ASSERT_EQ(1, job.GetInstancesCount());
-    ASSERT_EQ(2, job.GetCommandsCount());
+    ASSERT_EQ(1u, job.GetInstancesCount());
+    ASSERT_EQ(2u, job.GetCommandsCount());
     
     job.Start();
-    ASSERT_EQ(2, job.GetCommandsCount());
-    ASSERT_EQ(0, job.GetPosition());
+    ASSERT_EQ(2u, job.GetCommandsCount());
+    ASSERT_EQ(0u, job.GetPosition());
     ASSERT_TRUE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
 
@@ -1853,7 +1853,7 @@ TEST(JobsSerialization, TrailingStep)
     }
     
     ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(1, job.GetPosition());
+    ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
     {
@@ -1862,7 +1862,7 @@ TEST(JobsSerialization, TrailingStep)
     }
 
     ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
-    ASSERT_EQ(2, job.GetPosition());
+    ASSERT_EQ(2u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
     {
