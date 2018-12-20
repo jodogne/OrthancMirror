@@ -211,13 +211,18 @@ namespace OrthancPlugins
 
     std::vector<const char*> headersKeys;
     std::vector<const char*> headersValues;
-    for (std::map<std::string, std::string>::const_iterator it = httpHeaders.begin(); it != httpHeaders.end(); it++)
+    
+    for (std::map<std::string, std::string>::const_iterator
+           it = httpHeaders.begin(); it != httpHeaders.end(); it++)
     {
       headersKeys.push_back(it->first.c_str());
       headersValues.push_back(it->second.c_str());
     }
 
-    return CheckHttp(OrthancPluginRestApiGet2(GetGlobalContext(), &buffer_, uri.c_str(), httpHeaders.size(), headersKeys.data(), headersValues.data(), applyPlugins));
+    return CheckHttp(OrthancPluginRestApiGet2(
+                       GetGlobalContext(), &buffer_, uri.c_str(), httpHeaders.size(),
+                       (headersKeys.empty() ? NULL : &headersKeys[0]),
+                       (headersValues.empty() ? NULL : &headersValues[0]), applyPlugins));
   }
 
   bool MemoryBuffer::RestApiPost(const std::string& uri,
