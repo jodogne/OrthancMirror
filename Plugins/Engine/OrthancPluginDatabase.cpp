@@ -39,8 +39,9 @@
 #endif
 
 
-#include "../../Core/OrthancException.h"
 #include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
+#include "../../OrthancServer/Search/Compatibility/DatabaseLookup.h"
 #include "PluginsEnumerations.h"
 
 #include <cassert>
@@ -63,7 +64,7 @@ namespace Orthanc
 
   public:
     Transaction(OrthancPluginDatabase& that) :
-      that_(that)
+    that_(that)
     {
     }
 
@@ -1116,11 +1117,12 @@ namespace Orthanc
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
-    throw OrthancException(ErrorCode_NotImplemented);
+    Compatibility::DatabaseLookup compat(*this);
+    compat.ApplyLookupResources(patientsId, instancesId, lookup, queryLevel, limit);
   }
 
 
-    void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
+  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
                                                ResourceType level,
                                                const DicomTag& tag,
                                                IdentifierConstraintType type,
