@@ -1457,6 +1457,9 @@ namespace Orthanc
       }
     }
     
+    assert(upperLevel <= queryLevel &&
+           queryLevel <= lowerLevel);
+
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
       s.Run();

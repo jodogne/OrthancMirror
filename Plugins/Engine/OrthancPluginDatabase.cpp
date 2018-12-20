@@ -1111,14 +1111,14 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& patientsId,
+  void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                                    std::vector<std::string>* instancesId,
                                                    const std::vector<DatabaseConstraint>& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
     Compatibility::DatabaseLookup compat(*this);
-    compat.ApplyLookupResources(patientsId, instancesId, lookup, queryLevel, limit);
+    compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
   }
 
 
