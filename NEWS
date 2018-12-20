@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
 
 
 Version 1.5.1 (2018-12-20)
