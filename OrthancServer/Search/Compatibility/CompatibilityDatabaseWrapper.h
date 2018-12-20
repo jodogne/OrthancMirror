@@ -33,47 +33,28 @@
 
 #pragma once
 
-#include "../../OrthancServer/IDatabaseWrapper.h"
-
-#include <set>
-#include <boost/noncopyable.hpp>
-#include <memory>
+#include "../../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
-  class SetOfResources : public boost::noncopyable
+  /**
+   * This is a compatibility class that contains database primitives
+   * that were used in Orthanc <= 1.5.1, and that have been removed
+   * during the optimization of the database engine.
+   **/
+  class CompatibilityDatabaseWrapper : public IDatabaseWrapper
   {
-  private:
-    typedef std::set<int64_t>  Resources;
-
-    IDatabaseWrapper&         database_;
-    ResourceType              level_;
-    std::auto_ptr<Resources>  resources_;
-    
   public:
-    SetOfResources(IDatabaseWrapper& database,
-                   ResourceType level) : 
-      database_(database),
-      level_(level)
-    {
-    }
-
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
-
-    void Intersect(const std::list<int64_t>& resources);
-
-    void GoDown();
-
-    void Flatten(std::list<int64_t>& result);
-
-    void Flatten(std::list<std::string>& result);
-
-    void Clear()
-    {
-      resources_.reset(NULL);
-    }
+    virtual void LookupIdentifier(std::list<int64_t>& result,
+                                  ResourceType level,
+                                  const DicomTag& tag,
+                                  IdentifierConstraintType type,
+                                  const std::string& value) = 0;
+ 
+    virtual void LookupIdentifierRange(std::list<int64_t>& result,
+                                       ResourceType level,
+                                       const DicomTag& tag,
+                                       const std::string& start,
+                                       const std::string& end) = 0;
   };
 }

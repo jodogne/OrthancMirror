@@ -53,7 +53,6 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
-  OrthancServer/SQLiteDatabaseWrapper.cpp
   OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
@@ -71,6 +70,8 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/SQLiteDatabaseWrapper.cpp
+  OrthancServer/Search/Compatibility/SetOfResources.cpp
   OrthancServer/Search/DatabaseConstraint.cpp
   OrthancServer/Search/DatabaseLookup.cpp
   OrthancServer/Search/DicomTagConstraint.cpp
@@ -132,7 +133,6 @@ if (ENABLE_PLUGINS)
     Plugins/Engine/PluginsErrorDictionary.cpp
     Plugins/Engine/PluginsJob.cpp
     Plugins/Engine/PluginsManager.cpp
-    Plugins/Engine/SetOfResources.cpp
     )
 
   list(APPEND ORTHANC_UNIT_TESTS_SOURCES
