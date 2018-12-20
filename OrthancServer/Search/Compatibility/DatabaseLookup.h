@@ -33,31 +33,28 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
+#include "CompatibilityDatabaseWrapper.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    /**
-     * This is a compatibility class that contains database primitives
-     * that were used in Orthanc <= 1.5.1, and that have been removed
-     * during the optimization of the database engine.
-     **/
-    class CompatibilityDatabaseWrapper : public IDatabaseWrapper
+    class DatabaseLookup : public boost::noncopyable
     {
+    private:
+      CompatibilityDatabaseWrapper&  database_;
+
     public:
-      virtual void LookupIdentifier(std::list<int64_t>& result,
-                                    ResourceType level,
-                                    const DicomTag& tag,
-                                    IdentifierConstraintType type,
-                                    const std::string& value) = 0;
- 
-      virtual void LookupIdentifierRange(std::list<int64_t>& result,
-                                         ResourceType level,
-                                         const DicomTag& tag,
-                                         const std::string& start,
-                                         const std::string& end) = 0;
+      DatabaseLookup(CompatibilityDatabaseWrapper& database) :
+        database_(database)
+      {
+      }
+
+      void ApplyLookupResources(std::vector<std::string>& patientsId,
+                                std::vector<std::string>* instancesId,
+                                const std::vector<DatabaseConstraint>& lookup,
+                                ResourceType queryLevel,
+                                size_t limit);
     };
   }
 }
