@@ -39,118 +39,121 @@
 
 namespace Orthanc
 {
-  void SetOfResources::Intersect(const std::list<int64_t>& resources)
+  namespace Compatibility
   {
-    if (resources_.get() == NULL)
+    void SetOfResources::Intersect(const std::list<int64_t>& resources)
     {
-      resources_.reset(new Resources);
-
-      for (std::list<int64_t>::const_iterator
-             it = resources.begin(); it != resources.end(); ++it)
+      if (resources_.get() == NULL)
       {
-        resources_->insert(*it);
-      }
-    }
-    else
-    {
-      std::auto_ptr<Resources> filtered(new Resources);
-
-      for (std::list<int64_t>::const_iterator
-             it = resources.begin(); it != resources.end(); ++it)
-      {
-        if (resources_->find(*it) != resources_->end())
-        {
-          filtered->insert(*it);
-        }
-      }
-
-      resources_ = filtered;
-    }
-  }
-
-
-  void SetOfResources::GoDown()
-  {
-    if (level_ == ResourceType_Instance)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    if (resources_.get() != NULL)
-    {
-      std::auto_ptr<Resources> children(new Resources);
-
-      for (Resources::const_iterator it = resources_->begin(); 
-           it != resources_->end(); ++it)
-      {
-        std::list<int64_t> tmp;
-        database_.GetChildrenInternalId(tmp, *it);
+        resources_.reset(new Resources);
 
         for (std::list<int64_t>::const_iterator
-               child = tmp.begin(); child != tmp.end(); ++child)
+               it = resources.begin(); it != resources.end(); ++it)
         {
-          children->insert(*child);
+          resources_->insert(*it);
         }
       }
-
-      resources_ = children;
-    }
-
-    switch (level_)
-    {
-      case ResourceType_Patient:
-        level_ = ResourceType_Study;
-        break;
-
-      case ResourceType_Study:
-        level_ = ResourceType_Series;
-        break;
-
-      case ResourceType_Series:
-        level_ = ResourceType_Instance;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-
-
-  void SetOfResources::Flatten(std::list<std::string>& result)
-  {
-    result.clear();
-      
-    if (resources_.get() == NULL)
-    {
-      // All the resources of this level are part of the filter
-      database_.GetAllPublicIds(result, level_);
-    }
-    else
-    {
-      for (Resources::const_iterator it = resources_->begin(); 
-           it != resources_->end(); ++it)
+      else
       {
-        result.push_back(database_.GetPublicId(*it));
+        std::auto_ptr<Resources> filtered(new Resources);
+
+        for (std::list<int64_t>::const_iterator
+               it = resources.begin(); it != resources.end(); ++it)
+        {
+          if (resources_->find(*it) != resources_->end())
+          {
+            filtered->insert(*it);
+          }
+        }
+
+        resources_ = filtered;
       }
     }
-  }
 
 
-  void SetOfResources::Flatten(std::list<int64_t>& result)
-  {
-    result.clear();
-      
-    if (resources_.get() == NULL)
+    void SetOfResources::GoDown()
     {
-      // All the resources of this level are part of the filter
-      database_.GetAllInternalIds(result, level_);
-    }
-    else
-    {
-      for (Resources::const_iterator it = resources_->begin(); 
-           it != resources_->end(); ++it)
+      if (level_ == ResourceType_Instance)
       {
-        result.push_back(*it);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      if (resources_.get() != NULL)
+      {
+        std::auto_ptr<Resources> children(new Resources);
+
+        for (Resources::const_iterator it = resources_->begin(); 
+             it != resources_->end(); ++it)
+        {
+          std::list<int64_t> tmp;
+          database_.GetChildrenInternalId(tmp, *it);
+
+          for (std::list<int64_t>::const_iterator
+                 child = tmp.begin(); child != tmp.end(); ++child)
+          {
+            children->insert(*child);
+          }
+        }
+
+        resources_ = children;
+      }
+
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          level_ = ResourceType_Study;
+          break;
+
+        case ResourceType_Study:
+          level_ = ResourceType_Series;
+          break;
+
+        case ResourceType_Series:
+          level_ = ResourceType_Instance;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+
+    void SetOfResources::Flatten(std::list<std::string>& result)
+    {
+      result.clear();
+      
+      if (resources_.get() == NULL)
+      {
+        // All the resources of this level are part of the filter
+        database_.GetAllPublicIds(result, level_);
+      }
+      else
+      {
+        for (Resources::const_iterator it = resources_->begin(); 
+             it != resources_->end(); ++it)
+        {
+          result.push_back(database_.GetPublicId(*it));
+        }
+      }
+    }
+
+
+    void SetOfResources::Flatten(std::list<int64_t>& result)
+    {
+      result.clear();
+      
+      if (resources_.get() == NULL)
+      {
+        // All the resources of this level are part of the filter
+        database_.GetAllInternalIds(result, level_);
+      }
+      else
+      {
+        for (Resources::const_iterator it = resources_->begin(); 
+             it != resources_->end(); ++it)
+        {
+          result.push_back(*it);
+        }
       }
     }
   }
