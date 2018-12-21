@@ -56,15 +56,6 @@ namespace Orthanc
     StoreStatus_FilteredOut     // Removed by NewInstanceFilter
   };
 
-  // TODO REMOVE THIS
-  enum IdentifierConstraintType
-  {
-    IdentifierConstraintType_Equal,
-    IdentifierConstraintType_SmallerOrEqual,
-    IdentifierConstraintType_GreaterOrEqual,
-    IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
-  };
-
   enum DicomTagType
   {
     DicomTagType_Identifier,   // Tag that whose value is stored and indexed in the DB

@@ -1125,7 +1125,7 @@ namespace Orthanc
   void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
                                                ResourceType level,
                                                const DicomTag& tag,
-                                               IdentifierConstraintType type,
+                                               Compatibility::IdentifierConstraintType type,
                                                const std::string& value)
   {
     if (extensions_.lookupIdentifier3 == NULL)
@@ -1156,10 +1156,10 @@ namespace Orthanc
     {
       // Default implementation, for plugins using Orthanc SDK <= 1.3.2
 
-      LookupIdentifier(result, level, tag, IdentifierConstraintType_GreaterOrEqual, start);
+      LookupIdentifier(result, level, tag, Compatibility::IdentifierConstraintType_GreaterOrEqual, start);
 
       std::list<int64_t> b;
-      LookupIdentifier(result, level, tag, IdentifierConstraintType_SmallerOrEqual, end);
+      LookupIdentifier(result, level, tag, Compatibility::IdentifierConstraintType_SmallerOrEqual, end);
 
       result.splice(result.end(), b);
     }

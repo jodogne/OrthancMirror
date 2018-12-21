@@ -322,7 +322,7 @@ namespace Orthanc
     virtual void LookupIdentifier(std::list<int64_t>& result,
                                   ResourceType level,
                                   const DicomTag& tag,
-                                  IdentifierConstraintType type,
+                                  Compatibility::IdentifierConstraintType type,
                                   const std::string& value)
       ORTHANC_OVERRIDE;
     
