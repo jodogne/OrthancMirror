@@ -78,6 +78,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Search/DatabaseLookup.cpp
   OrthancServer/Search/DicomTagConstraint.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
+  OrthancServer/Search/ISqlLookupFormatter.cpp
   OrthancServer/Search/IFindConstraint.cpp
   OrthancServer/Search/ListConstraint.cpp
   OrthancServer/Search/RangeConstraint.cpp
