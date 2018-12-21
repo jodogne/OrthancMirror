@@ -38,6 +38,7 @@
 #include "../Core/Logging.h"
 #include "../Core/SQLite/Transaction.h"
 #include "EmbeddedResources.h"
+#include "Search/ISqlLookupFormatter.h"
 #include "ServerToolbox.h"
 
 #include <stdio.h>
@@ -1118,223 +1119,32 @@ namespace Orthanc
   }
 
 
-  static std::string FormatLevel(ResourceType level)
+
+  class SQLiteDatabaseWrapper::LookupFormatter : public ISqlLookupFormatter
   {
-    switch (level)
+  private:
+    std::list<std::string>  values_;
+
+  public:
+    virtual std::string GenerateParameter(const std::string& value)
     {
-      case ResourceType_Patient:
-        return "patients";
-        
-      case ResourceType_Study:
-        return "studies";
-        
-      case ResourceType_Series:
-        return "series";
-        
-      case ResourceType_Instance:
-        return "instances";
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+      values_.push_back(value);
+      return "?";
     }
-  }      
-  
-
-  static bool FormatComparison(std::string& target,
-                               const DatabaseConstraint& constraint,
-                               size_t index,
-                               std::vector<std::string>& parameters)
-  {
-    std::string tag = "t" + boost::lexical_cast<std::string>(index);
-
-    std::string comparison;
     
-    switch (constraint.GetConstraintType())
+    void Bind(SQLite::Statement& statement) const
     {
-      case ConstraintType_Equal:
-      case ConstraintType_SmallerOrEqual:
-      case ConstraintType_GreaterOrEqual:
+      size_t pos = 0;
+      
+      for (std::list<std::string>::const_iterator
+             it = values_.begin(); it != values_.end(); ++it, pos++)
       {
-        std::string op;
-        switch (constraint.GetConstraintType())
-        {
-          case ConstraintType_Equal:
-            op = "=";
-            break;
-          
-          case ConstraintType_SmallerOrEqual:
-            op = "<=";
-            break;
-          
-          case ConstraintType_GreaterOrEqual:
-            op = ">=";
-            break;
-          
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-          
-        parameters.push_back(constraint.GetSingleValue());
-
-        if (constraint.IsCaseSensitive())
-        {
-          comparison = tag + ".value " + op + " ?";
-        }
-        else
-        {
-          comparison = "lower(" + tag + ".value) " + op + " lower(?)";
-        }
-
-        break;
+        statement.BindString(pos, *it);
       }
-
-      case ConstraintType_List:
-      {
-        for (size_t i = 0; i < constraint.GetValuesCount(); i++)
-        {
-          parameters.push_back(constraint.GetValue(i));
-
-          if (!comparison.empty())
-          {
-            comparison += ", ";
-          }
-            
-          if (constraint.IsCaseSensitive())
-          {
-            comparison += "?";
-          }
-          else
-          {
-            comparison += "lower(?)";
-          }
-        }
-
-        if (constraint.IsCaseSensitive())
-        {
-          comparison = tag + ".value IN (" + comparison + ")";
-        }
-        else
-        {
-          comparison = "lower(" +  tag + ".value) IN (" + comparison + ")";
-        }
-            
-        break;
-      }
-
-      case ConstraintType_Wildcard:
-      {
-        const std::string value = constraint.GetSingleValue();
-
-        if (value == "*")
-        {
-          if (!constraint.IsMandatory())
-          {
-            // Universal constraint on an optional tag, ignore it
-            return false;
-          }
-        }
-        else
-        {
-          std::string escaped;
-          escaped.reserve(value.size());
-
-          for (size_t i = 0; i < value.size(); i++)
-          {
-            if (value[i] == '*')
-            {
-              escaped += "%";
-            }
-            else if (value[i] == '?')
-            {
-              escaped += "_";
-            }
-            else if (value[i] == '%')
-            {
-              escaped += "\\%";
-            }
-            else if (value[i] == '_')
-            {
-              escaped += "\\_";
-            }
-            else if (value[i] == '\\')
-            {
-              escaped += "\\\\";
-            }
-            else
-            {
-              escaped += value[i];
-            }               
-          }
-
-          parameters.push_back(escaped);
-
-          if (constraint.IsCaseSensitive())
-          {
-            comparison = tag + ".value LIKE ? ESCAPE '\\'";
-          }
-          else
-          {
-            comparison = "lower(" + tag + ".value) LIKE lower(?) ESCAPE '\\'";
-          }
-        }
-          
-        break;
-      }
-
-      default:
-        // Don't modify "parameters" in this case!
-        return false;
     }
+  };
 
-    if (constraint.IsMandatory())
-    {
-      target = comparison;
-    }
-    else if (comparison.empty())
-    {
-      target = tag + ".value IS NULL";
-    }
-    else
-    {
-      target = tag + ".value IS NULL OR " + comparison;
-    }
-
-    return true;
-  }
-
-
-  static void FormatJoin(std::string& target,
-                         const DatabaseConstraint& constraint,
-                         size_t index)
-  {
-    std::string tag = "t" + boost::lexical_cast<std::string>(index);
-
-    if (constraint.IsMandatory())
-    {
-      target = " INNER JOIN ";
-    }
-    else
-    {
-      target = " LEFT JOIN ";
-    }
-
-    if (constraint.IsIdentifier())
-    {
-      target += "DicomIdentifiers ";
-    }
-    else
-    {
-      target += "MainDicomTags ";
-    }
-
-    target += (tag + " ON " + tag + ".id = " + FormatLevel(constraint.GetLevel()) +
-               ".internalId AND " + tag + ".tagGroup = " +
-               boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
-               " AND " + tag + ".tagElement = " +
-               boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
-  }
   
-
   static void AnswerLookup(std::vector<std::string>& resourcesId,
                            std::vector<std::string>& instancesId,
                            SQLite::Connection& db,
@@ -1415,107 +1225,24 @@ namespace Orthanc
                                                    ResourceType queryLevel,
                                                    size_t limit)
   {
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      std::cout << i << ": " << lookup[i].GetTag() << " - " << EnumerationToString(lookup[i].GetLevel());
-      std::cout << std::endl;
-    }
+    LookupFormatter formatter;
+
+    std::string sql;
+    LookupFormatter::Apply(sql, formatter, lookup, queryLevel, limit);
+
+    sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
     
-    assert(ResourceType_Patient < ResourceType_Study &&
-           ResourceType_Study < ResourceType_Series &&
-           ResourceType_Series < ResourceType_Instance);
-    
-    ResourceType upperLevel = queryLevel;
-    ResourceType lowerLevel = queryLevel;
-
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      ResourceType level = lookup[i].GetLevel();
-
-      if (level < upperLevel)
-      {
-        upperLevel = level;
-      }
-
-      if (level > lowerLevel)
-      {
-        lowerLevel = level;
-      }
-    }
-    
-    assert(upperLevel <= queryLevel &&
-           queryLevel <= lowerLevel);
-
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
       s.Run();
     }
-    
-    std::string joins, comparisons;
-    std::vector<std::string> parameters;
-
-    size_t count = 0;
-    
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      std::string comparison;
-      
-      if (FormatComparison(comparison, lookup[i], count, parameters))
-      {
-        std::string join;
-        FormatJoin(join, lookup[i], count);
-        joins += join;
-
-        if (!comparison.empty())
-        {
-          comparisons += " AND " + comparison;
-        }
-        
-        count ++;
-      }
-    }
 
     {
-      std::string sql = ("CREATE TEMPORARY TABLE Lookup AS SELECT " +
-                         FormatLevel(queryLevel) + ".publicId, " +
-                         FormatLevel(queryLevel) + ".internalId" +
-                         " FROM Resources AS " + FormatLevel(queryLevel));
-
-      for (int level = queryLevel - 1; level >= upperLevel; level--)
-      {
-        sql += (" INNER JOIN Resources " +
-                FormatLevel(static_cast<ResourceType>(level)) + " ON " +
-                FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
-                FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
-      }
-      
-      for (int level = queryLevel + 1; level <= lowerLevel; level++)
-      {
-        sql += (" INNER JOIN Resources " +
-                FormatLevel(static_cast<ResourceType>(level)) + " ON " +
-                FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
-                FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
-      }
-      
-      sql += (joins + " WHERE " + FormatLevel(queryLevel) + ".resourceType = " +
-              boost::lexical_cast<std::string>(queryLevel) + comparisons);
-
-      if (limit != 0)
-      {
-        sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
-      }
-
       printf("[%s]\n", sql.c_str());
 
-      SQLite::Statement s(db_, sql);
-
-      for (size_t i = 0; i < parameters.size(); i++)
-      {
-        printf("   %lu = '%s'\n", i, parameters[i].c_str());
-        s.BindString(i, parameters[i]);
-      }
-
-      s.Run();
+      SQLite::Statement statement(db_, sql);
+      formatter.Bind(statement);
+      statement.Run();
     }
 
     if (instancesId != NULL)
