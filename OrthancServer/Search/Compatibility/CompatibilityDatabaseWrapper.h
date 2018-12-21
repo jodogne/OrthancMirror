@@ -55,6 +55,9 @@ namespace Orthanc
     class CompatibilityDatabaseWrapper : public IDatabaseWrapper
     {
     public:
+      virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                     ResourceType resourceType) = 0;
+
       virtual void LookupIdentifier(std::list<int64_t>& result,
                                     ResourceType level,
                                     const DicomTag& tag,

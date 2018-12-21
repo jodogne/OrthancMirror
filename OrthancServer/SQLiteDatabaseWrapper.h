@@ -283,10 +283,6 @@ namespace Orthanc
     virtual uint64_t GetResourceCount(ResourceType resourceType)
       ORTHANC_OVERRIDE;
 
-    virtual void GetAllInternalIds(std::list<int64_t>& target,
-                                   ResourceType resourceType)
-      ORTHANC_OVERRIDE;
-
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType)
       ORTHANC_OVERRIDE;
