@@ -36,6 +36,8 @@
 
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "../ServerToolbox.h"
+#include "DatabaseConstraint.h"
 
 #include <boost/regex.hpp>
 
@@ -94,6 +96,30 @@ namespace Orthanc
   };
 
 
+  void DicomTagConstraint::AssignSingleValue(const std::string& value)
+  {
+    if (constraintType_ != ConstraintType_Wildcard &&
+        (value.find('*') != std::string::npos ||
+         value.find('?') != std::string::npos))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (constraintType_ == ConstraintType_Equal ||
+        constraintType_ == ConstraintType_SmallerOrEqual ||
+        constraintType_ == ConstraintType_GreaterOrEqual ||
+        constraintType_ == ConstraintType_Wildcard)
+    {
+      values_.clear();
+      values_.insert(value);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
                                          ConstraintType type,
                                          const std::string& value,
@@ -104,24 +130,7 @@ namespace Orthanc
     caseSensitive_(caseSensitive),
     mandatory_(mandatory)
   {
-    if (type == ConstraintType_Equal ||
-        type == ConstraintType_SmallerOrEqual ||
-        type == ConstraintType_GreaterOrEqual ||
-        type == ConstraintType_Wildcard)
-    {
-      values_.insert(value);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    if (type != ConstraintType_Wildcard &&
-        (value.find('*') != std::string::npos ||
-         value.find('?') != std::string::npos))
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    AssignSingleValue(value);
   }
 
 
@@ -137,6 +146,35 @@ namespace Orthanc
     if (type != ConstraintType_List)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  DicomTagConstraint::DicomTagConstraint(const DatabaseConstraint& constraint) :
+    tag_(constraint.GetTag()),
+    constraintType_(constraint.GetConstraintType()),
+    caseSensitive_(constraint.IsCaseSensitive()),
+    mandatory_(constraint.IsMandatory())
+  {
+    assert(constraint.IsIdentifier() ==
+           ServerToolbox::IsIdentifier(constraint.GetTag(), constraint.GetLevel()));
+    
+    if (constraint.IsIdentifier())
+    {
+      // This conversion is only available for main DICOM tags, not for identifers
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
+    if (constraintType_ == ConstraintType_List)
+    {
+      for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+      {
+        AddValue(constraint.GetValue(i));
+      }
+    }
+    else
+    {
+      AssignSingleValue(constraint.GetSingleValue());
     }
   }
 
