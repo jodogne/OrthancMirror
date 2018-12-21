@@ -154,10 +154,6 @@ namespace Orthanc
                                 int64_t id) 
       ORTHANC_OVERRIDE;
 
-    virtual void GetAllInternalIds(std::list<int64_t>& target,
-                                   ResourceType resourceType) 
-      ORTHANC_OVERRIDE;
-
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) 
       ORTHANC_OVERRIDE;
@@ -311,11 +307,9 @@ namespace Orthanc
     virtual bool IsDiskSizeAbove(uint64_t threshold) 
       ORTHANC_OVERRIDE;
 
-    virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                      std::vector<std::string>* instancesId,
-                                      const std::vector<DatabaseConstraint>& lookup,
-                                      ResourceType queryLevel,
-                                      size_t limit)
+    // From the "CompatibilityDatabaseWrapper" interface
+    virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                   ResourceType resourceType) 
       ORTHANC_OVERRIDE;
 
     // From the "CompatibilityDatabaseWrapper" interface

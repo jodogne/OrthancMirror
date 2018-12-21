@@ -53,8 +53,15 @@ namespace Orthanc
      * during the optimization of the database engine.
      **/
     class CompatibilityDatabaseWrapper : public IDatabaseWrapper
-    {
+    {     
     public:
+      virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                        std::vector<std::string>* instancesId,
+                                        const std::vector<DatabaseConstraint>& lookup,
+                                        ResourceType queryLevel,
+                                        size_t limit)
+        ORTHANC_OVERRIDE;
+
       virtual void GetAllInternalIds(std::list<int64_t>& target,
                                      ResourceType resourceType) = 0;
 
