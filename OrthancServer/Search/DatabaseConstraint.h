@@ -91,5 +91,7 @@ namespace Orthanc
     {
       return mandatory_;
     }
+
+    bool IsMatch(const DicomMap& dicom) const;
   };
 }

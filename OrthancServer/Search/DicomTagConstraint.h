@@ -40,6 +40,8 @@
 
 namespace Orthanc
 {
+  class DatabaseConstraint;
+  
   class DicomTagConstraint : public boost::noncopyable
   {
   private:
@@ -54,6 +56,8 @@ namespace Orthanc
 
     boost::shared_ptr<RegularExpression>  regex_;
 
+    void AssignSingleValue(const std::string& value);
+
   public:
     DicomTagConstraint(const DicomTag& tag,
                        ConstraintType type,
@@ -66,6 +70,8 @@ namespace Orthanc
                        ConstraintType type,
                        bool caseSensitive,
                        bool mandatory);
+
+    DicomTagConstraint(const DatabaseConstraint& constraint);
 
     const DicomTag& GetTag() const
     {
