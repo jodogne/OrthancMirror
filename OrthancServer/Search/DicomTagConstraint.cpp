@@ -34,9 +34,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomTagConstraint.h"
 
+#if defined(ORTHANC_ENABLE_LUA) && ORTHANC_ENABLE_LUA != 0
+#  include "../ServerToolbox.h"
+#endif
+
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
-#include "../ServerToolbox.h"
 #include "DatabaseConstraint.h"
 
 #include <boost/regex.hpp>
@@ -156,8 +159,10 @@ namespace Orthanc
     caseSensitive_(constraint.IsCaseSensitive()),
     mandatory_(constraint.IsMandatory())
   {
+#if defined(ORTHANC_ENABLE_LUA) && ORTHANC_ENABLE_LUA != 0
     assert(constraint.IsIdentifier() ==
            ServerToolbox::IsIdentifier(constraint.GetTag(), constraint.GetLevel()));
+#endif
     
     if (constraint.IsIdentifier())
     {
