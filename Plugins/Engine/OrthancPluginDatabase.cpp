@@ -41,7 +41,6 @@
 
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
-#include "../../OrthancServer/Search/Compatibility/DatabaseLookup.h"
 #include "PluginsEnumerations.h"
 
 #include <cassert>
@@ -1108,17 +1107,6 @@ namespace Orthanc
       assert(GetTotalCompressedSize() == currentDiskSize_);
       return currentDiskSize_ > threshold;
     }      
-  }
-
-
-  void OrthancPluginDatabase::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                   std::vector<std::string>* instancesId,
-                                                   const std::vector<DatabaseConstraint>& lookup,
-                                                   ResourceType queryLevel,
-                                                   size_t limit)
-  {
-    Compatibility::DatabaseLookup compat(*this);
-    compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
   }
 
 
