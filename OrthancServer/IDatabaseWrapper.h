@@ -102,10 +102,6 @@ namespace Orthanc
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) = 0;
 
-    // TODO: REMOVE THIS
-    virtual void GetAllInternalIds(std::list<int64_t>& target,
-                                   ResourceType resourceType) = 0;
-
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) = 0;
 

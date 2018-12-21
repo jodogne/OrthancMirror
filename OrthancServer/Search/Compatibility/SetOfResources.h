@@ -33,47 +33,49 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
+#include "CompatibilityDatabaseWrapper.h"
 
 #include <set>
-#include <boost/noncopyable.hpp>
 #include <memory>
 
 namespace Orthanc
 {
-  class SetOfResources : public boost::noncopyable
+  namespace Compatibility
   {
-  private:
-    typedef std::set<int64_t>  Resources;
+    class SetOfResources : public boost::noncopyable
+    {
+    private:
+      typedef std::set<int64_t>  Resources;
 
-    IDatabaseWrapper&         database_;
-    ResourceType              level_;
-    std::auto_ptr<Resources>  resources_;
+      CompatibilityDatabaseWrapper&  database_;
+      ResourceType                   level_;
+      std::auto_ptr<Resources>       resources_;
     
-  public:
-    SetOfResources(IDatabaseWrapper& database,
-                   ResourceType level) : 
-      database_(database),
-      level_(level)
-    {
-    }
+    public:
+      SetOfResources(CompatibilityDatabaseWrapper& database,
+                     ResourceType level) : 
+        database_(database),
+        level_(level)
+      {
+      }
 
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
 
-    void Intersect(const std::list<int64_t>& resources);
+      void Intersect(const std::list<int64_t>& resources);
 
-    void GoDown();
+      void GoDown();
 
-    void Flatten(std::list<int64_t>& result);
+      void Flatten(std::list<int64_t>& result);
 
-    void Flatten(std::list<std::string>& result);
+      void Flatten(std::list<std::string>& result);
 
-    void Clear()
-    {
-      resources_.reset(NULL);
-    }
-  };
+      void Clear()
+      {
+        resources_.reset(NULL);
+      }
+    };
+  }
 }
