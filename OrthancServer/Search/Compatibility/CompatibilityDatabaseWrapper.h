@@ -39,6 +39,14 @@ namespace Orthanc
 {
   namespace Compatibility
   {
+    enum IdentifierConstraintType
+    {
+      IdentifierConstraintType_Equal,
+      IdentifierConstraintType_SmallerOrEqual,
+      IdentifierConstraintType_GreaterOrEqual,
+      IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
+    };
+
     /**
      * This is a compatibility class that contains database primitives
      * that were used in Orthanc <= 1.5.1, and that have been removed

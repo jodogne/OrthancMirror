@@ -34,27 +34,154 @@
 #include "../../PrecompiledHeadersServer.h"
 #include "DatabaseLookup.h"
 
-#include "SetOfResources.h"
 #include "../../../Core/OrthancException.h"
+#include "../../ServerToolbox.h"
+#include "SetOfResources.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
+    static void ApplyIdentifierConstraint(SetOfResources& candidates,
+                                          CompatibilityDatabaseWrapper& database,
+                                          const DatabaseConstraint& constraint,
+                                          ResourceType level)
+    {
+      std::list<int64_t> matches;
+
+      switch (constraint.GetConstraintType())
+      {
+        case ConstraintType_Equal:
+          database.LookupIdentifier(matches, level, constraint.GetTag(),
+                                    IdentifierConstraintType_Equal, constraint.GetSingleValue());
+          break;
+          
+        case ConstraintType_SmallerOrEqual:
+          database.LookupIdentifier(matches, level, constraint.GetTag(),
+                                    IdentifierConstraintType_SmallerOrEqual, constraint.GetSingleValue());
+          break;
+          
+        case ConstraintType_GreaterOrEqual:
+          database.LookupIdentifier(matches, level, constraint.GetTag(),
+                                    IdentifierConstraintType_GreaterOrEqual, constraint.GetSingleValue());
+
+          break;
+          
+        case ConstraintType_Wildcard:
+          database.LookupIdentifier(matches, level, constraint.GetTag(),
+                                    IdentifierConstraintType_Wildcard, constraint.GetSingleValue());
+
+          break;
+          
+        case ConstraintType_List:
+        {
+          for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+          {
+            std::list<int64_t> tmp;
+            database.LookupIdentifier(tmp, level, constraint.GetTag(),
+                                      IdentifierConstraintType_Wildcard, constraint.GetValue(i));
+            matches.splice(matches.end(), tmp);
+          }
+
+          break;
+        }
+          
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      candidates.Intersect(matches);
+    }
+
+    
+    static void ApplyIdentifierRange(SetOfResources& candidates,
+                                     CompatibilityDatabaseWrapper& database,
+                                     const DatabaseConstraint& smaller,
+                                     const DatabaseConstraint& greater,
+                                     ResourceType level)
+    {
+      assert(smaller.GetConstraintType() == ConstraintType_SmallerOrEqual &&
+             greater.GetConstraintType() == ConstraintType_GreaterOrEqual &&
+             smaller.GetTag() == greater.GetTag() &&
+             ServerToolbox::IsIdentifier(smaller.GetTag(), level));
+
+      std::list<int64_t> matches;
+      database.LookupIdentifierRange(matches, level, smaller.GetTag(),
+                                     greater.GetSingleValue(), smaller.GetSingleValue());
+      candidates.Intersect(matches);
+    }
+
+    
     static void ApplyLevel(SetOfResources& candidates,
+                           CompatibilityDatabaseWrapper& database,
                            const std::vector<DatabaseConstraint>& lookup,
                            ResourceType level)
     {
-      std::vector<DatabaseConstraint> identifiers;
+      typedef std::set<const DatabaseConstraint*>  SetOfConstraints;
+      typedef std::map<DicomTag, SetOfConstraints> Identifiers;
+
+      Identifiers       identifiers;
+      SetOfConstraints  mainTags;
       
       for (size_t i = 0; i < lookup.size(); i++)
       {
-        if (lookup[i].GetLevel() == level &&
-            lookup[i].IsIdentifier())
+        if (lookup[i].GetLevel() == level)
         {
-          identifiers.push_back(lookup[i]);
+          if (lookup[i].IsIdentifier())
+          {
+            identifiers[lookup[i].GetTag()].insert(&lookup[i]);
+          }
+          else
+          {
+            mainTags.insert(&lookup[i]);
+          }
         }
       }
+
+      for (Identifiers::const_iterator it = identifiers.begin();
+           it != identifiers.end(); ++it)
+      {
+        const DatabaseConstraint* smaller = NULL;
+        const DatabaseConstraint* greater = NULL;
+        
+        for (SetOfConstraints::const_iterator it2 = it->second.begin();
+             it2 != it->second.end(); ++it2)
+        {
+          if ((*it2)->GetConstraintType() == ConstraintType_SmallerOrEqual)
+          {
+            smaller = *it2;
+          }
+
+          if ((*it2)->GetConstraintType() == ConstraintType_GreaterOrEqual)
+          {
+            greater = *it2;
+          }
+        }
+
+        if (smaller != NULL &&
+            greater != NULL)
+        {
+          ApplyIdentifierRange(candidates, database, *smaller, *greater, level);
+        }
+        else
+        {
+          smaller = NULL;
+          greater = NULL;
+        }
+
+        for (SetOfConstraints::const_iterator it2 = it->second.begin();
+             it2 != it->second.end(); ++it2)
+        {
+          if (*it2 != smaller &&
+              *it2 != greater)
+          {
+            ApplyIdentifierConstraint(candidates, database, **it2, level);
+          }
+        }
+      }
+
+
+      // TODO - Fiter main DICOM tags
     }
 
 
@@ -69,14 +196,14 @@ namespace Orthanc
         std::list<int64_t> children;
         database.GetChildrenInternalId(children, resource);
           
-        if (children.size() == 0)
+        if (children.empty())
         {
           throw OrthancException(ErrorCode_Database);
         }
           
         resource = children.front();
       }
-        
+
       return database.GetPublicId(resource);
     }
                            
@@ -119,7 +246,7 @@ namespace Orthanc
 
       for (int level = upperLevel; level <= lowerLevel; level++)
       {
-        ApplyLevel(candidates, lookup, static_cast<ResourceType>(level));
+        ApplyLevel(candidates, database_, lookup, static_cast<ResourceType>(level));
 
         if (level != lowerLevel)
         {

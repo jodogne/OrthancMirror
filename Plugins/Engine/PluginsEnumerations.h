@@ -37,6 +37,7 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../OrthancServer/ServerEnumerations.h"
+#include "../../OrthancServer/Search/Compatibility/CompatibilityDatabaseWrapper.h"
 
 namespace Orthanc
 {
@@ -58,9 +59,9 @@ namespace Orthanc
 
     DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format);
 
-    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint);
+    OrthancPluginIdentifierConstraint Convert(Compatibility::IdentifierConstraintType constraint);
 
-    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
+    Compatibility::IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
 
     OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
 
