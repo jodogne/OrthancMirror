@@ -42,6 +42,55 @@ namespace Orthanc
 {
   namespace Compatibility
   {
+    namespace
+    {
+      // Anonymous namespace to avoid clashes between compiler modules
+      class MainTagsConstraints : boost::noncopyable
+      {
+      private:
+        std::vector<DicomTagConstraint*>  constraints_;
+
+      public:
+        ~MainTagsConstraints()
+        {
+          for (size_t i = 0; i < constraints_.size(); i++)
+          {
+            assert(constraints_[i] != NULL);
+            delete constraints_[i];
+          }
+        }
+
+        void Reserve(size_t n)
+        {
+          constraints_.reserve(n);
+        }
+
+        size_t GetSize() const
+        {
+          return constraints_.size();
+        }
+
+        DicomTagConstraint& GetConstraint(size_t i) const
+        {
+          if (i >= constraints_.size())
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+          else
+          {
+            assert(constraints_[i] != NULL);
+            return *constraints_[i];
+          }
+        }
+        
+        void Add(const DatabaseConstraint& constraint)
+        {
+          constraints_.push_back(new DicomTagConstraint(constraint));
+        }          
+      };
+    }
+    
+    
     static void ApplyIdentifierConstraint(SetOfResources& candidates,
                                           CompatibilityDatabaseWrapper& database,
                                           const DatabaseConstraint& constraint,
@@ -74,7 +123,6 @@ namespace Orthanc
           break;
           
         case ConstraintType_List:
-        {
           for (size_t i = 0; i < constraint.GetValuesCount(); i++)
           {
             std::list<int64_t> tmp;
@@ -84,7 +132,6 @@ namespace Orthanc
           }
 
           break;
-        }
           
         default:
           throw OrthancException(ErrorCode_InternalError);
@@ -120,6 +167,10 @@ namespace Orthanc
       typedef std::set<const DatabaseConstraint*>  SetOfConstraints;
       typedef std::map<DicomTag, SetOfConstraints> Identifiers;
 
+      // (1) Select which constraints apply to this level, and split
+      // them between "identifier tags" constraints and "main DICOM
+      // tags" constraints
+
       Identifiers       identifiers;
       SetOfConstraints  mainTags;
       
@@ -138,15 +189,22 @@ namespace Orthanc
         }
       }
 
+      
+      // (2) Apply the constraints over the identifiers
+      
       for (Identifiers::const_iterator it = identifiers.begin();
            it != identifiers.end(); ++it)
       {
+        // Check whether some range constraint over identifiers is
+        // present at this level
         const DatabaseConstraint* smaller = NULL;
         const DatabaseConstraint* greater = NULL;
         
         for (SetOfConstraints::const_iterator it2 = it->second.begin();
              it2 != it->second.end(); ++it2)
         {
+          assert(*it2 != NULL);
+        
           if ((*it2)->GetConstraintType() == ConstraintType_SmallerOrEqual)
           {
             smaller = *it2;
@@ -161,6 +219,7 @@ namespace Orthanc
         if (smaller != NULL &&
             greater != NULL)
         {
+          // There is a range constraint: Apply it, as it is more efficient
           ApplyIdentifierRange(candidates, database, *smaller, *greater, level);
         }
         else
@@ -172,6 +231,7 @@ namespace Orthanc
         for (SetOfConstraints::const_iterator it2 = it->second.begin();
              it2 != it->second.end(); ++it2)
         {
+          // Check to avoid applying twice the range constraint
           if (*it2 != smaller &&
               *it2 != greater)
           {
@@ -181,7 +241,51 @@ namespace Orthanc
       }
 
 
-      // TODO - Fiter main DICOM tags
+      // (3) Apply the constraints over the main DICOM tags (no index
+      // here, so this is less efficient than filtering over the
+      // identifiers)
+      if (!mainTags.empty())
+      {
+        MainTagsConstraints c;
+        c.Reserve(mainTags.size());
+        
+        for (SetOfConstraints::const_iterator it = mainTags.begin();
+             it != mainTags.end(); ++it)
+        {
+          assert(*it != NULL);
+          c.Add(**it);
+        }
+
+        std::list<int64_t>  source;
+        candidates.Flatten(source);
+        candidates.Clear();
+
+        std::list<int64_t>  filtered;
+        for (std::list<int64_t>::const_iterator candidate = source.begin(); 
+             candidate != source.end(); ++candidate)
+        {
+          DicomMap tags;
+          database.GetMainDicomTags(tags, *candidate);
+
+          bool match = true;
+
+          for (size_t i = 0; i < c.GetSize(); i++)
+          {
+            if (!c.GetConstraint(i).IsMatch(tags))
+            {
+              match = false;
+              break;
+            }
+          }
+        
+          if (match)
+          {
+            filtered.push_back(*candidate);
+          }
+        }
+
+        candidates.Intersect(filtered);
+      }
     }
 
 
