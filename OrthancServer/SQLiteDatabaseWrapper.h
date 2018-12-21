@@ -53,6 +53,7 @@ namespace Orthanc
   {
   private:
     class Transaction;
+    class LookupFormatter;
 
     IDatabaseListener* listener_;
     SQLite::Connection db_;
