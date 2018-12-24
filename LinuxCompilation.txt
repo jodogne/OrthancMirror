@@ -194,7 +194,7 @@ Other GNU/Linux distributions?
 ------------------------------
 
 Please send us your build instructions (by a mail to
-s.jodogne@gmail.com)!
+s.jodogne@orthanc-labs.com)!
 
 You can find build instructions for Orthanc up to 0.7.0 on the
 following Wiki page:
