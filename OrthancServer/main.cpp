@@ -547,7 +547,7 @@ static void PrintVersion(const char* path)
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
     << std::endl
-    << "Written by Sebastien Jodogne <s.jodogne@gmail.com>" << std::endl;
+    << "Written by Sebastien Jodogne <s.jodogne@orthanc-labs.com>" << std::endl;
 }
 
 
