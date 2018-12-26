@@ -1384,16 +1384,18 @@ $('#job').live('pagebeforeshow', function() {
                       .attr('data-role', 'list-divider')
                       .text('General information about the job'));
 
-        let block = $('<li>');
-        for (let i in job) {
-          if (i == 'CreationTime' ||
-              i == 'CompletionTime' ||
-              i == 'EstimatedTimeOfArrival') {
-            AddJobDateField(block, i + ': ', job[i]);
-          } else if (i != 'InternalContent' &&
-                     i != 'Content' &&
-                     i != 'Timestamp') {
-            AddJobField(block, i + ': ', job[i]);
+        {                       
+          let block = $('<li>');
+          for (let i in job) {
+            if (i == 'CreationTime' ||
+                i == 'CompletionTime' ||
+                i == 'EstimatedTimeOfArrival') {
+              AddJobDateField(block, i + ': ', job[i]);
+            } else if (i != 'InternalContent' &&
+                      i != 'Content' &&
+                      i != 'Timestamp') {
+              AddJobField(block, i + ': ', job[i]);
+            }
           }
         }
 
@@ -1403,17 +1405,19 @@ $('#job').live('pagebeforeshow', function() {
                       .attr('data-role', 'list-divider')
                       .text('Detailed information'));
 
-        let block = $('<li>');
+        {
+          let block = $('<li>');
 
-        for (let item in job.Content) {
-          let value = job.Content[item];
-          if (typeof value !== 'string') {
-            value = JSON.stringify(value);
+          for (let item in job.Content) {
+            let value = job.Content[item];
+            if (typeof value !== 'string') {
+              value = JSON.stringify(value);
+            }
+            
+            AddJobField(block, item + ': ', value);
           }
-          
-          AddJobField(block, item + ': ', value);
         }
-
+        
         target.append(block);
         
         target.listview('refresh');

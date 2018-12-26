@@ -5,6 +5,8 @@ Maintenance
 -----------
 
 * Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
+* Fixed Orthanc Explorer on IE and Firefox: Explorer always show "to many results"
+  and it's therefore impossible to browse the content.
 
 
 Version 1.5.1 (2018-12-20)
