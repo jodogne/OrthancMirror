@@ -47,7 +47,7 @@ $(document).ready(function() {
 
 
 
-$('#upload').live('pageshow', function() {
+$(document).on("pageshow", "#upload", function() {
   alert('WARNING - This page is currently affected by Orthanc issue #21: ' +
         '"DICOM files might be missing after uploading with Mozilla Firefox." ' +
         'Do not use this upload feature for clinical uses, or carefully ' +
@@ -56,12 +56,12 @@ $('#upload').live('pageshow', function() {
   $('#fileupload').fileupload('enable');
 });
 
-$('#upload').live('pagehide', function() {
+$(document).on("pagehide", "#upload", function() {
   $('#fileupload').fileupload('disable');
 });
 
 
-$('#upload-button').live('click', function() {
+$(document).on("click", "#upload-button", function(e) {
   let pu = pendingUploads;
   pendingUploads = [];
 
@@ -82,12 +82,12 @@ $('#upload-button').live('click', function() {
   }
 });
 
-$('#upload-clear').live('click', function() {
+$(document).on("click", "#upload-clear", function(e) {
   pendingUploads = [];
   $('.pending-file').remove();
   $('#upload-list').listview('refresh');
 });
 
-/*$('#upload-abort').live('click', function() {
+/*$('#upload-abort').on('click', function() {
   $('#fileupload').fileupload().abort();
   });*/

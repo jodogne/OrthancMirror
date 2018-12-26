@@ -13,7 +13,7 @@ function GenerateDicomDate(days)
 }
 
 
-$('#query-retrieve').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#query-retrieve", function() {
   $.ajax({
     url: '../modalities',
     dataType: 'json',
@@ -45,7 +45,7 @@ $('#query-retrieve').live('pagebeforeshow', function() {
 });
 
 
-$('#qr-echo').live('click', function() {
+$(document).on("click", "#qr-echo", function(e) {
   let server = $('#qr-server').val();
   let message = 'Error: The C-Echo has failed!';
 
@@ -74,7 +74,7 @@ $('#qr-echo').live('click', function() {
 });
 
 
-$('#qr-submit').live('click', function() {
+$(document).on("click", "#qr-submit", function(e) {
   let query = {
     'Level' : 'Study',
     'Query' : {
@@ -128,7 +128,7 @@ $('#qr-submit').live('click', function() {
 
 
 
-$('#query-retrieve-2').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#query-retrieve-2", function() {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -186,7 +186,7 @@ $('#query-retrieve-2').live('pagebeforeshow', function() {
 });
 
 
-$('#query-retrieve-3').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#query-retrieve-3", function() {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -263,7 +263,7 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
 
 
 
-$('#query-retrieve-4').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#query-retrieve-4", function() {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
     let uri = '../queries/' + pageData.query + '/answers/' + pageData.answer + '/retrieve';

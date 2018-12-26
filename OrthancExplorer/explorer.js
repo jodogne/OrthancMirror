@@ -1,10 +1,26 @@
 // http://stackoverflow.com/questions/1663741/is-there-a-good-jquery-drag-and-drop-file-upload-plugin
 
 
-// Forbid the access to IE
-if ($.browser.msie)
-{
-  alert("Please use Mozilla Firefox or Google Chrome. Microsoft Internet Explorer is not supported.");
+//detect browser (from https://stackoverflow.com/questions/5916900/how-can-you-detect-the-version-of-a-browser)
+navigator.browserSpecs = (function(){
+  var ua = navigator.userAgent, tem, 
+      M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+  if(/trident/i.test(M[1])){
+      tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
+      return {name:'IE',version:(tem[1] || '')};
+  }
+  if(M[1]=== 'Chrome'){
+      tem = ua.match(/\b(OPR|Edge)\/(\d+)/);
+      if(tem != null) return {name:tem[1].replace('OPR', 'Opera'),version:tem[2]};
+  }
+  M = M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
+  if((tem = ua.match(/version\/(\d+)/i))!= null)
+      M.splice(1, 1, tem[1]);
+  return {name:M[0], version:M[1]};
+})();
+
+if (navigator.browserSpecs.name == 'IE' && navigator.browserSpecs.version < 11) {
+  alert("Your version of Internet Explorer is not supported.  Please use Mozilla Firefox or Google Chrome.");
 }
 
 // http://jquerymobile.com/demos/1.1.0/docs/api/globalconfig.html
@@ -78,14 +94,17 @@ $(document).ready(function() {
     }
   );
   
-  currentPage = $.mobile.pageData.active;
-  currentUuid = $.mobile.pageData.uuid;
-  if (!(typeof currentPage === 'undefined') &&
-      !(typeof currentUuid === 'undefined') &&
-      currentPage.length > 0 && 
-      currentUuid.length > 0)
-  {
-    Refresh();
+  if (!(typeof $.mobile.pageData === 'undefined')) {
+
+    currentPage = $.mobile.pageData.active;
+    currentUuid = $.mobile.pageData.uuid;
+    if (!(typeof currentPage === 'undefined') &&
+        !(typeof currentUuid === 'undefined') &&
+        currentPage.length > 0 && 
+        currentUuid.length > 0)
+    {
+      Refresh();
+    }
   }
 });
 
@@ -342,7 +361,7 @@ function FormatInstance(instance, link, isReverse)
 }
 
 
-$('[data-role="page"]').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", '[data-role="page"]', function() {
   $.ajax({
     url: '../system',
     dataType: 'json',
@@ -362,7 +381,7 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
 
 
 
-$('#lookup').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#lookup", function() {
   // NB: "GenerateDicomDate()" is defined in "query-retrieve.js"
   let target = $('#lookup-study-date');
   $('option', target).remove();
@@ -379,7 +398,7 @@ $('#lookup').live('pagebeforeshow', function() {
 });
 
 
-$('#lookup-submit').live('click', function() {
+$(document).on("click", "#lookup-submit", function(e) {
   $('#lookup-result').hide();
 
   let lookup = {
@@ -430,7 +449,7 @@ $('#lookup-submit').live('click', function() {
 });
 
 
-$('#find-patients').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#find-patients", function() {
   GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(patients) {
     let target = $('#all-patients');
     $('li', target).remove();
@@ -518,8 +537,7 @@ function FormatListOfStudies(targetId, alertId, countId, studies)
   }
 }
 
-
-$('#find-studies').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#find-studies", function() {
   GetResource('/studies?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(studies) {
     FormatListOfStudies('#all-studies', '#alert-studies', '#count-studies', studies);
   });
@@ -802,17 +820,17 @@ function RefreshInstance()
   }
 }
 
-$(document).live('pagebeforehide', function() {
+$(document).on('pagebeforehide', function() {
   currentPage = '';
   currentUuid = '';
 });
 
 
 
-$('#patient').live('pagebeforeshow', RefreshPatient);
-$('#study').live('pagebeforeshow', RefreshStudy);
-$('#series').live('pagebeforeshow', RefreshSeries);
-$('#instance').live('pagebeforeshow', RefreshInstance);
+$(document).on("pagebeforeshow", "#patient", RefreshPatient);
+$(document).on("pagebeforeshow", "#study", RefreshStudy);
+$(document).on("pagebeforeshow", "#series", RefreshSeries);
+$(document).on("pagebeforeshow", "#instance", RefreshInstance);
 
 $(function() {
   $(window).hashchange(function(e, data) {
@@ -876,34 +894,34 @@ function OpenDeleteResourceDialog(path, title)
 
 
 
-$('#instance-delete').live('click', function() {
+$(document).on("click", "#instance-delete", function() {
   OpenDeleteResourceDialog('../instances/' + $.mobile.pageData.uuid,
                            'Delete this instance?');
 });
 
-$('#study-delete').live('click', function() {
+$(document).on("click", "#study-delete", function(e) {
   OpenDeleteResourceDialog('../studies/' + $.mobile.pageData.uuid,
                            'Delete this study?');
 });
 
-$('#series-delete').live('click', function() {
+$(document).on("click", "#series-delete", function(e) {
   OpenDeleteResourceDialog('../series/' + $.mobile.pageData.uuid,
                            'Delete this series?');
 });
 
-$('#patient-delete').live('click', function() {
+$(document).on("click", "#patient-delete", function(e) {
   OpenDeleteResourceDialog('../patients/' + $.mobile.pageData.uuid,
                            'Delete this patient?');
 });
 
 
-$('#instance-download-dicom').live('click', function(e) {
+$(document).on("click", "#instance-download-dicom", function(e) {
   // http://stackoverflow.com/a/1296101
   e.preventDefault();  //stop the browser from following
   window.location.href = '../instances/' + $.mobile.pageData.uuid + '/file';
 });
 
-$('#instance-download-json').live('click', function(e) {
+$(document).on("click", "#instance-download-json", function(e) {
   // http://stackoverflow.com/a/1296101
   e.preventDefault();  //stop the browser from following
   window.location.href = '../instances/' + $.mobile.pageData.uuid + '/tags';
@@ -911,7 +929,7 @@ $('#instance-download-json').live('click', function(e) {
 
 
 
-$('#instance-preview').live('click', function(e) {
+$(document).on("click", "#instance-preview", function(e) {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -957,7 +975,7 @@ $('#instance-preview').live('click', function(e) {
 
 
 
-$('#series-preview').live('click', function(e) {
+$(document).on("click", "#series-preview", function(e) {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -1069,7 +1087,7 @@ function ChooseDicomModality(callback)
 }
 
 
-$('#instance-store,#series-store,#study-store,#patient-store').live('click', function(e) {
+$(document).on("click", "#instance-store,#series-store,#study-store,#patient-store", function(e) {
   ChooseDicomModality(function(modality, peer) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -1112,7 +1130,7 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
 });
 
 
-$('#show-tag-name').live('change', function(e) {
+$(document).on("change", "#show-tag-name", function(e) {
   let checked = e.currentTarget.checked;
   if (checked)
     $('.tag-name').show();
@@ -1121,40 +1139,40 @@ $('#show-tag-name').live('change', function(e) {
 });
 
 
-$('#patient-archive').live('click', function(e) {
+$(document).on("click", "#patient-archive", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../patients/' + $.mobile.pageData.uuid + '/archive';
 });
 
-$('#study-archive').live('click', function(e) {
+$(document).on("click", "#study-archive", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../studies/' + $.mobile.pageData.uuid + '/archive';
 });
 
-$('#series-archive').live('click', function(e) {
+$(document).on("click", "#series-archive", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/archive';
 });
 
 
-$('#patient-media').live('click', function(e) {
+$(document).on("click", "#patient-media", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../patients/' + $.mobile.pageData.uuid + '/media';
 });
 
-$('#study-media').live('click', function(e) {
+$(document).on("click", "#study-media", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../studies/' + $.mobile.pageData.uuid + '/media';
 });
 
-$('#series-media').live('click', function(e) {
+$(document).on("click", "#series-media", function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
 });
 
 
 
-$('#protection').live('change', function(e) {
+$(document).on("change", "#protection", function(e) {
   let isProtected = e.target.value == "on";
   $.ajax({
     url: '../patients/' + $.mobile.pageData.uuid + '/protected',
@@ -1205,28 +1223,28 @@ function OpenAnonymizeResourceDialog(path, title)
   });
 }
 
-$('#instance-anonymize').live('click', function() {
+$(document).on("click", "#instance-anonymize", function(e) {
   OpenAnonymizeResourceDialog('../instances/' + $.mobile.pageData.uuid,
                               'Anonymize this instance?');
 });
 
-$('#study-anonymize').live('click', function() {
+$(document).on("click", "#study-anonymize", function(e) {
   OpenAnonymizeResourceDialog('../studies/' + $.mobile.pageData.uuid,
                               'Anonymize this study?');
 });
 
-$('#series-anonymize').live('click', function() {
+$(document).on("click", "#series-anonymize", function(e) {
   OpenAnonymizeResourceDialog('../series/' + $.mobile.pageData.uuid,
                               'Anonymize this series?');
 });
 
-$('#patient-anonymize').live('click', function() {
+$(document).on("click", "#patient-anonymize", function(e) {
   OpenAnonymizeResourceDialog('../patients/' + $.mobile.pageData.uuid,
                               'Anonymize this patient?');
 });
 
 
-$('#plugins').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#plugins", function() {
   $.ajax({
     url: '../plugins',
     dataType: 'json',
@@ -1304,7 +1322,7 @@ function AddJobDateField(target, description, field)
 }
 
 
-$('#jobs').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#jobs", function() {
   $.ajax({
     url: '../jobs?expand',
     dataType: 'json',
@@ -1367,7 +1385,7 @@ $('#jobs').live('pagebeforeshow', function() {
 });
 
 
-$('#job').live('pagebeforeshow', function() {
+$(document).on("pagebeforeshow", "#job", function() {
   if ($.mobile.pageData) {
     let pageData = DeepCopy($.mobile.pageData);
 
@@ -1462,18 +1480,18 @@ function TriggerJobAction(action)
   });
 }
 
-$('#job-cancel').live('click', function() {
+$(document).on("click", "#job-cancel", function(e) {
   TriggerJobAction('cancel');
 });
 
-$('#job-resubmit').live('click', function() {
+$(document).on("click", "#job-resubmit", function(e) {
   TriggerJobAction('resubmit');
 });
 
-$('#job-pause').live('click', function() {
+$(document).on("click", "#job-pause", function(e) {
   TriggerJobAction('pause');
 });
 
-$('#job-resume').live('click', function() {
+$(document).on("click", "#job-resume", function(e) {
   TriggerJobAction('resume');
 });
