@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Orthanc Explorer Upload page</title>
+    <style>
+        #file-catcher {
+            width: 100%;
+            height: 100%;
+        }
+
+        .no-files {
+            border: 5px dashed #555;
+        }
+        
+        .files-over {
+            border: 5px dashed #55B;
+        }
+        
+        .files-ready {
+            border: 5px dashed green;
+        }
+        
+        .files-uploading {
+            border: 5px dashed orange;
+        }
+        </style>
+
+</head>
+
+<body>
+
+    <form id='file-catcher' class="no-files">
+        <p>Drag one or more files to this Drop zone ...</p>
+        <input id='file-input' type='file' multiple />
+        <button type='submit'>
+            Submit
+        </button>
+    </form>
+
+    <div id='file-list-display'></div>
+</body>
+<script>
+    (function () {
+        var fileCatcher = document.getElementById('file-catcher');
+        var fileInput = document.getElementById('file-input');
+        var fileListDisplay = document.getElementById('file-list-display');
+        var maxConcurrentUploads = 4;
+        var currentUploadCount = 0;
+
+        var fileList = [];
+        var renderFileList, sendFile;
+
+        removeDragData = function (ev) {
+            console.log('Removing drag data');
+
+            if (ev.dataTransfer.items) {
+                // Use DataTransferItemList interface to remove the drag data
+                ev.dataTransfer.items.clear();
+            } else {
+                // Use DataTransfer interface to remove the drag data
+                ev.dataTransfer.clearData();
+            }
+        }
+
+        renderFileList = function () {
+            fileListDisplay.innerHTML = '';
+            fileList.forEach(function (file, index) {
+                let fileDisplayEl = document.createElement('p');
+                fileDisplayEl.innerHTML = (index + 1) + ': ' + file.name;
+                fileListDisplay.appendChild(fileDisplayEl);
+            });
+        };
+
+        sendFile = function (file) {
+            if (currentUploadCount >= maxConcurrentUploads) { // retry later
+                setTimeout(function() {sendFile(file);}, 1);
+            } else {
+                currentUploadCount++;
+                let formData = new FormData();
+                let request = new XMLHttpRequest();
+
+                formData.set('file', file);
+                request.open("POST", '/instances');
+                request.onreadystatechange = function() { // Call a function when the state changes.
+                    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                        // Request finished. Do processing here.
+                        currentUploadCount--;
+                    } else if (this.readyState === XMLHttpRequest.DONE && this.status !== 200) {
+                        console.log("failed", this);
+                        currentUploadCount--;
+                    }
+                }
+                request.send(formData);
+            }
+        };
+
+        setFileCatchClass = function (style) {
+            fileCatcher.classList.remove("no-files");
+            fileCatcher.classList.remove("files-over");
+            fileCatcher.classList.remove("files-ready");
+            fileCatcher.classList.remove("files-uploading");
+
+            fileCatcher.classList.add(style);
+        };
+
+        fileCatcher.addEventListener('submit', function (evnt) {
+            evnt.preventDefault();
+            setFileCatchClass("files-uploading");
+            fileList.forEach(function (file) {
+                sendFile(file);
+            });
+            fileList = [];
+            renderFileList();
+            setFileCatchClass("no-files");
+        });
+
+        fileCatcher.addEventListener('drop', function (e) {
+            console.log('File(s) dropped in zone', e);
+            e.preventDefault();
+
+            if (e.dataTransfer.items) {
+                // Use DataTransferItemList interface to access the file(s)
+                for (var i = 0; i < e.dataTransfer.items.length; i++) {
+                    // If dropped items aren't files, reject them
+                    if (e.dataTransfer.items[i].kind === 'file') {
+                        var file = e.dataTransfer.items[i].getAsFile();
+                        fileList.push(file);
+                        console.log('... file[' + i + '].name = ' + file.name);
+                    }
+                }
+            } else {
+                // Use DataTransfer interface to access the file(s)
+                for (var i = 0; i < e.dataTransfer.files.length; i++) {
+                    fileList.push(file);
+                    console.log('... file[' + i + '].name = ' + e.dataTransfer.files[i].name);
+                }
+            }
+
+            renderFileList();
+            // Pass event to removeDragData for cleanup
+            removeDragData(e);
+            setFileCatchClass("files-ready");
+        });
+
+        fileCatcher.addEventListener('dragover', function (e) {
+            console.log('File(s) in drop zone', e);
+
+            // Prevent default behavior (Prevent file from being opened)
+            e.preventDefault();
+            setFileCatchClass("files-over");
+        });
+
+        fileInput.addEventListener('change', function (evnt) {
+            fileList = [];
+            for (var i = 0; i < fileInput.files.length; i++) {
+                fileList.push(fileInput.files[i]);
+            }
+            renderFileList();
+            if (fileList.length > 0) {
+                setFileCatchClass("files-ready");
+            }
+        });
+
+    })();
+</script>
+
+</html>
