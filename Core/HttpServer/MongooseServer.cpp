@@ -669,18 +669,27 @@ namespace Orthanc
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [2], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [1], 
             reinterpret_cast<const uint8_t*>(&request->remote_ip) [0]);
+
+    const char* requestUri = request->uri;
+      
 #elif ORTHANC_ENABLE_CIVETWEB == 1
     const char* remoteIp = request->remote_addr;
+    const char* requestUri = request->local_uri;
 #else
 #error
 #endif
 
+    if (requestUri == NULL)
+    {
+      requestUri = "";
+    }
+      
     std::string username = GetAuthenticatedUsername(headers);
 
     IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
     if (filter != NULL)
     {
-      if (!filter->IsAllowed(method, request->uri, remoteIp,
+      if (!filter->IsAllowed(method, requestUri, remoteIp,
                              username.c_str(), headers, argumentsGET))
       {
         //output.SendUnauthorized(server.GetRealm());
@@ -744,7 +753,7 @@ namespace Orthanc
     UriComponents uri;
     try
     {
-      Toolbox::SplitUriComponents(uri, request->uri);
+      Toolbox::SplitUriComponents(uri, requestUri);
     }
     catch (OrthancException&)
     {
@@ -775,16 +784,21 @@ namespace Orthanc
   {
     try
     {
-      void* that = NULL;
-
 #if ORTHANC_ENABLE_MONGOOSE == 1
-      that = request->user_data;
+      void *that = request->user_data;
+      const char* requestUri = request->uri;
 #elif ORTHANC_ENABLE_CIVETWEB == 1
       // https://github.com/civetweb/civetweb/issues/409
-      that = mg_get_user_data(mg_get_context(connection));
+      void *that = mg_get_user_data(mg_get_context(connection));
+      const char* requestUri = request->local_uri;
 #else
 #error
-#endif                              
+#endif
+
+      if (requestUri == NULL)
+      {
+        requestUri = "";
+      }
       
       MongooseServer* server = reinterpret_cast<MongooseServer*>(that);
 
@@ -846,7 +860,7 @@ namespace Orthanc
           }
           else
           {
-            server->GetExceptionFormatter()->Format(output, e, method, request->uri);
+            server->GetExceptionFormatter()->Format(output, e, method, requestUri);
           }
         }
         catch (OrthancException&)
