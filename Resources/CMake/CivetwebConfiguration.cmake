@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
-  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.9.1)
-  set(CIVETWEB_URL "http://www.orthanc-server.com/downloads/third-party/civetweb-1.9.1.tar.gz")
-  set(CIVETWEB_MD5 "c713f7336582d1a78897971260c67c2a")
+  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.11)
+  set(CIVETWEB_URL "http://www.orthanc-server.com/downloads/third-party/civetweb-1.11.tar.gz")
+  set(CIVETWEB_MD5 "b6d2175650a27924bccb747cbe084cd4")
 
   DownloadPackage(${CIVETWEB_MD5} ${CIVETWEB_URL} "${CIVETWEB_SOURCES_DIR}")
 

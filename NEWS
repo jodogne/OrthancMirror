@@ -5,8 +5,10 @@ Maintenance
 -----------
 
 * Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
-* Fixed Orthanc Explorer on IE and Firefox: Explorer always show "to many results"
+* Fixed Orthanc Explorer on IE and Firefox: Explorer always show "too many results"
   and it's therefore impossible to browse the content.
+* Upgraded dependencies for static and Windows builds:
+  - civetweb 1.11
 
 
 Version 1.5.1 (2018-12-20)
