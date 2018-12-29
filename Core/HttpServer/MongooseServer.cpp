@@ -42,10 +42,10 @@
 #include "HttpToolbox.h"
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
-#  include "mongoose.h"
+#  include <mongoose.h>
 
 #elif ORTHANC_ENABLE_CIVETWEB == 1
-#  include "civetweb.h"
+#  include <civetweb.h>
 #  define MONGOOSE_USE_CALLBACKS 1
 
 #else
@@ -605,7 +605,7 @@ namespace Orthanc
     // deprecated in Civetweb, using "remote_addr" instead.
     localhost = (std::string(request->remote_addr) == "127.0.0.1");
 #else
-#error
+#  error
 #endif
     
     // Check remote calls
@@ -676,7 +676,7 @@ namespace Orthanc
     const char* remoteIp = request->remote_addr;
     const char* requestUri = request->local_uri;
 #else
-#error
+#  error
 #endif
 
     if (requestUri == NULL)
@@ -792,7 +792,7 @@ namespace Orthanc
       void *that = mg_get_user_data(mg_get_context(connection));
       const char* requestUri = request->local_uri;
 #else
-#error
+#  error
 #endif
 
       if (requestUri == NULL)
@@ -907,7 +907,7 @@ namespace Orthanc
   }
 
 #else
-#error Please set MONGOOSE_USE_CALLBACKS
+#  error Please set MONGOOSE_USE_CALLBACKS
 #endif
 
 
@@ -966,7 +966,7 @@ namespace Orthanc
 #elif ORTHANC_ENABLE_CIVETWEB == 1
     LOG(INFO) << "Starting embedded Web server using Civetweb";
 #else
-#error
+#  error
 #endif  
 
     if (!IsRunning())
@@ -1011,7 +1011,7 @@ namespace Orthanc
       pimpl_->context_ = mg_start(&callbacks, this, options);
 
 #else
-#error Please set MONGOOSE_USE_CALLBACKS
+#  error Please set MONGOOSE_USE_CALLBACKS
 #endif
 
       if (!pimpl_->context_)
