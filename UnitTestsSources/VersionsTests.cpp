@@ -47,7 +47,11 @@
 #include <iconv.h>
 
 #if ORTHANC_ENABLE_SSL == 1
-#include <openssl/opensslv.h>
+#  include <openssl/opensslv.h>
+#endif
+
+#if ORTHANC_ENABLE_CIVETWEB == 1
+#  include <civetweb.h>
 #endif
 
 
@@ -173,4 +177,17 @@ TEST(Version, JsonCpp)
 #endif
 }
 
+
+#if ORTHANC_ENABLE_CIVETWEB == 1
+TEST(Version, Civetweb)
+{
+  ASSERT_EQ(1, CIVETWEB_VERSION_MAJOR);
+  ASSERT_EQ(11, CIVETWEB_VERSION_MINOR);
+  ASSERT_EQ(0, CIVETWEB_VERSION_PATCH);
+}
 #endif
+
+
+#endif
+
+
