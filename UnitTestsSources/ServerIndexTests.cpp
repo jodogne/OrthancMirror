@@ -260,7 +260,7 @@ namespace
       DicomTagConstraint c(tag, type, value, true, true);
       
       std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(DatabaseConstraint(c, level, DicomTagType_Identifier));
+      lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
       index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
     }
@@ -280,8 +280,8 @@ namespace
       DicomTagConstraint c2(tag, type2, value2, true, true);
       
       std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(DatabaseConstraint(c1, level, DicomTagType_Identifier));
-      lookup.push_back(DatabaseConstraint(c2, level, DicomTagType_Identifier));
+      lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
       index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
     }
