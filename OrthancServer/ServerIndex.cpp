@@ -2139,7 +2139,7 @@ namespace Orthanc
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
     std::vector<DatabaseConstraint> query;
-    query.push_back(DatabaseConstraint(c, level, DicomTagType_Identifier));
+    query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -2555,8 +2555,7 @@ namespace Orthanc
           level = ResourceType_Study;
         }
         
-        DatabaseConstraint c(source.GetConstraint(i), level, type);
-        target.push_back(c);
+        target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
       }
     }
   }

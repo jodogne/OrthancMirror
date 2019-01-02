@@ -35,52 +35,32 @@
 #include "DatabaseConstraint.h"
 
 #include "../../Core/OrthancException.h"
-#include "../ServerToolbox.h"
 
 namespace Orthanc
 {
-  DatabaseConstraint::DatabaseConstraint(const DicomTagConstraint& constraint,
-                                         ResourceType level,
-                                         DicomTagType tagType) :
+  DatabaseConstraint::DatabaseConstraint(ResourceType level,
+                                         const DicomTag& tag,
+                                         bool isIdentifier,
+                                         ConstraintType type,
+                                         const std::vector<std::string>& values,
+                                         bool caseSensitive,
+                                         bool mandatory) :
     level_(level),
-    tag_(constraint.GetTag()),
-    constraintType_(constraint.GetConstraintType()),
-    mandatory_(constraint.IsMandatory())
+    tag_(tag),
+    isIdentifier_(isIdentifier),
+    constraintType_(type),
+    values_(values),
+    caseSensitive_(caseSensitive),
+    mandatory_(mandatory)
   {
-    switch (tagType)
+    if (type != ConstraintType_List &&
+        values_.size() != 1)
     {
-      case DicomTagType_Identifier:
-        isIdentifier_ = true;
-        caseSensitive_ = true;
-        break;
-
-      case DicomTagType_Main:
-        isIdentifier_ = false;
-        caseSensitive_ = constraint.IsCaseSensitive();
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }      
 
-    values_.reserve(constraint.GetValues().size());
-      
-    for (std::set<std::string>::const_iterator
-           it = constraint.GetValues().begin();
-         it != constraint.GetValues().end(); ++it)
-    {
-      if (isIdentifier_)
-      {
-        values_.push_back(ServerToolbox::NormalizeIdentifier(*it));
-      }
-      else
-      {
-        values_.push_back(*it);
-      }
-    }
-  }
-
-  
+    
   const std::string& DatabaseConstraint::GetValue(size_t index) const
   {
     if (index >= values_.size())

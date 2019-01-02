@@ -339,4 +339,46 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
   }
+
+
+  DatabaseConstraint DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
+                                                                     DicomTagType tagType) const
+  {
+    bool isIdentifier, caseSensitive;
+    
+    switch (tagType)
+    {
+      case DicomTagType_Identifier:
+        isIdentifier = true;
+        caseSensitive = true;
+        break;
+
+      case DicomTagType_Main:
+        isIdentifier = false;
+        caseSensitive = IsCaseSensitive();
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::vector<std::string> values;
+    values.reserve(values_.size());
+      
+    for (std::set<std::string>::const_iterator
+           it = values_.begin(); it != values_.end(); ++it)
+    {
+      if (isIdentifier)
+      {
+        values.push_back(ServerToolbox::NormalizeIdentifier(*it));
+      }
+      else
+      {
+        values.push_back(*it);
+      }
+    }
+
+    return DatabaseConstraint(level, tag_, isIdentifier, constraintType_,
+                              values, caseSensitive, mandatory_);
+  }  
 }

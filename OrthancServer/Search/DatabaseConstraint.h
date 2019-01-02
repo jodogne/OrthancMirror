@@ -33,10 +33,12 @@
 
 #pragma once
 
-#include "DicomTagConstraint.h"
+#include "../../Core/DicomFormat/DicomMap.h"
+#include "../ServerEnumerations.h"
 
 namespace Orthanc
 {
+  // This class is also used by the "orthanc-databases" project
   class DatabaseConstraint
   {
   private:
@@ -49,10 +51,14 @@ namespace Orthanc
     bool                      mandatory_;
 
   public:
-    DatabaseConstraint(const DicomTagConstraint& constraint,
-                       ResourceType level,
-                       DicomTagType tagType);
-
+    DatabaseConstraint(ResourceType level,
+                       const DicomTag& tag,
+                       bool isIdentifier,
+                       ConstraintType type,
+                       const std::vector<std::string>& values,
+                       bool caseSensitive,
+                       bool mandatory);
+    
     ResourceType GetLevel() const
     {
       return level_;

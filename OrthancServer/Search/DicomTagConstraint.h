@@ -35,13 +35,12 @@
 
 #include "../ServerEnumerations.h"
 #include "../../Core/DicomFormat/DicomMap.h"
+#include "DatabaseConstraint.h"
 
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class DatabaseConstraint;
-  
   class DicomTagConstraint : public boost::noncopyable
   {
   private:
@@ -112,5 +111,8 @@ namespace Orthanc
     bool IsMatch(const DicomMap& value);
 
     std::string Format() const;
+
+    DatabaseConstraint ConvertToDatabaseConstraint(ResourceType level,
+                                                   DicomTagType tagType) const;
   };
 }
