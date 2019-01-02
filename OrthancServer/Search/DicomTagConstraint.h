@@ -110,5 +110,7 @@ namespace Orthanc
     bool IsMatch(const std::string& value);
 
     bool IsMatch(const DicomMap& value);
+
+    std::string Format() const;
   };
 }
