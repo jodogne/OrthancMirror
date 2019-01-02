@@ -36,6 +36,10 @@
 #include "../../Core/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  include "../../Plugins/Include/orthanc/OrthancCDatabasePlugin.h"
+#endif
+
 namespace Orthanc
 {
   // This class is also used by the "orthanc-databases" project
@@ -58,6 +62,10 @@ namespace Orthanc
                        const std::vector<std::string>& values,
                        bool caseSensitive,
                        bool mandatory);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
+#endif
     
     ResourceType GetLevel() const
     {
@@ -99,5 +107,10 @@ namespace Orthanc
     }
 
     bool IsMatch(const DicomMap& dicom) const;
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
+                          std::vector<const char*>& tmpValues) const;
+#endif    
   };
 }
