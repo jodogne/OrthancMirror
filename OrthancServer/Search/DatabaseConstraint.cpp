@@ -36,6 +36,11 @@
 
 #include "../../Core/OrthancException.h"
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  include "../../Plugins/Engine/PluginsEnumerations.h"
+#endif
+
+
 namespace Orthanc
 {
   DatabaseConstraint::DatabaseConstraint(ResourceType level,
@@ -61,6 +66,31 @@ namespace Orthanc
   }      
 
     
+#if ORTHANC_ENABLE_PLUGINS == 1
+  DatabaseConstraint::DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint) :
+    level_(Plugins::Convert(constraint.level)),
+    tag_(constraint.tagGroup, constraint.tagElement),
+    isIdentifier_(constraint.isIdentifierTag),
+    constraintType_(Plugins::Convert(constraint.type)),
+    caseSensitive_(constraint.isCaseSensitive),
+    mandatory_(constraint.isMandatory)
+  {
+    if (constraintType_ != ConstraintType_List &&
+        values_.size() != 1)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    values_.resize(constraint.valuesCount);
+
+    for (uint32_t i = 0; i < constraint.valuesCount; i++)
+    {
+      values_[i].assign(constraint.values[i]);
+    }
+  }
+#endif
+    
+
   const std::string& DatabaseConstraint::GetValue(size_t index) const
   {
     if (index >= values_.size())
@@ -85,4 +115,29 @@ namespace Orthanc
       return values_[0];
     }
   }
+
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+  void DatabaseConstraint::EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
+                                            std::vector<const char*>& tmpValues) const
+  {
+    memset(&constraint, 0, sizeof(constraint));
+    
+    constraint.level = Plugins::Convert(level_);
+    constraint.tagGroup = tag_.GetGroup();
+    constraint.tagElement = tag_.GetElement();
+    constraint.isIdentifierTag = isIdentifier_;
+    constraint.isCaseSensitive = caseSensitive_;
+    constraint.isMandatory = mandatory_;
+    constraint.type = Plugins::Convert(constraintType_);
+    constraint.valuesCount = values_.size();
+
+    tmpValues.resize(values_.size());
+
+    for (size_t i = 0; i < values_.size(); i++)
+    {
+      tmpValues[i] = values_[i].c_str();
+    }
+  }
+#endif    
 }

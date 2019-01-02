@@ -124,6 +124,8 @@ set(ORTHANC_UNIT_TESTS_SOURCES
 
 
 if (ENABLE_PLUGINS)
+  include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
+
   list(APPEND ORTHANC_SERVER_SOURCES
     Plugins/Engine/OrthancPluginDatabase.cpp
     Plugins/Engine/OrthancPlugins.cpp
@@ -228,8 +230,6 @@ else()
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
 endif()
 
-
-include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1

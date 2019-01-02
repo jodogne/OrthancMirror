@@ -1129,7 +1129,7 @@ namespace Orthanc
 
     ResetAnswers();
     CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level),
-                                               &tmp, Plugins::Convert(type)));
+                                               &tmp, Compatibility::Convert(type)));
     ForwardAnswers(result);
   }
 

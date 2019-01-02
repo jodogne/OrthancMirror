@@ -43,6 +43,53 @@
 
 namespace Orthanc
 {
+  namespace Compatibility
+  {
+    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case Compatibility::IdentifierConstraintType_Equal:
+          return OrthancPluginIdentifierConstraint_Equal;
+
+        case Compatibility::IdentifierConstraintType_GreaterOrEqual:
+          return OrthancPluginIdentifierConstraint_GreaterOrEqual;
+
+        case Compatibility::IdentifierConstraintType_SmallerOrEqual:
+          return OrthancPluginIdentifierConstraint_SmallerOrEqual;
+
+        case Compatibility::IdentifierConstraintType_Wildcard:
+          return OrthancPluginIdentifierConstraint_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint)
+    {
+      switch (constraint)
+      {
+        case OrthancPluginIdentifierConstraint_Equal:
+          return Compatibility::IdentifierConstraintType_Equal;
+
+        case OrthancPluginIdentifierConstraint_GreaterOrEqual:
+          return Compatibility::IdentifierConstraintType_GreaterOrEqual;
+
+        case OrthancPluginIdentifierConstraint_SmallerOrEqual:
+          return Compatibility::IdentifierConstraintType_SmallerOrEqual;
+
+        case OrthancPluginIdentifierConstraint_Wildcard:
+          return Compatibility::IdentifierConstraintType_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  }
+
+
   namespace Plugins
   {
     OrthancPluginResourceType Convert(ResourceType type)
@@ -259,50 +306,6 @@ namespace Orthanc
 
         case OrthancPluginDicomToJsonFormat_Human:
           return DicomToJsonFormat_Human;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
-    OrthancPluginIdentifierConstraint Convert(Compatibility::IdentifierConstraintType constraint)
-    {
-      switch (constraint)
-      {
-        case Compatibility::IdentifierConstraintType_Equal:
-          return OrthancPluginIdentifierConstraint_Equal;
-
-        case Compatibility::IdentifierConstraintType_GreaterOrEqual:
-          return OrthancPluginIdentifierConstraint_GreaterOrEqual;
-
-        case Compatibility::IdentifierConstraintType_SmallerOrEqual:
-          return OrthancPluginIdentifierConstraint_SmallerOrEqual;
-
-        case Compatibility::IdentifierConstraintType_Wildcard:
-          return OrthancPluginIdentifierConstraint_Wildcard;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
-    Compatibility::IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint)
-    {
-      switch (constraint)
-      {
-        case OrthancPluginIdentifierConstraint_Equal:
-          return Compatibility::IdentifierConstraintType_Equal;
-
-        case OrthancPluginIdentifierConstraint_GreaterOrEqual:
-          return Compatibility::IdentifierConstraintType_GreaterOrEqual;
-
-        case OrthancPluginIdentifierConstraint_SmallerOrEqual:
-          return Compatibility::IdentifierConstraintType_SmallerOrEqual;
-
-        case OrthancPluginIdentifierConstraint_Wildcard:
-          return Compatibility::IdentifierConstraintType_Wildcard;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -586,6 +589,56 @@ namespace Orthanc
         case OrthancPluginJobStepStatus_Continue:
           return JobStepCode_Continue;
         
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    OrthancPluginConstraintType Convert(ConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case ConstraintType_Equal:
+          return OrthancPluginConstraintType_Equal;
+
+        case ConstraintType_GreaterOrEqual:
+          return OrthancPluginConstraintType_GreaterOrEqual;
+
+        case ConstraintType_SmallerOrEqual:
+          return OrthancPluginConstraintType_SmallerOrEqual;
+
+        case ConstraintType_Wildcard:
+          return OrthancPluginConstraintType_Wildcard;
+
+        case ConstraintType_List:
+          return OrthancPluginConstraintType_List;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    
+
+    ConstraintType Convert(OrthancPluginConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case OrthancPluginConstraintType_Equal:
+          return ConstraintType_Equal;
+
+        case OrthancPluginConstraintType_GreaterOrEqual:
+          return ConstraintType_GreaterOrEqual;
+
+        case OrthancPluginConstraintType_SmallerOrEqual:
+          return ConstraintType_SmallerOrEqual;
+
+        case OrthancPluginConstraintType_Wildcard:
+          return ConstraintType_Wildcard;
+
+        case OrthancPluginConstraintType_List:
+          return ConstraintType_List;
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
