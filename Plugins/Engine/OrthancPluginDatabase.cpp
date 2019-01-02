@@ -133,6 +133,8 @@ namespace Orthanc
     answerChanges_ = NULL;
     answerExportedResources_ = NULL;
     answerDone_ = NULL;
+    answerMatchingResources_ = NULL;
+    answerMatchingInstances_ = NULL;
   }
 
 
@@ -224,15 +226,12 @@ namespace Orthanc
                                                void *payload) : 
     library_(library),
     errorDictionary_(errorDictionary),
-    type_(_OrthancPluginDatabaseAnswerType_None),
     backend_(backend),
     payload_(payload),
-    listener_(NULL),
-    answerDicomMap_(NULL),
-    answerChanges_(NULL),
-    answerExportedResources_(NULL),
-    answerDone_(NULL)
+    listener_(NULL)
   {
+    ResetAnswers();
+
     memset(&extensions_, 0, sizeof(extensions_));
 
     size_t size = sizeof(extensions_);
@@ -242,6 +241,11 @@ namespace Orthanc
     }
 
     memcpy(&extensions_, extensions, size);
+
+    if (extensions_.lookupResources == NULL)
+    {
+      LOG(WARNING) << "Performance warning in index plugin: Fast lookup is not available";
+    }
   }
 
 
@@ -960,6 +964,17 @@ namespace Orthanc
           answerExportedResources_->clear();
           break;
 
+        case _OrthancPluginDatabaseAnswerType_MatchingResource:
+          assert(answerMatchingResources_ != NULL);
+          answerMatchingResources_->clear();
+
+          if (answerMatchingInstances_ != NULL)
+          {
+            answerMatchingInstances_->clear();
+          }
+          
+          break;
+
         default:
           throw OrthancException(ErrorCode_DatabasePlugin,
                                  "Unhandled type of answer for custom index plugin: " +
@@ -1088,6 +1103,32 @@ namespace Orthanc
         break;
       }
 
+      case _OrthancPluginDatabaseAnswerType_MatchingResource:
+      {
+        const OrthancPluginMatchingResource& match = 
+          *reinterpret_cast<const OrthancPluginMatchingResource*>(answer.valueGeneric);
+
+        if (match.resourceId == NULL)
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        assert(answerMatchingResources_ != NULL);
+        answerMatchingResources_->push_back(match.resourceId);
+
+        if (answerMatchingInstances_ != NULL)
+        {
+          if (match.someInstanceId == NULL)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          answerMatchingInstances_->push_back(match.someInstanceId);
+        }
+ 
+        break;
+      }
+
       default:
         throw OrthancException(ErrorCode_DatabasePlugin,
                                "Unhandled type of answer for custom index plugin: " +
@@ -1118,12 +1159,32 @@ namespace Orthanc
   {
     if (extensions_.lookupResources == NULL)
     {
+      // Fallback to compatibility mode
       CompatibilityDatabaseWrapper::ApplyLookupResources
         (resourcesId, instancesId, lookup, queryLevel, limit);
     }
     else
     {
+      std::vector<OrthancPluginDatabaseConstraint> constraints;
+      std::vector< std::vector<const char*> > constraintsValues;
+
+      constraints.resize(lookup.size());
+      constraintsValues.resize(lookup.size());
+
+      for (size_t i = 0; i < lookup.size(); i++)
+      {
+        lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
+      }
+
+      answerMatchingResources_ = &resourcesId;
+      answerMatchingInstances_ = instancesId;
+      
       ResetAnswers();
+
+      CheckSuccess(extensions_.lookupResources(GetContext(), payload_, lookup.size(),
+                                               (lookup.empty() ? NULL : &constraints[0]),
+                                               Plugins::Convert(queryLevel),
+                                               limit, (instancesId == NULL ? 0 : 1)));
     }
   }
 

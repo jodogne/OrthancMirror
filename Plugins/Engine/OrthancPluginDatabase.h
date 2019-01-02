@@ -70,6 +70,8 @@ namespace Orthanc
     std::list<ServerIndexChange>*  answerChanges_;
     std::list<ExportedResource>*   answerExportedResources_;
     bool*                          answerDone_;
+    std::list<std::string>*        answerMatchingResources_;
+    std::list<std::string>*        answerMatchingInstances_;
 
     OrthancPluginDatabaseContext* GetContext()
     {
