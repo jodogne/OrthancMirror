@@ -249,7 +249,7 @@ namespace
     }
 
 
-    void DoLookupIdentifier(std::vector<std::string>& result,
+    void DoLookupIdentifier(std::list<std::string>& result,
                             ResourceType level,
                             const DicomTag& tag,
                             ConstraintType type,
@@ -266,7 +266,7 @@ namespace
     }
     
 
-    void DoLookupIdentifier2(std::vector<std::string>& result,
+    void DoLookupIdentifier2(std::list<std::string>& result,
                              ResourceType level,
                              const DicomTag& tag,
                              ConstraintType type1,
@@ -740,7 +740,7 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
   index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
   index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
-  std::vector<std::string> s;
+  std::list<std::string> s;
 
   DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "0");
   ASSERT_EQ(2u, s.size());
