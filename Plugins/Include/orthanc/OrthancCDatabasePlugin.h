@@ -740,7 +740,7 @@ extern "C"
       /* inputs */
       void* payload,
       uint32_t constraintsCount,
-      const OrthancPluginDatabaseConstraint* const* constraints,
+      const OrthancPluginDatabaseConstraint* constraints,
       OrthancPluginResourceType queryLevel,
       uint32_t limit,
       uint8_t requestSomeInstance);
