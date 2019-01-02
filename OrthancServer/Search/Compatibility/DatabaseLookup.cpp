@@ -312,8 +312,8 @@ namespace Orthanc
     }
                            
 
-    void DatabaseLookup::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                              std::vector<std::string>* instancesId,
+    void DatabaseLookup::ApplyLookupResources(std::list<std::string>& resourcesId,
+                                              std::list<std::string>* instancesId,
                                               const std::vector<DatabaseConstraint>& lookup,
                                               ResourceType queryLevel,
                                               size_t limit)
@@ -389,13 +389,6 @@ namespace Orthanc
 
       // Get the public ID of all the selected resources
 
-      resourcesId.resize(resources.size());
-
-      if (instancesId != NULL)
-      {
-        instancesId->resize(resources.size());
-      }
-
       size_t pos = 0;
 
       for (std::list<int64_t>::const_iterator
@@ -403,18 +396,20 @@ namespace Orthanc
       {
         assert(database_.GetResourceType(*it) == queryLevel);
 
-        resourcesId[pos] = database_.GetPublicId(*it);
+        const std::string resource = database_.GetPublicId(*it);
+        resourcesId.push_back(resource);
 
         if (instancesId != NULL)
         {
-          // Collect one child instance for each of the selected resources
           if (queryLevel == ResourceType_Instance)
           {
-            (*instancesId) [pos] = resourcesId[pos];
+            // The resource is itself the instance
+            instancesId->push_back(resource);
           }
           else
           {
-            (*instancesId) [pos] = GetOneInstance(database_, *it, queryLevel);
+            // Collect one child instance for each of the selected resources
+            instancesId->push_back(GetOneInstance(database_, *it, queryLevel));
           }
         }
       }

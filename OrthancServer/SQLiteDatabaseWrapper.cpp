@@ -1145,8 +1145,8 @@ namespace Orthanc
   };
 
   
-  static void AnswerLookup(std::vector<std::string>& resourcesId,
-                           std::vector<std::string>& instancesId,
+  static void AnswerLookup(std::list<std::string>& resourcesId,
+                           std::list<std::string>& instancesId,
                            SQLite::Connection& db,
                            ResourceType level)
   {
@@ -1219,8 +1219,8 @@ namespace Orthanc
   }
 
 
-  void SQLiteDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                   std::vector<std::string>* instancesId,
+  void SQLiteDatabaseWrapper::ApplyLookupResources(std::list<std::string>& resourcesId,
+                                                   std::list<std::string>* instancesId,
                                                    const std::vector<DatabaseConstraint>& lookup,
                                                    ResourceType queryLevel,
                                                    size_t limit)

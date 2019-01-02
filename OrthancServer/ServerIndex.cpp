@@ -58,6 +58,22 @@ static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
+  static void CopyListToVector(std::vector<std::string>& target,
+                               const std::list<std::string>& source)
+  {
+    target.resize(source.size());
+
+    size_t pos = 0;
+    
+    for (std::list<std::string>::const_iterator
+           it = source.begin(); it != source.end(); ++it)
+    {
+      target[pos] = *it;
+      pos ++;
+    }      
+  }
+
+  
   class ServerIndex::Listener : public IDatabaseListener
   {
   private:
@@ -2141,10 +2157,14 @@ namespace Orthanc
     std::vector<DatabaseConstraint> query;
     query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
+    std::list<std::string> tmp;
+    
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_.ApplyLookupResources(result, NULL, query, level, 0);
+      db_.ApplyLookupResources(tmp, NULL, query, level, 0);
     }
+
+    CopyListToVector(result, tmp);
   }
 
 
@@ -2570,9 +2590,26 @@ namespace Orthanc
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
 
+    std::list<std::string> resourcesList, instancesList;
+    
     {
       boost::mutex::scoped_lock lock(mutex_);
-      db_.ApplyLookupResources(resourcesId, instancesId, normalized, queryLevel, limit);
+
+      if (instancesId == NULL)
+      {
+        db_.ApplyLookupResources(resourcesList, NULL, normalized, queryLevel, limit);
+      }
+      else
+      {
+        db_.ApplyLookupResources(resourcesList, &instancesList, normalized, queryLevel, limit);
+      }
+    }
+
+    CopyListToVector(resourcesId, resourcesList);
+
+    if (instancesId != NULL)
+    { 
+      CopyListToVector(*instancesId, instancesList);
     }
   }
 }
