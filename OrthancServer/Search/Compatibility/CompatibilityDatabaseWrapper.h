@@ -55,8 +55,8 @@ namespace Orthanc
     class CompatibilityDatabaseWrapper : public IDatabaseWrapper
     {     
     public:
-      virtual void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                        std::vector<std::string>* instancesId,
+      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                        std::list<std::string>* instancesId,
                                         const std::vector<DatabaseConstraint>& lookup,
                                         ResourceType queryLevel,
                                         size_t limit)

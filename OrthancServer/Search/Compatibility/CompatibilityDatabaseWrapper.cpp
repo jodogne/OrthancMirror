@@ -40,8 +40,8 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    void CompatibilityDatabaseWrapper::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                            std::vector<std::string>* instancesId,
+    void CompatibilityDatabaseWrapper::ApplyLookupResources(std::list<std::string>& resourcesId,
+                                                            std::list<std::string>* instancesId,
                                                             const std::vector<DatabaseConstraint>& lookup,
                                                             ResourceType queryLevel,
                                                             size_t limit)

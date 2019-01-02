@@ -1110,6 +1110,24 @@ namespace Orthanc
   }
 
 
+  void OrthancPluginDatabase::ApplyLookupResources(std::list<std::string>& resourcesId,
+                                                   std::list<std::string>* instancesId,
+                                                   const std::vector<DatabaseConstraint>& lookup,
+                                                   ResourceType queryLevel,
+                                                   size_t limit)
+  {
+    if (extensions_.lookupResources == NULL)
+    {
+      CompatibilityDatabaseWrapper::ApplyLookupResources
+        (resourcesId, instancesId, lookup, queryLevel, limit);
+    }
+    else
+    {
+      ResetAnswers();
+    }
+  }
+
+
   void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
                                                ResourceType level,
                                                const DicomTag& tag,
