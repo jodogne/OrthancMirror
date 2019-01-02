@@ -99,19 +99,13 @@ namespace Orthanc
     {
       assert(constraints_[i] != NULL);
 
-      DcmTagKey tag = ToDcmtkBridge::Convert(constraints_[i]->GetTag());
+      const bool isOptionalConstraint = !constraints_[i]->IsMandatory();
+      const DcmTagKey tag = ToDcmtkBridge::Convert(constraints_[i]->GetTag());
 
       DcmElement* element = NULL;
       if (!item.findAndGetElement(tag, element).good())
       {
-        if (constraints_[i]->IsMandatory())
-        {
-          return false;
-        }
-        else
-        {
-          return true;
-        }
+        return isOptionalConstraint;
       }
 
       if (element == NULL)
@@ -122,11 +116,16 @@ namespace Orthanc
       std::set<DicomTag> ignoreTagLength;
       std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                       (*element, DicomToJsonFlags_None, 
-                                       ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
+                                       0, encoding, ignoreTagLength));
 
-      if (value->IsNull() ||
-          value->IsBinary() ||
-          !constraints_[i]->IsMatch(value->GetContent()))
+      // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
+      if (value.get() == NULL ||
+          value->IsNull())
+      {
+        return isOptionalConstraint;        
+      }
+      else if (value->IsBinary() ||
+               !constraints_[i]->IsMatch(value->GetContent()))
       {
         return false;
       }
