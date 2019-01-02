@@ -294,4 +294,49 @@ namespace Orthanc
       return IsMatch(tmp->GetContent());
     }
   }
+
+
+  std::string DicomTagConstraint::Format() const
+  {
+    switch (constraintType_)
+    {
+      case ConstraintType_Equal:
+        return tag_.Format() + " == " + GetValue();
+
+      case ConstraintType_SmallerOrEqual:
+        return tag_.Format() + " <= " + GetValue();
+
+      case ConstraintType_GreaterOrEqual:
+        return tag_.Format() + " >= " + GetValue();
+
+      case ConstraintType_Wildcard:
+        return tag_.Format() + " ~~ " + GetValue();
+
+      case ConstraintType_List:
+      {
+        std::string s = tag_.Format() + " IN [ ";
+
+        bool first = true;
+        for (std::set<std::string>::const_iterator
+               it = values_.begin(); it != values_.end(); ++it)
+        {
+          if (first)
+          {
+            first = false;
+          }
+          else
+          {
+            s += ", ";
+          }
+
+          s += *it;
+        }
+
+        return s + "]";
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
 }

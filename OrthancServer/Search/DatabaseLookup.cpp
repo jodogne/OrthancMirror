@@ -36,6 +36,7 @@
 
 #include "../ServerToolbox.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/ToDcmtkBridge.h"
 
 namespace Orthanc
 {
@@ -82,6 +83,50 @@ namespace Orthanc
     {
       assert(constraints_[i] != NULL);
       if (!constraints_[i]->IsMatch(value))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  bool DatabaseLookup::IsMatch(DcmItem& item,
+                               Encoding encoding) const
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+
+      DcmTagKey tag = ToDcmtkBridge::Convert(constraints_[i]->GetTag());
+
+      DcmElement* element = NULL;
+      if (!item.findAndGetElement(tag, element).good())
+      {
+        if (constraints_[i]->IsMandatory())
+        {
+          return false;
+        }
+        else
+        {
+          return true;
+        }
+      }
+
+      if (element == NULL)
+      {
+        return false;
+      }
+
+      std::set<DicomTag> ignoreTagLength;
+      std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
+                                      (*element, DicomToJsonFlags_None, 
+                                       ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
+
+      if (value->IsNull() ||
+          value->IsBinary() ||
+          !constraints_[i]->IsMatch(value->GetContent()))
       {
         return false;
       }

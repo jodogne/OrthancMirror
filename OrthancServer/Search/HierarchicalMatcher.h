@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "DatabaseLookup.h"
 #include "../../Core/DicomParsing/ParsedDicomFile.h"
 
 class DcmItem;
@@ -43,11 +43,11 @@ namespace Orthanc
   class HierarchicalMatcher : public boost::noncopyable
   {
   private:
-    typedef std::map<DicomTag, IFindConstraint*>      Constraints;
     typedef std::map<DicomTag, HierarchicalMatcher*>  Sequences;
 
-    Constraints  constraints_;
-    Sequences    sequences_;
+    std::set<DicomTag>  flatTags_;
+    DatabaseLookup      flatConstraints_;
+    Sequences           sequences_;
 
     void Setup(DcmItem& query,
                bool caseSensitivePN,
