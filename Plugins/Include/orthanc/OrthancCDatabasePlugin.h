@@ -75,6 +75,7 @@ extern "C"
     _OrthancPluginDatabaseAnswerType_Int64 = 15,
     _OrthancPluginDatabaseAnswerType_Resource = 16,
     _OrthancPluginDatabaseAnswerType_String = 17,
+    _OrthancPluginDatabaseAnswerType_MatchingResource = 18,  /* New in Orthanc 1.5.2 */
 
     _OrthancPluginDatabaseAnswerType_INTERNAL = 0x7fffffff
   } _OrthancPluginDatabaseAnswerType;
@@ -119,6 +120,25 @@ extern "C"
     const char*                seriesInstanceUid;
     const char*                sopInstanceUid;
   } OrthancPluginExportedResource;
+
+  typedef struct
+  {
+    OrthancPluginResourceType    level;
+    uint16_t                     tagGroup;
+    uint16_t                     tagElement;
+    uint8_t                      isIdentifierTag;
+    uint8_t                      isCaseSensitive;
+    uint8_t                      isMandatory;
+    OrthancPluginConstraintType  type;
+    uint32_t                     valuesCount;
+    const char* const*           values;
+  } OrthancPluginDatabaseConstraint;
+
+  typedef struct
+  {
+    const char*  resourceId;
+    const char*  someInstanceId;  /* Can be NULL if not requested */
+  } OrthancPluginMatchingResource;
 
 
   typedef struct
@@ -269,6 +289,19 @@ extern "C"
     params.type = _OrthancPluginDatabaseAnswerType_Resource;
     params.valueInt64 = id;
     params.valueInt32 = (int32_t) resourceType;
+    context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
+  }
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseAnswerMatchingResource(
+    OrthancPluginContext*                 context,
+    OrthancPluginDatabaseContext*         database,
+    const OrthancPluginMatchingResource*  match)
+  {
+    _OrthancPluginDatabaseAnswer params;
+    memset(&params, 0, sizeof(params));
+    params.database = database;
+    params.type = _OrthancPluginDatabaseAnswerType_MatchingResource;
+    params.valueGeneric = match;
     context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
   }
 
@@ -694,6 +727,24 @@ extern "C"
       uint16_t element,
       const char* start,
       const char* end);
+
+    
+    /**
+     * Extensions since Orthanc 1.5.2
+     **/
+    
+    /* Ouput: Use OrthancPluginDatabaseAnswerMatchingResource */
+    OrthancPluginErrorCode  (*lookupResources) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      uint32_t constraintsCount,
+      const OrthancPluginDatabaseConstraint* const* constraints,
+      OrthancPluginResourceType queryLevel,
+      uint32_t limit,
+      uint8_t requestSomeInstance);
+    
    } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

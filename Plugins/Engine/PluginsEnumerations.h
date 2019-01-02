@@ -41,6 +41,13 @@
 
 namespace Orthanc
 {
+  namespace Compatibility
+  {
+    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint);
+
+    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
+  }
+
   namespace Plugins
   {
     OrthancPluginResourceType Convert(ResourceType type);
@@ -59,10 +66,6 @@ namespace Orthanc
 
     DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format);
 
-    OrthancPluginIdentifierConstraint Convert(Compatibility::IdentifierConstraintType constraint);
-
-    Compatibility::IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
-
     OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
 
     OrthancPluginHttpMethod Convert(HttpMethod method);
@@ -74,6 +77,10 @@ namespace Orthanc
     OrthancPluginJobStepStatus Convert(JobStepCode step);
 
     JobStepCode Convert(OrthancPluginJobStepStatus step);
+
+    OrthancPluginConstraintType Convert(ConstraintType constraint);
+
+    ConstraintType Convert(OrthancPluginConstraintType constraint);
   }
 }
 

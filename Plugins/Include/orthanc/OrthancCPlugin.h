@@ -119,7 +119,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     5
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -821,6 +821,7 @@ extern "C"
   /**
    * The constraints on the DICOM identifiers that must be supported
    * by the database plugins.
+   * @deprecated Plugins using OrthancPluginConstraintType will be faster
    **/
   typedef enum
   {
@@ -831,6 +832,22 @@ extern "C"
 
     _OrthancPluginIdentifierConstraint_INTERNAL = 0x7fffffff
   } OrthancPluginIdentifierConstraint;
+
+
+  /**
+   * The constraints on the tags (main DICOM tags and identifier tags)
+   * that must be supported by the database plugins.
+   **/
+  typedef enum
+  {
+    OrthancPluginConstraintType_Equal = 1,           /*!< Equal */
+    OrthancPluginConstraintType_SmallerOrEqual = 2,  /*!< Less or equal */
+    OrthancPluginConstraintType_GreaterOrEqual = 3,  /*!< More or equal */
+    OrthancPluginConstraintType_Wildcard = 4,        /*!< Wildcard matching */
+    OrthancPluginConstraintType_List = 5,            /*!< List of values */
+
+    _OrthancPluginConstraintType_INTERNAL = 0x7fffffff
+  } OrthancPluginConstraintType;
 
 
   /**
@@ -1513,7 +1530,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginCreateDicomFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
-        sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus))
+        sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginConstraintType))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
