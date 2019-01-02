@@ -117,14 +117,20 @@ namespace Orthanc
       }
       else
       {
+        flatTags_.insert(tag);
+
         std::set<DicomTag> ignoreTagLength;
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
+                                         0, encoding, ignoreTagLength));
 
-        flatTags_.insert(tag);
-        
-        if (value->IsBinary())
+        // WARNING: Also modify "DatabaseLookup::IsMatch()" if modifying this code
+        if (value.get() == NULL ||
+            value->IsNull())
+        {
+          // This is an universal constraint
+        }
+        else if (value->IsBinary())
         {
           if (!value->GetContent().empty())
           {
@@ -133,8 +139,7 @@ namespace Orthanc
                          << "It will be ignored.";
           }
         }
-        else if (value->IsNull() ||
-                 value->GetContent().empty())
+        else if (value->GetContent().empty())
         {
           // This is an universal matcher
         }
