@@ -35,6 +35,8 @@
 
 #include "DicomTagConstraint.h"
 
+class DcmItem;
+
 namespace Orthanc
 {
   class DatabaseLookup : public boost::noncopyable
@@ -69,6 +71,9 @@ namespace Orthanc
     void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
 
     bool IsMatch(const DicomMap& value) const;
+
+    bool IsMatch(DcmItem& item,
+                 Encoding encoding) const;
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,
