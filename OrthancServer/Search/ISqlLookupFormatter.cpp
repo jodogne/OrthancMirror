@@ -190,11 +190,13 @@ namespace Orthanc
 
           if (constraint.IsCaseSensitive())
           {
-            comparison = tag + ".value LIKE " + parameter + " ESCAPE '\\'";
+            comparison = (tag + ".value LIKE " + parameter + " " +
+                          formatter.FormatWildcardEscape());
           }
           else
           {
-            comparison = "lower(" + tag + ".value) LIKE lower(" + parameter + ") ESCAPE '\\'";
+            comparison = ("lower(" + tag + ".value) LIKE lower(" +
+                          parameter + ") " + formatter.FormatWildcardEscape());
           }
         }
           
