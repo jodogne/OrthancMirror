@@ -35,9 +35,15 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
+/**
+ * NB: Conversions to/from "OrthancPluginConstraintType" and
+ * "OrthancPluginResourceType" are located in file
+ * "../../OrthancServer/Search/DatabaseConstraint.h" to be shared with
+ * the "orthanc-databases" project.
+ **/
+
 #include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../OrthancServer/ServerEnumerations.h"
-#include "../../OrthancServer/Search/Compatibility/CompatibilityDatabaseWrapper.h"
+#include "../../OrthancServer/Search/DatabaseConstraint.h"
 
 namespace Orthanc
 {
@@ -50,10 +56,6 @@ namespace Orthanc
 
   namespace Plugins
   {
-    OrthancPluginResourceType Convert(ResourceType type);
-
-    ResourceType Convert(OrthancPluginResourceType type);
-
     OrthancPluginChangeType Convert(ChangeType type);
 
     OrthancPluginPixelFormat Convert(PixelFormat format);
@@ -77,10 +79,6 @@ namespace Orthanc
     OrthancPluginJobStepStatus Convert(JobStepCode step);
 
     JobStepCode Convert(OrthancPluginJobStepStatus step);
-
-    OrthancPluginConstraintType Convert(ConstraintType constraint);
-
-    ConstraintType Convert(OrthancPluginConstraintType constraint);
   }
 }
 
