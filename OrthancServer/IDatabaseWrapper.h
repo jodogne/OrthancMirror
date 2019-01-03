@@ -66,6 +66,17 @@ namespace Orthanc
     };
 
 
+    struct CreateInstanceResult
+    {
+      bool     isNewPatient_;
+      bool     isNewStudy_;
+      bool     isNewSeries_;
+      int64_t  patientId_;
+      int64_t  studyId_;
+      int64_t  seriesId_;
+    };
+
+
     virtual ~IDatabaseWrapper()
     {
     }
@@ -77,15 +88,9 @@ namespace Orthanc
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment) = 0;
 
-    virtual void AttachChild(int64_t parent,
-                             int64_t child) = 0;
-
     virtual void ClearChanges() = 0;
 
     virtual void ClearExportedResources() = 0;
-
-    virtual int64_t CreateResource(const std::string& publicId,
-                                   ResourceType type) = 0;
 
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment) = 0;
@@ -210,12 +215,28 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
 
-    virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
 
+    /**
+     * Primitives introduced in Orthanc 1.5.2
+     **/
+    
+    virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
+    
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
                                       size_t limit) = 0;
+
+    // Returns "true" iff. the instance already exists *and*
+    // "overwrite" is "false". If "false" is returned, the content of
+    // "result" is undefined, but "instanceId" must be properly set.
+    virtual bool CreateInstance(CreateInstanceResult& result, /* out */
+                                int64_t& instanceId,          /* out */
+                                const std::string& patient,
+                                const std::string& study,
+                                const std::string& series,
+                                const std::string& instance,
+                                bool overwrite) = 0;
   };
 }
