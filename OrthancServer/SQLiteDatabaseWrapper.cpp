@@ -1248,8 +1248,6 @@ namespace Orthanc
     }
 
     {
-      printf("[%s]\n", sql.c_str());
-
       SQLite::Statement statement(db_, sql);
       formatter.Bind(statement);
       statement.Run();

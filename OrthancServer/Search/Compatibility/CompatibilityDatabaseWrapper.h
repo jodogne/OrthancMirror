@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
+#include "ICompatibilityCreateInstance.h"
 
 namespace Orthanc
 {
@@ -44,7 +44,9 @@ namespace Orthanc
      * that were used in Orthanc <= 1.5.1, and that have been removed
      * during the optimization of the database engine.
      **/
-    class CompatibilityDatabaseWrapper : public IDatabaseWrapper
+    class CompatibilityDatabaseWrapper :
+      public IDatabaseWrapper,
+      public ICompatibilityCreateInstance
     {     
     public:
       virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
@@ -54,9 +56,18 @@ namespace Orthanc
                                         size_t limit)
         ORTHANC_OVERRIDE;
 
+      virtual bool CreateInstance(CreateInstanceResult& result,
+                                  int64_t& instanceId,
+                                  const std::string& patient,
+                                  const std::string& study,
+                                  const std::string& series,
+                                  const std::string& instance,
+                                  bool overwrite)
+        ORTHANC_OVERRIDE;
+
       virtual void GetAllInternalIds(std::list<int64_t>& target,
                                      ResourceType resourceType) = 0;
-
+      
       virtual void LookupIdentifier(std::list<int64_t>& result,
                                     ResourceType level,
                                     const DicomTag& tag,
