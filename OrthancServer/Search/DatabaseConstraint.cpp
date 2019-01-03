@@ -36,13 +36,113 @@
 
 #include "../../Core/OrthancException.h"
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-#  include "../../Plugins/Engine/PluginsEnumerations.h"
-#endif
-
 
 namespace Orthanc
 {
+  namespace Plugins
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    OrthancPluginResourceType Convert(ResourceType type)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return OrthancPluginResourceType_Patient;
+
+        case ResourceType_Study:
+          return OrthancPluginResourceType_Study;
+
+        case ResourceType_Series:
+          return OrthancPluginResourceType_Series;
+
+        case ResourceType_Instance:
+          return OrthancPluginResourceType_Instance;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+#endif
+
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    ResourceType Convert(OrthancPluginResourceType type)
+    {
+      switch (type)
+      {
+        case OrthancPluginResourceType_Patient:
+          return ResourceType_Patient;
+
+        case OrthancPluginResourceType_Study:
+          return ResourceType_Study;
+
+        case OrthancPluginResourceType_Series:
+          return ResourceType_Series;
+
+        case OrthancPluginResourceType_Instance:
+          return ResourceType_Instance;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+#endif
+
+
+#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+    OrthancPluginConstraintType Convert(ConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case ConstraintType_Equal:
+          return OrthancPluginConstraintType_Equal;
+
+        case ConstraintType_GreaterOrEqual:
+          return OrthancPluginConstraintType_GreaterOrEqual;
+
+        case ConstraintType_SmallerOrEqual:
+          return OrthancPluginConstraintType_SmallerOrEqual;
+
+        case ConstraintType_Wildcard:
+          return OrthancPluginConstraintType_Wildcard;
+
+        case ConstraintType_List:
+          return OrthancPluginConstraintType_List;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+#endif    
+
+    
+#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+    ConstraintType Convert(OrthancPluginConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case OrthancPluginConstraintType_Equal:
+          return ConstraintType_Equal;
+
+        case OrthancPluginConstraintType_GreaterOrEqual:
+          return ConstraintType_GreaterOrEqual;
+
+        case OrthancPluginConstraintType_SmallerOrEqual:
+          return ConstraintType_SmallerOrEqual;
+
+        case OrthancPluginConstraintType_Wildcard:
+          return ConstraintType_Wildcard;
+
+        case OrthancPluginConstraintType_List:
+          return ConstraintType_List;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+#endif
+  }
+
   DatabaseConstraint::DatabaseConstraint(ResourceType level,
                                          const DicomTag& tag,
                                          bool isIdentifier,
@@ -66,7 +166,7 @@ namespace Orthanc
   }      
 
     
-#if ORTHANC_ENABLE_PLUGINS == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
   DatabaseConstraint::DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint) :
     level_(Plugins::Convert(constraint.level)),
     tag_(constraint.tagGroup, constraint.tagElement),
@@ -117,7 +217,7 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_ENABLE_PLUGINS == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
   void DatabaseConstraint::EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                                             std::vector<const char*>& tmpValues) const
   {
