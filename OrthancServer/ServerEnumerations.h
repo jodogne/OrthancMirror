@@ -72,6 +72,17 @@ namespace Orthanc
     ConstraintType_List
   };
 
+  namespace Compatibility
+  {
+    enum IdentifierConstraintType
+    {
+      IdentifierConstraintType_Equal,
+      IdentifierConstraintType_SmallerOrEqual,
+      IdentifierConstraintType_GreaterOrEqual,
+      IdentifierConstraintType_Wildcard        /* Case sensitive, "*" or "?" are the only allowed wildcards */
+    };
+  }
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
