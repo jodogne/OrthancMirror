@@ -176,7 +176,7 @@ namespace Orthanc
     mandatory_(constraint.isMandatory)
   {
     if (constraintType_ != ConstraintType_List &&
-        values_.size() != 1)
+        constraint.valuesCount != 1)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -185,6 +185,7 @@ namespace Orthanc
 
     for (uint32_t i = 0; i < constraint.valuesCount; i++)
     {
+      assert(constraint.values[i] != NULL);
       values_[i].assign(constraint.values[i]);
     }
   }
@@ -223,6 +224,13 @@ namespace Orthanc
   {
     memset(&constraint, 0, sizeof(constraint));
     
+    tmpValues.resize(values_.size());
+
+    for (size_t i = 0; i < values_.size(); i++)
+    {
+      tmpValues[i] = values_[i].c_str();
+    }
+
     constraint.level = Plugins::Convert(level_);
     constraint.tagGroup = tag_.GetGroup();
     constraint.tagElement = tag_.GetElement();
@@ -231,13 +239,7 @@ namespace Orthanc
     constraint.isMandatory = mandatory_;
     constraint.type = Plugins::Convert(constraintType_);
     constraint.valuesCount = values_.size();
-
-    tmpValues.resize(values_.size());
-
-    for (size_t i = 0; i < values_.size(); i++)
-    {
-      tmpValues[i] = values_[i].c_str();
-    }
+    constraint.values = (tmpValues.empty() ? NULL : &tmpValues[0]);
   }
 #endif    
 }

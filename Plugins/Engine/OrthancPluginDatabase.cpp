@@ -1059,7 +1059,8 @@ namespace Orthanc
         }
         else
         {
-          const OrthancPluginChange& change = *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
+          const OrthancPluginChange& change =
+            *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
           assert(answerChanges_ != NULL);
           answerChanges_->push_back
             (ServerIndexChange(change.seq,
@@ -1112,6 +1113,8 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_DatabasePlugin);
         }
+
+        printf("  ++ [%s]\n", match.resourceId);
 
         assert(answerMatchingResources_ != NULL);
         answerMatchingResources_->push_back(match.resourceId);
@@ -1176,11 +1179,10 @@ namespace Orthanc
         lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
       }
 
+      ResetAnswers();
       answerMatchingResources_ = &resourcesId;
       answerMatchingInstances_ = instancesId;
       
-      ResetAnswers();
-
       CheckSuccess(extensions_.lookupResources(GetContext(), payload_, lookup.size(),
                                                (lookup.empty() ? NULL : &constraints[0]),
                                                Plugins::Convert(queryLevel),

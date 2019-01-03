@@ -1132,6 +1132,11 @@ namespace Orthanc
       return "?";
     }
     
+    virtual std::string FormatResourceType(ResourceType level)
+    {
+      return boost::lexical_cast<std::string>(level);
+    }
+
     void Bind(SQLite::Statement& statement) const
     {
       size_t pos = 0;
