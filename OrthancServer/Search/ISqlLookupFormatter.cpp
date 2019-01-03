@@ -260,12 +260,6 @@ namespace Orthanc
                                   ResourceType queryLevel,
                                   size_t limit)
   {
-    for (size_t i = 0; i < lookup.size(); i++)
-    {
-      std::cout << i << ": " << lookup[i].GetTag() << " - " << EnumerationToString(lookup[i].GetLevel());
-      std::cout << std::endl;
-    }
-    
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
            ResourceType_Series < ResourceType_Instance);
@@ -336,7 +330,7 @@ namespace Orthanc
     }
       
     sql += (joins + " WHERE " + FormatLevel(queryLevel) + ".resourceType = " +
-            boost::lexical_cast<std::string>(queryLevel) + comparisons);
+            formatter.FormatResourceType(queryLevel) + comparisons);
 
     if (limit != 0)
     {
