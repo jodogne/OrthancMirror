@@ -1114,8 +1114,6 @@ namespace Orthanc
           throw OrthancException(ErrorCode_DatabasePlugin);
         }
 
-        printf("  ++ [%s]\n", match.resourceId);
-
         assert(answerMatchingResources_ != NULL);
         answerMatchingResources_->push_back(match.resourceId);
 
