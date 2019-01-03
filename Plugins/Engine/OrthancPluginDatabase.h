@@ -316,6 +316,15 @@ namespace Orthanc
                                       size_t limit)
       ORTHANC_OVERRIDE;
 
+    virtual bool CreateInstance(CreateInstanceResult& result,
+                                int64_t& instanceId,
+                                const std::string& patient,
+                                const std::string& study,
+                                const std::string& series,
+                                const std::string& instance,
+                                bool overwrite)
+      ORTHANC_OVERRIDE;
+
     // From the "CompatibilityDatabaseWrapper" interface
     virtual void GetAllInternalIds(std::list<int64_t>& target,
                                    ResourceType resourceType) 

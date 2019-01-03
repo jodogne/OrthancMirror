@@ -1189,6 +1189,22 @@ namespace Orthanc
   }
 
 
+  bool OrthancPluginDatabase::CreateInstance(
+    IDatabaseWrapper::CreateInstanceResult& result,
+    int64_t& instanceId,
+    const std::string& patient,
+    const std::string& study,
+    const std::string& series,
+    const std::string& instance,
+    bool overwrite)
+  {
+    // TODO optimized version
+
+    return CompatibilityDatabaseWrapper::CreateInstance(
+      result, instanceId, patient, study, series, instance, overwrite);
+  }
+
+
   void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
                                                ResourceType level,
                                                const DicomTag& tag,

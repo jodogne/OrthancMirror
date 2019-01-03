@@ -297,65 +297,65 @@ INSTANTIATE_TEST_CASE_P(DatabaseWrapperName,
 TEST_P(DatabaseWrapperTest, Simple)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Patient),   // 0
-    index_->CreateResource("b", ResourceType_Study),     // 1
-    index_->CreateResource("c", ResourceType_Series),    // 2
-    index_->CreateResource("d", ResourceType_Instance),  // 3
-    index_->CreateResource("e", ResourceType_Instance),  // 4
-    index_->CreateResource("f", ResourceType_Instance),  // 5
-    index_->CreateResource("g", ResourceType_Study)      // 6
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("a", ResourceType_Patient),   // 0
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("b", ResourceType_Study),     // 1
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("c", ResourceType_Series),    // 2
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("d", ResourceType_Instance),  // 3
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("e", ResourceType_Instance),  // 4
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("f", ResourceType_Instance),  // 5
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("g", ResourceType_Study)      // 6
   };
 
-  ASSERT_EQ("a", index_->GetPublicId(a[0]));
-  ASSERT_EQ("b", index_->GetPublicId(a[1]));
-  ASSERT_EQ("c", index_->GetPublicId(a[2]));
-  ASSERT_EQ("d", index_->GetPublicId(a[3]));
-  ASSERT_EQ("e", index_->GetPublicId(a[4]));
-  ASSERT_EQ("f", index_->GetPublicId(a[5]));
-  ASSERT_EQ("g", index_->GetPublicId(a[6]));
+  ASSERT_EQ("a", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[0]));
+  ASSERT_EQ("b", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[1]));
+  ASSERT_EQ("c", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[2]));
+  ASSERT_EQ("d", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[3]));
+  ASSERT_EQ("e", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[4]));
+  ASSERT_EQ("f", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[5]));
+  ASSERT_EQ("g", dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetPublicId(a[6]));
 
-  ASSERT_EQ(ResourceType_Patient, index_->GetResourceType(a[0]));
-  ASSERT_EQ(ResourceType_Study, index_->GetResourceType(a[1]));
-  ASSERT_EQ(ResourceType_Series, index_->GetResourceType(a[2]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[3]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[4]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[5]));
-  ASSERT_EQ(ResourceType_Study, index_->GetResourceType(a[6]));
+  ASSERT_EQ(ResourceType_Patient, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[0]));
+  ASSERT_EQ(ResourceType_Study, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[1]));
+  ASSERT_EQ(ResourceType_Series, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[2]));
+  ASSERT_EQ(ResourceType_Instance, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[3]));
+  ASSERT_EQ(ResourceType_Instance, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[4]));
+  ASSERT_EQ(ResourceType_Instance, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[5]));
+  ASSERT_EQ(ResourceType_Study, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetResourceType(a[6]));
 
   {
     std::list<std::string> t;
-    index_->GetAllPublicIds(t, ResourceType_Patient);
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllPublicIds(t, ResourceType_Patient);
 
     ASSERT_EQ(1u, t.size());
     ASSERT_EQ("a", t.front());
 
-    index_->GetAllPublicIds(t, ResourceType_Series);
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllPublicIds(t, ResourceType_Series);
     ASSERT_EQ(1u, t.size());
     ASSERT_EQ("c", t.front());
 
-    index_->GetAllPublicIds(t, ResourceType_Study);
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllPublicIds(t, ResourceType_Study);
     ASSERT_EQ(2u, t.size());
 
-    index_->GetAllPublicIds(t, ResourceType_Instance);
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllPublicIds(t, ResourceType_Instance);
     ASSERT_EQ(3u, t.size());
   }
 
-  index_->SetGlobalProperty(GlobalProperty_FlushSleep, "World");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetGlobalProperty(GlobalProperty_FlushSleep, "World");
 
-  index_->AttachChild(a[0], a[1]);
-  index_->AttachChild(a[1], a[2]);
-  index_->AttachChild(a[2], a[3]);
-  index_->AttachChild(a[2], a[4]);
-  index_->AttachChild(a[6], a[5]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[0], a[1]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[1], a[2]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[2], a[3]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[2], a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[6], a[5]);
 
   int64_t parent;
-  ASSERT_FALSE(index_->LookupParent(parent, a[0]));
-  ASSERT_TRUE(index_->LookupParent(parent, a[1])); ASSERT_EQ(a[0], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[2])); ASSERT_EQ(a[1], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[3])); ASSERT_EQ(a[2], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[4])); ASSERT_EQ(a[2], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[5])); ASSERT_EQ(a[6], parent);
-  ASSERT_FALSE(index_->LookupParent(parent, a[6]));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[0]));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[1])); ASSERT_EQ(a[0], parent);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[2])); ASSERT_EQ(a[1], parent);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[3])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[4])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[5])); ASSERT_EQ(a[6], parent);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupParent(parent, a[6]));
 
   std::string s;
 
@@ -368,14 +368,14 @@ TEST_P(DatabaseWrapperTest, Simple)
   CheckParentPublicId("g", a[5]);
 
   std::list<std::string> l;
-  index_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
-  index_->GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
-  index_->GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
 
-  index_->GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
   if (l.front() == "d")
   {
     ASSERT_EQ("e", l.back());
@@ -387,64 +387,64 @@ TEST_P(DatabaseWrapperTest, Simple)
   }
 
   std::list<MetadataType> md;
-  index_->ListAvailableMetadata(md, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
                                        CompressionType_ZlibWithSize, 21, "compressedMD5"));
-  index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
-  index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
-  index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
   
-  index_->ListAvailableMetadata(md, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
-  index_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
-  index_->ListAvailableMetadata(md, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
 
   std::map<MetadataType, std::string> md2;
-  index_->GetAllMetadata(md2, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllMetadata(md2, a[4]);
   ASSERT_EQ(2u, md2.size());
   ASSERT_EQ("TUTU", md2[MetadataType_ModifiedFrom]);
   ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
 
-  index_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
-  index_->ListAvailableMetadata(md, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteMetadata(a[4], MetadataType_ModifiedFrom);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).ListAvailableMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
 
-  index_->GetAllMetadata(md2, a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetAllMetadata(md2, a[4]);
   ASSERT_EQ(1u, md2.size());
   ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
 
 
-  ASSERT_EQ(21u + 42u + 44u, index_->GetTotalCompressedSize());
-  ASSERT_EQ(42u + 42u + 44u, index_->GetTotalUncompressedSize());
+  ASSERT_EQ(21u + 42u + 44u, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetTotalCompressedSize());
+  ASSERT_EQ(42u + 42u + 44u, dynamic_cast<SQLiteDatabaseWrapper&>(*index_).GetTotalUncompressedSize());
 
-  index_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
 
   int64_t b;
   ResourceType t;
-  ASSERT_TRUE(index_->LookupResource(b, t, "g"));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupResource(b, t, "g"));
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 
-  ASSERT_TRUE(index_->LookupMetadata(s, a[4], MetadataType_Instance_RemoteAet));
-  ASSERT_FALSE(index_->LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupMetadata(s, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
-  ASSERT_TRUE(index_->LookupMetadata(u, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupMetadata(u, a[4], MetadataType_Instance_RemoteAet));
   ASSERT_EQ("PINNACLE", u);
-  ASSERT_FALSE(index_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
 
-  ASSERT_TRUE(index_->LookupGlobalProperty(s, GlobalProperty_FlushSleep));
-  ASSERT_FALSE(index_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupGlobalProperty(s, GlobalProperty_FlushSleep));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
   ASSERT_EQ("World", s);
 
   FileInfo att;
-  ASSERT_TRUE(index_->LookupAttachment(att, a[4], FileContentType_DicomAsJson));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupAttachment(att, a[4], FileContentType_DicomAsJson));
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -452,7 +452,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
-  ASSERT_TRUE(index_->LookupAttachment(att, a[6], FileContentType_Dicom));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupAttachment(att, a[6], FileContentType_Dicom));
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -468,7 +468,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(1, "Metadata");
   CheckTableRecordCount(1, "MainDicomTags");
 
-  index_->DeleteResource(a[0]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[0]);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
   ASSERT_EQ(2u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
@@ -483,7 +483,7 @@ TEST_P(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(1, "AttachedFiles");
   CheckTableRecordCount(0, "MainDicomTags");
 
-  index_->DeleteResource(a[5]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[5]);
   ASSERT_EQ(7u, listener_->deletedResources_.size());
 
   CheckTableRecordCount(0, "Resources");
@@ -491,11 +491,11 @@ TEST_P(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(3, "GlobalProperties");
 
   std::string tmp;
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
   ASSERT_EQ("6", tmp);
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
   ASSERT_EQ("World", tmp);
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
   ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
@@ -510,23 +510,23 @@ TEST_P(DatabaseWrapperTest, Simple)
 TEST_P(DatabaseWrapperTest, Upward)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Patient),   // 0
-    index_->CreateResource("b", ResourceType_Study),     // 1
-    index_->CreateResource("c", ResourceType_Series),    // 2
-    index_->CreateResource("d", ResourceType_Instance),  // 3
-    index_->CreateResource("e", ResourceType_Instance),  // 4
-    index_->CreateResource("f", ResourceType_Study),     // 5
-    index_->CreateResource("g", ResourceType_Series),    // 6
-    index_->CreateResource("h", ResourceType_Series)     // 7
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("a", ResourceType_Patient),   // 0
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("b", ResourceType_Study),     // 1
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("c", ResourceType_Series),    // 2
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("d", ResourceType_Instance),  // 3
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("e", ResourceType_Instance),  // 4
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("f", ResourceType_Study),     // 5
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("g", ResourceType_Series),    // 6
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("h", ResourceType_Series)     // 7
   };
 
-  index_->AttachChild(a[0], a[1]);
-  index_->AttachChild(a[1], a[2]);
-  index_->AttachChild(a[2], a[3]);
-  index_->AttachChild(a[2], a[4]);
-  index_->AttachChild(a[1], a[6]);
-  index_->AttachChild(a[0], a[5]);
-  index_->AttachChild(a[5], a[7]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[0], a[1]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[1], a[2]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[2], a[3]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[2], a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[1], a[6]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[0], a[5]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AttachChild(a[5], a[7]);
 
   CheckTwoChildren("b", "f", a[0]);
   CheckTwoChildren("c", "g", a[1]);
@@ -538,22 +538,22 @@ TEST_P(DatabaseWrapperTest, Upward)
   CheckNoChild(a[7]);
 
   listener_->Reset();
-  index_->DeleteResource(a[3]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[3]);
   ASSERT_EQ("c", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Series, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[4]);
   ASSERT_EQ("b", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Study, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[7]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[7]);
   ASSERT_EQ("a", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Patient, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[6]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(a[6]);
   ASSERT_EQ("", listener_->ancestorId_);  // No more ancestor
 }
 
@@ -564,10 +564,10 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   for (int i = 0; i < 10; i++)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
-    patients.push_back(index_->CreateResource(p, ResourceType_Patient));
-    index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
+    patients.push_back(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource(p, ResourceType_Patient));
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
                                                 "md5-" + boost::lexical_cast<std::string>(i)));
-    ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
+    ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[i]));
   }
 
   CheckTableRecordCount(10u, "Resources");
@@ -576,8 +576,8 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   listener_->Reset();
   ASSERT_EQ(0u, listener_->deletedResources_.size());
 
-  index_->DeleteResource(patients[5]);
-  index_->DeleteResource(patients[0]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(patients[5]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(patients[0]);
   ASSERT_EQ(2u, listener_->deletedResources_.size());
 
   CheckTableRecordCount(8u, "Resources");
@@ -588,28 +588,28 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
   ASSERT_EQ("Patient 0", listener_->deletedFiles_[1]);
 
   int64_t p;
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(3u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(4u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(6u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
-  index_->DeleteResource(p);
-  index_->DeleteResource(patients[8]);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(patients[8]);
   ASSERT_EQ(8u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(9u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
-  index_->DeleteResource(p);
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p));
   ASSERT_EQ(10u, listener_->deletedResources_.size());
 
   ASSERT_EQ(10u, listener_->deletedFiles_.size());
@@ -625,39 +625,39 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
   for (int i = 0; i < 5; i++)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
-    patients.push_back(index_->CreateResource(p, ResourceType_Patient));
-    index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
+    patients.push_back(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource(p, ResourceType_Patient));
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
                                                 "md5-" + boost::lexical_cast<std::string>(i)));
-    ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
+    ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[i]));
   }
 
   CheckTableRecordCount(5, "Resources");
   CheckTableRecordCount(5, "PatientRecyclingOrder");
 
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "Resources");
   CheckTableRecordCount(4, "PatientRecyclingOrder");
 
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
   CheckTableRecordCount(5, "Resources");
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[3], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[3]));
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[3], true);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).IsProtectedPatient(patients[3]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
 
   CheckTableRecordCount(5, "Resources");
@@ -666,33 +666,33 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
   // Unprotecting a patient puts it at the last position in the recycling queue
   int64_t p;
   ASSERT_EQ(0u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(1u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(2u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(3u, listener_->deletedResources_.size());
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[2]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
-  index_->DeleteResource(p);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p, patients[2]));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(4u, listener_->deletedResources_.size());
   // "patients[3]" is still protected
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p));
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p));
 
   ASSERT_EQ(4u, listener_->deletedFiles_.size());
   CheckTableRecordCount(1, "Resources");
   CheckTableRecordCount(0, "PatientRecyclingOrder");
 
-  index_->SetProtectedPatient(patients[3], false);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetProtectedPatient(patients[3], false);
   CheckTableRecordCount(1, "PatientRecyclingOrder");
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[3]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[2]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
-  index_->DeleteResource(p);
+  ASSERT_FALSE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p, patients[3]));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p, patients[2]));
+  ASSERT_TRUE(dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).DeleteResource(p);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
 
   ASSERT_EQ(5u, listener_->deletedFiles_.size());
@@ -729,16 +729,16 @@ TEST(ServerIndex, Sequence)
 TEST_P(DatabaseWrapperTest, LookupIdentifier)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Study),   // 0
-    index_->CreateResource("b", ResourceType_Study),   // 1
-    index_->CreateResource("c", ResourceType_Study),   // 2
-    index_->CreateResource("d", ResourceType_Series)   // 3
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("a", ResourceType_Study),   // 0
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("b", ResourceType_Study),   // 1
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("c", ResourceType_Study),   // 2
+    dynamic_cast<SQLiteDatabaseWrapper&>(*index_).CreateResource("d", ResourceType_Series)   // 3
   };
 
-  index_->SetIdentifierTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetIdentifierTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
-  index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetIdentifierTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetIdentifierTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  dynamic_cast<SQLiteDatabaseWrapper&>(*index_).SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
   std::list<std::string> s;
 

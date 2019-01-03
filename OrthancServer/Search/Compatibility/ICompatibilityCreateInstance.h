@@ -31,38 +31,32 @@
  **/
 
 
-#include "../../PrecompiledHeadersServer.h"
-#include "CompatibilityDatabaseWrapper.h"
+#pragma once
 
-#include "DatabaseLookup.h"
+#include "../../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    void CompatibilityDatabaseWrapper::ApplyLookupResources(
-      std::list<std::string>& resourcesId,
-      std::list<std::string>* instancesId,
-      const std::vector<DatabaseConstraint>& lookup,
-      ResourceType queryLevel,
-      size_t limit)
+    class ICompatibilityCreateInstance : public boost::noncopyable
     {
-      Compatibility::DatabaseLookup compat(*this);
-      compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
-    }
-    
+    public:
+      virtual int64_t CreateResource(const std::string& publicId,
+                                     ResourceType type) = 0;
 
-    bool CompatibilityDatabaseWrapper::CreateInstance(
-      IDatabaseWrapper::CreateInstanceResult& result,
-      int64_t& instanceId,
-      const std::string& patient,
-      const std::string& study,
-      const std::string& series,
-      const std::string& instance,
-      bool overwrite)
-    {
-      return ICompatibilityCreateInstance::Apply
-        (result, instanceId, *this, *this, patient, study, series, instance, overwrite);
-    }
+      virtual void AttachChild(int64_t parent,
+                               int64_t child) = 0;
+      
+      static bool Apply(IDatabaseWrapper::CreateInstanceResult& result,
+                        int64_t& instanceId,
+                        ICompatibilityCreateInstance& compatibility,
+                        IDatabaseWrapper& database,
+                        const std::string& patient,
+                        const std::string& study,
+                        const std::string& series,
+                        const std::string& instance,
+                        bool overwrite);
+    };
   }
 }

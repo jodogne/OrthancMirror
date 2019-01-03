@@ -36,6 +36,7 @@
 #include "IDatabaseWrapper.h"
 
 #include "../Core/SQLite/Connection.h"
+#include "Search/Compatibility/ICompatibilityCreateInstance.h"
 
 namespace Orthanc
 {
@@ -49,7 +50,9 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper : public IDatabaseWrapper
+  class SQLiteDatabaseWrapper :
+    public IDatabaseWrapper,
+    public Compatibility::ICompatibilityCreateInstance
   {
   private:
     class Transaction;
@@ -320,5 +323,17 @@ namespace Orthanc
                                       ResourceType queryLevel,
                                       size_t limit)
       ORTHANC_OVERRIDE;
+
+    virtual bool CreateInstance(CreateInstanceResult& result,
+                                int64_t& instanceId,
+                                const std::string& patient,
+                                const std::string& study,
+                                const std::string& series,
+                                const std::string& instance,
+                                bool overwrite)
+    {
+      return ICompatibilityCreateInstance::Apply(
+        result, instanceId, *this, *this, patient, study, series, instance, overwrite);
+    }
   };
 }

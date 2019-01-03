@@ -612,44 +612,6 @@ namespace Orthanc
 
 
 
-  int64_t ServerIndex::CreateResource(const std::string& publicId,
-                                      ResourceType type)
-  {
-    int64_t id = db_.CreateResource(publicId, type);
-
-    ChangeType changeType;
-    switch (type)
-    {
-    case ResourceType_Patient: 
-      changeType = ChangeType_NewPatient; 
-      break;
-
-    case ResourceType_Study: 
-      changeType = ChangeType_NewStudy; 
-      break;
-
-    case ResourceType_Series: 
-      changeType = ChangeType_NewSeries; 
-      break;
-
-    case ResourceType_Instance: 
-      changeType = ChangeType_NewInstance; 
-      break;
-
-    default:
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    ServerIndexChange change(changeType, type, publicId);
-    db_.LogChange(id, change);
-
-    assert(listener_.get() != NULL);
-    listener_->SignalChange(change);
-
-    return id;
-  }
-
-
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db,
                            unsigned int threadSleep) : 
@@ -720,7 +682,19 @@ namespace Orthanc
   }
 
 
+  void ServerIndex::SignalNewResource(ChangeType changeType,
+                                      ResourceType level,
+                                      const std::string& publicId,
+                                      int64_t internalId)
+  {
+    ServerIndexChange change(changeType, level, publicId);
+    db_.LogChange(internalId, change);
+    
+    assert(listener_.get() != NULL);
+    listener_->SignalChange(change);
+  }
 
+  
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  DicomInstanceToStore& instanceToStore,
                                  const Attachments& attachments)
@@ -732,33 +706,47 @@ namespace Orthanc
 
     instanceMetadata.clear();
 
+    const std::string hashPatient = instanceToStore.GetHasher().HashPatient();
+    const std::string hashStudy = instanceToStore.GetHasher().HashStudy();
+    const std::string hashSeries = instanceToStore.GetHasher().HashSeries();
+    const std::string hashInstance = instanceToStore.GetHasher().HashInstance();
+
     try
     {
       Transaction t(*this);
 
-      // Check whether this instance is already stored
-      {
-        ResourceType type;
-        int64_t tmp;
-        if (db_.LookupResource(tmp, type, instanceToStore.GetHasher().HashInstance()))
-        {
-          assert(type == ResourceType_Instance);
+      IDatabaseWrapper::CreateInstanceResult status;
+      int64_t instanceId;
 
-          if (overwrite_)
-          {
-            // Overwrite the old instance
-            LOG(INFO) << "Overwriting instance: " << instanceToStore.GetHasher().HashInstance();
-            db_.DeleteResource(tmp);
-          }
-          else
-          {
-            // Do nothing if the instance already exists
-            db_.GetAllMetadata(instanceMetadata, tmp);
-            return StoreStatus_AlreadyStored;
-          }
-        }
+      // Check whether this instance is already stored
+      if (!db_.CreateInstance(status, instanceId, hashPatient,
+                              hashStudy, hashSeries, hashInstance, overwrite_))
+      {
+        // Do nothing if the instance already exists and overwriting is disabled
+        db_.GetAllMetadata(instanceMetadata, instanceId);
+        return StoreStatus_AlreadyStored;
       }
 
+
+      // Warn about the creation of new resources. The order must be from instance to patient.
+      SignalNewResource(ChangeType_NewInstance, ResourceType_Instance, hashInstance, instanceId);
+
+      if (status.isNewSeries_)
+      {
+        SignalNewResource(ChangeType_NewSeries, ResourceType_Series, hashSeries, status.seriesId_);
+      }
+      
+      if (status.isNewStudy_)
+      {
+        SignalNewResource(ChangeType_NewStudy, ResourceType_Study, hashStudy, status.studyId_);
+      }
+      
+      if (status.isNewPatient_)
+      {
+        SignalNewResource(ChangeType_NewPatient, ResourceType_Patient, hashPatient, status.patientId_);
+      }
+      
+      
       // Ensure there is enough room in the storage for the new instance
       uint64_t instanceSize = 0;
       for (Attachments::const_iterator it = attachments.begin();
@@ -767,125 +755,59 @@ namespace Orthanc
         instanceSize += it->GetCompressedSize();
       }
 
-      Recycle(instanceSize, instanceToStore.GetHasher().HashPatient());
+      Recycle(instanceSize, hashPatient /* don't consider the current patient for recycling */);
 
-      // Create the instance
-      int64_t instance = CreateResource(instanceToStore.GetHasher().HashInstance(), ResourceType_Instance);
-      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, dicomSummary);
+      
+      // Populate the newly-created resources
+      // TODO - GROUP THIS
 
-      // Detect up to which level the patient/study/series/instance
-      // hierarchy must be created
-      int64_t patient = -1, study = -1, series = -1;
-      bool isNewPatient = false;
-      bool isNewStudy = false;
-      bool isNewSeries = false;
+      ServerToolbox::StoreMainDicomTags(db_, instanceId, ResourceType_Instance, dicomSummary);
 
+      if (status.isNewSeries_)
       {
-        ResourceType dummy;
-
-        if (db_.LookupResource(series, dummy, instanceToStore.GetHasher().HashSeries()))
-        {
-          assert(dummy == ResourceType_Series);
-          // The patient, the study and the series already exist
-
-          bool ok = (db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient()) &&
-                     db_.LookupResource(study, dummy, instanceToStore.GetHasher().HashStudy()));
-          assert(ok);
-        }
-        else if (db_.LookupResource(study, dummy, instanceToStore.GetHasher().HashStudy()))
-        {
-          assert(dummy == ResourceType_Study);
-
-          // New series: The patient and the study already exist
-          isNewSeries = true;
-
-          bool ok = db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient());
-          assert(ok);
-        }
-        else if (db_.LookupResource(patient, dummy, instanceToStore.GetHasher().HashPatient()))
-        {
-          assert(dummy == ResourceType_Patient);
-
-          // New study and series: The patient already exist
-          isNewStudy = true;
-          isNewSeries = true;
-        }
-        else
-        {
-          // New patient, study and series: Nothing exists
-          isNewPatient = true;
-          isNewStudy = true;
-          isNewSeries = true;
-        }
+        ServerToolbox::StoreMainDicomTags(db_, status.seriesId_, ResourceType_Series, dicomSummary);
       }
 
-      // Create the series if needed
-      if (isNewSeries)
+      if (status.isNewStudy_)
       {
-        series = CreateResource(instanceToStore.GetHasher().HashSeries(), ResourceType_Series);
-        ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, status.studyId_, ResourceType_Study, dicomSummary);
       }
 
-      // Create the study if needed
-      if (isNewStudy)
+      if (status.isNewPatient_)
       {
-        study = CreateResource(instanceToStore.GetHasher().HashStudy(), ResourceType_Study);
-        ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, dicomSummary);
+        ServerToolbox::StoreMainDicomTags(db_, status.patientId_, ResourceType_Patient, dicomSummary);
       }
 
-      // Create the patient if needed
-      if (isNewPatient)
-      {
-        patient = CreateResource(instanceToStore.GetHasher().HashPatient(), ResourceType_Patient);
-        ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, dicomSummary);
-      }
-
-      // Create the parent-to-child links
-      db_.AttachChild(series, instance);
-
-      if (isNewSeries)
-      {
-        db_.AttachChild(study, series);
-      }
-
-      if (isNewStudy)
-      {
-        db_.AttachChild(patient, study);
-      }
-
-      // Sanity checks
-      assert(patient != -1);
-      assert(study != -1);
-      assert(series != -1);
-      assert(instance != -1);
-
+     
       // Attach the files to the newly created instance
       for (Attachments::const_iterator it = attachments.begin();
            it != attachments.end(); ++it)
       {
-        db_.AddAttachment(instance, *it);
+        db_.AddAttachment(instanceId, *it);
       }
+      
 
       // Attach the user-specified metadata
+      // TODO - GROUP THIS
       for (MetadataMap::const_iterator 
              it = metadata.begin(); it != metadata.end(); ++it)
       {
         switch (it->first.first)
         {
           case ResourceType_Patient:
-            db_.SetMetadata(patient, it->first.second, it->second);
+            db_.SetMetadata(status.patientId_, it->first.second, it->second);
             break;
 
           case ResourceType_Study:
-            db_.SetMetadata(study, it->first.second, it->second);
+            db_.SetMetadata(status.studyId_, it->first.second, it->second);
             break;
 
           case ResourceType_Series:
-            db_.SetMetadata(series, it->first.second, it->second);
+            db_.SetMetadata(status.seriesId_, it->first.second, it->second);
             break;
 
           case ResourceType_Instance:
-            SetInstanceMetadata(instanceMetadata, instance, it->first.second, it->second);
+            SetInstanceMetadata(instanceMetadata, instanceId, it->first.second, it->second);
             break;
 
           default:
@@ -895,16 +817,16 @@ namespace Orthanc
 
       // Attach the auto-computed metadata for the patient/study/series levels
       std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-      db_.SetMetadata(series, MetadataType_LastUpdate, now);
-      db_.SetMetadata(study, MetadataType_LastUpdate, now);
-      db_.SetMetadata(patient, MetadataType_LastUpdate, now);
+      db_.SetMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+      db_.SetMetadata(status.studyId_, MetadataType_LastUpdate, now);
+      db_.SetMetadata(status.patientId_, MetadataType_LastUpdate, now);
 
       // Attach the auto-computed metadata for the instance level,
       // reflecting these additions into the input metadata map
-      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_ReceptionDate, now);
-      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteAet,
+      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_ReceptionDate, now);
+      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_RemoteAet,
                           instanceToStore.GetOrigin().GetRemoteAetC());
-      SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_Origin, 
+      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_Origin, 
                           EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
 
       {
@@ -913,25 +835,25 @@ namespace Orthanc
         if (instanceToStore.LookupTransferSyntax(s))
         {
           // New in Orthanc 1.2.0
-          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_TransferSyntax, s);
+          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_TransferSyntax, s);
         }
 
         if (instanceToStore.GetOrigin().LookupRemoteIp(s))
         {
           // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_RemoteIp, s);
+          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_RemoteIp, s);
         }
 
         if (instanceToStore.GetOrigin().LookupCalledAet(s))
         {
           // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_CalledAet, s);
+          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_CalledAet, s);
         }
 
         if (instanceToStore.GetOrigin().LookupHttpUsername(s))
         {
           // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_HttpUsername, s);
+          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_HttpUsername, s);
         }
       }
 
@@ -940,7 +862,7 @@ namespace Orthanc
           !value->IsNull() &&
           !value->IsBinary())
       {
-        SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_SopClassUid, value->GetContent());
+        SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_SopClassUid, value->GetContent());
       }
 
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
@@ -949,26 +871,26 @@ namespace Orthanc
         if (!value->IsNull() && 
             !value->IsBinary())
         {
-          SetInstanceMetadata(instanceMetadata, instance, MetadataType_Instance_IndexInSeries, value->GetContent());
+          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_IndexInSeries, value->GetContent());
         }
       }
 
       // Check whether the series of this new instance is now completed
-      if (isNewSeries)
+      if (status.isNewSeries_)
       {
-        ComputeExpectedNumberOfInstances(db_, series, dicomSummary);
+        ComputeExpectedNumberOfInstances(db_, status.seriesId_, dicomSummary);
       }
 
-      SeriesStatus seriesStatus = GetSeriesStatus(series);
+      SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_);
       if (seriesStatus == SeriesStatus_Complete)
       {
-        LogChange(series, ChangeType_CompletedSeries, ResourceType_Series, instanceToStore.GetHasher().HashSeries());
+        LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
       }
 
       // Mark the parent resources of this instance as unstable
-      MarkAsUnstable(series, ResourceType_Series, instanceToStore.GetHasher().HashSeries());
-      MarkAsUnstable(study, ResourceType_Study, instanceToStore.GetHasher().HashStudy());
-      MarkAsUnstable(patient, ResourceType_Patient, instanceToStore.GetHasher().HashPatient());
+      MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries);
+      MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy);
+      MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient);
 
       t.Commit(instanceSize);
 

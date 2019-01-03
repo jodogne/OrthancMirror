@@ -116,10 +116,12 @@ namespace Orthanc
                    ResourceType resourceType,
                    const std::string& publicId);
 
-    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
+    void SignalNewResource(ChangeType changeType,
+                           ResourceType level,
+                           const std::string& publicId,
+                           int64_t internalId);
 
-    int64_t CreateResource(const std::string& publicId,
-                           ResourceType type);
+    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
 
     void SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
                              int64_t instance,
