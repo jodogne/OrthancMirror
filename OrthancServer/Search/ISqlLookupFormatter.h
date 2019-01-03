@@ -49,6 +49,8 @@ namespace Orthanc
 
     virtual std::string FormatResourceType(ResourceType level) = 0;
 
+    virtual std::string FormatWildcardEscape() = 0;
+
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
                       const std::vector<DatabaseConstraint>& lookup,

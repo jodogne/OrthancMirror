@@ -1137,6 +1137,11 @@ namespace Orthanc
       return boost::lexical_cast<std::string>(level);
     }
 
+    virtual std::string FormatWildcardEscape()
+    {
+      return "ESCAPE '\\'";
+    }
+
     void Bind(SQLite::Statement& statement) const
     {
       size_t pos = 0;
