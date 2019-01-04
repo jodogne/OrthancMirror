@@ -134,11 +134,26 @@ extern "C"
     const char* const*           values;
   } OrthancPluginDatabaseConstraint;
 
-  typedef struct
+  typedef struct   /* New in Orthanc 1.5.2 */
   {
     const char*  resourceId;
     const char*  someInstanceId;  /* Can be NULL if not requested */
   } OrthancPluginMatchingResource;
+
+  typedef struct   /* New in Orthanc 1.5.2 */
+  {
+    /* Mandatory field */
+    uint8_t  isNewInstance;
+    int64_t  instanceId;
+
+    /* The following fields must only be set if "isNewInstance" is "true" */
+    uint8_t  isNewPatient;
+    uint8_t  isNewStudy;
+    uint8_t  isNewSeries;
+    int64_t  patientId;
+    int64_t  studyId;
+    int64_t  seriesId;
+  } OrthancPluginCreateInstanceResult;
 
 
   typedef struct
@@ -744,7 +759,16 @@ extern "C"
       OrthancPluginResourceType queryLevel,
       uint32_t limit,
       uint8_t requestSomeInstance);
-    
+
+    OrthancPluginErrorCode  (*createInstance) (
+      /* output */
+      OrthancPluginCreateInstanceResult* output,
+      /* inputs */
+      void* payload,
+      const char* hashPatient,
+      const char* hashStudy,
+      const char* hashSeries,
+      const char* hashInstance);
    } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
