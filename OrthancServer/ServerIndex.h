@@ -123,11 +123,6 @@ namespace Orthanc
 
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
 
-    void SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
-                             int64_t instance,
-                             MetadataType metadata,
-                             const std::string& value);
-
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;
