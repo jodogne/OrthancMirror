@@ -36,14 +36,14 @@
 #include "../../Core/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
 
-#define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 0
+#define ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 0
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 #  include <orthanc/OrthancCDatabasePlugin.h>
 #  if defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)      // Macro introduced in 1.3.1
 #    if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 2)
-#      undef  ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT
-#      define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 1
+#      undef  ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1
+#      define ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 1
 #    endif
 #  endif
 #endif
@@ -60,11 +60,11 @@ namespace Orthanc
     ResourceType Convert(OrthancPluginResourceType type);
 #endif
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 == 1
     OrthancPluginConstraintType Convert(ConstraintType constraint);
 #endif
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 == 1
     ConstraintType Convert(OrthancPluginConstraintType constraint);
 #endif
   }
@@ -91,7 +91,7 @@ namespace Orthanc
                        bool caseSensitive,
                        bool mandatory);
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 == 1
     DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
 #endif
     
@@ -136,7 +136,7 @@ namespace Orthanc
 
     bool IsMatch(const DicomMap& dicom) const;
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_PLUGINS_HAS_DATABASE_OPTIMIZATIONS_1 == 1
     void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                           std::vector<const char*>& tmpValues) const;
 #endif    
