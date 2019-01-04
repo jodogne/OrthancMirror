@@ -34,32 +34,36 @@
 #pragma once
 
 #include "../../IDatabaseWrapper.h"
+#include "../../ServerToolbox.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    class ICompatibilityCreateInstance : public boost::noncopyable
+    class ISetResourcesContent : public IDatabaseWrapper
     {
     public:
-      virtual ~ICompatibilityCreateInstance()
+      virtual ~ISetResourcesContent()
       {
       }
       
-      virtual int64_t CreateResource(const std::string& publicId,
-                                     ResourceType type) = 0;
+      virtual void SetResourcesContent(const ResourcesContent& content)
+        ORTHANC_OVERRIDE
+      {
+        content.Store(*this);
+      }
 
-      virtual void AttachChild(int64_t parent,
-                               int64_t child) = 0;
-      
-      static bool Apply(IDatabaseWrapper::CreateInstanceResult& result,
-                        int64_t& instanceId,
-                        ICompatibilityCreateInstance& compatibility,
-                        IDatabaseWrapper& database,
-                        const std::string& patient,
-                        const std::string& study,
-                        const std::string& series,
-                        const std::string& instance);
+      virtual void SetMainDicomTag(int64_t id,
+                                   const DicomTag& tag,
+                                   const std::string& value) = 0;
+
+      virtual void SetIdentifierTag(int64_t id,
+                                    const DicomTag& tag,
+                                    const std::string& value) = 0;
+
+      virtual void SetMetadata(int64_t id,
+                               MetadataType type,
+                               const std::string& value) = 0;
     };
   }
 }
