@@ -92,7 +92,7 @@ namespace Orthanc
     
     
     static void ApplyIdentifierConstraint(SetOfResources& candidates,
-                                          CompatibilityDatabaseWrapper& database,
+                                          CompatibilityDatabaseWrapper& compatibility,
                                           const DatabaseConstraint& constraint,
                                           ResourceType level)
     {
@@ -101,23 +101,23 @@ namespace Orthanc
       switch (constraint.GetConstraintType())
       {
         case ConstraintType_Equal:
-          database.LookupIdentifier(matches, level, constraint.GetTag(),
+          compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_Equal, constraint.GetSingleValue());
           break;
           
         case ConstraintType_SmallerOrEqual:
-          database.LookupIdentifier(matches, level, constraint.GetTag(),
+          compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_SmallerOrEqual, constraint.GetSingleValue());
           break;
           
         case ConstraintType_GreaterOrEqual:
-          database.LookupIdentifier(matches, level, constraint.GetTag(),
+          compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_GreaterOrEqual, constraint.GetSingleValue());
 
           break;
           
         case ConstraintType_Wildcard:
-          database.LookupIdentifier(matches, level, constraint.GetTag(),
+          compatibility.LookupIdentifier(matches, level, constraint.GetTag(),
                                     IdentifierConstraintType_Wildcard, constraint.GetSingleValue());
 
           break;
@@ -126,7 +126,7 @@ namespace Orthanc
           for (size_t i = 0; i < constraint.GetValuesCount(); i++)
           {
             std::list<int64_t> tmp;
-            database.LookupIdentifier(tmp, level, constraint.GetTag(),
+            compatibility.LookupIdentifier(tmp, level, constraint.GetTag(),
                                       IdentifierConstraintType_Wildcard, constraint.GetValue(i));
             matches.splice(matches.end(), tmp);
           }
@@ -142,7 +142,7 @@ namespace Orthanc
 
     
     static void ApplyIdentifierRange(SetOfResources& candidates,
-                                     CompatibilityDatabaseWrapper& database,
+                                     CompatibilityDatabaseWrapper& compatibility,
                                      const DatabaseConstraint& smaller,
                                      const DatabaseConstraint& greater,
                                      ResourceType level)
@@ -153,14 +153,15 @@ namespace Orthanc
              ServerToolbox::IsIdentifier(smaller.GetTag(), level));
 
       std::list<int64_t> matches;
-      database.LookupIdentifierRange(matches, level, smaller.GetTag(),
+      compatibility.LookupIdentifierRange(matches, level, smaller.GetTag(),
                                      greater.GetSingleValue(), smaller.GetSingleValue());
       candidates.Intersect(matches);
     }
 
     
     static void ApplyLevel(SetOfResources& candidates,
-                           CompatibilityDatabaseWrapper& database,
+                           IDatabaseWrapper& database,
+                           CompatibilityDatabaseWrapper& compatibility,
                            const std::vector<DatabaseConstraint>& lookup,
                            ResourceType level)
     {
@@ -220,7 +221,7 @@ namespace Orthanc
             greater != NULL)
         {
           // There is a range constraint: Apply it, as it is more efficient
-          ApplyIdentifierRange(candidates, database, *smaller, *greater, level);
+          ApplyIdentifierRange(candidates, compatibility, *smaller, *greater, level);
         }
         else
         {
@@ -235,7 +236,7 @@ namespace Orthanc
           if (*it2 != smaller &&
               *it2 != greater)
           {
-            ApplyIdentifierConstraint(candidates, database, **it2, level);
+            ApplyIdentifierConstraint(candidates, compatibility, **it2, level);
           }
         }
       }
@@ -257,7 +258,7 @@ namespace Orthanc
         }
 
         std::list<int64_t>  source;
-        candidates.Flatten(source);
+        candidates.Flatten(compatibility, source);
         candidates.Clear();
 
         std::list<int64_t>  filtered;
@@ -289,16 +290,16 @@ namespace Orthanc
     }
 
 
-    static std::string GetOneInstance(IDatabaseWrapper& database,
+    static std::string GetOneInstance(IDatabaseWrapper& compatibility,
                                       int64_t resource,
                                       ResourceType level)
     {
       for (int i = level; i < ResourceType_Instance; i++)
       {
-        assert(database.GetResourceType(resource) == static_cast<ResourceType>(i));
+        assert(compatibility.GetResourceType(resource) == static_cast<ResourceType>(i));
 
         std::list<int64_t> children;
-        database.GetChildrenInternalId(children, resource);
+        compatibility.GetChildrenInternalId(children, resource);
           
         if (children.empty())
         {
@@ -308,7 +309,7 @@ namespace Orthanc
         resource = children.front();
       }
 
-      return database.GetPublicId(resource);
+      return compatibility.GetPublicId(resource);
     }
                            
 
@@ -350,7 +351,7 @@ namespace Orthanc
 
       for (int level = upperLevel; level <= lowerLevel; level++)
       {
-        ApplyLevel(candidates, database_, lookup, static_cast<ResourceType>(level));
+        ApplyLevel(candidates, database_, compatibility_, lookup, static_cast<ResourceType>(level));
 
         if (level != lowerLevel)
         {
@@ -359,7 +360,7 @@ namespace Orthanc
       }
 
       std::list<int64_t> resources;
-      candidates.Flatten(resources);
+      candidates.Flatten(compatibility_, resources);
 
       // Climb up, up to queryLevel
 

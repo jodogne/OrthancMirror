@@ -37,12 +37,18 @@
 
 #include "../../Core/SharedLibrary.h"
 #include "../../OrthancServer/Search/Compatibility/CompatibilityDatabaseWrapper.h"
+#include "../../OrthancServer/Search/Compatibility/ISetResourcesContent.h"
+#include "../../OrthancServer/Search/Compatibility/ICreateInstance.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
 {
-  class OrthancPluginDatabase : public Compatibility::CompatibilityDatabaseWrapper
+  class OrthancPluginDatabase :
+    public IDatabaseWrapper,
+    public Compatibility::CompatibilityDatabaseWrapper,
+    public Compatibility::ISetResourcesContent,
+    public Compatibility::ICreateInstance
   {
   private:
     class Transaction;
@@ -344,6 +350,12 @@ namespace Orthanc
                                        const std::string& start,
                                        const std::string& end)
       ORTHANC_OVERRIDE;
+
+    virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)
+      ORTHANC_OVERRIDE
+    {
+      ISetResourcesContent::Apply(*this, content);
+    }
   };
 }
 

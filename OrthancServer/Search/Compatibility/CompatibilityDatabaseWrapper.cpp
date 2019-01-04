@@ -40,28 +40,17 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    void CompatibilityDatabaseWrapper::ApplyLookupResources(
+    void CompatibilityDatabaseWrapper::Apply(
+      IDatabaseWrapper& database,
+      CompatibilityDatabaseWrapper& compatibility,
       std::list<std::string>& resourcesId,
       std::list<std::string>* instancesId,
       const std::vector<DatabaseConstraint>& lookup,
       ResourceType queryLevel,
       size_t limit)
     {
-      Compatibility::DatabaseLookup compat(*this);
+      Compatibility::DatabaseLookup compat(database, compatibility);
       compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
-    }
-    
-
-    bool CompatibilityDatabaseWrapper::CreateInstance(
-      IDatabaseWrapper::CreateInstanceResult& result,
-      int64_t& instanceId,
-      const std::string& patient,
-      const std::string& study,
-      const std::string& series,
-      const std::string& instance)
-    {
-      return ICompatibilityCreateInstance::Apply
-        (result, instanceId, *this, *this, patient, study, series, instance);
     }
   }
 }
