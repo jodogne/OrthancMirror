@@ -55,8 +55,7 @@ namespace Orthanc
                         const std::string& patient,
                         const std::string& study,
                         const std::string& series,
-                        const std::string& instance,
-                        bool overwrite);
+                        const std::string& instance);
     };
   }
 }

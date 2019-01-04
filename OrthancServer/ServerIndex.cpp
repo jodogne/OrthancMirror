@@ -720,11 +720,29 @@ namespace Orthanc
 
       // Check whether this instance is already stored
       if (!db_.CreateInstance(status, instanceId, hashPatient,
-                              hashStudy, hashSeries, hashInstance, overwrite_))
+                              hashStudy, hashSeries, hashInstance))
       {
-        // Do nothing if the instance already exists and overwriting is disabled
-        db_.GetAllMetadata(instanceMetadata, instanceId);
-        return StoreStatus_AlreadyStored;
+        // The instance already exists
+        
+        if (overwrite_)
+        {
+          // Overwrite the old instance
+          LOG(INFO) << "Overwriting instance: " << hashInstance;
+          db_.DeleteResource(instanceId);
+
+          // Re-create the instance, now that the old one is removed
+          if (!db_.CreateInstance(status, instanceId, hashPatient,
+                                  hashStudy, hashSeries, hashInstance))
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        else
+        {
+          // Do nothing if the instance already exists and overwriting is disabled
+          db_.GetAllMetadata(instanceMetadata, instanceId);
+          return StoreStatus_AlreadyStored;
+        }
       }
 
 

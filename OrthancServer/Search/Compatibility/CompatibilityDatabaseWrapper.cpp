@@ -58,11 +58,10 @@ namespace Orthanc
       const std::string& patient,
       const std::string& study,
       const std::string& series,
-      const std::string& instance,
-      bool overwrite)
+      const std::string& instance)
     {
       return ICompatibilityCreateInstance::Apply
-        (result, instanceId, *this, *this, patient, study, series, instance, overwrite);
+        (result, instanceId, *this, *this, patient, study, series, instance);
     }
   }
 }

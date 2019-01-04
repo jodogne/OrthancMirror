@@ -1195,13 +1195,39 @@ namespace Orthanc
     const std::string& patient,
     const std::string& study,
     const std::string& series,
-    const std::string& instance,
-    bool overwrite)
+    const std::string& instance)
   {
-    // TODO optimized version
+    if (extensions_.createInstance == NULL)
+    {
+      // Fallback to compatibility mode
+      return CompatibilityDatabaseWrapper::CreateInstance
+        (result, instanceId, patient, study, series, instance);
+    }
+    else
+    {
+      OrthancPluginCreateInstanceResult output;
+      memset(&output, 0, sizeof(output));
 
-    return CompatibilityDatabaseWrapper::CreateInstance(
-      result, instanceId, patient, study, series, instance, overwrite);
+      CheckSuccess(extensions_.createInstance(&output, payload_, patient.c_str(),
+                                              study.c_str(), series.c_str(), instance.c_str()));
+
+      instanceId = output.instanceId;
+      
+      if (output.isNewInstance)
+      {
+        result.isNewPatient_ = output.isNewPatient;
+        result.isNewStudy_ = output.isNewStudy;
+        result.isNewSeries_ = output.isNewSeries;
+        result.patientId_ = output.patientId;
+        result.studyId_ = output.studyId;
+        result.seriesId_ = output.seriesId;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
   }
 
 
