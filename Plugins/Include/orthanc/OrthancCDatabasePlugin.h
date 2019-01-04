@@ -155,6 +155,22 @@ extern "C"
     int64_t  seriesId;
   } OrthancPluginCreateInstanceResult;
 
+  typedef struct  /* New in Orthanc 1.5.2 */
+  {
+    int64_t      resource;
+    uint8_t      isIdentifier;
+    uint16_t     group;
+    uint16_t     element;
+    const char*  value;
+  } OrthancPluginResourcesContentTags;
+    
+  typedef struct  /* New in Orthanc 1.5.2 */
+  {
+    int64_t      resource;
+    int32_t      metadata;
+    const char*  value;
+  } OrthancPluginResourcesContentMetadata;
+
 
   typedef struct
   {
@@ -769,7 +785,16 @@ extern "C"
       const char* hashStudy,
       const char* hashSeries,
       const char* hashInstance);
-   } OrthancPluginDatabaseExtensions;
+
+    OrthancPluginErrorCode  (*setResourcesContent) (
+      /* inputs */
+      void* payload,
+      uint32_t countTags,
+      uint32_t countMetadata,
+      const OrthancPluginResourcesContentTags* tags,
+      const OrthancPluginResourcesContentMetadata* metadata);
+
+  } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
 
