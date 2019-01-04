@@ -39,6 +39,8 @@
 #include <boost/noncopyable.hpp>
 #include <list>
 
+#include <orthanc/OrthancCDatabasePlugin.h>
+
 namespace Orthanc
 {
   class ServerContext;
@@ -122,6 +124,11 @@ namespace Orthanc
 
     // WARNING: The database should be locked with a transaction!
     void Store(Compatibility::ISetResourcesContent& target) const;
+
+    // WARNING: The resulting C structure will contain pointers to the
+    // current object. Don't delete or modify it!
+    void EncodeForPlugins(std::vector<OrthancPluginResourcesContentTags>& tags,
+                          std::vector<OrthancPluginResourcesContentMetadata>& metadata) const;
   };
 
   

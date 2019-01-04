@@ -99,6 +99,40 @@ namespace Orthanc
   }
 
 
+  void ResourcesContent::EncodeForPlugins(
+    std::vector<OrthancPluginResourcesContentTags>& tags,
+    std::vector<OrthancPluginResourcesContentMetadata>& metadata) const
+  {
+    tags.reserve(tags_.size());
+    metadata.reserve(metadata_.size());
+
+    for (std::list<TagValue>::const_iterator
+           it = tags_.begin(); it != tags_.end(); ++it)
+    {
+      OrthancPluginResourcesContentTags tmp;
+      tmp.resource = it->resourceId_;
+      tmp.isIdentifier = it->isIdentifier_;
+      tmp.group = it->tag_.GetGroup();
+      tmp.element = it->tag_.GetElement();
+      tmp.value = it->value_.c_str();
+      tags.push_back(tmp);
+    }
+
+    for (std::list<Metadata>::const_iterator
+           it = metadata_.begin(); it != metadata_.end(); ++it)
+    {
+      OrthancPluginResourcesContentMetadata tmp;
+      tmp.resource = it->resourceId_;
+      tmp.metadata = it->metadata_;
+      tmp.value = it->value_.c_str();
+      metadata.push_back(tmp);
+    }
+
+    assert(tags.size() == tags_.size() &&
+           metadata.size() == metadata_.size());
+  }
+
+  
   static void StoreMainDicomTagsInternal(ResourcesContent& target,
                                          int64_t resource,
                                          const DicomMap& tags)
