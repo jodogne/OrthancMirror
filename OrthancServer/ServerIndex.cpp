@@ -499,7 +499,7 @@ namespace Orthanc
   }
 
 
-  static void ComputeExpectedNumberOfInstances(IDatabaseWrapper& db,
+  static void ComputeExpectedNumberOfInstances(ResourcesContent& target,
                                                int64_t series,
                                                const DicomMap& dicomSummary)
   {
@@ -515,7 +515,7 @@ namespace Orthanc
         int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->GetContent());
         int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->GetContent());
         std::string expected = boost::lexical_cast<std::string>(imagesInAcquisition * countTemporalPositions);
-        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
       }
 
       else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
@@ -525,12 +525,12 @@ namespace Orthanc
         int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->GetContent());
         int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->GetContent());
         std::string expected = boost::lexical_cast<std::string>(numberOfSlices * numberOfTimeSlices);
-        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
       }
 
       else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
       {
-        db.SetMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->GetContent());
+        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->GetContent());
       }
     }
     catch (OrthancException&)
@@ -909,22 +909,24 @@ namespace Orthanc
         }
 
         
+        // Check whether the series of this new instance is now completed
+        if (status.isNewSeries_)
+        {
+          ComputeExpectedNumberOfInstances(content, status.seriesId_, dicomSummary);
+        }
+
+        
         db_.SetResourcesContent(content);
       }
 
 
-
-      // Check whether the series of this new instance is now completed
-      if (status.isNewSeries_)
-      {
-        ComputeExpectedNumberOfInstances(db_, status.seriesId_, dicomSummary);
-      }
-
+      // TODO - SPEED THIS UP
       SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_);
       if (seriesStatus == SeriesStatus_Complete)
       {
         LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
       }
+      
 
       // Mark the parent resources of this instance as unstable
       MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries);
