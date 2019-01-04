@@ -777,25 +777,30 @@ namespace Orthanc
 
       
       // Populate the newly-created resources
-      // TODO - GROUP THIS
 
-      ServerToolbox::StoreMainDicomTags(db_, instanceId, ResourceType_Instance, dicomSummary);
-
-      if (status.isNewSeries_)
       {
-        ServerToolbox::StoreMainDicomTags(db_, status.seriesId_, ResourceType_Series, dicomSummary);
-      }
+        ResourcesContent content;
+      
+        content.AddResource(instanceId, ResourceType_Instance, dicomSummary);
 
-      if (status.isNewStudy_)
-      {
-        ServerToolbox::StoreMainDicomTags(db_, status.studyId_, ResourceType_Study, dicomSummary);
-      }
+        if (status.isNewSeries_)
+        {
+          content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary);
+        }
 
-      if (status.isNewPatient_)
-      {
-        ServerToolbox::StoreMainDicomTags(db_, status.patientId_, ResourceType_Patient, dicomSummary);
-      }
+        if (status.isNewStudy_)
+        {
+          content.AddResource(status.studyId_, ResourceType_Study, dicomSummary);
+        }
 
+        if (status.isNewPatient_)
+        {
+          content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary);
+        }
+
+        db_.SetResourcesContent(content);
+      }
+      
      
       // Attach the files to the newly created instance
       for (Attachments::const_iterator it = attachments.begin();
@@ -2459,10 +2464,14 @@ namespace Orthanc
       db_.ClearMainDicomTags(series);
       db_.ClearMainDicomTags(instance);
 
-      ServerToolbox::StoreMainDicomTags(db_, patient, ResourceType_Patient, summary);
-      ServerToolbox::StoreMainDicomTags(db_, study, ResourceType_Study, summary);
-      ServerToolbox::StoreMainDicomTags(db_, series, ResourceType_Series, summary);
-      ServerToolbox::StoreMainDicomTags(db_, instance, ResourceType_Instance, summary);
+      {
+        ResourcesContent content;
+        content.AddResource(patient, ResourceType_Patient, summary);
+        content.AddResource(study, ResourceType_Study, summary);
+        content.AddResource(series, ResourceType_Series, summary);
+        content.AddResource(instance, ResourceType_Instance, summary);
+        db_.SetResourcesContent(content);
+      }
 
       {
         std::string s;

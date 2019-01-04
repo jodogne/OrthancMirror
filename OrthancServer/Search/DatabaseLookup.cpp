@@ -37,6 +37,8 @@
 #include "../ServerToolbox.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
+#include "../../Core/OrthancException.h"
+#include "../../Core/Toolbox.h"
 
 namespace Orthanc
 {

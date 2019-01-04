@@ -48,6 +48,9 @@
 
 namespace Orthanc
 {
+  class ResourcesContent;
+
+  
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
@@ -75,7 +78,6 @@ namespace Orthanc
       int64_t  studyId_;
       int64_t  seriesId_;
     };
-
 
     virtual ~IDatabaseWrapper()
     {
@@ -191,14 +193,6 @@ namespace Orthanc
 
     virtual void ClearMainDicomTags(int64_t id) = 0;
 
-    virtual void SetMainDicomTag(int64_t id,
-                                 const DicomTag& tag,
-                                 const std::string& value) = 0;
-
-    virtual void SetIdentifierTag(int64_t id,
-                                  const DicomTag& tag,
-                                  const std::string& value) = 0;
-
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
                              const std::string& value) = 0;
@@ -237,5 +231,7 @@ namespace Orthanc
                                 const std::string& study,
                                 const std::string& series,
                                 const std::string& instance) = 0;
+
+    virtual void SetResourcesContent(const ResourcesContent& content) = 0;
   };
 }

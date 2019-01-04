@@ -37,6 +37,8 @@
 
 #include "../Core/SQLite/Connection.h"
 #include "Search/Compatibility/ICompatibilityCreateInstance.h"
+#include "Search/Compatibility/ISetResourcesContent.h"
+#include "ServerToolbox.h"
 
 namespace Orthanc
 {
@@ -51,8 +53,8 @@ namespace Orthanc
    * exclusion MUST be implemented at a higher level.
    **/
   class SQLiteDatabaseWrapper :
-    public IDatabaseWrapper,
-    public Compatibility::ICompatibilityCreateInstance
+    public Compatibility::ICompatibilityCreateInstance,
+    public Compatibility::ISetResourcesContent
   {
   private:
     class Transaction;

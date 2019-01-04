@@ -33,7 +33,9 @@
 
 #pragma once
 
+#include "../../ServerToolbox.h"
 #include "ICompatibilityCreateInstance.h"
+#include "ISetResourcesContent.h"
 
 namespace Orthanc
 {
@@ -45,8 +47,8 @@ namespace Orthanc
      * during the optimization of the database engine.
      **/
     class CompatibilityDatabaseWrapper :
-      public IDatabaseWrapper,
-      public ICompatibilityCreateInstance
+      public ICompatibilityCreateInstance,
+      public ISetResourcesContent
     {     
     public:
       virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
