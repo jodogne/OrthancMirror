@@ -47,8 +47,7 @@ namespace Orthanc
                                              const std::string& hashPatient,
                                              const std::string& hashStudy,
                                              const std::string& hashSeries,
-                                             const std::string& hashInstance,
-                                             bool overwrite)
+                                             const std::string& hashInstance)
     {
       {
         ResourceType type;
@@ -56,20 +55,10 @@ namespace Orthanc
         
         if (database.LookupResource(tmp, type, hashInstance))
         {
+          // The instance already exists
           assert(type == ResourceType_Instance);
-
-          if (overwrite)
-          {
-            // Overwrite the old instance
-            LOG(INFO) << "Overwriting instance: " << hashInstance;
-            database.DeleteResource(tmp);
-          }
-          else
-          {
-            // Do nothing if the instance already exists
-            instanceId = tmp;
-            return false;
-          }
+          instanceId = tmp;
+          return false;
         }
       }
 

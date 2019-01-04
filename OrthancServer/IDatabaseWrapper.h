@@ -228,15 +228,14 @@ namespace Orthanc
                                       ResourceType queryLevel,
                                       size_t limit) = 0;
 
-    // Returns "true" iff. the instance already exists *and*
-    // "overwrite" is "false". If "false" is returned, the content of
-    // "result" is undefined, but "instanceId" must be properly set.
+    // Returns "true" iff. the instance already exists. If "false" is
+    // returned, the content of "result" is undefined, but
+    // "instanceId" must be properly set.
     virtual bool CreateInstance(CreateInstanceResult& result, /* out */
                                 int64_t& instanceId,          /* out */
                                 const std::string& patient,
                                 const std::string& study,
                                 const std::string& series,
-                                const std::string& instance,
-                                bool overwrite) = 0;
+                                const std::string& instance) = 0;
   };
 }
