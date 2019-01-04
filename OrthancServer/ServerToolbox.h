@@ -33,22 +33,103 @@
 
 #pragma once
 
-#include "ServerContext.h"
+#include "ServerEnumerations.h"
 
 #include <json/json.h>
+#include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
+  class ServerContext;
+  class IDatabaseWrapper;
+  class DicomMap;
+  class IStorageArea;
+
+  namespace Compatibility
+  {
+    class ISetResourcesContent;
+  }
+
+
+  // TODO - Move this to a separate file
+  class ResourcesContent : public boost::noncopyable
+  {
+  private:
+    struct TagValue
+    {
+      int64_t      resourceId_;
+      bool         isIdentifier_;
+      DicomTag     tag_;
+      std::string  value_;
+
+      TagValue(int64_t resourceId,
+               bool isIdentifier,
+               const DicomTag& tag,
+               const std::string& value) :
+        resourceId_(resourceId),
+        isIdentifier_(isIdentifier),
+        tag_(tag),
+        value_(value)
+      {
+      }
+    };
+
+    struct Metadata
+    {
+      int64_t       resourceId_;
+      MetadataType  metadata_;
+      std::string   value_;
+
+      Metadata(int64_t  resourceId,
+               MetadataType metadata,
+               const std::string& value) :
+        resourceId_(resourceId),
+        metadata_(metadata),
+        value_(value)
+      {
+      }
+    };
+
+    std::list<TagValue>  tags_;
+    std::list<Metadata>  metadata_;
+
+  public:
+    void AddMainDicomTag(int64_t resourceId,
+                         const DicomTag& tag,
+                         const std::string& value)
+    {
+      tags_.push_back(TagValue(resourceId, false, tag, value));
+    }
+
+    void AddIdentifierTag(int64_t resourceId,
+                          const DicomTag& tag,
+                          const std::string& value)
+    {
+      tags_.push_back(TagValue(resourceId, true, tag, value));
+    }
+
+    void AddMetadata(int64_t resourceId,
+                     MetadataType metadata,
+                     const std::string& value)
+    {
+      metadata_.push_back(Metadata(resourceId, metadata, value));
+    }
+
+    void AddResource(int64_t resource,
+                     ResourceType level,
+                     const DicomMap& dicomSummary);
+
+    // WARNING: The database should be locked with a transaction!
+    void Store(Compatibility::ISetResourcesContent& target) const;
+  };
+
+  
   namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,
                       const Json::Value& source,
                       DicomToJsonFormat format);
-
-    void StoreMainDicomTags(IDatabaseWrapper& database,
-                            int64_t resource,
-                            ResourceType level,
-                            const DicomMap& dicomSummary);
 
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,
