@@ -34,7 +34,7 @@
 #pragma once
 
 #include "../../IDatabaseWrapper.h"
-#include "CompatibilityDatabaseWrapper.h"
+#include "ILookupResources.h"
 
 namespace Orthanc
 {
@@ -44,11 +44,11 @@ namespace Orthanc
     {
     private:
       IDatabaseWrapper&              database_;
-      CompatibilityDatabaseWrapper&  compatibility_;
+      ILookupResources&  compatibility_;
 
     public:
       DatabaseLookup(IDatabaseWrapper&  database,
-                     CompatibilityDatabaseWrapper& compatibility) :
+                     ILookupResources& compatibility) :
         database_(database),
         compatibility_(compatibility)
       {

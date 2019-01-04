@@ -138,7 +138,7 @@ namespace Orthanc
     }
 
 
-    void SetOfResources::Flatten(CompatibilityDatabaseWrapper& compatibility,
+    void SetOfResources::Flatten(ILookupResources& compatibility,
                                  std::list<int64_t>& result)
     {
       result.clear();
