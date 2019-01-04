@@ -39,23 +39,19 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    class ICompatibilityCreateInstance : public boost::noncopyable
+    class ICreateInstance : public boost::noncopyable
     {
     public:
-      virtual ~ICompatibilityCreateInstance()
-      {
-      }
-      
       virtual int64_t CreateResource(const std::string& publicId,
                                      ResourceType type) = 0;
 
       virtual void AttachChild(int64_t parent,
                                int64_t child) = 0;
       
-      static bool Apply(IDatabaseWrapper::CreateInstanceResult& result,
-                        int64_t& instanceId,
-                        ICompatibilityCreateInstance& compatibility,
+      static bool Apply(ICreateInstance& compatibility,
                         IDatabaseWrapper& database,
+                        IDatabaseWrapper::CreateInstanceResult& result,
+                        int64_t& instanceId,
                         const std::string& patient,
                         const std::string& study,
                         const std::string& series,

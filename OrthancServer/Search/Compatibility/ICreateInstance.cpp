@@ -32,7 +32,7 @@
 
 
 #include "../../PrecompiledHeadersServer.h"
-#include "ICompatibilityCreateInstance.h"
+#include "ICreateInstance.h"
 
 #include "../../../Core/OrthancException.h"
 
@@ -40,14 +40,14 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    bool ICompatibilityCreateInstance::Apply(IDatabaseWrapper::CreateInstanceResult& result,
-                                             int64_t& instanceId,
-                                             ICompatibilityCreateInstance& compatibility,
-                                             IDatabaseWrapper& database,
-                                             const std::string& hashPatient,
-                                             const std::string& hashStudy,
-                                             const std::string& hashSeries,
-                                             const std::string& hashInstance)
+    bool ICreateInstance::Apply(ICreateInstance& compatibility,
+                                IDatabaseWrapper& database,
+                                IDatabaseWrapper::CreateInstanceResult& result,
+                                int64_t& instanceId,
+                                const std::string& hashPatient,
+                                const std::string& hashStudy,
+                                const std::string& hashSeries,
+                                const std::string& hashInstance)
     {
       {
         ResourceType type;

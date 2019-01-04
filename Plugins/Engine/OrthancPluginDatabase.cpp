@@ -1161,8 +1161,8 @@ namespace Orthanc
     if (extensions_.lookupResources == NULL)
     {
       // Fallback to compatibility mode
-      CompatibilityDatabaseWrapper::ApplyLookupResources
-        (resourcesId, instancesId, lookup, queryLevel, limit);
+      CompatibilityDatabaseWrapper::Apply(*this, *this, resourcesId, instancesId,
+                                          lookup, queryLevel, limit);
     }
     else
     {
@@ -1200,8 +1200,8 @@ namespace Orthanc
     if (extensions_.createInstance == NULL)
     {
       // Fallback to compatibility mode
-      return CompatibilityDatabaseWrapper::CreateInstance
-        (result, instanceId, patient, study, series, instance);
+      return ICreateInstance::Apply
+        (*this, *this, result, instanceId, patient, study, series, instance);
     }
     else
     {

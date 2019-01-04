@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../IDatabaseWrapper.h"
 #include "CompatibilityDatabaseWrapper.h"
 
 namespace Orthanc
@@ -42,11 +43,14 @@ namespace Orthanc
     class DatabaseLookup : public boost::noncopyable
     {
     private:
-      CompatibilityDatabaseWrapper&  database_;
+      IDatabaseWrapper&              database_;
+      CompatibilityDatabaseWrapper&  compatibility_;
 
     public:
-      DatabaseLookup(CompatibilityDatabaseWrapper& database) :
-        database_(database)
+      DatabaseLookup(IDatabaseWrapper&  database,
+                     CompatibilityDatabaseWrapper& compatibility) :
+        database_(database),
+        compatibility_(compatibility)
       {
       }
 

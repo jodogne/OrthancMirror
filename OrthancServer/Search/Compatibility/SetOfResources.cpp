@@ -138,14 +138,15 @@ namespace Orthanc
     }
 
 
-    void SetOfResources::Flatten(std::list<int64_t>& result)
+    void SetOfResources::Flatten(CompatibilityDatabaseWrapper& compatibility,
+                                 std::list<int64_t>& result)
     {
       result.clear();
       
       if (resources_.get() == NULL)
       {
         // All the resources of this level are part of the filter
-        database_.GetAllInternalIds(result, level_);
+        compatibility.GetAllInternalIds(result, level_);
       }
       else
       {

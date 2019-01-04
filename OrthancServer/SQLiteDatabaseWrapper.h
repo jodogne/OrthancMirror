@@ -36,7 +36,7 @@
 #include "IDatabaseWrapper.h"
 
 #include "../Core/SQLite/Connection.h"
-#include "Search/Compatibility/ICompatibilityCreateInstance.h"
+#include "Search/Compatibility/ICreateInstance.h"
 #include "Search/Compatibility/ISetResourcesContent.h"
 #include "ServerToolbox.h"
 
@@ -53,7 +53,8 @@ namespace Orthanc
    * exclusion MUST be implemented at a higher level.
    **/
   class SQLiteDatabaseWrapper :
-    public Compatibility::ICompatibilityCreateInstance,
+    public IDatabaseWrapper,
+    public Compatibility::ICreateInstance,
     public Compatibility::ISetResourcesContent
   {
   private:
@@ -331,10 +332,15 @@ namespace Orthanc
                                 const std::string& patient,
                                 const std::string& study,
                                 const std::string& series,
-                                const std::string& instance)
+                                const std::string& instance)  ORTHANC_OVERRIDE
     {
-      return ICompatibilityCreateInstance::Apply
-        (result, instanceId, *this, *this, patient, study, series, instance);
+      return ICreateInstance::Apply
+        (*this, *this, result, instanceId, patient, study, series, instance);
+    }
+
+    virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)  ORTHANC_OVERRIDE
+    {
+      ISetResourcesContent::Apply(*this, content);
     }
   };
 }
