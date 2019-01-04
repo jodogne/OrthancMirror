@@ -671,13 +671,13 @@ namespace Orthanc
   }
 
 
-
-  void ServerIndex::SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
-                                        int64_t instance,
-                                        MetadataType metadata,
-                                        const std::string& value)
+  static void SetInstanceMetadata(ResourcesContent& content,
+                                  std::map<MetadataType, std::string>& instanceMetadata,
+                                  int64_t instance,
+                                  MetadataType metadata,
+                                  const std::string& value)
   {
-    db_.SetMetadata(instance, metadata, value);
+    content.AddMetadata(instance, metadata, value);
     instanceMetadata[metadata] = value;
   }
 
@@ -774,13 +774,21 @@ namespace Orthanc
       }
 
       Recycle(instanceSize, hashPatient /* don't consider the current patient for recycling */);
+      
+     
+      // Attach the files to the newly created instance
+      for (Attachments::const_iterator it = attachments.begin();
+           it != attachments.end(); ++it)
+      {
+        db_.AddAttachment(instanceId, *it);
+      }
 
       
-      // Populate the newly-created resources
-
       {
         ResourcesContent content;
       
+        // Populate the tags of the newly-created resources
+
         content.AddResource(instanceId, ResourceType_Instance, dicomSummary);
 
         if (status.isNewSeries_)
@@ -798,105 +806,113 @@ namespace Orthanc
           content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary);
         }
 
-        db_.SetResourcesContent(content);
-      }
-      
-     
-      // Attach the files to the newly created instance
-      for (Attachments::const_iterator it = attachments.begin();
-           it != attachments.end(); ++it)
-      {
-        db_.AddAttachment(instanceId, *it);
-      }
-      
 
-      // Attach the user-specified metadata
-      // TODO - GROUP THIS
-      for (MetadataMap::const_iterator 
-             it = metadata.begin(); it != metadata.end(); ++it)
-      {
-        switch (it->first.first)
+        // Attach the user-specified metadata
+
+        for (MetadataMap::const_iterator 
+               it = metadata.begin(); it != metadata.end(); ++it)
         {
-          case ResourceType_Patient:
-            db_.SetMetadata(status.patientId_, it->first.second, it->second);
-            break;
+          switch (it->first.first)
+          {
+            case ResourceType_Patient:
+              content.AddMetadata(status.patientId_, it->first.second, it->second);
+              break;
 
-          case ResourceType_Study:
-            db_.SetMetadata(status.studyId_, it->first.second, it->second);
-            break;
+            case ResourceType_Study:
+              content.AddMetadata(status.studyId_, it->first.second, it->second);
+              break;
 
-          case ResourceType_Series:
-            db_.SetMetadata(status.seriesId_, it->first.second, it->second);
-            break;
+            case ResourceType_Series:
+              content.AddMetadata(status.seriesId_, it->first.second, it->second);
+              break;
 
-          case ResourceType_Instance:
-            SetInstanceMetadata(instanceMetadata, instanceId, it->first.second, it->second);
-            break;
+            case ResourceType_Instance:
+              SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                  it->first.second, it->second);
+              break;
 
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-      }
-
-      // Attach the auto-computed metadata for the patient/study/series levels
-      std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-      db_.SetMetadata(status.seriesId_, MetadataType_LastUpdate, now);
-      db_.SetMetadata(status.studyId_, MetadataType_LastUpdate, now);
-      db_.SetMetadata(status.patientId_, MetadataType_LastUpdate, now);
-
-      // Attach the auto-computed metadata for the instance level,
-      // reflecting these additions into the input metadata map
-      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_ReceptionDate, now);
-      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_RemoteAet,
-                          instanceToStore.GetOrigin().GetRemoteAetC());
-      SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_Origin, 
-                          EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
-
-      {
-        std::string s;
-
-        if (instanceToStore.LookupTransferSyntax(s))
-        {
-          // New in Orthanc 1.2.0
-          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_TransferSyntax, s);
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
         }
 
-        if (instanceToStore.GetOrigin().LookupRemoteIp(s))
+        
+        // Attach the auto-computed metadata for the patient/study/series levels
+        std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+        content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+        content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
+        content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
+
+
+        // Attach the auto-computed metadata for the instance level,
+        // reflecting these additions into the input metadata map
+        SetInstanceMetadata(content, instanceMetadata, instanceId,
+                            MetadataType_Instance_ReceptionDate, now);
+        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_RemoteAet,
+                            instanceToStore.GetOrigin().GetRemoteAetC());
+        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_Origin, 
+                            EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
+
+
         {
-          // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_RemoteIp, s);
+          std::string s;
+
+          if (instanceToStore.LookupTransferSyntax(s))
+          {
+            // New in Orthanc 1.2.0
+            SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                MetadataType_Instance_TransferSyntax, s);
+          }
+
+          if (instanceToStore.GetOrigin().LookupRemoteIp(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                MetadataType_Instance_RemoteIp, s);
+          }
+
+          if (instanceToStore.GetOrigin().LookupCalledAet(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                MetadataType_Instance_CalledAet, s);
+          }
+
+          if (instanceToStore.GetOrigin().LookupHttpUsername(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                MetadataType_Instance_HttpUsername, s);
+          }
         }
 
-        if (instanceToStore.GetOrigin().LookupCalledAet(s))
-        {
-          // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_CalledAet, s);
-        }
-
-        if (instanceToStore.GetOrigin().LookupHttpUsername(s))
-        {
-          // New in Orthanc 1.4.0
-          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_HttpUsername, s);
-        }
-      }
-
-      const DicomValue* value;
-      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_SopClassUid, value->GetContent());
-      }
-
-      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
-          (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
-      {
-        if (!value->IsNull() && 
+        
+        const DicomValue* value;
+        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+            !value->IsNull() &&
             !value->IsBinary())
         {
-          SetInstanceMetadata(instanceMetadata, instanceId, MetadataType_Instance_IndexInSeries, value->GetContent());
+          SetInstanceMetadata(content, instanceMetadata, instanceId,
+                              MetadataType_Instance_SopClassUid, value->GetContent());
         }
+
+
+        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+        {
+          if (!value->IsNull() && 
+              !value->IsBinary())
+          {
+            SetInstanceMetadata(content, instanceMetadata, instanceId,
+                                MetadataType_Instance_IndexInSeries, value->GetContent());
+          }
+        }
+
+        
+        db_.SetResourcesContent(content);
       }
+
+
 
       // Check whether the series of this new instance is now completed
       if (status.isNewSeries_)
