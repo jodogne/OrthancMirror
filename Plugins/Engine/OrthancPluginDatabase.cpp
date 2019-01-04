@@ -1161,8 +1161,8 @@ namespace Orthanc
     if (extensions_.lookupResources == NULL)
     {
       // Fallback to compatibility mode
-      CompatibilityDatabaseWrapper::Apply(*this, *this, resourcesId, instancesId,
-                                          lookup, queryLevel, limit);
+      ILookupResources::Apply
+        (*this, *this, resourcesId, instancesId, lookup, queryLevel, limit);
     }
     else
     {

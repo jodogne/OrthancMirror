@@ -45,6 +45,8 @@
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
 
+#include "../../Plugins/Engine/OrthancPlugins.h"
+
 
 namespace Orthanc
 {

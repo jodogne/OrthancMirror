@@ -92,7 +92,7 @@ namespace Orthanc
     
     
     static void ApplyIdentifierConstraint(SetOfResources& candidates,
-                                          CompatibilityDatabaseWrapper& compatibility,
+                                          ILookupResources& compatibility,
                                           const DatabaseConstraint& constraint,
                                           ResourceType level)
     {
@@ -142,7 +142,7 @@ namespace Orthanc
 
     
     static void ApplyIdentifierRange(SetOfResources& candidates,
-                                     CompatibilityDatabaseWrapper& compatibility,
+                                     ILookupResources& compatibility,
                                      const DatabaseConstraint& smaller,
                                      const DatabaseConstraint& greater,
                                      ResourceType level)
@@ -161,7 +161,7 @@ namespace Orthanc
     
     static void ApplyLevel(SetOfResources& candidates,
                            IDatabaseWrapper& database,
-                           CompatibilityDatabaseWrapper& compatibility,
+                           ILookupResources& compatibility,
                            const std::vector<DatabaseConstraint>& lookup,
                            ResourceType level)
     {

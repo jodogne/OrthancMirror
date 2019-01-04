@@ -44,10 +44,10 @@ namespace Orthanc
      * that were used in Orthanc <= 1.5.1, and that have been removed
      * during the optimization of the database engine.
      **/
-    class CompatibilityDatabaseWrapper : public boost::noncopyable
+    class ILookupResources : public boost::noncopyable
     {     
     public:
-      virtual ~CompatibilityDatabaseWrapper()
+      virtual ~ILookupResources()
       {
       }
       
@@ -67,7 +67,7 @@ namespace Orthanc
                                          const std::string& end) = 0;
 
       static void Apply(IDatabaseWrapper& database,
-                        CompatibilityDatabaseWrapper& compatibility,
+                        ILookupResources& compatibility,
                         std::list<std::string>& resourcesId,
                         std::list<std::string>* instancesId,
                         const std::vector<DatabaseConstraint>& lookup,

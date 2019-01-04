@@ -36,7 +36,7 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../Core/SharedLibrary.h"
-#include "../../OrthancServer/Search/Compatibility/CompatibilityDatabaseWrapper.h"
+#include "../../OrthancServer/Search/Compatibility/ILookupResources.h"
 #include "../../OrthancServer/Search/Compatibility/ISetResourcesContent.h"
 #include "../../OrthancServer/Search/Compatibility/ICreateInstance.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
@@ -46,7 +46,7 @@ namespace Orthanc
 {
   class OrthancPluginDatabase :
     public IDatabaseWrapper,
-    public Compatibility::CompatibilityDatabaseWrapper,
+    public Compatibility::ILookupResources,
     public Compatibility::ISetResourcesContent,
     public Compatibility::ICreateInstance
   {
@@ -330,12 +330,12 @@ namespace Orthanc
                                 const std::string& instance)
       ORTHANC_OVERRIDE;
 
-    // From the "CompatibilityDatabaseWrapper" interface
+    // From the "ILookupResources" interface
     virtual void GetAllInternalIds(std::list<int64_t>& target,
                                    ResourceType resourceType) 
       ORTHANC_OVERRIDE;
 
-    // From the "CompatibilityDatabaseWrapper" interface
+    // From the "ILookupResources" interface
     virtual void LookupIdentifier(std::list<int64_t>& result,
                                   ResourceType level,
                                   const DicomTag& tag,
@@ -343,7 +343,7 @@ namespace Orthanc
                                   const std::string& value)
       ORTHANC_OVERRIDE;
     
-    // From the "CompatibilityDatabaseWrapper" interface
+    // From the "ILookupResources" interface
     virtual void LookupIdentifierRange(std::list<int64_t>& result,
                                        ResourceType level,
                                        const DicomTag& tag,
