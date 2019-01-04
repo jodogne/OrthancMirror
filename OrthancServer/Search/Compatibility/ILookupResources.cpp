@@ -32,7 +32,7 @@
 
 
 #include "../../PrecompiledHeadersServer.h"
-#include "CompatibilityDatabaseWrapper.h"
+#include "ILookupResources.h"
 
 #include "DatabaseLookup.h"
 
@@ -40,9 +40,9 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    void CompatibilityDatabaseWrapper::Apply(
+    void ILookupResources::Apply(
       IDatabaseWrapper& database,
-      CompatibilityDatabaseWrapper& compatibility,
+      ILookupResources& compatibility,
       std::list<std::string>& resourcesId,
       std::list<std::string>* instancesId,
       const std::vector<DatabaseConstraint>& lookup,

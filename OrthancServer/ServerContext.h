@@ -47,7 +47,6 @@
 #include "../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../Core/MultiThreading/SharedMessageQueue.h"
 #include "../Core/RestApi/RestApiOutput.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -55,6 +54,8 @@
 
 namespace Orthanc
 {
+  class OrthancPlugins;
+  
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the

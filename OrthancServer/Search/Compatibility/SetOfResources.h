@@ -34,7 +34,7 @@
 #pragma once
 
 #include "../../IDatabaseWrapper.h"
-#include "CompatibilityDatabaseWrapper.h"
+#include "ILookupResources.h"
 
 #include <set>
 #include <memory>
@@ -69,7 +69,7 @@ namespace Orthanc
 
       void GoDown();
 
-      void Flatten(CompatibilityDatabaseWrapper& compatibility,
+      void Flatten(ILookupResources& compatibility,
                    std::list<int64_t>& result);
 
       void Flatten(std::list<std::string>& result);
