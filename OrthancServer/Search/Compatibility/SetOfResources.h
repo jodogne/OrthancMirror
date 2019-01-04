@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../IDatabaseWrapper.h"
 #include "CompatibilityDatabaseWrapper.h"
 
 #include <set>
@@ -47,12 +48,12 @@ namespace Orthanc
     private:
       typedef std::set<int64_t>  Resources;
 
-      CompatibilityDatabaseWrapper&  database_;
-      ResourceType                   level_;
-      std::auto_ptr<Resources>       resources_;
+      IDatabaseWrapper&         database_;
+      ResourceType              level_;
+      std::auto_ptr<Resources>  resources_;
     
     public:
-      SetOfResources(CompatibilityDatabaseWrapper& database,
+      SetOfResources(IDatabaseWrapper& database,
                      ResourceType level) : 
         database_(database),
         level_(level)
@@ -68,7 +69,8 @@ namespace Orthanc
 
       void GoDown();
 
-      void Flatten(std::list<int64_t>& result);
+      void Flatten(CompatibilityDatabaseWrapper& compatibility,
+                   std::list<int64_t>& result);
 
       void Flatten(std::list<std::string>& result);
 

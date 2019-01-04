@@ -33,26 +33,19 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
 #include "../../ServerToolbox.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    class ISetResourcesContent : public IDatabaseWrapper
+    class ISetResourcesContent : public boost::noncopyable
     {
     public:
       virtual ~ISetResourcesContent()
       {
       }
       
-      virtual void SetResourcesContent(const ResourcesContent& content)
-        ORTHANC_OVERRIDE
-      {
-        content.Store(*this);
-      }
-
       virtual void SetMainDicomTag(int64_t id,
                                    const DicomTag& tag,
                                    const std::string& value) = 0;
@@ -64,6 +57,12 @@ namespace Orthanc
       virtual void SetMetadata(int64_t id,
                                MetadataType type,
                                const std::string& value) = 0;
+
+      static void Apply(ISetResourcesContent& that,
+                        const ResourcesContent& content)
+      {
+        content.Store(that);
+      }
     };
   }
 }

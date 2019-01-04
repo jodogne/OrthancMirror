@@ -33,9 +33,7 @@
 
 #pragma once
 
-#include "../../ServerToolbox.h"
-#include "ICompatibilityCreateInstance.h"
-#include "ISetResourcesContent.h"
+#include "../../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
@@ -46,26 +44,13 @@ namespace Orthanc
      * that were used in Orthanc <= 1.5.1, and that have been removed
      * during the optimization of the database engine.
      **/
-    class CompatibilityDatabaseWrapper :
-      public ICompatibilityCreateInstance,
-      public ISetResourcesContent
+    class CompatibilityDatabaseWrapper : public boost::noncopyable
     {     
     public:
-      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                        std::list<std::string>* instancesId,
-                                        const std::vector<DatabaseConstraint>& lookup,
-                                        ResourceType queryLevel,
-                                        size_t limit)
-        ORTHANC_OVERRIDE;
-
-      virtual bool CreateInstance(CreateInstanceResult& result,
-                                  int64_t& instanceId,
-                                  const std::string& patient,
-                                  const std::string& study,
-                                  const std::string& series,
-                                  const std::string& instance)
-        ORTHANC_OVERRIDE;
-
+      virtual ~CompatibilityDatabaseWrapper()
+      {
+      }
+      
       virtual void GetAllInternalIds(std::list<int64_t>& target,
                                      ResourceType resourceType) = 0;
       
@@ -80,6 +65,14 @@ namespace Orthanc
                                          const DicomTag& tag,
                                          const std::string& start,
                                          const std::string& end) = 0;
+
+      static void Apply(IDatabaseWrapper& database,
+                        CompatibilityDatabaseWrapper& compatibility,
+                        std::list<std::string>& resourcesId,
+                        std::list<std::string>* instancesId,
+                        const std::vector<DatabaseConstraint>& lookup,
+                        ResourceType queryLevel,
+                        size_t limit);
     };
   }
 }
