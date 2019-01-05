@@ -352,10 +352,7 @@ namespace Orthanc
       ORTHANC_OVERRIDE;
 
     virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)
-      ORTHANC_OVERRIDE
-    {
-      ISetResourcesContent::Apply(*this, content);
-    }
+      ORTHANC_OVERRIDE;
   };
 }
 
