@@ -42,7 +42,7 @@
 #include "../Core/SerializationToolbox.h"
 #include "../Core/SystemToolbox.h"
 #include "../Core/Toolbox.h"
-#include "../OrthancServer/SQLiteDatabaseWrapper.h"
+#include "../OrthancServer/Database/SQLiteDatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerJobs/LuaJobManager.h"
 #include "../OrthancServer/ServerJobs/OrthancJobUnserializer.h"

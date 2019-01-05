@@ -40,7 +40,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
-#include "IDatabaseWrapper.h"
+#include "Database/IDatabaseWrapper.h"
 #include "ServerContext.h"
 
 #include <cassert>

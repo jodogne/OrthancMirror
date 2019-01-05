@@ -33,15 +33,15 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/FileStorage/FileInfo.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/SQLite/ITransaction.h"
+#include "../../Core/DicomFormat/DicomMap.h"
+#include "../../Core/FileStorage/FileInfo.h"
+#include "../../Core/FileStorage/IStorageArea.h"
+#include "../../Core/SQLite/ITransaction.h"
 
-#include "ExportedResource.h"
-#include "IDatabaseListener.h"
-#include "Search/DatabaseConstraint.h"
-#include "Search/DatabaseLookup.h"
+#include "../ExportedResource.h"
+#include "../IDatabaseListener.h"
+#include "../Search/DatabaseConstraint.h"
+#include "../Search/DatabaseLookup.h"
 
 #include <list>
 #include <boost/noncopyable.hpp>

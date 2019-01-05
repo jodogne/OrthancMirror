@@ -34,7 +34,7 @@
 #pragma once
 
 #include "../Core/FileStorage/IStorageArea.h"
-#include "IDatabaseWrapper.h"
+#include "Database/IDatabaseWrapper.h"
 
 namespace Orthanc
 {

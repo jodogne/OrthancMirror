@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
+#include "../IDatabaseWrapper.h"
 #include "ILookupResources.h"
 
 #include <set>
