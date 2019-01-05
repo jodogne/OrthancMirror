@@ -795,6 +795,15 @@ extern "C"
       uint32_t countMetadata,
       const OrthancPluginResourcesContentMetadata* metadata);
 
+    /* Ouput: Use OrthancPluginDatabaseAnswerString */
+    OrthancPluginErrorCode  (*getChildrenMetadata) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      int64_t resourceId,
+      int32_t metadata);
+
   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

@@ -1313,7 +1313,16 @@ namespace Orthanc
                                                   int64_t resourceId,
                                                   MetadataType metadata)
   {
-    // TODO
-    IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
+    if (extensions_.getChildrenMetadata == NULL)
+    {
+      IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
+    }
+    else
+    {
+      ResetAnswers();
+      CheckSuccess(extensions_.getChildrenMetadata
+                   (GetContext(), payload_, resourceId, static_cast<int32_t>(metadata)));
+      ForwardAnswers(target);
+    }
   }
 }
