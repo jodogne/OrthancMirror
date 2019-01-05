@@ -39,9 +39,8 @@
 #include "../../Core/SQLite/ITransaction.h"
 
 #include "../ExportedResource.h"
-#include "../IDatabaseListener.h"
 #include "../Search/DatabaseConstraint.h"
-#include "../Search/DatabaseLookup.h"
+#include "IDatabaseListener.h"
 
 #include <list>
 #include <boost/noncopyable.hpp>

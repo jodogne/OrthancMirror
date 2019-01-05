@@ -35,10 +35,11 @@
 #include "OrthancFindRequestHandler.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
-#include "../Core/Lua/LuaFunctionCall.h"
-#include "../Core/Logging.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/Logging.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "OrthancConfiguration.h"
+#include "Search/DatabaseLookup.h"
 #include "ServerToolbox.h"
 
 #include <boost/regex.hpp> 

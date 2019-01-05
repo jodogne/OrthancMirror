@@ -38,18 +38,21 @@
 #define NOMINMAX
 #endif
 
-#include "ServerIndexChange.h"
+#include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/DicomParsing/ParsedDicomFile.h"
+#include "../Core/Logging.h"
+#include "../Core/Toolbox.h"
+
+#include "Database/ResourcesContent.h"
+#include "DicomInstanceToStore.h"
 #include "EmbeddedResources.h"
 #include "OrthancConfiguration.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "ServerToolbox.h"
-#include "../Core/Toolbox.h"
-#include "../Core/Logging.h"
-#include "../Core/DicomFormat/DicomArray.h"
-
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "Search/DatabaseLookup.h"
+#include "Search/DicomTagConstraint.h"
 #include "ServerContext.h"
-#include "DicomInstanceToStore.h"
+#include "ServerIndexChange.h"
+#include "ServerToolbox.h"
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
