@@ -499,8 +499,7 @@ namespace Orthanc
   }
 
 
-  static void ComputeExpectedNumberOfInstances(ResourcesContent& target,
-                                               int64_t series,
+  static bool ComputeExpectedNumberOfInstances(int64_t& target,
                                                const DicomMap& dicomSummary)
   {
     try
@@ -509,28 +508,39 @@ namespace Orthanc
       const DicomValue* value2;
           
       if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
-          (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL)
+          !value->IsNull() &&
+          !value->IsBinary() &&
+          (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL &&
+          !value2->IsNull() &&
+          !value2->IsBinary())
       {
         // Patch for series with temporal positions thanks to Will Ryder
         int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->GetContent());
         int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->GetContent());
-        std::string expected = boost::lexical_cast<std::string>(imagesInAcquisition * countTemporalPositions);
-        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+        target = imagesInAcquisition * countTemporalPositions;
+        return (target > 0);
       }
 
       else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
-               (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL)
+               !value->IsNull() &&
+               !value->IsBinary() &&
+               (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL &&
+               !value2->IsBinary() &&
+               !value2->IsNull())
       {
         // Support of Cardio-PET images
         int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->GetContent());
         int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->GetContent());
-        std::string expected = boost::lexical_cast<std::string>(numberOfSlices * numberOfTimeSlices);
-        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, expected);
+        target = numberOfSlices * numberOfTimeSlices;
+        return (target > 0);
       }
 
-      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL)
+      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL &&
+               !value->IsNull() &&
+               !value->IsBinary())
       {
-        target.AddMetadata(series, MetadataType_Series_ExpectedNumberOfInstances, value->GetContent());
+        target = boost::lexical_cast<int64_t>(value->GetContent());
+        return (target > 0);
       }
     }
     catch (OrthancException&)
@@ -539,6 +549,8 @@ namespace Orthanc
     catch (boost::bad_lexical_cast&)
     {
     }
+
+    return false;
   }
 
 
@@ -704,6 +716,10 @@ namespace Orthanc
     const DicomMap& dicomSummary = instanceToStore.GetSummary();
     const ServerIndex::MetadataMap& metadata = instanceToStore.GetMetadata();
 
+    int64_t expectedInstances;
+    const bool hasExpectedInstances =
+      ComputeExpectedNumberOfInstances(expectedInstances, dicomSummary);
+    
     instanceMetadata.clear();
 
     const std::string hashPatient = instanceToStore.GetHasher().HashPatient();
@@ -746,7 +762,14 @@ namespace Orthanc
       }
 
 
-      // Warn about the creation of new resources. The order must be from instance to patient.
+      // Warn about the creation of new resources. The order must be
+      // from instance to patient.
+
+      // NB: In theory, could be sped up by grouping the underlying
+      // calls to "db_.LogChange()". However, this would only have an
+      // impact when new patient/study/series get created, which
+      // occurs far less often that creating new instances. The
+      // positive impact looks marginal in practice.
       SignalNewResource(ChangeType_NewInstance, ResourceType_Instance, hashInstance, instanceId);
 
       if (status.isNewSeries_)
@@ -843,7 +866,14 @@ namespace Orthanc
         content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
         content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
 
+        if (status.isNewSeries_ &&
+            hasExpectedInstances)
+        {
+          content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                              boost::lexical_cast<std::string>(expectedInstances));
+        }
 
+        
         // Attach the auto-computed metadata for the instance level,
         // reflecting these additions into the input metadata map
         SetInstanceMetadata(content, instanceMetadata, instanceId,
@@ -909,17 +939,11 @@ namespace Orthanc
         }
 
         
-        // Check whether the series of this new instance is now completed
-        if (status.isNewSeries_)
-        {
-          ComputeExpectedNumberOfInstances(content, status.seriesId_, dicomSummary);
-        }
-
-        
         db_.SetResourcesContent(content);
       }
 
-
+  
+      // Check whether the series of this new instance is now completed
       // TODO - SPEED THIS UP
       SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_);
       if (seriesStatus == SeriesStatus_Complete)
@@ -965,16 +989,10 @@ namespace Orthanc
   }          
 
 
-
-  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
+  
+  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id,
+                                            int64_t expectedNumberOfInstances)
   {
-    // Get the expected number of instances in this series (from the metadata)
-    int64_t expected;
-    if (!GetMetadataAsInteger(expected, id, MetadataType_Series_ExpectedNumberOfInstances))
-    {
-      return SeriesStatus_Unknown;
-    }
-
     // Loop over the instances of this series
     std::list<int64_t> children;
     db_.GetChildrenInternalId(children, id);
@@ -990,7 +1008,7 @@ namespace Orthanc
         return SeriesStatus_Unknown;
       }
 
-      if (!(index > 0 && index <= expected))
+      if (!(index > 0 && index <= expectedNumberOfInstances))
       {
         // Out-of-range instance index
         return SeriesStatus_Inconsistent;
@@ -1005,13 +1023,28 @@ namespace Orthanc
       instances.insert(index);
     }
 
-    if (static_cast<int64_t>(instances.size()) == expected)
+    if (static_cast<int64_t>(instances.size()) == expectedNumberOfInstances)
     {
       return SeriesStatus_Complete;
     }
     else
     {
       return SeriesStatus_Missing;
+    }
+  }
+
+
+  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
+  {
+    // Get the expected number of instances in this series (from the metadata)
+    int64_t expected;
+    if (!GetMetadataAsInteger(expected, id, MetadataType_Series_ExpectedNumberOfInstances))
+    {
+      return SeriesStatus_Unknown;
+    }
+    else
+    {
+      return GetSeriesStatus(id, expected);
     }
   }
 
@@ -1042,6 +1075,7 @@ namespace Orthanc
     }
   }
 
+  
   bool ServerIndex::LookupResource(Json::Value& result,
                                    const std::string& publicId,
                                    ResourceType expectedType)
@@ -1140,9 +1174,13 @@ namespace Orthanc
 
         int64_t i;
         if (GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
+        {
           result["ExpectedNumberOfInstances"] = static_cast<int>(i);
+        }
         else
+        {
           result["ExpectedNumberOfInstances"] = Json::nullValue;
+        }
 
         break;
       }
