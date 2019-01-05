@@ -1281,4 +1281,29 @@ namespace Orthanc
       ForwardAnswers(result);
     }
   }
+
+
+  void OrthancPluginDatabase::SetResourcesContent(const Orthanc::ResourcesContent& content)
+  {
+    if (extensions_.setResourcesContent == NULL)
+    {
+      ISetResourcesContent::Apply(*this, content);
+    }
+    else
+    {
+      std::vector<OrthancPluginResourcesContentTags> identifierTags;
+      std::vector<OrthancPluginResourcesContentTags> mainDicomTags;
+      std::vector<OrthancPluginResourcesContentMetadata> metadata;
+      content.EncodeForPlugins(identifierTags, mainDicomTags, metadata);
+
+      CheckSuccess(extensions_.setResourcesContent(
+                     payload_,
+                     identifierTags.size(),
+                     (identifierTags.empty() ? NULL : &identifierTags[0]),
+                     mainDicomTags.size(),
+                     (mainDicomTags.empty() ? NULL : &mainDicomTags[0]),
+                     metadata.size(),
+                     (metadata.empty() ? NULL : &metadata[0])));
+    }
+  }
 }

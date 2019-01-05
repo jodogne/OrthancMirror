@@ -232,6 +232,10 @@ namespace Orthanc
                                 const std::string& series,
                                 const std::string& instance) = 0;
 
+    // It is guaranteed that the resources to be modified have no main
+    // DICOM tags, and no DICOM identifiers associated with
+    // them. However, some metadata might be already existing, and
+    // have to be overwritten.
     virtual void SetResourcesContent(const ResourcesContent& content) = 0;
   };
 }
