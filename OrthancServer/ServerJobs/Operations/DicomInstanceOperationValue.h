@@ -35,10 +35,10 @@
 
 #include "../../../Core/JobsEngine/Operations/JobOperationValue.h"
 
-#include "../../ServerContext.h"
-
 namespace Orthanc
 {
+  class ServerContext;
+  
   class DicomInstanceOperationValue : public JobOperationValue
   {
   private:
@@ -64,10 +64,7 @@ namespace Orthanc
       return id_;
     }
 
-    void ReadDicom(std::string& dicom) const
-    {
-      context_.ReadDicom(dicom, id_);
-    }
+    void ReadDicom(std::string& dicom) const;
 
     virtual JobOperationValue* Clone() const
     {

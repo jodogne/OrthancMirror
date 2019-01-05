@@ -34,10 +34,11 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
-#include "OrthancConfiguration.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "OrthancConfiguration.h"
+#include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
 
 namespace Orthanc

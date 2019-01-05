@@ -35,10 +35,8 @@
 
 #include "../Core/Cache/LeastRecentlyUsedIndex.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/SQLite/Connection.h"
 
 #include "Database/IDatabaseWrapper.h"
-#include "ServerEnumerations.h"
 
 #include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
