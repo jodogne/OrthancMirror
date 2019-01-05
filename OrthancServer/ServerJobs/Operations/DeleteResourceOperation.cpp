@@ -35,6 +35,7 @@
 #include "DeleteResourceOperation.h"
 
 #include "DicomInstanceOperationValue.h"
+#include "../../ServerContext.h"
 
 #include "../../../Core/Logging.h"
 #include "../../../Core/OrthancException.h"

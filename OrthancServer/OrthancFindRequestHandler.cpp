@@ -40,6 +40,7 @@
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "OrthancConfiguration.h"
 #include "Search/DatabaseLookup.h"
+#include "ServerContext.h"
 #include "ServerToolbox.h"
 
 #include <boost/regex.hpp> 

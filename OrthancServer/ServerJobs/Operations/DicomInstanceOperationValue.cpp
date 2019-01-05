@@ -30,34 +30,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#pragma once
 
-#include "../Core/DicomNetworking/IMoveRequestHandler.h"
+#include "../../PrecompiledHeadersServer.h"
+#include "DicomInstanceOperationValue.h"
+
+#include "../../ServerContext.h"
 
 namespace Orthanc
 {
-  class ServerContext;
-  
-  class OrthancMoveRequestHandler : public IMoveRequestHandler
+  void DicomInstanceOperationValue::ReadDicom(std::string& dicom) const
   {
-  private:
-    ServerContext& context_;
-
-    bool LookupIdentifier(std::string& publicId,
-                          ResourceType level,
-                          const DicomMap& input);
-
-  public:
-    OrthancMoveRequestHandler(ServerContext& context) :
-    context_(context)
-    {
-    }
-
-    virtual IMoveRequestIterator* Handle(const std::string& targetAet,
-                                         const DicomMap& input,
-                                         const std::string& originatorIp,
-                                         const std::string& originatorAet,
-                                         const std::string& calledAet,
-                                         uint16_t originatorId);
-  };
+    context_.ReadDicom(dicom, id_);
+  }
 }

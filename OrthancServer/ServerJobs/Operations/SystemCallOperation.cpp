@@ -42,6 +42,7 @@
 #include "../../../Core/SerializationToolbox.h"
 #include "../../../Core/TemporaryFile.h"
 #include "../../../Core/Toolbox.h"
+#include "../../../Core/SystemToolbox.h"
 
 namespace Orthanc
 {

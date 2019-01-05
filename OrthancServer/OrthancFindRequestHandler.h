@@ -34,10 +34,10 @@
 
 #include "../Core/DicomNetworking/IFindRequestHandler.h"
 
-#include "ServerContext.h"
-
 namespace Orthanc
 {
+  class ServerContext;
+  
   class OrthancFindRequestHandler : public IFindRequestHandler
   {
   private:

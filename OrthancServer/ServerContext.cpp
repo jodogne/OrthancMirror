@@ -34,12 +34,14 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/Cache/SharedArchive.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/Logging.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "Search/DatabaseLookup.h"
