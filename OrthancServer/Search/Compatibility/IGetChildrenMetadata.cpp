@@ -31,34 +31,37 @@
  **/
 
 
-#pragma once
-
-#include "../../IDatabaseWrapper.h"
+#include "../../PrecompiledHeadersServer.h"
+#include "IGetChildrenMetadata.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    class ICreateInstance : public boost::noncopyable
+    void IGetChildrenMetadata::Apply(IGetChildrenMetadata& database,
+                                     std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata)
     {
-    public:
-      virtual bool LookupResource(int64_t& id,
-                                  ResourceType& type,
-                                  const std::string& publicId) = 0;
+      // This function comes from an optimization of
+      // "ServerIndex::GetSeriesStatus()" in Orthanc <= 1.5.1
+      // Loop over the instances of this series
 
-      virtual int64_t CreateResource(const std::string& publicId,
-                                     ResourceType type) = 0;
-
-      virtual void AttachChild(int64_t parent,
-                               int64_t child) = 0;
+      target.clear();
       
-      static bool Apply(ICreateInstance& database,
-                        IDatabaseWrapper::CreateInstanceResult& result,
-                        int64_t& instanceId,
-                        const std::string& patient,
-                        const std::string& study,
-                        const std::string& series,
-                        const std::string& instance);
-    };
+      std::list<int64_t> children;
+      database.GetChildrenInternalId(children, resourceId);
+
+      std::set<int64_t> instances;
+      for (std::list<int64_t>::const_iterator 
+             it = children.begin(); it != children.end(); ++it)
+      {
+        std::string value;
+        if (database.LookupMetadata(value, *it, metadata))
+        {
+          target.push_back(value);
+        }
+      }
+    }
   }
 }

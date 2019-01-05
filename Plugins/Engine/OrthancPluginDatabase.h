@@ -36,9 +36,10 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../Core/SharedLibrary.h"
+#include "../../OrthancServer/Search/Compatibility/ICreateInstance.h"
+#include "../../OrthancServer/Search/Compatibility/IGetChildrenMetadata.h"
 #include "../../OrthancServer/Search/Compatibility/ILookupResources.h"
 #include "../../OrthancServer/Search/Compatibility/ISetResourcesContent.h"
-#include "../../OrthancServer/Search/Compatibility/ICreateInstance.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
@@ -46,9 +47,10 @@ namespace Orthanc
 {
   class OrthancPluginDatabase :
     public IDatabaseWrapper,
+    public Compatibility::ICreateInstance,
+    public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
-    public Compatibility::ISetResourcesContent,
-    public Compatibility::ICreateInstance
+    public Compatibility::ISetResourcesContent
   {
   private:
     class Transaction;
@@ -352,6 +354,11 @@ namespace Orthanc
       ORTHANC_OVERRIDE;
 
     virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)
+      ORTHANC_OVERRIDE;
+
+    virtual void GetChildrenMetadata(std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata)
       ORTHANC_OVERRIDE;
   };
 }

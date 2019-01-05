@@ -37,6 +37,7 @@
 
 #include "../Core/SQLite/Connection.h"
 #include "Search/Compatibility/ICreateInstance.h"
+#include "Search/Compatibility/IGetChildrenMetadata.h"
 #include "Search/Compatibility/ISetResourcesContent.h"
 #include "ServerToolbox.h"
 
@@ -55,6 +56,7 @@ namespace Orthanc
   class SQLiteDatabaseWrapper :
     public IDatabaseWrapper,
     public Compatibility::ICreateInstance,
+    public Compatibility::IGetChildrenMetadata,
     public Compatibility::ISetResourcesContent
   {
   private:
@@ -332,15 +334,25 @@ namespace Orthanc
                                 const std::string& patient,
                                 const std::string& study,
                                 const std::string& series,
-                                const std::string& instance)  ORTHANC_OVERRIDE
+                                const std::string& instance)
+      ORTHANC_OVERRIDE
     {
       return ICreateInstance::Apply
-        (*this, *this, result, instanceId, patient, study, series, instance);
+        (*this, result, instanceId, patient, study, series, instance);
     }
 
-    virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)  ORTHANC_OVERRIDE
+    virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)
+      ORTHANC_OVERRIDE
     {
       ISetResourcesContent::Apply(*this, content);
+    }
+
+    virtual void GetChildrenMetadata(std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata)
+      ORTHANC_OVERRIDE
+    {
+      IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
     }
   };
 }

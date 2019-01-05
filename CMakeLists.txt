@@ -73,6 +73,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/SQLiteDatabaseWrapper.cpp
   OrthancServer/Search/Compatibility/DatabaseLookup.cpp
   OrthancServer/Search/Compatibility/ICreateInstance.cpp
+  OrthancServer/Search/Compatibility/IGetChildrenMetadata.cpp
   OrthancServer/Search/Compatibility/ILookupResources.cpp
   OrthancServer/Search/Compatibility/SetOfResources.cpp
   OrthancServer/Search/DatabaseConstraint.cpp

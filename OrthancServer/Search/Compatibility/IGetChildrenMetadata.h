@@ -33,32 +33,29 @@
 
 #pragma once
 
-#include "../../IDatabaseWrapper.h"
+#include "../../ServerEnumerations.h"
+
+#include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    class ICreateInstance : public boost::noncopyable
+    class IGetChildrenMetadata : public boost::noncopyable
     {
     public:
-      virtual bool LookupResource(int64_t& id,
-                                  ResourceType& type,
-                                  const std::string& publicId) = 0;
+      virtual void GetChildrenInternalId(std::list<int64_t>& target,
+                                         int64_t id) = 0;
 
-      virtual int64_t CreateResource(const std::string& publicId,
-                                     ResourceType type) = 0;
+      virtual bool LookupMetadata(std::string& target,
+                                  int64_t id,
+                                  MetadataType type) = 0;
 
-      virtual void AttachChild(int64_t parent,
-                               int64_t child) = 0;
-      
-      static bool Apply(ICreateInstance& database,
-                        IDatabaseWrapper::CreateInstanceResult& result,
-                        int64_t& instanceId,
-                        const std::string& patient,
-                        const std::string& study,
-                        const std::string& series,
-                        const std::string& instance);
+      static void Apply(IGetChildrenMetadata& database,
+                        std::list<std::string>& target,
+                        int64_t resourceId,
+                        MetadataType metadata);
     };
   }
 }

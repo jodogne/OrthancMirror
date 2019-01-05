@@ -1201,7 +1201,7 @@ namespace Orthanc
     {
       // Fallback to compatibility mode
       return ICreateInstance::Apply
-        (*this, *this, result, instanceId, patient, study, series, instance);
+        (*this, result, instanceId, patient, study, series, instance);
     }
     else
     {
@@ -1305,5 +1305,15 @@ namespace Orthanc
                      metadata.size(),
                      (metadata.empty() ? NULL : &metadata[0])));
     }
+  }
+
+
+
+  void OrthancPluginDatabase::GetChildrenMetadata(std::list<std::string>& target,
+                                                  int64_t resourceId,
+                                                  MetadataType metadata)
+  {
+    // TODO
+    IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
   }
 }

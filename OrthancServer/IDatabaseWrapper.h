@@ -237,5 +237,9 @@ namespace Orthanc
     // them. However, some metadata might be already existing, and
     // have to be overwritten.
     virtual void SetResourcesContent(const ResourcesContent& content) = 0;
+
+    virtual void GetChildrenMetadata(std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata) = 0;
   };
 }
