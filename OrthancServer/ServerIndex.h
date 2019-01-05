@@ -127,6 +127,9 @@ namespace Orthanc
                          const DatabaseLookup& source,
                          ResourceType level) const;
 
+    SeriesStatus GetSeriesStatus(int64_t id,
+                                 int64_t expectedNumberOfInstances);
+
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database,
