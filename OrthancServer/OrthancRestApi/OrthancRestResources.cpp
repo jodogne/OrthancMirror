@@ -41,6 +41,7 @@
 #include "../../Core/Logging.h"
 #include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
+#include "../Search/DatabaseLookup.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"

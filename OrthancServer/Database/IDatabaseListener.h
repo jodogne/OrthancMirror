@@ -33,13 +33,14 @@
 
 #pragma once
 
+#include "../ServerEnumerations.h"
+#include "../ServerIndexChange.h"
+
 #include <string>
-#include "ServerEnumerations.h"
-#include "ServerIndexChange.h"
 
 namespace Orthanc
 {
-  class IDatabaseListener
+  class IDatabaseListener : public boost::noncopyable
   {
   public:
     virtual ~IDatabaseListener()

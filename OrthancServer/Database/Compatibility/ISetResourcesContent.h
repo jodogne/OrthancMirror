@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../ServerToolbox.h"
+#include "../ResourcesContent.h"
 
 namespace Orthanc
 {

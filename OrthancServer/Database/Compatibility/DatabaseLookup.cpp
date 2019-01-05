@@ -35,6 +35,7 @@
 #include "DatabaseLookup.h"
 
 #include "../../../Core/OrthancException.h"
+#include "../../Search/DicomTagConstraint.h"
 #include "../../ServerToolbox.h"
 #include "SetOfResources.h"
 
