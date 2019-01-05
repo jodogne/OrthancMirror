@@ -33,20 +33,22 @@
 
 #pragma once
 
-#include <boost/thread.hpp>
-#include <boost/noncopyable.hpp>
 #include "../Core/Cache/LeastRecentlyUsedIndex.h"
-#include "../Core/SQLite/Connection.h"
 #include "../Core/DicomFormat/DicomMap.h"
-#include "ServerEnumerations.h"
+#include "../Core/SQLite/Connection.h"
 
 #include "Database/IDatabaseWrapper.h"
+#include "ServerEnumerations.h"
+
+#include <boost/thread.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ServerContext;
+  class DatabaseLookup;
   class DicomInstanceToStore;
   class ParsedDicomFile;
+  class ServerContext;
 
   class ServerIndex : public boost::noncopyable
   {

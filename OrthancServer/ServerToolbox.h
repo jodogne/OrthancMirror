@@ -39,101 +39,12 @@
 #include <boost/noncopyable.hpp>
 #include <list>
 
-#include <orthanc/OrthancCDatabasePlugin.h>
-
 namespace Orthanc
 {
   class ServerContext;
   class IDatabaseWrapper;
-  class DicomMap;
   class IStorageArea;
 
-  namespace Compatibility
-  {
-    class ISetResourcesContent;
-  }
-
-
-  // TODO - Move this to a separate file
-  class ResourcesContent : public boost::noncopyable
-  {
-  private:
-    struct TagValue
-    {
-      int64_t      resourceId_;
-      bool         isIdentifier_;
-      DicomTag     tag_;
-      std::string  value_;
-
-      TagValue(int64_t resourceId,
-               bool isIdentifier,
-               const DicomTag& tag,
-               const std::string& value) :
-        resourceId_(resourceId),
-        isIdentifier_(isIdentifier),
-        tag_(tag),
-        value_(value)
-      {
-      }
-    };
-
-    struct Metadata
-    {
-      int64_t       resourceId_;
-      MetadataType  metadata_;
-      std::string   value_;
-
-      Metadata(int64_t  resourceId,
-               MetadataType metadata,
-               const std::string& value) :
-        resourceId_(resourceId),
-        metadata_(metadata),
-        value_(value)
-      {
-      }
-    };
-
-    std::list<TagValue>  tags_;
-    std::list<Metadata>  metadata_;
-
-  public:
-    void AddMainDicomTag(int64_t resourceId,
-                         const DicomTag& tag,
-                         const std::string& value)
-    {
-      tags_.push_back(TagValue(resourceId, false, tag, value));
-    }
-
-    void AddIdentifierTag(int64_t resourceId,
-                          const DicomTag& tag,
-                          const std::string& value)
-    {
-      tags_.push_back(TagValue(resourceId, true, tag, value));
-    }
-
-    void AddMetadata(int64_t resourceId,
-                     MetadataType metadata,
-                     const std::string& value)
-    {
-      metadata_.push_back(Metadata(resourceId, metadata, value));
-    }
-
-    void AddResource(int64_t resource,
-                     ResourceType level,
-                     const DicomMap& dicomSummary);
-
-    // WARNING: The database should be locked with a transaction!
-    void Store(Compatibility::ISetResourcesContent& target) const;
-
-    // WARNING: The resulting C structure will contain pointers to the
-    // current object. Don't delete or modify it!
-    void EncodeForPlugins(
-      std::vector<OrthancPluginResourcesContentTags>& identifierTags,
-      std::vector<OrthancPluginResourcesContentTags>& mainDicomTags,
-      std::vector<OrthancPluginResourcesContentMetadata>& metadata) const;
-  };
-
-  
   namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,

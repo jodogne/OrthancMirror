@@ -36,7 +36,6 @@
 #include "IDatabaseWrapper.h"
 
 #include "../../Core/SQLite/Connection.h"
-#include "../ServerToolbox.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
 #include "Compatibility/ISetResourcesContent.h"
