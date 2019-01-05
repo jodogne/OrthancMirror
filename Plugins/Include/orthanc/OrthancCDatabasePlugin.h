@@ -158,7 +158,6 @@ extern "C"
   typedef struct  /* New in Orthanc 1.5.2 */
   {
     int64_t      resource;
-    uint8_t      isIdentifier;
     uint16_t     group;
     uint16_t     element;
     const char*  value;
@@ -789,9 +788,11 @@ extern "C"
     OrthancPluginErrorCode  (*setResourcesContent) (
       /* inputs */
       void* payload,
-      uint32_t countTags,
+      uint32_t countIdentifierTags,
+      const OrthancPluginResourcesContentTags* identifierTags,
+      uint32_t countMainDicomTags,
+      const OrthancPluginResourcesContentTags* mainDicomTags,
       uint32_t countMetadata,
-      const OrthancPluginResourcesContentTags* tags,
       const OrthancPluginResourcesContentMetadata* metadata);
 
   } OrthancPluginDatabaseExtensions;
