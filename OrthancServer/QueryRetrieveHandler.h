@@ -33,10 +33,13 @@
 
 #pragma once
 
-#include "ServerContext.h"
+#include "../Core/DicomNetworking/DicomFindAnswers.h"
+#include "../Core/DicomNetworking/RemoteModalityParameters.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class QueryRetrieveHandler : public IDynamicObject
   {
   private:
