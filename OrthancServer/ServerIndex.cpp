@@ -944,7 +944,6 @@ namespace Orthanc
 
   
       // Check whether the series of this new instance is now completed
-      // TODO - SPEED THIS UP
       SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_);
       if (seriesStatus == SeriesStatus_Complete)
       {

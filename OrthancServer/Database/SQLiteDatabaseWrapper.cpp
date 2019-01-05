@@ -31,15 +31,16 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
+#include "../PrecompiledHeadersServer.h"
 #include "SQLiteDatabaseWrapper.h"
 
-#include "../Core/DicomFormat/DicomArray.h"
-#include "../Core/Logging.h"
-#include "../Core/SQLite/Transaction.h"
-#include "EmbeddedResources.h"
-#include "Search/ISqlLookupFormatter.h"
-#include "ServerToolbox.h"
+#include "../../Core/DicomFormat/DicomArray.h"
+#include "../../Core/Logging.h"
+#include "../../Core/SQLite/Transaction.h"
+#include "../Search/ISqlLookupFormatter.h"
+#include "../ServerToolbox.h"
+
+#include <EmbeddedResources.h>
 
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>

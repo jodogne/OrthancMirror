@@ -35,11 +35,11 @@
 
 #include "IDatabaseWrapper.h"
 
-#include "../Core/SQLite/Connection.h"
-#include "Search/Compatibility/ICreateInstance.h"
-#include "Search/Compatibility/IGetChildrenMetadata.h"
-#include "Search/Compatibility/ISetResourcesContent.h"
-#include "ServerToolbox.h"
+#include "../../Core/SQLite/Connection.h"
+#include "../ServerToolbox.h"
+#include "Compatibility/ICreateInstance.h"
+#include "Compatibility/IGetChildrenMetadata.h"
+#include "Compatibility/ISetResourcesContent.h"
 
 namespace Orthanc
 {

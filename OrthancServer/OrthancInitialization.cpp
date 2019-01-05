@@ -45,7 +45,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 
-#include "SQLiteDatabaseWrapper.h"
+#include "Database/SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"
 
 #include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
