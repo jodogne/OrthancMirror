@@ -41,10 +41,10 @@
 
 #include "../OrthancConfiguration.h"
 #include "../QueryRetrieveHandler.h"
+#include "../ServerContext.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
 #include "../ServerJobs/DicomMoveScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
-#include "../ServerContext.h"
 #include "../ServerToolbox.h"
 
 

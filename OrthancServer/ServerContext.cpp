@@ -39,6 +39,7 @@
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
+#include "../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../Core/Logging.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
