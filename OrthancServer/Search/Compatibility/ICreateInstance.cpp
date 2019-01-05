@@ -40,8 +40,7 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    bool ICreateInstance::Apply(ICreateInstance& compatibility,
-                                IDatabaseWrapper& database,
+    bool ICreateInstance::Apply(ICreateInstance& database,
                                 IDatabaseWrapper::CreateInstanceResult& result,
                                 int64_t& instanceId,
                                 const std::string& hashPatient,
@@ -62,7 +61,7 @@ namespace Orthanc
         }
       }
 
-      instanceId = compatibility.CreateResource(hashInstance, ResourceType_Instance);
+      instanceId = database.CreateResource(hashInstance, ResourceType_Instance);
 
       result.isNewPatient_ = false;
       result.isNewStudy_ = false;
@@ -116,32 +115,32 @@ namespace Orthanc
       // Create the series if needed
       if (result.isNewSeries_)
       {
-        result.seriesId_ = compatibility.CreateResource(hashSeries, ResourceType_Series);
+        result.seriesId_ = database.CreateResource(hashSeries, ResourceType_Series);
       }
 
       // Create the study if needed
       if (result.isNewStudy_)
       {
-        result.studyId_ = compatibility.CreateResource(hashStudy, ResourceType_Study);
+        result.studyId_ = database.CreateResource(hashStudy, ResourceType_Study);
       }
 
       // Create the patient if needed
       if (result.isNewPatient_)
       {
-        result.patientId_ = compatibility.CreateResource(hashPatient, ResourceType_Patient);
+        result.patientId_ = database.CreateResource(hashPatient, ResourceType_Patient);
       }
 
       // Create the parent-to-child links
-      compatibility.AttachChild(result.seriesId_, instanceId);
+      database.AttachChild(result.seriesId_, instanceId);
 
       if (result.isNewSeries_)
       {
-        compatibility.AttachChild(result.studyId_, result.seriesId_);
+        database.AttachChild(result.studyId_, result.seriesId_);
       }
 
       if (result.isNewStudy_)
       {
-        compatibility.AttachChild(result.patientId_, result.studyId_);
+        database.AttachChild(result.patientId_, result.studyId_);
       }
 
       // Sanity checks

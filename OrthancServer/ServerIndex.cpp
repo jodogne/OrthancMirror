@@ -993,21 +993,25 @@ namespace Orthanc
   SeriesStatus ServerIndex::GetSeriesStatus(int64_t id,
                                             int64_t expectedNumberOfInstances)
   {
-    // Loop over the instances of this series
-    std::list<int64_t> children;
-    db_.GetChildrenInternalId(children, id);
+    std::list<std::string> values;
+    db_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
 
     std::set<int64_t> instances;
-    for (std::list<int64_t>::const_iterator 
-           it = children.begin(); it != children.end(); ++it)
+
+    for (std::list<std::string>::const_iterator
+           it = values.begin(); it != values.end(); ++it)
     {
-      // Get the index of this instance in the series
       int64_t index;
-      if (!GetMetadataAsInteger(index, *it, MetadataType_Instance_IndexInSeries))
+
+      try
+      {
+        index = boost::lexical_cast<int64_t>(*it);
+      }
+      catch (boost::bad_lexical_cast&)
       {
         return SeriesStatus_Unknown;
       }
-
+      
       if (!(index > 0 && index <= expectedNumberOfInstances))
       {
         // Out-of-range instance index
@@ -1200,9 +1204,13 @@ namespace Orthanc
 
         int64_t i;
         if (GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
+        {
           result["IndexInSeries"] = static_cast<int>(i);
+        }
         else
+        {
           result["IndexInSeries"] = Json::nullValue;
+        }
 
         break;
       }
