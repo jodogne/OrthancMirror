@@ -33,28 +33,26 @@
 
 #pragma once
 
-#include "DicomInstanceToStore.h"
 #include "IServerListener.h"
 #include "LuaScripting.h"
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
 
 #include "../Core/Cache/MemoryCache.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/JobsEngine/JobsEngine.h"
-#include "../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../Core/MultiThreading/SharedMessageQueue.h"
-#include "../Core/RestApi/RestApiOutput.h"
-
-#include <boost/filesystem.hpp>
-#include <boost/thread.hpp>
 
 
 namespace Orthanc
 {
+  class DicomInstanceToStore;
+  class IStorageArea;
+  class JobsEngine;
   class OrthancPlugins;
   class ParsedDicomFile;
+  class RestApiOutput;
+  class SetOfInstancesJob;
   class SharedArchive;
+  class SharedMessageQueue;
+  
   
   /**
    * This class is responsible for maintaining the storage area on the
