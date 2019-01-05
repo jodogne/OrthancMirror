@@ -40,8 +40,6 @@
 #include "ServerIndex.h"
 
 #include "../Core/Cache/MemoryCache.h"
-#include "../Core/Cache/SharedArchive.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/FileStorage/IStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
 #include "../Core/JobsEngine/SetOfInstancesJob.h"
@@ -55,6 +53,8 @@
 namespace Orthanc
 {
   class OrthancPlugins;
+  class ParsedDicomFile;
+  class SharedArchive;
   
   /**
    * This class is responsible for maintaining the storage area on the

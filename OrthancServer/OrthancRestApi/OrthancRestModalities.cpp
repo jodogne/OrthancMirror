@@ -34,9 +34,11 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Cache/SharedArchive.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
+
 #include "../OrthancConfiguration.h"
 #include "../QueryRetrieveHandler.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
