@@ -37,7 +37,7 @@
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
-#include "../OrthancServer/SQLiteDatabaseWrapper.h"
+#include "../OrthancServer/Database/SQLiteDatabaseWrapper.h"
 #include "../OrthancServer/ServerContext.h"
 #include "../OrthancServer/ServerToolbox.h"
 

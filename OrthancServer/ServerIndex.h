@@ -40,7 +40,7 @@
 #include "../Core/DicomFormat/DicomMap.h"
 #include "ServerEnumerations.h"
 
-#include "IDatabaseWrapper.h"
+#include "Database/IDatabaseWrapper.h"
 
 namespace Orthanc
 {
