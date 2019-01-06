@@ -121,7 +121,7 @@ extern "C"
     const char*                sopInstanceUid;
   } OrthancPluginExportedResource;
 
-  typedef struct
+  typedef struct   /* New in Orthanc 1.5.2 */
   {
     OrthancPluginResourceType    level;
     uint16_t                     tagGroup;
