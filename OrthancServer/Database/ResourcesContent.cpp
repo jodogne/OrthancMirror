@@ -62,47 +62,4 @@ namespace Orthanc
       compatibility.SetMetadata(it->resourceId_, it->metadata_,  it->value_);
     }
   }
-
-
-  void ResourcesContent::EncodeForPlugins(
-    std::vector<OrthancPluginResourcesContentTags>& identifierTags,
-    std::vector<OrthancPluginResourcesContentTags>& mainDicomTags,
-    std::vector<OrthancPluginResourcesContentMetadata>& metadata) const
-  {
-    identifierTags.reserve(tags_.size());
-    mainDicomTags.reserve(tags_.size());
-    metadata.reserve(metadata_.size());
-
-    for (std::list<TagValue>::const_iterator
-           it = tags_.begin(); it != tags_.end(); ++it)
-    {
-      OrthancPluginResourcesContentTags tmp;
-      tmp.resource = it->resourceId_;
-      tmp.group = it->tag_.GetGroup();
-      tmp.element = it->tag_.GetElement();
-      tmp.value = it->value_.c_str();
-
-      if (it->isIdentifier_)
-      {
-        identifierTags.push_back(tmp);
-      }
-      else
-      {
-        mainDicomTags.push_back(tmp);
-      }
-    }
-
-    for (std::list<Metadata>::const_iterator
-           it = metadata_.begin(); it != metadata_.end(); ++it)
-    {
-      OrthancPluginResourcesContentMetadata tmp;
-      tmp.resource = it->resourceId_;
-      tmp.metadata = it->metadata_;
-      tmp.value = it->value_.c_str();
-      metadata.push_back(tmp);
-    }
-
-    assert(identifierTags.size() + mainDicomTags.size() == tags_.size() &&
-           metadata.size() == metadata_.size());
-  }
 }
