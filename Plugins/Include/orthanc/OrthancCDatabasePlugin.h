@@ -702,7 +702,7 @@ extern "C"
   typedef struct
   {
     /**
-     * Extensions since Orthanc 0.9.5
+     * Base extensions since Orthanc 1.0.0
      **/
     
     /* Output: Use OrthancPluginDatabaseAnswerString() */
