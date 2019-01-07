@@ -35,6 +35,7 @@
 #include "ISqlLookupFormatter.h"
 
 #include "../../Core/OrthancException.h"
+#include "DatabaseConstraint.h"
 
 namespace Orthanc
 {
