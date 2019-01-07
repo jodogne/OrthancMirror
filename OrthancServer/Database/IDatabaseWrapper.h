@@ -39,7 +39,6 @@
 #include "../../Core/SQLite/ITransaction.h"
 
 #include "../ExportedResource.h"
-#include "../Search/DatabaseConstraint.h"
 #include "IDatabaseListener.h"
 
 #include <list>
@@ -47,6 +46,7 @@
 
 namespace Orthanc
 {
+  class DatabaseConstraint;
   class ResourcesContent;
 
   

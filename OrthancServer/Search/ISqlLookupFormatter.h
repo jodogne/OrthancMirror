@@ -33,10 +33,15 @@
 
 #pragma once
 
-#include "DatabaseConstraint.h"
+#include "../../Core/Enumerations.h"
+
+#include <boost/noncopyable.hpp>
+#include <vector>
 
 namespace Orthanc
 {
+  class DatabaseConstraint;
+  
   // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
