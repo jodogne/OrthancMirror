@@ -230,6 +230,8 @@ namespace Orthanc
     payload_(payload),
     listener_(NULL)
   {
+    static const char* const MISSING = "  Missing extension in database index plugin: ";
+    
     ResetAnswers();
 
     memset(&extensions_, 0, sizeof(extensions_));
@@ -242,9 +244,39 @@ namespace Orthanc
 
     memcpy(&extensions_, extensions, size);
 
+    bool isOptimal = true;
+
     if (extensions_.lookupResources == NULL)
     {
-      LOG(WARNING) << "Performance warning in index plugin: Fast lookup is not available";
+      LOG(INFO) << MISSING << "LookupIdentifierRange()";
+      isOptimal = false;
+    }
+
+    if (extensions_.createInstance == NULL)
+    {
+      LOG(INFO) << MISSING << "CreateInstance()";
+      isOptimal = false;
+    }
+
+    if (extensions_.setResourcesContent == NULL)
+    {
+      LOG(INFO) << MISSING << "SetResourcesContent()";
+      isOptimal = false;
+    }
+
+    if (extensions_.getChildrenMetadata == NULL)
+    {
+      LOG(INFO) << MISSING << "GetChildrenMetadata()";
+      isOptimal = false;
+    }
+
+    if (isOptimal)
+    {
+      LOG(INFO) << "The performance of the database index plugin is optimal for this version of Orthanc";
+    }
+    else
+    {
+      LOG(WARNING) << "Performance warning in the database index: Some extensions are missing in the plugin";
     }
   }
 
@@ -370,7 +402,7 @@ namespace Orthanc
     if (extensions_.getAllInternalIds == NULL)
     {
       throw OrthancException(ErrorCode_DatabasePlugin,
-                             "The database plugin does not implement the GetAllInternalIds primitive");
+                             "The database plugin does not implement the mandatory GetAllInternalIds() extension");
     }
 
     ResetAnswers();
@@ -774,7 +806,7 @@ namespace Orthanc
     if (extensions_.clearMainDicomTags == NULL)
     {
       throw OrthancException(ErrorCode_DatabasePlugin,
-                             "Your custom index plugin does not implement the ClearMainDicomTags() extension");
+                             "Your custom index plugin does not implement the mandatory ClearMainDicomTags() extension");
     }
 
     CheckSuccess(extensions_.clearMainDicomTags(payload_, id));
@@ -1240,7 +1272,7 @@ namespace Orthanc
     if (extensions_.lookupIdentifier3 == NULL)
     {
       throw OrthancException(ErrorCode_DatabasePlugin,
-                             "The database plugin does not implement the LookupIdentifier3 primitive");
+                             "The database plugin does not implement the mandatory LookupIdentifier3() extension");
     }
 
     OrthancPluginDicomTag tmp;
