@@ -39,8 +39,8 @@
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
-#include "../Plugins/Engine/OrthancPlugins.h"
 #include "Database/IDatabaseWrapper.h"
+#include "Database/ResourcesContent.h"
 #include "ServerContext.h"
 
 #include <cassert>

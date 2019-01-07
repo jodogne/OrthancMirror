@@ -43,11 +43,11 @@ namespace Orthanc
     class DatabaseLookup : public boost::noncopyable
     {
     private:
-      IDatabaseWrapper&              database_;
+      IDatabaseWrapper&  database_;
       ILookupResources&  compatibility_;
 
     public:
-      DatabaseLookup(IDatabaseWrapper&  database,
+      DatabaseLookup(IDatabaseWrapper& database,
                      ILookupResources& compatibility) :
         database_(database),
         compatibility_(compatibility)

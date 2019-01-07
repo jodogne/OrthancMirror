@@ -36,10 +36,9 @@
 #include "../../Core/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
 
-#include <orthanc/OrthancCDatabasePlugin.h>
-
 #include <boost/noncopyable.hpp>
 #include <list>
+
 
 namespace Orthanc
 {
@@ -50,7 +49,7 @@ namespace Orthanc
   
   class ResourcesContent : public boost::noncopyable
   {
-  private:
+  public:
     struct TagValue
     {
       int64_t      resourceId_;
@@ -86,8 +85,12 @@ namespace Orthanc
       }
     };
 
-    std::list<TagValue>  tags_;
-    std::list<Metadata>  metadata_;
+    typedef std::list<TagValue>  ListTags;
+    typedef std::list<Metadata>  ListMetadata;
+    
+  private:
+    ListTags       tags_;
+    ListMetadata   metadata_;
 
   public:
     void AddMainDicomTag(int64_t resourceId,
@@ -118,11 +121,14 @@ namespace Orthanc
     // WARNING: The database should be locked with a transaction!
     void Store(Compatibility::ISetResourcesContent& target) const;
 
-    // WARNING: The resulting C structure will contain pointers to the
-    // current object. Don't delete or modify it!
-    void EncodeForPlugins(
-      std::vector<OrthancPluginResourcesContentTags>& identifierTags,
-      std::vector<OrthancPluginResourcesContentTags>& mainDicomTags,
-      std::vector<OrthancPluginResourcesContentMetadata>& metadata) const;
+    const ListTags& GetListTags() const
+    {
+      return tags_;
+    }
+
+    const ListMetadata& GetListMetadata() const
+    {
+      return metadata_;
+    }
   };
 }

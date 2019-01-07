@@ -701,6 +701,10 @@ extern "C"
 
   typedef struct
   {
+    /**
+     * Extensions since Orthanc 0.9.5
+     **/
+    
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getAllPublicIdsWithLimit) (
       /* outputs */
@@ -746,6 +750,11 @@ extern "C"
       const OrthancPluginDicomTag* tag,
       OrthancPluginIdentifierConstraint constraint);
 
+
+    /**
+     * Extensions since Orthanc 1.4.0
+     **/
+    
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifierRange) (
       /* outputs */
@@ -775,6 +784,7 @@ extern "C"
       uint32_t limit,
       uint8_t requestSomeInstance);
 
+    
     OrthancPluginErrorCode  (*createInstance) (
       /* output */
       OrthancPluginCreateInstanceResult* output,
