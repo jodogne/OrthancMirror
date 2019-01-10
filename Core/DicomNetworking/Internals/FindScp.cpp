@@ -166,6 +166,28 @@ namespace Orthanc
     }
 
 
+    static void FixFindQuery(DicomMap& target,
+                             const DicomMap& source)
+    {
+      // "The definition of a Data Set in PS3.5 specifically excludes
+      // the range of groups below group 0008, and this includes in
+      // particular Meta Information Header elements such as Transfer
+      // Syntax UID (0002,0010)."
+      // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3
+      // https://groups.google.com/d/msg/orthanc-users/D3kpPuX8yV0/_zgHOzkMEQAJ
+
+      DicomArray a(source);
+
+      for (size_t i = 0; i < a.GetSize(); i++)
+      {
+        if (a.GetElement(i).GetTag().GetGroup() >= 0x0008)
+        {
+          target.SetValue(a.GetElement(i).GetTag(), a.GetElement(i).GetValue());
+        }
+      }
+    }
+
+
 
     void FindScpCallback(
       /* in */ 
@@ -255,7 +277,10 @@ namespace Orthanc
               DicomMap input;
               FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
 
-              data.findHandler_->Handle(data.answers_, input, sequencesToReturn,
+              DicomMap filtered;
+              FixFindQuery(filtered, input);
+
+              data.findHandler_->Handle(data.answers_, filtered, sequencesToReturn,
                                         *data.remoteIp_, *data.remoteAet_,
                                         *data.calledAet_, modality.GetManufacturer());
               ok = true;
