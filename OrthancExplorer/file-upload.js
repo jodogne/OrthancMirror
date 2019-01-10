@@ -27,6 +27,7 @@ $(document).ready(function() {
       $('#progress .label').text('Failure');
     })
     .bind('fileuploaddrop', function (e, data) {
+      console.log("dropped " + data.files.length + " files");
       appendFilesToUploadList(data.files);
     })
     .bind('fileuploadsend', function (e, data) {
