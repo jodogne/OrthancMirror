@@ -410,7 +410,14 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          found = GetUtf8TagValue(id, dataset, encoding, DCM_PatientID);
+          if (!GetUtf8TagValue(id, dataset, encoding, DCM_PatientID))
+          {
+            // Be tolerant about missing patient ID. Fixes issue #124
+            // (GET /studies/ID/media fails for certain dicom file).
+            id = "";
+          }
+
+          found = true;
           type = ERT_Patient;
           break;
 
