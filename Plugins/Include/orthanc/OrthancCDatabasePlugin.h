@@ -814,6 +814,12 @@ extern "C"
       int64_t resourceId,
       int32_t metadata);
 
+    OrthancPluginErrorCode  (*getLastChangeIndex) (
+      /* outputs */
+      int64_t* target,
+      /* inputs */
+      void* payload);
+                   
   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

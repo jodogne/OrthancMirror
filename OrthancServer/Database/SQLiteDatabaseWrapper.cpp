@@ -1270,4 +1270,23 @@ namespace Orthanc
       }
     }
   }
+
+
+  int64_t SQLiteDatabaseWrapper::GetLastChangeIndex()
+  {
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                        "SELECT seq FROM sqlite_sequence WHERE name='Changes'");
+
+    if (s.Step())
+    {
+      int64_t c = s.ColumnInt(0);
+      assert(!s.Step());
+      return c;
+    }
+    else
+    {
+      // No change has been recorded so far in the database
+      return 0;
+    }
+  }
 }

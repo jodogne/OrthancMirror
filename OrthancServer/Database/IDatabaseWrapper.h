@@ -240,5 +240,7 @@ namespace Orthanc
     virtual void GetChildrenMetadata(std::list<std::string>& target,
                                      int64_t resourceId,
                                      MetadataType metadata) = 0;
+
+    virtual int64_t GetLastChangeIndex() = 0;
   };
 }

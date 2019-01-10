@@ -360,6 +360,8 @@ namespace Orthanc
                                      int64_t resourceId,
                                      MetadataType metadata)
       ORTHANC_OVERRIDE;
+
+    virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
   };
 }
 

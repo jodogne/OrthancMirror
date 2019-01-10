@@ -278,6 +278,11 @@ namespace Orthanc
     {
       LOG(WARNING) << "Performance warning in the database index: Some extensions are missing in the plugin";
     }
+
+    if (extensions_.getLastChangeIndex == NULL)
+    {
+      LOG(WARNING) << "The database extension GetLastChangeIndex() is missing";
+    }
   }
 
 
@@ -1390,6 +1395,23 @@ namespace Orthanc
       CheckSuccess(extensions_.getChildrenMetadata
                    (GetContext(), payload_, resourceId, static_cast<int32_t>(metadata)));
       ForwardAnswers(target);
+    }
+  }
+
+
+  int64_t OrthancPluginDatabase::GetLastChangeIndex()
+  {
+    if (extensions_.getLastChangeIndex == NULL)
+    {
+      // This was the default behavior in Orthanc <= 1.5.1
+      // https://groups.google.com/d/msg/orthanc-users/QhzB6vxYeZ0/YxabgqpfBAAJ
+      return 0;
+    }
+    else
+    {
+      int64_t result = 0;
+      CheckSuccess(extensions_.getLastChangeIndex(&result, payload_));
+      return result;
     }
   }
 }

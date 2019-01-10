@@ -353,5 +353,7 @@ namespace Orthanc
     {
       IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
     }
+
+    virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
   };
 }
