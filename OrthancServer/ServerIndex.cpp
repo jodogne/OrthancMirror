@@ -1308,7 +1308,9 @@ namespace Orthanc
                         const std::list<T>& log,
                         const std::string& name,
                         bool done,
-                        int64_t since)
+                        int64_t since,
+                        bool hasLast,
+                        int64_t last)
   {
     Json::Value items = Json::arrayValue;
     for (typename std::list<T>::const_iterator
@@ -1323,7 +1325,19 @@ namespace Orthanc
     target[name] = items;
     target["Done"] = done;
 
-    int64_t last = (log.empty() ? since : log.back().GetSeq());
+    if (!hasLast)
+    {
+      // Best-effort guess of the last index in the sequence
+      if (log.empty())
+      {
+        last = since;
+      }
+      else
+      {
+        last = log.back().GetSeq();
+      }
+    }
+    
     target["Last"] = static_cast<int>(last);
   }
 
@@ -1334,6 +1348,8 @@ namespace Orthanc
   {
     std::list<ServerIndexChange> changes;
     bool done;
+    bool hasLast = false;
+    int64_t last = 0;
 
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -1341,17 +1357,26 @@ namespace Orthanc
       // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
       // "GetLastChange()" involves calls to "GetPublicId()"
       Transaction transaction(*this);
+
       db_.GetChanges(changes, done, since, maxResults);
+      if (changes.empty())
+      {
+        last = db_.GetLastChangeIndex();
+        hasLast = true;
+      }
+      
       transaction.Commit(0);
     }
 
-    FormatLog(target, changes, "Changes", done, since);
+    FormatLog(target, changes, "Changes", done, since, hasLast, last);
   }
 
 
   void ServerIndex::GetLastChange(Json::Value& target)
   {
     std::list<ServerIndexChange> changes;
+    bool hasLast = false;
+    int64_t last = 0;
 
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -1359,11 +1384,18 @@ namespace Orthanc
       // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
       // "GetLastChange()" involves calls to "GetPublicId()"
       Transaction transaction(*this);
+
       db_.GetLastChange(changes);
+      if (changes.empty())
+      {
+        last = db_.GetLastChangeIndex();
+        hasLast = true;
+      }
+
       transaction.Commit(0);
     }
 
-    FormatLog(target, changes, "Changes", true, 0);
+    FormatLog(target, changes, "Changes", true, 0, hasLast, last);
   }
 
 
@@ -1469,7 +1501,7 @@ namespace Orthanc
       db_.GetExportedResources(exported, done, since, maxResults);
     }
 
-    FormatLog(target, exported, "Exports", done, since);
+    FormatLog(target, exported, "Exports", done, since, false, -1);
   }
 
 
@@ -1482,7 +1514,7 @@ namespace Orthanc
       db_.GetLastExportedResource(exported);
     }
 
-    FormatLog(target, exported, "Exports", true, 0);
+    FormatLog(target, exported, "Exports", true, 0, false, -1);
   }
 
 

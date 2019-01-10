@@ -1,6 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* More consistent handling of the "Last" field returned by the "/changes" URI
+
+Plugins
+-------
+
+* New primitives to speed up databases (custom index plugins)
+
 Maintenance
 -----------
 
