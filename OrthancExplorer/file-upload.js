@@ -32,7 +32,7 @@ $(document).ready(function() {
     .bind('fileuploadsend', function (e, data) {
       // Update the progress bar. Note: for some weird reason, the
       // "fileuploadprogressall" does not work under Firefox.
-      let progress = parseInt(currentUpload / totalUploads * 100, 10);
+      var progress = parseInt(currentUpload / totalUploads * 100, 10);
       currentUpload += 1;
       $('#progress .label').text('Uploading: ' + progress + '%');
       $('#progress .bar')
@@ -42,7 +42,7 @@ $(document).ready(function() {
 });
 
 function appendFilesToUploadList(files) {
-  let target = $('#upload-list');
+  var target = $('#upload-list');
   $.each(files, function (index, file) {
     target.append('<li class="pending-file">' + file.name + '</li>');
   });
@@ -72,7 +72,7 @@ $('#upload').live('pagehide', function() {
 
 
 $('#upload-button').live('click', function() {
-  let pu = pendingUploads;
+  var pu = pendingUploads;
   pendingUploads = [];
 
   $('.pending-file').remove();
@@ -87,7 +87,7 @@ $('#upload-button').live('click', function() {
     //$('#upload-abort').removeClass('ui-disabled');
   }
 
-  for (let i = 0; i < pu.length; i++) {
+  for (var i = 0; i < pu.length; i++) {
     pu[i].submit();
   }
 });
