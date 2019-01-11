@@ -59,11 +59,6 @@ $('#upload').live('pageshow', function() {
     $("#issue-21-warning").css('display', 'none');
   }
 
-  // alert('WARNING - This page is currently affected by Orthanc issue #21: ' +
-  //       '"DICOM files might be missing after uploading with Mozilla Firefox." ' +
-  //       'Do not use this upload feature for clinical uses, or carefully ' +
-  //       'check that all instances have been properly received by Orthanc. ' +
-  //       'Please use the command-line "ImportDicomFiles.py" script to circumvent this issue.');
   $('#fileupload').fileupload('enable');
 });
 
