@@ -37,6 +37,7 @@
 #include "../../Core/TemporaryFile.h"
 
 #include <boost/shared_ptr.hpp>
+#include <stdint.h>
 
 namespace Orthanc
 {
