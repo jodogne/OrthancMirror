@@ -27,16 +27,13 @@ $(document).ready(function() {
       $('#progress .label').text('Failure');
     })
     .bind('fileuploaddrop', function (e, data) {
-      let target = $('#upload-list');
-      $.each(data.files, function (index, file) {
-        target.append('<li class="pending-file">' + file.name + '</li>');
-      });
-      target.listview('refresh');
+      console.log("dropped " + data.files.length + " files");
+      appendFilesToUploadList(data.files);
     })
     .bind('fileuploadsend', function (e, data) {
       // Update the progress bar. Note: for some weird reason, the
       // "fileuploadprogressall" does not work under Firefox.
-      let progress = parseInt(currentUpload / totalUploads * 100, 10);
+      var progress = parseInt(currentUpload / totalUploads * 100, 10);
       currentUpload += 1;
       $('#progress .label').text('Uploading: ' + progress + '%');
       $('#progress .bar')
@@ -45,14 +42,34 @@ $(document).ready(function() {
     });
 });
 
+function appendFilesToUploadList(files) {
+  var target = $('#upload-list');
+  $.each(files, function (index, file) {
+    target.append('<li class="pending-file">' + file.name + '</li>');
+  });
+  target.listview('refresh');
+}
 
+$('#fileupload').live('change', function (e) {
+  appendFilesToUploadList(e.target.files);
+})
+
+
+function ClearUploadProgress()
+{
+  $('#progress .label').text('');
+  $('#progress .bar').css('width', '0%').css('background-color', '#333');
+}
+
+$('#upload').live('pagebeforeshow', function() {
+  if (navigator.userAgent.toLowerCase().indexOf('firefox') == -1) {
+    $("#issue-21-warning").css('display', 'none');
+  }
+
+  ClearUploadProgress();
+});
 
 $('#upload').live('pageshow', function() {
-  alert('WARNING - This page is currently affected by Orthanc issue #21: ' +
-        '"DICOM files might be missing after uploading with Mozilla Firefox." ' +
-        'Do not use this upload feature for clinical uses, or carefully ' +
-        'check that all instances have been properly received by Orthanc. ' +
-        'Please use the command-line "ImportDicomFiles.py" script to circumvent this issue.');
   $('#fileupload').fileupload('enable');
 });
 
@@ -62,13 +79,12 @@ $('#upload').live('pagehide', function() {
 
 
 $('#upload-button').live('click', function() {
-  let pu = pendingUploads;
+  var pu = pendingUploads;
   pendingUploads = [];
 
   $('.pending-file').remove();
   $('#upload-list').listview('refresh');
-  $('#progress .bar').css('width', '0%');
-  $('#progress .label').text('');
+  ClearUploadProgress();
 
   currentUpload = 1;
   totalUploads = pu.length + 1;
@@ -77,7 +93,7 @@ $('#upload-button').live('click', function() {
     //$('#upload-abort').removeClass('ui-disabled');
   }
 
-  for (let i = 0; i < pu.length; i++) {
+  for (var i = 0; i < pu.length; i++) {
     pu[i].submit();
   }
 });
