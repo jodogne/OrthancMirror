@@ -3,6 +3,8 @@ var currentUpload = 0;
 var totalUpload = 0;
 
 $(document).ready(function() {
+  var progress;
+
   // Initialize the jQuery File Upload widget:
   $('#fileupload').fileupload({
     //dataType: 'json',
@@ -33,7 +35,7 @@ $(document).ready(function() {
     .bind('fileuploadsend', function (e, data) {
       // Update the progress bar. Note: for some weird reason, the
       // "fileuploadprogressall" does not work under Firefox.
-      var progress = parseInt(currentUpload / totalUploads * 100, 10);
+      progress = parseInt(currentUpload / totalUploads * 100, 10);
       currentUpload += 1;
       $('#progress .label').text('Uploading: ' + progress + '%');
       $('#progress .bar')
@@ -54,11 +56,22 @@ $('#fileupload').live('change', function (e) {
   appendFilesToUploadList(e.target.files);
 })
 
-$('#upload').live('pageshow', function() {
+
+function ClearUploadProgress()
+{
+  $('#progress .label').text('');
+  $('#progress .bar').css('width', '0%').css('background-color', '#333');
+}
+
+$('#upload').live('pagebeforeshow', function() {
   if (navigator.userAgent.toLowerCase().indexOf('firefox') == -1) {
     $("#issue-21-warning").css('display', 'none');
   }
 
+  ClearUploadProgress();
+});
+
+$('#upload').live('pageshow', function() {
   $('#fileupload').fileupload('enable');
 });
 
@@ -73,8 +86,7 @@ $('#upload-button').live('click', function() {
 
   $('.pending-file').remove();
   $('#upload-list').listview('refresh');
-  $('#progress .bar').css('width', '0%');
-  $('#progress .label').text('');
+  ClearUploadProgress();
 
   currentUpload = 1;
   totalUploads = pu.length + 1;
