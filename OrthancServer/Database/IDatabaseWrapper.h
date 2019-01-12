@@ -221,9 +221,12 @@ namespace Orthanc
                                       ResourceType queryLevel,
                                       size_t limit) = 0;
 
-    // Returns "true" iff. the instance already exists. If "false" is
-    // returned, the content of "result" is undefined, but
-    // "instanceId" must be properly set.
+    // Returns "true" iff. the instance is new and has been inserted
+    // into the database. If "false" is returned, the content of
+    // "result" is undefined, but "instanceId" must be properly
+    // set. This method must also tag the parent patient as the most
+    // recent in the patient recycling order if it is not protected
+    // (so as to fix issue #58).
     virtual bool CreateInstance(CreateInstanceResult& result, /* out */
                                 int64_t& instanceId,          /* out */
                                 const std::string& patient,

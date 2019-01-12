@@ -79,6 +79,9 @@ namespace Orthanc
 
     void ClearTable(const std::string& tableName);
 
+    int GetGlobalIntegerProperty(GlobalProperty property,
+                                 unsigned int defaultValue);
+
   public:
     SQLiteDatabaseWrapper(const std::string& path);
 
