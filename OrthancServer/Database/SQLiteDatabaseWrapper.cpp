@@ -329,6 +329,31 @@ namespace Orthanc
   }
 
 
+  int SQLiteDatabaseWrapper::GetGlobalIntegerProperty(GlobalProperty property,
+                                                      unsigned int defaultValue)
+  {
+    std::string tmp;
+
+    if (!LookupGlobalProperty(tmp, GlobalProperty_DatabasePatchLevel))
+    {
+      return defaultValue;
+    }
+    else
+    {
+      try
+      {
+        return boost::lexical_cast<int>(tmp);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Global property " + boost::lexical_cast<std::string>(property) +
+                               " should be an integer, but found: " + tmp);
+      }
+    }
+  }
+
+
   void SQLiteDatabaseWrapper::Open()
   {
     db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
@@ -344,49 +369,61 @@ namespace Orthanc
     // Make "LIKE" case-sensitive in SQLite 
     db_.Execute("PRAGMA case_sensitive_like = true;");
     
-    if (!db_.DoesTableExist("GlobalProperties"))
     {
-      LOG(INFO) << "Creating the database";
-      std::string query;
-      EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE);
-      db_.Execute(query);
-    }
+      SQLite::Transaction t(db_);
+      t.Begin();
 
-    // Check the version of the database
-    std::string tmp;
-    if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion))
-    {
-      tmp = "Unknown";
-    }
-
-    bool ok = false;
-    try
-    {
-      LOG(INFO) << "Version of the Orthanc database: " << tmp;
-      version_ = boost::lexical_cast<unsigned int>(tmp);
-      ok = true;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-    }
-
-    if (!ok)
-    {
-      throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
-                             "Incompatible version of the Orthanc database: " + tmp);
-    }
-
-    // New in Orthanc 1.5.1
-    if (version_ == 6)
-    {
-      if (!LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) ||
-          tmp != "1")
+      if (!db_.DoesTableExist("GlobalProperties"))
       {
-        LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
+        LOG(INFO) << "Creating the database";
         std::string query;
-        EmbeddedResources::GetFileResource(query, EmbeddedResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+        EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE);
         db_.Execute(query);
       }
+
+      // Check the version of the database
+      std::string tmp;
+      if (!LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion))
+      {
+        tmp = "Unknown";
+      }
+
+      bool ok = false;
+      try
+      {
+        LOG(INFO) << "Version of the Orthanc database: " << tmp;
+        version_ = boost::lexical_cast<unsigned int>(tmp);
+        ok = true;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+      }
+
+      if (!ok)
+      {
+        throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
+                               "Incompatible version of the Orthanc database: " + tmp);
+      }
+
+      // New in Orthanc 1.5.1
+      if (version_ == 6)
+      {
+        if (!LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) ||
+            tmp != "1")
+        {
+          LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
+          std::string query;
+          EmbeddedResources::GetFileResource(query, EmbeddedResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+          db_.Execute(query);
+        }
+      }
+
+      /*if (GetGlobalIntegerProperty(GlobalProperty_DatabasePatchLevel, 0) <= 0)
+      {
+        SetGlobalProperty(GlobalProperty_DatabasePatchLevel, "1");
+        }*/
+
+      t.Commit();
     }
 
     signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
