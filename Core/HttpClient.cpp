@@ -62,6 +62,8 @@ extern "C"
     }
     else
     {
+      LOG(INFO) << "Error code " << static_cast<int>(code)
+                << " in libcurl: " << curl_easy_strerror(code);
       *status = 0;
       return code;
     }
