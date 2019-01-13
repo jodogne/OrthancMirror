@@ -83,6 +83,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../PrecompiledHeaders.h"
 #include "CommandDispatcher.h"
 
+#if !defined(DCMTK_VERSION_NUMBER)
+#  error The macro DCMTK_VERSION_NUMBER must be defined
+#endif
+
 #include "FindScp.h"
 #include "StoreScp.h"
 #include "MoveScp.h"
@@ -364,7 +368,11 @@ namespace Orthanc
       UID_RETIRED_UltrasoundImageStorage,
       UID_RETIRED_UltrasoundMultiframeImageStorage,
       UID_RETIRED_VLImageStorage,
+#if DCMTK_VERSION_NUMBER >= 364
+      UID_RETIRED_VLMultiframeImageStorage,
+#else
       UID_RETIRED_VLMultiFrameImageStorage,
+#endif
       UID_RETIRED_XRayAngiographicBiPlaneImageStorage,
       // draft
       UID_DRAFT_SRAudioStorage,
@@ -469,8 +477,16 @@ namespace Orthanc
         DIC_AE calledAet_C;
         DIC_AE remoteIp_C;
         DIC_AE calledIP_C;
-        if (ASC_getAPTitles(assoc->params, remoteAet_C, calledAet_C, NULL).bad() ||
-            ASC_getPresentationAddresses(assoc->params, remoteIp_C, calledIP_C).bad())
+
+        if (
+#if DCMTK_VERSION_NUMBER >= 364
+	    ASC_getAPTitles(assoc->params, remoteAet_C, sizeof(remoteAet_C), calledAet_C, sizeof(calledAet_C), NULL, 0).bad() ||
+            ASC_getPresentationAddresses(assoc->params, remoteIp_C, sizeof(remoteIp_C), calledIP_C, sizeof(calledIP_C)).bad()
+#else
+	    ASC_getAPTitles(assoc->params, remoteAet_C, calledAet_C, NULL).bad() ||
+            ASC_getPresentationAddresses(assoc->params, remoteIp_C, calledIP_C).bad()
+#endif
+	    )
         {
           T_ASC_RejectParameters rej =
             {
@@ -606,7 +622,12 @@ namespace Orthanc
       ASC_setAPTitles(assoc->params, NULL, NULL, server.GetApplicationEntityTitle().c_str());
 
       /* acknowledge or reject this association */
+#if DCMTK_VERSION_NUMBER >= 364
+      cond = ASC_getApplicationContextName(assoc->params, buf, sizeof(buf));
+#else
       cond = ASC_getApplicationContextName(assoc->params, buf);
+#endif
+
       if ((cond.bad()) || strcmp(buf, UID_StandardApplicationContext) != 0)
       {
         /* reject: the application context name is not supported */
