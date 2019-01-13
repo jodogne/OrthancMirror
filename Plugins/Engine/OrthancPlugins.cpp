@@ -38,6 +38,10 @@
 #error The plugin support is disabled
 #endif
 
+#if !defined(DCMTK_VERSION_NUMBER)
+#  error The macro DCMTK_VERSION_NUMBER must be defined
+#endif
+
 
 #include "../../Core/ChunkedBuffer.h"
 #include "../../Core/DicomFormat/DicomArray.h"
@@ -2416,7 +2420,11 @@ namespace Orthanc
 
       ~DictionaryReadLocker()
       {
+#if DCMTK_VERSION_NUMBER >= 364
+        dcmDataDict.rdunlock();
+#else
         dcmDataDict.unlock();
+#endif
       }
 
       const DcmDataDictionary* operator->()
