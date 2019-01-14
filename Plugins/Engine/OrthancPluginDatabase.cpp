@@ -1414,4 +1414,10 @@ namespace Orthanc
       return result;
     }
   }
+
+  
+  void OrthancPluginDatabase::TagAsMostRecentPatient(int64_t patient)
+  {
+    // TODO
+  }
 }

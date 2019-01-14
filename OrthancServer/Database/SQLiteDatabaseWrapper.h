@@ -79,8 +79,9 @@ namespace Orthanc
 
     void ClearTable(const std::string& tableName);
 
+    // Unused => could be removed
     int GetGlobalIntegerProperty(GlobalProperty property,
-                                 unsigned int defaultValue);
+                                 int defaultValue);
 
   public:
     SQLiteDatabaseWrapper(const std::string& path);
@@ -358,5 +359,7 @@ namespace Orthanc
     }
 
     virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
+
+    virtual void TagAsMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE;
   };
 }

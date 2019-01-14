@@ -330,7 +330,7 @@ namespace Orthanc
 
 
   int SQLiteDatabaseWrapper::GetGlobalIntegerProperty(GlobalProperty property,
-                                                      unsigned int defaultValue)
+                                                      int defaultValue)
   {
     std::string tmp;
 
@@ -417,11 +417,6 @@ namespace Orthanc
           db_.Execute(query);
         }
       }
-
-      /*if (GetGlobalIntegerProperty(GlobalProperty_DatabasePatchLevel, 0) <= 0)
-      {
-        SetGlobalProperty(GlobalProperty_DatabasePatchLevel, "1");
-        }*/
 
       t.Commit();
     }
@@ -1325,5 +1320,11 @@ namespace Orthanc
       // No change has been recorded so far in the database
       return 0;
     }
+  }
+
+
+  void SQLiteDatabaseWrapper::TagAsMostRecentPatient(int64_t patient)
+  {
+    // TODO
   }
 }
