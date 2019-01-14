@@ -83,6 +83,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../PrecompiledHeaders.h"
 #include "StoreScp.h"
 
+#if !defined(DCMTK_VERSION_NUMBER)
+#  error The macro DCMTK_VERSION_NUMBER must be defined
+#endif
+
 #include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../DicomParsing/ToDcmtkBridge.h"
 #include "../../OrthancException.h"
@@ -188,10 +192,16 @@ namespace Orthanc
           if (rsp->DimseStatus == STATUS_Success)
           {
             // which SOP class and SOP instance ?
+	    
+#if DCMTK_VERSION_NUMBER >= 364
+	    if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
+						     sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
+#else
             if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
+#endif
             {
-              //LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
-              rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
+		//LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
+		rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
             }
             else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
             {
