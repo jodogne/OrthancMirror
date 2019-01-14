@@ -82,6 +82,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../PrecompiledHeaders.h"
 #include "DicomUserConnection.h"
 
+#if !defined(DCMTK_VERSION_NUMBER)
+#  error The macro DCMTK_VERSION_NUMBER must be defined
+#endif
+
 #include "../DicomFormat/DicomArray.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
@@ -330,7 +334,12 @@ namespace Orthanc
     // Figure out which SOP class and SOP instance is encapsulated in the file
     DIC_UI sopClass;
     DIC_UI sopInstance;
+
+#if DCMTK_VERSION_NUMBER >= 364
+    if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sizeof(sopClass), sopInstance, sizeof(sopInstance)))
+#else
     if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
+#endif
     {
       throw OrthancException(ErrorCode_NoSopClassOrInstance);
     }
@@ -572,7 +581,15 @@ namespace Orthanc
 
     T_DIMSE_C_FindRSP response;
     DcmDataset* statusDetail = NULL;
+
+#if DCMTK_VERSION_NUMBER >= 364
+    int responseCount;
+#endif
+
     OFCondition cond = DIMSE_findUser(association, presID, &request, dataset,
+#if DCMTK_VERSION_NUMBER >= 364
+				      responseCount,
+#endif
                                       FindCallback, &payload,
                                       /*opt_blockMode*/ DIMSE_BLOCKING, 
                                       /*opt_dimse_timeout*/ dimseTimeout,
