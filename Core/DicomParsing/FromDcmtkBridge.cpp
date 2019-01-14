@@ -41,6 +41,10 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
+#if !defined(DCMTK_VERSION_NUMBER)
+#  error The macro DCMTK_VERSION_NUMBER must be defined
+#endif
+
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 #include "../Logging.h"
@@ -165,7 +169,11 @@ namespace Orthanc
 
       ~DictionaryLocker()
       {
+#if DCMTK_VERSION_NUMBER >= 364
+        dcmDataDict.wrunlock();
+#else
         dcmDataDict.unlock();
+#endif
       }
 
       DcmDataDictionary& operator*()
