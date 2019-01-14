@@ -9,6 +9,7 @@ Maintenance
 * Fix issue #21 (DICOM files missing after uploading with Firefox)
 * Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
 * Fix issue #124 (GET /studies/ID/media fails for certain dicom file)
+* Fix issue #125 (Mongoose: /instances/{id} returns 500 on invalid HTTP Method)
 * Fixed Orthanc Explorer on IE and Firefox: Explorer always show "too many results"
   and it's therefore impossible to browse the content.
 * Upgraded dependencies for static and Windows builds:
