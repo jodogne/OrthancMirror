@@ -62,8 +62,8 @@ extern "C"
     }
     else
     {
-      LOG(INFO) << "Error code " << static_cast<int>(code)
-                << " in libcurl: " << curl_easy_strerror(code);
+      LOG(ERROR) << "Error code " << static_cast<int>(code)
+                 << " in libcurl: " << curl_easy_strerror(code);
       *status = 0;
       return code;
     }
@@ -697,8 +697,8 @@ namespace Orthanc
     else
     {
       answerBody.clear();
-      LOG(INFO) << "Error in HTTP request, received HTTP status " << status 
-                << " (" << EnumerationToString(lastStatus_) << ")";
+      LOG(ERROR) << "Error in HTTP request, received HTTP status " << status 
+                 << " (" << EnumerationToString(lastStatus_) << ")";
     }
 
     return success;
