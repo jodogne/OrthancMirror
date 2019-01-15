@@ -17,6 +17,7 @@ Maintenance
 * Don't consider tags whose group is below 0x0008 in C-FIND SCP
 * Compatibility with DCMTK 3.6.4
 * Fix issue #21 (DICOM files missing after uploading with Firefox)
+* Fix issue #58 (Patient recycling order should be defined by their received last instance)
 * Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
 * Fix issue #124 (GET /studies/ID/media fails for certain dicom file)
 * Fix issue #125 (Mongoose: /instances/{id} returns 500 on invalid HTTP Method)

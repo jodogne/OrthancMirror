@@ -143,7 +143,7 @@ namespace Orthanc
         database.AttachChild(result.patientId_, result.studyId_);
       }
 
-      database.TagAsMostRecentPatient(result.patientId_);
+      database.TagMostRecentPatient(result.patientId_);
       
       // Sanity checks
       assert(result.patientId_ != -1);
