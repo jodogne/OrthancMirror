@@ -272,16 +272,24 @@ namespace Orthanc
 
     if (isOptimal)
     {
-      LOG(INFO) << "The performance of the database index plugin is optimal for this version of Orthanc";
+      LOG(INFO) << "The performance of the database index plugin "
+                << "is optimal for this version of Orthanc";
     }
     else
     {
-      LOG(WARNING) << "Performance warning in the database index: Some extensions are missing in the plugin";
+      LOG(WARNING) << "Performance warning in the database index: "
+                   << "Some extensions are missing in the plugin";
     }
 
     if (extensions_.getLastChangeIndex == NULL)
     {
       LOG(WARNING) << "The database extension GetLastChangeIndex() is missing";
+    }
+
+    if (extensions_.tagMostRecentPatient == NULL)
+    {
+      LOG(WARNING) << "The database extension TagMostRecentPatient() is missing "
+                   << "(affected by issue 58)";
     }
   }
 
@@ -1416,8 +1424,11 @@ namespace Orthanc
   }
 
   
-  void OrthancPluginDatabase::TagAsMostRecentPatient(int64_t patient)
+  void OrthancPluginDatabase::TagMostRecentPatient(int64_t patient)
   {
-    // TODO
+    if (extensions_.tagMostRecentPatient != NULL)
+    {
+      CheckSuccess(extensions_.tagMostRecentPatient(payload_, patient));
+    }
   }
 }

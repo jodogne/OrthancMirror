@@ -52,7 +52,7 @@ namespace Orthanc
       virtual void AttachChild(int64_t parent,
                                int64_t child) = 0;
 
-      virtual void TagAsMostRecentPatient(int64_t patientId) = 0;
+      virtual void TagMostRecentPatient(int64_t patientId) = 0;
       
       static bool Apply(ICreateInstance& database,
                         IDatabaseWrapper::CreateInstanceResult& result,

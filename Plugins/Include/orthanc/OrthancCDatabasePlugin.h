@@ -820,6 +820,11 @@ extern "C"
       /* inputs */
       void* payload);
                    
+    OrthancPluginErrorCode  (*tagMostRecentPatient) (
+      /* inputs */
+      void* payload,
+      int64_t patientId);
+                   
   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */

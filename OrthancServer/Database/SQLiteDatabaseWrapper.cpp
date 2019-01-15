@@ -1323,8 +1323,29 @@ namespace Orthanc
   }
 
 
-  void SQLiteDatabaseWrapper::TagAsMostRecentPatient(int64_t patient)
+  void SQLiteDatabaseWrapper::TagMostRecentPatient(int64_t patient)
   {
-    // TODO
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                          "DELETE FROM PatientRecyclingOrder WHERE patientId=?");
+      s.BindInt64(0, patient);
+      s.Run();
+
+      assert(db_.GetLastChangeCount() == 0 ||
+             db_.GetLastChangeCount() == 1);
+      
+      if (db_.GetLastChangeCount() == 0)
+      {
+        // The patient was protected, there was nothing to delete from the recycling order
+        return;
+      }
+    }
+
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                          "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
+      s.BindInt64(0, patient);
+      s.Run();
+    }
   }
 }
