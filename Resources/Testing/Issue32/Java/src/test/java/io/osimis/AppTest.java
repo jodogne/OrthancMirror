@@ -1,6 +1,7 @@
 package io.osimis;
 
 import java.io.IOException;
+import java.util.Base64;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -32,6 +33,10 @@ public class AppTest
         }).build();
 
     HttpRequestBase request = new HttpGet("http://localhost:8042/system");
+
+    // Low-level handling of HTTP basic authentication (for integration tests)
+    request.addHeader("Authorization", "Basic " +
+                      Base64.getEncoder().encodeToString("alice:orthanctest".getBytes()));
 
     // The following call works
     //HttpRequestBase request = new HttpGet("https://api.ipify.org?format=json");
