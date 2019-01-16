@@ -2,7 +2,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
   set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9a)
   DownloadPackage(
     "3353992aecaee1805ef4109aadd433e7"
-    "http://www.orthanc-server.com/downloads/third-party/jpegsrc.v9a.tar.gz"
+    "http://orthanc.osimis.io/ThirdPartyDownloads/jpegsrc.v9a.tar.gz"
     "${LIBJPEG_SOURCES_DIR}")
 
   include_directories(
