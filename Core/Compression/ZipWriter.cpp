@@ -59,9 +59,9 @@ static void PrepareFileInfo(zip_fileinfo& zfi)
   ptime midnight(today);
 
   time_duration sinceMidnight = now - midnight;
-  zfi.tmz_date.tm_sec = sinceMidnight.seconds();  // seconds after the minute - [0,59]
-  zfi.tmz_date.tm_min = sinceMidnight.minutes();  // minutes after the hour - [0,59]
-  zfi.tmz_date.tm_hour = sinceMidnight.hours();  // hours since midnight - [0,23]
+  zfi.tmz_date.tm_sec = static_cast<unsigned int>(sinceMidnight.seconds());  // seconds after the minute - [0,59]
+  zfi.tmz_date.tm_min = static_cast<unsigned int>(sinceMidnight.minutes());  // minutes after the hour - [0,59]
+  zfi.tmz_date.tm_hour = static_cast<unsigned int>(sinceMidnight.hours());  // hours since midnight - [0,23]
 
   // http://www.boost.org/doc/libs/1_35_0/doc/html/boost/gregorian/greg_day.html
   zfi.tmz_date.tm_mday = today.day();  // day of the month - [1,31]
