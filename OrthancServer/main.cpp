@@ -1021,7 +1021,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   catch (OrthancException&)
   {
     LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
-               << "http://book.orthanc-server.com//users/replication.html";
+               << "http://book.orthanc-server.com/users/replication.html";
     throw;
   }
     
