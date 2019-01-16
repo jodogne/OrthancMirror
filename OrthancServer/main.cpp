@@ -809,7 +809,7 @@ static bool StartHttpServer(ServerContext& context,
       //httpServer.SetThreadsCount(50);
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
-      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", false));
+      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", true));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
 
