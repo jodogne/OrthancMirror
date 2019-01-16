@@ -29,7 +29,7 @@ if (USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 
 elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
   set(GOOGLE_TEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
-  set(GOOGLE_TEST_URL "http://www.orthanc-server.com/downloads/third-party/gtest-1.7.0.zip")
+  set(GOOGLE_TEST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/gtest-1.7.0.zip")
   set(GOOGLE_TEST_MD5 "2d6ec8ccdf5c46b05ba54a9fd1d130d7")
 
   DownloadPackage(${GOOGLE_TEST_MD5} ${GOOGLE_TEST_URL} "${GOOGLE_TEST_SOURCES_DIR}")
