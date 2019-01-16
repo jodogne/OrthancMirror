@@ -4,7 +4,6 @@ Pending changes in the mainline
 Maintenance
 -----------
 
-* CivetWeb is now the default embedded HTTP server (instead of Mongoose)
 * Don't consider tags whose group is below 0x0008 in C-FIND SCP
 * Compatibility with DCMTK 3.6.4
 * Fix issue #21 (DICOM files missing after uploading with Firefox)

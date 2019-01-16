@@ -85,7 +85,7 @@ SUPPORTED - Debian Jessie/Sid
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
 # cmake -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_CIVETWEB=OFF \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
@@ -106,7 +106,7 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 
 # cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_CIVETWEB=OFF \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
 	-DUSE_SYSTEM_JSONCPP=OFF \
 	-DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
@@ -126,7 +126,7 @@ SUPPORTED - Ubuntu 14.04 LTS and 16.04 LTS
 
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
-        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
@@ -146,7 +146,6 @@ You will also have to install "gflags-devel" on Fedora 21&22:
 # sudo yum install gflags-devel
 
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
-         -DENABLE_CIVETWEB=OFF \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
          -DCMAKE_BUILD_TYPE=Release \
          ~/Orthanc
@@ -163,7 +162,7 @@ SUPPORTED - FreeBSD 10.1
               e2fsprogs-libuuid boost-libs sqlite3 python libiconv
 
 # cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
         -DCMAKE_BUILD_TYPE=Release \
 	~/Orthanc
@@ -179,7 +178,7 @@ SUPPORTED - CentOS 6
 
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_JSONCPP=OFF \
-        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_MONGOOSE=OFF \
         -DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_SYSTEM_SQLITE=OFF \
         -DUSE_SYSTEM_BOOST=OFF \
