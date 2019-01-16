@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
   set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.11)
-  set(CIVETWEB_URL "http://www.orthanc-server.com/downloads/third-party/civetweb-1.11.tar.gz")
+  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.11.tar.gz")
   set(CIVETWEB_MD5 "b6d2175650a27924bccb747cbe084cd4")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
