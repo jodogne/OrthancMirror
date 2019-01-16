@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.11)
-  SET(ZLIB_URL "http://www.orthanc-server.com/downloads/third-party/zlib-1.2.11.tar.gz")
+  SET(ZLIB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/zlib-1.2.11.tar.gz")
   SET(ZLIB_MD5 "1c9f62f0778697a09d36121ead88e08e")
 
   DownloadPackage(${ZLIB_MD5} ${ZLIB_URL} "${ZLIB_SOURCES_DIR}")

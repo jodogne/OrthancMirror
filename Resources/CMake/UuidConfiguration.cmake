@@ -2,7 +2,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_UUID)
     SET(E2FSPROGS_SOURCES_DIR ${CMAKE_BINARY_DIR}/e2fsprogs-1.43.8)
-    SET(E2FSPROGS_URL "http://www.orthanc-server.com/downloads/third-party/e2fsprogs-1.43.8.tar.gz")
+    SET(E2FSPROGS_URL "http://orthanc.osimis.io/ThirdPartyDownloads/e2fsprogs-1.43.8.tar.gz")
     SET(E2FSPROGS_MD5 "670b7a74a8ead5333acf21b9afc92b3c")
 
     if (IS_DIRECTORY "${E2FSPROGS_SOURCES_DIR}")

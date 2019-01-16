@@ -1,6 +1,6 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
   SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2o)
-  SET(OPENSSL_URL "http://www.orthanc-server.com/downloads/third-party/openssl-1.0.2o.tar.gz")
+  SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.0.2o.tar.gz")
   SET(OPENSSL_MD5 "44279b8557c3247cbe324e2322ecd114")
 
   if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")

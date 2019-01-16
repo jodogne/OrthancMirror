@@ -11,7 +11,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     # Use Mongoose 3.1
     DownloadPackage(
       "e718fc287b4eb1bd523be3fa00942bb0"
-      "http://www.orthanc-server.com/downloads/third-party/mongoose-3.1.tgz"
+      "http://orthanc.osimis.io/ThirdPartyDownloads/mongoose-3.1.tgz"
       "${MONGOOSE_SOURCES_DIR}")
     
     add_definitions(-DMONGOOSE_USE_CALLBACKS=0)
@@ -21,7 +21,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     # Use Mongoose 3.8
     DownloadPackage(
       "7e3296295072792cdc3c633f9404e0c3"
-      "http://www.orthanc-server.com/downloads/third-party/mongoose-3.8.tgz"
+      "http://orthanc.osimis.io/ThirdPartyDownloads/mongoose-3.8.tgz"
       "${MONGOOSE_SOURCES_DIR}")
     
     add_definitions(-DMONGOOSE_USE_CALLBACKS=1)
