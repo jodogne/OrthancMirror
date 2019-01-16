@@ -30,7 +30,7 @@ set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (nece
 set(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 
 # Generic parameters of the build
-set(ENABLE_CIVETWEB OFF CACHE BOOL "Use Civetweb instead of Mongoose (experimental)")
+set(ENABLE_CIVETWEB ON CACHE BOOL "Use Civetweb instead of Mongoose (Mongoose was the default embedded HTTP server in Orthanc <= 1.5.1)")
 set(ENABLE_PKCS11 OFF CACHE BOOL "Enable PKCS#11 for HTTPS client authentication using hardware security modules and smart cards")
 set(ENABLE_PROFILING OFF CACHE BOOL "Whether to enable the generation of profiling information with gprof")
 set(ENABLE_SSL ON CACHE BOOL "Include support for SSL")
