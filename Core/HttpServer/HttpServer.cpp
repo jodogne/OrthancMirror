@@ -936,6 +936,14 @@ namespace Orthanc
     threadsCount_ = 50;  // Default value in mongoose
     tcpNoDelay_ = true;
 
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    LOG(INFO) << "This Orthanc server uses Mongoose as its embedded HTTP server";
+#endif
+
+#if ORTHANC_ENABLE_CIVETWEB == 1
+    LOG(INFO) << "This Orthanc server uses CivetWeb as its embedded HTTP server";
+#endif
+
 #if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
     // https://en.wikipedia.org/wiki/OpenSSL#Heartbleed_bug
