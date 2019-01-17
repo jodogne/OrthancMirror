@@ -41,7 +41,7 @@
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/HttpServer/HttpServer.h"
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -797,7 +797,7 @@ static bool StartHttpServer(ServerContext& context,
   else
   {
     MyIncomingHttpRequestFilter httpFilter(context, plugins);
-    MongooseServer httpServer;
+    HttpServer httpServer;
     bool httpDescribeErrors;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
