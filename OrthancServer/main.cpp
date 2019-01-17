@@ -800,6 +800,14 @@ static bool StartHttpServer(ServerContext& context,
     MongooseServer httpServer;
     bool httpDescribeErrors;
 
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    const bool defaultKeepAlive = false;
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    const bool defaultKeepAlive = true;
+#else
+#  error "Either Mongoose or Civetweb must be enabled to compile this file"
+#endif
+  
     {
       OrthancConfiguration::ReaderLock lock;
       
@@ -809,9 +817,10 @@ static bool StartHttpServer(ServerContext& context,
       //httpServer.SetThreadsCount(50);
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
-      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", true));
+      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
+      httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
       lock.GetConfiguration().SetupRegisteredUsers(httpServer);
 

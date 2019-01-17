@@ -934,6 +934,7 @@ namespace Orthanc
     exceptionFormatter_ = NULL;
     realm_ = ORTHANC_REALM;
     threadsCount_ = 50;  // Default value in mongoose
+    tcpNoDelay_ = true;
 
 #if ORTHANC_ENABLE_SSL == 1
     // Check for the Heartbleed exploit
@@ -994,8 +995,10 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
         // Disable TCP Nagle's algorithm to maximize speed (this
-        // option is not available in Mongoose)
-        "tcp_nodelay", "1",
+        // option is not available in Mongoose).
+        // https://groups.google.com/d/topic/civetweb/35HBR9seFjU/discussion
+        // https://eklitzke.org/the-caveats-of-tcp-nodelay
+        "tcp_nodelay", (tcpNoDelay_ ? "1" : "0"),
 #endif
 
         // Set the number of threads
@@ -1086,6 +1089,13 @@ namespace Orthanc
     Stop();
     keepAlive_ = enabled;
     LOG(INFO) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    if (enabled)
+    {
+      LOG(WARNING) << "You should disable HTTP keep alive, as you are using Mongoose";
+    }
+#endif
   }
 
 
@@ -1161,5 +1171,14 @@ namespace Orthanc
     
     Stop();
     threadsCount_ = threads;
+  }
+
+
+  void MongooseServer::SetTcpNoDelay(bool tcpNoDelay)
+  {
+    Stop();
+    tcpNoDelay_ = tcpNoDelay;
+    LOG(INFO) << "TCP_NODELAY for the HTTP sockets is set to "
+              << (tcpNoDelay ? "true" : "false");
   }
 }
