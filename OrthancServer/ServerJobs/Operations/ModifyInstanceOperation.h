@@ -36,10 +36,10 @@
 #include "../../../Core/JobsEngine/Operations/IJobOperation.h"
 #include "../../../Core/DicomParsing/DicomModification.h"
 
-#include "../../ServerContext.h"
-
 namespace Orthanc
 {
+  class ServerContext;
+  
   class ModifyInstanceOperation : public IJobOperation
   {
   private:

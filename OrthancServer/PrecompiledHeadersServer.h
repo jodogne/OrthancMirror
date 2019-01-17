@@ -37,6 +37,6 @@
 
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
-#include "ServerContext.h"
+#include <boost/thread.hpp>
 
 #endif

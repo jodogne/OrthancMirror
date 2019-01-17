@@ -31,44 +31,37 @@
  **/
 
 
-#pragma once
-
-#include "IFindConstraint.h"
-
-#include <set>
+#include "../../PrecompiledHeadersServer.h"
+#include "IGetChildrenMetadata.h"
 
 namespace Orthanc
 {
-  class ListConstraint : public IFindConstraint
+  namespace Compatibility
   {
-  private:
-    std::set<std::string>  allowedValues_;
-    bool                   isCaseSensitive_;
-
-    ListConstraint(const ListConstraint& other) : 
-      allowedValues_(other.allowedValues_),
-      isCaseSensitive_(other.isCaseSensitive_)
+    void IGetChildrenMetadata::Apply(IGetChildrenMetadata& database,
+                                     std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata)
     {
+      // This function comes from an optimization of
+      // "ServerIndex::GetSeriesStatus()" in Orthanc <= 1.5.1
+      // Loop over the instances of this series
+
+      target.clear();
+      
+      std::list<int64_t> children;
+      database.GetChildrenInternalId(children, resourceId);
+
+      std::set<int64_t> instances;
+      for (std::list<int64_t>::const_iterator 
+             it = children.begin(); it != children.end(); ++it)
+      {
+        std::string value;
+        if (database.LookupMetadata(value, *it, metadata))
+        {
+          target.push_back(value);
+        }
+      }
     }
-
-  public:
-    ListConstraint(bool isCaseSensitive) : 
-      isCaseSensitive_(isCaseSensitive)
-    {
-    }
-
-    void AddAllowedValue(const std::string& value);
-
-    virtual IFindConstraint* Clone() const
-    {
-      return new ListConstraint(*this);
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
-
-    virtual bool Match(const std::string& value) const;
-
-    virtual std::string Format() const;
-  };
+  }
 }

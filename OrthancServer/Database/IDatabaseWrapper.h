@@ -33,21 +33,51 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/SQLite/ITransaction.h"
-#include "../Core/FileStorage/IStorageArea.h"
-#include "../Core/FileStorage/FileInfo.h"
+#include "../../Core/DicomFormat/DicomMap.h"
+#include "../../Core/FileStorage/FileInfo.h"
+#include "../../Core/FileStorage/IStorageArea.h"
+#include "../../Core/SQLite/ITransaction.h"
+
+#include "../ExportedResource.h"
 #include "IDatabaseListener.h"
-#include "ExportedResource.h"
 
 #include <list>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
+  class DatabaseConstraint;
+  class ResourcesContent;
+
+  
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
+    class ITransaction : public boost::noncopyable
+    {
+    public:
+      virtual ~ITransaction()
+      {
+      }
+
+      virtual void Begin() = 0;
+
+      virtual void Rollback() = 0;
+
+      virtual void Commit(int64_t fileSizeDelta) = 0;
+    };
+
+
+    struct CreateInstanceResult
+    {
+      bool     isNewPatient_;
+      bool     isNewStudy_;
+      bool     isNewSeries_;
+      int64_t  patientId_;
+      int64_t  studyId_;
+      int64_t  seriesId_;
+    };
+
     virtual ~IDatabaseWrapper()
     {
     }
@@ -59,15 +89,9 @@ namespace Orthanc
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment) = 0;
 
-    virtual void AttachChild(int64_t parent,
-                             int64_t child) = 0;
-
     virtual void ClearChanges() = 0;
 
     virtual void ClearExportedResources() = 0;
-
-    virtual int64_t CreateResource(const std::string& publicId,
-                                   ResourceType type) = 0;
 
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment) = 0;
@@ -83,9 +107,6 @@ namespace Orthanc
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) = 0;
-
-    virtual void GetAllInternalIds(std::list<int64_t>& target,
-                                   ResourceType resourceType) = 0;
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) = 0;
@@ -150,18 +171,6 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property) = 0;
 
-    virtual void LookupIdentifier(std::list<int64_t>& result,
-                                  ResourceType level,
-                                  const DicomTag& tag,
-                                  IdentifierConstraintType type,
-                                  const std::string& value) = 0;
-
-    virtual void LookupIdentifierRange(std::list<int64_t>& result,
-                                       ResourceType level,
-                                       const DicomTag& tag,
-                                       const std::string& start,
-                                       const std::string& end) = 0;
-
     virtual bool LookupMetadata(std::string& target,
                                 int64_t id,
                                 MetadataType type) = 0;
@@ -183,14 +192,6 @@ namespace Orthanc
 
     virtual void ClearMainDicomTags(int64_t id) = 0;
 
-    virtual void SetMainDicomTag(int64_t id,
-                                 const DicomTag& tag,
-                                 const std::string& value) = 0;
-
-    virtual void SetIdentifierTag(int64_t id,
-                                  const DicomTag& tag,
-                                  const std::string& value) = 0;
-
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
                              const std::string& value) = 0;
@@ -198,7 +199,7 @@ namespace Orthanc
     virtual void SetProtectedPatient(int64_t internalId, 
                                      bool isProtected) = 0;
 
-    virtual SQLite::ITransaction* StartTransaction() = 0;
+    virtual ITransaction* StartTransaction() = 0;
 
     virtual void SetListener(IDatabaseListener& listener) = 0;
 
@@ -206,5 +207,43 @@ namespace Orthanc
 
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
+
+
+    /**
+     * Primitives introduced in Orthanc 1.5.2
+     **/
+    
+    virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
+    
+    virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                      std::list<std::string>* instancesId, // Can be NULL if not needed
+                                      const std::vector<DatabaseConstraint>& lookup,
+                                      ResourceType queryLevel,
+                                      size_t limit) = 0;
+
+    // Returns "true" iff. the instance is new and has been inserted
+    // into the database. If "false" is returned, the content of
+    // "result" is undefined, but "instanceId" must be properly
+    // set. This method must also tag the parent patient as the most
+    // recent in the patient recycling order if it is not protected
+    // (so as to fix issue #58).
+    virtual bool CreateInstance(CreateInstanceResult& result, /* out */
+                                int64_t& instanceId,          /* out */
+                                const std::string& patient,
+                                const std::string& study,
+                                const std::string& series,
+                                const std::string& instance) = 0;
+
+    // It is guaranteed that the resources to be modified have no main
+    // DICOM tags, and no DICOM identifiers associated with
+    // them. However, some metadata might be already existing, and
+    // have to be overwritten.
+    virtual void SetResourcesContent(const ResourcesContent& content) = 0;
+
+    virtual void GetChildrenMetadata(std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata) = 0;
+
+    virtual int64_t GetLastChangeIndex() = 0;
   };
 }
