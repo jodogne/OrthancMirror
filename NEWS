@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration option: "TcpNoDelay" to disable Nagle's algorithm in HTTP server
+
 Maintenance
 -----------
 

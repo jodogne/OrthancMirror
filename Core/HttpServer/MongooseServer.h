@@ -97,6 +97,7 @@ namespace Orthanc
     IHttpExceptionFormatter* exceptionFormatter_;
     std::string realm_;
     unsigned int threadsCount_;
+    bool tcpNoDelay_;
   
     bool IsRunning() const;
 
@@ -205,6 +206,14 @@ namespace Orthanc
     unsigned int GetThreadsCount() const
     {
       return threadsCount_;
+    }
+
+    // New in Orthanc 1.5.2, not available for Mongoose
+    void SetTcpNoDelay(bool tcpNoDelay);
+
+    bool IsTcpNoDelay() const
+    {
+      return tcpNoDelay_;
     }
   };
 }
