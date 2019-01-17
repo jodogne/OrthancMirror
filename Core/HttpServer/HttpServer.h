@@ -41,7 +41,7 @@
 #  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to include this file
 #endif
 
-#if (ORTHANC_ENABLE_MONGOOSE == 0 && \
+#if (ORTHANC_ENABLE_MONGOOSE == 0 &&            \
      ORTHANC_ENABLE_CIVETWEB == 0)
 #  error Either ORTHANC_ENABLE_MONGOOSE or ORTHANC_ENABLE_CIVETWEB must be set to 1
 #endif
@@ -74,7 +74,7 @@ namespace Orthanc
   };
 
 
-  class MongooseServer
+  class HttpServer
   {
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
@@ -97,13 +97,14 @@ namespace Orthanc
     IHttpExceptionFormatter* exceptionFormatter_;
     std::string realm_;
     unsigned int threadsCount_;
+    bool tcpNoDelay_;
   
     bool IsRunning() const;
 
   public:
-    MongooseServer();
+    HttpServer();
 
-    ~MongooseServer();
+    ~HttpServer();
 
     void SetPortNumber(uint16_t port);
 
@@ -205,6 +206,14 @@ namespace Orthanc
     unsigned int GetThreadsCount() const
     {
       return threadsCount_;
+    }
+
+    // New in Orthanc 1.5.2, not available for Mongoose
+    void SetTcpNoDelay(bool tcpNoDelay);
+
+    bool IsTcpNoDelay() const
+    {
+      return tcpNoDelay_;
     }
   };
 }
