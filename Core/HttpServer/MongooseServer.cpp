@@ -992,6 +992,12 @@ namespace Orthanc
         "keep_alive_timeout_ms", (keepAlive_ ? "500" : "0"),
 #endif
 
+#if ORTHANC_ENABLE_CIVETWEB == 1
+        // Disable TCP Nagle's algorithm to maximize speed (this
+        // option is not available in Mongoose)
+        "tcp_nodelay", "1",
+#endif
+
         // Set the number of threads
         "num_threads", numThreads.c_str(),
         
