@@ -1,4 +1,3 @@
-Only in civetweb-1.11/src: a.out
 diff -urEb civetweb-1.11.orig/src/civetweb.c civetweb-1.11/src/civetweb.c
 --- civetweb-1.11.orig/src/civetweb.c	2019-01-17 21:09:41.852888857 +0100
 +++ civetweb-1.11/src/civetweb.c	2019-01-17 21:23:54.273424124 +0100
