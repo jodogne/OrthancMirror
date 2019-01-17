@@ -271,9 +271,9 @@ if (ENABLE_WEB_SERVER)
     ${ORTHANC_ROOT}/Core/HttpServer/HttpContentNegociation.cpp
     ${ORTHANC_ROOT}/Core/HttpServer/HttpFileSender.cpp
     ${ORTHANC_ROOT}/Core/HttpServer/HttpOutput.cpp
+    ${ORTHANC_ROOT}/Core/HttpServer/HttpServer.cpp
     ${ORTHANC_ROOT}/Core/HttpServer/HttpStreamTranscoder.cpp
     ${ORTHANC_ROOT}/Core/HttpServer/HttpToolbox.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/MongooseServer.cpp
     ${ORTHANC_ROOT}/Core/HttpServer/StringHttpOutput.cpp
     ${ORTHANC_ROOT}/Core/RestApi/RestApi.cpp
     ${ORTHANC_ROOT}/Core/RestApi/RestApiCall.cpp

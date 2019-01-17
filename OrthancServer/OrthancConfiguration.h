@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class MongooseServer;
+  class HttpServer;
   class ServerIndex;
   
   class OrthancConfiguration : public boost::noncopyable
@@ -184,7 +184,7 @@ namespace Orthanc
 
     void GetListOfOrthancPeers(std::set<std::string>& target) const;
 
-    void SetupRegisteredUsers(MongooseServer& httpServer) const;
+    void SetupRegisteredUsers(HttpServer& httpServer) const;
 
     std::string InterpretStringParameterAsPath(const std::string& parameter) const;
     

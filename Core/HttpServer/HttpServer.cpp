@@ -34,7 +34,7 @@
 // http://en.highscore.de/cpp/boost/stringhandling.html
 
 #include "../PrecompiledHeaders.h"
-#include "MongooseServer.h"
+#include "HttpServer.h"
 
 #include "../Logging.h"
 #include "../ChunkedBuffer.h"
@@ -264,14 +264,14 @@ namespace Orthanc
   };
 
 
-  struct MongooseServer::PImpl
+  struct HttpServer::PImpl
   {
     struct mg_context *context_;
     ChunkStore chunkStore_;
   };
 
 
-  ChunkStore& MongooseServer::GetChunkStore()
+  ChunkStore& HttpServer::GetChunkStore()
   {
     return pimpl_->chunkStore_;
   }
@@ -427,7 +427,7 @@ namespace Orthanc
   }
 
 
-  static bool IsAccessGranted(const MongooseServer& that,
+  static bool IsAccessGranted(const HttpServer& that,
                               const IHttpHandler::Arguments& headers)
   {
     bool granted = false;
@@ -591,7 +591,7 @@ namespace Orthanc
 
   static void InternalCallback(HttpOutput& output /* out */,
                                HttpMethod& method /* out */,
-                               MongooseServer& server,
+                               HttpServer& server,
                                struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
@@ -800,7 +800,7 @@ namespace Orthanc
         requestUri = "";
       }
       
-      MongooseServer* server = reinterpret_cast<MongooseServer*>(that);
+      HttpServer* server = reinterpret_cast<HttpServer*>(that);
 
       if (server == NULL)
       {
@@ -914,13 +914,13 @@ namespace Orthanc
 
 
 
-  bool MongooseServer::IsRunning() const
+  bool HttpServer::IsRunning() const
   {
     return (pimpl_->context_ != NULL);
   }
 
 
-  MongooseServer::MongooseServer() : pimpl_(new PImpl)
+  HttpServer::HttpServer() : pimpl_(new PImpl)
   {
     pimpl_->context_ = NULL;
     handler_ = NULL;
@@ -948,19 +948,19 @@ namespace Orthanc
   }
 
 
-  MongooseServer::~MongooseServer()
+  HttpServer::~HttpServer()
   {
     Stop();
   }
 
 
-  void MongooseServer::SetPortNumber(uint16_t port)
+  void HttpServer::SetPortNumber(uint16_t port)
   {
     Stop();
     port_ = port;
   }
 
-  void MongooseServer::Start()
+  void HttpServer::Start()
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     LOG(INFO) << "Starting embedded Web server using Mongoose";
@@ -1037,7 +1037,7 @@ namespace Orthanc
     }
   }
 
-  void MongooseServer::Stop()
+  void HttpServer::Stop()
   {
     if (IsRunning())
     {
@@ -1047,15 +1047,15 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::ClearUsers()
+  void HttpServer::ClearUsers()
   {
     Stop();
     registeredUsers_.clear();
   }
 
 
-  void MongooseServer::RegisterUser(const char* username,
-                                    const char* password)
+  void HttpServer::RegisterUser(const char* username,
+                                const char* password)
   {
     Stop();
 
@@ -1065,7 +1065,7 @@ namespace Orthanc
     registeredUsers_.insert(encoded);
   }
 
-  void MongooseServer::SetSslEnabled(bool enabled)
+  void HttpServer::SetSslEnabled(bool enabled)
   {
     Stop();
 
@@ -1084,7 +1084,7 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::SetKeepAliveEnabled(bool enabled)
+  void HttpServer::SetKeepAliveEnabled(bool enabled)
   {
     Stop();
     keepAlive_ = enabled;
@@ -1099,59 +1099,59 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::SetAuthenticationEnabled(bool enabled)
+  void HttpServer::SetAuthenticationEnabled(bool enabled)
   {
     Stop();
     authentication_ = enabled;
   }
 
-  void MongooseServer::SetSslCertificate(const char* path)
+  void HttpServer::SetSslCertificate(const char* path)
   {
     Stop();
     certificate_ = path;
   }
 
-  void MongooseServer::SetRemoteAccessAllowed(bool allowed)
+  void HttpServer::SetRemoteAccessAllowed(bool allowed)
   {
     Stop();
     remoteAllowed_ = allowed;
   }
 
-  void MongooseServer::SetHttpCompressionEnabled(bool enabled)
+  void HttpServer::SetHttpCompressionEnabled(bool enabled)
   {
     Stop();
     httpCompression_ = enabled;
     LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
   }
   
-  void MongooseServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
+  void HttpServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
   {
     Stop();
     filter_ = &filter;
   }
 
 
-  void MongooseServer::SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter)
+  void HttpServer::SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter)
   {
     Stop();
     exceptionFormatter_ = &formatter;
   }
 
 
-  bool MongooseServer::IsValidBasicHttpAuthentication(const std::string& basic) const
+  bool HttpServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {
     return registeredUsers_.find(basic) != registeredUsers_.end();
   }
 
 
-  void MongooseServer::Register(IHttpHandler& handler)
+  void HttpServer::Register(IHttpHandler& handler)
   {
     Stop();
     handler_ = &handler;
   }
 
 
-  IHttpHandler& MongooseServer::GetHandler() const
+  IHttpHandler& HttpServer::GetHandler() const
   {
     if (handler_ == NULL)
     {
@@ -1162,7 +1162,7 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::SetThreadsCount(unsigned int threads)
+  void HttpServer::SetThreadsCount(unsigned int threads)
   {
     if (threads <= 0)
     {
@@ -1174,7 +1174,7 @@ namespace Orthanc
   }
 
 
-  void MongooseServer::SetTcpNoDelay(bool tcpNoDelay)
+  void HttpServer::SetTcpNoDelay(bool tcpNoDelay)
   {
     Stop();
     tcpNoDelay_ = tcpNoDelay;
