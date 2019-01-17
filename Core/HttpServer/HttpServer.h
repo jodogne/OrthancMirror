@@ -41,7 +41,7 @@
 #  error Macro ORTHANC_ENABLE_CIVETWEB must be defined to include this file
 #endif
 
-#if (ORTHANC_ENABLE_MONGOOSE == 0 && \
+#if (ORTHANC_ENABLE_MONGOOSE == 0 &&            \
      ORTHANC_ENABLE_CIVETWEB == 0)
 #  error Either ORTHANC_ENABLE_MONGOOSE or ORTHANC_ENABLE_CIVETWEB must be set to 1
 #endif
@@ -74,7 +74,7 @@ namespace Orthanc
   };
 
 
-  class MongooseServer
+  class HttpServer
   {
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
@@ -102,9 +102,9 @@ namespace Orthanc
     bool IsRunning() const;
 
   public:
-    MongooseServer();
+    HttpServer();
 
-    ~MongooseServer();
+    ~HttpServer();
 
     void SetPortNumber(uint16_t port);
 
