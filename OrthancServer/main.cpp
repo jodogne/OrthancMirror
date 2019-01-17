@@ -1185,7 +1185,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
   else if (currentVersion != ORTHANC_DATABASE_VERSION)
   {
     throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
-                           "The database schema must be changed from version " +
+                           "The database schema must be upgraded from version " +
                            boost::lexical_cast<std::string>(currentVersion) + " to " +
                            boost::lexical_cast<std::string>(ORTHANC_DATABASE_VERSION) +
                            ": Please run Orthanc with the \"--upgrade\" argument");

@@ -31,30 +31,26 @@
  **/
 
 
-#pragma once
+#include "../../PrecompiledHeadersServer.h"
+#include "ILookupResources.h"
 
-#include "LookupIdentifierQuery.h"
+#include "DatabaseLookup.h"
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  namespace Compatibility
   {
-  public:
-    virtual ~IFindConstraint()
+    void ILookupResources::Apply(
+      IDatabaseWrapper& database,
+      ILookupResources& compatibility,
+      std::list<std::string>& resourcesId,
+      std::list<std::string>* instancesId,
+      const std::vector<DatabaseConstraint>& lookup,
+      ResourceType queryLevel,
+      size_t limit)
     {
+      Compatibility::DatabaseLookup compat(database, compatibility);
+      compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
     }
-
-    virtual IFindConstraint* Clone() const = 0;
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
-
-    virtual std::string Format() const = 0;
-
-    static IFindConstraint* ParseDicomConstraint(const DicomTag& tag,
-                                                 const std::string& dicomQuery,
-                                                 bool caseSensitive);
-  };
+  }
 }

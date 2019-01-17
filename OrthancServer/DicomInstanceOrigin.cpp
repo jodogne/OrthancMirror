@@ -37,7 +37,6 @@
 #include "../Core/OrthancException.h"
 #include "../Core/SerializationToolbox.h"
 
-
 namespace Orthanc
 {
   void DicomInstanceOrigin::Format(Json::Value& result) const

@@ -37,6 +37,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Toolbox.h"
 #include "ServerEnumerations.h"
+#include "ServerIndex.h"
 
 #include <algorithm>
 #include <boost/lexical_cast.hpp>

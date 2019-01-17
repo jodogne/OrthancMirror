@@ -34,46 +34,31 @@
 #pragma once
 
 #include "../IDatabaseWrapper.h"
-
-#include <set>
-#include <boost/noncopyable.hpp>
-#include <memory>
+#include "ILookupResources.h"
 
 namespace Orthanc
 {
-  class SetOfResources : public boost::noncopyable
+  namespace Compatibility
   {
-  private:
-    typedef std::set<int64_t>  Resources;
-
-    IDatabaseWrapper&         database_;
-    ResourceType              level_;
-    std::auto_ptr<Resources>  resources_;
-    
-  public:
-    SetOfResources(IDatabaseWrapper& database,
-                   ResourceType level) : 
-      database_(database),
-      level_(level)
+    class DatabaseLookup : public boost::noncopyable
     {
-    }
+    private:
+      IDatabaseWrapper&  database_;
+      ILookupResources&  compatibility_;
 
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
+    public:
+      DatabaseLookup(IDatabaseWrapper& database,
+                     ILookupResources& compatibility) :
+        database_(database),
+        compatibility_(compatibility)
+      {
+      }
 
-    void Intersect(const std::list<int64_t>& resources);
-
-    void GoDown();
-
-    void Flatten(std::list<int64_t>& result);
-
-    void Flatten(std::list<std::string>& result);
-
-    void Clear()
-    {
-      resources_.reset(NULL);
-    }
-  };
+      void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                std::list<std::string>* instancesId,
+                                const std::vector<DatabaseConstraint>& lookup,
+                                ResourceType queryLevel,
+                                size_t limit);
+    };
+  }
 }

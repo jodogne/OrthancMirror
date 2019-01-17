@@ -31,70 +31,36 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "ListConstraint.h"
+#pragma once
 
+#include "../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
-  void ListConstraint::AddAllowedValue(const std::string& value)
+  namespace Compatibility
   {
-    if (isCaseSensitive_)
+    class ICreateInstance : public boost::noncopyable
     {
-      allowedValues_.insert(value);
-    }
-    else
-    {
-      allowedValues_.insert(Toolbox::ToUpperCaseWithAccents(value));
-    }
-  }
+    public:
+      virtual bool LookupResource(int64_t& id,
+                                  ResourceType& type,
+                                  const std::string& publicId) = 0;
 
+      virtual int64_t CreateResource(const std::string& publicId,
+                                     ResourceType type) = 0;
 
-  void ListConstraint::Setup(LookupIdentifierQuery& lookup, 
-                             const DicomTag& tag) const
-  {
-    LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
+      virtual void AttachChild(int64_t parent,
+                               int64_t child) = 0;
 
-    for (std::set<std::string>::const_iterator
-           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
-    {
-      target.Add(tag, IdentifierConstraintType_Equal, *it);
-    }
-  }
-
-
-  bool ListConstraint::Match(const std::string& value) const
-  {
-    std::string s;
-    
-    if (isCaseSensitive_)
-    {
-      s = value;
-    }
-    else
-    {
-      s = Toolbox::ToUpperCaseWithAccents(value);
-    }
-
-    return allowedValues_.find(s) != allowedValues_.end();
-  }
-
-
-  std::string ListConstraint::Format() const
-  {
-    std::string s;
-
-    for (std::set<std::string>::const_iterator
-           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
-    {
-      if (!s.empty())
-      {
-        s += "\\";
-      }
-
-      s += *it;
-    }
-
-    return s;
+      virtual void TagMostRecentPatient(int64_t patientId) = 0;
+      
+      static bool Apply(ICreateInstance& database,
+                        IDatabaseWrapper::CreateInstanceResult& result,
+                        int64_t& instanceId,
+                        const std::string& patient,
+                        const std::string& study,
+                        const std::string& series,
+                        const std::string& instance);
+    };
   }
 }

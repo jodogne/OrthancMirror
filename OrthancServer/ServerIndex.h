@@ -33,21 +33,20 @@
 
 #pragma once
 
+#include "../Core/Cache/LeastRecentlyUsedIndex.h"
+#include "../Core/DicomFormat/DicomMap.h"
+
+#include "Database/IDatabaseWrapper.h"
+
 #include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
-#include "../Core/Cache/LeastRecentlyUsedIndex.h"
-#include "../Core/SQLite/Connection.h"
-#include "../Core/DicomFormat/DicomMap.h"
-#include "ServerEnumerations.h"
-
-#include "IDatabaseWrapper.h"
 
 namespace Orthanc
 {
-  class LookupResource;
-  class ServerContext;
+  class DatabaseLookup;
   class DicomInstanceToStore;
   class ParsedDicomFile;
+  class ServerContext;
 
   class ServerIndex : public boost::noncopyable
   {
@@ -59,6 +58,7 @@ namespace Orthanc
     class Listener;
     class Transaction;
     class UnstableResourcePayload;
+    class MainDicomTagsRegistry;
 
     bool done_;
     boost::mutex mutex_;
@@ -69,10 +69,10 @@ namespace Orthanc
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
-    uint64_t     currentStorageSize_;
     uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
     bool         overwrite_;
+    std::auto_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
@@ -116,15 +116,19 @@ namespace Orthanc
                    ResourceType resourceType,
                    const std::string& publicId);
 
+    void SignalNewResource(ChangeType changeType,
+                           ResourceType level,
+                           const std::string& publicId,
+                           int64_t internalId);
+
     uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
 
-    int64_t CreateResource(const std::string& publicId,
-                           ResourceType type);
+    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                         const DatabaseLookup& source,
+                         ResourceType level) const;
 
-    void SetInstanceMetadata(std::map<MetadataType, std::string>& instanceMetadata,
-                             int64_t instance,
-                             MetadataType metadata,
-                             const std::string& value);
+    SeriesStatus GetSeriesStatus(int64_t id,
+                                 int64_t expectedNumberOfInstances);
 
   public:
     ServerIndex(ServerContext& context,
@@ -250,7 +254,7 @@ namespace Orthanc
                        /* out */ uint64_t& dicomUncompressedSize, 
                        const std::string& publicId);
 
-    void LookupIdentifierExact(std::list<std::string>& result,
+    void LookupIdentifierExact(std::vector<std::string>& result,
                                ResourceType level,
                                const DicomTag& tag,
                                const std::string& value);
@@ -284,14 +288,16 @@ namespace Orthanc
 
     unsigned int GetDatabaseVersion();
 
-    void FindCandidates(std::vector<std::string>& resources,
-                        std::vector<std::string>& instances,
-                        const ::Orthanc::LookupResource& lookup);
-
     bool LookupParent(std::string& target,
                       const std::string& publicId,
                       ResourceType parentType);
 
     void ReconstructInstance(ParsedDicomFile& dicom);
+
+    void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
+                              const DatabaseLookup& lookup,
+                              ResourceType queryLevel,
+                              size_t limit);
   };
 }

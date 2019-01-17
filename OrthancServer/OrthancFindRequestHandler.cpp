@@ -35,11 +35,12 @@
 #include "OrthancFindRequestHandler.h"
 
 #include "../Core/DicomFormat/DicomArray.h"
-#include "../Core/Lua/LuaFunctionCall.h"
-#include "../Core/Logging.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/Logging.h"
+#include "../Core/Lua/LuaFunctionCall.h"
 #include "OrthancConfiguration.h"
-#include "Search/LookupResource.h"
+#include "Search/DatabaseLookup.h"
+#include "ServerContext.h"
 #include "ServerToolbox.h"
 
 #include <boost/regex.hpp> 
@@ -614,7 +615,7 @@ namespace Orthanc
      * Build up the query object.
      **/
 
-    LookupResource lookup(level);
+    DatabaseLookup lookup;
 
     bool caseSensitivePN;
 
@@ -654,7 +655,7 @@ namespace Orthanc
           sensitive = caseSensitivePN;
         }
 
-        lookup.AddDicomConstraint(tag, value, sensitive);
+        lookup.AddDicomConstraint(tag, value, sensitive, true /* mandatory */);
       }
       else
       {
@@ -672,7 +673,7 @@ namespace Orthanc
 
 
     LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
-    context_.Apply(visitor, lookup, 0 /* "since" is not relevant to C-FIND */, limit);
+    context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
 

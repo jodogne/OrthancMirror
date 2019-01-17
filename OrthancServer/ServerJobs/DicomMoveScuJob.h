@@ -37,10 +37,11 @@
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
 #include "../QueryRetrieveHandler.h"
-#include "../ServerContext.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class DicomMoveScuJob : public SetOfCommandsJob
   {
   private:

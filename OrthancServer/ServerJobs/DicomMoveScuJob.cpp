@@ -34,6 +34,7 @@
 #include "DicomMoveScuJob.h"
 
 #include "../../Core/SerializationToolbox.h"
+#include "../ServerContext.h"
 
 namespace Orthanc
 {

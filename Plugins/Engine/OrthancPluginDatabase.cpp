@@ -39,14 +39,70 @@
 #endif
 
 
-#include "../../Core/OrthancException.h"
 #include "../../Core/Logging.h"
+#include "../../Core/OrthancException.h"
 #include "PluginsEnumerations.h"
 
 #include <cassert>
 
 namespace Orthanc
 {
+  class OrthancPluginDatabase::Transaction : public IDatabaseWrapper::ITransaction
+  {
+  private:
+    OrthancPluginDatabase&  that_;
+
+    void CheckSuccess(OrthancPluginErrorCode code) const
+    {
+      if (code != OrthancPluginErrorCode_Success)
+      {
+        that_.errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+  public:
+    Transaction(OrthancPluginDatabase& that) :
+    that_(that)
+    {
+    }
+
+    virtual void Begin()
+    {
+      CheckSuccess(that_.backend_.startTransaction(that_.payload_));
+    }
+
+    virtual void Rollback()
+    {
+      CheckSuccess(that_.backend_.rollbackTransaction(that_.payload_));
+    }
+
+    virtual void Commit(int64_t diskSizeDelta)
+    {
+      if (that_.fastGetTotalSize_)
+      {
+        CheckSuccess(that_.backend_.commitTransaction(that_.payload_));
+      }
+      else
+      {
+        if (static_cast<int64_t>(that_.currentDiskSize_) + diskSizeDelta < 0)
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        uint64_t newDiskSize = (that_.currentDiskSize_ + diskSizeDelta);
+
+        assert(newDiskSize == that_.GetTotalCompressedSize());
+
+        CheckSuccess(that_.backend_.commitTransaction(that_.payload_));
+
+        // The transaction has succeeded, we can commit the new disk size
+        that_.currentDiskSize_ = newDiskSize;
+      }
+    }
+  };
+
+
   static FileInfo Convert(const OrthancPluginAttachment& attachment)
   {
     return FileInfo(attachment.uuid,
@@ -77,6 +133,8 @@ namespace Orthanc
     answerChanges_ = NULL;
     answerExportedResources_ = NULL;
     answerDone_ = NULL;
+    answerMatchingResources_ = NULL;
+    answerMatchingInstances_ = NULL;
   }
 
 
@@ -168,15 +226,14 @@ namespace Orthanc
                                                void *payload) : 
     library_(library),
     errorDictionary_(errorDictionary),
-    type_(_OrthancPluginDatabaseAnswerType_None),
     backend_(backend),
     payload_(payload),
-    listener_(NULL),
-    answerDicomMap_(NULL),
-    answerChanges_(NULL),
-    answerExportedResources_(NULL),
-    answerDone_(NULL)
+    listener_(NULL)
   {
+    static const char* const MISSING = "  Missing extension in database index plugin: ";
+    
+    ResetAnswers();
+
     memset(&extensions_, 0, sizeof(extensions_));
 
     size_t size = sizeof(extensions_);
@@ -186,6 +243,83 @@ namespace Orthanc
     }
 
     memcpy(&extensions_, extensions, size);
+
+    bool isOptimal = true;
+
+    if (extensions_.lookupResources == NULL)
+    {
+      LOG(INFO) << MISSING << "LookupIdentifierRange()";
+      isOptimal = false;
+    }
+
+    if (extensions_.createInstance == NULL)
+    {
+      LOG(INFO) << MISSING << "CreateInstance()";
+      isOptimal = false;
+    }
+
+    if (extensions_.setResourcesContent == NULL)
+    {
+      LOG(INFO) << MISSING << "SetResourcesContent()";
+      isOptimal = false;
+    }
+
+    if (extensions_.getChildrenMetadata == NULL)
+    {
+      LOG(INFO) << MISSING << "GetChildrenMetadata()";
+      isOptimal = false;
+    }
+
+    if (isOptimal)
+    {
+      LOG(INFO) << "The performance of the database index plugin "
+                << "is optimal for this version of Orthanc";
+    }
+    else
+    {
+      LOG(WARNING) << "Performance warning in the database index: "
+                   << "Some extensions are missing in the plugin";
+    }
+
+    if (extensions_.getLastChangeIndex == NULL)
+    {
+      LOG(WARNING) << "The database extension GetLastChangeIndex() is missing";
+    }
+
+    if (extensions_.tagMostRecentPatient == NULL)
+    {
+      LOG(WARNING) << "The database extension TagMostRecentPatient() is missing "
+                   << "(affected by issue 58)";
+    }
+  }
+
+
+  void OrthancPluginDatabase::Open()
+  {
+    CheckSuccess(backend_.open(payload_));
+
+    {
+      Transaction transaction(*this);
+      transaction.Begin();
+
+      std::string tmp;
+      fastGetTotalSize_ =
+        (LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) &&
+         tmp == "1");
+      
+      if (fastGetTotalSize_)
+      {
+        currentDiskSize_ = 0;   // Unused
+      }
+      else
+      {
+        // This is the case of database plugins using Orthanc SDK <= 1.5.2
+        LOG(WARNING) << "Your database index plugin is not compatible with multiple Orthanc writers";
+        currentDiskSize_ = GetTotalCompressedSize();
+      }
+
+      transaction.Commit(0);
+    }
   }
 
 
@@ -281,7 +415,7 @@ namespace Orthanc
     if (extensions_.getAllInternalIds == NULL)
     {
       throw OrthancException(ErrorCode_DatabasePlugin,
-                             "The database plugin does not implement the GetAllInternalIds primitive");
+                             "The database plugin does not implement the mandatory GetAllInternalIds() extension");
     }
 
     ResetAnswers();
@@ -610,58 +744,6 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
-                                               ResourceType level,
-                                               const DicomTag& tag,
-                                               IdentifierConstraintType type,
-                                               const std::string& value)
-  {
-    if (extensions_.lookupIdentifier3 == NULL)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin,
-                             "The database plugin does not implement the LookupIdentifier3 primitive");
-    }
-
-    OrthancPluginDicomTag tmp;
-    tmp.group = tag.GetGroup();
-    tmp.element = tag.GetElement();
-    tmp.value = value.c_str();
-
-    ResetAnswers();
-    CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level),
-                                               &tmp, Plugins::Convert(type)));
-    ForwardAnswers(result);
-  }
-
-
-  void OrthancPluginDatabase::LookupIdentifierRange(std::list<int64_t>& result,
-                                                    ResourceType level,
-                                                    const DicomTag& tag,
-                                                    const std::string& start,
-                                                    const std::string& end)
-  {
-    if (extensions_.lookupIdentifierRange == NULL)
-    {
-      // Default implementation, for plugins using Orthanc SDK <= 1.3.2
-
-      LookupIdentifier(result, level, tag, IdentifierConstraintType_GreaterOrEqual, start);
-
-      std::list<int64_t> b;
-      LookupIdentifier(result, level, tag, IdentifierConstraintType_SmallerOrEqual, end);
-
-      result.splice(result.end(), b);
-    }
-    else
-    {
-      ResetAnswers();
-      CheckSuccess(extensions_.lookupIdentifierRange(GetContext(), payload_, Plugins::Convert(level),
-                                                     tag.GetGroup(), tag.GetElement(),
-                                                     start.c_str(), end.c_str()));
-      ForwardAnswers(result);
-    }
-  }
-
-
   bool OrthancPluginDatabase::LookupMetadata(std::string& target,
                                              int64_t id,
                                              MetadataType type)
@@ -737,7 +819,7 @@ namespace Orthanc
     if (extensions_.clearMainDicomTags == NULL)
     {
       throw OrthancException(ErrorCode_DatabasePlugin,
-                             "Your custom index plugin does not implement the ClearMainDicomTags() extension");
+                             "Your custom index plugin does not implement the mandatory ClearMainDicomTags() extension");
     }
 
     CheckSuccess(extensions_.clearMainDicomTags(payload_, id));
@@ -786,52 +868,9 @@ namespace Orthanc
   }
 
 
-  class OrthancPluginDatabase::Transaction : public SQLite::ITransaction
+  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction()
   {
-  private:
-    const OrthancPluginDatabaseBackend& backend_;
-    void* payload_;
-    PluginsErrorDictionary&  errorDictionary_;
-
-    void CheckSuccess(OrthancPluginErrorCode code)
-    {
-      if (code != OrthancPluginErrorCode_Success)
-      {
-        errorDictionary_.LogError(code, true);
-        throw OrthancException(static_cast<ErrorCode>(code));
-      }
-    }
-
-  public:
-    Transaction(const OrthancPluginDatabaseBackend& backend,
-                void* payload,
-                PluginsErrorDictionary&  errorDictionary) :
-      backend_(backend),
-      payload_(payload),
-      errorDictionary_(errorDictionary)
-    {
-    }
-
-    virtual void Begin()
-    {
-      CheckSuccess(backend_.startTransaction(payload_));
-    }
-
-    virtual void Rollback()
-    {
-      CheckSuccess(backend_.rollbackTransaction(payload_));
-    }
-
-    virtual void Commit()
-    {
-      CheckSuccess(backend_.commitTransaction(payload_));
-    }
-  };
-
-
-  SQLite::ITransaction* OrthancPluginDatabase::StartTransaction()
-  {
-    return new Transaction(backend_, payload_, errorDictionary_);
+    return new Transaction(*this);
   }
 
 
@@ -892,7 +931,7 @@ namespace Orthanc
   {
     if (extensions_.upgradeDatabase != NULL)
     {
-      Transaction transaction(backend_, payload_, errorDictionary_);
+      Transaction transaction(*this);
       transaction.Begin();
 
       OrthancPluginErrorCode code = extensions_.upgradeDatabase(
@@ -901,7 +940,7 @@ namespace Orthanc
 
       if (code == OrthancPluginErrorCode_Success)
       {
-        transaction.Commit();
+        transaction.Commit(0);
       }
       else
       {
@@ -968,6 +1007,17 @@ namespace Orthanc
         case _OrthancPluginDatabaseAnswerType_ExportedResource:
           assert(answerExportedResources_ != NULL);
           answerExportedResources_->clear();
+          break;
+
+        case _OrthancPluginDatabaseAnswerType_MatchingResource:
+          assert(answerMatchingResources_ != NULL);
+          answerMatchingResources_->clear();
+
+          if (answerMatchingInstances_ != NULL)
+          {
+            answerMatchingInstances_->clear();
+          }
+          
           break;
 
         default:
@@ -1054,7 +1104,8 @@ namespace Orthanc
         }
         else
         {
-          const OrthancPluginChange& change = *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
+          const OrthancPluginChange& change =
+            *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
           assert(answerChanges_ != NULL);
           answerChanges_->push_back
             (ServerIndexChange(change.seq,
@@ -1098,10 +1149,286 @@ namespace Orthanc
         break;
       }
 
+      case _OrthancPluginDatabaseAnswerType_MatchingResource:
+      {
+        const OrthancPluginMatchingResource& match = 
+          *reinterpret_cast<const OrthancPluginMatchingResource*>(answer.valueGeneric);
+
+        if (match.resourceId == NULL)
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        assert(answerMatchingResources_ != NULL);
+        answerMatchingResources_->push_back(match.resourceId);
+
+        if (answerMatchingInstances_ != NULL)
+        {
+          if (match.someInstanceId == NULL)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          answerMatchingInstances_->push_back(match.someInstanceId);
+        }
+ 
+        break;
+      }
+
       default:
         throw OrthancException(ErrorCode_DatabasePlugin,
                                "Unhandled type of answer for custom index plugin: " +
                                boost::lexical_cast<std::string>(answer.type));
+    }
+  }
+
+    
+  bool OrthancPluginDatabase::IsDiskSizeAbove(uint64_t threshold)
+  {
+    if (fastGetTotalSize_)
+    {
+      return GetTotalCompressedSize() > threshold;
+    }
+    else
+    {
+      assert(GetTotalCompressedSize() == currentDiskSize_);
+      return currentDiskSize_ > threshold;
+    }      
+  }
+
+
+  void OrthancPluginDatabase::ApplyLookupResources(std::list<std::string>& resourcesId,
+                                                   std::list<std::string>* instancesId,
+                                                   const std::vector<DatabaseConstraint>& lookup,
+                                                   ResourceType queryLevel,
+                                                   size_t limit)
+  {
+    if (extensions_.lookupResources == NULL)
+    {
+      // Fallback to compatibility mode
+      ILookupResources::Apply
+        (*this, *this, resourcesId, instancesId, lookup, queryLevel, limit);
+    }
+    else
+    {
+      std::vector<OrthancPluginDatabaseConstraint> constraints;
+      std::vector< std::vector<const char*> > constraintsValues;
+
+      constraints.resize(lookup.size());
+      constraintsValues.resize(lookup.size());
+
+      for (size_t i = 0; i < lookup.size(); i++)
+      {
+        lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
+      }
+
+      ResetAnswers();
+      answerMatchingResources_ = &resourcesId;
+      answerMatchingInstances_ = instancesId;
+      
+      CheckSuccess(extensions_.lookupResources(GetContext(), payload_, lookup.size(),
+                                               (lookup.empty() ? NULL : &constraints[0]),
+                                               Plugins::Convert(queryLevel),
+                                               limit, (instancesId == NULL ? 0 : 1)));
+    }
+  }
+
+
+  bool OrthancPluginDatabase::CreateInstance(
+    IDatabaseWrapper::CreateInstanceResult& result,
+    int64_t& instanceId,
+    const std::string& patient,
+    const std::string& study,
+    const std::string& series,
+    const std::string& instance)
+  {
+    if (extensions_.createInstance == NULL)
+    {
+      // Fallback to compatibility mode
+      return ICreateInstance::Apply
+        (*this, result, instanceId, patient, study, series, instance);
+    }
+    else
+    {
+      OrthancPluginCreateInstanceResult output;
+      memset(&output, 0, sizeof(output));
+
+      CheckSuccess(extensions_.createInstance(&output, payload_, patient.c_str(),
+                                              study.c_str(), series.c_str(), instance.c_str()));
+
+      instanceId = output.instanceId;
+      
+      if (output.isNewInstance)
+      {
+        result.isNewPatient_ = output.isNewPatient;
+        result.isNewStudy_ = output.isNewStudy;
+        result.isNewSeries_ = output.isNewSeries;
+        result.patientId_ = output.patientId;
+        result.studyId_ = output.studyId;
+        result.seriesId_ = output.seriesId;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+
+
+  void OrthancPluginDatabase::LookupIdentifier(std::list<int64_t>& result,
+                                               ResourceType level,
+                                               const DicomTag& tag,
+                                               Compatibility::IdentifierConstraintType type,
+                                               const std::string& value)
+  {
+    if (extensions_.lookupIdentifier3 == NULL)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin,
+                             "The database plugin does not implement the mandatory LookupIdentifier3() extension");
+    }
+
+    OrthancPluginDicomTag tmp;
+    tmp.group = tag.GetGroup();
+    tmp.element = tag.GetElement();
+    tmp.value = value.c_str();
+
+    ResetAnswers();
+    CheckSuccess(extensions_.lookupIdentifier3(GetContext(), payload_, Plugins::Convert(level),
+                                               &tmp, Compatibility::Convert(type)));
+    ForwardAnswers(result);
+  }
+
+
+  void OrthancPluginDatabase::LookupIdentifierRange(std::list<int64_t>& result,
+                                                    ResourceType level,
+                                                    const DicomTag& tag,
+                                                    const std::string& start,
+                                                    const std::string& end)
+  {
+    if (extensions_.lookupIdentifierRange == NULL)
+    {
+      // Default implementation, for plugins using Orthanc SDK <= 1.3.2
+
+      LookupIdentifier(result, level, tag, Compatibility::IdentifierConstraintType_GreaterOrEqual, start);
+
+      std::list<int64_t> b;
+      LookupIdentifier(result, level, tag, Compatibility::IdentifierConstraintType_SmallerOrEqual, end);
+
+      result.splice(result.end(), b);
+    }
+    else
+    {
+      ResetAnswers();
+      CheckSuccess(extensions_.lookupIdentifierRange(GetContext(), payload_, Plugins::Convert(level),
+                                                     tag.GetGroup(), tag.GetElement(),
+                                                     start.c_str(), end.c_str()));
+      ForwardAnswers(result);
+    }
+  }
+
+
+  void OrthancPluginDatabase::SetResourcesContent(const Orthanc::ResourcesContent& content)
+  {
+    if (extensions_.setResourcesContent == NULL)
+    {
+      ISetResourcesContent::Apply(*this, content);
+    }
+    else
+    {
+      std::vector<OrthancPluginResourcesContentTags> identifierTags;
+      std::vector<OrthancPluginResourcesContentTags> mainDicomTags;
+      std::vector<OrthancPluginResourcesContentMetadata> metadata;
+
+      identifierTags.reserve(content.GetListTags().size());
+      mainDicomTags.reserve(content.GetListTags().size());
+      metadata.reserve(content.GetListMetadata().size());
+
+      for (ResourcesContent::ListTags::const_iterator
+             it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
+      {
+        OrthancPluginResourcesContentTags tmp;
+        tmp.resource = it->resourceId_;
+        tmp.group = it->tag_.GetGroup();
+        tmp.element = it->tag_.GetElement();
+        tmp.value = it->value_.c_str();
+
+        if (it->isIdentifier_)
+        {
+          identifierTags.push_back(tmp);
+        }
+        else
+        {
+          mainDicomTags.push_back(tmp);
+        }
+      }
+
+      for (ResourcesContent::ListMetadata::const_iterator
+             it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
+      {
+        OrthancPluginResourcesContentMetadata tmp;
+        tmp.resource = it->resourceId_;
+        tmp.metadata = it->metadata_;
+        tmp.value = it->value_.c_str();
+        metadata.push_back(tmp);
+      }
+
+      assert(identifierTags.size() + mainDicomTags.size() == content.GetListTags().size() &&
+             metadata.size() == content.GetListMetadata().size());
+       
+      CheckSuccess(extensions_.setResourcesContent(
+                     payload_,
+                     identifierTags.size(),
+                     (identifierTags.empty() ? NULL : &identifierTags[0]),
+                     mainDicomTags.size(),
+                     (mainDicomTags.empty() ? NULL : &mainDicomTags[0]),
+                     metadata.size(),
+                     (metadata.empty() ? NULL : &metadata[0])));
+    }
+  }
+
+
+
+  void OrthancPluginDatabase::GetChildrenMetadata(std::list<std::string>& target,
+                                                  int64_t resourceId,
+                                                  MetadataType metadata)
+  {
+    if (extensions_.getChildrenMetadata == NULL)
+    {
+      IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
+    }
+    else
+    {
+      ResetAnswers();
+      CheckSuccess(extensions_.getChildrenMetadata
+                   (GetContext(), payload_, resourceId, static_cast<int32_t>(metadata)));
+      ForwardAnswers(target);
+    }
+  }
+
+
+  int64_t OrthancPluginDatabase::GetLastChangeIndex()
+  {
+    if (extensions_.getLastChangeIndex == NULL)
+    {
+      // This was the default behavior in Orthanc <= 1.5.1
+      // https://groups.google.com/d/msg/orthanc-users/QhzB6vxYeZ0/YxabgqpfBAAJ
+      return 0;
+    }
+    else
+    {
+      int64_t result = 0;
+      CheckSuccess(extensions_.getLastChangeIndex(&result, payload_));
+      return result;
+    }
+  }
+
+  
+  void OrthancPluginDatabase::TagMostRecentPatient(int64_t patient)
+  {
+    if (extensions_.tagMostRecentPatient != NULL)
+    {
+      CheckSuccess(extensions_.tagMostRecentPatient(payload_, patient));
     }
   }
 }

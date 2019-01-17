@@ -44,27 +44,18 @@ TEST(DatabaseLookup, SingleConstraint)
 {
   {
     ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, 
-                                        "HEL*LO", true), OrthancException);
+                                        "HEL*LO", true, true), OrthancException);
     ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal,
-                                        "HEL?LO", true), OrthancException);
+                                        "HEL?LO", true, true), OrthancException);
     ASSERT_THROW(DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal,
-                                        true), OrthancException);
+                                        true, true), OrthancException);
 
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, "HELLO", true);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, "HELLO", true, true);
     ASSERT_TRUE(tag.IsMatch("HELLO"));
     ASSERT_FALSE(tag.IsMatch("hello"));
 
     ASSERT_TRUE(tag.IsCaseSensitive());
     ASSERT_EQ(ConstraintType_Equal, tag.GetConstraintType());
-
-    ASSERT_FALSE(tag.HasTagInfo());
-    ASSERT_THROW(tag.GetTagType(), OrthancException);
-    ASSERT_THROW(tag.GetLevel(), OrthancException);
-
-    tag.SetTagInfo(DicomTagType_Identifier, ResourceType_Series);
-    ASSERT_TRUE(tag.HasTagInfo());
-    ASSERT_EQ(DicomTagType_Identifier, tag.GetTagType());
-    ASSERT_EQ(ResourceType_Series, tag.GetLevel());
 
     DicomMap m;
     ASSERT_FALSE(tag.IsMatch(m));
@@ -77,7 +68,7 @@ TEST(DatabaseLookup, SingleConstraint)
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, "HELlo", false);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Equal, "HELlo", false, true);
     ASSERT_TRUE(tag.IsMatch("HELLO"));
     ASSERT_TRUE(tag.IsMatch("hello"));
 
@@ -85,7 +76,7 @@ TEST(DatabaseLookup, SingleConstraint)
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Wildcard, "HE*L?O", true);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Wildcard, "HE*L?O", true, true);
     ASSERT_TRUE(tag.IsMatch("HELLO"));
     ASSERT_TRUE(tag.IsMatch("HELLLLLO"));
     ASSERT_TRUE(tag.IsMatch("HELxO"));
@@ -93,7 +84,7 @@ TEST(DatabaseLookup, SingleConstraint)
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Wildcard, "HE*l?o", false);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_Wildcard, "HE*l?o", false, true);
     ASSERT_TRUE(tag.IsMatch("HELLO"));
     ASSERT_TRUE(tag.IsMatch("HELLLLLO"));
     ASSERT_TRUE(tag.IsMatch("HELxO"));
@@ -104,21 +95,23 @@ TEST(DatabaseLookup, SingleConstraint)
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_SmallerOrEqual, "123", true);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_SmallerOrEqual, "123", true, true);
     ASSERT_TRUE(tag.IsMatch("120"));
     ASSERT_TRUE(tag.IsMatch("123"));
     ASSERT_FALSE(tag.IsMatch("124"));
+    ASSERT_TRUE(tag.IsMandatory());
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_GreaterOrEqual, "123", true);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_GreaterOrEqual, "123", true, false);
     ASSERT_FALSE(tag.IsMatch("122"));
     ASSERT_TRUE(tag.IsMatch("123"));
     ASSERT_TRUE(tag.IsMatch("124"));
+    ASSERT_FALSE(tag.IsMandatory());
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_List, true);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_List, true, true);
     ASSERT_FALSE(tag.IsMatch("CT"));
     ASSERT_FALSE(tag.IsMatch("MR"));
 
@@ -137,7 +130,7 @@ TEST(DatabaseLookup, SingleConstraint)
   }
 
   {
-    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_List, false);
+    DicomTagConstraint tag(DICOM_TAG_PATIENT_NAME, ConstraintType_List, false, true);
 
     tag.AddValue("ct");
     tag.AddValue("mr");
@@ -155,20 +148,16 @@ TEST(DatabaseLookup, FromDicom)
 {
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_ID, "HELLO", true);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_ID, "HELLO", true, true);
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetConstraintType());
     ASSERT_EQ("HELLO", lookup.GetConstraint(0).GetValue());
     ASSERT_TRUE(lookup.GetConstraint(0).IsCaseSensitive());
-
-    ASSERT_TRUE(lookup.GetConstraint(0).HasTagInfo());
-    ASSERT_EQ(DicomTagType_Identifier, lookup.GetConstraint(0).GetTagType());
-    ASSERT_EQ(ResourceType_Patient, lookup.GetConstraint(0).GetLevel());
   }
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_ID, "HELLO", false);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_ID, "HELLO", false, true);
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
 
     // This is *not* a PN VR => "false" above is *not* used
@@ -177,14 +166,14 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_NAME, "HELLO", true);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_NAME, "HELLO", true, true);
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_TRUE(lookup.GetConstraint(0).IsCaseSensitive());
   }
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_NAME, "HELLO", false);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_NAME, "HELLO", false, true);
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
 
     // This is a PN VR => "false" above is used
@@ -193,11 +182,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_SERIES_DESCRIPTION, "2012-2016", false);
-
-    ASSERT_TRUE(lookup.GetConstraint(0).HasTagInfo());
-    ASSERT_EQ(DicomTagType_Main, lookup.GetConstraint(0).GetTagType());
-    ASSERT_EQ(ResourceType_Series, lookup.GetConstraint(0).GetLevel());
+    lookup.AddDicomConstraint(DICOM_TAG_SERIES_DESCRIPTION, "2012-2016", false, true);
 
     // This is not a data VR
     ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetConstraintType());
@@ -205,7 +190,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "2012-2016", false);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "2012-2016", false, true);
 
     // This is a data VR => range is effective
     ASSERT_EQ(2u, lookup.GetConstraintsCount());
@@ -221,7 +206,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "2012-", false);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "2012-", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(ConstraintType_GreaterOrEqual, lookup.GetConstraint(0).GetConstraintType());
@@ -230,7 +215,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "-2016", false);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_BIRTH_DATE, "-2016", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_PATIENT_BIRTH_DATE,  lookup.GetConstraint(0).GetTag());
@@ -240,11 +225,10 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_MODALITIES_IN_STUDY, "CT\\MR", false);
+    lookup.AddDicomConstraint(DICOM_TAG_MODALITIES_IN_STUDY, "CT\\MR", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_MODALITY,  lookup.GetConstraint(0).GetTag());
-    ASSERT_EQ(ResourceType_Series, lookup.GetConstraint(0).GetLevel());
     ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetConstraintType());
 
     const std::set<std::string>& values = lookup.GetConstraint(0).GetValues();
@@ -256,11 +240,10 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "CT\\MR", false);
+    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "CT\\MR", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(DICOM_TAG_STUDY_DESCRIPTION, lookup.GetConstraint(0).GetTag());
-    ASSERT_EQ(ResourceType_Study, lookup.GetConstraint(0).GetLevel());
     ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetConstraintType());
 
     const std::set<std::string>& values = lookup.GetConstraint(0).GetValues();
@@ -272,7 +255,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE*O", false);
+    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE*O", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetConstraintType());
@@ -280,7 +263,7 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE?O", false);
+    lookup.AddDicomConstraint(DICOM_TAG_STUDY_DESCRIPTION, "HE?O", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
     ASSERT_EQ(ConstraintType_Wildcard, lookup.GetConstraint(0).GetConstraintType());
@@ -288,10 +271,9 @@ TEST(DatabaseLookup, FromDicom)
 
   {
     DatabaseLookup lookup;
-    lookup.AddDicomConstraint(DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID, "TEST", false);
-
-    ASSERT_TRUE(lookup.GetConstraint(0).HasTagInfo());
-    ASSERT_EQ(DicomTagType_Generic, lookup.GetConstraint(0).GetTagType());
-    ASSERT_EQ(ResourceType_Instance, lookup.GetConstraint(0).GetLevel());
+    lookup.AddDicomConstraint(DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID, "TEST", false, true);
+    lookup.AddDicomConstraint(DICOM_TAG_PATIENT_NAME, "TEST2", false, false);
+    ASSERT_TRUE(lookup.GetConstraint(0).IsMandatory());
+    ASSERT_FALSE(lookup.GetConstraint(1).IsMandatory());
   }
 }
