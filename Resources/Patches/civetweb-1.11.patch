@@ -1,29 +1,71 @@
+Only in civetweb-1.11/src: a.out
 diff -urEb civetweb-1.11.orig/src/civetweb.c civetweb-1.11/src/civetweb.c
---- civetweb-1.11.orig/src/civetweb.c	2019-01-16 10:52:21.313348500 +0100
-+++ civetweb-1.11/src/civetweb.c	2019-01-16 11:59:58.995605655 +0100
-@@ -20,6 +20,14 @@
-  * THE SOFTWARE.
-  */
- 
-+
+--- civetweb-1.11.orig/src/civetweb.c	2019-01-17 21:09:41.852888857 +0100
++++ civetweb-1.11/src/civetweb.c	2019-01-17 21:23:54.273424124 +0100
+@@ -59,6 +59,9 @@
+ #if defined(__linux__) && !defined(_XOPEN_SOURCE)
+ #define _XOPEN_SOURCE 600 /* For flockfile() on Linux */
+ #endif
 +#if defined(__LSB_VERSION__)
-+// These definitions are mandatory for Linux Standard Base
-+#  define NO_CACHING
-+#  define NO_ALTERNATIVE_QUEUE
-+#  define NO_THREAD_NAME
++#define NEED_TIMEGM
 +#endif
-+  
- #if defined(__GNUC__) || defined(__MINGW32__)
- #define GCC_VERSION                                                            \
- 	(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-@@ -536,6 +544,10 @@
+ #if !defined(_LARGEFILE_SOURCE)
+ #define _LARGEFILE_SOURCE /* For fseeko(), ftello() */
+ #endif
+@@ -129,6 +132,12 @@
+ 
+ 
+ /* Alternative queue is well tested and should be the new default */
++#if defined(__LSB_VERSION__)
++/* Function "eventfd()" is not available in Linux Standard Base, can't
++ * use the alternative queue */
++#define NO_ALTERNATIVE_QUEUE
++#endif
++
+ #if defined(NO_ALTERNATIVE_QUEUE)
+ #if defined(ALTERNATIVE_QUEUE)
+ #error "Define ALTERNATIVE_QUEUE or NO_ALTERNATIVE_QUEUE or none, but not both"
+@@ -536,6 +545,10 @@
  #if !defined(EWOULDBLOCK)
  #define EWOULDBLOCK WSAEWOULDBLOCK
  #endif /* !EWOULDBLOCK */
 +#if !defined(ECONNRESET)
-+// Macro ECONNRESET is not always defined (e.g. on Visual Studio 2008)
-+#  define ECONNRESET WSAECONNRESET
++/* This macro is not defined e.g. in Visual Studio 2008 */
++#define ECONNRESET WSAECONNRESET
 +#endif /* !ECONNRESET */
  #define _POSIX_
  #define INT64_FMT "I64d"
  #define UINT64_FMT "I64u"
+@@ -2939,6 +2952,13 @@
+ #endif
+ 
+ 
++#if defined(__LSB_VERSION__)
++static void
++mg_set_thread_name(const char *threadName)
++{
++  /* prctl() does not seem to be available in Linux Standard Base */
++}
++#else
+ static void
+ mg_set_thread_name(const char *name)
+ {
+@@ -2980,6 +3000,7 @@
+ 	(void)prctl(PR_SET_NAME, threadName, 0, 0, 0);
+ #endif
+ }
++#endif
+ #else /* !defined(NO_THREAD_NAME) */
+ void
+ mg_set_thread_name(const char *threadName)
+@@ -16919,6 +16940,10 @@
+ 	/* Message is a valid request */
+ 
+ 	/* Is there a "host" ? */
++        /* https://github.com/civetweb/civetweb/pull/675/commits/96e3e8c50acb4b8e0c946d02b5f880a3e62986e1 */
++	if (conn->host!=NULL) {
++		mg_free((void *)conn->host);
++	}
+ 	conn->host = alloc_get_host(conn);
+ 	if (!conn->host) {
+ 		mg_snprintf(conn,
