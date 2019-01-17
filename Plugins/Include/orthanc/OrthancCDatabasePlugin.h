@@ -75,6 +75,7 @@ extern "C"
     _OrthancPluginDatabaseAnswerType_Int64 = 15,
     _OrthancPluginDatabaseAnswerType_Resource = 16,
     _OrthancPluginDatabaseAnswerType_String = 17,
+    _OrthancPluginDatabaseAnswerType_MatchingResource = 18,  /* New in Orthanc 1.5.2 */
 
     _OrthancPluginDatabaseAnswerType_INTERNAL = 0x7fffffff
   } _OrthancPluginDatabaseAnswerType;
@@ -119,6 +120,55 @@ extern "C"
     const char*                seriesInstanceUid;
     const char*                sopInstanceUid;
   } OrthancPluginExportedResource;
+
+  typedef struct   /* New in Orthanc 1.5.2 */
+  {
+    OrthancPluginResourceType    level;
+    uint16_t                     tagGroup;
+    uint16_t                     tagElement;
+    uint8_t                      isIdentifierTag;
+    uint8_t                      isCaseSensitive;
+    uint8_t                      isMandatory;
+    OrthancPluginConstraintType  type;
+    uint32_t                     valuesCount;
+    const char* const*           values;
+  } OrthancPluginDatabaseConstraint;
+
+  typedef struct   /* New in Orthanc 1.5.2 */
+  {
+    const char*  resourceId;
+    const char*  someInstanceId;  /* Can be NULL if not requested */
+  } OrthancPluginMatchingResource;
+
+  typedef struct   /* New in Orthanc 1.5.2 */
+  {
+    /* Mandatory field */
+    uint8_t  isNewInstance;
+    int64_t  instanceId;
+
+    /* The following fields must only be set if "isNewInstance" is "true" */
+    uint8_t  isNewPatient;
+    uint8_t  isNewStudy;
+    uint8_t  isNewSeries;
+    int64_t  patientId;
+    int64_t  studyId;
+    int64_t  seriesId;
+  } OrthancPluginCreateInstanceResult;
+
+  typedef struct  /* New in Orthanc 1.5.2 */
+  {
+    int64_t      resource;
+    uint16_t     group;
+    uint16_t     element;
+    const char*  value;
+  } OrthancPluginResourcesContentTags;
+    
+  typedef struct  /* New in Orthanc 1.5.2 */
+  {
+    int64_t      resource;
+    int32_t      metadata;
+    const char*  value;
+  } OrthancPluginResourcesContentMetadata;
 
 
   typedef struct
@@ -269,6 +319,19 @@ extern "C"
     params.type = _OrthancPluginDatabaseAnswerType_Resource;
     params.valueInt64 = id;
     params.valueInt32 = (int32_t) resourceType;
+    context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
+  }
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseAnswerMatchingResource(
+    OrthancPluginContext*                 context,
+    OrthancPluginDatabaseContext*         database,
+    const OrthancPluginMatchingResource*  match)
+  {
+    _OrthancPluginDatabaseAnswer params;
+    memset(&params, 0, sizeof(params));
+    params.database = database;
+    params.type = _OrthancPluginDatabaseAnswerType_MatchingResource;
+    params.valueGeneric = match;
     context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
   }
 
@@ -638,6 +701,10 @@ extern "C"
 
   typedef struct
   {
+    /**
+     * Base extensions since Orthanc 1.0.0
+     **/
+    
     /* Output: Use OrthancPluginDatabaseAnswerString() */
     OrthancPluginErrorCode  (*getAllPublicIdsWithLimit) (
       /* outputs */
@@ -683,6 +750,11 @@ extern "C"
       const OrthancPluginDicomTag* tag,
       OrthancPluginIdentifierConstraint constraint);
 
+
+    /**
+     * Extensions since Orthanc 1.4.0
+     **/
+    
     /* Output: Use OrthancPluginDatabaseAnswerInt64() */
     OrthancPluginErrorCode  (*lookupIdentifierRange) (
       /* outputs */
@@ -694,7 +766,66 @@ extern "C"
       uint16_t element,
       const char* start,
       const char* end);
-   } OrthancPluginDatabaseExtensions;
+
+    
+    /**
+     * Extensions since Orthanc 1.5.2
+     **/
+    
+    /* Ouput: Use OrthancPluginDatabaseAnswerMatchingResource */
+    OrthancPluginErrorCode  (*lookupResources) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      uint32_t constraintsCount,
+      const OrthancPluginDatabaseConstraint* constraints,
+      OrthancPluginResourceType queryLevel,
+      uint32_t limit,
+      uint8_t requestSomeInstance);
+
+    
+    OrthancPluginErrorCode  (*createInstance) (
+      /* output */
+      OrthancPluginCreateInstanceResult* output,
+      /* inputs */
+      void* payload,
+      const char* hashPatient,
+      const char* hashStudy,
+      const char* hashSeries,
+      const char* hashInstance);
+
+    OrthancPluginErrorCode  (*setResourcesContent) (
+      /* inputs */
+      void* payload,
+      uint32_t countIdentifierTags,
+      const OrthancPluginResourcesContentTags* identifierTags,
+      uint32_t countMainDicomTags,
+      const OrthancPluginResourcesContentTags* mainDicomTags,
+      uint32_t countMetadata,
+      const OrthancPluginResourcesContentMetadata* metadata);
+
+    /* Ouput: Use OrthancPluginDatabaseAnswerString */
+    OrthancPluginErrorCode  (*getChildrenMetadata) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      int64_t resourceId,
+      int32_t metadata);
+
+    OrthancPluginErrorCode  (*getLastChangeIndex) (
+      /* outputs */
+      int64_t* target,
+      /* inputs */
+      void* payload);
+                   
+    OrthancPluginErrorCode  (*tagMostRecentPatient) (
+      /* inputs */
+      void* payload,
+      int64_t patientId);
+                   
+  } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
 

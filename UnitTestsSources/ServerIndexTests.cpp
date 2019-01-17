@@ -37,10 +37,9 @@
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
-#include "../OrthancServer/DatabaseWrapper.h"
-#include "../OrthancServer/Search/LookupIdentifierQuery.h"
+#include "../OrthancServer/Database/SQLiteDatabaseWrapper.h"
+#include "../OrthancServer/Search/DatabaseLookup.h"
 #include "../OrthancServer/ServerContext.h"
-#include "../OrthancServer/ServerIndex.h"
 #include "../OrthancServer/ServerToolbox.h"
 
 #include <ctype.h>
@@ -50,12 +49,6 @@ using namespace Orthanc;
 
 namespace
 {
-  enum DatabaseWrapperClass
-  {
-    DatabaseWrapperClass_SQLite
-  };
-
-
   class TestDatabaseListener : public IDatabaseListener
   {
   public:
@@ -96,34 +89,24 @@ namespace
                 << EnumerationToString(change.GetResourceType()) << ": " 
                 << EnumerationToString(change.GetChangeType());
     }
-
   };
 
 
-  class DatabaseWrapperTest : public ::testing::TestWithParam<DatabaseWrapperClass>
+  class DatabaseWrapperTest : public ::testing::Test
   {
   protected:
-    std::auto_ptr<TestDatabaseListener> listener_;
-    std::auto_ptr<IDatabaseWrapper> index_;
+    std::auto_ptr<TestDatabaseListener>  listener_;
+    std::auto_ptr<SQLiteDatabaseWrapper> index_;
 
+  public:
     DatabaseWrapperTest()
     {
     }
 
-    virtual void SetUp()  ORTHANC_OVERRIDE
+    virtual void SetUp() ORTHANC_OVERRIDE
     {
       listener_.reset(new TestDatabaseListener);
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-          index_.reset(new DatabaseWrapper());
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
+      index_.reset(new SQLiteDatabaseWrapper);
       index_->SetListener(*listener_);
       index_->Open();
     }
@@ -137,94 +120,35 @@ namespace
 
     void CheckTableRecordCount(uint32_t expected, const char* table)
     {
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          ASSERT_EQ(expected, sqlite->GetTableRecordCount(table));
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      ASSERT_EQ(expected, index_->GetTableRecordCount(table));
     }
 
     void CheckNoParent(int64_t id)
     {
       std::string s;
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          ASSERT_FALSE(sqlite->GetParentPublicId(s, id));
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      ASSERT_FALSE(index_->GetParentPublicId(s, id));
     }
 
     void CheckParentPublicId(const char* expected, int64_t id)
     {
       std::string s;
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          ASSERT_TRUE(sqlite->GetParentPublicId(s, id));
-          ASSERT_EQ(expected, s);
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      ASSERT_TRUE(index_->GetParentPublicId(s, id));
+      ASSERT_EQ(expected, s);
     }
 
     void CheckNoChild(int64_t id)
     {
       std::list<std::string> j;
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          sqlite->GetChildren(j, id);
-          ASSERT_EQ(0u, j.size());
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      index_->GetChildren(j, id);
+      ASSERT_EQ(0u, j.size());
     }
 
     void CheckOneChild(const char* expected, int64_t id)
     {
       std::list<std::string> j;
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          sqlite->GetChildren(j, id);
-          ASSERT_EQ(1u, j.size());
-          ASSERT_EQ(expected, j.front());
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      index_->GetChildren(j, id);
+      ASSERT_EQ(1u, j.size());
+      ASSERT_EQ(expected, j.front());
     }
 
     void CheckTwoChildren(const char* expected1,
@@ -232,45 +156,52 @@ namespace
                           int64_t id)
     {
       std::list<std::string> j;
-
-      switch (GetParam())
-      {
-        case DatabaseWrapperClass_SQLite:
-        {
-          DatabaseWrapper* sqlite = dynamic_cast<DatabaseWrapper*>(index_.get());
-          sqlite->GetChildren(j, id);
-          ASSERT_EQ(2u, j.size());
-          ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
-                      (expected1 == j.back() && expected2 == j.front()));                    
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      index_->GetChildren(j, id);
+      ASSERT_EQ(2u, j.size());
+      ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
+                  (expected1 == j.back() && expected2 == j.front()));                    
     }
 
-
-    void DoLookup(std::list<std::string>& result,
-                  ResourceType level,
-                  const DicomTag& tag,
-                  const std::string& value)
+    void DoLookupIdentifier(std::list<std::string>& result,
+                            ResourceType level,
+                            const DicomTag& tag,
+                            ConstraintType type,
+                            const std::string& value)
     {
-      LookupIdentifierQuery query(level);
-      query.AddConstraint(tag, IdentifierConstraintType_Equal, value);
-      query.Apply(result, *index_);
-    }
+      assert(ServerToolbox::IsIdentifier(tag, level));
+      
+      DicomTagConstraint c(tag, type, value, true, true);
+      
+      std::vector<DatabaseConstraint> lookup;
+      lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      
+      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+    }    
 
+    void DoLookupIdentifier2(std::list<std::string>& result,
+                             ResourceType level,
+                             const DicomTag& tag,
+                             ConstraintType type1,
+                             const std::string& value1,
+                             ConstraintType type2,
+                             const std::string& value2)
+    {
+      assert(ServerToolbox::IsIdentifier(tag, level));
+      
+      DicomTagConstraint c1(tag, type1, value1, true, true);
+      DicomTagConstraint c2(tag, type2, value2, true, true);
+      
+      std::vector<DatabaseConstraint> lookup;
+      lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      
+      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+    }
   };
 }
 
 
-INSTANTIATE_TEST_CASE_P(DatabaseWrapperName,
-                        DatabaseWrapperTest,
-                        ::testing::Values(DatabaseWrapperClass_SQLite));
-
-
-TEST_P(DatabaseWrapperTest, Simple)
+TEST_F(DatabaseWrapperTest, Simple)
 {
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
@@ -464,7 +395,15 @@ TEST_P(DatabaseWrapperTest, Simple)
 
   CheckTableRecordCount(0, "Resources");
   CheckTableRecordCount(0, "AttachedFiles");
-  CheckTableRecordCount(2, "GlobalProperties");
+  CheckTableRecordCount(3, "GlobalProperties");
+
+  std::string tmp;
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
+  ASSERT_EQ("6", tmp);
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
+  ASSERT_EQ("World", tmp);
+  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
+  ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
@@ -473,9 +412,7 @@ TEST_P(DatabaseWrapperTest, Simple)
 }
 
 
-
-
-TEST_P(DatabaseWrapperTest, Upward)
+TEST_F(DatabaseWrapperTest, Upward)
 {
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Patient),   // 0
@@ -526,7 +463,7 @@ TEST_P(DatabaseWrapperTest, Upward)
 }
 
 
-TEST_P(DatabaseWrapperTest, PatientRecycling)
+TEST_F(DatabaseWrapperTest, PatientRecycling)
 {
   std::vector<int64_t> patients;
   for (int i = 0; i < 10; i++)
@@ -587,7 +524,7 @@ TEST_P(DatabaseWrapperTest, PatientRecycling)
 }
 
 
-TEST_P(DatabaseWrapperTest, PatientProtection)
+TEST_F(DatabaseWrapperTest, PatientProtection)
 {
   std::vector<int64_t> patients;
   for (int i = 0; i < 5; i++)
@@ -669,14 +606,13 @@ TEST_P(DatabaseWrapperTest, PatientProtection)
 }
 
 
-
 TEST(ServerIndex, Sequence)
 {
   const std::string path = "UnitTestsStorage";
 
   SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
-  DatabaseWrapper db;   // The SQLite DB is in memory
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
@@ -693,8 +629,7 @@ TEST(ServerIndex, Sequence)
 }
 
 
-
-TEST_P(DatabaseWrapperTest, LookupIdentifier)
+TEST_F(DatabaseWrapperTest, LookupIdentifier)
 {
   int64_t a[] = {
     index_->CreateResource("a", ResourceType_Study),   // 0
@@ -710,64 +645,47 @@ TEST_P(DatabaseWrapperTest, LookupIdentifier)
 
   std::list<std::string> s;
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "0");
   ASSERT_EQ(2u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "a") != s.end());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "c") != s.end());
 
-  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  DoLookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, ConstraintType_Equal, "0");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "d") != s.end());
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  DoLookup(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(1u, s.size());
   ASSERT_TRUE(std::find(s.begin(), s.end(), "b") != s.end());
 
-  DoLookup(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, "1");
+  DoLookupIdentifier(s, ResourceType_Series, DICOM_TAG_SERIES_INSTANCE_UID, ConstraintType_Equal, "1");
   ASSERT_EQ(0u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
-    query.Apply(s, *index_);
-    ASSERT_EQ(3u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "0");
+  ASSERT_EQ(3u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "0");
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "0");
-    query.Apply(s, *index_);
-    ASSERT_EQ(2u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "1");
+  ASSERT_EQ(1u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_SmallerOrEqual, "1");
-    query.Apply(s, *index_);
-    ASSERT_EQ(1u, s.size());
-  }
+  DoLookupIdentifier(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_GreaterOrEqual, "2");
+  ASSERT_EQ(0u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "1");
-    query.Apply(s, *index_);
-    ASSERT_EQ(1u, s.size());
-  }
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "0", ConstraintType_SmallerOrEqual, "0");
+  ASSERT_EQ(2u, s.size());
 
-  {
-    LookupIdentifierQuery query(ResourceType_Study);
-    query.AddConstraint(DICOM_TAG_STUDY_INSTANCE_UID, IdentifierConstraintType_GreaterOrEqual, "2");
-    query.Apply(s, *index_);
-    ASSERT_EQ(0u, s.size());
-  }
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "1", ConstraintType_SmallerOrEqual, "1");
+  ASSERT_EQ(1u, s.size());
+
+  DoLookupIdentifier2(s, ResourceType_Study, DICOM_TAG_STUDY_INSTANCE_UID,
+                      ConstraintType_GreaterOrEqual, "0", ConstraintType_SmallerOrEqual, "1");
+  ASSERT_EQ(3u, s.size());
 }
-
 
 
 TEST(ServerIndex, AttachmentRecycling)
@@ -776,7 +694,7 @@ TEST(ServerIndex, AttachmentRecycling)
 
   SystemToolbox::RemoveFile(path + "/index");
   FilesystemStorage storage(path);
-  DatabaseWrapper db;   // The SQLite DB is in memory
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10);
   context.SetupJobsEngine(true, false);
@@ -850,7 +768,7 @@ TEST(ServerIndex, AttachmentRecycling)
 }
 
 
-TEST(LookupIdentifierQuery, NormalizeIdentifier)
+TEST(ServerIndex, NormalizeIdentifier)
 {
   ASSERT_EQ("H^L.LO", ServerToolbox::NormalizeIdentifier("   Hé^l.LO  %_  "));
   ASSERT_EQ("1.2.840.113619.2.176.2025", ServerToolbox::NormalizeIdentifier("   1.2.840.113619.2.176.2025  "));
@@ -864,7 +782,7 @@ TEST(ServerIndex, Overwrite)
     bool overwrite = (i == 0);
 
     MemoryStorageArea storage;
-    DatabaseWrapper db;   // The SQLite DB is in memory
+    SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
     ServerContext context(db, storage, true /* running unit tests */, 10);
     context.SetupJobsEngine(true, false);

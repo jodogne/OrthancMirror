@@ -33,34 +33,25 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "../ServerEnumerations.h"
+#include "../ServerIndexChange.h"
 
-#include <boost/shared_ptr.hpp>
+#include <string>
 
 namespace Orthanc
 {
-  class WildcardConstraint : public IFindConstraint
+  class IDatabaseListener : public boost::noncopyable
   {
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl>  pimpl_;
-
-    WildcardConstraint(const WildcardConstraint& other);
-
   public:
-    WildcardConstraint(const std::string& wildcard,
-                       bool isCaseSensitive);
-
-    virtual IFindConstraint* Clone() const
+    virtual ~IDatabaseListener()
     {
-      return new WildcardConstraint(*this);
     }
 
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
+    virtual void SignalRemainingAncestor(ResourceType parentType,
+                                         const std::string& publicId) = 0;
 
-    virtual bool Match(const std::string& value) const;
+    virtual void SignalFileDeleted(const FileInfo& info) = 0;
 
-    virtual std::string Format() const;
+    virtual void SignalChange(const ServerIndexChange& change) = 0;
   };
 }

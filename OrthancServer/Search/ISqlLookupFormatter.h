@@ -31,83 +31,35 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "RangeConstraint.h"
+#pragma once
 
-#include "../../Core/Toolbox.h"
+#include "../../Core/Enumerations.h"
+
+#include <boost/noncopyable.hpp>
+#include <vector>
 
 namespace Orthanc
 {
-  RangeConstraint::RangeConstraint(const std::string& lower,
-                                   const std::string& upper,
-                                   bool isCaseSensitive) : 
-    isCaseSensitive_(isCaseSensitive)
+  class DatabaseConstraint;
+  
+  // This class is also used by the "orthanc-databases" project
+  class ISqlLookupFormatter : public boost::noncopyable
   {
-    if (isCaseSensitive_)
+  public:
+    virtual ~ISqlLookupFormatter()
     {
-      lower_ = lower;
-      upper_ = upper;
-    }
-    else
-    {
-      lower_ = Toolbox::ToUpperCaseWithAccents(lower);
-      upper_ = Toolbox::ToUpperCaseWithAccents(upper);
-    }
-  }
-
-
-  void RangeConstraint::Setup(LookupIdentifierQuery& lookup,
-                              const DicomTag& tag) const
-  {
-    if (!lower_.empty() &&
-        !upper_.empty())
-    {
-      lookup.AddRange(tag, lower_, upper_);
-    }
-    else
-    {
-      if (!lower_.empty())
-      {
-        lookup.AddConstraint(tag, IdentifierConstraintType_GreaterOrEqual, lower_);
-      }
-
-      if (!upper_.empty())
-      {
-        lookup.AddConstraint(tag, IdentifierConstraintType_SmallerOrEqual, upper_);
-      }
-    }
-  }
-
-
-  bool RangeConstraint::Match(const std::string& value) const
-  {
-    std::string v;
-
-    if (isCaseSensitive_)
-    {
-      v = value;
-    }
-    else
-    {
-      v = Toolbox::ToUpperCaseWithAccents(value);
     }
 
-    if (lower_.size() == 0 && 
-        upper_.size() == 0)
-    {
-      return false;
-    }
+    virtual std::string GenerateParameter(const std::string& value) = 0;
 
-    if (lower_.size() == 0)
-    {
-      return v <= upper_;
-    }
+    virtual std::string FormatResourceType(ResourceType level) = 0;
 
-    if (upper_.size() == 0)
-    {
-      return v >= lower_;
-    }
-    
-    return (v >= lower_ && v <= upper_);
-  }
+    virtual std::string FormatWildcardEscape() = 0;
+
+    static void Apply(std::string& sql,
+                      ISqlLookupFormatter& formatter,
+                      const std::vector<DatabaseConstraint>& lookup,
+                      ResourceType queryLevel,
+                      size_t limit);
+  };
 }

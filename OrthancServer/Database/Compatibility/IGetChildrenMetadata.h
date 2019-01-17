@@ -33,39 +33,29 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "../../ServerEnumerations.h"
+
+#include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
-  class ValueConstraint : public IFindConstraint
+  namespace Compatibility
   {
-  private:
-    std::string  value_;
-    bool         isCaseSensitive_;
-
-    ValueConstraint(const ValueConstraint& other) : 
-      value_(other.value_),
-      isCaseSensitive_(other.isCaseSensitive_)
+    class IGetChildrenMetadata : public boost::noncopyable
     {
-    }
+    public:
+      virtual void GetChildrenInternalId(std::list<int64_t>& target,
+                                         int64_t id) = 0;
 
-  public:
-    ValueConstraint(const std::string& value,
-                    bool isCaseSensitive);
+      virtual bool LookupMetadata(std::string& target,
+                                  int64_t id,
+                                  MetadataType type) = 0;
 
-    virtual IFindConstraint* Clone() const
-    {
-      return new ValueConstraint(*this);
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
-
-    virtual bool Match(const std::string& value) const;
-
-    virtual std::string Format() const
-    {
-      return value_;
-    }
-  };
+      static void Apply(IGetChildrenMetadata& database,
+                        std::list<std::string>& target,
+                        int64_t resourceId,
+                        MetadataType metadata);
+    };
+  }
 }

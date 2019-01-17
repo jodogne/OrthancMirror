@@ -33,42 +33,46 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
-  class RangeConstraint : public IFindConstraint
+  namespace Compatibility
   {
-  private:
-    std::string  lower_;
-    std::string  upper_;
-    bool         isCaseSensitive_;
+    /**
+     * This is a compatibility class that contains database primitives
+     * that were used in Orthanc <= 1.5.1, and that have been removed
+     * during the optimization of the database engine.
+     **/
+    class ILookupResources : public boost::noncopyable
+    {     
+    public:
+      virtual ~ILookupResources()
+      {
+      }
+      
+      virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                     ResourceType resourceType) = 0;
+      
+      virtual void LookupIdentifier(std::list<int64_t>& result,
+                                    ResourceType level,
+                                    const DicomTag& tag,
+                                    IdentifierConstraintType type,
+                                    const std::string& value) = 0;
+ 
+      virtual void LookupIdentifierRange(std::list<int64_t>& result,
+                                         ResourceType level,
+                                         const DicomTag& tag,
+                                         const std::string& start,
+                                         const std::string& end) = 0;
 
-    RangeConstraint(const RangeConstraint& other) : 
-      lower_(other.lower_),
-      upper_(other.upper_),
-      isCaseSensitive_(other.isCaseSensitive_)
-    {
-    }
-
-  public:
-    RangeConstraint(const std::string& lower,
-                    const std::string& upper,
-                    bool isCaseSensitive);
-
-    virtual IFindConstraint* Clone() const
-    {
-      return new RangeConstraint(*this);
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
-
-    virtual bool Match(const std::string& value) const;
-
-    virtual std::string Format() const
-    {
-      return lower_ + "-" + upper_;
-    }
-  };
+      static void Apply(IDatabaseWrapper& database,
+                        ILookupResources& compatibility,
+                        std::list<std::string>& resourcesId,
+                        std::list<std::string>* instancesId,
+                        const std::vector<DatabaseConstraint>& lookup,
+                        ResourceType queryLevel,
+                        size_t limit);
+    };
+  }
 }

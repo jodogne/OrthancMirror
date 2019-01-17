@@ -34,8 +34,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomTagConstraint.h"
 
+#if defined(ORTHANC_ENABLE_LUA) && ORTHANC_ENABLE_LUA != 0
+#  include "../ServerToolbox.h"
+#endif
+
 #include "../../Core/OrthancException.h"
 #include "../../Core/Toolbox.h"
+#include "DatabaseConstraint.h"
 
 #include <boost/regex.hpp>
 
@@ -94,32 +99,24 @@ namespace Orthanc
   };
 
 
-  DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
-                                         ConstraintType type,
-                                         const std::string& value,
-                                         bool caseSensitive) :
-    hasTagInfo_(false),
-    tagType_(DicomTagType_Generic),  // Dummy initialization
-    level_(ResourceType_Patient),    // Dummy initialization
-    tag_(tag),
-    constraintType_(type),
-    caseSensitive_(caseSensitive)
+  void DicomTagConstraint::AssignSingleValue(const std::string& value)
   {
-    if (type == ConstraintType_Equal ||
-        type == ConstraintType_SmallerOrEqual ||
-        type == ConstraintType_GreaterOrEqual ||
-        type == ConstraintType_Wildcard)
-    {
-      values_.insert(value);
-    }
-    else
+    if (constraintType_ != ConstraintType_Wildcard &&
+        (value.find('*') != std::string::npos ||
+         value.find('?') != std::string::npos))
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (type != ConstraintType_Wildcard &&
-        (value.find('*') != std::string::npos ||
-         value.find('?') != std::string::npos))
+    if (constraintType_ == ConstraintType_Equal ||
+        constraintType_ == ConstraintType_SmallerOrEqual ||
+        constraintType_ == ConstraintType_GreaterOrEqual ||
+        constraintType_ == ConstraintType_Wildcard)
+    {
+      values_.clear();
+      values_.insert(value);
+    }
+    else
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -128,13 +125,26 @@ namespace Orthanc
 
   DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
                                          ConstraintType type,
-                                         bool caseSensitive) :
-    hasTagInfo_(false),
-    tagType_(DicomTagType_Generic),  // Dummy initialization
-    level_(ResourceType_Patient),    // Dummy initialization
+                                         const std::string& value,
+                                         bool caseSensitive,
+                                         bool mandatory) :
     tag_(tag),
     constraintType_(type),
-    caseSensitive_(caseSensitive)
+    caseSensitive_(caseSensitive),
+    mandatory_(mandatory)
+  {
+    AssignSingleValue(value);
+  }
+
+
+  DicomTagConstraint::DicomTagConstraint(const DicomTag& tag,
+                                         ConstraintType type,
+                                         bool caseSensitive,
+                                         bool mandatory) :
+    tag_(tag),
+    constraintType_(type),
+    caseSensitive_(caseSensitive),
+    mandatory_(mandatory)
   {
     if (type != ConstraintType_List)
     {
@@ -143,37 +153,33 @@ namespace Orthanc
   }
 
 
-  void DicomTagConstraint::SetTagInfo(DicomTagType tagType,
-                                      ResourceType level)
+  DicomTagConstraint::DicomTagConstraint(const DatabaseConstraint& constraint) :
+    tag_(constraint.GetTag()),
+    constraintType_(constraint.GetConstraintType()),
+    caseSensitive_(constraint.IsCaseSensitive()),
+    mandatory_(constraint.IsMandatory())
   {
-    hasTagInfo_ = true;
-    tagType_ = tagType;
-    level_ = level;
-  }
-
-
-  DicomTagType DicomTagConstraint::GetTagType() const
-  {
-    if (!hasTagInfo_)
+#if defined(ORTHANC_ENABLE_LUA) && ORTHANC_ENABLE_LUA != 0
+    assert(constraint.IsIdentifier() ==
+           ServerToolbox::IsIdentifier(constraint.GetTag(), constraint.GetLevel()));
+#endif
+    
+    if (constraint.IsIdentifier())
     {
+      // This conversion is only available for main DICOM tags, not for identifers
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
+    if (constraintType_ == ConstraintType_List)
+    {
+      for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+      {
+        AddValue(constraint.GetValue(i));
+      }
     }
     else
     {
-      return tagType_;
-    }
-  }
-
-
-  const ResourceType DicomTagConstraint::GetLevel() const
-  {
-    if (!hasTagInfo_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return level_;
+      AssignSingleValue(constraint.GetSingleValue());
     }
   }
 
@@ -268,8 +274,18 @@ namespace Orthanc
     const DicomValue* tmp = value.TestAndGetValue(tag_);
 
     if (tmp == NULL ||
-        tmp->IsNull() ||
-        tmp->IsBinary())
+        tmp->IsNull())
+    {
+      if (mandatory_)
+      {
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
+    else if (tmp->IsBinary())
     {
       return false;
     }
@@ -278,4 +294,91 @@ namespace Orthanc
       return IsMatch(tmp->GetContent());
     }
   }
+
+
+  std::string DicomTagConstraint::Format() const
+  {
+    switch (constraintType_)
+    {
+      case ConstraintType_Equal:
+        return tag_.Format() + " == " + GetValue();
+
+      case ConstraintType_SmallerOrEqual:
+        return tag_.Format() + " <= " + GetValue();
+
+      case ConstraintType_GreaterOrEqual:
+        return tag_.Format() + " >= " + GetValue();
+
+      case ConstraintType_Wildcard:
+        return tag_.Format() + " ~~ " + GetValue();
+
+      case ConstraintType_List:
+      {
+        std::string s = tag_.Format() + " IN [ ";
+
+        bool first = true;
+        for (std::set<std::string>::const_iterator
+               it = values_.begin(); it != values_.end(); ++it)
+        {
+          if (first)
+          {
+            first = false;
+          }
+          else
+          {
+            s += ", ";
+          }
+
+          s += *it;
+        }
+
+        return s + "]";
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  DatabaseConstraint DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
+                                                                     DicomTagType tagType) const
+  {
+    bool isIdentifier, caseSensitive;
+    
+    switch (tagType)
+    {
+      case DicomTagType_Identifier:
+        isIdentifier = true;
+        caseSensitive = true;
+        break;
+
+      case DicomTagType_Main:
+        isIdentifier = false;
+        caseSensitive = IsCaseSensitive();
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::vector<std::string> values;
+    values.reserve(values_.size());
+      
+    for (std::set<std::string>::const_iterator
+           it = values_.begin(); it != values_.end(); ++it)
+    {
+      if (isIdentifier)
+      {
+        values.push_back(ServerToolbox::NormalizeIdentifier(*it));
+      }
+      else
+      {
+        values.push_back(*it);
+      }
+    }
+
+    return DatabaseConstraint(level, tag_, isIdentifier, constraintType_,
+                              values, caseSensitive, mandatory_);
+  }  
 }

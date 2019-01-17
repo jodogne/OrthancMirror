@@ -1648,7 +1648,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    std::list<std::string> result;
+    std::vector<std::string> result;
 
     {
       PImpl::ServerContextLock lock(*pimpl_);
@@ -1657,7 +1657,7 @@ namespace Orthanc
 
     if (result.size() == 1)
     {
-      *p.result = CopyString(result.front());
+      *p.result = CopyString(result[0]);
     }
     else
     {

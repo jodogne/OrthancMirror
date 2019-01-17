@@ -35,17 +35,27 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
+/**
+ * NB: Conversions to/from "OrthancPluginConstraintType" and
+ * "OrthancPluginResourceType" are located in file
+ * "../../OrthancServer/Search/DatabaseConstraint.h" to be shared with
+ * the "orthanc-databases" project.
+ **/
+
 #include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../OrthancServer/ServerEnumerations.h"
+#include "../../OrthancServer/Search/DatabaseConstraint.h"
 
 namespace Orthanc
 {
+  namespace Compatibility
+  {
+    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint);
+
+    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
+  }
+
   namespace Plugins
   {
-    OrthancPluginResourceType Convert(ResourceType type);
-
-    ResourceType Convert(OrthancPluginResourceType type);
-
     OrthancPluginChangeType Convert(ChangeType type);
 
     OrthancPluginPixelFormat Convert(PixelFormat format);
@@ -57,10 +67,6 @@ namespace Orthanc
     FileContentType Convert(OrthancPluginContentType type);
 
     DicomToJsonFormat Convert(OrthancPluginDicomToJsonFormat format);
-
-    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint);
-
-    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint);
 
     OrthancPluginInstanceOrigin Convert(RequestOrigin origin);
 

@@ -32,69 +32,34 @@
 
 
 #include "../PrecompiledHeadersServer.h"
-#include "WildcardConstraint.h"
+#include "ResourcesContent.h"
 
-#include <boost/regex.hpp>
+#include "Compatibility/ISetResourcesContent.h"
+
+#include <cassert>
+
 
 namespace Orthanc
 {
-  struct WildcardConstraint::PImpl
+  void ResourcesContent::Store(Compatibility::ISetResourcesContent& compatibility) const
   {
-    boost::regex  pattern_;
-    std::string   wildcard_;
-    bool          isCaseSensitive_;
-
-    PImpl(const std::string& wildcard,
-          bool isCaseSensitive)
+    for (std::list<TagValue>::const_iterator
+           it = tags_.begin(); it != tags_.end(); ++it)
     {
-      isCaseSensitive_ = isCaseSensitive;
-    
-      if (isCaseSensitive)
+      if (it->isIdentifier_)
       {
-        wildcard_ = wildcard;
+        compatibility.SetIdentifierTag(it->resourceId_, it->tag_,  it->value_);
       }
       else
       {
-        wildcard_ = Toolbox::ToUpperCaseWithAccents(wildcard);
+        compatibility.SetMainDicomTag(it->resourceId_, it->tag_,  it->value_);
       }
-
-      pattern_ = boost::regex(Toolbox::WildcardToRegularExpression(wildcard_));
     }
-  };
 
-
-  WildcardConstraint::WildcardConstraint(const WildcardConstraint& other) :
-    pimpl_(new PImpl(*other.pimpl_))
-  {
-  }
-
-
-  WildcardConstraint::WildcardConstraint(const std::string& wildcard,
-                                         bool isCaseSensitive) :
-    pimpl_(new PImpl(wildcard, isCaseSensitive))
-  {
-  }
-
-  bool WildcardConstraint::Match(const std::string& value) const
-  {
-    if (pimpl_->isCaseSensitive_)
+    for (std::list<Metadata>::const_iterator
+           it = metadata_.begin(); it != metadata_.end(); ++it)
     {
-      return boost::regex_match(value, pimpl_->pattern_);
+      compatibility.SetMetadata(it->resourceId_, it->metadata_,  it->value_);
     }
-    else
-    {
-      return boost::regex_match(Toolbox::ToUpperCaseWithAccents(value), pimpl_->pattern_);
-    }
-  }
-
-  void WildcardConstraint::Setup(LookupIdentifierQuery& lookup,
-                                 const DicomTag& tag) const
-  {
-    lookup.AddConstraint(tag, IdentifierConstraintType_Wildcard, pimpl_->wildcard_);
-  }
-
-  std::string WildcardConstraint::Format() const
-  {
-    return pimpl_->wildcard_;
   }
 }

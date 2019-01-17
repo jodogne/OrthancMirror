@@ -33,24 +33,51 @@
 
 #pragma once
 
-#include <string>
-#include "ServerEnumerations.h"
-#include "ServerIndexChange.h"
+#include "../IDatabaseWrapper.h"
+#include "ILookupResources.h"
+
+#include <set>
+#include <memory>
 
 namespace Orthanc
 {
-  class IDatabaseListener
+  namespace Compatibility
   {
-  public:
-    virtual ~IDatabaseListener()
+    class SetOfResources : public boost::noncopyable
     {
-    }
+    private:
+      typedef std::set<int64_t>  Resources;
 
-    virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) = 0;
+      IDatabaseWrapper&         database_;
+      ResourceType              level_;
+      std::auto_ptr<Resources>  resources_;
+    
+    public:
+      SetOfResources(IDatabaseWrapper& database,
+                     ResourceType level) : 
+        database_(database),
+        level_(level)
+      {
+      }
 
-    virtual void SignalFileDeleted(const FileInfo& info) = 0;
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
 
-    virtual void SignalChange(const ServerIndexChange& change) = 0;
-  };
+      void Intersect(const std::list<int64_t>& resources);
+
+      void GoDown();
+
+      void Flatten(ILookupResources& compatibility,
+                   std::list<int64_t>& result);
+
+      void Flatten(std::list<std::string>& result);
+
+      void Clear()
+      {
+        resources_.reset(NULL);
+      }
+    };
+  }
 }

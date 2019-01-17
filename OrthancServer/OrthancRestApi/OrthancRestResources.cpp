@@ -41,10 +41,12 @@
 #include "../../Core/Logging.h"
 #include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
-#include "../Search/LookupResource.h"
+#include "../Search/DatabaseLookup.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
+
+#include "../../Plugins/Engine/OrthancPlugins.h"
 
 
 namespace Orthanc
@@ -1228,13 +1230,12 @@ namespace Orthanc
                                       const std::string& value,
                                       ResourceType level)
   {
-    std::list<std::string> tmp;
+    std::vector<std::string> tmp;
     index.LookupIdentifierExact(tmp, level, tag, value);
 
-    for (std::list<std::string>::const_iterator
-           it = tmp.begin(); it != tmp.end(); ++it)
+    for (size_t i = 0; i < tmp.size(); i++)
     {
-      result.push_back(std::make_pair(level, *it));
+      result.push_back(std::make_pair(level, tmp[i]));
     }
   }
 
@@ -1401,9 +1402,9 @@ namespace Orthanc
         since = static_cast<size_t>(tmp);
       }
 
-      std::string level = request[KEY_LEVEL].asString();
+      ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      LookupResource query(StringToResourceType(level.c_str()));
+      DatabaseLookup query;
 
       Json::Value::Members members = request[KEY_QUERY].getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -1414,14 +1415,14 @@ namespace Orthanc
                                  "Tag \"" + members[i] + "\" should be associated with a string");
         }
 
-        query.AddDicomConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                 request[KEY_QUERY][members[i]].asString(),
-                                 caseSensitive);
+        query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                request[KEY_QUERY][members[i]].asString(),
+                                caseSensitive, true);
       }
 
       FindVisitor visitor;
-      context.Apply(visitor, query, since, limit);
-      visitor.Answer(call.GetOutput(), context.GetIndex(), query.GetLevel(), expand);
+      context.Apply(visitor, query, level, since, limit);
+      visitor.Answer(call.GetOutput(), context.GetIndex(), level, expand);
     }
   }
 

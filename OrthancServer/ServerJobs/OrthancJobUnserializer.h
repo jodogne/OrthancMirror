@@ -33,11 +33,12 @@
 
 #pragma once
 
-#include "../ServerContext.h"
 #include "../../Core/JobsEngine/GenericJobUnserializer.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class OrthancJobUnserializer : public GenericJobUnserializer
   {
   private:
