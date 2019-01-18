@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 1.5.2 (2019-01-18)
+==========================
+
 General
 -------
 
@@ -10,6 +15,7 @@ General
 REST API
 --------
 
+* API version has been upgraded to 1.3
 * More consistent handling of the "Last" field returned by the "/changes" URI
 
 Plugins
@@ -72,7 +78,7 @@ Orthanc Explorer
 REST API
 --------
 
-* API Version has been upgraded to 1.2
+* API version has been upgraded to 1.2
 * Asynchronous generation of ZIP archives and DICOM medias
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
