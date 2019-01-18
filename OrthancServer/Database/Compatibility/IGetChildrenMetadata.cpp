@@ -52,7 +52,6 @@ namespace Orthanc
       std::list<int64_t> children;
       database.GetChildrenInternalId(children, resourceId);
 
-      std::set<int64_t> instances;
       for (std::list<int64_t>::const_iterator 
              it = children.begin(); it != children.end(); ++it)
       {
