@@ -95,6 +95,8 @@ SDK
 * Add plugins for normalized operations (notably so as to support
   Print SCU/SCP):
   https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+* Provide access to the Orthanc::DicomUserConnection class in plugins:
+  https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
 
 ----------------
 Ideas of plugins
