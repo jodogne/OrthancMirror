@@ -73,9 +73,12 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
 
-  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" AND
+      NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     # The "--no-undefined" linker flag makes the shared libraries
-    # (plugins ModalityWorklists and ServeFolders) fail to compile on OpenBSD
+    # (plugins ModalityWorklists and ServeFolders) fail to compile on
+    # OpenBSD, and make the PostgreSQL plugin complain about missing
+    # "environ" global variable in FreeBSD
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
   endif()
