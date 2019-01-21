@@ -54,6 +54,10 @@ namespace Orthanc
 
     virtual void Send(bool isHeader, const void* buffer, size_t length);
 
+    virtual void DisableKeepAlive()
+    {
+    }
+
     void GetOutput(std::string& output);
   };
 }
