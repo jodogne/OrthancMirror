@@ -407,12 +407,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    if (keepAlive_)
-    {
-      throw OrthancException(ErrorCode_NotImplemented,
-                             "Multipart answers are not implemented together with keep-alive connections");
-    }
-
     if (state_ != State_WritingHeader)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -427,6 +421,20 @@ namespace Orthanc
     stream_.OnHttpStatusReceived(status_);
 
     std::string header = "HTTP/1.1 200 OK\r\n";
+
+    if (keepAlive_)
+    {
+#if ORTHANC_ENABLE_MONGOOSE == 1
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "Multipart answers are not implemented together "
+                             "with keep-alive connections if using Mongoose");
+#else
+      // Turn off Keep-Alive for multipart answers
+      // https://github.com/civetweb/civetweb/issues/727
+      stream_.DisableKeepAlive();
+      header += "Connection: close\r\n";
+#endif
+    }
 
     // Possibly add the cookies
     for (std::list<std::string>::const_iterator

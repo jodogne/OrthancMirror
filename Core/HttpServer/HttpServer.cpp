@@ -108,6 +108,16 @@ namespace Orthanc
       {
         // Ignore this
       }
+
+      virtual void DisableKeepAlive()
+      {
+#if ORTHANC_ENABLE_MONGOOSE == 1
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Only available if using CivetWeb");
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+        mg_disable_keep_alive(connection_);
+#endif
+      }
     };
 
 

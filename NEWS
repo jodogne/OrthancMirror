@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
 
 
 Version 1.5.2 (2019-01-18)
