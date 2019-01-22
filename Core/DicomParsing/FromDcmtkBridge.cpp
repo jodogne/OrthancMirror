@@ -2055,7 +2055,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     if (output.type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_LuaBadOutput,
-                             "Lua: IncomingFindRequestFilter must return a table");
+                             "Lua: The script must return a table");
     }
 
     Json::Value::Members members = output.getMemberNames();
@@ -2065,7 +2065,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       if (output[members[i]].type() != Json::stringValue)
       {
         throw OrthancException(ErrorCode_LuaBadOutput,
-                               "Lua: IncomingFindRequestFilter must return a table "
+                               "Lua: The script must return a table "
                                "mapping names of DICOM tags to strings");
       }
 
