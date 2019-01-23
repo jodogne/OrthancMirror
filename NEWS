@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
 * Fix issue #128 (Asynchronous C-MOVE: invalid number of remaining sub-operations)
+* Don't return tags whose group is below 0x0008 in C-FIND SCP
 
 
 Version 1.5.2 (2019-01-18)

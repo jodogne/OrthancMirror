@@ -150,7 +150,35 @@ namespace Orthanc
 
   DcmDataset* DicomFindAnswers::ExtractDcmDataset(size_t index) const
   {
-    return new DcmDataset(*GetAnswer(index).GetDcmtkObject().getDataset());
+    // As "DicomFindAnswers" stores its content using class
+    // "ParsedDicomFile" (that internally uses "DcmFileFormat" from
+    // DCMTK), the dataset can contain tags that are reserved if
+    // storing the media on the disk, notably tag
+    // "MediaStorageSOPClassUID" (0002,0002). In this function, we
+    // remove all those tags whose group is below 0x0008. The
+    // resulting data set is clean for emission in the C-FIND SCP.
+
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3
+    // https://groups.google.com/d/msg/orthanc-users/D3kpPuX8yV0/_zgHOzkMEQAJ
+
+    DcmDataset& source = *GetAnswer(index).GetDcmtkObject().getDataset();
+
+    std::auto_ptr<DcmDataset> target(new DcmDataset);
+
+    for (unsigned long i = 0; i < source.card(); i++)
+    {
+      const DcmElement* element = source.getElement(i);
+      assert(element != NULL);
+
+      if (element != NULL &&
+          element->getTag().getGroup() >= 0x0008 &&
+          element->getTag().getElement() != 0x0000)
+      {
+        target->insert(dynamic_cast<DcmElement*>(element->clone()));
+      }
+    }
+    
+    return target.release();
   }
 
 
