@@ -49,6 +49,9 @@ namespace Orthanc
                                     const std::string& dicomQuery,
                                     bool caseSensitive,
                                     bool mandatoryTag);
+
+    void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
+
   public:
     DatabaseLookup()
     {
@@ -67,8 +70,6 @@ namespace Orthanc
     }
 
     const DicomTagConstraint& GetConstraint(size_t index) const;
-
-    void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
 
     bool IsMatch(const DicomMap& value) const;
 
