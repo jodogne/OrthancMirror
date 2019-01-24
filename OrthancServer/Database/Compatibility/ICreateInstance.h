@@ -35,45 +35,32 @@
 
 #include "../IDatabaseWrapper.h"
 
-#include <set>
-#include <boost/noncopyable.hpp>
-#include <memory>
-
 namespace Orthanc
 {
-  class SetOfResources : public boost::noncopyable
+  namespace Compatibility
   {
-  private:
-    typedef std::set<int64_t>  Resources;
-
-    IDatabaseWrapper&         database_;
-    ResourceType              level_;
-    std::auto_ptr<Resources>  resources_;
-    
-  public:
-    SetOfResources(IDatabaseWrapper& database,
-                   ResourceType level) : 
-      database_(database),
-      level_(level)
+    class ICreateInstance : public boost::noncopyable
     {
-    }
+    public:
+      virtual bool LookupResource(int64_t& id,
+                                  ResourceType& type,
+                                  const std::string& publicId) = 0;
 
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
+      virtual int64_t CreateResource(const std::string& publicId,
+                                     ResourceType type) = 0;
 
-    void Intersect(const std::list<int64_t>& resources);
+      virtual void AttachChild(int64_t parent,
+                               int64_t child) = 0;
 
-    void GoDown();
-
-    void Flatten(std::list<int64_t>& result);
-
-    void Flatten(std::list<std::string>& result);
-
-    void Clear()
-    {
-      resources_.reset(NULL);
-    }
-  };
+      virtual void TagMostRecentPatient(int64_t patientId) = 0;
+      
+      static bool Apply(ICreateInstance& database,
+                        IDatabaseWrapper::CreateInstanceResult& result,
+                        int64_t& instanceId,
+                        const std::string& patient,
+                        const std::string& study,
+                        const std::string& series,
+                        const std::string& instance);
+    };
+  }
 }

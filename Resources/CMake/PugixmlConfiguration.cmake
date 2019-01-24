@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_PUGIXML)
   set(PUGIXML_SOURCES_DIR ${CMAKE_BINARY_DIR}/pugixml-1.4)
   set(PUGIXML_MD5 "7c56c91cfe3ecdee248a8e4892ef5781")
-  set(PUGIXML_URL "http://www.orthanc-server.com/downloads/third-party/pugixml-1.4.tar.gz")
+  set(PUGIXML_URL "http://orthanc.osimis.io/ThirdPartyDownloads/pugixml-1.4.tar.gz")
 
   DownloadPackage(${PUGIXML_MD5} ${PUGIXML_URL} "${PUGIXML_SOURCES_DIR}")
 

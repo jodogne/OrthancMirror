@@ -31,70 +31,53 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "ListConstraint.h"
+#pragma once
 
+#include "../IDatabaseWrapper.h"
+#include "ILookupResources.h"
+
+#include <set>
+#include <memory>
 
 namespace Orthanc
 {
-  void ListConstraint::AddAllowedValue(const std::string& value)
+  namespace Compatibility
   {
-    if (isCaseSensitive_)
+    class SetOfResources : public boost::noncopyable
     {
-      allowedValues_.insert(value);
-    }
-    else
-    {
-      allowedValues_.insert(Toolbox::ToUpperCaseWithAccents(value));
-    }
-  }
+    private:
+      typedef std::set<int64_t>  Resources;
 
-
-  void ListConstraint::Setup(LookupIdentifierQuery& lookup, 
-                             const DicomTag& tag) const
-  {
-    LookupIdentifierQuery::Disjunction& target = lookup.AddDisjunction();
-
-    for (std::set<std::string>::const_iterator
-           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
-    {
-      target.Add(tag, IdentifierConstraintType_Equal, *it);
-    }
-  }
-
-
-  bool ListConstraint::Match(const std::string& value) const
-  {
-    std::string s;
+      IDatabaseWrapper&         database_;
+      ResourceType              level_;
+      std::auto_ptr<Resources>  resources_;
     
-    if (isCaseSensitive_)
-    {
-      s = value;
-    }
-    else
-    {
-      s = Toolbox::ToUpperCaseWithAccents(value);
-    }
-
-    return allowedValues_.find(s) != allowedValues_.end();
-  }
-
-
-  std::string ListConstraint::Format() const
-  {
-    std::string s;
-
-    for (std::set<std::string>::const_iterator
-           it = allowedValues_.begin(); it != allowedValues_.end(); ++it)
-    {
-      if (!s.empty())
+    public:
+      SetOfResources(IDatabaseWrapper& database,
+                     ResourceType level) : 
+        database_(database),
+        level_(level)
       {
-        s += "\\";
       }
 
-      s += *it;
-    }
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
 
-    return s;
+      void Intersect(const std::list<int64_t>& resources);
+
+      void GoDown();
+
+      void Flatten(ILookupResources& compatibility,
+                   std::list<int64_t>& result);
+
+      void Flatten(std::list<std::string>& result);
+
+      void Clear()
+      {
+        resources_.reset(NULL);
+      }
+    };
   }
 }

@@ -33,22 +33,23 @@
 
 #pragma once
 
-#include "ServerContext.h"
+#include "ServerEnumerations.h"
 
 #include <json/json.h>
+#include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
+  class ServerContext;
+  class IDatabaseWrapper;
+  class IStorageArea;
+
   namespace ServerToolbox
   {
     void SimplifyTags(Json::Value& target,
                       const Json::Value& source,
                       DicomToJsonFormat format);
-
-    void StoreMainDicomTags(IDatabaseWrapper& database,
-                            int64_t resource,
-                            ResourceType level,
-                            const DicomMap& dicomSummary);
 
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,

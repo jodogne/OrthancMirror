@@ -95,6 +95,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         set(ORTHANC_FRAMEWORK_MD5 "4429d8d9dea4ff6648df80ec3c64d79e")
       elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.5.1")
         set(ORTHANC_FRAMEWORK_MD5 "099671538865e5da96208b37494d6718")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.5.2")
+        set(ORTHANC_FRAMEWORK_MD5 "8867050f3e9a1ce6157c1ea7a9433b1b")
       endif()
     endif()
   endif()
@@ -229,8 +231,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
   else()
     # Default case: Download from the official Web site
     set(ORTHANC_FRAMEMORK_FILENAME Orthanc-${ORTHANC_FRAMEWORK_VERSION}.tar.gz)
-    #set(ORTHANC_FRAMEWORK_URL "http://www.orthanc-server.com/downloads/get.php?path=/orthanc/${ORTHANC_FRAMEMORK_FILENAME}")
-    set(ORTHANC_FRAMEWORK_URL "http://www.orthanc-server.com/downloads/third-party/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
+    set(ORTHANC_FRAMEWORK_URL "http://orthanc.osimis.io/ThirdPartyDownloads/orthanc-framework/${ORTHANC_FRAMEMORK_FILENAME}")
   endif()
 
   set(ORTHANC_FRAMEWORK_ARCHIVE "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${ORTHANC_FRAMEMORK_FILENAME}")

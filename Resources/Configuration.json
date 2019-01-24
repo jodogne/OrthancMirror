@@ -346,9 +346,22 @@
   // default behavior since Orthanc 1.4.0).
   "LogExportedResources" : false,
 
-  // Enable or disable HTTP Keep-Alive (deprecated). Set this option
-  // to "true" only in the case of high HTTP loads.
-  "KeepAlive" : false,
+  // Enable or disable HTTP Keep-Alive (persistent HTTP
+  // connections). Setting this option to "true" prevents Orthanc
+  // issue #32 ("HttpServer does not support multiple HTTP requests in
+  // the same TCP stream"), but can possibly slow down HTTP clients
+  // that do not support persistent connections. The default behavior
+  // used to be "false" in Orthanc <= 1.5.1. Setting this option to
+  // "false" is also recommended if Orthanc is compiled against
+  // Mongoose.
+  "KeepAlive" : true,
+
+  // Enable or disable Nagle's algorithm. Only taken into
+  // consideration if Orthanc is compiled to use CivetWeb. Experiments
+  // show that best performance can be obtained by setting both
+  // "KeepAlive" and "TcpNoDelay" to "true". Beware however of
+  // caveats: https://eklitzke.org/the-caveats-of-tcp-nodelay
+  "TcpNoDelay" : true,
 
   // If this option is set to "false", Orthanc will run in index-only
   // mode. The DICOM files will not be stored on the drive. Note that

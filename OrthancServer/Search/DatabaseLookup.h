@@ -35,49 +35,24 @@
 
 #include "DicomTagConstraint.h"
 
+class DcmItem;
+
 namespace Orthanc
 {
   class DatabaseLookup : public boost::noncopyable
   {
   private:
-    class TagInfo
-    {
-    private:
-      DicomTagType  type_;
-      ResourceType  level_;
-
-    public:
-      TagInfo() :
-        type_(DicomTagType_Generic),
-        level_(ResourceType_Instance)
-      {
-      }
-
-      TagInfo(DicomTagType type,
-              ResourceType level) :
-        type_(type),
-        level_(level)
-      {
-      }
-
-      DicomTagType GetType() const
-      {
-        return type_;
-      }
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-    };
-
     std::vector<DicomTagConstraint*>  constraints_;
-    std::map<DicomTag, TagInfo>       tags_;
 
-    void LoadTags(ResourceType level);
-
+    void AddDicomConstraintInternal(const DicomTag& tag,
+                                    ValueRepresentation vr,
+                                    const std::string& dicomQuery,
+                                    bool caseSensitive,
+                                    bool mandatoryTag);
   public:
-    DatabaseLookup();
+    DatabaseLookup()
+    {
+    }
 
     ~DatabaseLookup();
 
@@ -95,10 +70,21 @@ namespace Orthanc
 
     void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
 
-    bool IsMatch(const DicomMap& value);
+    bool IsMatch(const DicomMap& value) const;
+
+    bool IsMatch(DcmItem& item,
+                 Encoding encoding) const;
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,
-                            bool caseSensitivePN);
+                            bool caseSensitivePN,
+                            bool mandatoryTag);
+
+    void AddRestConstraint(const DicomTag& tag,
+                           const std::string& dicomQuery,
+                           bool caseSensitive,
+                           bool mandatoryTag);
+
+    bool HasOnlyMainDicomTags() const;
   };
 }

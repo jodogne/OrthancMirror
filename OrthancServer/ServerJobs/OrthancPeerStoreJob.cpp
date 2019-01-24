@@ -35,6 +35,7 @@
 #include "OrthancPeerStoreJob.h"
 
 #include "../../Core/Logging.h"
+#include "../ServerContext.h"
 
 
 namespace Orthanc

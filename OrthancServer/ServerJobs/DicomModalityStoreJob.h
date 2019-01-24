@@ -36,10 +36,10 @@
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
-#include "../ServerContext.h"
-
 namespace Orthanc
 {
+  class ServerContext;
+  
   class DicomModalityStoreJob : public SetOfInstancesJob
   {
   private:

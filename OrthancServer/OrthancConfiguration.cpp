@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancConfiguration.h"
 
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/HttpServer/HttpServer.h"
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/SystemToolbox.h"
@@ -609,7 +609,7 @@ namespace Orthanc
   }
 
 
-  void OrthancConfiguration::SetupRegisteredUsers(MongooseServer& httpServer) const
+  void OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
   {
     httpServer.ClearUsers();
 

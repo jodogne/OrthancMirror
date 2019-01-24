@@ -36,11 +36,11 @@
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/HttpClient.h"
 
-#include "../ServerContext.h"
-
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class OrthancPeerStoreJob : public SetOfInstancesJob
   {
   private:

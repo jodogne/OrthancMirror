@@ -34,15 +34,18 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/Cache/SharedArchive.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
+#include "../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../Core/Logging.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
-#include "Search/LookupResource.h"
+#include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
 
@@ -774,11 +777,13 @@ namespace Orthanc
 
 
   void ServerContext::Apply(ILookupVisitor& visitor,
-                            const ::Orthanc::LookupResource& lookup,
+                            const DatabaseLookup& lookup,
+                            ResourceType queryLevel,
                             size_t since,
                             size_t limit)
   {
     LookupMode mode;
+    unsigned int databaseLimit;
       
     {
       // New configuration option in 1.5.1
@@ -804,11 +809,24 @@ namespace Orthanc
                                "Configuration option \"StorageAccessOnFind\" "
                                "should be \"Always\", \"Never\" or \"Answers\": " + value);
       }
+
+      if (queryLevel == ResourceType_Instance)
+      {
+        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
+      }
+      else
+      {
+        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+      }
     }      
 
-
     std::vector<std::string> resources, instances;
-    GetIndex().FindCandidates(resources, instances, lookup);
+
+    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
+    GetIndex().ApplyLookupResources(resources, &instances, lookup, queryLevel, lookupLimit);
+
+    bool complete = (databaseLimit == 0 ||
+                     resources.size() > databaseLimit);
 
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
@@ -816,7 +834,6 @@ namespace Orthanc
 
     size_t countResults = 0;
     size_t skipped = 0;
-    bool complete = true;
 
     const bool isDicomAsJsonNeeded = visitor.IsDicomAsJsonNeeded();
     

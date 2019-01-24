@@ -61,16 +61,22 @@ $('#fileupload').live('change', function (e) {
   appendFilesToUploadList(e.target.files);
 })
 
-$('#upload').live('pageshow', function() {
+
+function ClearUploadProgress()
+{
+  $('#progress .label').text('');
+  $('#progress .bar').css('width', '0%').css('background-color', '#333');
+}
+
+$('#upload').live('pagebeforeshow', function() {
   if (navigator.userAgent.toLowerCase().indexOf('firefox') == -1) {
     $("#issue-21-warning").css('display', 'none');
   }
 
-  // alert('WARNING - This page is currently affected by Orthanc issue #21: ' +
-  //       '"DICOM files might be missing after uploading with Mozilla Firefox." ' +
-  //       'Do not use this upload feature for clinical uses, or carefully ' +
-  //       'check that all instances have been properly received by Orthanc. ' +
-  //       'Please use the command-line "ImportDicomFiles.py" script to circumvent this issue.');
+  ClearUploadProgress();
+});
+
+$('#upload').live('pageshow', function() {
   $('#fileupload').fileupload('enable');
 });
 
@@ -85,8 +91,7 @@ $('#upload-button').live('click', function() {
 
   $('.pending-file').remove();
   $('#upload-list').listview('refresh');
-  $('#progress .bar').css('width', '0%');
-  $('#progress .label').text('');
+  ClearUploadProgress();
 
   currentUpload = 1;
   totalUploads = pu.length + 1;
