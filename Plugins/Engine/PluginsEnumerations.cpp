@@ -43,52 +43,55 @@
 
 namespace Orthanc
 {
+  namespace Compatibility
+  {
+    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case Compatibility::IdentifierConstraintType_Equal:
+          return OrthancPluginIdentifierConstraint_Equal;
+
+        case Compatibility::IdentifierConstraintType_GreaterOrEqual:
+          return OrthancPluginIdentifierConstraint_GreaterOrEqual;
+
+        case Compatibility::IdentifierConstraintType_SmallerOrEqual:
+          return OrthancPluginIdentifierConstraint_SmallerOrEqual;
+
+        case Compatibility::IdentifierConstraintType_Wildcard:
+          return OrthancPluginIdentifierConstraint_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint)
+    {
+      switch (constraint)
+      {
+        case OrthancPluginIdentifierConstraint_Equal:
+          return Compatibility::IdentifierConstraintType_Equal;
+
+        case OrthancPluginIdentifierConstraint_GreaterOrEqual:
+          return Compatibility::IdentifierConstraintType_GreaterOrEqual;
+
+        case OrthancPluginIdentifierConstraint_SmallerOrEqual:
+          return Compatibility::IdentifierConstraintType_SmallerOrEqual;
+
+        case OrthancPluginIdentifierConstraint_Wildcard:
+          return Compatibility::IdentifierConstraintType_Wildcard;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  }
+
+
   namespace Plugins
   {
-    OrthancPluginResourceType Convert(ResourceType type)
-    {
-      switch (type)
-      {
-        case ResourceType_Patient:
-          return OrthancPluginResourceType_Patient;
-
-        case ResourceType_Study:
-          return OrthancPluginResourceType_Study;
-
-        case ResourceType_Series:
-          return OrthancPluginResourceType_Series;
-
-        case ResourceType_Instance:
-          return OrthancPluginResourceType_Instance;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
-    ResourceType Convert(OrthancPluginResourceType type)
-    {
-      switch (type)
-      {
-        case OrthancPluginResourceType_Patient:
-          return ResourceType_Patient;
-
-        case OrthancPluginResourceType_Study:
-          return ResourceType_Study;
-
-        case OrthancPluginResourceType_Series:
-          return ResourceType_Series;
-
-        case OrthancPluginResourceType_Instance:
-          return ResourceType_Instance;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
     OrthancPluginChangeType Convert(ChangeType type)
     {
       switch (type)
@@ -259,50 +262,6 @@ namespace Orthanc
 
         case OrthancPluginDicomToJsonFormat_Human:
           return DicomToJsonFormat_Human;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
-    OrthancPluginIdentifierConstraint Convert(IdentifierConstraintType constraint)
-    {
-      switch (constraint)
-      {
-        case IdentifierConstraintType_Equal:
-          return OrthancPluginIdentifierConstraint_Equal;
-
-        case IdentifierConstraintType_GreaterOrEqual:
-          return OrthancPluginIdentifierConstraint_GreaterOrEqual;
-
-        case IdentifierConstraintType_SmallerOrEqual:
-          return OrthancPluginIdentifierConstraint_SmallerOrEqual;
-
-        case IdentifierConstraintType_Wildcard:
-          return OrthancPluginIdentifierConstraint_Wildcard;
-
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-    }
-
-
-    IdentifierConstraintType Convert(OrthancPluginIdentifierConstraint constraint)
-    {
-      switch (constraint)
-      {
-        case OrthancPluginIdentifierConstraint_Equal:
-          return IdentifierConstraintType_Equal;
-
-        case OrthancPluginIdentifierConstraint_GreaterOrEqual:
-          return IdentifierConstraintType_GreaterOrEqual;
-
-        case OrthancPluginIdentifierConstraint_SmallerOrEqual:
-          return IdentifierConstraintType_SmallerOrEqual;
-
-        case OrthancPluginIdentifierConstraint_Wildcard:
-          return IdentifierConstraintType_Wildcard;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);

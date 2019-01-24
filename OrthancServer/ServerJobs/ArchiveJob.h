@@ -35,10 +35,14 @@
 
 #include "../../Core/JobsEngine/IJob.h"
 #include "../../Core/TemporaryFile.h"
-#include "../ServerContext.h"
+
+#include <boost/shared_ptr.hpp>
+#include <stdint.h>
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class ArchiveJob : public IJob
   {
   private:

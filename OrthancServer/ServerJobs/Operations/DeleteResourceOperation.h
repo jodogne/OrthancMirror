@@ -35,10 +35,10 @@
 
 #include "../../../Core/JobsEngine/Operations/IJobOperation.h"
 
-#include "../../ServerContext.h"
-
 namespace Orthanc
 {
+  class ServerContext;
+  
   class DeleteResourceOperation : public IJobOperation
   {
   private:

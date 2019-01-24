@@ -33,28 +33,46 @@
 
 #pragma once
 
-#include "LookupIdentifierQuery.h"
+#include "../IDatabaseWrapper.h"
 
 namespace Orthanc
 {
-  class IFindConstraint : public boost::noncopyable
+  namespace Compatibility
   {
-  public:
-    virtual ~IFindConstraint()
-    {
-    }
+    /**
+     * This is a compatibility class that contains database primitives
+     * that were used in Orthanc <= 1.5.1, and that have been removed
+     * during the optimization of the database engine.
+     **/
+    class ILookupResources : public boost::noncopyable
+    {     
+    public:
+      virtual ~ILookupResources()
+      {
+      }
+      
+      virtual void GetAllInternalIds(std::list<int64_t>& target,
+                                     ResourceType resourceType) = 0;
+      
+      virtual void LookupIdentifier(std::list<int64_t>& result,
+                                    ResourceType level,
+                                    const DicomTag& tag,
+                                    IdentifierConstraintType type,
+                                    const std::string& value) = 0;
+ 
+      virtual void LookupIdentifierRange(std::list<int64_t>& result,
+                                         ResourceType level,
+                                         const DicomTag& tag,
+                                         const std::string& start,
+                                         const std::string& end) = 0;
 
-    virtual IFindConstraint* Clone() const = 0;
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const = 0;
-
-    virtual bool Match(const std::string& value) const = 0;
-
-    virtual std::string Format() const = 0;
-
-    static IFindConstraint* ParseDicomConstraint(const DicomTag& tag,
-                                                 const std::string& dicomQuery,
-                                                 bool caseSensitive);
-  };
+      static void Apply(IDatabaseWrapper& database,
+                        ILookupResources& compatibility,
+                        std::list<std::string>& resourcesId,
+                        std::list<std::string>* instancesId,
+                        const std::vector<DatabaseConstraint>& lookup,
+                        ResourceType queryLevel,
+                        size_t limit);
+    };
+  }
 }

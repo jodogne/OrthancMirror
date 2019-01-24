@@ -37,6 +37,8 @@
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
+#include "../../Plugins/Engine/OrthancPlugins.h"
+#include "../ServerContext.h"
 
 #include "Operations/DeleteResourceOperation.h"
 #include "Operations/DicomInstanceOperationValue.h"
@@ -51,6 +53,7 @@
 #include "ResourceModificationJob.h"
 #include "MergeStudyJob.h"
 #include "SplitStudyJob.h"
+
 
 namespace Orthanc
 {

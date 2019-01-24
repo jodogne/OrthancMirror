@@ -53,7 +53,13 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
-  OrthancServer/DatabaseWrapper.cpp
+  OrthancServer/Database/Compatibility/DatabaseLookup.cpp
+  OrthancServer/Database/Compatibility/ICreateInstance.cpp
+  OrthancServer/Database/Compatibility/IGetChildrenMetadata.cpp
+  OrthancServer/Database/Compatibility/ILookupResources.cpp
+  OrthancServer/Database/Compatibility/SetOfResources.cpp
+  OrthancServer/Database/ResourcesContent.cpp
+  OrthancServer/Database/SQLiteDatabaseWrapper.cpp
   OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
   OrthancServer/ExportedResource.cpp
@@ -71,17 +77,11 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/OrthancRestApi/OrthancRestResources.cpp
   OrthancServer/OrthancRestApi/OrthancRestSystem.cpp
   OrthancServer/QueryRetrieveHandler.cpp
+  OrthancServer/Search/DatabaseConstraint.cpp
   OrthancServer/Search/DatabaseLookup.cpp
   OrthancServer/Search/DicomTagConstraint.cpp
   OrthancServer/Search/HierarchicalMatcher.cpp
-  OrthancServer/Search/IFindConstraint.cpp
-  OrthancServer/Search/ListConstraint.cpp
-  OrthancServer/Search/LookupIdentifierQuery.cpp
-  OrthancServer/Search/LookupResource.cpp
-  OrthancServer/Search/RangeConstraint.cpp
-  OrthancServer/Search/SetOfResources.cpp
-  OrthancServer/Search/ValueConstraint.cpp
-  OrthancServer/Search/WildcardConstraint.cpp
+  OrthancServer/Search/ISqlLookupFormatter.cpp
   OrthancServer/ServerContext.cpp
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
@@ -91,6 +91,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerJobs/LuaJobManager.cpp
   OrthancServer/ServerJobs/MergeStudyJob.cpp
   OrthancServer/ServerJobs/Operations/DeleteResourceOperation.cpp
+  OrthancServer/ServerJobs/Operations/DicomInstanceOperationValue.cpp
   OrthancServer/ServerJobs/Operations/ModifyInstanceOperation.cpp
   OrthancServer/ServerJobs/Operations/StorePeerOperation.cpp
   OrthancServer/ServerJobs/Operations/StoreScuOperation.cpp
@@ -127,6 +128,8 @@ set(ORTHANC_UNIT_TESTS_SOURCES
 
 
 if (ENABLE_PLUGINS)
+  include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
+
   list(APPEND ORTHANC_SERVER_SOURCES
     Plugins/Engine/OrthancPluginDatabase.cpp
     Plugins/Engine/OrthancPlugins.cpp
@@ -168,13 +171,16 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  PREPARE_DATABASE            ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/PrepareDatabase.sql
-  UPGRADE_DATABASE_3_TO_4     ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade3To4.sql
-  UPGRADE_DATABASE_4_TO_5     ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Upgrade4To5.sql
-  CONFIGURATION_SAMPLE        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
-  DICOM_CONFORMANCE_STATEMENT ${CMAKE_CURRENT_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
-  LUA_TOOLBOX                 ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
-  FONT_UBUNTU_MONO_BOLD_16    ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
+  CONFIGURATION_SAMPLE         ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Configuration.json
+  DICOM_CONFORMANCE_STATEMENT  ${CMAKE_CURRENT_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
+  LUA_TOOLBOX                  ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Toolbox.lua
+  PREPARE_DATABASE             ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Database/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4      ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Database/Upgrade3To4.sql
+  UPGRADE_DATABASE_4_TO_5      ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Database/Upgrade4To5.sql
+
+  INSTALL_TRACK_ATTACHMENTS_SIZE
+  ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Database/InstallTrackAttachmentsSize.sql
   )
 
 if (STANDALONE_BUILD)
@@ -230,8 +236,6 @@ else()
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
 endif()
 
-
-include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1

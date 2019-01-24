@@ -41,7 +41,7 @@
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
-#include "../Core/HttpServer/MongooseServer.h"
+#include "../Core/HttpServer/HttpServer.h"
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -797,9 +797,17 @@ static bool StartHttpServer(ServerContext& context,
   else
   {
     MyIncomingHttpRequestFilter httpFilter(context, plugins);
-    MongooseServer httpServer;
+    HttpServer httpServer;
     bool httpDescribeErrors;
 
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    const bool defaultKeepAlive = false;
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+    const bool defaultKeepAlive = true;
+#else
+#  error "Either Mongoose or Civetweb must be enabled to compile this file"
+#endif
+  
     {
       OrthancConfiguration::ReaderLock lock;
       
@@ -809,9 +817,10 @@ static bool StartHttpServer(ServerContext& context,
       //httpServer.SetThreadsCount(50);
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
-      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", false));
+      httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
+      httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
       lock.GetConfiguration().SetupRegisteredUsers(httpServer);
 
@@ -1021,7 +1030,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   catch (OrthancException&)
   {
     LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
-               << "http://book.orthanc-server.com//users/replication.html";
+               << "http://book.orthanc-server.com/users/replication.html";
     throw;
   }
     
@@ -1176,7 +1185,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
   else if (currentVersion != ORTHANC_DATABASE_VERSION)
   {
     throw OrthancException(ErrorCode_IncompatibleDatabaseVersion,
-                           "The database schema must be changed from version " +
+                           "The database schema must be upgraded from version " +
                            boost::lexical_cast<std::string>(currentVersion) + " to " +
                            boost::lexical_cast<std::string>(ORTHANC_DATABASE_VERSION) +
                            ": Please run Orthanc with the \"--upgrade\" argument");

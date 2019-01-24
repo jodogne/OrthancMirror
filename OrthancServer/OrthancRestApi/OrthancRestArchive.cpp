@@ -35,8 +35,11 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
+#include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
+#include "../ServerContext.h"
 #include "../ServerJobs/ArchiveJob.h"
+
 
 namespace Orthanc
 {

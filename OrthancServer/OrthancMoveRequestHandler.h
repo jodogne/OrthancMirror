@@ -33,10 +33,11 @@
 #pragma once
 
 #include "../Core/DicomNetworking/IMoveRequestHandler.h"
-#include "ServerContext.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class OrthancMoveRequestHandler : public IMoveRequestHandler
   {
   private:

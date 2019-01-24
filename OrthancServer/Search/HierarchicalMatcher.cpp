@@ -59,15 +59,6 @@ namespace Orthanc
 
   HierarchicalMatcher::~HierarchicalMatcher()
   {
-    for (Constraints::iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
-    {
-      if (it->second != NULL)
-      {
-        delete it->second;
-      }
-    }
-
     for (Sequences::iterator it = sequences_.begin();
          it != sequences_.end(); ++it)
     {
@@ -98,15 +89,14 @@ namespace Orthanc
         continue;
       }
 
-      ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
-
-      if (constraints_.find(tag) != constraints_.end() ||
+      if (flatTags_.find(tag) != flatTags_.end() ||
           sequences_.find(tag) != sequences_.end())
       {
+        // A constraint already exists on this tag
         throw OrthancException(ErrorCode_BadRequest);        
       }
 
-      if (vr == ValueRepresentation_Sequence)
+      if (FromDcmtkBridge::LookupValueRepresentation(tag) == ValueRepresentation_Sequence)
       {
         DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
 
@@ -127,12 +117,20 @@ namespace Orthanc
       }
       else
       {
+        flatTags_.insert(tag);
+
         std::set<DicomTag> ignoreTagLength;
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
+                                         0, encoding, ignoreTagLength));
 
-        if (value->IsBinary())
+        // WARNING: Also modify "DatabaseLookup::IsMatch()" if modifying this code
+        if (value.get() == NULL ||
+            value->IsNull())
+        {
+          // This is an universal constraint
+        }
+        else if (value->IsBinary())
         {
           if (!value->GetContent().empty())
           {
@@ -140,26 +138,15 @@ namespace Orthanc
                          << tag.Format() << ") with UN (unknown) value representation. "
                          << "It will be ignored.";
           }
-
-          constraints_[tag] = NULL;
         }
-        else if (value->IsNull() ||
-                 value->GetContent().empty())
+        else if (value->GetContent().empty())
         {
           // This is an universal matcher
-          constraints_[tag] = NULL;
         }
         else
         {
-          // DICOM specifies that searches must be case sensitive, except
-          // for tags with a PN value representation
-          bool sensitive = true;
-          if (vr == ValueRepresentation_PersonName)
-          {
-            sensitive = caseSensitivePN;
-          }
-
-          constraints_[tag] = IFindConstraint::ParseDicomConstraint(tag, value->GetContent(), sensitive);
+          flatConstraints_.AddDicomConstraint
+            (tag, value->GetContent(), caseSensitivePN, true /* mandatory */);
         }
       }
     }
@@ -169,19 +156,23 @@ namespace Orthanc
   std::string HierarchicalMatcher::Format(const std::string& prefix) const
   {
     std::string s;
-    
-    for (Constraints::const_iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
-    {
-      s += prefix + it->first.Format() + " ";
 
-      if (it->second == NULL)
+    std::set<DicomTag> tags;
+    for (size_t i = 0; i < flatConstraints_.GetConstraintsCount(); i++)
+    {
+      const DicomTagConstraint& c = flatConstraints_.GetConstraint(i);
+
+      s += c.Format() + "\n";
+      tags.insert(c.GetTag());
+    }
+    
+    // Loop over the universal constraints
+    for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
+         it != flatTags_.end(); ++it)
+    {
+      if (tags.find(*it) == tags.end())
       {
-        s += "*\n";
-      }
-      else
-      {
-        s += it->second->Format() + "\n";
+        s += prefix + it->Format() + " == *\n";
       }
     }
 
@@ -214,34 +205,11 @@ namespace Orthanc
   bool HierarchicalMatcher::MatchInternal(DcmItem& item,
                                           Encoding encoding) const
   {
-    for (Constraints::const_iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
+    if (!flatConstraints_.IsMatch(item, encoding))
     {
-      if (it->second != NULL)
-      {
-        DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
-
-        DcmElement* element = NULL;
-        if (!item.findAndGetElement(tag, element).good() ||
-            element == NULL)
-        {
-          return false;
-        }
-
-        std::set<DicomTag> ignoreTagLength;
-        std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                        (*element, DicomToJsonFlags_None, 
-                                         ORTHANC_MAXIMUM_TAG_LENGTH, encoding, ignoreTagLength));
-
-        if (value->IsNull() ||
-            value->IsBinary() ||
-            !it->second->Match(value->GetContent()))
-        {
-          return false;
-        }
-      }
+      return false;
     }
-
+    
     for (Sequences::const_iterator it = sequences_.begin();
          it != sequences_.end(); ++it)
     {
@@ -283,16 +251,16 @@ namespace Orthanc
   {
     std::auto_ptr<DcmDataset> target(new DcmDataset);
 
-    for (Constraints::const_iterator it = constraints_.begin();
-         it != constraints_.end(); ++it)
+    for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
+         it != flatTags_.end(); ++it)
     {
-      DcmTagKey tag = ToDcmtkBridge::Convert(it->first);
+      DcmTagKey tag = ToDcmtkBridge::Convert(*it);
       
       DcmElement* element = NULL;
       if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
       {
-        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(it->first));
+        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }

@@ -33,10 +33,12 @@
 
 #pragma once
 
-#include "ServerIndex.h"
+#include "../Core/DicomFormat/DicomMap.h"
 
 namespace Orthanc
 {
+  class ServerIndex;
+  
   class SliceOrdering
   {
   private:

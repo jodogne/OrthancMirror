@@ -172,31 +172,34 @@
     </div>
     <div data-role="content">
       <div>
-        <!-- It's very difficult to style a "file" input so we actually hide it and create a "proxy" button that is forwarding its click to the "file" input -->
+        <!-- It's very difficult to style a "file" input so we
+        actually hide it and create a "proxy" button that is
+        forwarding its click to the "file" input -->
         <input id="fileupload" type="file" name="files[]" data-url="../instances/" style="display:none" multiple>
-        <ul data-role="listview" data-inset="true">
-          <li id="fileupload-proxy" onclick="$('#fileupload').click()" data-icon="arrow-r" data-theme="d"><a href="#">Select
-              files to upload ...</a></li>
-        </ul>
       </div>
       <p>
         <ul data-role="listview" data-inset="true">
+          <li id="fileupload-proxy" onclick="$('#fileupload').click()" data-icon="arrow-r" data-theme="e">
+            <a href="#">Select files to upload ...</a>
+          </li>
           <li data-icon="arrow-r" data-theme="e"><a href="#" id="upload-button">Start the upload</a></li>
           <!--li data-icon="gear" data-theme="e"><a href="#" id="upload-abort" class="ui-disabled">Abort the current upload</a></li-->
-          <li data-icon="delete" data-theme="e"><a href="#" id="upload-clear">Clear the pending uploads</a></li>
+          <li data-icon="delete" data-theme="d"><a href="#" id="upload-clear">Clear the pending uploads</a></li>
         </ul>
         <div id="progress" class="ui-corner-all">
           <span class="bar ui-corner-all"></span>
           <div class="label"></div>
         </div>
       </p>
+      <div class="ui-bar ui-bar-e" id="issue-21-warning">
+        <h3>Warning:</h3> Orthanc issue #21: On Firefox, especially on
+        Linux & OSX systems, files might be missing if using
+        drag-and-drop. Please use the "Select files to upload" button
+        instead, or use the command-line "ImportDicomFiles.py" script.
+      </div>
       <ul id="upload-list" data-role="listview" data-inset="true">
         <li data-role="list-divider">Drag and drop DICOM files here</li>
       </ul>
-      <div class="ui-bar ui-bar-e" id="issue-21-warning">
-        <h3>Warning:</h3> Orthanc issue #21: On Firefox, especially on Linux & OSX systems, files might be missing when
-        using drag-and-drop. Use the "Select files to upload" button instead !
-      </div>
     </div>
   </div>
 

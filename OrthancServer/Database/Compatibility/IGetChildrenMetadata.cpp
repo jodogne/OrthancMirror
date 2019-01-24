@@ -31,26 +31,36 @@
  **/
 
 
-#pragma once
-
-#include <string>
-#include "ServerEnumerations.h"
-#include "ServerIndexChange.h"
+#include "../../PrecompiledHeadersServer.h"
+#include "IGetChildrenMetadata.h"
 
 namespace Orthanc
 {
-  class IDatabaseListener
+  namespace Compatibility
   {
-  public:
-    virtual ~IDatabaseListener()
+    void IGetChildrenMetadata::Apply(IGetChildrenMetadata& database,
+                                     std::list<std::string>& target,
+                                     int64_t resourceId,
+                                     MetadataType metadata)
     {
+      // This function comes from an optimization of
+      // "ServerIndex::GetSeriesStatus()" in Orthanc <= 1.5.1
+      // Loop over the instances of this series
+
+      target.clear();
+      
+      std::list<int64_t> children;
+      database.GetChildrenInternalId(children, resourceId);
+
+      for (std::list<int64_t>::const_iterator 
+             it = children.begin(); it != children.end(); ++it)
+      {
+        std::string value;
+        if (database.LookupMetadata(value, *it, metadata))
+        {
+          target.push_back(value);
+        }
+      }
     }
-
-    virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) = 0;
-
-    virtual void SignalFileDeleted(const FileInfo& info) = 0;
-
-    virtual void SignalChange(const ServerIndexChange& change) = 0;
-  };
+  }
 }

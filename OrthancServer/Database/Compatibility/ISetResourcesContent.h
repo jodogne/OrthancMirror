@@ -31,45 +31,38 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "ValueConstraint.h"
+#pragma once
 
-#include "../../Core/Toolbox.h"
-
-#include <stdio.h>
+#include "../ResourcesContent.h"
 
 namespace Orthanc
 {
-  ValueConstraint::ValueConstraint(const std::string& value,
-                                   bool isCaseSensitive) : 
-    isCaseSensitive_(isCaseSensitive)
+  namespace Compatibility
   {
-    if (isCaseSensitive)
+    class ISetResourcesContent : public boost::noncopyable
     {
-      value_ = value;
-    }
-    else
-    {
-      value_ = Toolbox::ToUpperCaseWithAccents(value);
-    }
-  }
+    public:
+      virtual ~ISetResourcesContent()
+      {
+      }
+      
+      virtual void SetMainDicomTag(int64_t id,
+                                   const DicomTag& tag,
+                                   const std::string& value) = 0;
 
+      virtual void SetIdentifierTag(int64_t id,
+                                    const DicomTag& tag,
+                                    const std::string& value) = 0;
 
-  void ValueConstraint::Setup(LookupIdentifierQuery& lookup,
-                              const DicomTag& tag) const
-  {
-    lookup.AddConstraint(tag, IdentifierConstraintType_Equal, value_);
-  }
+      virtual void SetMetadata(int64_t id,
+                               MetadataType type,
+                               const std::string& value) = 0;
 
-  bool ValueConstraint::Match(const std::string& value) const
-  {
-    if (isCaseSensitive_)
-    {
-      return value_ == value;
-    }
-    else
-    {
-      return value_ == Toolbox::ToUpperCaseWithAccents(value);
-    }
+      static void Apply(ISetResourcesContent& that,
+                        const ResourcesContent& content)
+      {
+        content.Store(that);
+      }
+    };
   }
 }

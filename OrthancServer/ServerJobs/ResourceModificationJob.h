@@ -34,10 +34,13 @@
 #pragma once
 
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../ServerContext.h"
+#include "../../Core/DicomParsing/DicomModification.h"
+#include "../DicomInstanceOrigin.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class ResourceModificationJob : public SetOfInstancesJob
   {
   private:

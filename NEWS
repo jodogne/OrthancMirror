@@ -1,12 +1,44 @@
 Pending changes in the mainline
 ===============================
 
+* Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
+* Fix issue #128 (Asynchronous C-MOVE: invalid number of remaining sub-operations)
+* Don't return tags whose group is below 0x0008 in C-FIND SCP
+
+
+Version 1.5.2 (2019-01-18)
+==========================
+
+General
+-------
+
+* CivetWeb is now the default embedded HTTP server (instead of Mongoose)
+* New configuration option: "TcpNoDelay" to disable Nagle's algorithm in HTTP server
+
+REST API
+--------
+
+* API version has been upgraded to 1.3
+* More consistent handling of the "Last" field returned by the "/changes" URI
+
+Plugins
+-------
+
+* New primitives to speed up databases (custom index plugins)
+
 Maintenance
 -----------
 
+* Don't consider tags whose group is below 0x0008 in C-FIND SCP
+* Compatibility with DCMTK 3.6.4
+* Fix issue #21 (DICOM files missing after uploading with Firefox)
+* Fix issue #32 (HTTP keep-alive is now enabled by default)
+* Fix issue #58 (Patient recycling order should be defined by their received last instance)
 * Fix issue #118 (Wording in Configuration.json regarding SynchronousCMove)
+* Fix issue #124 (GET /studies/ID/media fails for certain dicom file)
+* Fix issue #125 (Mongoose: /instances/{id} returns 500 on invalid HTTP Method)
 * Fixed Orthanc Explorer on IE and Firefox: Explorer always show "too many results"
-  and it's therefore impossible to browse the content.
+  and it's therefore impossible to browse the content
 * Upgraded dependencies for static and Windows builds:
   - civetweb 1.11
 
@@ -49,7 +81,7 @@ Orthanc Explorer
 REST API
 --------
 
-* API Version has been upgraded to 1.2
+* API version has been upgraded to 1.2
 * Asynchronous generation of ZIP archives and DICOM medias
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
