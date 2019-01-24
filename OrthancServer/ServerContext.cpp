@@ -196,21 +196,24 @@ namespace Orthanc
 
   void ServerContext::SaveJobsEngine()
   {
-    VLOG(1) << "Serializing the content of the jobs engine";
+    if (saveJobs_)
+    {
+      VLOG(1) << "Serializing the content of the jobs engine";
     
-    try
-    {
-      Json::Value value;
-      jobsEngine_.GetRegistry().Serialize(value);
+      try
+      {
+        Json::Value value;
+        jobsEngine_.GetRegistry().Serialize(value);
 
-      Json::FastWriter writer;
-      std::string serialized = writer.write(value);
+        Json::FastWriter writer;
+        std::string serialized = writer.write(value);
 
-      index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
-    }
-    catch (OrthancException& e)
-    {
-      LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Cannot serialize the jobs engine: " << e.What();
+      }
     }
   }
 
@@ -245,6 +248,7 @@ namespace Orthanc
         new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
       defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
       jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+      saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);

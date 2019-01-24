@@ -1,6 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration option: "SaveJobs" to specify whether jobs are stored in the database
+
+Maintenance
+-----------
+
 * Don't return tags whose group is below 0x0008 in C-FIND SCP answers
 * Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
 * Fix issue #90 (C-Find shall match missing tags to null/empty string)
