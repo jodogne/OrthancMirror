@@ -1415,9 +1415,16 @@ namespace Orthanc
                                  "Tag \"" + members[i] + "\" should be associated with a string");
         }
 
-        query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                request[KEY_QUERY][members[i]].asString(),
-                                caseSensitive, true);
+        const std::string value = request[KEY_QUERY][members[i]].asString();
+
+        if (!value.empty())
+        {
+          // An empty string corresponds to an universal constraint,
+          // so we ignore it. This mimics the behavior of class
+          // "OrthancFindRequestHandler"
+          query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
+                                  value, caseSensitive, true);
+        }
       }
 
       FindVisitor visitor;
