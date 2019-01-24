@@ -443,6 +443,15 @@
   // REST API) and should be avoided for non-developers.
   "JobsHistorySize" : 10,
 
+  // Whether to save the jobs into the Orthanc database. If this
+  // option is set to "true", the pending/running/completed jobs are
+  // automatically reloaded from the database if Orthanc is stopped
+  // then restarted (except if the "--no-jobs" command-line argument
+  // is specified). This option should be set to "false" if multiple
+  // Orthanc servers are using the same database (e.g. if PostgreSQL
+  // or MariaDB/MySQL is used).
+  "SaveJobs" : true,
+
   // Specifies how Orthanc reacts when it receives a DICOM instance
   // whose SOPInstanceUID is already stored. If set to "true", the new
   // instance replaces the old one. If set to "false", the new
