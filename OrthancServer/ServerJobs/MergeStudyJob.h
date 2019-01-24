@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include "../../Core/DicomFormat/DicomMap.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
-
-#include "../ServerContext.h"
+#include "../DicomInstanceOrigin.h"
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class MergeStudyJob : public SetOfInstancesJob
   {
   private:

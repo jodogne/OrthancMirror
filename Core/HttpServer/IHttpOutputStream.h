@@ -50,5 +50,9 @@ namespace Orthanc
     virtual void OnHttpStatusReceived(HttpStatus status) = 0;
 
     virtual void Send(bool isHeader, const void* buffer, size_t length) = 0;
+
+    // Disable HTTP keep alive for this single HTTP connection. Must
+    // be called before sending the "HTTP/1.1 200 OK" header.
+    virtual void DisableKeepAlive() = 0;
   };
 }

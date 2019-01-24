@@ -34,10 +34,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ArchiveJob.h"
 
+#include "../../Core/Cache/SharedArchive.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/DicomParsing/DicomDirWriter.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../ServerContext.h"
 
 #include <stdio.h>
 

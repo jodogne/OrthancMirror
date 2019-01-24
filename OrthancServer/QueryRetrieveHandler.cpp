@@ -38,6 +38,8 @@
 
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
+#include "LuaScripting.h"
+#include "ServerContext.h"
 
 
 namespace Orthanc

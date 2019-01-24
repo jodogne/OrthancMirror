@@ -31,7 +31,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 
 set(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.2)
-set(DCMTK_URL "http://www.orthanc-server.com/downloads/third-party/dcmtk-3.6.2.tar.gz")
+set(DCMTK_URL "http://orthanc.osimis.io/ThirdPartyDownloads/dcmtk-3.6.2.tar.gz")
 set(DCMTK_MD5 "d219a4152772985191c9b89d75302d12")
 
 if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")

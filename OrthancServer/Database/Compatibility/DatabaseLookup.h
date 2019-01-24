@@ -33,42 +33,32 @@
 
 #pragma once
 
-#include "IFindConstraint.h"
+#include "../IDatabaseWrapper.h"
+#include "ILookupResources.h"
 
 namespace Orthanc
 {
-  class RangeConstraint : public IFindConstraint
+  namespace Compatibility
   {
-  private:
-    std::string  lower_;
-    std::string  upper_;
-    bool         isCaseSensitive_;
-
-    RangeConstraint(const RangeConstraint& other) : 
-      lower_(other.lower_),
-      upper_(other.upper_),
-      isCaseSensitive_(other.isCaseSensitive_)
+    class DatabaseLookup : public boost::noncopyable
     {
-    }
+    private:
+      IDatabaseWrapper&  database_;
+      ILookupResources&  compatibility_;
 
-  public:
-    RangeConstraint(const std::string& lower,
-                    const std::string& upper,
-                    bool isCaseSensitive);
+    public:
+      DatabaseLookup(IDatabaseWrapper& database,
+                     ILookupResources& compatibility) :
+        database_(database),
+        compatibility_(compatibility)
+      {
+      }
 
-    virtual IFindConstraint* Clone() const
-    {
-      return new RangeConstraint(*this);
-    }
-
-    virtual void Setup(LookupIdentifierQuery& lookup,
-                       const DicomTag& tag) const;
-
-    virtual bool Match(const std::string& value) const;
-
-    virtual std::string Format() const
-    {
-      return lower_ + "-" + upper_;
-    }
-  };
+      void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                std::list<std::string>* instancesId,
+                                const std::vector<DatabaseConstraint>& lookup,
+                                ResourceType queryLevel,
+                                size_t limit);
+    };
+  }
 }

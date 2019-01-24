@@ -1897,6 +1897,35 @@ namespace Orthanc
   }
 
 
+  bool IsResourceLevelAboveOrEqual(ResourceType level,
+                                   ResourceType reference)
+  {
+    switch (reference)
+    {
+      case ResourceType_Patient:
+        return (level == ResourceType_Patient);
+
+      case ResourceType_Study:
+        return (level == ResourceType_Patient ||
+                level == ResourceType_Study);
+
+      case ResourceType_Series:
+        return (level == ResourceType_Patient ||
+                level == ResourceType_Study ||
+                level == ResourceType_Series);
+
+      case ResourceType_Instance:
+        return (level == ResourceType_Patient ||
+                level == ResourceType_Study ||
+                level == ResourceType_Series ||
+                level == ResourceType_Instance);
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   DicomModule GetModule(ResourceType type)
   {
     switch (type)

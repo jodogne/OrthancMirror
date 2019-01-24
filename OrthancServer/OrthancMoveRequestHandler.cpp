@@ -34,11 +34,13 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancMoveRequestHandler.h"
 
-#include "OrthancConfiguration.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "OrthancConfiguration.h"
+#include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
+
 
 namespace Orthanc
 {
@@ -123,6 +125,7 @@ namespace Orthanc
       ServerContext&                        context_;
       std::auto_ptr<DicomModalityStoreJob>  job_;
       size_t                                position_;
+      size_t                                countInstances_;
       
     public:
       AsynchronousMove(ServerContext& context,
@@ -154,6 +157,8 @@ namespace Orthanc
         std::list<std::string> tmp;
         context_.GetIndex().GetChildInstances(tmp, publicId);
 
+        countInstances_ = tmp.size();
+
         job_->Reserve(tmp.size());
 
         for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
@@ -164,20 +169,23 @@ namespace Orthanc
 
       virtual unsigned int GetSubOperationCount() const
       {
-        return 1;
+        return countInstances_;
       }
 
       virtual Status DoNext()
       {
-        if (position_ == 0)
-        {
-          context_.GetJobsEngine().GetRegistry().Submit(job_.release(), 0 /* priority */);
-          return Status_Success;
-        }
-        else
+        if (position_ >= countInstances_)
         {
           return Status_Failure;
         }
+        
+        if (position_ == 0)
+        {
+          context_.GetJobsEngine().GetRegistry().Submit(job_.release(), 0 /* priority */);
+        }
+        
+        position_ ++;
+        return Status_Success;
       }
     };
   }
@@ -226,7 +234,7 @@ namespace Orthanc
 
     const std::string& content = value.GetContent();
 
-    std::list<std::string> ids;
+    std::vector<std::string> ids;
     context_.GetIndex().LookupIdentifierExact(ids, level, tag, content);
 
     if (ids.size() != 1)
@@ -235,7 +243,7 @@ namespace Orthanc
     }
     else
     {
-      publicId = ids.front();
+      publicId = ids[0];
       return true;
     }
   }

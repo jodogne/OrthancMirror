@@ -97,7 +97,7 @@ namespace Orthanc
 
   unsigned int TimeoutDicomConnectionManager::GetTimeout()
   {
-    return timeout_.total_milliseconds();
+    return static_cast<unsigned int>(timeout_.total_milliseconds());
   }
 
 

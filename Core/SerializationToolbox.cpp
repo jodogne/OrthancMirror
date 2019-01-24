@@ -53,7 +53,7 @@ namespace Orthanc
         tag = FromDcmtkBridge::ParseTag(name);
         return true;
       }
-      catch (OrthancException& e)
+      catch (OrthancException&)
       {
         return false;
       }
