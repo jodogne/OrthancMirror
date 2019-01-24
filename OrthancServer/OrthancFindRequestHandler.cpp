@@ -639,7 +639,7 @@ namespace Orthanc
       std::string value = element.GetValue().GetContent();
       if (value.size() == 0)
       {
-        // An empty string corresponds to a "*" wildcard constraint, so we ignore it
+        // An empty string corresponds to an universal constraint, so we ignore it
         continue;
       }
 
