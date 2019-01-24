@@ -216,6 +216,7 @@ namespace Orthanc
     std::auto_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
+    bool saveJobs_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
