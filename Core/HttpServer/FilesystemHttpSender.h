@@ -61,6 +61,13 @@ namespace Orthanc
       Initialize(path);
     }
 
+    FilesystemHttpSender(const std::string& path,
+                         MimeType contentType)
+    {
+      SetContentType(contentType);
+      Initialize(path);
+    }
+
     FilesystemHttpSender(const FilesystemStorage& storage,
                          const std::string& uuid)
     {

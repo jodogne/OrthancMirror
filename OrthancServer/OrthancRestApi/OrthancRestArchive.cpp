@@ -144,8 +144,7 @@ namespace Orthanc
           (publicContent, job.release(), priority))
       {
         // The archive is now created: Prepare the sending of the ZIP file
-        FilesystemHttpSender sender(tmp->GetPath());
-        sender.SetContentType(MimeType_Gzip);
+        FilesystemHttpSender sender(tmp->GetPath(), MimeType_Zip);
         sender.SetContentFilename(filename);
 
         // Send the ZIP
