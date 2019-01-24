@@ -1,8 +1,15 @@
 var pendingUploads = [];
 var currentUpload = 0;
 var totalUpload = 0;
+var alreadyInitialized = false; // trying to debug Orthanc issue #1
 
 $(document).ready(function() {
+  if (alreadyInitialized) {
+    console.log("Orthanc issue #1: the fileupload has been initialized twice !");
+  } else {
+    alreadyInitialized = true;
+  }
+  
   // Initialize the jQuery File Upload widget:
   $('#fileupload').fileupload({
     //dataType: 'json',
@@ -27,7 +34,7 @@ $(document).ready(function() {
       $('#progress .label').text('Failure');
     })
     .bind('fileuploaddrop', function (e, data) {
-      console.log("dropped " + data.files.length + " files");
+      console.log("dropped " + data.files.length + " files: ", data);
       appendFilesToUploadList(data.files);
     })
     .bind('fileuploadsend', function (e, data) {
