@@ -438,7 +438,9 @@
   // processing job is considered as complete once it is tagged as
   // "Success" or "Failure". Since Orthanc 1.5.0, a value of "0"
   // indicates to keep no job in memory (i.e. jobs are removed from
-  // the history as soon as they are completed).
+  // the history as soon as they are completed), which prevents the
+  // use of some features of Orthanc (typically, synchronous mode in
+  // REST API) and should be avoided for non-developers.
   "JobsHistorySize" : 10,
 
   // Specifies how Orthanc reacts when it receives a DICOM instance
