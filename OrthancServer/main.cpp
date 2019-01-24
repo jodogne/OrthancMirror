@@ -1121,6 +1121,11 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
 
     maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
+
+    if (maxCompletedJobs == 0)
+    {
+      LOG(WARNING) << "Setting option \"JobsHistorySize\" to zero is not recommended";
+    }
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);
