@@ -755,9 +755,11 @@ namespace Orthanc
       {
         if (!GetStateInternal(state, id))
         {
-          // Job has finished and has been lost (should not happen)
-          state = JobState_Failure;
-          break;
+          // Job has finished and has been lost (typically happens if
+          // "JobsHistorySize" is 0)
+          throw OrthancException(ErrorCode_InexistentItem,
+                                 "Cannot retrieve the status of the job, "
+                                 "make sure that \"JobsHistorySize\" is not 0");
         }
         else if (state == JobState_Failure)
         {
