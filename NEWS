@@ -1,9 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+* Don't return tags whose group is below 0x0008 in C-FIND SCP answers
 * Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
+* Fix issue #119 (/patients/.../archive returns a 500 when JobsHistorySize is 0)
 * Fix issue #128 (Asynchronous C-MOVE: invalid number of remaining sub-operations)
-* Don't return tags whose group is below 0x0008 in C-FIND SCP
 
 
 Version 1.5.2 (2019-01-18)
@@ -29,7 +30,7 @@ Plugins
 Maintenance
 -----------
 
-* Don't consider tags whose group is below 0x0008 in C-FIND SCP
+* Ignore tags whose group is below 0x0008 in C-FIND SCP requests
 * Compatibility with DCMTK 3.6.4
 * Fix issue #21 (DICOM files missing after uploading with Firefox)
 * Fix issue #32 (HTTP keep-alive is now enabled by default)
