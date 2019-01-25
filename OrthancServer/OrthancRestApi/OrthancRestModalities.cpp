@@ -813,7 +813,7 @@ namespace Orthanc
    * DICOM C-Store SCU
    ***************************************************************************/
 
-  static bool GetInstancesToExport(Json::Value& otherArguments,
+  static void GetInstancesToExport(Json::Value& otherArguments,
                                    SetOfInstancesJob& job,
                                    const std::string& remote,
                                    RestApiPostCall& call)
@@ -834,7 +834,7 @@ namespace Orthanc
     else if (!call.ParseJsonRequest(request))
     {
       // Bad JSON request
-      return false;
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON value");
     }
 
     if (request.isString())
@@ -842,6 +842,11 @@ namespace Orthanc
       std::string item = request.asString();
       request = Json::arrayValue;
       request.append(item);
+    }
+    else if (!request.isArray() &&
+             !request.isObject())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object, or a JSON array of strings");
     }
 
     const Json::Value* resources;
@@ -854,13 +859,15 @@ namespace Orthanc
       if (request.type() != Json::objectValue ||
           !request.isMember(KEY_RESOURCES))
       {
-        return false;
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Missing field in JSON: \"" + std::string(KEY_RESOURCES) + "\"");
       }
 
       resources = &request[KEY_RESOURCES];
       if (!resources->isArray())
       {
-        return false;
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "JSON field \"" + std::string(KEY_RESOURCES) + "\" must contain an array");
       }
 
       // Copy the remaining arguments
@@ -882,24 +889,24 @@ namespace Orthanc
     {
       if (!(*resources) [i].isString())
       {
-        return false;
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Resources to be exported must be specified as a JSON array of strings");
       }
 
       std::string stripped = Toolbox::StripSpaces((*resources) [i].asString());
       if (!Toolbox::IsSHA1(stripped))
       {
-        return false;
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "This string is not a valid Orthanc identifier: " + stripped);
       }
+
+      context.AddChildInstances(job, stripped);
 
       if (logExportedResources)
       {
         context.GetIndex().LogExportedResource(stripped, remote);
       }
-
-      context.AddChildInstances(job, stripped);
     }
-
-    return true;
   }
 
 
@@ -912,26 +919,25 @@ namespace Orthanc
     Json::Value request;
     std::auto_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
 
-    if (GetInstancesToExport(request, *job, remote, call))
+    GetInstancesToExport(request, *job, remote, call);
+
+    std::string localAet = Toolbox::GetJsonStringField
+      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+    std::string moveOriginatorAET = Toolbox::GetJsonStringField
+      (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
+    int moveOriginatorID = Toolbox::GetJsonIntegerField
+      (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+
+    job->SetLocalAet(localAet);
+    job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
+
+    if (moveOriginatorID != 0)
     {
-      std::string localAet = Toolbox::GetJsonStringField
-        (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
-      std::string moveOriginatorAET = Toolbox::GetJsonStringField
-        (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
-      int moveOriginatorID = Toolbox::GetJsonIntegerField
-        (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
-
-      job->SetLocalAet(localAet);
-      job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
-
-      if (moveOriginatorID != 0)
-      {
-        job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
-      }
-
-      OrthancRestApi::GetApi(call).SubmitCommandsJob
-        (call, job.release(), true /* synchronous by default */, request);
+      job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
     }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
   }
 
 
@@ -1059,22 +1065,21 @@ namespace Orthanc
     Json::Value request;
     std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
 
-    if (GetInstancesToExport(request, *job, remote, call))
-    {
-      OrthancConfiguration::ReaderLock lock;
+    GetInstancesToExport(request, *job, remote, call);
+    
+    OrthancConfiguration::ReaderLock lock;
 
-      WebServiceParameters peer;
-      if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
-      {
-        job->SetPeer(peer);    
-        OrthancRestApi::GetApi(call).SubmitCommandsJob
-          (call, job.release(), true /* synchronous by default */, request);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_UnknownResource,
-                               "No peer with symbolic name: " + remote);
-      }
+    WebServiceParameters peer;
+    if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
+    {
+      job->SetPeer(peer);    
+      OrthancRestApi::GetApi(call).SubmitCommandsJob
+        (call, job.release(), true /* synchronous by default */, request);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "No peer with symbolic name: " + remote);
     }
   }
 
