@@ -177,6 +177,10 @@ namespace Orthanc
       {
         s += "Connection: keep-alive\r\n";
       }
+      else
+      {
+        s += "Connection: close\r\n";
+      }
 
       for (std::list<std::string>::const_iterator
              it = headers_.begin(); it != headers_.end(); ++it)
@@ -434,6 +438,10 @@ namespace Orthanc
       stream_.DisableKeepAlive();
       header += "Connection: close\r\n";
 #endif
+    }
+    else
+    {
+      header += "Connection: close\r\n";
     }
 
     // Possibly add the cookies
