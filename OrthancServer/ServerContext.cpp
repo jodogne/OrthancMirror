@@ -322,7 +322,8 @@ namespace Orthanc
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    area_.Remove(fileUuid, type);
+    StorageAccessor accessor(area_, GetMetricsRegistry());
+    accessor.Remove(fileUuid, type);
   }
 
 
@@ -331,7 +332,8 @@ namespace Orthanc
   {
     try
     {
-      StorageAccessor accessor(area_);
+      MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
+      StorageAccessor accessor(area_, GetMetricsRegistry());
 
       resultPublicId = dicom.GetHasher().HashInstance();
 
@@ -472,7 +474,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    StorageAccessor accessor(area_);
+    StorageAccessor accessor(area_, GetMetricsRegistry());
     accessor.AnswerFile(output, attachment, GetFileContentMime(content));
   }
 
@@ -500,7 +502,7 @@ namespace Orthanc
 
     std::string content;
 
-    StorageAccessor accessor(area_);
+    StorageAccessor accessor(area_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
     FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
@@ -616,15 +618,18 @@ namespace Orthanc
                              " of instance " + instancePublicId);
     }
 
+    assert(attachment.GetContentType() == content);
+
     if (uncompressIfNeeded)
     {
       ReadAttachment(result, attachment);
     }
     else
     {
-      // Do not interpret the content of the storage area, return the
+      // Do not uncompress the content of the storage area, return the
       // raw data
-      area_.Read(result, attachment.GetUuid(), content);
+      StorageAccessor accessor(area_, GetMetricsRegistry());
+      accessor.ReadRaw(result, attachment);
     }
   }
 
@@ -633,7 +638,7 @@ namespace Orthanc
                                      const FileInfo& attachment)
   {
     // This will decompress the attachment
-    StorageAccessor accessor(area_);
+    StorageAccessor accessor(area_, GetMetricsRegistry());
     accessor.Read(result, attachment);
   }
 
@@ -683,7 +688,7 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_);
+    StorageAccessor accessor(area_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
     StoreStatus status = index_.AddAttachment(attachment, resourceId);

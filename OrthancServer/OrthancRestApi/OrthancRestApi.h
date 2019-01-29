@@ -75,6 +75,17 @@ namespace Orthanc
   public:
     OrthancRestApi(ServerContext& context);
 
+    virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
+                        HttpMethod method,
+                        const UriComponents& uri,
+                        const Arguments& headers,
+                        const GetArguments& getArguments,
+                        const char* bodyData,
+                        size_t bodySize) ORTHANC_OVERRIDE;
+
     const bool& LeaveBarrierFlag() const
     {
       return leaveBarrier_;
