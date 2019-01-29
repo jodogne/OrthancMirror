@@ -33,9 +33,10 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfCommandsJob.h"
-#include "../../Core/RestApi/RestApi.h"
 #include "../../Core/DicomParsing/DicomModification.h"
+#include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#include "../../Core/MetricsRegistry.h"
+#include "../../Core/RestApi/RestApi.h"
 #include "../ServerEnumerations.h"
 
 #include <set>
@@ -52,9 +53,10 @@ namespace Orthanc
     typedef std::set<std::string> SetOfStrings;
 
   private:
-    ServerContext& context_;
-    bool leaveBarrier_;
-    bool resetRequestReceived_;
+    ServerContext&                  context_;
+    bool                            leaveBarrier_;
+    bool                            resetRequestReceived_;
+    MetricsRegistry::SharedMetrics  activeRequests_;
 
     void RegisterSystem();
 

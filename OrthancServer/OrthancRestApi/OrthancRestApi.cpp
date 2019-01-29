@@ -137,7 +137,10 @@ namespace Orthanc
   OrthancRestApi::OrthancRestApi(ServerContext& context) : 
     context_(context),
     leaveBarrier_(false),
-    resetRequestReceived_(false)
+    resetRequestReceived_(false),
+    activeRequests_(context.GetMetricsRegistry(), 
+                    "orthanc_rest_api_active_requests", 
+                    MetricsType_MaxOver10Seconds)
   {
     RegisterSystem();
 
@@ -169,6 +172,7 @@ namespace Orthanc
                               size_t bodySize)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_rest_api_duration_ms");
+    MetricsRegistry::ActiveCounter counter(activeRequests_);
 
     return RestApi::Handle(output, origin, remoteIp, username, method,
                            uri, headers, getArguments, bodyData, bodySize);
