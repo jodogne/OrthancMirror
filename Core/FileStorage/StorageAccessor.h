@@ -61,14 +61,23 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <stdint.h>
-#include <json/value.h>
 
 namespace Orthanc
 {
+  class MetricsRegistry;
+
+  /**
+   * This class handles the compression/decompression of the raw files
+   * contained in the storage area, and monitors timing metrics (if
+   * enabled).
+   **/
   class StorageAccessor : boost::noncopyable
   {
   private:
-    IStorageArea&  area_;
+    class MetricsTimer;
+
+    IStorageArea&     area_;
+    MetricsRegistry*  metrics_;
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SetupSender(BufferHttpSender& sender,
@@ -77,7 +86,16 @@ namespace Orthanc
 #endif
 
   public:
-    StorageAccessor(IStorageArea& area) : area_(area)
+    StorageAccessor(IStorageArea& area) : 
+      area_(area),
+      metrics_(NULL)
+    {
+    }
+
+    StorageAccessor(IStorageArea& area,
+                    MetricsRegistry& metrics) : 
+      area_(area),
+      metrics_(&metrics)
     {
     }
 
@@ -99,12 +117,15 @@ namespace Orthanc
     void Read(std::string& content,
               const FileInfo& info);
 
-    void Read(Json::Value& content,
-              const FileInfo& info);
+    void ReadRaw(std::string& content,
+                 const FileInfo& info);
+
+    void Remove(const std::string& fileUuid,
+                FileContentType type);
 
     void Remove(const FileInfo& info)
     {
-      area_.Remove(info.GetUuid(), info.GetContentType());
+      Remove(info.GetUuid(), info.GetContentType());
     }
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1

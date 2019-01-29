@@ -35,6 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/MetricsRegistry.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
@@ -153,6 +154,24 @@ namespace Orthanc
     Register("/tools/reset", ResetOrthanc);
     Register("/tools/shutdown", ShutdownOrthanc);
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
+  }
+
+
+  bool OrthancRestApi::Handle(HttpOutput& output,
+                              RequestOrigin origin,
+                              const char* remoteIp,
+                              const char* username,
+                              HttpMethod method,
+                              const UriComponents& uri,
+                              const Arguments& headers,
+                              const GetArguments& getArguments,
+                              const char* bodyData,
+                              size_t bodySize)
+  {
+    MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_rest_api_duration_ms");
+
+    return RestApi::Handle(output, origin, remoteIp, username, method,
+                           uri, headers, getArguments, bodyData, bodySize);
   }
 
 

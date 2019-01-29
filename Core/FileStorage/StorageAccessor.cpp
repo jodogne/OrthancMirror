@@ -35,16 +35,39 @@
 #include "StorageAccessor.h"
 
 #include "../Compression/ZlibCompressor.h"
+#include "../MetricsRegistry.h"
 #include "../OrthancException.h"
-#include "../Toolbox.h"
 #include "../Toolbox.h"
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
 #  include "../HttpServer/HttpStreamTranscoder.h"
 #endif
 
+
+static const std::string METRICS_CREATE = "orthanc_storage_create_duration_ms";
+static const std::string METRICS_READ = "orthanc_storage_read_duration_ms";
+static const std::string METRICS_REMOVE = "orthanc_storage_remove_duration_ms";
+
+
 namespace Orthanc
 {
+  class StorageAccessor::MetricsTimer : public boost::noncopyable
+  {
+  private:
+    std::auto_ptr<MetricsRegistry::Timer>  timer_;
+
+  public:
+    MetricsTimer(StorageAccessor& that,
+                 const std::string& name)
+    {
+      if (that.metrics_ != NULL)
+      {
+        timer_.reset(new MetricsRegistry::Timer(*that.metrics_, name));
+      }
+    }
+  };
+
+
   FileInfo StorageAccessor::Write(const void* data,
                                   size_t size,
                                   FileContentType type,
@@ -64,6 +87,8 @@ namespace Orthanc
     {
       case CompressionType_None:
       {
+        MetricsTimer timer(*this, METRICS_CREATE);
+
         area_.Create(uuid, data, size, type);
         return FileInfo(uuid, type, size, md5);
       }
@@ -82,13 +107,17 @@ namespace Orthanc
           Toolbox::ComputeMD5(compressedMD5, compressed);
         }
 
-        if (compressed.size() > 0)
         {
-          area_.Create(uuid, &compressed[0], compressed.size(), type);
-        }
-        else
-        {
-          area_.Create(uuid, NULL, 0, type);
+          MetricsTimer timer(*this, METRICS_CREATE);
+
+          if (compressed.size() > 0)
+          {
+            area_.Create(uuid, &compressed[0], compressed.size(), type);
+          }
+          else
+          {
+            area_.Create(uuid, NULL, 0, type);
+          }
         }
 
         return FileInfo(uuid, type, size, md5,
@@ -108,6 +137,7 @@ namespace Orthanc
     {
       case CompressionType_None:
       {
+        MetricsTimer timer(*this, METRICS_READ);
         area_.Read(content, info.GetUuid(), info.GetContentType());
         break;
       }
@@ -117,7 +147,12 @@ namespace Orthanc
         ZlibCompressor zlib;
 
         std::string compressed;
-        area_.Read(compressed, info.GetUuid(), info.GetContentType());
+
+        {
+          MetricsTimer timer(*this, METRICS_READ);
+          area_.Read(compressed, info.GetUuid(), info.GetContentType());
+        }
+
         IBufferCompressor::Uncompress(content, zlib, compressed);
         break;
       }
@@ -132,17 +167,19 @@ namespace Orthanc
   }
 
 
-  void StorageAccessor::Read(Json::Value& content,
-                             const FileInfo& info)
+  void StorageAccessor::ReadRaw(std::string& content,
+                                const FileInfo& info)
   {
-    std::string s;
-    Read(s, info);
+    MetricsTimer timer(*this, METRICS_READ);
+    area_.Read(content, info.GetUuid(), info.GetContentType());
+  }
 
-    Json::Reader reader;
-    if (!reader.parse(s, content))
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
+
+  void StorageAccessor::Remove(const std::string& fileUuid,
+                               FileContentType type)
+  {
+    MetricsTimer timer(*this, METRICS_REMOVE);
+    area_.Remove(fileUuid, type);
   }
 
 
@@ -151,7 +188,11 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
-    area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
+    {
+      MetricsTimer timer(*this, METRICS_READ);
+      area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
+    }
+
     sender.SetContentType(mime);
 
     const char* extension;
