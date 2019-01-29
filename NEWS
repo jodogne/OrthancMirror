@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.5.3 (2019-01-25)
+==========================
+
 General
 -------
 
@@ -11,6 +15,7 @@ Maintenance
 
 * Don't return tags whose group is below 0x0008 in C-FIND SCP answers
 * Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
+* Fix issue #73 (/modalities/{modalityId}/store raises 500 errors instead of 404)
 * Fix issue #90 (C-Find shall match missing tags to null/empty string)
 * Fix issue #119 (/patients/.../archive returns a 500 when JobsHistorySize is 0)
 * Fix issue #128 (Asynchronous C-MOVE: invalid number of remaining sub-operations)
