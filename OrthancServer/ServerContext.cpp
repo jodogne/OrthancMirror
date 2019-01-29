@@ -41,6 +41,7 @@
 #include "../Core/HttpServer/HttpStreamTranscoder.h"
 #include "../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../Core/Logging.h"
+#include "../Core/MetricsRegistry.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
 #include "OrthancConfiguration.h"
@@ -237,7 +238,8 @@ namespace Orthanc
 #endif
     done_(false),
     haveJobsChanged_(false),
-    isJobsEngineUnserialized_(false)
+    isJobsEngineUnserialized_(false),
+    metricsRegistry_(new MetricsRegistry)
   {
     {
       OrthancConfiguration::ReaderLock lock;
@@ -249,6 +251,7 @@ namespace Orthanc
       defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
       jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
       saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
+      metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);

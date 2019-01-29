@@ -46,6 +46,7 @@ namespace Orthanc
   class DicomInstanceToStore;
   class IStorageArea;
   class JobsEngine;
+  class MetricsRegistry;
   class OrthancPlugins;
   class ParsedDicomFile;
   class RestApiOutput;
@@ -217,6 +218,8 @@ namespace Orthanc
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
+
+    std::auto_ptr<MetricsRegistry>  metricsRegistry_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -394,5 +397,10 @@ namespace Orthanc
     void SignalUpdatedModalities();
 
     void SignalUpdatedPeers();
+
+    MetricsRegistry& GetMetricsRegistry()
+    {
+      return *metricsRegistry_;
+    }
   };
 }

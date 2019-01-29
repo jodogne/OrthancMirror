@@ -645,12 +645,47 @@ namespace Orthanc
   }
 
 
-
   static void GetResourceStatistics(RestApiGetCall& call)
   {
+    static const uint64_t MEGA_BYTES = 1024 * 1024;
+
     std::string publicId = call.GetUriComponent("id", "");
-    Json::Value result;
-    OrthancRestApi::GetIndex(call).GetStatistics(result, publicId);
+
+    ResourceType type;
+    uint64_t diskSize, uncompressedSize, dicomDiskSize, dicomUncompressedSize;
+    unsigned int countStudies, countSeries, countInstances;
+    OrthancRestApi::GetIndex(call).GetResourceStatistics(
+      type, diskSize, uncompressedSize, countStudies, countSeries, 
+      countInstances, dicomDiskSize, dicomUncompressedSize, publicId);
+
+    Json::Value result = Json::objectValue;
+    result["DiskSize"] = boost::lexical_cast<std::string>(diskSize);
+    result["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
+    result["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
+    result["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+
+    result["DicomDiskSize"] = boost::lexical_cast<std::string>(dicomDiskSize);
+    result["DicomDiskSizeMB"] = static_cast<unsigned int>(dicomDiskSize / MEGA_BYTES);
+    result["DicomUncompressedSize"] = boost::lexical_cast<std::string>(dicomUncompressedSize);
+    result["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGA_BYTES);
+
+    switch (type)
+    {
+      // Do NOT add "break" below this point!
+      case ResourceType_Patient:
+        result["CountStudies"] = countStudies;
+
+      case ResourceType_Study:
+        result["CountSeries"] = countSeries;
+
+      case ResourceType_Series:
+        result["CountInstances"] = countInstances;
+
+      case ResourceType_Instance:
+      default:
+        break;
+    }
+
     call.GetOutput().AnswerJson(result);
   }
 

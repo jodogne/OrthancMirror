@@ -35,6 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/MetricsRegistry.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../OrthancConfiguration.h"
@@ -93,8 +94,22 @@ namespace Orthanc
 
   static void GetStatistics(RestApiGetCall& call)
   {
+    static const uint64_t MEGA_BYTES = 1024 * 1024;
+
+    uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+    OrthancRestApi::GetIndex(call).GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                                                       countStudies, countSeries, countInstances);
+    
     Json::Value result = Json::objectValue;
-    OrthancRestApi::GetIndex(call).ComputeStatistics(result);
+    result["TotalDiskSize"] = boost::lexical_cast<std::string>(diskSize);
+    result["TotalUncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
+    result["TotalDiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
+    result["TotalUncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
+    result["CountPatients"] = static_cast<unsigned int>(countPatients);
+    result["CountStudies"] = static_cast<unsigned int>(countStudies);
+    result["CountSeries"] = static_cast<unsigned int>(countSeries);
+    result["CountInstances"] = static_cast<unsigned int>(countInstances);
+
     call.GetOutput().AnswerJson(result);
   }
 
@@ -390,6 +405,65 @@ namespace Orthanc
   }
 
   
+  static void GetMetricsPrometheus(RestApiGetCall& call)
+  {
+    static const uint64_t MEGA_BYTES = 1024 * 1024;
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    MetricsRegistry& registry = context.GetMetricsRegistry();
+
+    uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                                           countStudies, countSeries, countInstances);
+
+    registry.SetValue("orthanc_disk_size_mb", static_cast<unsigned int>(diskSize / MEGA_BYTES));
+    registry.SetValue("orthanc_uncompressed_size_mb", static_cast<unsigned int>(diskSize / MEGA_BYTES));
+    registry.SetValue("orthanc_count_patients", static_cast<unsigned int>(countPatients));
+    registry.SetValue("orthanc_count_studies", static_cast<unsigned int>(countStudies));
+    registry.SetValue("orthanc_count_series", static_cast<unsigned int>(countSeries));
+    registry.SetValue("orthanc_count_instances", static_cast<unsigned int>(countInstances));
+    
+    std::string s;
+    registry.ExportPrometheusText(s);
+
+    call.GetOutput().AnswerBuffer(s, MimeType_PrometheusText);
+  }
+
+
+  static void GetMetricsEnabled(RestApiGetCall& call)
+  {
+    bool enabled = OrthancRestApi::GetContext(call).GetMetricsRegistry().IsEnabled();
+    call.GetOutput().AnswerBuffer(enabled ? "1" : "0", MimeType_PlainText);
+  }
+
+
+  static void PutMetricsEnabled(RestApiPutCall& call)
+  {
+    bool enabled;
+
+    std::string body(call.GetBodyData());
+
+    if (body == "1")
+    {
+      enabled = true;
+    }
+    else if (body == "0")
+    {
+      enabled = false;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "The HTTP body must be 0 or 1, but found: " + body);
+    }
+
+    // Success
+    OrthancRestApi::GetContext(call).GetMetricsRegistry().SetEnabled(enabled);
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -402,6 +476,9 @@ namespace Orthanc
     Register("/tools/dicom-conformance", GetDicomConformanceStatement);
     Register("/tools/default-encoding", GetDefaultEncoding);
     Register("/tools/default-encoding", SetDefaultEncoding);
+    Register("/tools/metrics", GetMetricsEnabled);
+    Register("/tools/metrics", PutMetricsEnabled);
+    Register("/tools/metrics-prometheus", GetMetricsPrometheus);
 
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);
