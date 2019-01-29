@@ -41,9 +41,8 @@ namespace Orthanc
 {
   static const boost::posix_time::ptime GetNow()
   {
-    return boost::posix_time::second_clock::universal_time();
+    return boost::posix_time::microsec_clock::universal_time();
   }
-
 
   class MetricsRegistry::Item
   {
