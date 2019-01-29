@@ -1103,6 +1103,10 @@ namespace Orthanc
                 
       case MimeType_Woff:
         return MIME_WOFF;
+
+      case MimeType_PrometheusText:
+        // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
+        return "text/plain; version=0.0.4";
                 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);

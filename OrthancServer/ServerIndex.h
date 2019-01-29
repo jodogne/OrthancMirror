@@ -97,16 +97,6 @@ namespace Orthanc
                         Orthanc::ResourceType type,
                         const std::string& publicId);
 
-    void GetStatisticsInternal(/* out */ uint64_t& diskSize, 
-                               /* out */ uint64_t& uncompressedSize, 
-                               /* out */ unsigned int& countStudies, 
-                               /* out */ unsigned int& countSeries, 
-                               /* out */ unsigned int& countInstances, 
-                               /* out */ uint64_t& dicomDiskSize, 
-                               /* out */ uint64_t& dicomUncompressedSize, 
-                               /* in  */ int64_t id,
-                               /* in  */ ResourceType type);
-
     bool GetMetadataAsInteger(int64_t& result,
                               int64_t id,
                               MetadataType type);
@@ -161,7 +151,12 @@ namespace Orthanc
                       DicomInstanceToStore& instance,
                       const Attachments& attachments);
 
-    void ComputeStatistics(Json::Value& target);                        
+    void GetGlobalStatistics(/* out */ uint64_t& diskSize,
+                             /* out */ uint64_t& uncompressedSize,
+                             /* out */ uint64_t& countPatients, 
+                             /* out */ uint64_t& countStudies, 
+                             /* out */ uint64_t& countSeries, 
+                             /* out */ uint64_t& countInstances);
 
     bool LookupResource(Json::Value& result,
                         const std::string& publicId,
@@ -242,17 +237,15 @@ namespace Orthanc
 
     void DeleteExportedResources();
 
-    void GetStatistics(Json::Value& target,
-                       const std::string& publicId);
-
-    void GetStatistics(/* out */ uint64_t& diskSize, 
-                       /* out */ uint64_t& uncompressedSize, 
-                       /* out */ unsigned int& countStudies, 
-                       /* out */ unsigned int& countSeries, 
-                       /* out */ unsigned int& countInstances, 
-                       /* out */ uint64_t& dicomDiskSize, 
-                       /* out */ uint64_t& dicomUncompressedSize, 
-                       const std::string& publicId);
+    void GetResourceStatistics(/* out */ ResourceType& type,
+                               /* out */ uint64_t& diskSize, 
+                               /* out */ uint64_t& uncompressedSize, 
+                               /* out */ unsigned int& countStudies, 
+                               /* out */ unsigned int& countSeries, 
+                               /* out */ unsigned int& countInstances, 
+                               /* out */ uint64_t& dicomDiskSize, 
+                               /* out */ uint64_t& dicomUncompressedSize, 
+                               const std::string& publicId);
 
     void LookupIdentifierExact(std::vector<std::string>& result,
                                ResourceType level,
