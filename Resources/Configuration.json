@@ -476,5 +476,11 @@
   // answers, but not to filter the DICOM resources (balance between
   // the two modes). By default, the mode is "Always", which
   // corresponds to the behavior of Orthanc <= 1.5.0.
-  "StorageAccessOnFind" : "Always"
+  "StorageAccessOnFind" : "Always",
+
+  // Whether Orthanc monitors its metrics (new in Orthanc 1.5.4). If
+  // set to "true", the metrics can be retrieved at
+  // "/tools/metrics-prometheus" formetted using the Prometheus
+  // text-based exposition format.
+  "MetricsEnabled" : true
 }

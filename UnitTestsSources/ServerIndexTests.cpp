@@ -702,10 +702,12 @@ TEST(ServerIndex, AttachmentRecycling)
 
   index.SetMaximumStorageSize(10);
 
-  Json::Value tmp;
-  index.ComputeStatistics(tmp);
-  ASSERT_EQ(0, tmp["CountPatients"].asInt());
-  ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+  uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                            countStudies, countSeries, countInstances);
+
+  ASSERT_EQ(0u, countPatients);
+  ASSERT_EQ(0u, diskSize);
 
   ServerIndex::Attachments attachments;
 
@@ -747,17 +749,19 @@ TEST(ServerIndex, AttachmentRecycling)
     ASSERT_EQ(hasher.HashInstance(), toStore.GetHasher().HashInstance());
   }
 
-  index.ComputeStatistics(tmp);
-  ASSERT_EQ(10, tmp["CountPatients"].asInt());
-  ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+  index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                            countStudies, countSeries, countInstances);
+  ASSERT_EQ(10u, countPatients);
+  ASSERT_EQ(0u, diskSize);
 
   for (size_t i = 0; i < ids.size(); i++)
   {
     FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
     index.AddAttachment(info, ids[i]);
 
-    index.ComputeStatistics(tmp);
-    ASSERT_GE(10, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+    index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                              countStudies, countSeries, countInstances);
+    ASSERT_GE(10u, diskSize);
   }
 
   // Because the DB is in memory, the SQLite index must not have been created
@@ -800,10 +804,12 @@ TEST(ServerIndex, Overwrite)
     std::string id = hasher.HashInstance();
     context.GetIndex().SetOverwriteInstances(overwrite);
 
-    Json::Value tmp;
-    context.GetIndex().ComputeStatistics(tmp);
-    ASSERT_EQ(0, tmp["CountInstances"].asInt());
-    ASSERT_EQ(0, boost::lexical_cast<int>(tmp["TotalDiskSize"].asString()));
+    uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                                           countStudies, countSeries, countInstances);
+
+    ASSERT_EQ(0, countInstances);
+    ASSERT_EQ(0, diskSize);
 
     {
       DicomInstanceToStore toStore;
@@ -820,13 +826,13 @@ TEST(ServerIndex, Overwrite)
     ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, id, FileContentType_Dicom));
     ASSERT_TRUE(context.GetIndex().LookupAttachment(json1, id, FileContentType_DicomAsJson));
 
-    context.GetIndex().ComputeStatistics(tmp);
-    ASSERT_EQ(1, tmp["CountInstances"].asInt());
-    ASSERT_EQ(dicom1.GetCompressedSize() + json1.GetCompressedSize(),
-              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
-    ASSERT_EQ(dicom1.GetUncompressedSize() + json1.GetUncompressedSize(),
-              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                                           countStudies, countSeries, countInstances);
+    ASSERT_EQ(1u, countInstances);
+    ASSERT_EQ(dicom1.GetCompressedSize() + json1.GetCompressedSize(), diskSize);
+    ASSERT_EQ(dicom1.GetUncompressedSize() + json1.GetUncompressedSize(), uncompressedSize);
 
+    Json::Value tmp;
     context.ReadDicomAsJson(tmp, id);
     ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
     
@@ -855,12 +861,11 @@ TEST(ServerIndex, Overwrite)
     ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, id, FileContentType_Dicom));
     ASSERT_TRUE(context.GetIndex().LookupAttachment(json2, id, FileContentType_DicomAsJson));
 
-    context.GetIndex().ComputeStatistics(tmp);
-    ASSERT_EQ(1, tmp["CountInstances"].asInt());
-    ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(),
-              boost::lexical_cast<size_t>(tmp["TotalDiskSize"].asString()));
-    ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(),
-              boost::lexical_cast<size_t>(tmp["TotalUncompressedSize"].asString()));
+    context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
+                                           countStudies, countSeries, countInstances);
+    ASSERT_EQ(1, countInstances);
+    ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(), diskSize);
+    ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(), uncompressedSize);
 
     if (overwrite)
     {

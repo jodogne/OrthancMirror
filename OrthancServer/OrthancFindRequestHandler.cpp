@@ -38,6 +38,7 @@
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
+#include "../Core/MetricsRegistry.h"
 #include "OrthancConfiguration.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
@@ -551,6 +552,8 @@ namespace Orthanc
                                          const std::string& calledAet,
                                          ModalityManufacturer manufacturer)
   {
+    MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_find_scp_duration_ms");
+
     /**
      * Possibly apply the user-supplied Lua filter.
      **/

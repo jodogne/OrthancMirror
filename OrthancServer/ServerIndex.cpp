@@ -972,24 +972,21 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ComputeStatistics(Json::Value& target)
+  void ServerIndex::GetGlobalStatistics(/* out */ uint64_t& diskSize,
+                                        /* out */ uint64_t& uncompressedSize,
+                                        /* out */ uint64_t& countPatients, 
+                                        /* out */ uint64_t& countStudies, 
+                                        /* out */ uint64_t& countSeries, 
+                                        /* out */ uint64_t& countInstances)
   {
     boost::mutex::scoped_lock lock(mutex_);
-    target = Json::objectValue;
-
-    uint64_t cs = db_.GetTotalCompressedSize();
-    uint64_t us = db_.GetTotalUncompressedSize();
-    target["TotalDiskSize"] = boost::lexical_cast<std::string>(cs);
-    target["TotalUncompressedSize"] = boost::lexical_cast<std::string>(us);
-    target["TotalDiskSizeMB"] = static_cast<unsigned int>(cs / MEGA_BYTES);
-    target["TotalUncompressedSizeMB"] = static_cast<unsigned int>(us / MEGA_BYTES);
-
-    target["CountPatients"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Patient));
-    target["CountStudies"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Study));
-    target["CountSeries"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Series));
-    target["CountInstances"] = static_cast<unsigned int>(db_.GetResourceCount(ResourceType_Instance));
-  }          
-
+    diskSize = db_.GetTotalCompressedSize();
+    uncompressedSize = db_.GetTotalUncompressedSize();
+    countPatients = db_.GetResourceCount(ResourceType_Patient);
+    countStudies = db_.GetResourceCount(ResourceType_Study);
+    countSeries = db_.GetResourceCount(ResourceType_Series);
+    countInstances = db_.GetResourceCount(ResourceType_Instance);
+  }
 
   
   SeriesStatus ServerIndex::GetSeriesStatus(int64_t id,
@@ -1931,18 +1928,26 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetStatisticsInternal(/* out */ uint64_t& diskSize, 
+  void ServerIndex::GetResourceStatistics(/* out */ ResourceType& type,
+                                          /* out */ uint64_t& diskSize, 
                                           /* out */ uint64_t& uncompressedSize, 
                                           /* out */ unsigned int& countStudies, 
                                           /* out */ unsigned int& countSeries, 
                                           /* out */ unsigned int& countInstances, 
                                           /* out */ uint64_t& dicomDiskSize, 
                                           /* out */ uint64_t& dicomUncompressedSize, 
-                                          /* in  */ int64_t id,
-                                          /* in  */ ResourceType type)
+                                          const std::string& publicId)
   {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    int64_t top;
+    if (!db_.LookupResource(top, type, publicId))
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
     std::stack<int64_t> toExplore;
-    toExplore.push(id);
+    toExplore.push(top);
 
     countInstances = 0;
     countSeries = 0;
@@ -2020,83 +2025,6 @@ namespace Orthanc
     {
       countSeries = 1;
     }
-  }
-
-
-
-  void ServerIndex::GetStatistics(Json::Value& target,
-                                  const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t top;
-    if (!db_.LookupResource(top, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    uint64_t uncompressedSize;
-    uint64_t diskSize;
-    uint64_t dicomUncompressedSize;
-    uint64_t dicomDiskSize;
-    unsigned int countStudies;
-    unsigned int countSeries;
-    unsigned int countInstances;
-    GetStatisticsInternal(diskSize, uncompressedSize, countStudies, 
-                          countSeries, countInstances, dicomDiskSize, dicomUncompressedSize, top, type);
-
-    target = Json::objectValue;
-    target["DiskSize"] = boost::lexical_cast<std::string>(diskSize);
-    target["DiskSizeMB"] = static_cast<unsigned int>(diskSize / MEGA_BYTES);
-    target["UncompressedSize"] = boost::lexical_cast<std::string>(uncompressedSize);
-    target["UncompressedSizeMB"] = static_cast<unsigned int>(uncompressedSize / MEGA_BYTES);
-
-    target["DicomDiskSize"] = boost::lexical_cast<std::string>(dicomDiskSize);
-    target["DicomDiskSizeMB"] = static_cast<unsigned int>(dicomDiskSize / MEGA_BYTES);
-    target["DicomUncompressedSize"] = boost::lexical_cast<std::string>(dicomUncompressedSize);
-    target["DicomUncompressedSizeMB"] = static_cast<unsigned int>(dicomUncompressedSize / MEGA_BYTES);
-
-    switch (type)
-    {
-      // Do NOT add "break" below this point!
-      case ResourceType_Patient:
-        target["CountStudies"] = countStudies;
-
-      case ResourceType_Study:
-        target["CountSeries"] = countSeries;
-
-      case ResourceType_Series:
-        target["CountInstances"] = countInstances;
-
-      case ResourceType_Instance:
-      default:
-        break;
-    }
-  }
-
-
-  void ServerIndex::GetStatistics(/* out */ uint64_t& diskSize, 
-                                  /* out */ uint64_t& uncompressedSize, 
-                                  /* out */ unsigned int& countStudies, 
-                                  /* out */ unsigned int& countSeries, 
-                                  /* out */ unsigned int& countInstances, 
-                                  /* out */ uint64_t& dicomDiskSize, 
-                                  /* out */ uint64_t& dicomUncompressedSize, 
-                                  const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t top;
-    if (!db_.LookupResource(top, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    GetStatisticsInternal(diskSize, uncompressedSize, countStudies, 
-                          countSeries, countInstances, dicomDiskSize,
-                          dicomUncompressedSize, top, type);    
   }
 
 

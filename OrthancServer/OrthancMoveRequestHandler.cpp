@@ -37,6 +37,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
+#include "../Core/MetricsRegistry.h"
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
@@ -280,6 +281,8 @@ namespace Orthanc
                                                           const std::string& calledAet,
                                                           uint16_t originatorId)
   {
+    MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_move_scp_duration_ms");
+
     LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
     {

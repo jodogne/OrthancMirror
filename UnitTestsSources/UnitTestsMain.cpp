@@ -41,6 +41,7 @@
 #include "../Core/DicomFormat/DicomTag.h"
 #include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/Logging.h"
+#include "../Core/MetricsRegistry.h"
 #include "../Core/OrthancException.h"
 #include "../Core/TemporaryFile.h"
 #include "../Core/Toolbox.h"
@@ -1233,6 +1234,120 @@ TEST(Toolbox, SubstituteVariables)
 
   ASSERT_EQ("A" + env["PATH"] + "B",
             Toolbox::SubstituteVariables("A${PATH}B", env));
+}
+
+
+TEST(MetricsRegistry, Basic)
+{
+  {
+    MetricsRegistry m;
+    m.SetEnabled(false);
+    m.SetValue("hello.world", 42.5f);
+    
+    std::string s;
+    m.ExportPrometheusText(s);
+    ASSERT_TRUE(s.empty());
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("hello.world", MetricsType_Default);
+    
+    std::string s;
+    m.ExportPrometheusText(s);
+    ASSERT_TRUE(s.empty());
+  }
+
+  {
+    MetricsRegistry m;
+    m.SetValue("hello.world", 42.5f);
+    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("hello.world"));
+    ASSERT_THROW(m.GetMetricsType("nope"), OrthancException);
+    
+    std::string s;
+    m.ExportPrometheusText(s);
+
+    std::vector<std::string> t;
+    Toolbox::TokenizeString(t, s, '\n');
+    ASSERT_EQ(2u, t.size());
+    ASSERT_EQ("hello.world 42.5 ", t[0].substr(0, 17));
+    ASSERT_TRUE(t[1].empty());
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("hello.max", MetricsType_MaxOver10Seconds);
+    m.SetValue("hello.max", 10);
+    m.SetValue("hello.max", 20);
+    m.SetValue("hello.max", -10);
+    m.SetValue("hello.max", 5);
+
+    m.Register("hello.min", MetricsType_MinOver10Seconds);
+    m.SetValue("hello.min", 10);
+    m.SetValue("hello.min", 20);
+    m.SetValue("hello.min", -10);
+    m.SetValue("hello.min", 5);
+    
+    m.Register("hello.default", MetricsType_Default);
+    m.SetValue("hello.default", 10);
+    m.SetValue("hello.default", 20);
+    m.SetValue("hello.default", -10);
+    m.SetValue("hello.default", 5);
+    
+    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("hello.max"));
+    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("hello.min"));
+    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("hello.default"));
+
+    std::string s;
+    m.ExportPrometheusText(s);
+
+    std::vector<std::string> t;
+    Toolbox::TokenizeString(t, s, '\n');
+    ASSERT_EQ(4u, t.size());
+    ASSERT_TRUE(t[3].empty());
+
+    std::map<std::string, std::string> u;
+    for (size_t i = 0; i < t.size() - 1; i++)
+    {
+      std::vector<std::string> v;
+      Toolbox::TokenizeString(v, t[i], ' ');
+      u[v[0]] = v[1];
+    }
+
+    ASSERT_EQ("20", u["hello.max"]);
+    ASSERT_EQ("-10", u["hello.min"]);
+    ASSERT_EQ("5", u["hello.default"]);
+  }
+
+  {
+    MetricsRegistry m;
+
+    m.SetValue("a", 10);
+    m.SetValue("b", 10, MetricsType_MinOver10Seconds);
+
+    m.Register("c", MetricsType_MaxOver10Seconds);
+    m.SetValue("c", 10, MetricsType_MinOver10Seconds);
+
+    m.Register("d", MetricsType_MaxOver10Seconds);
+    m.Register("d", MetricsType_Default);
+
+    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("a"));
+    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("b"));
+    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("c"));
+    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("d"));
+  }
+
+  {
+    MetricsRegistry m;
+
+    {
+      MetricsRegistry::Timer t1(m, "a");
+      MetricsRegistry::Timer t2(m, "b", MetricsType_MinOver10Seconds);
+    }
+
+    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("a"));
+    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("b"));
+  }
 }
 
 
