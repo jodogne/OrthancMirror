@@ -295,6 +295,14 @@ namespace Orthanc
   }
 
 
+  void MetricsRegistry::SharedMetrics::Add(float delta)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    value_ += delta;
+    registry_.SetValue(name_, value_);
+  }
+
+
   void  MetricsRegistry::Timer::Start()
   {
     if (registry_.IsEnabled())
