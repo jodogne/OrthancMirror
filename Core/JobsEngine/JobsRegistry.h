@@ -199,6 +199,10 @@ namespace Orthanc
 
     void ResetObserver();
 
+    void GetStatistics(unsigned int& pending,
+                       unsigned int& running,
+                       unsigned int& completed);
+
     class RunningJob : public boost::noncopyable
     {
     private:
