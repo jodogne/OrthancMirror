@@ -111,6 +111,8 @@ namespace Orthanc
 
     void RegisterIncomingHttpRequestFilter2(const void* parameters);
 
+    void RegisterRefreshMetricsCallback(const void* parameters);
+
     void AnswerBuffer(const void* parameters);
 
     void Redirect(const void* parameters);
@@ -313,6 +315,8 @@ namespace Orthanc
 
     IJob* UnserializeJob(const std::string& type,
                          const Json::Value& value);
+
+    void RefreshMetrics();
   };
 }
 

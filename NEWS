@@ -13,6 +13,11 @@ REST API
 * New URI "/tools/metrics" to dynamically enable/disable the collection of metrics
 * New URI "/tools/metrics-prometheus" to retrieve metrics using Prometheus text format
 
+Plugins
+-------
+
+* New primitives to set and refresh metrics
+
 Maintenance
 -----------
 

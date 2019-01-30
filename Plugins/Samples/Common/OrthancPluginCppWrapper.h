@@ -38,6 +38,7 @@
 #include <orthanc/OrthancCPlugin.h>
 #include <boost/noncopyable.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <json/value.h>
 #include <vector>
 #include <list>
@@ -49,10 +50,10 @@
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
 #define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
-  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
-  (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
-  (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
-  ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
+   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
+    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
+     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
+      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
 #endif
 
 
@@ -76,6 +77,12 @@
 #  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  1
 #else
 #  define HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS  0
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 4)
+#  define HAS_ORTHANC_PLUGIN_METRICS  1
+#else
+#  define HAS_ORTHANC_PLUGIN_METRICS  0
 #endif
 
 
@@ -738,6 +745,28 @@ namespace OrthancPlugins
 
     static std::string Submit(OrthancJob* job /* takes ownership */,
                               int priority);
+  };
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_METRICS == 1
+  inline void SetMetricsValue(char* name,
+                              float value)
+  {
+    OrthancPluginSetMetricsValue(GetGlobalContext(), name,
+                                 value, OrthancPluginMetricsType_Default);
+  }
+
+  class MetricsTimer : public boost::noncopyable
+  {
+  private:
+    std::string               name_;
+    boost::posix_time::ptime  start_;
+
+  public:
+    MetricsTimer(const char* name);
+
+    ~MetricsTimer();
   };
 #endif
 }

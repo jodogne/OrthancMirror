@@ -201,7 +201,8 @@ namespace Orthanc
 
     void GetStatistics(unsigned int& pending,
                        unsigned int& running,
-                       unsigned int& completed);
+                       unsigned int& success,
+                       unsigned int& errors);
 
     class RunningJob : public boost::noncopyable
     {

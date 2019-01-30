@@ -335,6 +335,8 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeT
 
     case OrthancPluginChangeType_OrthancStarted:
     {
+      OrthancPluginSetMetricsValue(context, "sample_started", 1, OrthancPluginMetricsType_Default); 
+
       /* Make REST requests to the built-in Orthanc API */
       OrthancPluginRestApiGet(context, &tmp, "/changes");
       OrthancPluginFreeMemoryBuffer(context, &tmp);
@@ -389,6 +391,13 @@ ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  m
   {
     return 0;  /* Only allow GET and POST requests */
   }
+}
+
+
+ORTHANC_PLUGINS_API void RefreshMetrics()
+{
+  static unsigned int count = 0;
+  OrthancPluginSetMetricsValue(context, "sample_counter", count++, OrthancPluginMetricsType_Default); 
 }
 
 
@@ -455,7 +464,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
   OrthancPluginRegisterIncomingHttpRequestFilter(context, FilterIncomingHttpRequest);
+  OrthancPluginRegisterRefreshMetricsCallback(context, RefreshMetrics);
 
+  
   /* Declare several properties of the plugin */
   OrthancPluginSetRootUri(context, "/plugin/hello");
   OrthancPluginSetDescription(context, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");

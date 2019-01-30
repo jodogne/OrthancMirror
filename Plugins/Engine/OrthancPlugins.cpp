@@ -44,29 +44,30 @@
 
 
 #include "../../Core/ChunkedBuffer.h"
+#include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/DicomFormat/DicomArray.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../Core/DicomParsing/ToDcmtkBridge.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
+#include "../../Core/Images/Image.h"
+#include "../../Core/Images/ImageProcessing.h"
+#include "../../Core/Images/JpegReader.h"
+#include "../../Core/Images/JpegWriter.h"
+#include "../../Core/Images/PngReader.h"
+#include "../../Core/Images/PngWriter.h"
 #include "../../Core/Logging.h"
+#include "../../Core/MetricsRegistry.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../../Core/Toolbox.h"
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/DicomParsing/ToDcmtkBridge.h"
+#include "../../OrthancServer/DefaultDicomImageDecoder.h"
 #include "../../OrthancServer/OrthancConfiguration.h"
+#include "../../OrthancServer/OrthancFindRequestHandler.h"
+#include "../../OrthancServer/Search/HierarchicalMatcher.h"
 #include "../../OrthancServer/ServerContext.h"
 #include "../../OrthancServer/ServerToolbox.h"
-#include "../../OrthancServer/Search/HierarchicalMatcher.h"
-#include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
-#include "../../Core/Compression/ZlibCompressor.h"
-#include "../../Core/Compression/GzipCompressor.h"
-#include "../../Core/Images/Image.h"
-#include "../../Core/Images/PngReader.h"
-#include "../../Core/Images/PngWriter.h"
-#include "../../Core/Images/JpegReader.h"
-#include "../../Core/Images/JpegWriter.h"
-#include "../../Core/Images/ImageProcessing.h"
-#include "../../OrthancServer/DefaultDicomImageDecoder.h"
-#include "../../OrthancServer/OrthancFindRequestHandler.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -462,6 +463,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
+    typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -476,6 +478,7 @@ namespace Orthanc
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
+    RefreshMetricsCallbacks refreshMetricsCallbacks_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
 
     boost::recursive_mutex restCallbackMutex_;
@@ -485,6 +488,7 @@ namespace Orthanc
     boost::mutex worklistCallbackMutex_;
     boost::mutex decodeImageCallbackMutex_;
     boost::mutex jobsUnserializersMutex_;
+    boost::mutex refreshMetricsMutex_;
     boost::recursive_mutex invokeServiceMutex_;
 
     Properties properties_;
@@ -1307,6 +1311,18 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters2_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterRefreshMetricsCallback(const void* parameters)
+  {
+    const _OrthancPluginRegisterRefreshMetricsCallback& p = 
+      *reinterpret_cast<const _OrthancPluginRegisterRefreshMetricsCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->refreshMetricsMutex_);
+
+    LOG(INFO) << "Plugin has registered a callback to refresh its metrics";
+    pimpl_->refreshMetricsCallbacks_.push_back(p.callback);
   }
 
 
@@ -3096,6 +3112,34 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_SetMetricsValue:
+      {
+        const _OrthancPluginSetMetricsValue& p =
+          *reinterpret_cast<const _OrthancPluginSetMetricsValue*>(parameters);
+
+        MetricsType type;
+        switch (p.type)
+        {
+          case OrthancPluginMetricsType_Default:
+            type = MetricsType_Default;
+            break;
+
+          case OrthancPluginMetricsType_Timer:
+            type = MetricsType_MaxOver10Seconds;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, type);
+        }
+
+        return true;
+      }
+
       default:
         return false;
     }
@@ -3155,6 +3199,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
         RegisterIncomingHttpRequestFilter2(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterRefreshMetricsCallback:
+        RegisterRefreshMetricsCallback(parameters);
         return true;
 
       case _OrthancPluginService_RegisterStorageArea:
@@ -3658,5 +3706,21 @@ namespace Orthanc
     }
 
     return NULL;
+  }
+
+
+  void OrthancPlugins::RefreshMetrics()
+  {
+    boost::mutex::scoped_lock lock(pimpl_->refreshMetricsMutex_);
+
+    for (PImpl::RefreshMetricsCallbacks::iterator 
+           it = pimpl_->refreshMetricsCallbacks_.begin();
+         it != pimpl_->refreshMetricsCallbacks_.end(); ++it)
+    {
+      if (*it != NULL)
+      {
+        (*it) ();
+      }
+    }
   }
 }
