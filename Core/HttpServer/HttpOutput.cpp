@@ -46,6 +46,13 @@
 #include <boost/lexical_cast.hpp>
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1
+#  if !defined(CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
+#    error Macro CIVETWEB_HAS_DISABLE_KEEP_ALIVE must be defined
+#  endif
+#endif
+
+
 namespace Orthanc
 {
   HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream,
@@ -432,11 +439,22 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented,
                              "Multipart answers are not implemented together "
                              "with keep-alive connections if using Mongoose");
-#else
+      
+#elif ORTHANC_ENABLE_CIVETWEB == 1
+#  if CIVETWEB_HAS_DISABLE_KEEP_ALIVE == 1
       // Turn off Keep-Alive for multipart answers
       // https://github.com/civetweb/civetweb/issues/727
       stream_.DisableKeepAlive();
       header += "Connection: close\r\n";
+#  else
+      // The function "mg_disable_keep_alive()" is not available,
+      // let's continue with Keep-Alive. Performance of WADO-RS will
+      // decrease.
+      header += "Connection: keep-alive\r\n";
+#  endif   
+
+#else
+#  error Please support your embedded Web server here
 #endif
     }
     else
