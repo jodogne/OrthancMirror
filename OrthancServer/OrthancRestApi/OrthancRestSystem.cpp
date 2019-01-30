@@ -407,6 +407,10 @@ namespace Orthanc
   
   static void GetMetricsPrometheus(RestApiGetCall& call)
   {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    OrthancRestApi::GetContext(call).GetPlugins().RefreshMetrics();
+#endif
+
     static const float MEGA_BYTES = 1024 * 1024;
 
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -415,8 +419,8 @@ namespace Orthanc
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
 
-    unsigned int jobsPending, jobsRunning, jobsCompleted;
-    context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsCompleted);
+    unsigned int jobsPending, jobsRunning, jobsSuccess, jobsFailed;
+    context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsSuccess, jobsFailed);
 
     MetricsRegistry& registry = context.GetMetricsRegistry();
     registry.SetValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
@@ -427,7 +431,9 @@ namespace Orthanc
     registry.SetValue("orthanc_count_instances", static_cast<unsigned int>(countInstances));
     registry.SetValue("orthanc_jobs_pending", jobsPending);
     registry.SetValue("orthanc_jobs_running", jobsRunning);
-    registry.SetValue("orthanc_jobs_completed", jobsCompleted);
+    registry.SetValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
+    registry.SetValue("orthanc_jobs_success", jobsSuccess);
+    registry.SetValue("orthanc_jobs_failed", jobsFailed);
     
     std::string s;
     registry.ExportPrometheusText(s);
