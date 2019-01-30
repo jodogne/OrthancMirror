@@ -47,6 +47,9 @@
 #elif ORTHANC_ENABLE_CIVETWEB == 1
 #  include <civetweb.h>
 #  define MONGOOSE_USE_CALLBACKS 1
+#  if !defined(CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
+#    error Macro CIVETWEB_HAS_DISABLE_KEEP_ALIVE must be defined
+#  endif
 
 #else
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
@@ -114,8 +117,18 @@ namespace Orthanc
 #if ORTHANC_ENABLE_MONGOOSE == 1
         throw OrthancException(ErrorCode_NotImplemented,
                                "Only available if using CivetWeb");
+
 #elif ORTHANC_ENABLE_CIVETWEB == 1
+#  if CIVETWEB_HAS_DISABLE_KEEP_ALIVE == 1
         mg_disable_keep_alive(connection_);
+#  else
+#       warning The function "mg_disable_keep_alive()" is not available, DICOMweb might run slowly
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Only available if using a patched version of CivetWeb");
+#  endif
+
+#else
+#  error Please support your embedded Web server here
 #endif
       }
     };

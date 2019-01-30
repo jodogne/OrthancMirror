@@ -47,6 +47,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   source_group(ThirdParty\\Civetweb REGULAR_EXPRESSION ${CIVETWEB_SOURCES_DIR}/.*)
 
+  add_definitions(
+    -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1
+    )
+
 else()
   CHECK_INCLUDE_FILE_CXX(civetweb.h HAVE_CIVETWEB_H)
   if (NOT HAVE_CIVETWEB_H)
@@ -61,4 +65,8 @@ else()
   endif()
 
   link_libraries(civetweb)
+
+  add_definitions(
+    -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0
+    )
 endif()
