@@ -4,7 +4,9 @@ Pending changes in the mainline
 General
 -------
 
-* New configuration option: "MetricsEnabled" to track the metrics of Orthanc
+* New configuration options:
+  - "MetricsEnabled" to track the metrics of Orthanc
+  - "HttpThreadsCount" to set the number of threads in the embedded HTTP server
 
 REST API
 --------
