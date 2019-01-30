@@ -1202,6 +1202,8 @@ namespace Orthanc
     
     Stop();
     threadsCount_ = threads;
+
+    LOG(INFO) << "The embedded HTTP server will use " << threads << " threads";
   }
 
 
