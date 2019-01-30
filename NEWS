@@ -13,6 +13,11 @@ REST API
 * New URI "/tools/metrics" to dynamically enable/disable the collection of metrics
 * New URI "/tools/metrics-prometheus" to retrieve metrics using Prometheus text format
 
+Maintenance
+-----------
+
+* Fix build with unpatched versions of Civetweb (missing "mg_disable_keep_alive()")
+
 
 Version 1.5.3 (2019-01-25)
 ==========================
