@@ -1398,4 +1398,44 @@ namespace Orthanc
       }
     }
   }
+
+
+  void JobsRegistry::GetStatistics(unsigned int& pending,
+                                   unsigned int& running,
+                                   unsigned int& completed)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    pending = 0;
+    running = 0;
+    completed = 0;
+    
+    for (JobsIndex::const_iterator it = jobsIndex_.begin();
+         it != jobsIndex_.end(); ++it)
+    {
+      JobHandler& job = *it->second;
+
+      switch (job.GetState())
+      {
+        case JobState_Retry:
+        case JobState_Paused:
+        case JobState_Pending:
+          pending ++;
+          break;
+
+        case JobState_Running:
+          running ++;
+          break;
+          
+        case JobState_Success:
+        case JobState_Failure:
+          completed ++;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }    
+  }
 }

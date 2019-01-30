@@ -407,22 +407,27 @@ namespace Orthanc
   
   static void GetMetricsPrometheus(RestApiGetCall& call)
   {
-    static const uint64_t MEGA_BYTES = 1024 * 1024;
+    static const float MEGA_BYTES = 1024 * 1024;
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-
-    MetricsRegistry& registry = context.GetMetricsRegistry();
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
 
-    registry.SetValue("orthanc_disk_size_mb", static_cast<unsigned int>(diskSize / MEGA_BYTES));
-    registry.SetValue("orthanc_uncompressed_size_mb", static_cast<unsigned int>(diskSize / MEGA_BYTES));
+    unsigned int jobsPending, jobsRunning, jobsCompleted;
+    context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsCompleted);
+
+    MetricsRegistry& registry = context.GetMetricsRegistry();
+    registry.SetValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
     registry.SetValue("orthanc_count_patients", static_cast<unsigned int>(countPatients));
     registry.SetValue("orthanc_count_studies", static_cast<unsigned int>(countStudies));
     registry.SetValue("orthanc_count_series", static_cast<unsigned int>(countSeries));
     registry.SetValue("orthanc_count_instances", static_cast<unsigned int>(countInstances));
+    registry.SetValue("orthanc_jobs_pending", jobsPending);
+    registry.SetValue("orthanc_jobs_running", jobsRunning);
+    registry.SetValue("orthanc_jobs_completed", jobsCompleted);
     
     std::string s;
     registry.ExportPrometheusText(s);
