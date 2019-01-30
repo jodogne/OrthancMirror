@@ -24,6 +24,7 @@
  *    - Possibly register a custom decoder for DICOM images using OrthancPluginRegisterDecodeImageCallback().
  *    - Possibly register a callback to filter incoming HTTP requests using OrthancPluginRegisterIncomingHttpRequestFilter2().
  *    - Possibly register a callback to unserialize jobs using OrthancPluginRegisterJobsUnserializer().
+ *    - Possibly register a callback to refresh its metrics using OrthancPluginRegisterRefreshMetricsCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -119,7 +120,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     5
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  4
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -424,6 +425,7 @@ extern "C"
     _OrthancPluginService_GenerateUuid = 28,
     _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
     _OrthancPluginService_AutodetectMimeType = 30,
+    _OrthancPluginService_SetMetricsValue = 31,
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -437,6 +439,7 @@ extern "C"
     _OrthancPluginService_RegisterFindCallback = 1008,
     _OrthancPluginService_RegisterMoveCallback = 1009,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
+    _OrthancPluginService_RegisterRefreshMetricsCallback = 1011,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -889,6 +892,23 @@ extern "C"
     OrthancPluginJobStopReason_Failure = 3,  /*!< The job has failed, and might be resubmitted later */
     OrthancPluginJobStopReason_Canceled = 4  /*!< The job was canceled, and might be resubmitted later */
   } OrthancPluginJobStopReason;
+
+
+  /**
+   * The available type of metrics.
+   **/
+  typedef enum
+  {
+    OrthancPluginMetricsType_Default,   /*!< Default metrics */
+
+    /**
+     * This metrics represents a time duration. Orthanc will keep the
+     * maximum value of the metrics over a sliding window of ten
+     * seconds, which is useful if the metrics is sampled frequently.
+     **/
+    OrthancPluginMetricsType_Timer
+  } OrthancPluginMetricsType;
+  
 
 
   /**
@@ -1422,7 +1442,7 @@ extern "C"
 
 
   /**
-   * @brief Callback executed to unserialized a custom job.
+   * @brief Callback executed to unserialize a custom job.
    * 
    * Signature of a callback function that unserializes a job that was
    * saved in the Orthanc database.
@@ -1438,6 +1458,23 @@ extern "C"
                                                               const char* serialized);
   
 
+
+  /**
+   * @brief Callback executed to update the metrics of the plugin.
+   * 
+   * Signature of a callback function that is called by Orthanc
+   * whenever a monitoring tool (such as Prometheus) asks the current
+   * values of the metrics. This callback gives the plugin a chance to
+   * update its metrics, by calling OrthancPluginSetMetricsValue().
+   * This is typically useful for metrics that are expensive to
+   * acquire.
+   * 
+   * @see OrthancPluginRegisterRefreshMetrics()
+   * @ingroups Callbacks
+   **/
+  typedef void (*OrthancPluginRefreshMetricsCallback) ();
+
+  
 
   /**
    * @brief Data structure that contains information about the Orthanc core.
@@ -1531,7 +1568,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
         sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
-        sizeof(int32_t) != sizeof(OrthancPluginConstraintType))
+        sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginMetricsType))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -6525,6 +6563,67 @@ extern "C"
     }
   }
 
+
+
+  typedef struct
+  {
+    const char*               name;
+    float                     value;
+    OrthancPluginMetricsType  type;
+  } _OrthancPluginSetMetricsValue;
+
+  /**
+   * @brief Set the value of a metrics.
+   *
+   * This function sets the value of a metrics to monitor the behavior
+   * of the plugin through tools such as Prometheus. The values of all
+   * the metrics are stored within the Orthanc context.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param name The name of the metrics to be set.
+   * @param value The value of the metrics.
+   * @param type The type of the metrics. This parameter is only taken into consideration
+   * the first time this metrics is set.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetMetricsValue(
+    OrthancPluginContext*     context,
+    const char*               name,
+    float                     value,
+    OrthancPluginMetricsType  type)
+  {
+    _OrthancPluginSetMetricsValue params;
+    params.name = name;
+    params.value = value;
+    params.type = type;
+    context->InvokeService(context, _OrthancPluginService_SetMetricsValue, &params);
+  }
+
+
+
+  typedef struct
+  {
+    OrthancPluginRefreshMetricsCallback  callback;
+  } _OrthancPluginRegisterRefreshMetricsCallback;
+
+  /**
+   * @brief Register a callback to refresh the metrics.
+   *
+   * This function registers a callback to refresh the metrics. The
+   * callback must make calls to OrthancPluginSetMetricsValue().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback function to handle the refresh.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterRefreshMetricsCallback(
+    OrthancPluginContext*               context,
+    OrthancPluginRefreshMetricsCallback callback)
+  {
+    _OrthancPluginRegisterRefreshMetricsCallback params;
+    params.callback = callback;
+    context->InvokeService(context, _OrthancPluginService_RegisterRefreshMetricsCallback, &params);
+  }
 
 #ifdef  __cplusplus
 }

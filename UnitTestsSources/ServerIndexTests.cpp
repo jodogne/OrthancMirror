@@ -808,8 +808,8 @@ TEST(ServerIndex, Overwrite)
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
 
-    ASSERT_EQ(0, countInstances);
-    ASSERT_EQ(0, diskSize);
+    ASSERT_EQ(0u, countInstances);
+    ASSERT_EQ(0u, diskSize);
 
     {
       DicomInstanceToStore toStore;
@@ -863,7 +863,7 @@ TEST(ServerIndex, Overwrite)
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
-    ASSERT_EQ(1, countInstances);
+    ASSERT_EQ(1u, countInstances);
     ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(), diskSize);
     ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(), uncompressedSize);
 
