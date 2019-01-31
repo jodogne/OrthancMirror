@@ -39,6 +39,7 @@
 #include "../../Core/DicomParsing/DicomDirWriter.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 
 #include <stdio.h>
@@ -867,13 +868,20 @@ namespace Orthanc
     
     if (synchronousTarget_.get() == NULL)
     {
-      asynchronousTarget_.reset(new TemporaryFile);
+      {
+        OrthancConfiguration::ReaderLock lock;
+        asynchronousTarget_.reset(lock.GetConfiguration().CreateTemporaryFile());
+      }
+
       target = asynchronousTarget_.get();
     }
     else
     {
       target = synchronousTarget_.get();
     }
+
+    assert(target != NULL);
+    target->Touch();  // Make sure we can write to the temporary file
     
     if (writer_.get() != NULL)
     {

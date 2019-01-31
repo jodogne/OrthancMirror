@@ -148,6 +148,7 @@ namespace Orthanc
 
     if (!pimpl_->file_)
     {
+      LOG(ERROR) << "Cannot create new ZIP archive: " << path_;
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
   }
@@ -169,7 +170,8 @@ namespace Orthanc
     if (level >= 10)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "ZIP compression level must be between 0 (no compression) and 9 (highest compression)");
+                             "ZIP compression level must be between 0 (no compression) "
+                             "and 9 (highest compression)");
     }
 
     Close();
@@ -208,6 +210,7 @@ namespace Orthanc
 
     if (result != 0)
     {
+      LOG(ERROR) << "Cannot add new file inside ZIP archive: " << path;
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
 
@@ -239,6 +242,7 @@ namespace Orthanc
 
       if (zipWriteInFileInZip(pimpl_->file_, data, bytes))
       {
+        LOG(ERROR) << "Cannot write data to ZIP archive: " << path_;
         throw OrthancException(ErrorCode_CannotWriteFile);
       }
       
@@ -253,6 +257,4 @@ namespace Orthanc
     Close();
     append_ = append;
   }
-    
-
 }
