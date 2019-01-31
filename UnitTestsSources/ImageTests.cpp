@@ -185,7 +185,7 @@ TEST(PngWriter, EndToEnd)
 
   {
     Orthanc::TemporaryFile tmp;
-    Orthanc::SystemToolbox::WriteFile(s, tmp.GetPath());
+    tmp.Write(s);
 
     Orthanc::PngReader r2;
     r2.ReadFromFile(tmp.GetPath());
@@ -411,7 +411,7 @@ TEST(PamWriter, EndToEnd)
 
   {
     Orthanc::TemporaryFile tmp;
-    Orthanc::SystemToolbox::WriteFile(s, tmp.GetPath());
+    tmp.Write(s);
 
     Orthanc::PamReader r2;
     r2.ReadFromFile(tmp.GetPath());
@@ -433,4 +433,3 @@ TEST(PamWriter, EndToEnd)
     }
   }
 }
-
