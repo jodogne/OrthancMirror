@@ -24,6 +24,7 @@ Plugins
 Maintenance
 -----------
 
+* Fix regression if calling "/tools/find" with the tag "ModalitiesInStudy"
 * Fix build with unpatched versions of Civetweb (missing "mg_disable_keep_alive()")
 * Fix issue #130 (Orthanc failed to start when /tmp partition was full)
 

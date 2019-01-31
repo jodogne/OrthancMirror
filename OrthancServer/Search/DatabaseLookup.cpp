@@ -172,7 +172,8 @@ namespace Orthanc
                       (tag, ConstraintType_SmallerOrEqual, upper, caseSensitive, mandatoryTag));
       }
     }
-    else if (dicomQuery.find('\\') != std::string::npos)
+    else if (tag == DICOM_TAG_MODALITIES_IN_STUDY ||
+             dicomQuery.find('\\') != std::string::npos)
     {
       DicomTag fixedTag(tag);
 
