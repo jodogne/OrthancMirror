@@ -43,6 +43,7 @@
 #include "../../../Core/TemporaryFile.h"
 #include "../../../Core/Toolbox.h"
 #include "../../../Core/SystemToolbox.h"
+#include "../../OrthancConfiguration.h"
 
 namespace Orthanc
 {
@@ -92,7 +93,11 @@ namespace Orthanc
         std::string dicom;
         instance.ReadDicom(dicom);
 
-        tmp.reset(new TemporaryFile);
+        {
+          OrthancConfiguration::ReaderLock lock;
+          tmp.reset(lock.GetConfiguration().CreateTemporaryFile());
+        }
+
         tmp->Write(dicom);
         
         arguments.push_back(tmp->GetPath());
