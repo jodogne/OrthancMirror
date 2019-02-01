@@ -148,7 +148,8 @@ namespace Orthanc
 
     if (!pimpl_->file_)
     {
-      throw OrthancException(ErrorCode_CannotWriteFile);
+      throw OrthancException(ErrorCode_CannotWriteFile,
+                             "Cannot create new ZIP archive: " + path_);
     }
   }
 
@@ -169,7 +170,8 @@ namespace Orthanc
     if (level >= 10)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "ZIP compression level must be between 0 (no compression) and 9 (highest compression)");
+                             "ZIP compression level must be between 0 (no compression) "
+                             "and 9 (highest compression)");
     }
 
     Close();
@@ -208,7 +210,8 @@ namespace Orthanc
 
     if (result != 0)
     {
-      throw OrthancException(ErrorCode_CannotWriteFile);
+      throw OrthancException(ErrorCode_CannotWriteFile,
+                             "Cannot add new file inside ZIP archive: " + std::string(path));
     }
 
     hasFileInZip_ = true;
@@ -239,7 +242,8 @@ namespace Orthanc
 
       if (zipWriteInFileInZip(pimpl_->file_, data, bytes))
       {
-        throw OrthancException(ErrorCode_CannotWriteFile);
+        throw OrthancException(ErrorCode_CannotWriteFile,
+                               "Cannot write data to ZIP archive: " + path_);
       }
       
       data += bytes;
@@ -253,6 +257,4 @@ namespace Orthanc
     Close();
     append_ = append;
   }
-    
-
 }

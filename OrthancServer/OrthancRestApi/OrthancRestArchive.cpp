@@ -37,6 +37,7 @@
 #include "../../Core/HttpServer/FilesystemHttpSender.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/ArchiveJob.h"
 
@@ -136,7 +137,13 @@ namespace Orthanc
 
     if (synchronous)
     {
-      boost::shared_ptr<TemporaryFile> tmp(new TemporaryFile);
+      boost::shared_ptr<TemporaryFile> tmp;
+
+      {
+        OrthancConfiguration::ReaderLock lock;
+        tmp.reset(lock.GetConfiguration().CreateTemporaryFile());
+      }
+
       job->SetSynchronousTarget(tmp);
     
       Json::Value publicContent;
