@@ -834,7 +834,7 @@ namespace Orthanc
   {
     if (json_.isMember(TEMPORARY_DIRECTORY))
     {
-      return new TemporaryFile(GetStringParameter(TEMPORARY_DIRECTORY, ""), "");
+      return new TemporaryFile(InterpretStringParameterAsPath(GetStringParameter(TEMPORARY_DIRECTORY, ".")), "");
     }
     else
     {
