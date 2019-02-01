@@ -18,10 +18,12 @@
   "IndexDirectory" : "OrthancStorage",
 
   // Path to the directory where Orthanc stores its large temporary
-  // files. The corresponding filesystem must be properly sized, given
-  // that for instance a ZIP archive of DICOM images created by a job
-  // can weight several GBs, and that there might be up to
-  // "JobsHistorySize" archives to be stored simultaneously. If not
+  // files. The content of this folder can be safely deleted if
+  // Orthanc once stopped. The folder must exist. The corresponding
+  // filesystem must be properly sized, given that for instance a ZIP
+  // archive of DICOM images created by a job can weight several GBs,
+  // and that there might be up to "min(JobsHistorySize,
+  // MediaArchiveSize)" archives to be stored simultaneously. If not
   // set, Orthanc will use the default temporary folder of the
   // operating system (such as "/tmp/" on UNIX-like systems, or
   // "C:/Temp" on Microsoft Windows).

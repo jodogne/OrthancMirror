@@ -19,7 +19,7 @@ REST API
 Plugins
 -------
 
-* New primitives to set and refresh metrics
+* New primitives in the plugin SDK to set and refresh metrics
 
 Maintenance
 -----------
