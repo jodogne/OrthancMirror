@@ -53,7 +53,8 @@ namespace Orthanc
   public:
     TemporaryFile();
 
-    TemporaryFile(const char* extension);
+    TemporaryFile(const std::string& temporaryFolder,
+                  const std::string& extension);
 
     ~TemporaryFile();
 
@@ -65,5 +66,7 @@ namespace Orthanc
     void Write(const std::string& content);
 
     void Read(std::string& content) const;
+
+    void Touch();
   };
 }

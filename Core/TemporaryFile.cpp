@@ -34,6 +34,7 @@
 #include "PrecompiledHeaders.h"
 #include "TemporaryFile.h"
 
+#include "OrthancException.h"
 #include "SystemToolbox.h"
 #include "Toolbox.h"
 
@@ -41,15 +42,25 @@
 
 namespace Orthanc
 {
-  static std::string CreateTemporaryPath(const char* extension)
+  static std::string CreateTemporaryPath(const char* temporaryDirectory,
+                                         const char* extension)
   {
+    boost::filesystem::path dir;
+
+    if (temporaryDirectory == NULL)
+    {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
-    boost::filesystem::path tmpDir = boost::filesystem::temp_directory_path();
+      dir = boost::filesystem::temp_directory_path();
 #elif defined(__linux__)
-    boost::filesystem::path tmpDir("/tmp");
+      dir = "/tmp";
 #else
-#error Support your platform here
+#  error Support your platform here
 #endif
+    }
+    else
+    {
+      dir = temporaryDirectory;
+    }
 
     // We use UUID to create unique path to temporary files
     std::string filename = "Orthanc-" + Orthanc::Toolbox::GenerateUuid();
@@ -59,19 +70,20 @@ namespace Orthanc
       filename.append(extension);
     }
 
-    tmpDir /= filename;
-    return tmpDir.string();
+    dir /= filename;
+    return dir.string();
   }
 
 
   TemporaryFile::TemporaryFile() : 
-    path_(CreateTemporaryPath(NULL))
+    path_(CreateTemporaryPath(NULL, NULL))
   {
   }
 
 
-  TemporaryFile::TemporaryFile(const char* extension) :
-    path_(CreateTemporaryPath(extension))
+  TemporaryFile::TemporaryFile(const std::string& temporaryDirectory,
+                               const std::string& extension) :
+    path_(CreateTemporaryPath(temporaryDirectory.c_str(), extension.c_str()))
   {
   }
 
@@ -84,12 +96,39 @@ namespace Orthanc
 
   void TemporaryFile::Write(const std::string& content)
   {
-    SystemToolbox::WriteFile(content, path_);
+    try
+    {
+      SystemToolbox::WriteFile(content, path_);
+    }
+    catch (OrthancException& e)
+    {
+      throw OrthancException(e.GetErrorCode(),
+                             "Can't create temporary file \"" + path_ +
+                             "\" with " + boost::lexical_cast<std::string>(content.size()) +
+                             " bytes: Check you have write access to the "
+                             "temporary directory and that it is not full");
+    }
   }
 
 
   void TemporaryFile::Read(std::string& content) const
   {
-    SystemToolbox::ReadFile(content, path_);
+    try
+    {
+      SystemToolbox::ReadFile(content, path_);
+    }
+    catch (OrthancException& e)
+    {
+      throw OrthancException(e.GetErrorCode(),
+                             "Can't read temporary file \"" + path_ +
+                             "\": Another process has corrupted the temporary directory");
+    }
+  }
+
+
+  void TemporaryFile::Touch()
+  {
+    std::string empty;
+    Write(empty);
   }
 }
