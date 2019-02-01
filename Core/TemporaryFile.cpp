@@ -100,13 +100,13 @@ namespace Orthanc
     {
       SystemToolbox::WriteFile(content, path_);
     }
-    catch (OrthancException&)
+    catch (OrthancException& e)
     {
-      LOG(ERROR) << "Can't create temporary file \"" << path_
-                 << "\" with " << content.size()
-                 << " bytes: Check you have write access to the "
-                 << "temporary directory and that it is not full";
-      throw;
+      throw OrthancException(e.GetErrorCode(),
+                             "Can't create temporary file \"" + path_ +
+                             "\" with " + boost::lexical_cast<std::string>(content.size()) +
+                             " bytes: Check you have write access to the "
+                             "temporary directory and that it is not full");
     }
   }
 
@@ -117,11 +117,11 @@ namespace Orthanc
     {
       SystemToolbox::ReadFile(content, path_);
     }
-    catch (OrthancException&)
+    catch (OrthancException& e)
     {
-      LOG(ERROR) << "Can't read temporary file \"" << path_
-                 << "\": Another process has corrupted the temporary directory";
-      throw;
+      throw OrthancException(e.GetErrorCode(),
+                             "Can't read temporary file \"" + path_ +
+                             "\": Another process has corrupted the temporary directory");
     }
   }
 
