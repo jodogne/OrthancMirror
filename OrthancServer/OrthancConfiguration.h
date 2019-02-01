@@ -47,6 +47,7 @@ namespace Orthanc
 {
   class HttpServer;
   class ServerIndex;
+  class TemporaryFile;
   
   class OrthancConfiguration : public boost::noncopyable
   {
@@ -224,5 +225,7 @@ namespace Orthanc
     void SetServerIndex(ServerIndex& index);
 
     void ResetServerIndex();
+
+    TemporaryFile* CreateTemporaryFile() const;
   };
 }

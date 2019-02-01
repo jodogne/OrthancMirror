@@ -38,6 +38,7 @@
 #include "../Core/Logging.h"
 #include "../Core/OrthancException.h"
 #include "../Core/SystemToolbox.h"
+#include "../Core/TemporaryFile.h"
 #include "../Core/Toolbox.h"
 
 #include "ServerIndex.h"
@@ -47,6 +48,7 @@ static const char* const DICOM_MODALITIES = "DicomModalities";
 static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
 static const char* const ORTHANC_PEERS = "OrthancPeers";
 static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
+static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 
 namespace Orthanc
 {
@@ -825,5 +827,18 @@ namespace Orthanc
   void OrthancConfiguration::ResetServerIndex()
   {
     serverIndex_ = NULL;
+  }
+
+  
+  TemporaryFile* OrthancConfiguration::CreateTemporaryFile() const
+  {
+    if (json_.isMember(TEMPORARY_DIRECTORY))
+    {
+      return new TemporaryFile(InterpretStringParameterAsPath(GetStringParameter(TEMPORARY_DIRECTORY, ".")), "");
+    }
+    else
+    {
+      return new TemporaryFile;
+    }
   }
 }

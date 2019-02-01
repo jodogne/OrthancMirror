@@ -5,8 +5,9 @@ General
 -------
 
 * New configuration options:
-  - "MetricsEnabled" to track the metrics of Orthanc
+  - "MetricsEnabled" to enable the tracking of the metrics of Orthanc
   - "HttpThreadsCount" to set the number of threads in the embedded HTTP server
+  - "TemporaryDirectory" to set the folder containing the temporary files
 
 REST API
 --------
@@ -18,12 +19,14 @@ REST API
 Plugins
 -------
 
-* New primitives to set and refresh metrics
+* New primitives in the plugin SDK to set and refresh metrics
 
 Maintenance
 -----------
 
+* Fix regression if calling "/tools/find" with the tag "ModalitiesInStudy"
 * Fix build with unpatched versions of Civetweb (missing "mg_disable_keep_alive()")
+* Fix issue #130 (Orthanc failed to start when /tmp partition was full)
 
 
 Version 1.5.3 (2019-01-25)
