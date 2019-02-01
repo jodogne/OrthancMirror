@@ -148,8 +148,8 @@ namespace Orthanc
 
     if (!pimpl_->file_)
     {
-      LOG(ERROR) << "Cannot create new ZIP archive: " << path_;
-      throw OrthancException(ErrorCode_CannotWriteFile);
+      throw OrthancException(ErrorCode_CannotWriteFile,
+                             "Cannot create new ZIP archive: " + path_);
     }
   }
 
@@ -210,8 +210,8 @@ namespace Orthanc
 
     if (result != 0)
     {
-      LOG(ERROR) << "Cannot add new file inside ZIP archive: " << path;
-      throw OrthancException(ErrorCode_CannotWriteFile);
+      throw OrthancException(ErrorCode_CannotWriteFile,
+                             "Cannot add new file inside ZIP archive: " + std::string(path));
     }
 
     hasFileInZip_ = true;
@@ -242,8 +242,8 @@ namespace Orthanc
 
       if (zipWriteInFileInZip(pimpl_->file_, data, bytes))
       {
-        LOG(ERROR) << "Cannot write data to ZIP archive: " << path_;
-        throw OrthancException(ErrorCode_CannotWriteFile);
+        throw OrthancException(ErrorCode_CannotWriteFile,
+                               "Cannot write data to ZIP archive: " + path_);
       }
       
       data += bytes;
