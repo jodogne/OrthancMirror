@@ -20,6 +20,7 @@ Plugins
 -------
 
 * New primitives in the plugin SDK to set and refresh metrics
+* New extensions in the database SDK: LookupResourceAndParent and GetAllMetadata
 
 Maintenance
 -----------

@@ -135,6 +135,7 @@ namespace Orthanc
     answerDone_ = NULL;
     answerMatchingResources_ = NULL;
     answerMatchingInstances_ = NULL;
+    answerMetadata_ = NULL;
   }
 
 
@@ -390,33 +391,50 @@ namespace Orthanc
   void OrthancPluginDatabase::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                              int64_t id)
   {
-    // TODO - Add primitive in SDK
-
-    target.clear();
-
-    ResetAnswers();
-    CheckSuccess(backend_.listAvailableMetadata(GetContext(), payload_, id));
-
-    if (type_ != _OrthancPluginDatabaseAnswerType_None &&
-        type_ != _OrthancPluginDatabaseAnswerType_Int32)
+    if (extensions_.getAllMetadata == NULL)
     {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
+      // Fallback implementation if extension is missing
+      target.clear();
 
-    target.clear();
+      ResetAnswers();
+      CheckSuccess(backend_.listAvailableMetadata(GetContext(), payload_, id));
 
-    if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
-    {
-      for (std::list<int32_t>::const_iterator 
-             it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_Int32)
       {
-        MetadataType type = static_cast<MetadataType>(*it);
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
 
-        std::string value;
-        if (LookupMetadata(value, id, type))
+      target.clear();
+
+      if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
+      {
+        for (std::list<int32_t>::const_iterator 
+               it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
         {
-          target[type] = value;
+          MetadataType type = static_cast<MetadataType>(*it);
+
+          std::string value;
+          if (LookupMetadata(value, id, type))
+          {
+            target[type] = value;
+          }
         }
+      }
+    }
+    else
+    {
+      ResetAnswers();
+
+      answerMetadata_ = &target;
+      target.clear();
+      
+      CheckSuccess(extensions_.getAllMetadata(GetContext(), payload_, id));
+
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_Metadata)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
     }
   }
@@ -1008,6 +1026,11 @@ namespace Orthanc
           
           break;
 
+        case _OrthancPluginDatabaseAnswerType_Metadata:
+          assert(answerMetadata_ != NULL);
+          answerMetadata_->clear();
+          break;
+
         default:
           throw OrthancException(ErrorCode_DatabasePlugin,
                                  "Unhandled type of answer for custom index plugin: " +
@@ -1160,6 +1183,24 @@ namespace Orthanc
           answerMatchingInstances_->push_back(match.someInstanceId);
         }
  
+        break;
+      }
+
+      case _OrthancPluginDatabaseAnswerType_Metadata:
+      {
+        const OrthancPluginResourcesContentMetadata& metadata =
+          *reinterpret_cast<const OrthancPluginResourcesContentMetadata*>(answer.valueGeneric);
+
+        MetadataType type = static_cast<MetadataType>(metadata.metadata);
+
+        if (metadata.value == NULL)
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        assert(answerMetadata_ != NULL &&
+               answerMetadata_->find(type) == answerMetadata_->end());
+        (*answerMetadata_) [type] = metadata.value;
         break;
       }
 
@@ -1426,7 +1467,56 @@ namespace Orthanc
                                                       std::string& parentPublicId,
                                                       const std::string& publicId)
   {
-    // TODO - Add primitive in SDK
-    return ILookupResourceAndParent::Apply(*this, id, type, parentPublicId, publicId);
+    if (extensions_.lookupResourceAndParent == NULL)
+    {
+      return ILookupResourceAndParent::Apply(*this, id, type, parentPublicId, publicId);
+    }
+    else
+    {
+      std::list<std::string> parent;
+
+      uint8_t isExisting;
+      OrthancPluginResourceType pluginType = OrthancPluginResourceType_Patient;
+      
+      ResetAnswers();
+      CheckSuccess(extensions_.lookupResourceAndParent
+                   (GetContext(), &isExisting, &id, &pluginType, payload_, publicId.c_str()));
+      ForwardAnswers(parent);
+
+      if (isExisting)
+      {
+        type = Plugins::Convert(pluginType);
+
+        if (parent.empty())
+        {
+          if (type != ResourceType_Patient)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+        }
+        else if (parent.size() == 1)
+        {
+          if ((type != ResourceType_Study &&
+               type != ResourceType_Series &&
+               type != ResourceType_Instance) ||
+              parent.front().empty())
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          parentPublicId = parent.front();
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
   }
 }

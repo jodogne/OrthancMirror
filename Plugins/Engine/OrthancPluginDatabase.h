@@ -57,7 +57,8 @@ namespace Orthanc
   private:
     class Transaction;
 
-    typedef std::pair<int64_t, ResourceType>  AnswerResource;
+    typedef std::pair<int64_t, ResourceType>     AnswerResource;
+    typedef std::map<MetadataType, std::string>  AnswerMetadata;
 
     SharedLibrary&  library_;
     PluginsErrorDictionary&  errorDictionary_;
@@ -82,6 +83,7 @@ namespace Orthanc
     bool*                          answerDone_;
     std::list<std::string>*        answerMatchingResources_;
     std::list<std::string>*        answerMatchingInstances_;
+    AnswerMetadata*                answerMetadata_;
 
     OrthancPluginDatabaseContext* GetContext()
     {
