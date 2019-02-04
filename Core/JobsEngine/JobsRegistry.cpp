@@ -1379,7 +1379,18 @@ namespace Orthanc
     for (Json::Value::Members::const_iterator it = members.begin();
          it != members.end(); ++it)
     {
-      std::auto_ptr<JobHandler> job(new JobHandler(unserializer, s[JOBS][*it], *it));
+      std::auto_ptr<JobHandler> job;
+
+      try
+      {
+        job.reset(new JobHandler(unserializer, s[JOBS][*it], *it));
+      }
+      catch (OrthancException& e)
+      {
+        LOG(WARNING) << "Cannot unserialize one job from previous execution, "
+                     << "skipping it: " << e.What();
+        continue;
+      }
 
       const boost::posix_time::ptime lastChangeTime = job->GetLastStateChangeTime();
 
