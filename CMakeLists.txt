@@ -56,6 +56,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Database/Compatibility/DatabaseLookup.cpp
   OrthancServer/Database/Compatibility/ICreateInstance.cpp
   OrthancServer/Database/Compatibility/IGetChildrenMetadata.cpp
+  OrthancServer/Database/Compatibility/ILookupResourceAndParent.cpp
   OrthancServer/Database/Compatibility/ILookupResources.cpp
   OrthancServer/Database/Compatibility/SetOfResources.cpp
   OrthancServer/Database/ResourcesContent.cpp

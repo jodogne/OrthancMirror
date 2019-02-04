@@ -559,12 +559,30 @@ namespace Orthanc
 
 
 
-  bool ServerIndex::GetMetadataAsInteger(int64_t& result,
-                                         int64_t id,
-                                         MetadataType type)
+  static bool LookupStringMetadata(std::string& result,
+                                   const std::map<MetadataType, std::string>& metadata,
+                                   MetadataType type)
+  {
+    std::map<MetadataType, std::string>::const_iterator found = metadata.find(type);
+
+    if (found == metadata.end())
+    {
+      return false;
+    }
+    else
+    {
+      result = found->second;
+      return true;
+    }
+  }
+
+
+  static bool LookupIntegerMetadata(int64_t& result,
+                                    const std::map<MetadataType, std::string>& metadata,
+                                    MetadataType type)
   {
     std::string s;
-    if (!db_.LookupMetadata(s, id, type))
+    if (!LookupStringMetadata(s, metadata, type))
     {
       return false;
     }
@@ -947,10 +965,14 @@ namespace Orthanc
 
   
       // Check whether the series of this new instance is now completed
-      SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_);
-      if (seriesStatus == SeriesStatus_Complete)
+      int64_t expectedNumberOfInstances;
+      if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary))
       {
-        LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
+        SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_, expectedNumberOfInstances);
+        if (seriesStatus == SeriesStatus_Complete)
+        {
+          LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
+        }
       }
       
 
@@ -1037,21 +1059,6 @@ namespace Orthanc
   }
 
 
-  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id)
-  {
-    // Get the expected number of instances in this series (from the metadata)
-    int64_t expected;
-    if (!GetMetadataAsInteger(expected, id, MetadataType_Series_ExpectedNumberOfInstances))
-    {
-      return SeriesStatus_Unknown;
-    }
-    else
-    {
-      return GetSeriesStatus(id, expected);
-    }
-  }
-
-
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
                                         int64_t resourceId,
                                         ResourceType resourceType)
@@ -1090,22 +1097,27 @@ namespace Orthanc
     // Lookup for the requested resource
     int64_t id;
     ResourceType type;
-    if (!db_.LookupResource(id, type, publicId) ||
+    std::string parent;
+    if (!db_.LookupResourceAndParent(id, type, parent, publicId) ||
         type != expectedType)
     {
       return false;
     }
 
-    // Find the parent resource (if it exists)
-    if (type != ResourceType_Patient)
+    // Set information about the parent resource (if it exists)
+    if (type == ResourceType_Patient)
     {
-      int64_t parentId;
-      if (!db_.LookupParent(parentId, id))
+      if (!parent.empty())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
-
-      std::string parent = db_.GetPublicId(parentId);
+    }
+    else
+    {
+      if (parent.empty())
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
 
       switch (type)
       {
@@ -1159,6 +1171,10 @@ namespace Orthanc
       }
     }
 
+    // Extract the metadata
+    std::map<MetadataType, std::string> metadata;
+    db_.GetAllMetadata(metadata, id);
+
     // Set the resource type
     switch (type)
     {
@@ -1173,16 +1189,17 @@ namespace Orthanc
       case ResourceType_Series:
       {
         result["Type"] = "Series";
-        result["Status"] = EnumerationToString(GetSeriesStatus(id));
 
         int64_t i;
-        if (GetMetadataAsInteger(i, id, MetadataType_Series_ExpectedNumberOfInstances))
+        if (LookupIntegerMetadata(i, metadata, MetadataType_Series_ExpectedNumberOfInstances))
         {
           result["ExpectedNumberOfInstances"] = static_cast<int>(i);
+          result["Status"] = EnumerationToString(GetSeriesStatus(id, i));
         }
         else
         {
           result["ExpectedNumberOfInstances"] = Json::nullValue;
+          result["Status"] = EnumerationToString(SeriesStatus_Unknown);
         }
 
         break;
@@ -1202,7 +1219,7 @@ namespace Orthanc
         result["FileUuid"] = attachment.GetUuid();
 
         int64_t i;
-        if (GetMetadataAsInteger(i, id, MetadataType_Instance_IndexInSeries))
+        if (LookupIntegerMetadata(i, metadata, MetadataType_Instance_IndexInSeries))
         {
           result["IndexInSeries"] = static_cast<int>(i);
         }
@@ -1224,12 +1241,12 @@ namespace Orthanc
 
     std::string tmp;
 
-    if (db_.LookupMetadata(tmp, id, MetadataType_AnonymizedFrom))
+    if (LookupStringMetadata(tmp, metadata, MetadataType_AnonymizedFrom))
     {
       result["AnonymizedFrom"] = tmp;
     }
 
-    if (db_.LookupMetadata(tmp, id, MetadataType_ModifiedFrom))
+    if (LookupStringMetadata(tmp, metadata, MetadataType_ModifiedFrom))
     {
       result["ModifiedFrom"] = tmp;
     }
@@ -1240,7 +1257,7 @@ namespace Orthanc
     {
       result["IsStable"] = !unstableResources_.Contains(id);
 
-      if (db_.LookupMetadata(tmp, id, MetadataType_LastUpdate))
+      if (LookupStringMetadata(tmp, metadata, MetadataType_LastUpdate))
       {
         result["LastUpdate"] = tmp;
       }
@@ -1825,19 +1842,19 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ListAvailableMetadata(std::list<MetadataType>& target,
-                                          const std::string& publicId)
+  void ServerIndex::GetAllMetadata(std::map<MetadataType, std::string>& target,
+                                   const std::string& publicId)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    ResourceType rtype;
+    ResourceType type;
     int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId))
+    if (!db_.LookupResource(id, type, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
 
-    db_.ListAvailableMetadata(target, id);
+    return db_.GetAllMetadata(target, id);
   }
 
 
@@ -2211,41 +2228,6 @@ namespace Orthanc
     }
 
     t.Commit(0);
-  }
-
-
-  bool ServerIndex::GetMetadata(Json::Value& target,
-                                const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    target = Json::objectValue;
-
-    ResourceType type;
-    int64_t id;
-    if (!db_.LookupResource(id, type, publicId))
-    {
-      return false;
-    }
-
-    std::list<MetadataType> metadata;
-    db_.ListAvailableMetadata(metadata, id);
-
-    for (std::list<MetadataType>::const_iterator
-           it = metadata.begin(); it != metadata.end(); ++it)
-    {
-      std::string key = EnumerationToString(*it);
-
-      std::string value;
-      if (!db_.LookupMetadata(value, id, *it))
-      {
-        value.clear();
-      }
-
-      target[key] = value;
-    }
-
-    return true;
   }
 
 

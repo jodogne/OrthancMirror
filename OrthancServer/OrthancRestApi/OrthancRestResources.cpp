@@ -705,9 +705,9 @@ namespace Orthanc
     CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
-    std::list<MetadataType> metadata;
+    std::map<MetadataType, std::string> metadata;
 
-    OrthancRestApi::GetIndex(call).ListAvailableMetadata(metadata, publicId);
+    OrthancRestApi::GetIndex(call).GetAllMetadata(metadata, publicId);
 
     Json::Value result;
 
@@ -715,25 +715,21 @@ namespace Orthanc
     {
       result = Json::objectValue;
       
-      for (std::list<MetadataType>::const_iterator 
+      for (std::map<MetadataType, std::string>::const_iterator 
              it = metadata.begin(); it != metadata.end(); ++it)
       {
-        std::string value;
-        if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, *it))
-        {
-          std::string key = EnumerationToString(*it);
-          result[key] = value;
-        }
+        std::string key = EnumerationToString(it->first);
+        result[key] = it->second;
       }      
     }
     else
     {
       result = Json::arrayValue;
       
-      for (std::list<MetadataType>::const_iterator 
+      for (std::map<MetadataType, std::string>::const_iterator 
              it = metadata.begin(); it != metadata.end(); ++it)
       {       
-        result.append(EnumerationToString(*it));
+        result.append(EnumerationToString(it->first));
       }
     }
 

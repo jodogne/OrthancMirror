@@ -761,21 +761,6 @@ namespace Orthanc
   }
 
 
-  void SQLiteDatabaseWrapper::ListAvailableMetadata(std::list<MetadataType>& target,
-                                                    int64_t id)
-  {
-    target.clear();
-
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT type FROM Metadata WHERE id=?");
-    s.BindInt64(0, id);
-
-    while (s.Step())
-    {
-      target.push_back(static_cast<MetadataType>(s.ColumnInt(0)));
-    }
-  }
-
-
   void SQLiteDatabaseWrapper::AddAttachment(int64_t id,
                                             const FileInfo& attachment)
   {

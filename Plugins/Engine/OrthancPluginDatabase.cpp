@@ -390,21 +390,34 @@ namespace Orthanc
   void OrthancPluginDatabase::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                              int64_t id)
   {
-    std::list<MetadataType> metadata;
-    ListAvailableMetadata(metadata, id);
+    // TODO - Add primitive in SDK
 
     target.clear();
 
-    for (std::list<MetadataType>::const_iterator
-           it = metadata.begin(); it != metadata.end(); ++it)
-    {
-      std::string value;
-      if (!LookupMetadata(value, id, *it))
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
+    ResetAnswers();
+    CheckSuccess(backend_.listAvailableMetadata(GetContext(), payload_, id));
 
-      target[*it] = value;
+    if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+        type_ != _OrthancPluginDatabaseAnswerType_Int32)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    target.clear();
+
+    if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
+    {
+      for (std::list<int32_t>::const_iterator 
+             it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
+      {
+        MetadataType type = static_cast<MetadataType>(*it);
+
+        std::string value;
+        if (LookupMetadata(value, id, type))
+        {
+          target[type] = value;
+        }
+      }
     }
   }
 
@@ -621,31 +634,6 @@ namespace Orthanc
     int32_t isProtected;
     CheckSuccess(backend_.isProtectedPatient(&isProtected, payload_, internalId));
     return (isProtected != 0);
-  }
-
-
-  void OrthancPluginDatabase::ListAvailableMetadata(std::list<MetadataType>& target,
-                                                    int64_t id)
-  {
-    ResetAnswers();
-    CheckSuccess(backend_.listAvailableMetadata(GetContext(), payload_, id));
-
-    if (type_ != _OrthancPluginDatabaseAnswerType_None &&
-        type_ != _OrthancPluginDatabaseAnswerType_Int32)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-
-    target.clear();
-
-    if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
-    {
-      for (std::list<int32_t>::const_iterator 
-             it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
-      {
-        target.push_back(static_cast<MetadataType>(*it));
-      }
-    }
   }
 
 
@@ -1430,5 +1418,15 @@ namespace Orthanc
     {
       CheckSuccess(extensions_.tagMostRecentPatient(payload_, patient));
     }
+  }
+
+
+  bool OrthancPluginDatabase::LookupResourceAndParent(int64_t& id,
+                                                      ResourceType& type,
+                                                      std::string& parentPublicId,
+                                                      const std::string& publicId)
+  {
+    // TODO - Add primitive in SDK
+    return ILookupResourceAndParent::Apply(*this, id, type, parentPublicId, publicId);
   }
 }

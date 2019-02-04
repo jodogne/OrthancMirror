@@ -38,6 +38,7 @@
 #include "../../Core/SQLite/Connection.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
+#include "Compatibility/ILookupResourceAndParent.h"
 #include "Compatibility/ISetResourcesContent.h"
 
 namespace Orthanc
@@ -56,6 +57,7 @@ namespace Orthanc
     public IDatabaseWrapper,
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
+    public Compatibility::ILookupResourceAndParent,
     public Compatibility::ISetResourcesContent
   {
   private:
@@ -224,10 +226,6 @@ namespace Orthanc
                                 MetadataType type)
       ORTHANC_OVERRIDE;
 
-    virtual void ListAvailableMetadata(std::list<MetadataType>& target,
-                                       int64_t id)
-      ORTHANC_OVERRIDE;
-
     virtual void AddAttachment(int64_t id,
                                const FileInfo& attachment)
       ORTHANC_OVERRIDE;
@@ -361,5 +359,14 @@ namespace Orthanc
     virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
 
     virtual void TagMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE;
+
+    virtual bool LookupResourceAndParent(int64_t& id,
+                                         ResourceType& type,
+                                         std::string& parentPublicId,
+                                         const std::string& publicId)
+      ORTHANC_OVERRIDE
+    {
+      return ILookupResourceAndParent::Apply(*this, id, type, parentPublicId, publicId);
+    }
   };
 }

@@ -39,6 +39,7 @@
 #include "../../OrthancServer/Database/Compatibility/ICreateInstance.h"
 #include "../../OrthancServer/Database/Compatibility/IGetChildrenMetadata.h"
 #include "../../OrthancServer/Database/Compatibility/ILookupResources.h"
+#include "../../OrthancServer/Database/Compatibility/ILookupResourceAndParent.h"
 #include "../../OrthancServer/Database/Compatibility/ISetResourcesContent.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
@@ -50,6 +51,7 @@ namespace Orthanc
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
+    public Compatibility::ILookupResourceAndParent,
     public Compatibility::ISetResourcesContent
   {
   private:
@@ -225,10 +227,6 @@ namespace Orthanc
     virtual bool IsProtectedPatient(int64_t internalId) 
       ORTHANC_OVERRIDE;
 
-    virtual void ListAvailableMetadata(std::list<MetadataType>& target,
-                                       int64_t id) 
-      ORTHANC_OVERRIDE;
-
     virtual void ListAvailableAttachments(std::list<FileContentType>& target,
                                           int64_t id) 
       ORTHANC_OVERRIDE;
@@ -364,6 +362,12 @@ namespace Orthanc
     virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
   
     virtual void TagMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE;
+
+    virtual bool LookupResourceAndParent(int64_t& id,
+                                         ResourceType& type,
+                                         std::string& parentPublicId,
+                                         const std::string& publicId)
+      ORTHANC_OVERRIDE;
   };
 }
 

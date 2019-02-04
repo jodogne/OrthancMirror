@@ -153,9 +153,6 @@ namespace Orthanc
 
     virtual bool IsProtectedPatient(int64_t internalId) = 0;
 
-    virtual void ListAvailableMetadata(std::list<MetadataType>& target,
-                                       int64_t id) = 0;
-
     virtual void ListAvailableAttachments(std::list<FileContentType>& target,
                                           int64_t id) = 0;
 
@@ -245,5 +242,15 @@ namespace Orthanc
                                      MetadataType metadata) = 0;
 
     virtual int64_t GetLastChangeIndex() = 0;
+
+
+    /**
+     * Primitives introduced in Orthanc 1.5.4
+     **/
+
+    virtual bool LookupResourceAndParent(int64_t& id,
+                                         ResourceType& type,
+                                         std::string& parentPublicId,
+                                         const std::string& publicId) = 0;
   };
 }

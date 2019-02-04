@@ -84,8 +84,6 @@ namespace Orthanc
                              int64_t resourceId,
                              ResourceType resourceType);
 
-    SeriesStatus GetSeriesStatus(int64_t id);
-
     bool IsRecyclingNeeded(uint64_t instanceSize);
 
     void Recycle(uint64_t instanceSize,
@@ -96,10 +94,6 @@ namespace Orthanc
     void MarkAsUnstable(int64_t id,
                         Orthanc::ResourceType type,
                         const std::string& publicId);
-
-    bool GetMetadataAsInteger(int64_t& result,
-                              int64_t id,
-                              MetadataType type);
 
     void LogChange(int64_t internalId,
                    ChangeType changeType,
@@ -211,15 +205,12 @@ namespace Orthanc
     void DeleteMetadata(const std::string& publicId,
                         MetadataType type);
 
+    void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                        const std::string& publicId);
+
     bool LookupMetadata(std::string& target,
                         const std::string& publicId,
                         MetadataType type);
-
-    void ListAvailableMetadata(std::list<MetadataType>& target,
-                               const std::string& publicId);
-
-    bool GetMetadata(Json::Value& target,
-                     const std::string& publicId);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,
                                   const std::string& publicId,
