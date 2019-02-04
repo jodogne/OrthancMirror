@@ -551,3 +551,196 @@ TEST(DicomMap, ExtractMainDicomTags)
   ASSERT_EQ("F", b.GetValue(DICOM_TAG_SLICE_THICKNESS).GetContent());
   ASSERT_FALSE(b.HasOnlyMainDicomTags());
 }
+
+
+
+
+#if 0
+
+namespace Orthanc
+{
+  class DicomJsonVisitor : public ITagVisitor
+  {
+  private:
+    Json::Value  result_;
+    std::string  bulkUriRoot_;
+
+    static std::string FormatTag(const DicomTag& tag)
+    {
+      char buf[16];
+      sprintf(buf, "%04X%04X", tag.GetGroup(), tag.GetElement());
+      return std::string(buf);
+    }
+    
+    Json::Value& CreateNode(const std::vector<DicomTag>& parentTags,
+                            const std::vector<size_t>& parentIndexes,
+                            const DicomTag& tag)
+    {
+      assert(parentTags.size() == parentIndexes.size());      
+
+      Json::Value* node = &result_;
+
+      if (parentTags.size() != 0)
+      {
+        printf("ICI %s\n", FormatTag(parentTags[0]).c_str());
+      }
+
+      for (size_t i = 0; i < parentTags.size(); i++)
+      {
+        std::string t = FormatTag(parentTags[i]);
+
+        if (!node->isMember(t))
+        {
+          Json::Value item = Json::objectValue;
+          item["vr"] = "SQ";
+          item["Value"] = Json::arrayValue;
+          item["Value"].append(Json::objectValue);
+          (*node) [t] = item;
+
+          node = &(*node)[t]["Value"][0];
+          std::cout << result_.toStyledString();
+        }
+        else if ((*node) [t].type() != Json::objectValue ||
+                 !(*node) [t].isMember("vr") ||
+                 (*node) [t]["vr"].type() != Json::stringValue ||
+                 (*node) [t]["vr"].asString() != "SQ" ||
+                 !(*node) [t].isMember("Value") ||
+                 (*node) [t]["Value"].type() != Json::arrayValue)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        else
+        {
+          std::cout << result_.toStyledString();
+          printf("%d %d\n", (*node) [t]["Value"].size(), parentIndexes[i]);
+          
+          if ((*node) [t]["Value"].size() >= parentIndexes[i])
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          else
+          {
+            (*node) [t]["Value"].append(Json::objectValue);
+            node = &(*node) [t]["Value"][Json::ArrayIndex(parentIndexes[i])];
+          }
+        }
+      }
+
+      assert(node->type() == Json::objectValue);
+
+      std::string t = FormatTag(tag);
+      if (node->isMember(t))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        (*node) [t] = Json::objectValue;
+        return (*node) [t];
+      }
+    }                              
+
+  public:
+    DicomJsonVisitor()
+    {
+      Clear();
+    }
+
+    void SetBulkUriRoot(const std::string& root)
+    {
+      bulkUriRoot_ = root;
+    }
+    
+    void Clear()
+    {
+      result_ = Json::objectValue;
+    }
+
+    const Json::Value& GetResult() const
+    {
+      return result_;
+    }
+
+    virtual void VisitUnknown(const std::vector<DicomTag>& parentTags,
+                              const std::vector<size_t>& parentIndexes,
+                              const DicomTag& tag,
+                              ValueRepresentation vr) ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
+                             const std::vector<size_t>& parentIndexes,
+                             const DicomTag& tag,
+                             ValueRepresentation vr,
+                             const void* data,
+                             size_t size) ORTHANC_OVERRIDE
+    {
+      if (!bulkUriRoot_.empty())
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+      }
+    }
+
+    virtual void VisitInteger(const std::vector<DicomTag>& parentTags,
+                              const std::vector<size_t>& parentIndexes,
+                              const DicomTag& tag,
+                              ValueRepresentation vr,
+                              int64_t value) ORTHANC_OVERRIDE
+    {
+      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+      
+    }
+
+    virtual void VisitDouble(const std::vector<DicomTag>& parentTags,
+                             const std::vector<size_t>& parentIndexes,
+                             const DicomTag& tag,
+                             ValueRepresentation vr,
+                             double value) ORTHANC_OVERRIDE
+    {
+      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+      
+    }
+
+    virtual void VisitAttribute(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const DicomTag& value) ORTHANC_OVERRIDE
+    {
+      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+      
+    }
+
+    virtual Action VisitString(std::string& newValue,
+                               const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      printf("[%s] [%s]\n", FormatTag(tag).c_str(), value.c_str());
+
+      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+      
+      return Action_None;
+    }
+  };
+}
+
+#include "../Core/SystemToolbox.h"
+
+
+TEST(DicomWebJson, Basic)
+{
+  std::string content;
+  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/DummyCT.dcm");
+
+  Orthanc::ParsedDicomFile dicom(content);
+
+  Orthanc::DicomJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  std::cout << visitor.GetResult().toStyledString() << std::endl;
+}
+
+#endif
