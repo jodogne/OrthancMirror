@@ -76,6 +76,7 @@ extern "C"
     _OrthancPluginDatabaseAnswerType_Resource = 16,
     _OrthancPluginDatabaseAnswerType_String = 17,
     _OrthancPluginDatabaseAnswerType_MatchingResource = 18,  /* New in Orthanc 1.5.2 */
+    _OrthancPluginDatabaseAnswerType_Metadata = 19,          /* New in Orthanc 1.5.4 */
 
     _OrthancPluginDatabaseAnswerType_INTERNAL = 0x7fffffff
   } _OrthancPluginDatabaseAnswerType;
@@ -332,6 +333,25 @@ extern "C"
     params.database = database;
     params.type = _OrthancPluginDatabaseAnswerType_MatchingResource;
     params.valueGeneric = match;
+    context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
+  }
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseAnswerMetadata(
+    OrthancPluginContext*          context,
+    OrthancPluginDatabaseContext*  database,
+    int64_t                        resourceId,
+    int32_t                        type,
+    const char*                    value)
+  {
+    OrthancPluginResourcesContentMetadata metadata;
+    _OrthancPluginDatabaseAnswer params;
+    metadata.resource = resourceId;
+    metadata.metadata = type;
+    metadata.value = value;
+    memset(&params, 0, sizeof(params));
+    params.database = database;
+    params.type = _OrthancPluginDatabaseAnswerType_Metadata;
+    params.valueGeneric = &metadata;
     context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
   }
 
@@ -783,7 +803,6 @@ extern "C"
       OrthancPluginResourceType queryLevel,
       uint32_t limit,
       uint8_t requestSomeInstance);
-
     
     OrthancPluginErrorCode  (*createInstance) (
       /* output */
@@ -825,6 +844,32 @@ extern "C"
       void* payload,
       int64_t patientId);
                    
+    
+    /**
+     * Extensions since Orthanc 1.5.4
+     **/
+
+    /* Ouput: Use OrthancPluginDatabaseAnswerMetadata */
+    OrthancPluginErrorCode  (*getAllMetadata) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      int64_t resourceId);
+    
+    /* Ouput: Use OrthancPluginDatabaseAnswerString to send 
+       the public ID of the parent (if the resource is not a patient) */
+    OrthancPluginErrorCode  (*lookupResourceAndParent) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      uint8_t* isExisting,
+      int64_t* id,
+      OrthancPluginResourceType* type,
+      
+      /* inputs */
+      void* payload,
+      const char* publicId);
+
   } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
