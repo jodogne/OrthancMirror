@@ -293,8 +293,8 @@ TEST_F(DatabaseWrapperTest, Simple)
     ASSERT_EQ("e", l.front());
   }
 
-  std::list<MetadataType> md;
-  index_->ListAvailableMetadata(md, a[4]);
+  std::map<MetadataType, std::string> md;
+  index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
   index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
@@ -303,11 +303,11 @@ TEST_F(DatabaseWrapperTest, Simple)
   index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
   index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
   
-  index_->ListAvailableMetadata(md, a[4]);
+  index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
-  ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
+  ASSERT_EQ("PINNACLE", md[MetadataType_Instance_RemoteAet]);
   index_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
-  index_->ListAvailableMetadata(md, a[4]);
+  index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
 
   std::map<MetadataType, std::string> md2;
@@ -317,9 +317,9 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
 
   index_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
-  index_->ListAvailableMetadata(md, a[4]);
+  index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
-  ASSERT_EQ(MetadataType_Instance_RemoteAet, md.front());
+  ASSERT_EQ("PINNACLE", md[MetadataType_Instance_RemoteAet]);
 
   index_->GetAllMetadata(md2, a[4]);
   ASSERT_EQ(1u, md2.size());

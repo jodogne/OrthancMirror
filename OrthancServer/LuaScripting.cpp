@@ -164,23 +164,37 @@ namespace Orthanc
         }
       }
       
-      Json::Value tags, metadata;
-      if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()) &&
-          that.context_.GetIndex().GetMetadata(metadata, change_.GetPublicId()))
+      Json::Value tags;
+      
+      if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()))
       {
-        LuaScripting::Lock lock(that);
+        std::map<MetadataType, std::string> metadata;
+        that.context_.GetIndex().GetAllMetadata(metadata, change_.GetPublicId());
+        
+        Json::Value formattedMetadata = Json::objectValue;
 
-        if (lock.GetLua().IsExistingFunction(name))
+        for (std::map<MetadataType, std::string>::const_iterator 
+               it = metadata.begin(); it != metadata.end(); ++it)
         {
-          that.InitializeJob();
+          std::string key = EnumerationToString(it->first);
+          formattedMetadata[key] = it->second;
+        }      
 
-          LuaFunctionCall call(lock.GetLua(), name);
-          call.PushString(change_.GetPublicId());
-          call.PushJson(tags["MainDicomTags"]);
-          call.PushJson(metadata);
-          call.Execute();
+        {
+          LuaScripting::Lock lock(that);
 
-          that.SubmitJob();
+          if (lock.GetLua().IsExistingFunction(name))
+          {
+            that.InitializeJob();
+
+            LuaFunctionCall call(lock.GetLua(), name);
+            call.PushString(change_.GetPublicId());
+            call.PushJson(tags["MainDicomTags"]);
+            call.PushJson(formattedMetadata);
+            call.Execute();
+
+            that.SubmitJob();
+          }
         }
       }
     }
