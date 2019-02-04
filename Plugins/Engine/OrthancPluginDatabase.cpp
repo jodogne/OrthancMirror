@@ -271,6 +271,18 @@ namespace Orthanc
       isOptimal = false;
     }
 
+    if (extensions_.getAllMetadata == NULL)
+    {
+      LOG(INFO) << MISSING << "GetAllMetadata()";
+      isOptimal = false;
+    }
+
+    if (extensions_.lookupResourceAndParent == NULL)
+    {
+      LOG(INFO) << MISSING << "LookupResourceAndParent()";
+      isOptimal = false;
+    }
+
     if (isOptimal)
     {
       LOG(INFO) << "The performance of the database index plugin "
