@@ -91,6 +91,20 @@ NOTES:
   Visual Studio that do not support C++11
 
 
+Native Windows build with Microsoft Visual Studio 2015, Ninja and QtCreator
+---------------------------------------------------------------------------
+
+Open a Visual Studio 2015 x64 Command Prompt.
+
+# cd [...]\OrthancBuild
+# cmake -G Ninja -DSTATIC_BUILD=ON [...]\Orthanc
+# ninja
+
+Then, you can open an existing project in QtCreator:
+* Select the CMakeLists.txt in [...]\Orthanc
+* Import build from [...]\OrthancBuild
+
+
 
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------
