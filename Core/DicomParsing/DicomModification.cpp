@@ -95,27 +95,27 @@ namespace Orthanc
     {
     }
 
-    virtual void VisitInteger(const std::vector<DicomTag>& parentTags,
+    virtual void VisitIntegers(const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const std::vector<int64_t>& values)
+    {
+    }
+
+    virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
                               const std::vector<size_t>& parentIndexes,
                               const DicomTag& tag,
                               ValueRepresentation vr,
-                              int64_t value)
+                              const std::vector<double>& value)
     {
     }
 
-    virtual void VisitDouble(const std::vector<DicomTag>& parentTags,
-                             const std::vector<size_t>& parentIndexes,
-                             const DicomTag& tag,
-                             ValueRepresentation vr,
-                             double value)
-    {
-    }
-
-    virtual void VisitAttribute(const std::vector<DicomTag>& parentTags,
-                                const std::vector<size_t>& parentIndexes,
-                                const DicomTag& tag,
-                                ValueRepresentation vr,
-                                const DicomTag& value)
+    virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 ValueRepresentation vr,
+                                 const std::vector<DicomTag>& value)
     {
     }
 
