@@ -502,4 +502,47 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  void WebServiceParameters::FormatPublic(Json::Value& target) const
+  {
+    target = Json::objectValue;
+
+    // Only return the public information identifying the destination.
+    // "Security"-related information such as passwords and HTTP
+    // headers are shown as "null" values.
+    target[KEY_URL] = url_;
+
+    if (!username_.empty())
+    {
+      target[KEY_USERNAME] = username_;
+      target[KEY_PASSWORD] = Json::nullValue;
+    }
+
+    if (!certificateFile_.empty())
+    {
+      target[KEY_CERTIFICATE_FILE] = certificateFile_;
+      target[KEY_CERTIFICATE_KEY_FILE] = Json::nullValue;
+      target[KEY_CERTIFICATE_KEY_PASSWORD] = Json::nullValue;      
+    }
+
+    target[KEY_PKCS11] = pkcs11Enabled_;
+
+    Json::Value headers = Json::arrayValue;
+      
+    for (Dictionary::const_iterator it = headers_.begin();
+         it != headers_.end(); ++it)
+    {
+      // Only list the HTTP headers, not their value
+      headers.append(it->first);
+    }
+
+    target[KEY_HTTP_HEADERS] = headers;
+
+    for (Dictionary::const_iterator it = userProperties_.begin();
+         it != userProperties_.end(); ++it)
+    {
+      target[it->first] = it->second;
+    }
+  }
 }
