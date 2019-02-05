@@ -559,6 +559,13 @@ TEST(DicomMap, ExtractMainDicomTags)
 
 #include <boost/math/special_functions/round.hpp>
 
+
+static const char* const KEY_ALPHABETIC = "Alphabetic";
+static const char* const KEY_INLINE_BINARY = "InlineBinary";
+static const char* const KEY_SQ = "SQ";
+static const char* const KEY_VALUE = "Value";
+static const char* const KEY_VR = "vr";
+
 namespace Orthanc
 {
   class DicomJsonVisitor : public ITagVisitor
@@ -589,25 +596,25 @@ namespace Orthanc
         if (!node->isMember(t))
         {
           Json::Value item = Json::objectValue;
-          item["vr"] = "SQ";
-          item["Value"] = Json::arrayValue;
-          item["Value"].append(Json::objectValue);
+          item[KEY_VR] = KEY_SQ;
+          item[KEY_VALUE] = Json::arrayValue;
+          item[KEY_VALUE].append(Json::objectValue);
           (*node) [t] = item;
 
-          node = &(*node)[t]["Value"][0];
+          node = &(*node)[t][KEY_VALUE][0];
         }
         else if ((*node)  [t].type() != Json::objectValue ||
-                 !(*node) [t].isMember("vr") ||
-                 (*node)  [t]["vr"].type() != Json::stringValue ||
-                 (*node)  [t]["vr"].asString() != "SQ" ||
-                 !(*node) [t].isMember("Value") ||
-                 (*node)  [t]["Value"].type() != Json::arrayValue)
+                 !(*node) [t].isMember(KEY_VR) ||
+                 (*node)  [t][KEY_VR].type() != Json::stringValue ||
+                 (*node)  [t][KEY_VR].asString() != KEY_SQ ||
+                 !(*node) [t].isMember(KEY_VALUE) ||
+                 (*node)  [t][KEY_VALUE].type() != Json::arrayValue)
         {
           throw OrthancException(ErrorCode_InternalError);
         }
         else
         {
-          size_t currentSize = (*node) [t]["Value"].size();
+          size_t currentSize = (*node) [t][KEY_VALUE].size();
 
           if (parentIndexes[i] < currentSize)
           {
@@ -615,14 +622,14 @@ namespace Orthanc
           }
           else if (parentIndexes[i] == currentSize)
           {
-            (*node) [t]["Value"].append(Json::objectValue);
+            (*node) [t][KEY_VALUE].append(Json::objectValue);
           }
           else
           {
             throw OrthancException(ErrorCode_InternalError);
           }
           
-          node = &(*node) [t]["Value"][Json::ArrayIndex(parentIndexes[i])];
+          node = &(*node) [t][KEY_VALUE][Json::ArrayIndex(parentIndexes[i])];
         }
       }
 
@@ -689,13 +696,22 @@ namespace Orthanc
       return result_;
     }
 
-    virtual void VisitUnknown(const std::vector<DicomTag>& parentTags,
-                              const std::vector<size_t>& parentIndexes,
-                              const DicomTag& tag,
-                              ValueRepresentation vr) ORTHANC_OVERRIDE
+    virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   ValueRepresentation vr) ORTHANC_OVERRIDE
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      node["vr"] = EnumerationToString(vr);
+    }
+
+    virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    const DicomTag& tag) ORTHANC_OVERRIDE
+    {
+      if (tag.GetElement() != 0x0000)
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node[KEY_VR] = EnumerationToString(ValueRepresentation_Sequence);
+      }
     }
 
     virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
@@ -705,11 +721,19 @@ namespace Orthanc
                              const void* data,
                              size_t size) ORTHANC_OVERRIDE
     {
-      if (vr != ValueRepresentation_NotSupported &&
-          !bulkUriRoot_.empty())
+      if (tag.GetElement() != 0x0000 &&
+          vr != ValueRepresentation_NotSupported /*&&
+                                                   !bulkUriRoot_.empty()*/)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node["vr"] = EnumerationToString(vr);
+        node[KEY_VR] = EnumerationToString(vr);
+
+        std::string tmp(static_cast<const char*>(data), size);
+        
+        std::string base64;
+        Toolbox::EncodeBase64(base64, tmp);
+
+        node[KEY_INLINE_BINARY] = base64;
       }
     }
 
@@ -719,18 +743,22 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::vector<int64_t>& values) ORTHANC_OVERRIDE
     {
-      if (vr != ValueRepresentation_NotSupported)
+      if (tag.GetElement() != 0x0000 &&
+          vr != ValueRepresentation_NotSupported)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node["vr"] = EnumerationToString(vr);
+        node[KEY_VR] = EnumerationToString(vr);
 
-        Json::Value content = Json::arrayValue;
-        for (size_t i = 0; i < values.size(); i++)
+        if (!values.empty())
         {
-          content.append(FormatInteger(values[i]));
-        }
+          Json::Value content = Json::arrayValue;
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            content.append(FormatInteger(values[i]));
+          }
 
-        node["Value"] = content;
+          node[KEY_VALUE] = content;
+        }
       }
     }
 
@@ -740,32 +768,39 @@ namespace Orthanc
                               ValueRepresentation vr,
                               const std::vector<double>& values) ORTHANC_OVERRIDE
     {
-      if (vr != ValueRepresentation_NotSupported)
+      if (tag.GetElement() != 0x0000 &&
+          vr != ValueRepresentation_NotSupported)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node["vr"] = EnumerationToString(vr);
+        node[KEY_VR] = EnumerationToString(vr);
 
-        Json::Value content = Json::arrayValue;
-        for (size_t i = 0; i < values.size(); i++)
+        if (!values.empty())
         {
-          content.append(FormatDouble(values[i]));
+          Json::Value content = Json::arrayValue;
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            content.append(FormatDouble(values[i]));
+          }
+          
+          node[KEY_VALUE] = content;
         }
-        node["Value"] = content;
       }
     }
 
     virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
-                                 ValueRepresentation vr,
                                  const std::vector<DicomTag>& values) ORTHANC_OVERRIDE
     {
-      if (vr != ValueRepresentation_NotSupported)
+      if (tag.GetElement() != 0x0000)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node["vr"] = EnumerationToString(vr);
+        node[KEY_VR] = EnumerationToString(ValueRepresentation_AttributeTag);
 
-        
+        if (!values.empty())
+        {
+          // TODO
+        }
       }
     }
 
@@ -776,61 +811,68 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& value) ORTHANC_OVERRIDE
     {
-      if (vr != ValueRepresentation_NotSupported)
+      if (tag.GetElement() != 0x0000 &&
+          vr != ValueRepresentation_NotSupported)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node["vr"] = EnumerationToString(vr);
+        node[KEY_VR] = EnumerationToString(vr);
 
-        std::vector<std::string> tokens;
-        Toolbox::TokenizeString(tokens, value, '\\');
-
-        node["Value"] = Json::arrayValue;
-        for (size_t i = 0; i < tokens.size(); i++)
+        if (!value.empty())
         {
-          try
+          std::vector<std::string> tokens;
+          Toolbox::TokenizeString(tokens, value, '\\');
+
+          node[KEY_VALUE] = Json::arrayValue;
+          for (size_t i = 0; i < tokens.size(); i++)
           {
-            switch (vr)
+            try
             {
-              case ValueRepresentation_PersonName:
+              switch (vr)
               {
-                Json::Value value = Json::objectValue;
-                value["Alphabetic"] = tokens[i];
-                node["Value"].append(value);
-                break;
-              }
-                  
-              case ValueRepresentation_IntegerString:
-              {
-                int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
-                node["Value"].append(FormatInteger(value));
-                break;
-              }
-              
-              case ValueRepresentation_DecimalString:
-              {
-                double value = boost::lexical_cast<double>(tokens[i]);
-                node["Value"].append(FormatDouble(value));
-                break;
-              }
-              
-              default:
-              {
-                size_t l = tokens[i].size();
-
-                if (l > 0 &&
-                    tokens[i][l - 1] == '\0')
+                case ValueRepresentation_PersonName:
                 {
-                  tokens[i] = tokens[i].substr(0, l - 1);
+                  Json::Value value = Json::objectValue;
+                  if (!tokens[i].empty())
+                  {
+                    value[KEY_ALPHABETIC] = tokens[i];
+                  }
+                  node[KEY_VALUE].append(value);
+                  break;
                 }
+                  
+                case ValueRepresentation_IntegerString:
+                {
+                  int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
+                  node[KEY_VALUE].append(FormatInteger(value));
+                  break;
+                }
+              
+                case ValueRepresentation_DecimalString:
+                {
+                  double value = boost::lexical_cast<double>(tokens[i]);
+                  node[KEY_VALUE].append(FormatDouble(value));
+                  break;
+                }
+              
+                default:
+                {
+                  size_t l = tokens[i].size();
 
-                node["Value"].append(tokens[i]);
-                break;
+                  if (l > 0 &&
+                      tokens[i][l - 1] == '\0')
+                  {
+                    tokens[i] = tokens[i].substr(0, l - 1);
+                  }
+
+                  node[KEY_VALUE].append(tokens[i]);
+                  break;
+                }
               }
             }
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            throw OrthancException(ErrorCode_BadFileFormat);
+            catch (boost::bad_lexical_cast&)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
           }
         }
       }
@@ -845,6 +887,12 @@ namespace Orthanc
 
 /* 
 
+MarekLatin2.dcm 
+HierarchicalAnonymization/StructuredReports/IM0
+DummyCT.dcm
+Brainix/Epi/IM-0001-0018.dcm
+
+
 cat << EOF > /tmp/tutu.py
 import json
 import sys
@@ -852,7 +900,7 @@ j = json.loads(sys.stdin.read().decode("utf-8-sig"))
 print(json.dumps(j, indent=4, sort_keys=True, ensure_ascii=False).encode('utf-8'))
 EOF
 
-DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.2/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.2/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/DummyCT.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py | grep -v 'InlineBinary' > /tmp/a.json
+DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/HierarchicalAnonymization/StructuredReports/IM0 | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
 
 make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/tutu.json > /tmp/b.json && diff -i /tmp/a.json /tmp/b.json
 
@@ -861,7 +909,7 @@ make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/t
 TEST(DicomWebJson, Basic)
 {
   std::string content;
-  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/DummyCT.dcm");
+  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/HierarchicalAnonymization/StructuredReports/IM0");
 
   Orthanc::ParsedDicomFile dicom(content);
 

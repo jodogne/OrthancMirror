@@ -79,10 +79,16 @@ namespace Orthanc
     {
     }
 
-    virtual void VisitUnknown(const std::vector<DicomTag>& parentTags,
-                              const std::vector<size_t>& parentIndexes,
-                              const DicomTag& tag,
-                              ValueRepresentation vr)
+    virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   ValueRepresentation vr)
+    {
+    }
+
+    virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    const DicomTag& tag)
     {
     }
 
@@ -114,7 +120,6 @@ namespace Orthanc
     virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
-                                 ValueRepresentation vr,
                                  const std::vector<DicomTag>& value)
     {
     }

@@ -2253,7 +2253,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
           }
           else
           {
-            visitor.VisitUnknown(parentTags, parentIndexes, tag, vr);
+            visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           }
 
           break;
@@ -2405,7 +2405,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
             }
           }
 
-          visitor.VisitAttributes(parentTags, parentIndexes, tag, vr, values);
+          assert(vr == ValueRepresentation_AttributeTag);
+          visitor.VisitAttributes(parentTags, parentIndexes, tag, values);
           break;
         }
 
@@ -2437,7 +2438,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         case EVR_pixelItem:  // used internally for pixel items in a compressed image
         case EVR_PixelData:  // used internally for uncompressed pixeld data
         case EVR_OverlayData:  // used internally for overlay data
-          visitor.VisitUnknown(parentTags, parentIndexes, tag, vr);
+          visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           return;
 
 
@@ -2481,16 +2482,23 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       // etc. are not." The following dynamic_cast is thus OK.
       DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
 
-      std::vector<DicomTag> tags = parentTags;
-      std::vector<size_t> indexes = parentIndexes;
-      tags.push_back(tag);
-      indexes.push_back(0);
-
-      for (unsigned long i = 0; i < sequence.card(); i++)
+      if (sequence.card() == 0)
       {
-        indexes.back() = static_cast<size_t>(i);
-        DcmItem* child = sequence.getItem(i);
-        ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding);
+        visitor.VisitEmptySequence(parentTags, parentIndexes, tag);
+      }
+      else
+      {
+        std::vector<DicomTag> tags = parentTags;
+        std::vector<size_t> indexes = parentIndexes;
+        tags.push_back(tag);
+        indexes.push_back(0);
+
+        for (unsigned long i = 0; i < sequence.card(); i++)
+        {
+          indexes.back() = static_cast<size_t>(i);
+          DcmItem* child = sequence.getItem(i);
+          ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding);
+        }
       }
     }
   }
