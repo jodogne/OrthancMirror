@@ -580,11 +580,6 @@ namespace Orthanc
 
       Json::Value* node = &result_;
 
-      if (parentTags.size() != 0)
-      {
-        printf("ICI %s\n", FormatTag(parentTags[0]).c_str());
-      }
-
       for (size_t i = 0; i < parentTags.size(); i++)
       {
         std::string t = FormatTag(parentTags[i]);
@@ -598,31 +593,34 @@ namespace Orthanc
           (*node) [t] = item;
 
           node = &(*node)[t]["Value"][0];
-          std::cout << result_.toStyledString();
         }
-        else if ((*node) [t].type() != Json::objectValue ||
+        else if ((*node)  [t].type() != Json::objectValue ||
                  !(*node) [t].isMember("vr") ||
-                 (*node) [t]["vr"].type() != Json::stringValue ||
-                 (*node) [t]["vr"].asString() != "SQ" ||
+                 (*node)  [t]["vr"].type() != Json::stringValue ||
+                 (*node)  [t]["vr"].asString() != "SQ" ||
                  !(*node) [t].isMember("Value") ||
-                 (*node) [t]["Value"].type() != Json::arrayValue)
+                 (*node)  [t]["Value"].type() != Json::arrayValue)
         {
           throw OrthancException(ErrorCode_InternalError);
         }
         else
         {
-          std::cout << result_.toStyledString();
-          printf("%d %d\n", (*node) [t]["Value"].size(), parentIndexes[i]);
-          
-          if ((*node) [t]["Value"].size() >= parentIndexes[i])
+          size_t currentSize = (*node) [t]["Value"].size();
+
+          if (parentIndexes[i] < currentSize)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            // The node already exists
+          }
+          else if (parentIndexes[i] == currentSize)
+          {
+            (*node) [t]["Value"].append(Json::objectValue);
           }
           else
           {
-            (*node) [t]["Value"].append(Json::objectValue);
-            node = &(*node) [t]["Value"][Json::ArrayIndex(parentIndexes[i])];
+            throw OrthancException(ErrorCode_InternalError);
           }
+          
+          node = &(*node) [t]["Value"][Json::ArrayIndex(parentIndexes[i])];
         }
       }
 
@@ -675,9 +673,11 @@ namespace Orthanc
                              const void* data,
                              size_t size) ORTHANC_OVERRIDE
     {
-      if (!bulkUriRoot_.empty())
+      if (vr != ValueRepresentation_NotSupported &&
+          !bulkUriRoot_.empty())
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node["vr"] = EnumerationToString(vr);
       }
     }
 
@@ -687,8 +687,22 @@ namespace Orthanc
                               ValueRepresentation vr,
                               int64_t value) ORTHANC_OVERRIDE
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      
+      if (vr != ValueRepresentation_NotSupported)
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node["vr"] = EnumerationToString(vr);
+
+        Json::Value content = Json::arrayValue;
+        if (value < 0)
+        {
+          content.append(static_cast<int32_t>(value));
+        }
+        else
+        {
+          content.append(static_cast<uint32_t>(value));
+        }
+        node["Value"] = content;
+      }
     }
 
     virtual void VisitDouble(const std::vector<DicomTag>& parentTags,
@@ -697,8 +711,15 @@ namespace Orthanc
                              ValueRepresentation vr,
                              double value) ORTHANC_OVERRIDE
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      
+      if (vr != ValueRepresentation_NotSupported)
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node["vr"] = EnumerationToString(vr);
+
+        Json::Value content = Json::arrayValue;
+        content.append(value);
+        node["Value"] = content;
+      }
     }
 
     virtual void VisitAttribute(const std::vector<DicomTag>& parentTags,
@@ -707,8 +728,11 @@ namespace Orthanc
                                 ValueRepresentation vr,
                                 const DicomTag& value) ORTHANC_OVERRIDE
     {
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-      
+      if (vr != ValueRepresentation_NotSupported)
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node["vr"] = EnumerationToString(vr);
+      }
     }
 
     virtual Action VisitString(std::string& newValue,
@@ -718,9 +742,61 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& value) ORTHANC_OVERRIDE
     {
-      printf("[%s] [%s]\n", FormatTag(tag).c_str(), value.c_str());
+      if (vr != ValueRepresentation_NotSupported)
+      {
+        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        node["vr"] = EnumerationToString(vr);
 
-      Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+        std::vector<std::string> tokens;
+        Toolbox::TokenizeString(tokens, value, '\\');
+
+        node["Value"] = Json::arrayValue;
+        for (size_t i = 0; i < tokens.size(); i++)
+        {
+          try
+          {
+            switch (vr)
+            {
+              case ValueRepresentation_PersonName:
+              {
+                Json::Value value = Json::objectValue;
+                value["Alphabetic"] = tokens[i];
+                node["Value"].append(value);
+                break;
+              }
+                  
+              case ValueRepresentation_IntegerString:
+              {
+                int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
+                if (value < 0)
+                {
+                  node["Value"].append(static_cast<int32_t>(value));
+                }
+                else
+                {
+                  node["Value"].append(static_cast<uint32_t>(value));
+                }
+                break;
+              }
+              
+              case ValueRepresentation_DecimalString:
+              {
+                double value = boost::lexical_cast<double>(tokens[i]);
+                node["Value"].append(value);
+                break;
+              }
+              
+              default:
+                node["Value"].append(tokens[i]);
+                break;
+            }
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+        }
+      }
       
       return Action_None;
     }
@@ -729,6 +805,16 @@ namespace Orthanc
 
 #include "../Core/SystemToolbox.h"
 
+
+/* 
+
+   cd /home/jodogne/Subversion/orthanc/s/dcmtk-3.6.2/i/bin
+   DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.2/dcmdata/data/dicom.dic ./dcm2json ~/Subversion/orthanc-tests/Database/DummyCT.dcm  | python -mjson.tool > /tmp/a.json
+
+   make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python -mjson.tool /tmp/tutu.json > /tmp/b.json
+   diff /tmp/a.json /tmp/b.json
+
+*/
 
 TEST(DicomWebJson, Basic)
 {
@@ -740,7 +826,7 @@ TEST(DicomWebJson, Basic)
   Orthanc::DicomJsonVisitor visitor;
   dicom.Apply(visitor);
 
-  std::cout << visitor.GetResult().toStyledString() << std::endl;
+  Orthanc::SystemToolbox::WriteFile(visitor.GetResult().toStyledString(), "/tmp/tutu.json");
 }
 
 #endif
