@@ -555,7 +555,7 @@ TEST(DicomMap, ExtractMainDicomTags)
 
 
 
-#if 0
+#if 1
 
 #include <boost/math/special_functions/round.hpp>
 
@@ -815,18 +815,44 @@ namespace Orthanc
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::string& value) ORTHANC_OVERRIDE
+                               const std::string& tutu) ORTHANC_OVERRIDE
     {
-      if (tag.GetElement() != 0x0000 &&
-          vr != ValueRepresentation_NotSupported)
+      if (vr == ValueRepresentation_OtherByte ||
+          vr == ValueRepresentation_OtherDouble ||
+          vr == ValueRepresentation_OtherFloat ||
+          vr == ValueRepresentation_OtherLong ||
+          vr == ValueRepresentation_OtherWord ||
+          vr == ValueRepresentation_Unknown)
+      {
+        VisitBinary(parentTags, parentIndexes, tag, vr, tutu.c_str(), tutu.size());
+        return Action_None;
+      }
+      else if (tag.GetElement() == 0x0000 ||
+               vr == ValueRepresentation_NotSupported)
+      {
+        return Action_None;
+      }
+      else
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
         node[KEY_VR] = EnumerationToString(vr);
 
-        if (!value.empty())
+        std::string truncated;
+        
+        if (!tutu.empty() &&
+            tutu[tutu.size() - 1] == '\0')
+        {
+          truncated = tutu.substr(0, tutu.size() - 1);
+        }
+        else
+        {
+          truncated = tutu;
+        }
+        
+        if (!truncated.empty())
         {
           std::vector<std::string> tokens;
-          Toolbox::TokenizeString(tokens, value, '\\');
+          Toolbox::TokenizeString(tokens, truncated, '\\');
 
           node[KEY_VALUE] = Json::arrayValue;
           for (size_t i = 0; i < tokens.size(); i++)
@@ -861,25 +887,16 @@ namespace Orthanc
                 }
               
                 default:
-                {
-                  size_t l = tokens[i].size();
-
-                  if (l == 0)
+                  if (tokens[i].empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);
                   }
                   else
                   {
-                    if (tokens[i][l - 1] == '\0')
-                    {
-                      tokens[i] = tokens[i].substr(0, l - 1);
-                    }
-
                     node[KEY_VALUE].append(tokens[i]);
                   }
                   
                   break;
-                }
               }
             }
             catch (boost::bad_lexical_cast&)
@@ -914,7 +931,7 @@ j = json.loads(sys.stdin.read().decode("utf-8-sig"))
 print(json.dumps(j, indent=4, sort_keys=True, ensure_ascii=False).encode('utf-8'))
 EOF
 
-DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/Issue22.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
+DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0018.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
 
 make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/tutu.json > /tmp/b.json && diff -i /tmp/a.json /tmp/b.json
 
@@ -923,7 +940,7 @@ make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/t
 TEST(DicomWebJson, Basic)
 {
   std::string content;
-  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/Issue22.dcm");
+  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0018.dcm");
 
   Orthanc::ParsedDicomFile dicom(content);
 
