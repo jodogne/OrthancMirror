@@ -799,7 +799,13 @@ namespace Orthanc
 
         if (!values.empty())
         {
-          // TODO
+          Json::Value content = Json::arrayValue;
+          for (size_t i = 0; i < values.size(); i++)
+          {
+            content.append(FormatTag(values[i]));
+          }
+          
+          node[KEY_VALUE] = content;
         }
       }
     }
@@ -858,13 +864,20 @@ namespace Orthanc
                 {
                   size_t l = tokens[i].size();
 
-                  if (l > 0 &&
-                      tokens[i][l - 1] == '\0')
+                  if (l == 0)
                   {
-                    tokens[i] = tokens[i].substr(0, l - 1);
+                    node[KEY_VALUE].append(Json::nullValue);
                   }
+                  else
+                  {
+                    if (tokens[i][l - 1] == '\0')
+                    {
+                      tokens[i] = tokens[i].substr(0, l - 1);
+                    }
 
-                  node[KEY_VALUE].append(tokens[i]);
+                    node[KEY_VALUE].append(tokens[i]);
+                  }
+                  
                   break;
                 }
               }
@@ -891,6 +904,7 @@ MarekLatin2.dcm
 HierarchicalAnonymization/StructuredReports/IM0
 DummyCT.dcm
 Brainix/Epi/IM-0001-0018.dcm
+Issue22.dcm
 
 
 cat << EOF > /tmp/tutu.py
@@ -900,7 +914,7 @@ j = json.loads(sys.stdin.read().decode("utf-8-sig"))
 print(json.dumps(j, indent=4, sort_keys=True, ensure_ascii=False).encode('utf-8'))
 EOF
 
-DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/HierarchicalAnonymization/StructuredReports/IM0 | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
+DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/Issue22.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
 
 make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/tutu.json > /tmp/b.json && diff -i /tmp/a.json /tmp/b.json
 
@@ -909,7 +923,7 @@ make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/t
 TEST(DicomWebJson, Basic)
 {
   std::string content;
-  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/HierarchicalAnonymization/StructuredReports/IM0");
+  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/Issue22.dcm");
 
   Orthanc::ParsedDicomFile dicom(content);
 
