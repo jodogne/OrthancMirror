@@ -175,5 +175,7 @@ namespace Orthanc
 #if ORTHANC_SANDBOXED == 0
     void CheckClientCertificate() const;
 #endif
+
+    void FormatPublic(Json::Value& target) const;
   };
 }

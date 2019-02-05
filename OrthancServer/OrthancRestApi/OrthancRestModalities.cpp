@@ -1015,16 +1015,9 @@ namespace Orthanc
         
         if (lock.GetConfiguration().LookupOrthancPeer(peer, *it))
         {
-          Json::Value jsonPeer = Json::objectValue;
-          // only return the minimum information to identify the
-          // destination, do not include "security" information like
-          // passwords
-          jsonPeer["Url"] = peer.GetUrl();
-          if (!peer.GetUsername().empty())
-          {
-            jsonPeer["Username"] = peer.GetUsername();
-          }
-          result[*it] = jsonPeer;
+          Json::Value info;
+          peer.FormatPublic(info);
+          result[*it] = info;
         }
       }
       call.GetOutput().AnswerJson(result);
