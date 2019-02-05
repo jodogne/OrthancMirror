@@ -15,6 +15,7 @@ REST API
 * API version has been upgraded to 1.4
 * New URI "/tools/metrics" to dynamically enable/disable the collection of metrics
 * New URI "/tools/metrics-prometheus" to retrieve metrics using Prometheus text format
+* URI "/peers?expand" provides more information about the peers
 
 Plugins
 -------
