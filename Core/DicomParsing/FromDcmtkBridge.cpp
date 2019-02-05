@@ -2265,67 +2265,121 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       
         case EVR_SL:  // signed long
         {
-          Sint32 f;
-          if (dynamic_cast<DcmSignedLong&>(element).getSint32(f).good())
+          DcmSignedLong& content = dynamic_cast<DcmSignedLong&>(element);
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+            Sint32 f;
+            if (content.getSint32(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
         case EVR_SS:  // signed short
         {
-          Sint16 f;
-          if (dynamic_cast<DcmSignedShort&>(element).getSint16(f).good())
+          DcmSignedShort& content = dynamic_cast<DcmSignedShort&>(element);
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+            Sint16 f;
+            if (content.getSint16(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
         case EVR_UL:  // unsigned long
         {
-          Uint32 f;
-          if (dynamic_cast<DcmUnsignedLong&>(element).getUint32(f).good())
+          DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+            Uint32 f;
+            if (content.getUint32(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
         case EVR_US:  // unsigned short
         {
-          Uint16 f;
-          if (dynamic_cast<DcmUnsignedShort&>(element).getUint16(f).good())
+          DcmUnsignedShort& content = dynamic_cast<DcmUnsignedShort&>(element);
+
+          std::vector<int64_t> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitInteger(parentTags, parentIndexes, tag, vr, f);
+            Uint16 f;
+            if (content.getUint16(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
         case EVR_FL:  // float single-precision
         {
-          Float32 f;
-          if (dynamic_cast<DcmFloatingPointSingle&>(element).getFloat32(f).good())
+          DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
+
+          std::vector<double> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitDouble(parentTags, parentIndexes, tag, vr, f);
+            Float32 f;
+            if (content.getFloat32(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
         case EVR_FD:  // float double-precision
         {
-          Float64 f;
-          if (dynamic_cast<DcmFloatingPointDouble&>(element).getFloat64(f).good())
+          DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
+
+          std::vector<double> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            visitor.VisitDouble(parentTags, parentIndexes, tag, vr, f);
+            Float64 f;
+            if (content.getFloat64(f, i).good())
+            {
+              values.push_back(f);
+            }
           }
 
+          visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2336,13 +2390,22 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
         case EVR_AT:
         {
-          DcmTagKey tagKey;
-          if (dynamic_cast<DcmAttributeTag&>(element).getTagVal(tagKey, 0).good())
+          DcmAttributeTag& content = dynamic_cast<DcmAttributeTag&>(element);
+
+          std::vector<DicomTag> values;
+          values.reserve(content.getVM());
+
+          for (unsigned long i = 0; i < content.getVM(); i++)
           {
-            DicomTag t(tagKey.getGroup(), tagKey.getElement());
-            visitor.VisitAttribute(parentTags, parentIndexes, tag, vr, t);
+            DcmTagKey f;
+            if (content.getTagVal(f, i).good())
+            {
+              DicomTag t(f.getGroup(), f.getElement());
+              values.push_back(t);
+            }
           }
 
+          visitor.VisitAttributes(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 

@@ -65,23 +65,23 @@ namespace Orthanc
                              const void* data,
                              size_t size) = 0;
 
-    virtual void VisitInteger(const std::vector<DicomTag>& parentTags,
+    virtual void VisitIntegers(const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const std::vector<int64_t>& values) = 0;
+
+    virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
                               const std::vector<size_t>& parentIndexes,
                               const DicomTag& tag,
                               ValueRepresentation vr,
-                              int64_t value) = 0;
+                              const std::vector<double>& values) = 0;
 
-    virtual void VisitDouble(const std::vector<DicomTag>& parentTags,
-                             const std::vector<size_t>& parentIndexes,
-                             const DicomTag& tag,
-                             ValueRepresentation vr,
-                             double value) = 0;
-
-    virtual void VisitAttribute(const std::vector<DicomTag>& parentTags,
-                                const std::vector<size_t>& parentIndexes,
-                                const DicomTag& tag,
-                                ValueRepresentation vr,
-                                const DicomTag& value) = 0;
+    virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 ValueRepresentation vr,
+                                 const std::vector<DicomTag>& values) = 0;
 
     virtual Action VisitString(std::string& newValue,
                                const std::vector<DicomTag>& parentTags,
