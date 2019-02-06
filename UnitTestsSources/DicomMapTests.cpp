@@ -557,6 +557,7 @@ TEST(DicomMap, ExtractMainDicomTags)
 
 
 #include <boost/math/special_functions/round.hpp>
+#include <pugixml.hpp>
 
 
 static const char* const KEY_ALPHABETIC = "Alphabetic";
@@ -568,34 +569,176 @@ static const char* const KEY_VR = "vr";
 
 namespace Orthanc
 {  
-  class DicomWebJsonVisitor : public ITagVisitor
+  static void ExploreDataset(pugi::xml_node& target,
+                             const Json::Value& source)
+  {
+    assert(source.type() == Json::objectValue);
+
+    Json::Value::Members members = source.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const DicomTag tag = FromDcmtkBridge::ParseTag(members[i]);
+      const Json::Value& content = source[members[i]];
+
+      assert(content.type() == Json::objectValue &&
+             content.isMember("vr") &&
+             content["vr"].type() == Json::stringValue);
+      const std::string vr = content["vr"].asString();
+
+      const std::string keyword = FromDcmtkBridge::GetTagName(tag, "");
+    
+      pugi::xml_node node = target.append_child("DicomAttribute");
+      node.append_attribute("tag").set_value(members[i].c_str());
+      node.append_attribute("vr").set_value(vr.c_str());
+
+      if (keyword != std::string(DcmTag_ERROR_TagName))
+      {
+        node.append_attribute("keyword").set_value(keyword.c_str());
+      }   
+
+      if (content.isMember(KEY_VALUE))
+      {
+        assert(content[KEY_VALUE].type() == Json::arrayValue);
+        
+        for (Json::Value::ArrayIndex j = 0; j < content[KEY_VALUE].size(); j++)
+        {
+          std::string number = boost::lexical_cast<std::string>(j + 1);
+
+          if (vr == "SQ")
+          {
+            if (content[KEY_VALUE][j].type() == Json::objectValue)
+            {
+              pugi::xml_node child = node.append_child("Item");
+              child.append_attribute("number").set_value(number.c_str());
+              ExploreDataset(child, content[KEY_VALUE][j]);
+            }
+          }
+          if (vr == "PN")
+          {
+            if (content[KEY_VALUE][j].isMember(KEY_ALPHABETIC) &&
+                content[KEY_VALUE][j][KEY_ALPHABETIC].type() == Json::stringValue)
+            {
+              std::vector<std::string> tokens;
+              Toolbox::TokenizeString(tokens, content[KEY_VALUE][j][KEY_ALPHABETIC].asString(), '^');
+
+              pugi::xml_node child = node.append_child("PersonName");
+              child.append_attribute("number").set_value(number.c_str());
+            
+              pugi::xml_node name = child.append_child(KEY_ALPHABETIC);
+            
+              if (tokens.size() >= 1)
+              {
+                name.append_child("FamilyName").text() = tokens[0].c_str();
+              }
+            
+              if (tokens.size() >= 2)
+              {
+                name.append_child("GivenName").text() = tokens[1].c_str();
+              }
+            
+              if (tokens.size() >= 3)
+              {
+                name.append_child("MiddleName").text() = tokens[2].c_str();
+              }
+            
+              if (tokens.size() >= 4)
+              {
+                name.append_child("NamePrefix").text() = tokens[3].c_str();
+              }
+            
+              if (tokens.size() >= 5)
+              {
+                name.append_child("NameSuffix").text() = tokens[4].c_str();
+              }
+            }
+          }
+          else
+          {
+            pugi::xml_node child = node.append_child("Value");
+            child.append_attribute("number").set_value(number.c_str());
+
+            switch (content[KEY_VALUE][j].type())
+            {
+              case Json::stringValue:
+                child.text() = content[KEY_VALUE][j].asCString();
+                break;
+
+              case Json::realValue:
+                child.text() = content[KEY_VALUE][j].asFloat();
+                break;
+
+              case Json::intValue:
+                child.text() = content[KEY_VALUE][j].asInt();
+                break;
+
+              case Json::uintValue:
+                child.text() = content[KEY_VALUE][j].asUInt();
+                break;
+
+              default:
+                break;
+            }
+          }
+        }
+      }
+      else if (content.isMember(KEY_BULK_DATA_URI) &&
+               content[KEY_BULK_DATA_URI].type() == Json::stringValue)
+      {
+        pugi::xml_node child = node.append_child("BulkData");
+        child.append_attribute("URI").set_value(content[KEY_BULK_DATA_URI].asCString());
+      }
+      else if (content.isMember(KEY_INLINE_BINARY) &&
+               content[KEY_INLINE_BINARY].type() == Json::stringValue)
+      {
+        pugi::xml_node child = node.append_child("InlineBinary");
+        child.text() = content[KEY_INLINE_BINARY].asCString();
+      }
+    }
+  }
+
+
+  static void DicomWebJsonToXml(pugi::xml_document& target,
+                                const Json::Value& source)
+  {
+    pugi::xml_node root = target.append_child("NativeDicomModel");
+    root.append_attribute("xmlns").set_value("http://dicom.nema.org/PS3.19/models/NativeDICOM");
+    root.append_attribute("xsi:schemaLocation").set_value("http://dicom.nema.org/PS3.19/models/NativeDICOM");
+    root.append_attribute("xmlns:xsi").set_value("http://www.w3.org/2001/XMLSchema-instance");
+
+    ExploreDataset(root, source);
+
+    pugi::xml_node decl = target.prepend_child(pugi::node_declaration);
+    decl.append_attribute("version").set_value("1.0");
+    decl.append_attribute("encoding").set_value("utf-8");
+  }
+
+
+  enum DicomWebBinaryMode
+  {
+    DicomWebBinaryMode_Ignore,
+    DicomWebBinaryMode_BulkDataUri,
+    DicomWebBinaryMode_InlineBinary
+  };
+    
+  class IDicomWebBinaryFormatter : public boost::noncopyable
   {
   public:
-    enum BinaryMode
+    virtual ~IDicomWebBinaryFormatter()
     {
-      BinaryMode_Ignore,
-      BinaryMode_BulkDataUri,
-      BinaryMode_InlineBinary
-    };
-    
-    class IBinaryFormatter : public boost::noncopyable
-    {
-    public:
-      virtual ~IBinaryFormatter()
-      {
-      }
+    }
 
-      virtual BinaryMode Format(std::string& bulkDataUri,
-                                const std::vector<DicomTag>& parentTags,
-                                const std::vector<size_t>& parentIndexes,
-                                const DicomTag& tag,
-                                ValueRepresentation vr) = 0;
-    };
-  
-    
+    virtual DicomWebBinaryMode Format(std::string& bulkDataUri,
+                                      const std::vector<DicomTag>& parentTags,
+                                      const std::vector<size_t>& parentIndexes,
+                                      const DicomTag& tag,
+                                      ValueRepresentation vr) = 0;
+  };
+
+  class DicomWebJsonVisitor : public ITagVisitor
+  {
   private:
-    Json::Value        result_;
-    IBinaryFormatter  *formatter_;
+    Json::Value                result_;
+    IDicomWebBinaryFormatter  *formatter_;
 
     static std::string FormatTag(const DicomTag& tag)
     {
@@ -705,7 +848,7 @@ namespace Orthanc
       Clear();
     }
 
-    void SetFormatter(IBinaryFormatter& formatter)
+    void SetFormatter(IDicomWebBinaryFormatter& formatter)
     {
       formatter_ = &formatter;
     }
@@ -718,6 +861,11 @@ namespace Orthanc
     const Json::Value& GetResult() const
     {
       return result_;
+    }
+
+    void FormatXml(pugi::xml_document& target) const
+    {
+      DicomWebJsonToXml(target, result_);
     }
 
     virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
@@ -754,30 +902,33 @@ namespace Orthanc
 
       if (tag.GetElement() != 0x0000)
       {
-        BinaryMode mode;
+        DicomWebBinaryMode mode;
         std::string bulkDataUri;
         
         if (formatter_ == NULL)
         {
-          mode = BinaryMode_InlineBinary;
+          mode = DicomWebBinaryMode_InlineBinary;
         }
         else
         {
           mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
         }
 
-        if (mode != BinaryMode_Ignore)
+        /*mode = DicomWebBinaryMode_BulkDataUri;
+          bulkDataUri = "http://localhost/" + tag.Format();*/
+
+        if (mode != DicomWebBinaryMode_Ignore)
         {
           Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
           node[KEY_VR] = EnumerationToString(vr);
 
           switch (mode)
           {
-            case BinaryMode_BulkDataUri:
+            case DicomWebBinaryMode_BulkDataUri:
               node[KEY_BULK_DATA_URI] = bulkDataUri;
               break;
 
-            case BinaryMode_InlineBinary:
+            case DicomWebBinaryMode_InlineBinary:
             {
               std::string tmp(static_cast<const char*>(data), size);
           
@@ -982,6 +1133,11 @@ namespace Orthanc
   };
 }
 
+
+
+
+
+
 #include "../Core/SystemToolbox.h"
 
 
@@ -1018,6 +1174,10 @@ TEST(DicomWebJson, Basic)
   dicom.Apply(visitor);
 
   Orthanc::SystemToolbox::WriteFile(visitor.GetResult().toStyledString(), "tutu.json");
+
+  pugi::xml_document xml;
+  visitor.FormatXml(xml);
+  xml.print(std::cout);
 }
 
 
@@ -1026,6 +1186,7 @@ TEST(DicomWebJson, Multiplicity)
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.4.html
 
   ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "SB1^SB2^SB3^SB4^SB5");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
 
@@ -1050,6 +1211,10 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(1u, tag.getMemberNames().size());
   }
+
+  pugi::xml_document xml;
+  visitor.FormatXml(xml);
+  xml.print(std::cout);
 }
 
 
@@ -1077,6 +1242,10 @@ TEST(DicomWebJson, NullValue)
     ASSERT_FLOAT_EQ(1.5f, value[0].asFloat());
     ASSERT_FLOAT_EQ(2.5f, value[3].asFloat());
   }
+
+  pugi::xml_document xml;
+  visitor.FormatXml(xml);
+  xml.print(std::cout);
 }
 
 
@@ -1215,6 +1384,11 @@ TEST(DicomWebJson, ValueRepresentation)
 
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
+
+
+  pugi::xml_document xml;
+  visitor.FormatXml(xml);
+  xml.print(std::cout);  
 }
 
 
@@ -1256,4 +1430,8 @@ TEST(DicomWebJson, Sequence)
   ASSERT_TRUE(items.find("item0") != items.end());
   ASSERT_TRUE(items.find("item1") != items.end());
   ASSERT_TRUE(items.find("item2") != items.end());
+
+  pugi::xml_document xml;
+  visitor.FormatXml(xml);
+  xml.print(std::cout);
 }
