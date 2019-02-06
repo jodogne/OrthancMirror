@@ -22,7 +22,12 @@ REST API
 Plugins
 -------
 
-* New primitives in the plugin SDK to set and refresh metrics
+* New functions in the SDK:
+  - OrthancPluginSetMetricsValue() to set the value of a metrics
+  - OrthancPluginRegisterRefreshMetricsCallback() to ask to refresh metrics
+  - OrthancPluginEncodeDicomWebJson() to convert DICOM to "application/dicom+json"
+  - OrthancPluginEncodeDicomWebXml() to convert DICOM to "application/dicom+xml"
+* New function: 
 * New extensions in the database SDK: LookupResourceAndParent and GetAllMetadata
 
 Maintenance
