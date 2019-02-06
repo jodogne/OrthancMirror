@@ -586,7 +586,7 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_EQ(1u, tag.getMemberNames().size());
   }
 
-  pugi::xml_document xml;
+  std::string xml;
   visitor.FormatXml(xml);
 }
 
@@ -616,7 +616,7 @@ TEST(DicomWebJson, NullValue)
     ASSERT_FLOAT_EQ(2.5f, value[3].asFloat());
   }
 
-  pugi::xml_document xml;
+  std::string xml;
   visitor.FormatXml(xml);
 }
 
@@ -758,7 +758,7 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
 
 
-  pugi::xml_document xml;
+  std::string xml;
   visitor.FormatXml(xml);
 }
 
@@ -802,6 +802,6 @@ TEST(DicomWebJson, Sequence)
   ASSERT_TRUE(items.find("item1") != items.end());
   ASSERT_TRUE(items.find("item2") != items.end());
 
-  pugi::xml_document xml;
+  std::string xml;
   visitor.FormatXml(xml);
 }

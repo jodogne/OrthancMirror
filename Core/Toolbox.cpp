@@ -99,7 +99,6 @@ extern "C"
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "ChunkedBuffer.h"
-#  include <pugixml.hpp>
 #endif
 
 
@@ -1023,11 +1022,16 @@ namespace Orthanc
     decl.append_attribute("version").set_value("1.0");
     decl.append_attribute("encoding").set_value("utf-8");
 
-    ChunkedBufferWriter writer;
-    doc.save(writer, "  ", pugi::format_default, pugi::encoding_utf8);
-    writer.Flatten(target);
+    XmlToString(target, doc);
   }
 
+  void Toolbox::XmlToString(std::string& target,
+                            const pugi::xml_document& source)
+  {
+    ChunkedBufferWriter writer;
+    source.save(writer, "  ", pugi::format_default, pugi::encoding_utf8);
+    writer.Flatten(target);
+  }
 #endif
 
 

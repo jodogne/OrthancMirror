@@ -37,10 +37,6 @@
 #  error Macro ORTHANC_ENABLE_PUGIXML must be defined to use this file
 #endif
 
-#if ORTHANC_ENABLE_PUGIXML == 1
-#  include <pugixml.hpp>
-#endif
-
 #include "ITagVisitor.h"
 
 #include <json/value.h>
@@ -109,7 +105,7 @@ namespace Orthanc
     }
 
 #if ORTHANC_ENABLE_PUGIXML == 1
-    void FormatXml(pugi::xml_document& target) const;
+    void FormatXml(std::string& target) const;
 #endif
 
     virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,

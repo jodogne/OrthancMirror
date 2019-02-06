@@ -756,6 +756,8 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(MimeType_Xml, StringToMimeType("application/xml"));
   ASSERT_EQ(MimeType_Xml, StringToMimeType("text/xml"));
   ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
+  ASSERT_EQ(MimeType_DicomWebJson, StringToMimeType(EnumerationToString(MimeType_DicomWebJson)));
+  ASSERT_EQ(MimeType_DicomWebXml, StringToMimeType(EnumerationToString(MimeType_DicomWebXml)));
   ASSERT_THROW(StringToMimeType("nope"), OrthancException);
 
   ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Patient));
