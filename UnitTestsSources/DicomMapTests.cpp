@@ -555,7 +555,6 @@ TEST(DicomMap, ExtractMainDicomTags)
 
 
 
-#if 1
 
 #include <boost/math/special_functions/round.hpp>
 
@@ -1036,11 +1035,36 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x1160), "45");  // IS
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0070), "LO");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0108), "LT");
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x2000), "OB");
+  dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "OD");
+  dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "OF");
 
+#if DCMTK_VERSION_NUMBER >= 362 
+  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "OLOL");
+#endif
+
+  ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0050), "SH");
+  dicom.ReplacePlainString(DicomTag(0x0018, 0x6020), "-15");  // SL
+  dicom.ReplacePlainString(DicomTag(0x0018, 0x9219), "-16");  // SS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0081), "ST");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0013), "TM");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0119), "UC");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0016), "UI");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1161), "128");  // UL
+  dicom.ReplacePlainString(DicomTag(0x4342, 0x1234), "UN");   // Inexistent tag
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");
+  
+  
   Orthanc::DicomJsonVisitor visitor;
   dicom.Apply(visitor);
 
-  std::cout << visitor.GetResult();
+  std::string s;
+  
   ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["vr"].asString());
   ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["Value"][0].asString());
   ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["vr"].asString());
@@ -1065,7 +1089,107 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["Value"][0].asString());
   ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["vr"].asString());
   ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["Value"][0].asString());
+
+  ASSERT_EQ("OB", visitor.GetResult() ["00282000"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00282000"]["InlineBinary"].asString());
+  ASSERT_EQ("OB", s);
+
+  ASSERT_EQ("OD", visitor.GetResult() ["7FE00009"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["7FE00009"]["InlineBinary"].asString());
+  ASSERT_EQ("OD", s);
+
+  ASSERT_EQ("OF", visitor.GetResult() ["00640009"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00640009"]["InlineBinary"].asString());
+  ASSERT_EQ("OF", s);
+
+#if DCMTK_VERSION_NUMBER >= 362
+  ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
+  ASSERT_EQ("OLOL", s);
+#endif
+
+  ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
+  ASSERT_EQ("OWOW", s);
+
+  ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["vr"].asString());
+  ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["Value"][0]["Alphabetic"].asString());
+
+  ASSERT_EQ("SH", visitor.GetResult() ["00080050"]["vr"].asString());
+  ASSERT_EQ("SH", visitor.GetResult() ["00080050"]["Value"][0].asString());
+
+  ASSERT_EQ("SL", visitor.GetResult() ["00186020"]["vr"].asString());
+  ASSERT_FLOAT_EQ(-15, visitor.GetResult() ["00186020"]["Value"][0].asInt());
+
+  ASSERT_EQ("SS", visitor.GetResult() ["00189219"]["vr"].asString());
+  ASSERT_FLOAT_EQ(-16, visitor.GetResult() ["00189219"]["Value"][0].asInt());
+
+  ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["vr"].asString());
+  ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["Value"][0].asString());
+
+  ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["vr"].asString());
+  ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["Value"][0].asString());
+
+  ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["vr"].asString());
+  ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["Value"][0].asString());
+
+  ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["vr"].asString());
+  ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["Value"][0].asString());
+
+  ASSERT_EQ("UL", visitor.GetResult() ["00081161"]["vr"].asString());
+  ASSERT_EQ(128, visitor.GetResult() ["00081161"]["Value"][0].asUInt());
+
+  ASSERT_EQ("UN", visitor.GetResult() ["43421234"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["43421234"]["InlineBinary"].asString());
+  ASSERT_EQ("UN", s);
+
+  ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["vr"].asString());
+  ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["Value"][0].asString());
+
+  ASSERT_EQ("US", visitor.GetResult() ["00080301"]["vr"].asString());
+  ASSERT_EQ(17, visitor.GetResult() ["00080301"]["Value"][0].asUInt());
+
+  ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
+  ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
 }
 
 
-#endif
+TEST(DicomWebJson, Sequence)
+{
+  ParsedDicomFile dicom(false);
+  
+  {
+    std::auto_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      std::auto_ptr<DcmItem> item(new DcmItem);
+      std::string s = "item" + boost::lexical_cast<std::string>(i);
+      item->putAndInsertString(DCM_ReferencedSOPInstanceUID, s.c_str(), OFFalse);
+      ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
+    }
+
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
+  }
+
+  Orthanc::DicomJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  ASSERT_EQ("SQ", visitor.GetResult() ["00081115"]["vr"].asString());
+  ASSERT_EQ(3u, visitor.GetResult() ["00081115"]["Value"].size());
+
+  std::set<std::string> items;
+  
+  for (Json::Value::ArrayIndex i = 0; i < 3; i++)
+  {
+    ASSERT_EQ(1u, visitor.GetResult() ["00081115"]["Value"][i].size());
+    ASSERT_EQ(1u, visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["Value"].size());
+    ASSERT_EQ("UI", visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["vr"].asString());
+    items.insert(visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["Value"][0].asString());
+  }
+
+  ASSERT_EQ(3u, items.size());
+  ASSERT_TRUE(items.find("item0") != items.end());
+  ASSERT_TRUE(items.find("item1") != items.end());
+  ASSERT_TRUE(items.find("item2") != items.end());
+}
