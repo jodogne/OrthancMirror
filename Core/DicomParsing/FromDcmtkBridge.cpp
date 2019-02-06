@@ -1289,16 +1289,18 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_OB:
         return ValueRepresentation_OtherByte;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case EVR_OD:
-          return ValueRepresentation_OtherDouble;*/
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OD:
+          return ValueRepresentation_OtherDouble;
+#endif
 
       case EVR_OF:
         return ValueRepresentation_OtherFloat;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case EVR_OL:
-          return ValueRepresentation_OtherLong;*/
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OL:
+          return ValueRepresentation_OtherLong;
+#endif
 
       case EVR_OW:
         return ValueRepresentation_OtherWord;
@@ -1324,9 +1326,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_TM:
         return ValueRepresentation_Time;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case EVR_UC:
-          return ValueRepresentation_UnlimitedCharacters;*/
+#if DCMTK_VERSION_NUMBER >= 362
+      case EVR_UC:
+        return ValueRepresentation_UnlimitedCharacters;
+#endif
 
       case EVR_UI:
         return ValueRepresentation_UniqueIdentifier;
@@ -1337,9 +1340,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_UN:
         return ValueRepresentation_Unknown;
 
-        // Not supported as of DCMTK 3.6.0
-        /*case EVR_UR:
-          return ValueRepresentation_UniversalResource;*/
+#if DCMTK_VERSION_NUMBER >= 362
+      case EVR_UR:
+        return ValueRepresentation_UniversalResource;
+#endif
 
       case EVR_US:
         return ValueRepresentation_UnsignedShort;
@@ -2164,12 +2168,62 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                  const DicomTag& tag,
                                  Encoding encoding)
   {
-    // TODO - Merge this function with ConvertLeafElement()
+    // TODO - Merge this function, that is more recent, with ConvertLeafElement()
 
     assert(element.isLeaf());
 
     DcmEVR evr = element.getTag().getEVR();
-    ValueRepresentation vr = FromDcmtkBridge::Convert(evr);
+
+    
+    /**
+     * Fix the EVR for types internal to DCMTK 
+     **/
+
+    if (evr == EVR_ox)  // OB or OW depending on context
+    {
+      evr = EVR_OB;
+    }
+
+    if (evr == EVR_UNKNOWN ||  // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
+        evr == EVR_UNKNOWN2B)  // used internally for elements with unknown VR with 2-byte length field in explicit VR
+    {
+      evr = EVR_UN;
+    }
+
+    const ValueRepresentation vr = FromDcmtkBridge::Convert(evr);
+
+    
+    /**
+     * Deal with binary data (including PixelData).
+     **/
+
+    if (evr == EVR_OB ||  // other byte
+        evr == EVR_OF ||  // other float
+#if DCMTK_VERSION_NUMBER >= 362
+        evr == EVR_OD ||  // other double
+        evr == EVR_OL ||  // other long
+#endif
+        evr == EVR_OW ||  // other word
+        evr == EVR_UN)    // unknown value representation
+    {
+      Uint8* data = NULL;
+
+      if (element.getUint8Array(data) == EC_Normal)
+      {
+        visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
+      }
+      else
+      {
+        visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+      }
+
+      return;  // We're done
+    }
+
+
+    /**
+     * Deal with plain strings (and convert them to UTF-8)
+     **/
 
     char *c = NULL;
     if (element.isaString() &&
@@ -2215,18 +2269,13 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     try
     {
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
-      switch (element.getVR())
+      switch (evr)
       {
 
         /**
-         * Deal with binary data (including PixelData).
+         * Plain string values.
          **/
 
-        case EVR_OB:  // other byte
-        case EVR_OF:  // other float
-        case EVR_OW:  // other word
-        case EVR_UN:  // unknown value representation
-        case EVR_ox:  // OB or OW depending on context
         case EVR_DS:  // decimal string
         case EVR_IS:  // integer string
         case EVR_AS:  // age string
@@ -2242,21 +2291,46 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
-        case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
-        case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
         {
           Uint8* data = NULL;
 
           if (element.getUint8Array(data) == EC_Normal)
           {
-            visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
+            const Uint32 length = element.getLength();
+            Uint32 l = 0;
+            while (l < length &&
+                   data[l] != 0)
+            {
+              l++;
+            }
+
+            if (l == length)
+            {
+              // Not a null-terminated plain string
+              visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+            }
+            else
+            {
+              std::string ignored;
+              std::string s(reinterpret_cast<const char*>(data), l);
+              ITagVisitor::Action action = visitor.VisitString
+                (ignored, parentTags, parentIndexes, tag, vr,
+                 Toolbox::ConvertToUtf8(s, encoding));
+
+              if (action != ITagVisitor::Action_None)
+              {
+                LOG(WARNING) << "Cannot replace this string tag: "
+                             << FromDcmtkBridge::GetTagName(element)
+                             << " (" << tag.Format() << ")";
+              }
+            }
           }
           else
           {
             visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           }
 
-          break;
+          return;
         }
     
         /**
@@ -2417,12 +2491,14 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
          **/
 
         case EVR_SQ:  // sequence of items
+        {
           return;
-
-
-          /**
-           * Internal to DCMTK.
-           **/ 
+        }
+        
+        
+        /**
+         * Internal to DCMTK.
+         **/ 
 
         case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
@@ -2438,13 +2514,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         case EVR_pixelItem:  // used internally for pixel items in a compressed image
         case EVR_PixelData:  // used internally for uncompressed pixeld data
         case EVR_OverlayData:  // used internally for overlay data
+        {
           visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           return;
+        }
+        
 
-
-          /**
-           * Default case.
-           **/ 
+        /**
+         * Default case.
+         **/ 
 
         default:
           return;

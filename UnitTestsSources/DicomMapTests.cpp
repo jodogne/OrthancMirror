@@ -721,9 +721,15 @@ namespace Orthanc
                              const void* data,
                              size_t size) ORTHANC_OVERRIDE
     {
-      if (tag.GetElement() != 0x0000 &&
-          vr != ValueRepresentation_NotSupported /*&&
-                                                   !bulkUriRoot_.empty()*/)
+      assert(vr == ValueRepresentation_OtherByte ||
+             vr == ValueRepresentation_OtherDouble ||
+             vr == ValueRepresentation_OtherFloat ||
+             vr == ValueRepresentation_OtherLong ||
+             vr == ValueRepresentation_OtherWord ||
+             vr == ValueRepresentation_Unknown);
+
+      if (tag.GetElement() != 0x0000  /*&&
+                                        !bulkUriRoot_.empty()*/)
       {
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
         node[KEY_VR] = EnumerationToString(vr);
@@ -817,18 +823,8 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& tutu) ORTHANC_OVERRIDE
     {
-      if (vr == ValueRepresentation_OtherByte ||
-          vr == ValueRepresentation_OtherDouble ||
-          vr == ValueRepresentation_OtherFloat ||
-          vr == ValueRepresentation_OtherLong ||
-          vr == ValueRepresentation_OtherWord ||
-          vr == ValueRepresentation_Unknown)
-      {
-        VisitBinary(parentTags, parentIndexes, tag, vr, tutu.c_str(), tutu.size());
-        return Action_None;
-      }
-      else if (tag.GetElement() == 0x0000 ||
-               vr == ValueRepresentation_NotSupported)
+      if (tag.GetElement() == 0x0000 ||
+          vr == ValueRepresentation_NotSupported)
       {
         return Action_None;
       }
@@ -873,18 +869,29 @@ namespace Orthanc
                 }
                   
                 case ValueRepresentation_IntegerString:
-                {
-                  int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
-                  node[KEY_VALUE].append(FormatInteger(value));
+                  if (tokens[i].empty())
+                  {
+                    node[KEY_VALUE].append(Json::nullValue);
+                  }
+                  else
+                  {
+                    int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
+                    node[KEY_VALUE].append(FormatInteger(value));
+                  }
+                  
                   break;
-                }
               
                 case ValueRepresentation_DecimalString:
-                {
-                  double value = boost::lexical_cast<double>(tokens[i]);
-                  node[KEY_VALUE].append(FormatDouble(value));
+                  if (tokens[i].empty())
+                  {
+                    node[KEY_VALUE].append(Json::nullValue);
+                  }
+                  else
+                  {
+                    double value = boost::lexical_cast<double>(tokens[i]);
+                    node[KEY_VALUE].append(FormatDouble(value));
+                  }
                   break;
-                }
               
                 default:
                   if (tokens[i].empty())
@@ -931,23 +938,134 @@ j = json.loads(sys.stdin.read().decode("utf-8-sig"))
 print(json.dumps(j, indent=4, sort_keys=True, ensure_ascii=False).encode('utf-8'))
 EOF
 
-DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0018.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
+DCMDICTPATH=/home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/data/dicom.dic /home/jodogne/Downloads/dcmtk-3.6.4/i/bin/dcm2json ~/Subversion/orthanc-tests/Database/DummyCT.dcm | tr -d '\0' | sed 's/\\u0000//g' | sed 's/\.0$//' | python /tmp/tutu.py > /tmp/a.json
 
-make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < /tmp/tutu.json > /tmp/b.json && diff -i /tmp/a.json /tmp/b.json
+make -j4 && ./UnitTests --gtest_filter=DicomWeb* && python /tmp/tutu.py < tutu.json > /tmp/b.json && diff -i /tmp/a.json /tmp/b.json
 
 */
 
 TEST(DicomWebJson, Basic)
 {
   std::string content;
-  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0018.dcm");
+  Orthanc::SystemToolbox::ReadFile(content, "/home/jodogne/Subversion/orthanc-tests/Database/DummyCT.dcm");
 
   Orthanc::ParsedDicomFile dicom(content);
 
   Orthanc::DicomJsonVisitor visitor;
   dicom.Apply(visitor);
 
-  Orthanc::SystemToolbox::WriteFile(visitor.GetResult().toStyledString(), "/tmp/tutu.json");
+  Orthanc::SystemToolbox::WriteFile(visitor.GetResult().toStyledString(), "tutu.json");
 }
+
+
+TEST(DicomWebJson, Multiplicity)
+{
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.4.html
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
+  dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
+
+  Orthanc::DicomJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  {
+    const Json::Value& tag = visitor.GetResult() ["00200037"];
+    const Json::Value& value = tag["Value"];
+  
+    ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
+    ASSERT_EQ(2u, tag.getMemberNames().size());
+    ASSERT_EQ(3u, value.size());
+    ASSERT_EQ(Json::realValue, value[1].type());
+    ASSERT_FLOAT_EQ(1.0f, value[0].asFloat());
+    ASSERT_FLOAT_EQ(2.3f, value[1].asFloat());
+    ASSERT_FLOAT_EQ(4.0f, value[2].asFloat());
+  }
+
+  {
+    const Json::Value& tag = visitor.GetResult() ["00200032"];
+    ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
+    ASSERT_EQ(1u, tag.getMemberNames().size());
+  }
+}
+
+
+TEST(DicomWebJson, NullValue)
+{
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.5.html
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1.5\\\\\\2.5");
+
+  Orthanc::DicomJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  {
+    const Json::Value& tag = visitor.GetResult() ["00200037"];
+    const Json::Value& value = tag["Value"];
+  
+    ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
+    ASSERT_EQ(2u, tag.getMemberNames().size());
+    ASSERT_EQ(4u, value.size());
+    ASSERT_EQ(Json::realValue, value[0].type());
+    ASSERT_EQ(Json::nullValue, value[1].type());
+    ASSERT_EQ(Json::nullValue, value[2].type());
+    ASSERT_EQ(Json::realValue, value[3].type());
+    ASSERT_FLOAT_EQ(1.5f, value[0].asFloat());
+    ASSERT_FLOAT_EQ(2.5f, value[3].asFloat());
+  }
+}
+
+
+TEST(DicomWebJson, ValueRepresentation)
+{
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0241), "AE");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x1010), "AS");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->
+              putAndInsertTagKey(DcmTag(0x0020, 0x9165),
+                                 DcmTagKey(0x0010, 0x0020)).good());
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0052), "CS");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0012), "DA");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x1020), "42");  // DS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x002a), "DT");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x9431), "43");  // FL
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1163), "44");  // FD
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1160), "45");  // IS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0070), "LO");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0108), "LT");
+
+  Orthanc::DicomJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  std::cout << visitor.GetResult();
+  ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["vr"].asString());
+  ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["Value"][0].asString());
+  ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["vr"].asString());
+  ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["Value"][0].asString());
+  ASSERT_EQ("AT", visitor.GetResult() ["00209165"]["vr"].asString());
+  ASSERT_EQ("00100020", visitor.GetResult() ["00209165"]["Value"][0].asString());
+  ASSERT_EQ("CS", visitor.GetResult() ["00080052"]["vr"].asString());
+  ASSERT_EQ("CS", visitor.GetResult() ["00080052"]["Value"][0].asString());
+  ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["vr"].asString());
+  ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["Value"][0].asString());
+  ASSERT_EQ("DS", visitor.GetResult() ["00101020"]["vr"].asString());
+  ASSERT_FLOAT_EQ(42.0f, visitor.GetResult() ["00101020"]["Value"][0].asFloat());
+  ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["vr"].asString());
+  ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["Value"][0].asString());
+  ASSERT_EQ("FL", visitor.GetResult() ["00109431"]["vr"].asString());
+  ASSERT_FLOAT_EQ(43.0f, visitor.GetResult() ["00109431"]["Value"][0].asFloat());
+  ASSERT_EQ("FD", visitor.GetResult() ["00081163"]["vr"].asString());
+  ASSERT_FLOAT_EQ(44.0f, visitor.GetResult() ["00081163"]["Value"][0].asFloat());
+  ASSERT_EQ("IS", visitor.GetResult() ["00081160"]["vr"].asString());
+  ASSERT_FLOAT_EQ(45.0f, visitor.GetResult() ["00081160"]["Value"][0].asFloat());
+  ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["vr"].asString());
+  ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["Value"][0].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["vr"].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["Value"][0].asString());
+}
+
 
 #endif
