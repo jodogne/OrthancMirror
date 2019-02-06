@@ -560,18 +560,42 @@ TEST(DicomMap, ExtractMainDicomTags)
 
 
 static const char* const KEY_ALPHABETIC = "Alphabetic";
+static const char* const KEY_BULK_DATA_URI = "BulkDataURI";
 static const char* const KEY_INLINE_BINARY = "InlineBinary";
 static const char* const KEY_SQ = "SQ";
 static const char* const KEY_VALUE = "Value";
 static const char* const KEY_VR = "vr";
 
 namespace Orthanc
-{
-  class DicomJsonVisitor : public ITagVisitor
+{  
+  class DicomWebJsonVisitor : public ITagVisitor
   {
+  public:
+    enum BinaryMode
+    {
+      BinaryMode_Ignore,
+      BinaryMode_BulkDataUri,
+      BinaryMode_InlineBinary
+    };
+    
+    class IBinaryFormatter : public boost::noncopyable
+    {
+    public:
+      virtual ~IBinaryFormatter()
+      {
+      }
+
+      virtual BinaryMode Format(std::string& bulkDataUri,
+                                const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr) = 0;
+    };
+  
+    
   private:
-    Json::Value  result_;
-    std::string  bulkUriRoot_;
+    Json::Value        result_;
+    IBinaryFormatter  *formatter_;
 
     static std::string FormatTag(const DicomTag& tag)
     {
@@ -675,14 +699,15 @@ namespace Orthanc
     }
 
   public:
-    DicomJsonVisitor()
+    DicomWebJsonVisitor() :
+      formatter_(NULL)
     {
       Clear();
     }
 
-    void SetBulkUriRoot(const std::string& root)
+    void SetFormatter(IBinaryFormatter& formatter)
     {
-      bulkUriRoot_ = root;
+      formatter_ = &formatter;
     }
     
     void Clear()
@@ -727,18 +752,46 @@ namespace Orthanc
              vr == ValueRepresentation_OtherWord ||
              vr == ValueRepresentation_Unknown);
 
-      if (tag.GetElement() != 0x0000  /*&&
-                                        !bulkUriRoot_.empty()*/)
+      if (tag.GetElement() != 0x0000)
       {
-        Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
-        node[KEY_VR] = EnumerationToString(vr);
-
-        std::string tmp(static_cast<const char*>(data), size);
+        BinaryMode mode;
+        std::string bulkDataUri;
         
-        std::string base64;
-        Toolbox::EncodeBase64(base64, tmp);
+        if (formatter_ == NULL)
+        {
+          mode = BinaryMode_InlineBinary;
+        }
+        else
+        {
+          mode = formatter_->Format(bulkDataUri, parentTags, parentIndexes, tag, vr);
+        }
 
-        node[KEY_INLINE_BINARY] = base64;
+        if (mode != BinaryMode_Ignore)
+        {
+          Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
+          node[KEY_VR] = EnumerationToString(vr);
+
+          switch (mode)
+          {
+            case BinaryMode_BulkDataUri:
+              node[KEY_BULK_DATA_URI] = bulkDataUri;
+              break;
+
+            case BinaryMode_InlineBinary:
+            {
+              std::string tmp(static_cast<const char*>(data), size);
+          
+              std::string base64;
+              Toolbox::EncodeBase64(base64, tmp);
+
+              node[KEY_INLINE_BINARY] = base64;
+              break;
+            }
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
       }
     }
 
@@ -820,7 +873,7 @@ namespace Orthanc
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::string& tutu) ORTHANC_OVERRIDE
+                               const std::string& value) ORTHANC_OVERRIDE
     {
       if (tag.GetElement() == 0x0000 ||
           vr == ValueRepresentation_NotSupported)
@@ -832,82 +885,93 @@ namespace Orthanc
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
         node[KEY_VR] = EnumerationToString(vr);
 
-        std::string truncated;
-        
-        if (!tutu.empty() &&
-            tutu[tutu.size() - 1] == '\0')
+        if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
         {
-          truncated = tutu.substr(0, tutu.size() - 1);
+          // TODO - The JSON file has an UTF-8 encoding, thus DCMTK
+          // replaces the specific character set with "ISO_IR 192"
+          // (UNICODE UTF-8). It is unclear whether the source
+          // character set should be kept: We thus mimic DCMTK.
+          node[KEY_VALUE].append("ISO_IR 192");
         }
         else
         {
-          truncated = tutu;
-        }
+          std::string truncated;
         
-        if (!truncated.empty())
-        {
-          std::vector<std::string> tokens;
-          Toolbox::TokenizeString(tokens, truncated, '\\');
-
-          node[KEY_VALUE] = Json::arrayValue;
-          for (size_t i = 0; i < tokens.size(); i++)
+          if (!value.empty() &&
+              value[value.size() - 1] == '\0')
           {
-            try
+            truncated = value.substr(0, value.size() - 1);
+          }
+          else
+          {
+            truncated = value;
+          }
+        
+          if (!truncated.empty())
+          {
+            std::vector<std::string> tokens;
+            Toolbox::TokenizeString(tokens, truncated, '\\');
+
+            node[KEY_VALUE] = Json::arrayValue;
+            for (size_t i = 0; i < tokens.size(); i++)
             {
-              switch (vr)
+              try
               {
-                case ValueRepresentation_PersonName:
+                switch (vr)
                 {
-                  Json::Value value = Json::objectValue;
-                  if (!tokens[i].empty())
+                  case ValueRepresentation_PersonName:
                   {
-                    value[KEY_ALPHABETIC] = tokens[i];
+                    Json::Value value = Json::objectValue;
+                    if (!tokens[i].empty())
+                    {
+                      value[KEY_ALPHABETIC] = tokens[i];
+                    }
+                    node[KEY_VALUE].append(value);
+                    break;
                   }
-                  node[KEY_VALUE].append(value);
-                  break;
+                  
+                  case ValueRepresentation_IntegerString:
+                    if (tokens[i].empty())
+                    {
+                      node[KEY_VALUE].append(Json::nullValue);
+                    }
+                    else
+                    {
+                      int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
+                      node[KEY_VALUE].append(FormatInteger(value));
+                    }
+                  
+                    break;
+              
+                  case ValueRepresentation_DecimalString:
+                    if (tokens[i].empty())
+                    {
+                      node[KEY_VALUE].append(Json::nullValue);
+                    }
+                    else
+                    {
+                      double value = boost::lexical_cast<double>(tokens[i]);
+                      node[KEY_VALUE].append(FormatDouble(value));
+                    }
+                    break;
+              
+                  default:
+                    if (tokens[i].empty())
+                    {
+                      node[KEY_VALUE].append(Json::nullValue);
+                    }
+                    else
+                    {
+                      node[KEY_VALUE].append(tokens[i]);
+                    }
+                  
+                    break;
                 }
-                  
-                case ValueRepresentation_IntegerString:
-                  if (tokens[i].empty())
-                  {
-                    node[KEY_VALUE].append(Json::nullValue);
-                  }
-                  else
-                  {
-                    int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
-                    node[KEY_VALUE].append(FormatInteger(value));
-                  }
-                  
-                  break;
-              
-                case ValueRepresentation_DecimalString:
-                  if (tokens[i].empty())
-                  {
-                    node[KEY_VALUE].append(Json::nullValue);
-                  }
-                  else
-                  {
-                    double value = boost::lexical_cast<double>(tokens[i]);
-                    node[KEY_VALUE].append(FormatDouble(value));
-                  }
-                  break;
-              
-                default:
-                  if (tokens[i].empty())
-                  {
-                    node[KEY_VALUE].append(Json::nullValue);
-                  }
-                  else
-                  {
-                    node[KEY_VALUE].append(tokens[i]);
-                  }
-                  
-                  break;
               }
-            }
-            catch (boost::bad_lexical_cast&)
-            {
-              throw OrthancException(ErrorCode_BadFileFormat);
+              catch (boost::bad_lexical_cast&)
+              {
+                throw OrthancException(ErrorCode_BadFileFormat);
+              }
             }
           }
         }
@@ -950,7 +1014,7 @@ TEST(DicomWebJson, Basic)
 
   Orthanc::ParsedDicomFile dicom(content);
 
-  Orthanc::DicomJsonVisitor visitor;
+  Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   Orthanc::SystemToolbox::WriteFile(visitor.GetResult().toStyledString(), "tutu.json");
@@ -965,7 +1029,7 @@ TEST(DicomWebJson, Multiplicity)
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
 
-  Orthanc::DicomJsonVisitor visitor;
+  Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -996,7 +1060,7 @@ TEST(DicomWebJson, NullValue)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1.5\\\\\\2.5");
 
-  Orthanc::DicomJsonVisitor visitor;
+  Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -1060,7 +1124,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");
   
   
-  Orthanc::DicomJsonVisitor visitor;
+  Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   std::string s;
@@ -1172,7 +1236,7 @@ TEST(DicomWebJson, Sequence)
     ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
   }
 
-  Orthanc::DicomJsonVisitor visitor;
+  Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   ASSERT_EQ("SQ", visitor.GetResult() ["00081115"]["vr"].asString());
