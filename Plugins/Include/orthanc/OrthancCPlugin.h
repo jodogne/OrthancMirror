@@ -426,6 +426,8 @@ extern "C"
     _OrthancPluginService_RegisterPrivateDictionaryTag = 29,
     _OrthancPluginService_AutodetectMimeType = 30,
     _OrthancPluginService_SetMetricsValue = 31,
+    _OrthancPluginService_EncodeDicomWebJson = 32,
+    _OrthancPluginService_EncodeDicomWebXml = 33,
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -6624,6 +6626,94 @@ extern "C"
     params.callback = callback;
     context->InvokeService(context, _OrthancPluginService_RegisterRefreshMetricsCallback, &params);
   }
+
+
+
+
+  typedef enum
+  {
+    OrthancPluginDicomWebBinaryMode_Ignore,
+    OrthancPluginDicomWebBinaryMode_InlineBinary,
+    OrthancPluginDicomWebBinaryMode_BulkDataUri
+  } OrthancPluginDicomWebBinaryMode;
+
+  
+  typedef struct _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
+
+  typedef void (*OrthancPluginDicomWebSetBinaryNode) (
+    OrthancPluginDicomWebNode*       node,
+    OrthancPluginDicomWebBinaryMode  mode,
+    const char*                      bulkDataUri);
+    
+  typedef OrthancPluginErrorCode (*OrthancPluginDicomWebBinaryCallback) (
+    OrthancPluginDicomWebNode*          node,
+    OrthancPluginDicomWebSetBinaryNode  setter,
+    uint32_t                            levelDepth,
+    const uint16_t*                     levelTagGroup,
+    const uint16_t*                     levelTagElement,
+    const uint32_t*                     levelIndex,
+    uint16_t                            tagGroup,
+    uint16_t                            tagElement,
+    OrthancPluginValueRepresentation    vr);
+
+  typedef struct
+  {
+    char**                               target;
+    const void*                          dicom;
+    uint32_t                             dicomSize;
+    OrthancPluginDicomWebBinaryCallback  callback;
+  } _OrthancPluginEncodeDicomWeb;
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson(
+    OrthancPluginContext*                context,
+    const void*                          dicom,
+    uint32_t                             dicomSize,
+    OrthancPluginDicomWebBinaryCallback  callback)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginEncodeDicomWeb params;
+    params.target = &target;
+    params.dicom = dicom;
+    params.dicomSize = dicomSize;
+    params.callback = callback;
+
+    if (context->InvokeService(context, _OrthancPluginService_EncodeDicomWebJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml(
+    OrthancPluginContext*                context,
+    const void*                          dicom,
+    uint32_t                             dicomSize,
+    OrthancPluginDicomWebBinaryCallback  callback)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginEncodeDicomWeb params;
+    params.target = &target;
+    params.dicom = dicom;
+    params.dicomSize = dicomSize;
+    params.callback = callback;
+
+    if (context->InvokeService(context, _OrthancPluginService_EncodeDicomWebXml, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+  
 
 #ifdef  __cplusplus
 }

@@ -263,6 +263,21 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRest
 }
 
 
+ORTHANC_PLUGINS_API OrthancPluginErrorCode DicomWebBinaryCallback(
+  OrthancPluginDicomWebNode*          node,
+  OrthancPluginDicomWebSetBinaryNode  setter,
+  uint32_t                            levelDepth,
+  const uint16_t*                     levelTagGroup,
+  const uint16_t*                     levelTagElement,
+  const uint32_t*                     levelIndex,
+  uint16_t                            tagGroup,
+  uint16_t                            tagElement,
+  OrthancPluginValueRepresentation    vr)
+{
+  setter(node, OrthancPluginDicomWebBinaryMode_BulkDataUri, "HelloURI");
+}
+
+
 ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomInstance* instance,
                                                             const char* instanceId)
 {
@@ -286,9 +301,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
   json = OrthancPluginGetInstanceSimplifiedJson(context, instance);
   if (first)
   {
-    /* Only print the first DICOM instance */
     printf("[%s]\n", json);
-    first = 0;
   }
   OrthancPluginFreeString(context, json);
 
@@ -300,6 +313,18 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
   {
     OrthancPluginLogError(context, "Instance has no reception date, should never happen!");
   }
+
+  json = OrthancPluginEncodeDicomWebXml(context,
+                                         OrthancPluginGetInstanceData(context, instance),
+                                         OrthancPluginGetInstanceSize(context, instance),
+                                         DicomWebBinaryCallback);
+  if (first)
+  {
+    printf("[%s]\n", json);
+    first = 0;    /* Only print the first DICOM instance */
+  }
+  OrthancPluginFreeString(context, json);
+  
 
   return OrthancPluginErrorCode_Success;
 }
