@@ -68,6 +68,10 @@
  **/
 
 
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include <pugixml.hpp>
+#endif
+
 
 namespace Orthanc
 {
@@ -190,6 +194,11 @@ namespace Orthanc
                    const Json::Value& source,
                    const std::string& rootElement = "root",
                    const std::string& arrayElement = "item");
+#endif
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+    void XmlToString(std::string& target,
+                     const pugi::xml_document& source);
 #endif
 
     bool IsInteger(const std::string& str);

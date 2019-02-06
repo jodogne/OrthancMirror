@@ -35,6 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
@@ -244,6 +245,45 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
+
+    IHttpHandler::Arguments::const_iterator accept = call.GetHttpHeaders().find("accept");
+    if (accept != call.GetHttpHeaders().end())
+    {
+      // New in Orthanc 1.5.4
+      try
+      {
+        MimeType mime = StringToMimeType(accept->second.c_str());
+
+        if (mime == MimeType_DicomWebJson ||
+            mime == MimeType_DicomWebXml)
+        {
+          DicomWebJsonVisitor visitor;
+          
+          {
+            ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+            locker.GetDicom().Apply(visitor);
+          }
+
+          if (mime == MimeType_DicomWebJson)
+          {
+            std::string s = visitor.GetResult().toStyledString();
+            call.GetOutput().AnswerBuffer(s, MimeType_DicomWebJson);
+          }
+          else
+          {
+            std::string xml;
+            visitor.FormatXml(xml);
+            call.GetOutput().AnswerBuffer(xml, MimeType_DicomWebXml);
+          }
+          
+          return;
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
+
     context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
   }
 
