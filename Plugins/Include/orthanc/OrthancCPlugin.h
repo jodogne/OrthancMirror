@@ -6645,7 +6645,7 @@ extern "C"
     OrthancPluginDicomWebBinaryMode  mode,
     const char*                      bulkDataUri);
     
-  typedef OrthancPluginErrorCode (*OrthancPluginDicomWebBinaryCallback) (
+  typedef void (*OrthancPluginDicomWebBinaryCallback) (
     OrthancPluginDicomWebNode*          node,
     OrthancPluginDicomWebSetBinaryNode  setter,
     uint32_t                            levelDepth,
