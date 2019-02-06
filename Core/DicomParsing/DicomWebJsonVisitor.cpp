@@ -306,9 +306,11 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_PUGIXML == 1
-  void DicomWebJsonVisitor::FormatXml(pugi::xml_document& target) const
+  void DicomWebJsonVisitor::FormatXml(std::string& target) const
   {
-    DicomWebJsonToXml(target, result_);
+    pugi::xml_document doc;
+    DicomWebJsonToXml(doc, result_);
+    Toolbox::XmlToString(target, doc);
   }
 #endif
 
