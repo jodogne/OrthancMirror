@@ -90,8 +90,10 @@
 #include <dcmtk/dcmdata/dcvrss.h>
 #include <dcmtk/dcmdata/dcvrst.h>
 #include <dcmtk/dcmdata/dcvrtm.h>
+#include <dcmtk/dcmdata/dcvruc.h>
 #include <dcmtk/dcmdata/dcvrui.h>
 #include <dcmtk/dcmdata/dcvrul.h>
+#include <dcmtk/dcmdata/dcvrur.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
 
@@ -1289,7 +1291,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_OB:
         return ValueRepresentation_OtherByte;
 
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
         case EVR_OD:
           return ValueRepresentation_OtherDouble;
 #endif
@@ -1326,7 +1328,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_TM:
         return ValueRepresentation_Time;
 
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
       case EVR_UC:
         return ValueRepresentation_UnlimitedCharacters;
 #endif
@@ -1340,7 +1342,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_UN:
         return ValueRepresentation_Unknown;
 
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
       case EVR_UR:
         return ValueRepresentation_UniversalResource;
 #endif
@@ -1359,7 +1361,14 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
   static bool IsBinaryTag(const DcmTag& key)
   {
-    return (key.isUnknownVR() || 
+    return (key.isUnknownVR() ||
+#if DCMTK_VERSION_NUMBER >= 361
+            key.getEVR() == EVR_OD ||
+#endif
+            
+#if DCMTK_VERSION_NUMBER >= 362
+            key.getEVR() == EVR_OL ||
+#endif            
             key.getEVR() == EVR_OB ||
             key.getEVR() == EVR_OF ||
             key.getEVR() == EVR_OW ||
@@ -1386,6 +1395,14 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
        * Binary types, handled above
        **/
     
+#if DCMTK_VERSION_NUMBER >= 361
+      case EVR_OD:
+#endif            
+
+#if DCMTK_VERSION_NUMBER >= 362
+      case EVR_OL:
+#endif            
+
       case EVR_OB:  // other byte
       case EVR_OF:  // other float
       case EVR_OW:  // other word
@@ -1444,6 +1461,12 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_PN:  // person name
         return new DcmPersonName(key);
 
+      case EVR_UC:  // unlimited characters
+        return new DcmUnlimitedCharacters(key);
+
+      case EVR_UR:  // URI/URL
+        return new DcmUniversalResourceIdentifierOrLocator(key);
+          
         
       /**
        * Numerical types
@@ -1544,7 +1567,29 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     if (tag.IsPrivate() ||
         IsBinaryTag(key))
     {
-      if (element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good())
+      bool ok;
+
+      switch (key.getEVR())
+      {
+        case EVR_OW:
+          if (decoded->size() % sizeof(Uint16) != 0)
+          {
+            LOG(ERROR) << "A tag with OW VR must have an even number of bytes";
+            ok = false;
+          }
+          else
+          {
+            ok = element.putUint16Array((const Uint16*) decoded->c_str(), decoded->size() / sizeof(Uint16)).good();
+          }
+          
+          break;
+      
+        default:
+          ok = element.putUint8Array((const Uint8*) decoded->c_str(), decoded->size()).good();
+          break;
+      }
+      
+      if (ok)
       {
         return;
       }
@@ -1595,6 +1640,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+        case EVR_UC:  // unlimited characters
+        case EVR_UR:  // URI/URL
         {
           ok = element.putString(decoded->c_str()).good();
           break;
@@ -2199,16 +2246,25 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     if (evr == EVR_OB ||  // other byte
         evr == EVR_OF ||  // other float
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
         evr == EVR_OD ||  // other double
+#endif
+#if DCMTK_VERSION_NUMBER >= 362
         evr == EVR_OL ||  // other long
 #endif
         evr == EVR_OW ||  // other word
         evr == EVR_UN)    // unknown value representation
     {
+      Uint16* data16 = NULL;
       Uint8* data = NULL;
 
-      if (element.getUint8Array(data) == EC_Normal)
+      if (evr == EVR_OW &&
+          element.getUint16Array(data16) == EC_Normal)
+      {
+        visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
+      }
+      else if (evr != EVR_OW &&
+               element.getUint8Array(data) == EC_Normal)
       {
         visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
       }
