@@ -38,8 +38,11 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* ou
 
   if (request->method != OrthancPluginHttpMethod_Get)
   {
-    // NB: Calling "OrthancPluginSendMethodNotAllowed(context, output, "GET");"
-    // is preferable. This is a sample to demonstrate "OrthancPluginSetHttpErrorDetails()".
+    /**
+     * NB: Calling "OrthancPluginSendMethodNotAllowed(context, output,
+     * "GET");" is preferable. This is a sample to demonstrate
+     * "OrthancPluginSetHttpErrorDetails()". 
+     **/
     OrthancPluginSetHttpErrorDetails(context, output, "This Callback1() can only be used by a GET call", 1 /* log */);
     return OrthancPluginErrorCode_ParameterOutOfRange;
   }
@@ -263,7 +266,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRest
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode DicomWebBinaryCallback(
+ORTHANC_PLUGINS_API void DicomWebBinaryCallback(
   OrthancPluginDicomWebNode*          node,
   OrthancPluginDicomWebSetBinaryNode  setter,
   uint32_t                            levelDepth,
