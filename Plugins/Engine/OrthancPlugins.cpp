@@ -47,6 +47,7 @@
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/DicomFormat/DicomArray.h"
+#include "../../Core/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
@@ -311,6 +312,94 @@ namespace Orthanc
       {
         CheckIndex(i);
         return parameters_[i];
+      }
+    };
+
+
+    class DicomWebBinaryFormatter : public DicomWebJsonVisitor::IBinaryFormatter
+    {
+    private:
+      OrthancPluginDicomWebBinaryCallback  callback_;
+      DicomWebJsonVisitor::BinaryMode      currentMode_;
+      std::string                          currentBulkDataUri_;
+
+      static void Setter(OrthancPluginDicomWebNode*       node,
+                         OrthancPluginDicomWebBinaryMode  mode,
+                         const char*                      bulkDataUri)
+      {
+        DicomWebBinaryFormatter& that = *reinterpret_cast<DicomWebBinaryFormatter*>(node);
+
+        switch (mode)
+        {
+          case OrthancPluginDicomWebBinaryMode_Ignore:
+            that.currentMode_ = DicomWebJsonVisitor::BinaryMode_Ignore;
+            break;
+              
+          case OrthancPluginDicomWebBinaryMode_InlineBinary:
+            that.currentMode_ = DicomWebJsonVisitor::BinaryMode_InlineBinary;
+            break;
+              
+          case OrthancPluginDicomWebBinaryMode_BulkDataUri:
+            if (bulkDataUri == NULL)
+            {
+              throw OrthancException(ErrorCode_NullPointer);
+            }              
+            
+            that.currentBulkDataUri_ = bulkDataUri;
+            that.currentMode_ = DicomWebJsonVisitor::BinaryMode_BulkDataUri;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+      
+    public:
+      DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
+        callback_(parameters.callback)
+      {
+      }
+      
+      virtual DicomWebJsonVisitor::BinaryMode Format(std::string& bulkDataUri,
+                                                     const std::vector<DicomTag>& parentTags,
+                                                     const std::vector<size_t>& parentIndexes,
+                                                     const DicomTag& tag,
+                                                     ValueRepresentation vr)
+      {
+        if (callback_ == NULL)
+        {
+          return DicomWebJsonVisitor::BinaryMode_InlineBinary;
+        }
+        else
+        {
+          assert(parentTags.size() == parentIndexes.size());
+          std::vector<uint16_t> groups(parentTags.size());
+          std::vector<uint16_t> elements(parentTags.size());
+          std::vector<uint32_t> indexes(parentTags.size());
+
+          for (size_t i = 0; i < parentTags.size(); i++)
+          {
+            groups[i] = parentTags[i].GetGroup();
+            elements[i] = parentTags[i].GetElement();
+            indexes[i] = static_cast<uint32_t>(parentIndexes[i]);
+          }
+          bool empty = parentTags.empty();
+
+          currentMode_ = DicomWebJsonVisitor::BinaryMode_Ignore;
+
+          callback_(reinterpret_cast<OrthancPluginDicomWebNode*>(this),
+                    DicomWebBinaryFormatter::Setter,
+                    static_cast<uint32_t>(parentTags.size()),
+                    (empty ? NULL : &groups[0]),
+                    (empty ? NULL : &elements[0]),
+                    (empty ? NULL : &indexes[0]),
+                    tag.GetGroup(),
+                    tag.GetElement(),
+                    Plugins::Convert(vr));
+
+          bulkDataUri = currentBulkDataUri_;          
+          return currentMode_;
+        }
       }
     };
   }
@@ -3137,6 +3226,37 @@ namespace Orthanc
           lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, type);
         }
 
+        return true;
+      }
+
+      case _OrthancPluginService_EncodeDicomWebJson:
+      case _OrthancPluginService_EncodeDicomWebXml:
+      {
+        const _OrthancPluginEncodeDicomWeb& p =
+          *reinterpret_cast<const _OrthancPluginEncodeDicomWeb*>(parameters);
+
+        DicomWebBinaryFormatter formatter(p);
+        
+        DicomWebJsonVisitor visitor;
+        visitor.SetFormatter(formatter);
+
+        {
+          ParsedDicomFile dicom(p.dicom, p.dicomSize);
+          dicom.Apply(visitor);
+        }
+
+        std::string s;
+
+        if (service == _OrthancPluginService_EncodeDicomWebJson)
+        {
+          s = visitor.GetResult().toStyledString();
+        }
+        else
+        {
+          visitor.FormatXml(s);
+        }
+        
+        *p.target = CopyString(s);
         return true;
       }
 
