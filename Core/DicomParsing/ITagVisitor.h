@@ -84,7 +84,7 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  const std::vector<DicomTag>& values) = 0;
 
-    // Visiting a binary buffer
+    // OB, OD, OF, OL, OW, UN
     virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
                              const std::vector<size_t>& parentIndexes,
                              const DicomTag& tag,
