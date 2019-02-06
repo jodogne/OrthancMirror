@@ -834,11 +834,13 @@ namespace Orthanc
 
     std::vector<std::string> resources, instances;
 
-    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
-    GetIndex().ApplyLookupResources(resources, &instances, lookup, queryLevel, lookupLimit);
+    {
+      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
+      GetIndex().ApplyLookupResources(resources, &instances, lookup, queryLevel, lookupLimit);
+    }
 
     bool complete = (databaseLimit == 0 ||
-                     resources.size() > databaseLimit);
+                     resources.size() <= databaseLimit);
 
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
