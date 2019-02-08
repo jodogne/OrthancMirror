@@ -775,7 +775,7 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["Value"][0].asString());
 
   ASSERT_EQ("UL", visitor.GetResult() ["00081161"]["vr"].asString());
-  ASSERT_EQ(128, visitor.GetResult() ["00081161"]["Value"][0].asUInt());
+  ASSERT_EQ(128u, visitor.GetResult() ["00081161"]["Value"][0].asUInt());
 
   ASSERT_EQ("UN", visitor.GetResult() ["43421234"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["43421234"]["InlineBinary"].asString());
@@ -792,7 +792,7 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("US", visitor.GetResult() ["00080301"]["vr"].asString());
-  ASSERT_EQ(17, visitor.GetResult() ["00080301"]["Value"][0].asUInt());
+  ASSERT_EQ(17u, visitor.GetResult() ["00080301"]["Value"][0].asUInt());
 #else
   ASSERT_EQ("UN", visitor.GetResult() ["00080301"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00080301"]["InlineBinary"].asString());
