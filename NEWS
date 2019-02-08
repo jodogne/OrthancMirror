@@ -31,7 +31,6 @@ Plugins
   - OrthancPluginRegisterRefreshMetricsCallback() to ask to refresh metrics
   - OrthancPluginEncodeDicomWebJson() to convert DICOM to "application/dicom+json"
   - OrthancPluginEncodeDicomWebXml() to convert DICOM to "application/dicom+xml"
-* New function: 
 * New extensions in the database SDK: LookupResourceAndParent and GetAllMetadata
 
 Maintenance
