@@ -99,6 +99,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         set(ORTHANC_FRAMEWORK_MD5 "8867050f3e9a1ce6157c1ea7a9433b1b")
       elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.5.3")
         set(ORTHANC_FRAMEWORK_MD5 "bf2f5ed1adb8b0fc5f10d278e68e1dfe")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.5.4")
+        set(ORTHANC_FRAMEWORK_MD5 "404baef5d4c43e7c5d9410edda8ef5a5")
       endif()
     endif()
   endif()
