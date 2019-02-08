@@ -37,6 +37,7 @@
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
+#include "../Core/DicomParsing/ToDcmtkBridge.h"
 #include "../Core/DicomParsing/ParsedDicomFile.h"
 #include "../Core/DicomParsing/DicomWebJsonVisitor.h"
 
@@ -44,6 +45,7 @@
 
 #include <memory>
 #include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcvrat.h>
 
 using namespace Orthanc;
 
@@ -621,6 +623,26 @@ TEST(DicomWebJson, NullValue)
 }
 
 
+static void SetTagKey(ParsedDicomFile& dicom,
+                      const DicomTag& tag,
+                      const DicomTag& value)
+{
+  // This function emulates a call to function
+  // "dicom.GetDcmtkObject().getDataset()->putAndInsertTagKey(tag,
+  // value)" that was not available in DCMTK 3.6.0
+
+  std::auto_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
+
+  DcmTagKey v = ToDcmtkBridge::Convert(value);
+  if (!element->putTagVal(v).good())
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+
+  dicom.GetDcmtkObject().getDataset()->insert(element.release());
+}
+
+
 TEST(DicomWebJson, ValueRepresentation)
 {
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
@@ -628,9 +650,7 @@ TEST(DicomWebJson, ValueRepresentation)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0241), "AE");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x1010), "AS");
-  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->
-              putAndInsertTagKey(DcmTag(0x0020, 0x9165),
-                                 DcmTagKey(0x0010, 0x0020)).good());
+  SetTagKey(dicom, DicomTag(0x0020, 0x9165), DicomTag(0x0010, 0x0020));
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0052), "CS");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0012), "DA");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x1020), "42");  // DS
@@ -639,15 +659,11 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x1163), "44");  // FD
   dicom.ReplacePlainString(DicomTag(0x0008, 0x1160), "45");  // IS
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0070), "LO");
-  dicom.ReplacePlainString(DicomTag(0x0008, 0x0108), "LT");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x4000), "LT");
   dicom.ReplacePlainString(DicomTag(0x0028, 0x2000), "OB");
   dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "OD");
   dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "OF");
-
-#if DCMTK_VERSION_NUMBER >= 362 
   dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "OLOL");
-#endif
-
   ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
   dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
@@ -662,8 +678,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x4342, 0x1234), "UN");   // Inexistent tag
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
-  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");
-  
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
   
   Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
@@ -692,14 +707,19 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_FLOAT_EQ(45.0f, visitor.GetResult() ["00081160"]["Value"][0].asFloat());
   ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["vr"].asString());
   ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["Value"][0].asString());
-  ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["vr"].asString());
-  ASSERT_EQ("LT", visitor.GetResult() ["00080108"]["Value"][0].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00104000"]["vr"].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00104000"]["Value"][0].asString());
 
   ASSERT_EQ("OB", visitor.GetResult() ["00282000"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00282000"]["InlineBinary"].asString());
   ASSERT_EQ("OB", s);
 
+#if DCMTK_VERSION_NUMBER >= 362
   ASSERT_EQ("OD", visitor.GetResult() ["7FE00009"]["vr"].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["7FE00009"]["vr"].asString());
+#endif
+
   Toolbox::DecodeBase64(s, visitor.GetResult() ["7FE00009"]["InlineBinary"].asString());
   ASSERT_EQ("OD", s);
 
@@ -709,9 +729,12 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 362
   ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00660040"]["vr"].asString());
+#endif
+
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
   ASSERT_EQ("OLOL", s);
-#endif
 
   ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
@@ -735,8 +758,14 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["vr"].asString());
   ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["Value"][0].asString());
 
+#if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["vr"].asString());
   ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["Value"][0].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080119"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080119"]["InlineBinary"].asString());
+  ASSERT_EQ("UC", s);
+#endif
 
   ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["vr"].asString());
   ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["Value"][0].asString());
@@ -748,15 +777,26 @@ TEST(DicomWebJson, ValueRepresentation)
   Toolbox::DecodeBase64(s, visitor.GetResult() ["43421234"]["InlineBinary"].asString());
   ASSERT_EQ("UN", s);
 
+#if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["vr"].asString());
   ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["Value"][0].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080120"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080120"]["InlineBinary"].asString());
+  ASSERT_EQ("UR", s);
+#endif
 
+#if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("US", visitor.GetResult() ["00080301"]["vr"].asString());
   ASSERT_EQ(17, visitor.GetResult() ["00080301"]["Value"][0].asUInt());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080301"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080301"]["InlineBinary"].asString());
+  ASSERT_EQ("17", s);
+#endif
 
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
   ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
-
 
   std::string xml;
   visitor.FormatXml(xml);

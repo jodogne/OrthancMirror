@@ -90,12 +90,15 @@
 #include <dcmtk/dcmdata/dcvrss.h>
 #include <dcmtk/dcmdata/dcvrst.h>
 #include <dcmtk/dcmdata/dcvrtm.h>
-#include <dcmtk/dcmdata/dcvruc.h>
 #include <dcmtk/dcmdata/dcvrui.h>
 #include <dcmtk/dcmdata/dcvrul.h>
-#include <dcmtk/dcmdata/dcvrur.h>
 #include <dcmtk/dcmdata/dcvrus.h>
 #include <dcmtk/dcmdata/dcvrut.h>
+
+#if DCMTK_VERSION_NUMBER >= 361
+#  include <dcmtk/dcmdata/dcvruc.h>
+#  include <dcmtk/dcmdata/dcvrur.h>
+#endif
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
 #  include <EmbeddedResources.h>
@@ -1461,11 +1464,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case EVR_PN:  // person name
         return new DcmPersonName(key);
 
+#if DCMTK_VERSION_NUMBER >= 361
       case EVR_UC:  // unlimited characters
         return new DcmUnlimitedCharacters(key);
+#endif
 
+#if DCMTK_VERSION_NUMBER >= 361
       case EVR_UR:  // URI/URL
         return new DcmUniversalResourceIdentifierOrLocator(key);
+#endif
           
         
       /**
@@ -1640,8 +1647,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         case EVR_UT:  // unlimited text
         case EVR_PN:  // person name
         case EVR_UI:  // unique identifier
+#if DCMTK_VERSION_NUMBER >= 361
         case EVR_UC:  // unlimited characters
         case EVR_UR:  // URI/URL
+#endif
         {
           ok = element.putString(decoded->c_str()).good();
           break;

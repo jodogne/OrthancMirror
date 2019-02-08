@@ -997,6 +997,9 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
         sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||

@@ -897,7 +897,7 @@ extern "C"
 
 
   /**
-   * The available type of metrics.
+   * The available types of metrics.
    **/
   typedef enum
   {
@@ -912,6 +912,18 @@ extern "C"
   } OrthancPluginMetricsType;
   
 
+  /**
+   * The available modes to export a binary DICOM tag into a DICOMweb
+   * JSON or XML document.
+   **/
+  typedef enum
+  {
+    OrthancPluginDicomWebBinaryMode_Ignore,        /*!< Don't include binary tags */
+    OrthancPluginDicomWebBinaryMode_InlineBinary,  /*!< Inline encoding using Base64 */
+    OrthancPluginDicomWebBinaryMode_BulkDataUri    /*!< Use a bulk data URI field */
+  } OrthancPluginDicomWebBinaryMode;
+
+  
 
   /**
    * @brief A memory buffer allocated by the core system of Orthanc.
@@ -1021,6 +1033,15 @@ extern "C"
    **/
   typedef struct _OrthancPluginJob_t OrthancPluginJob;  
 
+
+
+  /**
+   * @brief Opaque structure that represents a node in a JSON or XML
+   * document used in DICOMweb.
+   * @ingroup Toolbox
+   **/
+  typedef struct _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
+
   
 
   /**
@@ -1069,9 +1090,23 @@ extern "C"
 
   /**
    * @brief Signature of a function to free dynamic memory.
+   * @ingroup Callbacks
    **/
   typedef void (*OrthancPluginFree) (void* buffer);
 
+
+
+  /**
+   * @brief Signature of a function to set the content of a node
+   * encoding a binary DICOM tag, into a JSON or XML document
+   * generated for DICOMweb.
+   * @ingroup Callbacks
+   **/
+  typedef void (*OrthancPluginDicomWebSetBinaryNode) (
+    OrthancPluginDicomWebNode*       node,
+    OrthancPluginDicomWebBinaryMode  mode,
+    const char*                      bulkDataUri);
+    
 
 
   /**
@@ -1472,11 +1507,48 @@ extern "C"
    * acquire.
    * 
    * @see OrthancPluginRegisterRefreshMetrics()
-   * @ingroups Callbacks
+   * @ingroup Callbacks
    **/
   typedef void (*OrthancPluginRefreshMetricsCallback) ();
 
   
+
+  /**
+   * @brief Callback executed to encode a binary tag in DICOMweb.
+   * 
+   * Signature of a callback function that is called by Orthanc
+   * whenever a DICOM tag that contains a binary value must be written
+   * to a JSON or XML node, while a DICOMweb document is being
+   * generated. The value representation (VR) of the DICOM tag can be
+   * OB, OD, OF, OL, OW, or UN.
+   * 
+   * @see OrthancPluginEncodeDicomWebJson() and OrthancPluginEncodeDicomWebXml()
+   * @param node The node being generated, as provided by Orthanc.
+   * @param setter The setter to be used to encode the content of the node. If
+   * the setter is not called, the binary tag is not written to the output document.
+   * @param levelDepth The depth of the node in the DICOM hierarchy of sequences.
+   * This parameter gives the number of elements in the "levelTagGroup", 
+   * "levelTagElement", and "levelIndex" arrays.
+   * @param levelTagGroup The group of the parent DICOM tags in the hierarchy.
+   * @param levelTagElement The element of the parent DICOM tags in the hierarchy.
+   * @param levelIndex The index of the node in the parent sequences of the hiearchy.
+   * @param tagGroup The group of the DICOM tag of interest.
+   * @param tagElement The element of the DICOM tag of interest.
+   * @param vr The value representation of the binary DICOM node.
+   * @ingroup Callbacks
+   **/
+  typedef void (*OrthancPluginDicomWebBinaryCallback) (
+    OrthancPluginDicomWebNode*          node,
+    OrthancPluginDicomWebSetBinaryNode  setter,
+    uint32_t                            levelDepth,
+    const uint16_t*                     levelTagGroup,
+    const uint16_t*                     levelTagElement,
+    const uint32_t*                     levelIndex,
+    uint16_t                            tagGroup,
+    uint16_t                            tagElement,
+    OrthancPluginValueRepresentation    vr);
+
+
 
   /**
    * @brief Data structure that contains information about the Orthanc core.
@@ -1571,7 +1643,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
         sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
-        sizeof(int32_t) != sizeof(OrthancPluginMetricsType))
+        sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -6630,32 +6703,6 @@ extern "C"
 
 
 
-  typedef enum
-  {
-    OrthancPluginDicomWebBinaryMode_Ignore,
-    OrthancPluginDicomWebBinaryMode_InlineBinary,
-    OrthancPluginDicomWebBinaryMode_BulkDataUri
-  } OrthancPluginDicomWebBinaryMode;
-
-  
-  typedef struct _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
-
-  typedef void (*OrthancPluginDicomWebSetBinaryNode) (
-    OrthancPluginDicomWebNode*       node,
-    OrthancPluginDicomWebBinaryMode  mode,
-    const char*                      bulkDataUri);
-    
-  typedef void (*OrthancPluginDicomWebBinaryCallback) (
-    OrthancPluginDicomWebNode*          node,
-    OrthancPluginDicomWebSetBinaryNode  setter,
-    uint32_t                            levelDepth,
-    const uint16_t*                     levelTagGroup,
-    const uint16_t*                     levelTagElement,
-    const uint32_t*                     levelIndex,
-    uint16_t                            tagGroup,
-    uint16_t                            tagElement,
-    OrthancPluginValueRepresentation    vr);
-
   typedef struct
   {
     char**                               target;
@@ -6664,6 +6711,21 @@ extern "C"
     OrthancPluginDicomWebBinaryCallback  callback;
   } _OrthancPluginEncodeDicomWeb;
 
+  /**
+   * @brief Convert a DICOM instance to DICOMweb JSON.
+   *
+   * This function converts a memory buffer containing a DICOM instance,
+   * into its DICOMweb JSON representation.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param dicom Pointer to the DICOM instance.
+   * @param dicomSize Size of the DICOM instance.
+   * @param callback Callback to set the value of the binary tags.
+   * @see OrthancPluginCreateDicom()
+   * @return The NULL value in case of error, or the JSON document. This string must
+   * be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson(
     OrthancPluginContext*                context,
     const void*                          dicom,
@@ -6689,6 +6751,22 @@ extern "C"
     }
   }
 
+
+  /**
+   * @brief Convert a DICOM instance to DICOMweb XML.
+   *
+   * This function converts a memory buffer containing a DICOM instance,
+   * into its DICOMweb XML representation.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param dicom Pointer to the DICOM instance.
+   * @param dicomSize Size of the DICOM instance.
+   * @param callback Callback to set the value of the binary tags.
+   * @return The NULL value in case of error, or the JSON document. This string must
+   * be freed by OrthancPluginFreeString().
+   * @see OrthancPluginCreateDicom()
+   * @ingroup Toolbox
+   **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml(
     OrthancPluginContext*                context,
     const void*                          dicom,
