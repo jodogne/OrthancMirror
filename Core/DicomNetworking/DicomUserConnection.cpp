@@ -164,12 +164,50 @@ namespace Orthanc
   };
 
 
-  static void Check(const OFCondition& cond)
+  static void Check(const OFCondition& cond,
+                    const std::string& aet)
   {
     if (cond.bad())
     {
+      // Reformat the error message from DCMTK by turning multiline
+      // errors into a single line
+      
+      std::string s(cond.text());
+      std::string info;
+      info.reserve(s.size());
+
+      bool isMultiline = false;
+      for (size_t i = 0; i < s.size(); i++)
+      {
+        if (s[i] == '\r')
+        {
+          // Ignore
+        }
+        else if (s[i] == '\n')
+        {
+          if (isMultiline)
+          {
+            info += "; ";
+          }
+          else
+          {
+            info += " (";
+            isMultiline = true;
+          }
+        }
+        else
+        {
+          info.push_back(s[i]);
+        }
+      }
+
+      if (isMultiline)
+      {
+        info += ")";
+      }
+      
       throw OrthancException(ErrorCode_NetworkProtocol,
-                             "DicomUserConnection: " + std::string(cond.text()));
+                             "DicomUserConnection to AET \"" + aet + "\": " + info);
     }
   }
 
@@ -193,16 +231,17 @@ namespace Orthanc
                                       unsigned int& presentationContextId,
                                       const std::string& sopClass,
                                       const char* asPreferred[],
-                                      std::vector<const char*>& asFallback)
+                                      std::vector<const char*>& asFallback,
+                                      const std::string& aet)
   {
     Check(ASC_addPresentationContext(params, presentationContextId, 
-                                     sopClass.c_str(), asPreferred, 1));
+                                     sopClass.c_str(), asPreferred, 1), aet);
     presentationContextId += 2;
 
     if (asFallback.size() > 0)
     {
       Check(ASC_addPresentationContext(params, presentationContextId, 
-                                       sopClass.c_str(), &asFallback[0], asFallback.size()));
+                                       sopClass.c_str(), &asFallback[0], asFallback.size()), aet);
       presentationContextId += 2;
     }
   }
@@ -236,21 +275,21 @@ namespace Orthanc
          it != reservedStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback);
+                              *it, asPreferred, asFallback, remoteAet_);
     }
 
     for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
          it != storageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback);
+                              *it, asPreferred, asFallback, remoteAet_);
     }
 
     for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
          it != defaultStorageSOPClasses_.end(); ++it)
     {
       RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback);
+                              *it, asPreferred, asFallback, remoteAet_);
     }
   }
 
@@ -269,7 +308,7 @@ namespace Orthanc
                                          uint16_t moveOriginatorID)
   {
     DcmFileFormat dcmff;
-    Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength));
+    Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength), connection.remoteAet_);
 
     // Determine the storage SOP class UID for this instance
     static const DcmTagKey DCM_SOP_CLASS_UID(0x0008, 0x0016);
@@ -379,7 +418,7 @@ namespace Orthanc
     Check(DIMSE_storeUser(assoc_, presID, &request,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
                           /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
-                          &rsp, &statusDetail, NULL));
+                          &rsp, &statusDetail, NULL), connection.remoteAet_);
 
     if (statusDetail != NULL) 
     {
@@ -556,7 +595,8 @@ namespace Orthanc
                           const char* sopClass,
                           bool isWorklist,
                           const char* level,
-                          uint32_t dimseTimeout)
+                          uint32_t dimseTimeout,
+                          const std::string& remoteAet)
   {
     assert(isWorklist ^ (level != NULL));
 
@@ -600,7 +640,7 @@ namespace Orthanc
       delete statusDetail;
     }
 
-    Check(cond);
+    Check(cond, remoteAet);
   }
 
 
@@ -720,7 +760,8 @@ namespace Orthanc
     }
 
     assert(clevel != NULL && sopClass != NULL);
-    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, false, clevel, pimpl_->dimseTimeout_);
+    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, false, clevel,
+                pimpl_->dimseTimeout_, remoteAet_);
   }
 
 
@@ -803,7 +844,7 @@ namespace Orthanc
       delete responseIdentifiers;
     }
 
-    Check(cond);
+    Check(cond, remoteAet_);
   }
 
 
@@ -972,11 +1013,11 @@ namespace Orthanc
               << GetRemoteHost() << ":" << GetRemotePort() 
               << " (manufacturer: " << EnumerationToString(GetRemoteManufacturer()) << ")";
 
-    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_));
-    Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
+    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_), remoteAet_);
+    Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU), remoteAet_);
 
     // Set this application's title and the called application's title in the params
-    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL));
+    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL), remoteAet_);
 
     // Set the network addresses of the local and remote entities
     char localHost[HOST_NAME_MAX];
@@ -991,15 +1032,15 @@ namespace Orthanc
 #endif
       (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d", remoteHost_.c_str(), remotePort_);
 
-    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort));
+    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort), remoteAet_);
 
     // Set various options
-    Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false));
+    Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false), remoteAet_);
 
     SetupPresentationContexts(preferredTransferSyntax_);
 
     // Do the association
-    Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_));
+    Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_), remoteAet_);
 
     if (ASC_countAcceptedPresentationContexts(pimpl_->params_) == 0)
     {
@@ -1077,7 +1118,7 @@ namespace Orthanc
     Check(DIMSE_echoUser(pimpl_->assoc_, pimpl_->assoc_->nextMsgID++, 
                          /*opt_blockMode*/ DIMSE_BLOCKING, 
                          /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
-                         &status, NULL));
+                         &status, NULL), remoteAet_);
     return status == STATUS_Success;
   }
 
@@ -1276,7 +1317,8 @@ namespace Orthanc
     DcmDataset* dataset = query.GetDcmtkObject().getDataset();
     const char* sopClass = UID_FINDModalityWorklistInformationModel;
 
-    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, true, NULL, pimpl_->dimseTimeout_);
+    ExecuteFind(result, pimpl_->assoc_, dataset, sopClass, true,
+                NULL, pimpl_->dimseTimeout_, remoteAet_);
   }
 
   
