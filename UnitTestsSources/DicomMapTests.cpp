@@ -663,7 +663,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0028, 0x2000), "OB");
   dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "OD");
   dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "OF");
-  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "OLOL");
+  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");
   ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
   dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
@@ -714,7 +714,7 @@ TEST(DicomWebJson, ValueRepresentation)
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00282000"]["InlineBinary"].asString());
   ASSERT_EQ("OB", s);
 
-#if DCMTK_VERSION_NUMBER >= 362
+#if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("OD", visitor.GetResult() ["7FE00009"]["vr"].asString());
 #else
   ASSERT_EQ("UN", visitor.GetResult() ["7FE00009"]["vr"].asString());
@@ -727,14 +727,18 @@ TEST(DicomWebJson, ValueRepresentation)
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00640009"]["InlineBinary"].asString());
   ASSERT_EQ("OF", s);
 
-#if DCMTK_VERSION_NUMBER >= 362
-  ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
-#else
+#if DCMTK_VERSION_NUMBER < 361
   ASSERT_EQ("UN", visitor.GetResult() ["00660040"]["vr"].asString());
-#endif
-
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
-  ASSERT_EQ("OLOL", s);
+  ASSERT_EQ("16", s);
+#elif DCMTK_VERSION_NUMBER == 361
+  ASSERT_EQ("UL", visitor.GetResult() ["00660040"]["vr"].asString());
+  ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
+#elif DCMTK_VERSION_NUMBER > 361
+  ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
+  ASSERT_EQ("46", s);
+#endif
 
   ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
@@ -747,10 +751,10 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("SH", visitor.GetResult() ["00080050"]["Value"][0].asString());
 
   ASSERT_EQ("SL", visitor.GetResult() ["00186020"]["vr"].asString());
-  ASSERT_FLOAT_EQ(-15, visitor.GetResult() ["00186020"]["Value"][0].asInt());
+  ASSERT_EQ(-15, visitor.GetResult() ["00186020"]["Value"][0].asInt());
 
   ASSERT_EQ("SS", visitor.GetResult() ["00189219"]["vr"].asString());
-  ASSERT_FLOAT_EQ(-16, visitor.GetResult() ["00189219"]["Value"][0].asInt());
+  ASSERT_EQ(-16, visitor.GetResult() ["00189219"]["Value"][0].asInt());
 
   ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["vr"].asString());
   ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["Value"][0].asString());
