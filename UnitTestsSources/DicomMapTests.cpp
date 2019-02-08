@@ -730,7 +730,7 @@ TEST(DicomWebJson, ValueRepresentation)
 #if DCMTK_VERSION_NUMBER < 361
   ASSERT_EQ("UN", visitor.GetResult() ["00660040"]["vr"].asString());
   Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
-  ASSERT_EQ("16", s);
+  ASSERT_EQ("46", s);
 #elif DCMTK_VERSION_NUMBER == 361
   ASSERT_EQ("UL", visitor.GetResult() ["00660040"]["vr"].asString());
   ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
