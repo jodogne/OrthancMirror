@@ -121,13 +121,13 @@ namespace Orthanc
   };
 
 
-  class LuaScripting::StableResourceEvent : public LuaScripting::IEvent
+  class LuaScripting::ResourceEvent : public LuaScripting::IEvent
   {
   private:
     ServerIndexChange  change_;
 
   public:
-    StableResourceEvent(const ServerIndexChange& change) :
+    ResourceEvent(const ServerIndexChange& change) :
     change_(change)
     {
     }
@@ -148,6 +148,18 @@ namespace Orthanc
 
         case ChangeType_StableSeries:
           name = "OnStableSeries";
+          break;
+
+        case ChangeType_NewPatient:
+          name = "OnNewPatient";
+          break;
+
+        case ChangeType_NewStudy:
+          name = "OnNewStudy";
+          break;
+
+        case ChangeType_NewSeries:
+          name = "OnNewSeries";
           break;
 
         default:
@@ -725,9 +737,12 @@ namespace Orthanc
   {
     if (change.GetChangeType() == ChangeType_StablePatient ||
         change.GetChangeType() == ChangeType_StableStudy ||
-        change.GetChangeType() == ChangeType_StableSeries)
+        change.GetChangeType() == ChangeType_StableSeries ||
+        change.GetChangeType() == ChangeType_NewPatient ||
+        change.GetChangeType() == ChangeType_NewStudy ||
+        change.GetChangeType() == ChangeType_NewSeries)
     {
-      pendingEvents_.Enqueue(new StableResourceEvent(change));
+      pendingEvents_.Enqueue(new ResourceEvent(change));
     }
   }
 
