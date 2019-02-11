@@ -165,7 +165,8 @@ namespace Orthanc
 
 
   static void Check(const OFCondition& cond,
-                    const std::string& aet)
+                    const std::string& aet,
+                    const std::string& command)
   {
     if (cond.bad())
     {
@@ -205,9 +206,10 @@ namespace Orthanc
       {
         info += ")";
       }
-      
+
       throw OrthancException(ErrorCode_NetworkProtocol,
-                             "DicomUserConnection to AET \"" + aet + "\": " + info);
+                             "DicomUserConnection - " + command +
+                             " to AET \"" + aet + "\": " + info);
     }
   }
 
@@ -235,13 +237,15 @@ namespace Orthanc
                                       const std::string& aet)
   {
     Check(ASC_addPresentationContext(params, presentationContextId, 
-                                     sopClass.c_str(), asPreferred, 1), aet);
+                                     sopClass.c_str(), asPreferred, 1),
+          aet, "initializing");
     presentationContextId += 2;
 
     if (asFallback.size() > 0)
     {
       Check(ASC_addPresentationContext(params, presentationContextId, 
-                                       sopClass.c_str(), &asFallback[0], asFallback.size()), aet);
+                                       sopClass.c_str(), &asFallback[0], asFallback.size()),
+            aet, "initializing");
       presentationContextId += 2;
     }
   }
@@ -308,7 +312,8 @@ namespace Orthanc
                                          uint16_t moveOriginatorID)
   {
     DcmFileFormat dcmff;
-    Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength), connection.remoteAet_);
+    Check(dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength),
+          connection.remoteAet_, "C-STORE");
 
     // Determine the storage SOP class UID for this instance
     static const DcmTagKey DCM_SOP_CLASS_UID(0x0008, 0x0016);
@@ -380,7 +385,9 @@ namespace Orthanc
     if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
 #endif
     {
-      throw OrthancException(ErrorCode_NoSopClassOrInstance);
+      throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                             "Unable to determine the SOP class/instance for C-STORE with AET " +
+                             connection.remoteAet_);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -388,9 +395,11 @@ namespace Orthanc
     if (presID == 0)
     {
       const char *modalityName = dcmSOPClassUIDToModality(sopClass);
-      if (!modalityName) modalityName = dcmFindNameOfUID(sopClass);
-      if (!modalityName) modalityName = "unknown SOP class";
-      throw OrthancException(ErrorCode_NoPresentationContext);
+      if (modalityName == NULL) modalityName = dcmFindNameOfUID(sopClass);
+      if (modalityName == NULL) modalityName = "unknown SOP class";
+      throw OrthancException(ErrorCode_NoPresentationContext,
+                             "Unable to determine the accepted presentation contexts for C-STORE with AET " +
+                             connection.remoteAet_ + " (" + std::string(modalityName) + ")");
     }
 
     // Prepare the transmission of data
@@ -418,7 +427,8 @@ namespace Orthanc
     Check(DIMSE_storeUser(assoc_, presID, &request,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
                           /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
-                          &rsp, &statusDetail, NULL), connection.remoteAet_);
+                          &rsp, &statusDetail, NULL),
+          connection.remoteAet_, "C-STORE");
 
     if (statusDetail != NULL) 
     {
@@ -609,7 +619,8 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(association, sopClass);
     if (presID == 0)
     {
-      throw OrthancException(ErrorCode_DicomFindUnavailable);
+      throw OrthancException(ErrorCode_DicomFindUnavailable,
+                             "Remote AET is " + remoteAet);
     }
 
     T_DIMSE_C_FindRQ request;
@@ -640,7 +651,7 @@ namespace Orthanc
       delete statusDetail;
     }
 
-    Check(cond, remoteAet);
+    Check(cond, remoteAet, "C-FIND");
   }
 
 
@@ -813,7 +824,8 @@ namespace Orthanc
     int presID = ASC_findAcceptedPresentationContextID(pimpl_->assoc_, sopClass);
     if (presID == 0)
     {
-      throw OrthancException(ErrorCode_DicomMoveUnavailable);
+      throw OrthancException(ErrorCode_DicomMoveUnavailable,
+                             "Remote AET is " + remoteAet_);
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -844,7 +856,7 @@ namespace Orthanc
       delete responseIdentifiers;
     }
 
-    Check(cond, remoteAet_);
+    Check(cond, remoteAet_, "C-MOVE");
   }
 
 
@@ -983,7 +995,8 @@ namespace Orthanc
     {
       if (host.size() > HOST_NAME_MAX - 10)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Invalid host name (too long): " + host);
       }
 
       Close();
@@ -1013,11 +1026,12 @@ namespace Orthanc
               << GetRemoteHost() << ":" << GetRemotePort() 
               << " (manufacturer: " << EnumerationToString(GetRemoteManufacturer()) << ")";
 
-    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_), remoteAet_);
-    Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU), remoteAet_);
+    Check(ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ pimpl_->acseTimeout_, &pimpl_->net_), remoteAet_, "connecting");
+    Check(ASC_createAssociationParameters(&pimpl_->params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU), remoteAet_, "connecting");
 
     // Set this application's title and the called application's title in the params
-    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL), remoteAet_);
+    Check(ASC_setAPTitles(pimpl_->params_, localAet_.c_str(), remoteAet_.c_str(), NULL),
+          remoteAet_, "connecting");
 
     // Set the network addresses of the local and remote entities
     char localHost[HOST_NAME_MAX];
@@ -1032,19 +1046,24 @@ namespace Orthanc
 #endif
       (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d", remoteHost_.c_str(), remotePort_);
 
-    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort), remoteAet_);
+    Check(ASC_setPresentationAddresses(pimpl_->params_, localHost, remoteHostAndPort),
+          remoteAet_, "connecting");
 
     // Set various options
-    Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false), remoteAet_);
+    Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false),
+          remoteAet_, "connecting");
 
     SetupPresentationContexts(preferredTransferSyntax_);
 
     // Do the association
-    Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_), remoteAet_);
+    Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_),
+          remoteAet_, "connecting");
 
     if (ASC_countAcceptedPresentationContexts(pimpl_->params_) == 0)
     {
-      throw OrthancException(ErrorCode_NoPresentationContext);
+      throw OrthancException(ErrorCode_NoPresentationContext,
+                             "Unable to negotiate a presentation context with AET " +
+                             remoteAet_);
     }
   }
 
@@ -1118,7 +1137,7 @@ namespace Orthanc
     Check(DIMSE_echoUser(pimpl_->assoc_, pimpl_->assoc_->nextMsgID++, 
                          /*opt_blockMode*/ DIMSE_BLOCKING, 
                          /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
-                         &status, NULL), remoteAet_);
+                         &status, NULL), remoteAet_, "C-ECHO");
     return status == STATUS_Success;
   }
 
