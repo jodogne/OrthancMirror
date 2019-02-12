@@ -318,9 +318,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
   }
 
   json = OrthancPluginEncodeDicomWebXml(context,
-                                         OrthancPluginGetInstanceData(context, instance),
-                                         OrthancPluginGetInstanceSize(context, instance),
-                                         DicomWebBinaryCallback);
+                                        OrthancPluginGetInstanceData(context, instance),
+                                        OrthancPluginGetInstanceSize(context, instance),
+                                        DicomWebBinaryCallback);
   if (first)
   {
     printf("[%s]\n", json);
@@ -337,10 +337,11 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeT
                                                             OrthancPluginResourceType resourceType,
                                                             const char* resourceId)
 {
+  char info[1024];
+
   OrthancPluginMemoryBuffer tmp;
   memset(&tmp, 0, sizeof(tmp));
 
-  char info[1024];
   sprintf(info, "Change %d on resource %s of type %d", changeType,
           (resourceId == NULL ? "<none>" : resourceId), resourceType);
   OrthancPluginLogWarning(context, info);
@@ -425,7 +426,8 @@ ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  m
 ORTHANC_PLUGINS_API void RefreshMetrics()
 {
   static unsigned int count = 0;
-  OrthancPluginSetMetricsValue(context, "sample_counter", count++, OrthancPluginMetricsType_Default); 
+  OrthancPluginSetMetricsValue(context, "sample_counter", 
+	  (float) (count++), OrthancPluginMetricsType_Default); 
 }
 
 
