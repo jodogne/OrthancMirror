@@ -264,6 +264,8 @@ namespace Orthanc
       UID_BasicVoiceAudioWaveformStorage,
       UID_BlendingSoftcopyPresentationStateStorage,
       UID_BreastTomosynthesisImageStorage,
+      UID_BreastProjectionXRayImageStorageForProcessing,
+      UID_BreastProjectionXRayImageStorageForPresentation,
       UID_CardiacElectrophysiologyWaveformStorage,
       UID_ChestCADSRStorage,
       UID_ColonCADSRStorage,
