@@ -450,7 +450,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
-  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1);
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false);
   ASSERT_EQ(15u, utf8.size());
   ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
   ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));
@@ -477,8 +477,8 @@ TEST(Toolbox, FixUtf8)
 
   std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
 
-  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1), Encoding_Latin1));
-  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8));
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false), Encoding_Latin1));
+  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false));
 }
 
 
@@ -690,6 +690,7 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(Encoding_Japanese, StringToEncoding(EnumerationToString(Encoding_Japanese)));
   ASSERT_EQ(Encoding_Chinese, StringToEncoding(EnumerationToString(Encoding_Chinese)));
   ASSERT_EQ(Encoding_Thai, StringToEncoding(EnumerationToString(Encoding_Thai)));
+  ASSERT_EQ(Encoding_Korean, StringToEncoding(EnumerationToString(Encoding_Korean)));
 
   ASSERT_EQ(ResourceType_Patient, StringToResourceType(EnumerationToString(ResourceType_Patient)));
   ASSERT_EQ(ResourceType_Study, StringToResourceType(EnumerationToString(ResourceType_Study)));

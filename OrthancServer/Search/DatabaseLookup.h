@@ -74,7 +74,8 @@ namespace Orthanc
     bool IsMatch(const DicomMap& value) const;
 
     bool IsMatch(DcmItem& item,
-                 Encoding encoding) const;
+                 Encoding encoding,
+                 bool hasCodeExtensions) const;
 
     void AddDicomConstraint(const DicomTag& tag,
                             const std::string& dicomQuery,

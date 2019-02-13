@@ -519,7 +519,10 @@ namespace Orthanc
           else if (tag["Type"] == "String")
           {
             std::string value = tag["Value"].asString();
-            dicom.ReplacePlainString(*it, Toolbox::ConvertFromUtf8(value, dicom.GetEncoding()));
+
+            bool hasCodeExtensions;
+            Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+            dicom.ReplacePlainString(*it, Toolbox::ConvertFromUtf8(value, encoding));
           }
         }
       }
