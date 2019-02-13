@@ -186,7 +186,7 @@ namespace Orthanc
     void EmbedImage(MimeType mime,
                     const std::string& content);
 
-    Encoding GetEncoding() const;
+    Encoding DetectEncoding(bool& hasCodeExtensions) const;
 
     // WARNING: This function only sets the encoding, it will not
     // convert the encoding of the tags. Use "ChangeEncoding()" if need be.

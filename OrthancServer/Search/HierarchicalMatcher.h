@@ -51,20 +51,24 @@ namespace Orthanc
 
     void Setup(DcmItem& query,
                bool caseSensitivePN,
-               Encoding encoding);
+               Encoding encoding,
+               bool hasCodeExtensions);
 
     HierarchicalMatcher(DcmItem& query,
                         bool caseSensitivePN,
-                        Encoding encoding)
+                        Encoding encoding,
+                        bool hasCodeExtensions)
     {
-      Setup(query, caseSensitivePN, encoding);
+      Setup(query, caseSensitivePN, encoding, hasCodeExtensions);
     }
 
     bool MatchInternal(DcmItem& dicom,
-                       Encoding encoding) const;
+                       Encoding encoding,
+                       bool hasCodeExtensions) const;
 
     DcmDataset* ExtractInternal(DcmItem& dicom,
-                                Encoding encoding) const;
+                                Encoding encoding,
+                                bool hasCodeExtensions) const;
 
   public:
     HierarchicalMatcher(ParsedDicomFile& query);

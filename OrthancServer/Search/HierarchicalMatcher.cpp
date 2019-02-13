@@ -53,7 +53,9 @@ namespace Orthanc
       caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
     }
 
-    Setup(*query.GetDcmtkObject().getDataset(), caseSensitivePN, query.GetEncoding());
+    bool hasCodeExtensions;
+    Encoding encoding = query.DetectEncoding(hasCodeExtensions);
+    Setup(*query.GetDcmtkObject().getDataset(), caseSensitivePN, encoding, hasCodeExtensions);
   }
 
 
@@ -72,7 +74,8 @@ namespace Orthanc
 
   void HierarchicalMatcher::Setup(DcmItem& dataset,
                                   bool caseSensitivePN,
-                                  Encoding encoding)
+                                  Encoding encoding,
+                                  bool hasCodeExtensions)
   {
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
@@ -108,7 +111,7 @@ namespace Orthanc
         }
         else if (sequence.card() == 1)
         {
-          sequences_[tag] = new HierarchicalMatcher(*sequence.getItem(0), caseSensitivePN, encoding);
+          sequences_[tag] = new HierarchicalMatcher(*sequence.getItem(0), caseSensitivePN, encoding, hasCodeExtensions);
         }
         else
         {
@@ -122,7 +125,7 @@ namespace Orthanc
         std::set<DicomTag> ignoreTagLength;
         std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                         (*element, DicomToJsonFlags_None, 
-                                         0, encoding, ignoreTagLength));
+                                         0, encoding, hasCodeExtensions, ignoreTagLength));
 
         // WARNING: Also modify "DatabaseLookup::IsMatch()" if modifying this code
         if (value.get() == NULL ||
@@ -197,15 +200,19 @@ namespace Orthanc
 
   bool HierarchicalMatcher::Match(ParsedDicomFile& dicom) const
   {
+    bool hasCodeExtensions;
+    Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+    
     return MatchInternal(*dicom.GetDcmtkObject().getDataset(),
-                         dicom.GetEncoding());
+                         encoding, hasCodeExtensions);
   }
 
 
   bool HierarchicalMatcher::MatchInternal(DcmItem& item,
-                                          Encoding encoding) const
+                                          Encoding encoding,
+                                          bool hasCodeExtensions) const
   {
-    if (!flatConstraints_.IsMatch(item, encoding))
+    if (!flatConstraints_.IsMatch(item, encoding, hasCodeExtensions))
     {
       return false;
     }
@@ -228,7 +235,7 @@ namespace Orthanc
 
         for (unsigned long i = 0; i < sequence->card(); i++)
         {
-          if (it->second->MatchInternal(*sequence->getItem(i), encoding))
+          if (it->second->MatchInternal(*sequence->getItem(i), encoding, hasCodeExtensions))
           {
             match = true;
             break;
@@ -247,7 +254,8 @@ namespace Orthanc
 
 
   DcmDataset* HierarchicalMatcher::ExtractInternal(DcmItem& source,
-                                                   Encoding encoding) const
+                                                   Encoding encoding,
+                                                   bool hasCodeExtensions) const
   {
     std::auto_ptr<DcmDataset> target(new DcmDataset);
 
@@ -283,13 +291,13 @@ namespace Orthanc
           {
             cloned->append(new DcmItem(*sequence->getItem(i)));
           }
-          else if (it->second->MatchInternal(*sequence->getItem(i), encoding))  // TODO Might be optimized
+          else if (it->second->MatchInternal(*sequence->getItem(i), encoding, hasCodeExtensions))  // TODO Might be optimized
           {
             // It is necessary to encapsulate the child dataset into a
             // "DcmItem" object before it can be included in a
             // sequence. Otherwise, "dciodvfy" reports an error "Bad
             // tag in sequence - Expecting Item or Sequence Delimiter."
-            std::auto_ptr<DcmDataset> child(it->second->ExtractInternal(*sequence->getItem(i), encoding));
+            std::auto_ptr<DcmDataset> child(it->second->ExtractInternal(*sequence->getItem(i), encoding, hasCodeExtensions));
             cloned->append(new DcmItem(*child));
           }
         }
@@ -304,11 +312,14 @@ namespace Orthanc
 
   ParsedDicomFile* HierarchicalMatcher::Extract(ParsedDicomFile& dicom) const
   {
+    bool hasCodeExtensions;
+    Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+    
     std::auto_ptr<DcmDataset> dataset(ExtractInternal(*dicom.GetDcmtkObject().getDataset(),
-                                                      dicom.GetEncoding()));
+                                                      encoding, hasCodeExtensions));
 
     std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(*dataset));
-    result->SetEncoding(dicom.GetEncoding());
+    result->SetEncoding(encoding);
 
     return result.release();
   }

@@ -95,7 +95,8 @@ namespace Orthanc
 
 
   bool DatabaseLookup::IsMatch(DcmItem& item,
-                               Encoding encoding) const
+                               Encoding encoding,
+                               bool hasCodeExtensions) const
   {
     for (size_t i = 0; i < constraints_.size(); i++)
     {
@@ -118,7 +119,7 @@ namespace Orthanc
       std::set<DicomTag> ignoreTagLength;
       std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
                                       (*element, DicomToJsonFlags_None, 
-                                       0, encoding, ignoreTagLength));
+                                       0, encoding, hasCodeExtensions, ignoreTagLength));
 
       // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
       if (value.get() == NULL ||

@@ -163,7 +163,8 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_LOCALE == 1
     std::string ConvertToUtf8(const std::string& source,
-                              Encoding sourceEncoding);
+                              Encoding sourceEncoding,
+                              bool hasCodeExtensions);
 
     std::string ConvertFromUtf8(const std::string& source,
                                 Encoding targetEncoding);
@@ -248,6 +249,9 @@ namespace Orthanc
 
     std::string SubstituteVariables(const std::string& source,
                                     const std::map<std::string, std::string>& dictionary);
+
+    void RemoveIso2022EscapeSequences(std::string& dest,
+                                      const std::string& src);
   }
 }
 

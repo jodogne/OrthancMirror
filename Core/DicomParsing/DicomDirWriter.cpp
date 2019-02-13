@@ -161,6 +161,7 @@ namespace Orthanc
     static bool GetUtf8TagValue(std::string& result,
                                 DcmItem& source,
                                 Encoding encoding,
+                                bool hasCodeExtensions,
                                 const DcmTagKey& key)
     {
       DcmElement* element = NULL;
@@ -174,7 +175,7 @@ namespace Orthanc
         {
           if (s != NULL)
           {
-            result = Toolbox::ConvertToUtf8(s, encoding);
+            result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
           }
           
           return true;
@@ -202,6 +203,7 @@ namespace Orthanc
     static bool CopyString(DcmDirectoryRecord& target,
                            DcmDataset& source,
                            Encoding encoding,
+                           bool hasCodeExtensions,
                            const DcmTagKey& key,
                            bool optional,
                            bool copyEmpty)
@@ -214,7 +216,7 @@ namespace Orthanc
       }
 
       std::string value;
-      bool found = GetUtf8TagValue(value, source, encoding, key);
+      bool found = GetUtf8TagValue(value, source, encoding, hasCodeExtensions, key);
 
       if (!found)
       {
@@ -231,33 +233,37 @@ namespace Orthanc
     static void CopyStringType1(DcmDirectoryRecord& target,
                                 DcmDataset& source,
                                 Encoding encoding,
+                                bool hasCodeExtensions,
                                 const DcmTagKey& key)
     {
-      CopyString(target, source, encoding, key, false, false);
+      CopyString(target, source, encoding, hasCodeExtensions, key, false, false);
     }
 
     static void CopyStringType1C(DcmDirectoryRecord& target,
                                  DcmDataset& source,
                                  Encoding encoding,
+                                 bool hasCodeExtensions,
                                  const DcmTagKey& key)
     {
-      CopyString(target, source, encoding, key, true, false);
+      CopyString(target, source, encoding, hasCodeExtensions, key, true, false);
     }
 
     static void CopyStringType2(DcmDirectoryRecord& target,
                                 DcmDataset& source,
                                 Encoding encoding,
+                                bool hasCodeExtensions,
                                 const DcmTagKey& key)
     {
-      CopyString(target, source, encoding, key, false, true);
+      CopyString(target, source, encoding, hasCodeExtensions, key, false, true);
     }
 
     static void CopyStringType3(DcmDirectoryRecord& target,
                                 DcmDataset& source,
                                 Encoding encoding,
+                                bool hasCodeExtensions,
                                 const DcmTagKey& key)
     {
-      CopyString(target, source, encoding, key, true, true);
+      CopyString(target, source, encoding, hasCodeExtensions, key, true, true);
     }
 
 
@@ -298,17 +304,19 @@ namespace Orthanc
 
     void FillPatient(DcmDirectoryRecord& record,
                      DcmDataset& dicom,
-                     Encoding encoding)
+                     Encoding encoding,
+                     bool hasCodeExtensions)
     {
       // cf. "DicomDirInterface::buildPatientRecord()"
 
-      CopyStringType1C(record, dicom, encoding, DCM_PatientID);
-      CopyStringType2(record, dicom, encoding, DCM_PatientName);
+      CopyStringType1C(record, dicom, encoding, hasCodeExtensions, DCM_PatientID);
+      CopyStringType2(record, dicom, encoding, hasCodeExtensions, DCM_PatientName);
     }
 
     void FillStudy(DcmDirectoryRecord& record,
                    DcmDataset& dicom,
-                   Encoding encoding)
+                   Encoding encoding,
+                   bool hasCodeExtensions)
     {
       // cf. "DicomDirInterface::buildStudyRecord()"
 
@@ -316,19 +324,19 @@ namespace Orthanc
       SystemToolbox::GetNowDicom(nowDate, nowTime, utc_);
 
       std::string studyDate;
-      if (!GetUtf8TagValue(studyDate, dicom, encoding, DCM_StudyDate) &&
-          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_SeriesDate) &&
-          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_AcquisitionDate) &&
-          !GetUtf8TagValue(studyDate, dicom, encoding, DCM_ContentDate))
+      if (!GetUtf8TagValue(studyDate, dicom, encoding, hasCodeExtensions, DCM_StudyDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, hasCodeExtensions, DCM_SeriesDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, hasCodeExtensions, DCM_AcquisitionDate) &&
+          !GetUtf8TagValue(studyDate, dicom, encoding, hasCodeExtensions, DCM_ContentDate))
       {
         studyDate = nowDate;
       }
           
       std::string studyTime;
-      if (!GetUtf8TagValue(studyTime, dicom, encoding, DCM_StudyTime) &&
-          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_SeriesTime) &&
-          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_AcquisitionTime) &&
-          !GetUtf8TagValue(studyTime, dicom, encoding, DCM_ContentTime))
+      if (!GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_StudyTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_SeriesTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_AcquisitionTime) &&
+          !GetUtf8TagValue(studyTime, dicom, encoding, hasCodeExtensions, DCM_ContentTime))
       {
         studyTime = nowTime;
       }
@@ -336,52 +344,54 @@ namespace Orthanc
       /* copy attribute values from dataset to study record */
       SetTagValue(record, DCM_StudyDate, studyDate);
       SetTagValue(record, DCM_StudyTime, studyTime);
-      CopyStringType2(record, dicom, encoding, DCM_StudyDescription);
-      CopyStringType1(record, dicom, encoding, DCM_StudyInstanceUID);
+      CopyStringType2(record, dicom, encoding, hasCodeExtensions, DCM_StudyDescription);
+      CopyStringType1(record, dicom, encoding, hasCodeExtensions, DCM_StudyInstanceUID);
       /* use type 1C instead of 1 in order to avoid unwanted overwriting */
-      CopyStringType1C(record, dicom, encoding, DCM_StudyID);
-      CopyStringType2(record, dicom, encoding, DCM_AccessionNumber);
+      CopyStringType1C(record, dicom, encoding, hasCodeExtensions, DCM_StudyID);
+      CopyStringType2(record, dicom, encoding, hasCodeExtensions, DCM_AccessionNumber);
     }
 
     void FillSeries(DcmDirectoryRecord& record,
                     DcmDataset& dicom,
-                    Encoding encoding)
+                    Encoding encoding,
+                    bool hasCodeExtensions)
     {
       // cf. "DicomDirInterface::buildSeriesRecord()"
 
       /* copy attribute values from dataset to series record */
-      CopyStringType1(record, dicom, encoding, DCM_Modality);
-      CopyStringType1(record, dicom, encoding, DCM_SeriesInstanceUID);
+      CopyStringType1(record, dicom, encoding, hasCodeExtensions, DCM_Modality);
+      CopyStringType1(record, dicom, encoding, hasCodeExtensions, DCM_SeriesInstanceUID);
       /* use type 1C instead of 1 in order to avoid unwanted overwriting */
-      CopyStringType1C(record, dicom, encoding, DCM_SeriesNumber);
+      CopyStringType1C(record, dicom, encoding, hasCodeExtensions, DCM_SeriesNumber);
 
       // Add extended (non-standard) type 3 tags, those are not generated by DCMTK
       // http://dicom.nema.org/medical/Dicom/2016a/output/chtml/part02/sect_7.3.html
       // https://groups.google.com/d/msg/orthanc-users/Y7LOvZMDeoc/9cp3kDgxAwAJ
       if (extendedSopClass_)
       {
-        CopyStringType3(record, dicom, encoding, DCM_SeriesDescription);
+        CopyStringType3(record, dicom, encoding, hasCodeExtensions, DCM_SeriesDescription);
       }
     }
 
     void FillInstance(DcmDirectoryRecord& record,
                       DcmDataset& dicom,
                       Encoding encoding,
+                      bool hasCodeExtensions,
                       DcmMetaInfo& metaInfo,
                       const char* path)
     {
       // cf. "DicomDirInterface::buildImageRecord()"
 
       /* copy attribute values from dataset to image record */
-      CopyStringType1(record, dicom, encoding, DCM_InstanceNumber);
-      //CopyElementType1C(record, dicom, encoding, DCM_ImageType);
+      CopyStringType1(record, dicom, encoding, hasCodeExtensions, DCM_InstanceNumber);
+      //CopyElementType1C(record, dicom, encoding, hasCodeExtensions, DCM_ImageType);
 
       // REMOVED since 0.9.7: copyElementType1C(dicom, DCM_ReferencedImageSequence, record);
 
       std::string sopClassUid, sopInstanceUid, transferSyntaxUid;
-      if (!GetUtf8TagValue(sopClassUid, dicom, encoding, DCM_SOPClassUID) ||
-          !GetUtf8TagValue(sopInstanceUid, dicom, encoding, DCM_SOPInstanceUID) ||
-          !GetUtf8TagValue(transferSyntaxUid, metaInfo, encoding, DCM_TransferSyntaxUID))
+      if (!GetUtf8TagValue(sopClassUid, dicom, encoding, hasCodeExtensions, DCM_SOPClassUID) ||
+          !GetUtf8TagValue(sopInstanceUid, dicom, encoding, hasCodeExtensions, DCM_SOPInstanceUID) ||
+          !GetUtf8TagValue(transferSyntaxUid, metaInfo, encoding, hasCodeExtensions, DCM_TransferSyntaxUID))
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
@@ -401,7 +411,9 @@ namespace Orthanc
                         const char* path)
     {
       DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
-      Encoding encoding = dicom.GetEncoding();
+
+      bool hasCodeExtensions;
+      Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
 
       bool found;
       std::string id;
@@ -410,7 +422,7 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          if (!GetUtf8TagValue(id, dataset, encoding, DCM_PatientID))
+          if (!GetUtf8TagValue(id, dataset, encoding, hasCodeExtensions, DCM_PatientID))
           {
             // Be tolerant about missing patient ID. Fixes issue #124
             // (GET /studies/ID/media fails for certain dicom file).
@@ -422,17 +434,17 @@ namespace Orthanc
           break;
 
         case ResourceType_Study:
-          found = GetUtf8TagValue(id, dataset, encoding, DCM_StudyInstanceUID);
+          found = GetUtf8TagValue(id, dataset, encoding, hasCodeExtensions, DCM_StudyInstanceUID);
           type = ERT_Study;
           break;
 
         case ResourceType_Series:
-          found = GetUtf8TagValue(id, dataset, encoding, DCM_SeriesInstanceUID);
+          found = GetUtf8TagValue(id, dataset, encoding, hasCodeExtensions, DCM_SeriesInstanceUID);
           type = ERT_Series;
           break;
 
         case ResourceType_Instance:
-          found = GetUtf8TagValue(id, dataset, encoding, DCM_SOPInstanceUID);
+          found = GetUtf8TagValue(id, dataset, encoding, hasCodeExtensions, DCM_SOPInstanceUID);
           type = ERT_Image;
           break;
 
@@ -459,26 +471,26 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          FillPatient(*record, dataset, encoding);
+          FillPatient(*record, dataset, encoding, hasCodeExtensions);
           break;
 
         case ResourceType_Study:
-          FillStudy(*record, dataset, encoding);
+          FillStudy(*record, dataset, encoding, hasCodeExtensions);
           break;
 
         case ResourceType_Series:
-          FillSeries(*record, dataset, encoding);
+          FillSeries(*record, dataset, encoding, hasCodeExtensions);
           break;
 
         case ResourceType_Instance:
-          FillInstance(*record, dataset, encoding, *dicom.GetDcmtkObject().getMetaInfo(), path);
+          FillInstance(*record, dataset, encoding, hasCodeExtensions, *dicom.GetDcmtkObject().getMetaInfo(), path);
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      CopyStringType1C(*record, dataset, encoding, DCM_SpecificCharacterSet);
+      CopyStringType1C(*record, dataset, encoding, hasCodeExtensions, DCM_SpecificCharacterSet);
 
       target = record.get();
       GetRoot().insertSub(record.release());

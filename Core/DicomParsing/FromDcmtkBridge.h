@@ -92,6 +92,7 @@ namespace Orthanc
                               DicomToJsonFlags flags,
                               unsigned int maxStringLength,
                               Encoding encoding,
+                              bool hasCodeExtensions,
                               const std::set<DicomTag>& ignoreTagLength);
 
     static void ElementToJson(Json::Value& parent,
@@ -100,6 +101,7 @@ namespace Orthanc
                               DicomToJsonFlags flags,
                               unsigned int maxStringLength,
                               Encoding dicomEncoding,
+                              bool hasCodeExtensions,
                               const std::set<DicomTag>& ignoreTagLength);
 
     static void ExtractDicomAsJson(Json::Value& target, 
@@ -112,6 +114,7 @@ namespace Orthanc
 
     static void ChangeStringEncoding(DcmItem& dataset,
                                      Encoding source,
+                                     bool hasSourceCodeExtensions,
                                      Encoding target);
 
   public:
@@ -124,7 +127,8 @@ namespace Orthanc
                                       unsigned int maxMultiplicity,
                                       const std::string& privateCreator);
 
-    static Encoding DetectEncoding(DcmItem& dataset,
+    static Encoding DetectEncoding(bool& hasCodeExtensions,
+                                   DcmItem& dataset,
                                    Encoding defaultEncoding);
 
     static DicomTag Convert(const DcmTag& tag);
@@ -137,6 +141,7 @@ namespace Orthanc
                                           DicomToJsonFlags flags,
                                           unsigned int maxStringLength,
                                           Encoding encoding,
+                                          bool hasCodeExtensions,
                                           const std::set<DicomTag>& ignoreTagLength);
 
     static void ExtractHeaderAsJson(Json::Value& target, 

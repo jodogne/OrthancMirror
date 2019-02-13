@@ -414,37 +414,49 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  Encoding FromDcmtkBridge::DetectEncoding(DcmItem& dataset,
+  Encoding FromDcmtkBridge::DetectEncoding(bool& hasCodeExtensions,
+                                           DcmItem& dataset,
                                            Encoding defaultEncoding)
   {
-    Encoding encoding = defaultEncoding;
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.12.html#sect_C.12.1.1.2
 
     OFString tmp;
-    if (dataset.findAndGetOFString(DCM_SpecificCharacterSet, tmp).good())
+    if (dataset.findAndGetOFStringArray(DCM_SpecificCharacterSet, tmp).good())
     {
-      std::string characterSet = Toolbox::StripSpaces(std::string(tmp.c_str()));
+      std::vector<std::string> tokens;
+      Toolbox::TokenizeString(tokens, std::string(tmp.c_str()), '\\');
 
-      if (characterSet.empty())
+      hasCodeExtensions = (tokens.size() > 1);
+
+      for (size_t i = 0; i < tokens.size(); i++)
       {
-        // Empty specific character set tag: Use the default encoding
-      }
-      else if (GetDicomEncoding(encoding, characterSet.c_str()))
-      {
-        // The specific character set is supported by the Orthanc core
-      }
-      else
-      {
-        LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet
-                     << ", fallback to ASCII (remove all special characters)";
-        encoding = Encoding_Ascii;
+        std::string characterSet = Toolbox::StripSpaces(tokens[i]);
+
+        if (!characterSet.empty())
+        {
+          Encoding encoding;
+          
+          if (GetDicomEncoding(encoding, characterSet.c_str()))
+          {
+            // The specific character set is supported by the Orthanc core
+            return encoding;
+          }
+          else
+          {
+            LOG(WARNING) << "Value of Specific Character Set (0008,0005) is not supported: " << characterSet
+                         << ", fallback to ASCII (remove all special characters)";
+            return Encoding_Ascii;
+          }
+        }
       }
     }
     else
     {
-      // No specific character set tag: Use the default encoding
+      hasCodeExtensions = false;
     }
-
-    return encoding;
+    
+    // No specific character set tag: Use the default encoding
+    return defaultEncoding;
   }
 
 
@@ -454,8 +466,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                             Encoding defaultEncoding)
   {
     std::set<DicomTag> ignoreTagLength;
-    
-    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
+
+    bool hasCodeExtensions;
+    Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
     target.Clear();
     for (unsigned long i = 0; i < dataset.card(); i++)
@@ -466,7 +479,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         target.SetValue(element->getTag().getGTag(),
                         element->getTag().getETag(),
                         ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                           maxStringLength, encoding, ignoreTagLength));
+                                           maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
       }
     }
   }
@@ -488,6 +501,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                                   DicomToJsonFlags flags,
                                                   unsigned int maxStringLength,
                                                   Encoding encoding,
+                                                  bool hasCodeExtensions,
                                                   const std::set<DicomTag>& ignoreTagLength)
   {
     if (!element.isLeaf())
@@ -507,7 +521,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       else
       {
         std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding);
+        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
 
         if (maxStringLength != 0 &&
             utf8.size() > maxStringLength &&
@@ -855,6 +869,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
                                       Encoding encoding,
+                                      bool hasCodeExtensions,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
     if (parent.type() == Json::nullValue)
@@ -869,7 +884,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
       std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                  (element, flags, 0, encoding, ignoreTagLength));
+                                  (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
       {
@@ -894,7 +909,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = target.append(Json::objectValue);
-        DatasetToJson(v, *child, format, flags, maxStringLength, encoding, ignoreTagLength);
+        DatasetToJson(v, *child, format, flags, maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
       }
     }
   }
@@ -906,6 +921,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
                                       Encoding encoding,
+                                      bool hasCodeExtensions,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
     assert(parent.type() == Json::objectValue);
@@ -952,7 +968,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       }
 
       FromDcmtkBridge::ElementToJson(parent, *element, format, flags,
-                                     maxStringLength, encoding, ignoreTagLength);
+                                     maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
     }
   }
 
@@ -965,10 +981,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                            Encoding defaultEncoding,
                                            const std::set<DicomTag>& ignoreTagLength)
   {
-    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
+    bool hasCodeExtensions;
+    Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding, ignoreTagLength);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
   }
 
 
@@ -980,7 +997,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   {
     std::set<DicomTag> ignoreTagLength;
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii, ignoreTagLength);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii, false, ignoreTagLength);
   }
 
 
@@ -2033,6 +2050,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
   void FromDcmtkBridge::ChangeStringEncoding(DcmItem& dataset,
                                              Encoding source,
+                                             bool hasSourceCodeExtensions,
                                              Encoding target)
   {
     // Recursive exploration of a dataset to change the encoding of
@@ -2055,7 +2073,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               element->getString(c).good() && 
               c != NULL)
           {
-            std::string a = Toolbox::ConvertToUtf8(c, source);
+            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions);
             std::string b = Toolbox::ConvertFromUtf8(a, target);
             element->putString(b.c_str());
           }
@@ -2069,7 +2087,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
           for (unsigned long j = 0; j < sequence.card(); j++)
           {
-            ChangeStringEncoding(*sequence.getItem(j), source, target);
+            ChangeStringEncoding(*sequence.getItem(j), source, hasSourceCodeExtensions, target);
           }
         }
       }
@@ -2192,13 +2210,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
-                                    Encoding encoding);
+                                    Encoding encoding,
+                                    bool hasCodeExtensions);
  
   static void ApplyVisitorToDataset(DcmItem& dataset,
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
-                                    Encoding encoding)
+                                    Encoding encoding,
+                                    bool hasCodeExtensions)
   {
     assert(parentTags.size() == parentIndexes.size());
 
@@ -2211,7 +2231,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       }
       else
       {
-        ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding);
+        ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
       }      
     }
   }
@@ -2222,7 +2242,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                  const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
-                                 Encoding encoding)
+                                 Encoding encoding,
+                                 bool hasCodeExtensions)
   {
     // TODO - Merge this function, that is more recent, with ConvertLeafElement()
 
@@ -2299,7 +2320,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       if (c != NULL)  // This case corresponds to the empty string
       {
         std::string s(c);
-        utf8 = Toolbox::ConvertToUtf8(s, encoding);
+        utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
       }
 
       std::string newValue;
@@ -2380,7 +2401,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               std::string s(reinterpret_cast<const char*>(data), l);
               ITagVisitor::Action action = visitor.VisitString
                 (ignored, parentTags, parentIndexes, tag, vr,
-                 Toolbox::ConvertToUtf8(s, encoding));
+                 Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
 
               if (action != ITagVisitor::Action_None)
               {
@@ -2608,7 +2629,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
-                                    Encoding encoding)
+                                    Encoding encoding,
+                                    bool hasCodeExtensions)
   {
     assert(parentTags.size() == parentIndexes.size());
 
@@ -2616,7 +2638,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     if (element.isLeaf())
     {
-      ApplyVisitorToLeaf(element, visitor, parentTags, parentIndexes, tag, encoding);
+      ApplyVisitorToLeaf(element, visitor, parentTags, parentIndexes, tag, encoding, hasCodeExtensions);
     }
     else
     {
@@ -2640,7 +2662,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         {
           indexes.back() = static_cast<size_t>(i);
           DcmItem* child = sequence.getItem(i);
-          ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding);
+          ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding, hasCodeExtensions);
         }
       }
     }
@@ -2653,7 +2675,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   {
     std::vector<DicomTag> parentTags;
     std::vector<size_t> parentIndexes;
-    Encoding encoding = DetectEncoding(dataset, defaultEncoding);
-    ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding);
+    bool hasCodeExtensions;
+    Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
+    ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
   }
 }
