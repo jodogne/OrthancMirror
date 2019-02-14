@@ -518,6 +518,10 @@ namespace Orthanc
         return "ISO-IR-149";
         break;
 
+      case Encoding_JapaneseKanji:
+        return "JIS";
+        break;
+
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -568,9 +572,10 @@ namespace Orthanc
         }        
       }
     }
-    catch (std::runtime_error&)
+    catch (std::runtime_error& e)
     {
       // Bad input string or bad encoding
+      LOG(INFO) << e.what();
       return ConvertToAscii(source);
     }
   }
