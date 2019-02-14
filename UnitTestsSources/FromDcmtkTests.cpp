@@ -1544,6 +1544,11 @@ TEST(Toolbox, EncodingsKorean)
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
               (DCM_PatientName, korean.c_str(), korean.size(), true).good());
 
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_Korean, encoding);
+  ASSERT_TRUE(hasCodeExtensions);
+  
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
   ASSERT_EQ(utf8, value);
@@ -1593,7 +1598,7 @@ TEST(Toolbox, EncodingsKorean)
 
 
 
-TEST(Toolbox, EncodingsJapanese)
+TEST(Toolbox, EncodingsJapaneseKanji)
 {
   // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_H.3.html
 
@@ -1619,6 +1624,11 @@ TEST(Toolbox, EncodingsJapanese)
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 87");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
               (DCM_PatientName, japanese.c_str(), japanese.size(), true).good());
+
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_JapaneseKanji, encoding);
+  ASSERT_TRUE(hasCodeExtensions);
 
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
@@ -1683,6 +1693,11 @@ TEST(Toolbox, EncodingsChinese3)
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
               (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
 
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_Chinese, encoding);
+  ASSERT_FALSE(hasCodeExtensions);
+
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
 
@@ -1739,6 +1754,11 @@ TEST(Toolbox, EncodingsChinese4)
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "GB18030");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
               (DCM_PatientComments, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_Chinese, encoding);
+  ASSERT_FALSE(hasCodeExtensions);
 
   std::string value;
   ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_COMMENTS));
