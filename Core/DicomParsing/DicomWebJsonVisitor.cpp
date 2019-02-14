@@ -43,9 +43,12 @@
 
 
 static const char* const KEY_ALPHABETIC = "Alphabetic";
+static const char* const KEY_IDEOGRAPHIC = "Ideographic";
+static const char* const KEY_PHONETIC = "Phonetic";
 static const char* const KEY_BULK_DATA_URI = "BulkDataURI";
 static const char* const KEY_INLINE_BINARY = "InlineBinary";
 static const char* const KEY_SQ = "SQ";
+static const char* const KEY_TAG = "tag";
 static const char* const KEY_VALUE = "Value";
 static const char* const KEY_VR = "vr";
 
@@ -53,9 +56,42 @@ static const char* const KEY_VR = "vr";
 namespace Orthanc
 {
 #if ORTHANC_ENABLE_PUGIXML == 1
+  static void DecomposeXmlPersonName(pugi::xml_node& target,
+                                     const std::string& source)
+  {
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, source, '^');
+
+    if (tokens.size() >= 1)
+    {
+      target.append_child("FamilyName").text() = tokens[0].c_str();
+    }
+            
+    if (tokens.size() >= 2)
+    {
+      target.append_child("GivenName").text() = tokens[1].c_str();
+    }
+            
+    if (tokens.size() >= 3)
+    {
+      target.append_child("MiddleName").text() = tokens[2].c_str();
+    }
+            
+    if (tokens.size() >= 4)
+    {
+      target.append_child("NamePrefix").text() = tokens[3].c_str();
+    }
+            
+    if (tokens.size() >= 5)
+    {
+      target.append_child("NameSuffix").text() = tokens[4].c_str();
+    }
+  }
+  
   static void ExploreXmlDataset(pugi::xml_node& target,
                                 const Json::Value& source)
   {
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.3.html#table_F.3.1-1
     assert(source.type() == Json::objectValue);
 
     Json::Value::Members members = source.getMemberNames();
@@ -65,15 +101,15 @@ namespace Orthanc
       const Json::Value& content = source[members[i]];
 
       assert(content.type() == Json::objectValue &&
-             content.isMember("vr") &&
-             content["vr"].type() == Json::stringValue);
-      const std::string vr = content["vr"].asString();
+             content.isMember(KEY_VR) &&
+             content[KEY_VR].type() == Json::stringValue);
+      const std::string vr = content[KEY_VR].asString();
 
       const std::string keyword = FromDcmtkBridge::GetTagName(tag, "");
     
       pugi::xml_node node = target.append_child("DicomAttribute");
-      node.append_attribute("tag").set_value(members[i].c_str());
-      node.append_attribute("vr").set_value(vr.c_str());
+      node.append_attribute(KEY_TAG).set_value(members[i].c_str());
+      node.append_attribute(KEY_VR).set_value(vr.c_str());
 
       if (keyword != std::string(DcmTag_ERROR_TagName))
       {
@@ -99,40 +135,38 @@ namespace Orthanc
           }
           if (vr == "PN")
           {
-            if (content[KEY_VALUE][j].isMember(KEY_ALPHABETIC) &&
-                content[KEY_VALUE][j][KEY_ALPHABETIC].type() == Json::stringValue)
-            {
-              std::vector<std::string> tokens;
-              Toolbox::TokenizeString(tokens, content[KEY_VALUE][j][KEY_ALPHABETIC].asString(), '^');
+            bool hasAlphabetic = (content[KEY_VALUE][j].isMember(KEY_ALPHABETIC) &&
+                                  content[KEY_VALUE][j][KEY_ALPHABETIC].type() == Json::stringValue);
 
+            bool hasIdeographic = (content[KEY_VALUE][j].isMember(KEY_IDEOGRAPHIC) &&
+                                   content[KEY_VALUE][j][KEY_IDEOGRAPHIC].type() == Json::stringValue);
+
+            bool hasPhonetic = (content[KEY_VALUE][j].isMember(KEY_PHONETIC) &&
+                                content[KEY_VALUE][j][KEY_PHONETIC].type() == Json::stringValue);
+
+            if (hasAlphabetic ||
+                hasIdeographic ||
+                hasPhonetic)
+            {
               pugi::xml_node child = node.append_child("PersonName");
               child.append_attribute("number").set_value(number.c_str());
-            
-              pugi::xml_node name = child.append_child(KEY_ALPHABETIC);
-            
-              if (tokens.size() >= 1)
+
+              if (hasAlphabetic)
               {
-                name.append_child("FamilyName").text() = tokens[0].c_str();
+                pugi::xml_node name = child.append_child(KEY_ALPHABETIC);
+                DecomposeXmlPersonName(name, content[KEY_VALUE][j][KEY_ALPHABETIC].asString());
               }
-            
-              if (tokens.size() >= 2)
+
+              if (hasIdeographic)
               {
-                name.append_child("GivenName").text() = tokens[1].c_str();
+                pugi::xml_node name = child.append_child(KEY_IDEOGRAPHIC);
+                DecomposeXmlPersonName(name, content[KEY_VALUE][j][KEY_IDEOGRAPHIC].asString());
               }
-            
-              if (tokens.size() >= 3)
+
+              if (hasPhonetic)
               {
-                name.append_child("MiddleName").text() = tokens[2].c_str();
-              }
-            
-              if (tokens.size() >= 4)
-              {
-                name.append_child("NamePrefix").text() = tokens[3].c_str();
-              }
-            
-              if (tokens.size() >= 5)
-              {
-                name.append_child("NameSuffix").text() = tokens[4].c_str();
+                pugi::xml_node name = child.append_child(KEY_PHONETIC);
+                DecomposeXmlPersonName(name, content[KEY_VALUE][j][KEY_PHONETIC].asString());
               }
             }
           }
@@ -517,8 +551,25 @@ namespace Orthanc
                   Json::Value value = Json::objectValue;
                   if (!tokens[i].empty())
                   {
-                    value[KEY_ALPHABETIC] = tokens[i];
+                    std::vector<std::string> components;
+                    Toolbox::TokenizeString(components, tokens[i], '=');
+
+                    if (components.size() >= 1)
+                    {
+                      value[KEY_ALPHABETIC] = components[0];
+                    }
+
+                    if (components.size() >= 2)
+                    {
+                      value[KEY_IDEOGRAPHIC] = components[1];
+                    }
+
+                    if (components.size() >= 3)
+                    {
+                      value[KEY_PHONETIC] = components[2];
+                    }
                   }
+                  
                   node[KEY_VALUE].append(value);
                   break;
                 }
