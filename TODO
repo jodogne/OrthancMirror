@@ -89,11 +89,7 @@ Encodings
 * Support multiple specific character sets (cf. "SCSH32" in orthanc-tests)
   - http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.12.html#sect_C.12.1.1.2
   - Japanese test: http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_H.3.2.html
-* Support Simplified Chinese (ISO 2022 IR 58)
 * Support Supplementary Kanji set (ISO 2022 IR 159)
-* Implement the following unit tests:
-  - Chinese:
-    http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/chapter_K.html
 
 
 =======

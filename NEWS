@@ -2,7 +2,10 @@ Pending changes in the mainline
 ===============================
 
 * Separation of ideographic and phonetic characters in DICOMweb JSON and XML
-* Support of Japanese Kanji (ISO 2022 IR 87) and Korean (ISO 2022 IR 149) encodings
+* Support of the following multi-byte specific character sets:
+  - Japanese Kanji (ISO 2022 IR 87)
+  - Korean (ISO 2022 IR 149)
+  - Simplified Chinese (ISO 2022 IR 58)
 * Basic support for character sets with code extensions (ISO 2022 escape sequences)
 
 

@@ -692,6 +692,7 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(Encoding_Thai, StringToEncoding(EnumerationToString(Encoding_Thai)));
   ASSERT_EQ(Encoding_Korean, StringToEncoding(EnumerationToString(Encoding_Korean)));
   ASSERT_EQ(Encoding_JapaneseKanji, StringToEncoding(EnumerationToString(Encoding_JapaneseKanji)));
+  ASSERT_EQ(Encoding_SimplifiedChinese, StringToEncoding(EnumerationToString(Encoding_SimplifiedChinese)));
 
   ASSERT_EQ(ResourceType_Patient, StringToResourceType(EnumerationToString(ResourceType_Patient)));
   ASSERT_EQ(ResourceType_Study, StringToResourceType(EnumerationToString(ResourceType_Study)));

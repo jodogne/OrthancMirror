@@ -507,6 +507,9 @@ namespace Orthanc
       case Encoding_JapaneseKanji:
         return "JIS";
 
+      case Encoding_SimplifiedChinese:
+        return "GB2312";
+
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }

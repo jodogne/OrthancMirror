@@ -445,7 +445,8 @@ namespace Orthanc
     Encoding_Chinese,                       // GB18030 - Chinese simplified
     Encoding_JapaneseKanji,                 // Multibyte - JIS X 0208: Kanji
     //Encoding_JapaneseSupplementaryKanji,  // Multibyte - JIS X 0212: Supplementary Kanji set
-    Encoding_Korean                         // Multibyte - KS X 1001: Hangul and Hanja
+    Encoding_Korean,                        // Multibyte - KS X 1001: Hangul and Hanja
+    Encoding_SimplifiedChinese              // ISO 2022 IR 58
   };
 
 
