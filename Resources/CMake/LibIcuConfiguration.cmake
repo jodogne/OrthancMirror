@@ -73,11 +73,13 @@ else()
     message(FATAL_ERROR "Please install the libicu-dev package")
   endif()
 
-  CHECK_LIBRARY_EXISTS(icuuc udata_close "" HAVE_ICU_LIB)
-  if (NOT HAVE_ICU_LIB)
-    #message(FATAL_ERROR "Please install the libicu-dev package")
-    link_libraries(icuuc)
+  find_library(LIBICU_PATH_1 NAMES icuuc)
+  find_library(LIBICU_PATH_2 NAMES icui18n)
+
+  if (NOT LIBICU_PATH_1 OR 
+      NOT LIBICU_PATH_2)
+    message(FATAL_ERROR "Please install the libicu-dev package")
   else()
-    link_libraries(icuuc)
+    link_libraries(icuuc icui18n)
   endif()
 endif()

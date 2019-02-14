@@ -228,6 +228,18 @@ if (BOOST_STATIC)
   if (NOT ENABLE_LOCALE)
     message("boost::locale is disabled")
   else()
+    set(BOOST_ICU_SOURCES
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/boundary.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/codecvt.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/collator.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/conversion.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/date_time.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/formatter.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/icu_backend.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/numeric.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/time_zone.cpp
+      )
+
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/shared/generator.cpp
@@ -263,6 +275,7 @@ if (BOOST_STATIC)
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
       elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
         add_definitions(-DBOOST_LOCALE_WITH_ICU=1)
+        list(APPEND BOOST_SOURCES ${BOOST_ICU_SOURCES})
       else()
         message(FATAL_ERROR "Unsupported value for BOOST_LOCALE_BACKEND: ${BOOST_LOCALE_BACKEND}")
       endif()
@@ -295,17 +308,7 @@ if (BOOST_STATIC)
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
       elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
         add_definitions(-DBOOST_LOCALE_WITH_ICU=1)
-        list(APPEND BOOST_SOURCES
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/boundary.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/codecvt.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/collator.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/conversion.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/date_time.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/formatter.cpp   
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/icu_backend.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/numeric.cpp
-           ${BOOST_SOURCES_DIR}/libs/locale/src/icu/time_zone.cpp
-          )        
+        list(APPEND BOOST_SOURCES ${BOOST_ICU_SOURCES})
       else()
         message(FATAL_ERROR "Unsupported value for BOOST_LOCALE_BACKEND: ${BOOST_LOCALE_BACKEND}")
       endif()
@@ -334,6 +337,7 @@ if (BOOST_STATIC)
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
       elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
         add_definitions(-DBOOST_LOCALE_WITH_ICU=1)
+        list(APPEND BOOST_SOURCES ${BOOST_ICU_SOURCES})
       elseif (BOOST_LOCALE_BACKEND STREQUAL "wconv")
         message("Using Window's wconv")
       else()
