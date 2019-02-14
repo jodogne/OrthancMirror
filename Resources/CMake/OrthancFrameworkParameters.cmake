@@ -43,6 +43,7 @@ set(USE_SYSTEM_CURL ON CACHE BOOL "Use the system version of LibCurl")
 set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
 set(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 set(USE_SYSTEM_LIBICONV ON CACHE BOOL "Use the system version of libiconv")
+set(USE_SYSTEM_LIBICU ON CACHE BOOL "Use the system version of libicu")
 set(USE_SYSTEM_LIBJPEG ON CACHE BOOL "Use the system version of libjpeg")
 set(USE_SYSTEM_LIBP11 OFF CACHE BOOL "Use the system version of libp11 (PKCS#11 wrapper library)")
 set(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
@@ -66,13 +67,13 @@ set(ENABLE_DCMTK_JPEG_LOSSLESS ON CACHE BOOL "Enable JPEG-LS (Lossless) decompre
 # Advanced and distribution-specific parameters
 set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
 set(SYSTEM_MONGOOSE_USE_CALLBACKS ON CACHE BOOL "The system version of Mongoose uses callbacks (version >= 3.7)")
-set(USE_BOOST_ICONV ON CACHE BOOL "Use iconv instead of wconv (Windows only)")
+set(BOOST_LOCALE_BACKEND "iconv" CACHE STRING "Back-end for locales that is used by Boost (can be \"iconv\", \"icu\", or \"wconv\" on Windows)")
 set(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
 set(USE_LEGACY_JSONCPP OFF CACHE BOOL "Use the old branch 0.x.y of JsonCpp, that does not require a C++11 compiler (for old versions of Visual Studio)")
 
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
-mark_as_advanced(USE_BOOST_ICONV)
+mark_as_advanced(BOOST_LOCALE_BACKEND)
 mark_as_advanced(USE_PUGIXML)
 mark_as_advanced(USE_LEGACY_JSONCPP)
 
