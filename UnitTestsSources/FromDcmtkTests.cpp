@@ -1507,7 +1507,8 @@ static std::string DecodeFromSpecification(const std::string& s)
     int a = boost::lexical_cast<int>(components[0]);
     int b = boost::lexical_cast<int>(components[1]);
     if (a < 0 || a > 15 ||
-        b < 0 || b > 15)
+        b < 0 || b > 15 ||
+        (a == 0 && b == 0))
     {
       throw;
     }
@@ -1543,7 +1544,7 @@ TEST(Toolbox, EncodingsKorean)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 149");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientName, korean.c_str(), korean.size(), true).good());
+              (DCM_PatientName, korean.c_str(), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
@@ -1624,7 +1625,7 @@ TEST(Toolbox, EncodingsJapaneseKanji)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 87");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientName, japanese.c_str(), japanese.size(), true).good());
+              (DCM_PatientName, japanese.c_str(), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
@@ -1692,7 +1693,7 @@ TEST(Toolbox, EncodingsChinese3)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "GB18030");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
@@ -1754,7 +1755,7 @@ TEST(Toolbox, EncodingsChinese4)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "GB18030");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientComments, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+              (DCM_PatientComments, reinterpret_cast<const char*>(chinese), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
@@ -1798,7 +1799,7 @@ TEST(Toolbox, EncodingsSimplifiedChinese2)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 58");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
@@ -1839,7 +1840,7 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 58");
   ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
-              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), OFBool(true)).good());
 
   bool hasCodeExtensions;
   Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
