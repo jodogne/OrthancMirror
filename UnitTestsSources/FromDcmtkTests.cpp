@@ -1590,3 +1590,78 @@ TEST(Toolbox, EncodingsKorean)
 #endif  
 }
 
+
+
+TEST(Toolbox, EncodingsJapanese)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_H.3.html
+
+  std::string japanese = DecodeFromSpecification(
+    "05/09 06/01 06/13 06/01 06/04 06/01 05/14 05/04 06/01 07/02 06/15 07/05 03/13 "
+    "01/11 02/04 04/02 03/11 03/03 04/05 04/04 01/11 02/08 04/02 05/14 01/11 02/04 "
+    "04/02 04/02 04/00 04/15 03/10 01/11 02/08 04/02 03/13 01/11 02/04 04/02 02/04 "
+    "06/04 02/04 05/14 02/04 04/00 01/11 02/08 04/02 05/14 01/11 02/04 04/02 02/04 "
+    "03/15 02/04 06/13 02/04 02/06 01/11 02/08 04/02");
+
+  // This array can be re-generated using command-line:
+  // echo -n "Yamada^Tarou=..." | hexdump -v -e '14/1 "0x%02x, "' -e '"\n"'
+  static const uint8_t utf8raw[] = {
+    0x59, 0x61, 0x6d, 0x61, 0x64, 0x61, 0x5e, 0x54, 0x61, 0x72, 0x6f, 0x75, 0x3d, 0xe5,
+    0xb1, 0xb1, 0xe7, 0x94, 0xb0, 0x5e, 0xe5, 0xa4, 0xaa, 0xe9, 0x83, 0x8e, 0x3d, 0xe3,
+    0x82, 0x84, 0xe3, 0x81, 0xbe, 0xe3, 0x81, 0xa0, 0x5e, 0xe3, 0x81, 0x9f, 0xe3, 0x82,
+    0x8d, 0xe3, 0x81, 0x86
+  };
+
+  std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 87");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientName, japanese.c_str(), japanese.size(), true).good());
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(utf8, value);
+  
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);
+  ASSERT_EQ(utf8.substr(0, 12), visitor.GetResult()["00100010"]["Value"][0]["Alphabetic"].asString());
+  ASSERT_EQ(utf8.substr(13, 13), visitor.GetResult()["00100010"]["Value"][0]["Ideographic"].asString());
+  ASSERT_EQ(utf8.substr(27), visitor.GetResult()["00100010"]["Value"][0]["Phonetic"].asString());
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.3.html#table_F.3.1-1
+  std::string xml;
+  visitor.FormatXml(xml);
+
+  pugi::xml_document doc;
+  doc.load_buffer(xml.c_str(), xml.size());
+
+  pugi::xpath_node node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
+  ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
+  ASSERT_STREQ("CS", node.node().attribute("vr").value());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
+  ASSERT_STREQ("PN", node.node().attribute("vr").value());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
+  ASSERT_STREQ("Yamada", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
+  ASSERT_STREQ("Tarou", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
+  ASSERT_EQ(utf8.substr(13, 6), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
+  ASSERT_EQ(utf8.substr(20, 6), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
+  ASSERT_EQ(utf8.substr(27, 9), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
+  ASSERT_EQ(utf8.substr(37), node.node().text().as_string());
+#endif  
+}
