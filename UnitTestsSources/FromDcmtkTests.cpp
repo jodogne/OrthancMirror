@@ -1559,7 +1559,7 @@ TEST(Toolbox, EncodingsKorean)
   visitor.FormatXml(xml);
 
   pugi::xml_document doc;
-  doc.load_string(xml.c_str());
+  doc.load_buffer(xml.c_str(), xml.size());
 
   pugi::xpath_node node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
   ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
