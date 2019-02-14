@@ -111,7 +111,7 @@
   // C-Find requests (including worklists). The allowed values are
   // "Ascii", "Utf8", "Latin1", "Latin2", "Latin3", "Latin4",
   // "Latin5", "Cyrillic", "Windows1251", "Arabic", "Greek", "Hebrew",
-  // "Thai", "Japanese", and "Chinese".
+  // "Thai", "Japanese", "Chinese", "JapaneseKanji" and "Korean".
   "DefaultEncoding" : "Latin1",
 
   // The transfer syntaxes that are accepted by Orthanc C-Store SCP

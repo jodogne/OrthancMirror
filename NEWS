@@ -1,7 +1,8 @@
 Pending changes in the mainline
 ===============================
 
-* Basic support for character sets with code extensions
+* Support of Japanese Kanji (ISO 2022 IR 87) and Korean (ISO 2022 IR 149) encodings
+* Basic support for character sets with code extensions (ISO 2022 escape sequences)
 
 
 Version 1.5.4 (2019-02-08)
