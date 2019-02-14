@@ -464,63 +464,48 @@ namespace Orthanc
 
       case Encoding_Latin1:
         return "ISO-8859-1";
-        break;
 
       case Encoding_Latin2:
         return "ISO-8859-2";
-        break;
 
       case Encoding_Latin3:
         return "ISO-8859-3";
-        break;
 
       case Encoding_Latin4:
         return "ISO-8859-4";
-        break;
 
       case Encoding_Latin5:
         return "ISO-8859-9";
-        break;
 
       case Encoding_Cyrillic:
         return "ISO-8859-5";
-        break;
 
       case Encoding_Windows1251:
         return "WINDOWS-1251";
-        break;
 
       case Encoding_Arabic:
         return "ISO-8859-6";
-        break;
 
       case Encoding_Greek:
         return "ISO-8859-7";
-        break;
 
       case Encoding_Hebrew:
         return "ISO-8859-8";
-        break;
         
       case Encoding_Japanese:
         return "SHIFT-JIS";
-        break;
 
       case Encoding_Chinese:
         return "GB18030";
-        break;
 
       case Encoding_Thai:
         return "TIS620.2533-0";
-        break;
 
       case Encoding_Korean:
         return "ISO-IR-149";
-        break;
 
       case Encoding_JapaneseKanji:
         return "JIS";
-        break;
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);

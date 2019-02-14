@@ -36,6 +36,7 @@
 
 #include "../Core/DicomNetworking/DicomFindAnswers.h"
 #include "../Core/DicomParsing/DicomModification.h"
+#include "../Core/DicomParsing/DicomWebJsonVisitor.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../Core/DicomParsing/ToDcmtkBridge.h"
@@ -53,6 +54,10 @@
 
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include <pugixml.hpp>
+#endif
 
 using namespace Orthanc;
 
@@ -1476,3 +1481,112 @@ TEST(Toolbox, RemoveIso2022EscapeSequences)
   Toolbox::RemoveIso2022EscapeSequences(dest, iso2022_str_real_ir13);
   ASSERT_EQ(dest, iso2022_str_real_ir13_ref);
 }
+
+
+
+static std::string DecodeFromSpecification(const std::string& s)
+{
+  std::vector<std::string> tokens;
+  Toolbox::TokenizeString(tokens, s, ' ');
+
+  std::string result;
+  result.resize(tokens.size());
+  
+  for (size_t i = 0; i < tokens.size(); i++)
+  {
+    std::vector<std::string> components;
+    Toolbox::TokenizeString(components, tokens[i], '/');
+
+    if (components.size() != 2)
+    {
+      throw;
+    }
+
+    int a = boost::lexical_cast<int>(components[0]);
+    int b = boost::lexical_cast<int>(components[1]);
+    if (a < 0 || a > 15 ||
+        b < 0 || b > 15)
+    {
+      throw;
+    }
+
+    result[i] = static_cast<uint8_t>(a * 16 + b);
+  }
+
+  return result;
+}
+
+
+
+TEST(Toolbox, EncodingsKorean)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_I.2.html
+
+  std::string korean = DecodeFromSpecification(
+    "04/08 06/15 06/14 06/07 05/14 04/07 06/09 06/12 06/04 06/15 06/14 06/07 03/13 "
+    "01/11 02/04 02/09 04/03 15/11 15/03 05/14 01/11 02/04 02/09 04/03 13/01 12/14 "
+    "13/04 13/07 03/13 01/11 02/04 02/09 04/03 12/08 10/11 05/14 01/11 02/04 02/09 "
+    "04/03 11/01 14/06 11/05 11/15");
+
+  // This array can be re-generated using command-line:
+  // echo -n "Hong^Gildong=..." | hexdump -v -e '14/1 "0x%02x, "' -e '"\n"'
+  static const uint8_t utf8raw[] = {
+    0x48, 0x6f, 0x6e, 0x67, 0x5e, 0x47, 0x69, 0x6c, 0x64, 0x6f, 0x6e, 0x67, 0x3d, 0xe6,
+    0xb4, 0xaa, 0x5e, 0xe5, 0x90, 0x89, 0xe6, 0xb4, 0x9e, 0x3d, 0xed, 0x99, 0x8d, 0x5e,
+    0xea, 0xb8, 0xb8, 0xeb, 0x8f, 0x99
+  };
+
+  std::string utf8(reinterpret_cast<const char*>(utf8raw), sizeof(utf8raw));
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 149");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientName, korean.c_str(), korean.size(), true).good());
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(utf8, value);
+  
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);
+  ASSERT_EQ(utf8.substr(0, 12), visitor.GetResult()["00100010"]["Value"][0]["Alphabetic"].asString());
+  ASSERT_EQ(utf8.substr(13, 10), visitor.GetResult()["00100010"]["Value"][0]["Ideographic"].asString());
+  ASSERT_EQ(utf8.substr(24), visitor.GetResult()["00100010"]["Value"][0]["Phonetic"].asString());
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.3.html#table_F.3.1-1
+  std::string xml;
+  visitor.FormatXml(xml);
+
+  pugi::xml_document doc;
+  doc.load_string(xml.c_str());
+
+  pugi::xpath_node node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
+  ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
+  ASSERT_STREQ("CS", node.node().attribute("vr").value());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
+  ASSERT_STREQ("PN", node.node().attribute("vr").value());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
+  ASSERT_STREQ("Hong", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
+  ASSERT_STREQ("Gildong", node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
+  ASSERT_EQ(utf8.substr(13, 3), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
+  ASSERT_EQ(utf8.substr(17, 6), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
+  ASSERT_EQ(utf8.substr(24, 3), node.node().text().as_string());
+
+  node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
+  ASSERT_EQ(utf8.substr(28), node.node().text().as_string());
+#endif  
+}
+
