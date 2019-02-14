@@ -83,6 +83,8 @@ namespace Orthanc
 
     void Invert(ImageAccessor& image);
 
+    void Invert(ImageAccessor& image, int64_t maxValue);
+
     void DrawLineSegment(ImageAccessor& image,
                          int x0,
                          int y0,
