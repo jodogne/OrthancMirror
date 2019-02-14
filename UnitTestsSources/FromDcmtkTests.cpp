@@ -269,6 +269,7 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 87"));    ASSERT_EQ(Encoding_JapaneseKanji, e);
   ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 159"));  //ASSERT_EQ(Encoding_JapaneseKanjiSupplementary, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 149"));   ASSERT_EQ(Encoding_Korean, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 58"));    ASSERT_EQ(Encoding_SimplifiedChinese, e);
 
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-5
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 192"));  ASSERT_EQ(Encoding_Utf8, e);
@@ -1521,7 +1522,7 @@ static std::string DecodeFromSpecification(const std::string& s)
 
 TEST(Toolbox, EncodingsKorean)
 {
-  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_I.2.html
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_I.2.html
 
   std::string korean = DecodeFromSpecification(
     "04/08 06/15 06/14 06/07 05/14 04/07 06/09 06/12 06/04 06/15 06/14 06/07 03/13 "
@@ -1600,7 +1601,7 @@ TEST(Toolbox, EncodingsKorean)
 
 TEST(Toolbox, EncodingsJapaneseKanji)
 {
-  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_H.3.html
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_H.3.html
 
   std::string japanese = DecodeFromSpecification(
     "05/09 06/01 06/13 06/01 06/04 06/01 05/14 05/04 06/01 07/02 06/15 07/05 03/13 "
@@ -1681,7 +1682,7 @@ TEST(Toolbox, EncodingsJapaneseKanji)
 
 TEST(Toolbox, EncodingsChinese3)
 {
-  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_J.3.html
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_J.3.html
 
   static const uint8_t chinese[] = {
     0x57, 0x61, 0x6e, 0x67, 0x5e, 0x58, 0x69, 0x61, 0x6f, 0x44, 0x6f,
@@ -1732,7 +1733,7 @@ TEST(Toolbox, EncodingsChinese3)
 
 TEST(Toolbox, EncodingsChinese4)
 {
-  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_J.4.html
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_J.4.html
 
   static const uint8_t chinese[] = {
     0x54, 0x68, 0x65, 0x20, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x6c, 0x69, 0x6e,
@@ -1776,3 +1777,84 @@ TEST(Toolbox, EncodingsChinese4)
   ASSERT_FALSE(lines[1].find(pattern) == std::string::npos);
   ASSERT_TRUE(lines[3].empty());
 }
+
+
+TEST(Toolbox, EncodingsSimplifiedChinese2)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_K.2.html
+
+  static const uint8_t chinese[] = {
+    0x5a, 0x68, 0x61, 0x6e, 0x67, 0x5e, 0x58, 0x69, 0x61, 0x6f, 0x44, 0x6f,
+    0x6e, 0x67, 0x3d, 0x1b, 0x24, 0x29, 0x41, 0xd5, 0xc5, 0x5e, 0x1b, 0x24,
+    0x29, 0x41, 0xd0, 0xa1, 0xb6, 0xab, 0x3d, 0x20
+  };
+
+  // echo -n "Zhang^XiaoDong=..." | hexdump -v -e '14/1 "0x%02x, "' -e '"\n"'
+  static const uint8_t utf8[] = {
+    0x5a, 0x68, 0x61, 0x6e, 0x67, 0x5e, 0x58, 0x69, 0x61, 0x6f, 0x44, 0x6f, 0x6e, 0x67,
+    0x3d, 0xe5, 0xbc, 0xa0, 0x5e, 0xe5, 0xb0, 0x8f, 0xe4, 0xb8, 0x9c, 0x3d
+  };
+  
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 58");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_SimplifiedChinese, encoding);
+  ASSERT_TRUE(hasCodeExtensions);
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
+  ASSERT_EQ(value, std::string(reinterpret_cast<const char*>(utf8), sizeof(utf8)));
+}
+
+
+TEST(Toolbox, EncodingsSimplifiedChinese3)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_K.2.html
+
+  static const uint8_t chinese[] = {
+    0x31, 0x2e, 0x1b, 0x24, 0x29, 0x41, 0xb5, 0xda, 0xd2, 0xbb, 0xd0, 0xd0, 0xce, 0xc4, 0xd7, 0xd6, 0xa1, 0xa3, 0x0d, 0x0a,
+    0x32, 0x2e, 0x1b, 0x24, 0x29, 0x41, 0xb5, 0xda, 0xb6, 0xfe, 0xd0, 0xd0, 0xce, 0xc4, 0xd7, 0xd6, 0xa1, 0xa3, 0x0d, 0x0a,
+    0x33, 0x2e, 0x1b, 0x24, 0x29, 0x41, 0xb5, 0xda, 0xc8, 0xfd, 0xd0, 0xd0, 0xce, 0xc4, 0xd7, 0xd6, 0xa1, 0xa3, 0x0d, 0x0a
+  };
+
+  static const uint8_t line1[] = {
+    0x31, 0x2e, 0xe7, 0xac, 0xac, 0xe4, 0xb8, 0x80, 0xe8, 0xa1, 0x8c, 0xe6, 0x96, 0x87,
+    0xe5, 0xad, 0x97, 0xe3, 0x80, 0x82, '\r'
+  };
+
+  static const uint8_t line2[] = {
+    0x32, 0x2e, 0xe7, 0xac, 0xac, 0xe4, 0xba, 0x8c, 0xe8, 0xa1, 0x8c, 0xe6, 0x96, 0x87,
+    0xe5, 0xad, 0x97, 0xe3, 0x80, 0x82, '\r'
+  };
+
+  static const uint8_t line3[] = {
+    0x33, 0x2e, 0xe7, 0xac, 0xac, 0xe4, 0xb8, 0x89, 0xe8, 0xa1, 0x8c, 0xe6, 0x96, 0x87,
+    0xe5, 0xad, 0x97, 0xe3, 0x80, 0x82, '\r'
+  };
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "\\ISO 2022 IR 58");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+
+  bool hasCodeExtensions;
+  Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
+  ASSERT_EQ(Encoding_SimplifiedChinese, encoding);
+  ASSERT_TRUE(hasCodeExtensions);
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
+
+  std::vector<std::string> lines;
+  Toolbox::TokenizeString(lines, value, '\n');
+  ASSERT_EQ(4u, lines.size());
+  ASSERT_EQ(std::string(reinterpret_cast<const char*>(line1), sizeof(line1)), lines[0]);
+  ASSERT_EQ(std::string(reinterpret_cast<const char*>(line2), sizeof(line2)), lines[1]);
+  ASSERT_EQ(std::string(reinterpret_cast<const char*>(line3), sizeof(line3)), lines[2]);
+  ASSERT_TRUE(lines[3].empty());
+}
+

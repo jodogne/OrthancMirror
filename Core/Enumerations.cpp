@@ -653,6 +653,9 @@ namespace Orthanc
       case Encoding_JapaneseKanji:
         return "JapaneseKanji";
 
+      case Encoding_SimplifiedChinese:
+        return "SimplifiedChinese";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1216,6 +1219,11 @@ namespace Orthanc
     if (s == "JAPANESEKANJI")
     {
       return Encoding_JapaneseKanji;
+    }
+
+    if (s == "SIMPLIFIEDCHINESE")
+    {
+      return Encoding_SimplifiedChinese;
     }
 
     throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1881,14 +1889,14 @@ namespace Orthanc
     {
       encoding = Encoding_JapaneseKanji;
     }
+    else if (s == "ISO 2022 IR 58")
+    {
+      encoding = Encoding_SimplifiedChinese;
+    }
     /*
       else if (s == "ISO 2022 IR 159")
       {
       TODO - Supplementary Kanji set
-      }
-      else if (s == "ISO 2022 IR 58")
-      {
-      TODO - Simplified Chinese
       }
     */
     else
@@ -2040,6 +2048,9 @@ namespace Orthanc
 
       case Encoding_JapaneseKanji:
         return "ISO 2022 IR 87";
+
+      case Encoding_SimplifiedChinese:
+        return "ISO 2022 IR 58";
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
