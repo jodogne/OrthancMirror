@@ -54,6 +54,7 @@
 
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include <pugixml.hpp>
@@ -1664,4 +1665,94 @@ TEST(Toolbox, EncodingsJapanese)
   node = doc.select_single_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(37), node.node().text().as_string());
 #endif  
+}
+
+
+
+TEST(Toolbox, EncodingsChinese3)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_J.3.html
+
+  static const uint8_t chinese[] = {
+    0x57, 0x61, 0x6e, 0x67, 0x5e, 0x58, 0x69, 0x61, 0x6f, 0x44, 0x6f,
+    0x6e, 0x67, 0x3d, 0xcd, 0xf5, 0x5e, 0xd0, 0xa1, 0xb6, 0xab, 0x3d
+  };
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "GB18030");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientName, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_NAME));
+
+  std::vector<std::string> tokens;
+  Orthanc::Toolbox::TokenizeString(tokens, value, '=');
+  ASSERT_EQ(3u, tokens.size());
+  ASSERT_EQ("Wang^XiaoDong", tokens[0]);
+  ASSERT_TRUE(tokens[2].empty());
+
+  std::vector<std::string> middle;
+  Orthanc::Toolbox::TokenizeString(middle, tokens[1], '^');
+  ASSERT_EQ(2u, middle.size());
+  ASSERT_EQ(3u, middle[0].size());
+  ASSERT_EQ(6u, middle[1].size());
+
+  // CDF5 in GB18030
+  ASSERT_EQ(static_cast<char>(0xe7), middle[0][0]);
+  ASSERT_EQ(static_cast<char>(0x8e), middle[0][1]);
+  ASSERT_EQ(static_cast<char>(0x8b), middle[0][2]);
+
+  // D0A1 in GB18030
+  ASSERT_EQ(static_cast<char>(0xe5), middle[1][0]);
+  ASSERT_EQ(static_cast<char>(0xb0), middle[1][1]);
+  ASSERT_EQ(static_cast<char>(0x8f), middle[1][2]);
+
+  // B6AB in GB18030
+  ASSERT_EQ(static_cast<char>(0xe4), middle[1][3]);
+  ASSERT_EQ(static_cast<char>(0xb8), middle[1][4]);
+  ASSERT_EQ(static_cast<char>(0x9c), middle[1][5]);
+}
+
+
+TEST(Toolbox, EncodingsChinese4)
+{
+  // http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_J.4.html
+
+  static const uint8_t chinese[] = {
+    0x54, 0x68, 0x65, 0x20, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x6c, 0x69, 0x6e,
+    0x65, 0x20, 0x69, 0x6e, 0x63, 0x6c, 0x75, 0x64, 0x65, 0x73, 0xd6, 0xd0, 0xce,
+    0xc4, 0x2e, 0x0d, 0x0a, 0x54, 0x68, 0x65, 0x20, 0x73, 0x65, 0x63, 0x6f, 0x6e,
+    0x64, 0x20, 0x6c, 0x69, 0x6e, 0x65, 0x20, 0x69, 0x6e, 0x63, 0x6c, 0x75, 0x64,
+    0x65, 0x73, 0xd6, 0xd0, 0xce, 0xc4, 0x2c, 0x20, 0x74, 0x6f, 0x6f, 0x2e, 0x0d,
+    0x0a, 0x54, 0x68, 0x65, 0x20, 0x74, 0x68, 0x69, 0x72, 0x64, 0x20, 0x6c, 0x69,
+    0x6e, 0x65, 0x2e, 0x0d, 0x0a
+  };
+
+  static const uint8_t patternRaw[] = {
+    0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87
+  };
+
+  const std::string pattern(reinterpret_cast<const char*>(patternRaw), sizeof(patternRaw));
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, "GB18030");
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString
+              (DCM_PatientComments, reinterpret_cast<const char*>(chinese), sizeof(chinese), true).good());
+
+  std::string value;
+  ASSERT_TRUE(dicom.GetTagValue(value, DICOM_TAG_PATIENT_COMMENTS));
+
+  std::vector<std::string> lines;
+  Orthanc::Toolbox::TokenizeString(lines, value, '\n');
+  ASSERT_EQ(4u, lines.size());
+  ASSERT_TRUE(boost::starts_with(lines[0], "The first line includes"));
+  ASSERT_TRUE(boost::ends_with(lines[0], ".\r"));
+  ASSERT_TRUE(lines[0].find(pattern) != std::string::npos);
+  ASSERT_TRUE(boost::starts_with(lines[1], "The second line includes"));
+  ASSERT_TRUE(boost::ends_with(lines[1], ", too.\r"));
+  ASSERT_TRUE(lines[1].find(pattern) != std::string::npos);
+  ASSERT_EQ("The third line.\r", lines[2]);
+  ASSERT_FALSE(lines[1].find(pattern) == std::string::npos);
+  ASSERT_TRUE(lines[3].empty());
 }
