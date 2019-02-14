@@ -1213,7 +1213,7 @@ namespace Orthanc
       return Encoding_Korean;
     }
 
-    if (s == "JAPANESE_KANJI")
+    if (s == "JAPANESEKANJI")
     {
       return Encoding_JapaneseKanji;
     }
