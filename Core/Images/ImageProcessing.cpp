@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -147,8 +147,8 @@ namespace Orthanc
       {
         // Y = 0.2126 R + 0.7152 G + 0.0722 B
         int32_t v = (2126 * static_cast<int32_t>(s[0]) +
-                     7152 * static_cast<int32_t>(s[1]) +
-                     0722 * static_cast<int32_t>(s[2])) / 10000;
+            7152 * static_cast<int32_t>(s[1]) +
+            0722 * static_cast<int32_t>(s[2])) / 10000;
         
         if (static_cast<int32_t>(v) < static_cast<int32_t>(minValue))
         {
@@ -168,7 +168,7 @@ namespace Orthanc
 
 
   static void MemsetZeroInternal(ImageAccessor& image)
-  {      
+  {
     const unsigned int height = image.GetHeight();
     const size_t lineSize = image.GetBytesPerPixel() * image.GetWidth();
     const size_t pitch = image.GetPitch();
@@ -535,8 +535,8 @@ namespace Orthanc
         for (unsigned int x = 0; x < width; x++, q++)
         {
           *q = static_cast<uint8_t>((2126 * static_cast<uint32_t>(p[0]) +
-                                     7152 * static_cast<uint32_t>(p[1]) +
-                                     0722 * static_cast<uint32_t>(p[2])) / 10000);
+                                    7152 * static_cast<uint32_t>(p[1]) +
+              0722 * static_cast<uint32_t>(p[2])) / 10000);
           p += 4;
         }
       }
@@ -554,8 +554,8 @@ namespace Orthanc
         for (unsigned int x = 0; x < width; x++, q++)
         {
           *q = static_cast<uint8_t>((2126 * static_cast<uint32_t>(p[2]) +
-                                     7152 * static_cast<uint32_t>(p[1]) +
-                                     0722 * static_cast<uint32_t>(p[0])) / 10000);
+                                    7152 * static_cast<uint32_t>(p[1]) +
+              0722 * static_cast<uint32_t>(p[0])) / 10000);
           p += 4;
         }
       }
@@ -788,33 +788,33 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
-        SetInternal<uint8_t>(image, value);
-        return;
+    case PixelFormat_Grayscale8:
+      SetInternal<uint8_t>(image, value);
+      return;
 
-      case PixelFormat_Grayscale16:
-        SetInternal<uint16_t>(image, value);
-        return;
+    case PixelFormat_Grayscale16:
+      SetInternal<uint16_t>(image, value);
+      return;
 
-      case PixelFormat_Grayscale32:
-        SetInternal<uint32_t>(image, value);
-        return;
+    case PixelFormat_Grayscale32:
+      SetInternal<uint32_t>(image, value);
+      return;
 
-      case PixelFormat_Grayscale64:
-        SetInternal<uint64_t>(image, value);
-        return;
+    case PixelFormat_Grayscale64:
+      SetInternal<uint64_t>(image, value);
+      return;
 
-      case PixelFormat_SignedGrayscale16:
-        SetInternal<int16_t>(image, value);
-        return;
+    case PixelFormat_SignedGrayscale16:
+      SetInternal<int16_t>(image, value);
+      return;
 
-      case PixelFormat_Float32:
-        assert(sizeof(float) == 4);
-        SetInternal<float>(image, value);
-        return;
+    case PixelFormat_Float32:
+      assert(sizeof(float) == 4);
+      SetInternal<float>(image, value);
+      return;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -830,32 +830,32 @@ namespace Orthanc
 
     switch (image.GetFormat())
     {
-      case PixelFormat_RGBA32:
-        p[0] = red;
-        p[1] = green;
-        p[2] = blue;
-        p[3] = alpha;
-        size = 4;
-        break;
+    case PixelFormat_RGBA32:
+      p[0] = red;
+      p[1] = green;
+      p[2] = blue;
+      p[3] = alpha;
+      size = 4;
+      break;
 
-      case PixelFormat_BGRA32:
-        p[0] = blue;
-        p[1] = green;
-        p[2] = red;
-        p[3] = alpha;
-        size = 4;
-        break;
+    case PixelFormat_BGRA32:
+      p[0] = blue;
+      p[1] = green;
+      p[2] = red;
+      p[3] = alpha;
+      size = 4;
+      break;
 
-      case PixelFormat_RGB24:
-        p[0] = red;
-        p[1] = green;
-        p[2] = blue;
-        size = 3;
-        break;
+    case PixelFormat_RGB24:
+      p[0] = red;
+      p[1] = green;
+      p[2] = blue;
+      size = 3;
+      break;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }    
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
 
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
@@ -898,44 +898,44 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
-      {
-        uint8_t a, b;
-        GetMinMaxValueInternal<uint8_t>(a, b, image);
-        minValue = a;
-        maxValue = b;
-        break;
-      }
+    case PixelFormat_Grayscale8:
+    {
+      uint8_t a, b;
+      GetMinMaxValueInternal<uint8_t>(a, b, image);
+      minValue = a;
+      maxValue = b;
+      break;
+    }
 
-      case PixelFormat_Grayscale16:
-      {
-        uint16_t a, b;
-        GetMinMaxValueInternal<uint16_t>(a, b, image);
-        minValue = a;
-        maxValue = b;
-        break;
-      }
+    case PixelFormat_Grayscale16:
+    {
+      uint16_t a, b;
+      GetMinMaxValueInternal<uint16_t>(a, b, image);
+      minValue = a;
+      maxValue = b;
+      break;
+    }
 
-      case PixelFormat_Grayscale32:
-      {
-        uint32_t a, b;
-        GetMinMaxValueInternal<uint32_t>(a, b, image);
-        minValue = a;
-        maxValue = b;
-        break;
-      }
+    case PixelFormat_Grayscale32:
+    {
+      uint32_t a, b;
+      GetMinMaxValueInternal<uint32_t>(a, b, image);
+      minValue = a;
+      maxValue = b;
+      break;
+    }
 
-      case PixelFormat_SignedGrayscale16:
-      {
-        int16_t a, b;
-        GetMinMaxValueInternal<int16_t>(a, b, image);
-        minValue = a;
-        maxValue = b;
-        break;
-      }
+    case PixelFormat_SignedGrayscale16:
+    {
+      int16_t a, b;
+      GetMinMaxValueInternal<int16_t>(a, b, image);
+      minValue = a;
+      maxValue = b;
+      break;
+    }
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -946,18 +946,18 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Float32:
-      {
-        assert(sizeof(float) == 4);
-        float a, b;
-        GetMinMaxValueInternal<float>(a, b, image);
-        minValue = a;
-        maxValue = b;
-        break;
-      }
+    case PixelFormat_Float32:
+    {
+      assert(sizeof(float) == 4);
+      float a, b;
+      GetMinMaxValueInternal<float>(a, b, image);
+      minValue = a;
+      maxValue = b;
+      break;
+    }
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -968,20 +968,20 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
-        AddConstantInternal<uint8_t>(image, value);
-        return;
+    case PixelFormat_Grayscale8:
+      AddConstantInternal<uint8_t>(image, value);
+      return;
 
-      case PixelFormat_Grayscale16:
-        AddConstantInternal<uint16_t>(image, value);
-        return;
+    case PixelFormat_Grayscale16:
+      AddConstantInternal<uint16_t>(image, value);
+      return;
 
-      case PixelFormat_SignedGrayscale16:
-        AddConstantInternal<int16_t>(image, value);
-        return;
+    case PixelFormat_SignedGrayscale16:
+      AddConstantInternal<int16_t>(image, value);
+      return;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -992,41 +992,41 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
-        if (useRound)
-        {
-          MultiplyConstantInternal<uint8_t, true>(image, factor);
-        }
-        else
-        {
-          MultiplyConstantInternal<uint8_t, false>(image, factor);
-        }
-        return;
+    case PixelFormat_Grayscale8:
+      if (useRound)
+      {
+        MultiplyConstantInternal<uint8_t, true>(image, factor);
+      }
+      else
+      {
+        MultiplyConstantInternal<uint8_t, false>(image, factor);
+      }
+      return;
 
-      case PixelFormat_Grayscale16:
-        if (useRound)
-        {
-          MultiplyConstantInternal<uint16_t, true>(image, factor);
-        }
-        else
-        {
-          MultiplyConstantInternal<uint16_t, false>(image, factor);
-        }
-        return;
+    case PixelFormat_Grayscale16:
+      if (useRound)
+      {
+        MultiplyConstantInternal<uint16_t, true>(image, factor);
+      }
+      else
+      {
+        MultiplyConstantInternal<uint16_t, false>(image, factor);
+      }
+      return;
 
-      case PixelFormat_SignedGrayscale16:
-        if (useRound)
-        {
-          MultiplyConstantInternal<int16_t, true>(image, factor);
-        }
-        else
-        {
-          MultiplyConstantInternal<int16_t, false>(image, factor);
-        }
-        return;
+    case PixelFormat_SignedGrayscale16:
+      if (useRound)
+      {
+        MultiplyConstantInternal<int16_t, true>(image, factor);
+      }
+      else
+      {
+        MultiplyConstantInternal<int16_t, false>(image, factor);
+      }
+      return;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -1038,44 +1038,74 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
-        if (useRound)
-        {
-          ShiftScaleInternal<uint8_t, true>(image, offset, scaling);
-        }
-        else
-        {
-          ShiftScaleInternal<uint8_t, false>(image, offset, scaling);
-        }
-        return;
+    case PixelFormat_Grayscale8:
+      if (useRound)
+      {
+        ShiftScaleInternal<uint8_t, true>(image, offset, scaling);
+      }
+      else
+      {
+        ShiftScaleInternal<uint8_t, false>(image, offset, scaling);
+      }
+      return;
 
-      case PixelFormat_Grayscale16:
-        if (useRound)
-        {
-          ShiftScaleInternal<uint16_t, true>(image, offset, scaling);
-        }
-        else
-        {
-          ShiftScaleInternal<uint16_t, false>(image, offset, scaling);
-        }
-        return;
+    case PixelFormat_Grayscale16:
+      if (useRound)
+      {
+        ShiftScaleInternal<uint16_t, true>(image, offset, scaling);
+      }
+      else
+      {
+        ShiftScaleInternal<uint16_t, false>(image, offset, scaling);
+      }
+      return;
 
-      case PixelFormat_SignedGrayscale16:
-        if (useRound)
-        {
-          ShiftScaleInternal<int16_t, true>(image, offset, scaling);
-        }
-        else
-        {
-          ShiftScaleInternal<int16_t, false>(image, offset, scaling);
-        }
-        return;
+    case PixelFormat_SignedGrayscale16:
+      if (useRound)
+      {
+        ShiftScaleInternal<int16_t, true>(image, offset, scaling);
+      }
+      else
+      {
+        ShiftScaleInternal<int16_t, false>(image, offset, scaling);
+      }
+      return;
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
+
+  void ImageProcessing::Invert(ImageAccessor& image, int64_t maxValue)
+  {
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+
+    switch (image.GetFormat())
+    {
+    case PixelFormat_Grayscale16:
+    {
+      uint16_t maxValueUint16 = (uint16_t)maxValue;
+
+      for (unsigned int y = 0; y < height; y++)
+      {
+        uint16_t* p = reinterpret_cast<uint16_t*>(image.GetRow(y));
+
+        for (unsigned int x = 0; x < width; x++, p++)
+        {
+          *p = maxValueUint16 - (*p);
+        }
+      }
+
+      return;
+    }
+
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+  }
 
   void ImageProcessing::Invert(ImageAccessor& image)
   {
@@ -1084,24 +1114,24 @@ namespace Orthanc
     
     switch (image.GetFormat())
     {
-      case PixelFormat_Grayscale8:
+    case PixelFormat_Grayscale8:
+    {
+      for (unsigned int y = 0; y < height; y++)
       {
-        for (unsigned int y = 0; y < height; y++)
-        {
-          uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
+        uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
 
-          for (unsigned int x = 0; x < width; x++, p++)
-          {
-            *p = 255 - (*p);
-          }
+        for (unsigned int x = 0; x < width; x++, p++)
+        {
+          *p = 255 - (*p);
         }
-        
-        return;
       }
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }   
+      return;
+    }
+
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
 
@@ -1113,7 +1143,7 @@ namespace Orthanc
     {
     private:
       typedef typename PixelTraits<Format>::PixelType  PixelType;
-    
+
       Orthanc::ImageAccessor&  image_;
       PixelType                value_;
 
@@ -1144,7 +1174,7 @@ namespace Orthanc
             y = y + yi;
             d = d - 2 * dx;
           }
-      
+
           d = d + 2*dy;
         }
       }
@@ -1157,13 +1187,13 @@ namespace Orthanc
         int dx = x1 - x0;
         int dy = y1 - y0;
         int xi = 1;
-    
+
         if (dx < 0)
         {
           xi = -1;
           dx = -dx;
         }
-    
+
         int d = 2 * dx - dy;
         int x = x0;
 
@@ -1176,7 +1206,7 @@ namespace Orthanc
             x = x + xi;
             d = d - 2 * dy;
           }
-      
+
           d = d + 2 * dx;
         }
       }
@@ -1216,7 +1246,7 @@ namespace Orthanc
       {
         // This is an implementation of Bresenham's line algorithm
         // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-    
+
         if (abs(y1 - y0) < abs(x1 - x0))
         {
           if (x0 > x1)
@@ -1252,30 +1282,30 @@ namespace Orthanc
                                         int64_t value)
   {
     switch (image.GetFormat())
-    {       
-      case Orthanc::PixelFormat_Grayscale8:
-      {
-        BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale8> writer(image, value);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
+    {
+    case Orthanc::PixelFormat_Grayscale8:
+    {
+      BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale8> writer(image, value);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
 
-      case Orthanc::PixelFormat_Grayscale16:
-      {
-        BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale16> writer(image, value);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
+    case Orthanc::PixelFormat_Grayscale16:
+    {
+      BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale16> writer(image, value);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
 
-      case Orthanc::PixelFormat_SignedGrayscale16:
-      {
-        BresenhamPixelWriter<Orthanc::PixelFormat_SignedGrayscale16> writer(image, value);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
-        
-      default:
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+    case Orthanc::PixelFormat_SignedGrayscale16:
+    {
+      BresenhamPixelWriter<Orthanc::PixelFormat_SignedGrayscale16> writer(image, value);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
+
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
     }
   }
 
@@ -1292,46 +1322,46 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case Orthanc::PixelFormat_BGRA32:
-      {
-        PixelTraits<Orthanc::PixelFormat_BGRA32>::PixelType pixel;
-        pixel.red_ = red;
-        pixel.green_ = green;
-        pixel.blue_ = blue;
-        pixel.alpha_ = alpha;
+    case Orthanc::PixelFormat_BGRA32:
+    {
+      PixelTraits<Orthanc::PixelFormat_BGRA32>::PixelType pixel;
+      pixel.red_ = red;
+      pixel.green_ = green;
+      pixel.blue_ = blue;
+      pixel.alpha_ = alpha;
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_BGRA32> writer(image, pixel);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
-        
-      case Orthanc::PixelFormat_RGBA32:
-      {
-        PixelTraits<Orthanc::PixelFormat_RGBA32>::PixelType pixel;
-        pixel.red_ = red;
-        pixel.green_ = green;
-        pixel.blue_ = blue;
-        pixel.alpha_ = alpha;
+      BresenhamPixelWriter<Orthanc::PixelFormat_BGRA32> writer(image, pixel);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_RGBA32> writer(image, pixel);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
-        
-      case Orthanc::PixelFormat_RGB24:
-      {
-        PixelTraits<Orthanc::PixelFormat_RGB24>::PixelType pixel;
-        pixel.red_ = red;
-        pixel.green_ = green;
-        pixel.blue_ = blue;
+    case Orthanc::PixelFormat_RGBA32:
+    {
+      PixelTraits<Orthanc::PixelFormat_RGBA32>::PixelType pixel;
+      pixel.red_ = red;
+      pixel.green_ = green;
+      pixel.blue_ = blue;
+      pixel.alpha_ = alpha;
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_RGB24> writer(image, pixel);
-        writer.DrawSegment(x0, y0, x1, y1);
-        break;
-      }
-        
-      default:
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+      BresenhamPixelWriter<Orthanc::PixelFormat_RGBA32> writer(image, pixel);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
+
+    case Orthanc::PixelFormat_RGB24:
+    {
+      PixelTraits<Orthanc::PixelFormat_RGB24>::PixelType pixel;
+      pixel.red_ = red;
+      pixel.green_ = green;
+      pixel.blue_ = blue;
+
+      BresenhamPixelWriter<Orthanc::PixelFormat_RGB24> writer(image, pixel);
+      writer.DrawSegment(x0, y0, x1, y1);
+      break;
+    }
+
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
     }
   }
 }
