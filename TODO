@@ -93,7 +93,6 @@ Encodings
 * Support Supplementary Kanji set (ISO 2022 IR 159)
 * Implement the following unit tests:
   - Chinese:
-    http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/chapter_J.html
     http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/chapter_K.html
 
 
