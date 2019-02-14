@@ -5868,7 +5868,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The main callback.
    * @param getMoveSize Callback to read the number of C-Move suboperations.
-   * @param applyMove Callback to apply one C-Move suboperations.
+   * @param applyMove Callback to apply one C-Move suboperation.
    * @param freeMove Callback to free the C-Move driver.
    * @return 0 if success, other value if error.
    * @ingroup DicomCallbacks
