@@ -260,7 +260,7 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 166"));  ASSERT_EQ(Encoding_Thai, e);
 
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#table_C.12-4
-  ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 87"));   //ASSERT_EQ(Encoding_JapaneseKanji, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 87"));    ASSERT_EQ(Encoding_JapaneseKanji, e);
   ASSERT_FALSE(GetDicomEncoding(e, "ISO 2022 IR 159"));  //ASSERT_EQ(Encoding_JapaneseKanjiSupplementary, e);
   ASSERT_TRUE(GetDicomEncoding(e, "ISO 2022 IR 149"));   ASSERT_EQ(Encoding_Korean, e);
 
