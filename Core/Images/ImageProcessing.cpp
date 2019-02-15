@@ -1086,7 +1086,7 @@ namespace Orthanc
     {
     case PixelFormat_Grayscale16:
     {
-      uint16_t maxValueUint16 = (uint16_t)maxValue;
+      uint16_t maxValueUint16 = (uint16_t)(std::min(maxValue, static_cast<int64_t>(std::numeric_limits<uint16_t>::max())));
 
       for (unsigned int y = 0; y < height; y++)
       {
@@ -1095,6 +1095,22 @@ namespace Orthanc
         for (unsigned int x = 0; x < width; x++, p++)
         {
           *p = maxValueUint16 - (*p);
+        }
+      }
+
+      return;
+    }
+    case PixelFormat_Grayscale8:
+    {
+      uint8_t maxValueUint8 = (uint8_t)(std::min(maxValue, static_cast<int64_t>(std::numeric_limits<uint8_t>::max())));
+
+      for (unsigned int y = 0; y < height; y++)
+      {
+        uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
+
+        for (unsigned int x = 0; x < width; x++, p++)
+        {
+          *p = maxValueUint8 - (*p);
         }
       }
 
@@ -1109,28 +1125,12 @@ namespace Orthanc
 
   void ImageProcessing::Invert(ImageAccessor& image)
   {
-    const unsigned int width = image.GetWidth();
-    const unsigned int height = image.GetHeight();
-    
     switch (image.GetFormat())
     {
     case PixelFormat_Grayscale8:
-    {
-      for (unsigned int y = 0; y < height; y++)
-      {
-        uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
-
-        for (unsigned int x = 0; x < width; x++, p++)
-        {
-          *p = 255 - (*p);
-        }
-      }
-
-      return;
-    }
-
+      return Invert(image, 255);
     default:
-      throw OrthancException(ErrorCode_NotImplemented);
+      throw OrthancException(ErrorCode_NotImplemented); // you should use the Invert(image, maxValue) overload
     }
   }
 
