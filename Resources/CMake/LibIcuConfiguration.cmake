@@ -15,7 +15,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     )
 
   set(LIBICU_SOURCES
-    ${LIBICU_SOURCES}
     /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
     )
 
@@ -26,20 +25,22 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     #-DU_COMBINED_IMPLEMENTATION
     #-DU_DEF_ICUDATA_ENTRY_POINT=icudt63l_dat
     #-DU_LIB_SUFFIX_C_NAME=l
-    -DUCONFIG_NO_SERVICE=1
+
+    #-DUCONFIG_NO_SERVICE=1
     -DU_COMMON_IMPLEMENTATION
     -DU_ENABLE_DYLOAD=0
     -DU_HAVE_STD_STRING=1
     -DU_I18N_IMPLEMENTATION
     -DU_IO_IMPLEMENTATION
     -DU_STATIC_IMPLEMENTATION=1
+    #-DU_CHARSET_IS_UTF8
+    -DUNISTR_FROM_STRING_EXPLICIT=
     )
 
   set_source_files_properties(
     /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
     PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
     )
-
 
 else() 
   CHECK_INCLUDE_FILE_CXX(unicode/uvernum.h HAVE_ICU_H)

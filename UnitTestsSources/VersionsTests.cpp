@@ -148,12 +148,15 @@ TEST(Version, LuaStatic)
   ASSERT_STREQ("Lua 5.3.5", LUA_RELEASE);
 }
 
+
+#if BUILDING_LIBICONV == 1
 TEST(Version, LibIconvStatic)
 {
   static const int major = 1;
   static const int minor = 15;  
   ASSERT_EQ((major << 8) + minor, _LIBICONV_VERSION);
 }
+#endif
 
 
 #if ORTHANC_ENABLE_SSL == 1

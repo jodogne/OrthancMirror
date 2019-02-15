@@ -271,7 +271,8 @@ if (BOOST_STATIC)
         ${BOOST_SOURCES_DIR}/libs/locale/src/std/std_backend.cpp
         )
 
-      if (BOOST_LOCALE_BACKEND STREQUAL "iconv")
+      if (BOOST_LOCALE_BACKEND STREQUAL "gcc" OR
+          BOOST_LOCALE_BACKEND STREQUAL "libiconv")
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
       elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
         add_definitions(-DBOOST_LOCALE_WITH_ICU=1)
@@ -302,7 +303,8 @@ if (BOOST_STATIC)
         )
 
       if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR
-          BOOST_LOCALE_BACKEND STREQUAL "iconv")
+          BOOST_LOCALE_BACKEND STREQUAL "gcc" OR
+          BOOST_LOCALE_BACKEND STREQUAL "libiconv")
         # In WebAssembly or asm.js, we rely on the version of iconv
         # that is shipped with the stdlib
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
@@ -328,20 +330,21 @@ if (BOOST_STATIC)
         )
 
       # Starting with release 0.8.2, Orthanc statically links against
-      # libiconv, even on Windows. Indeed, the "WCONV" library of
-      # Windows XP seems not to support properly several codepages
-      # (notably "Latin3", "Hebrew", and "Arabic"). Set
-      # "BOOST_LOCALE_BACKEND" to "wconv" to use WCONV anyway.
+      # libiconv on Windows. Indeed, the "WCONV" library of Windows XP
+      # seems not to support properly several codepages (notably
+      # "Latin3", "Hebrew", and "Arabic"). Set "BOOST_LOCALE_BACKEND"
+      # to "wconv" to use WCONV anyway.
 
-      if (BOOST_LOCALE_BACKEND STREQUAL "iconv")
+      if (BOOST_LOCALE_BACKEND STREQUAL "libiconv")
         add_definitions(-DBOOST_LOCALE_WITH_ICONV=1)
       elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
         add_definitions(-DBOOST_LOCALE_WITH_ICU=1)
         list(APPEND BOOST_SOURCES ${BOOST_ICU_SOURCES})
       elseif (BOOST_LOCALE_BACKEND STREQUAL "wconv")
         message("Using Window's wconv")
-      else()
         add_definitions(-DBOOST_LOCALE_WITH_WCONV=1)
+      else()
+        message(FATAL_ERROR "Unsupported value for BOOST_LOCALE_BACKEND on Windows: ${BOOST_LOCALE_BACKEND}")
       endif()
 
     else()

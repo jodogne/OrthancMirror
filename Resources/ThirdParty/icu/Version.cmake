@@ -12,7 +12,17 @@ else()
 endif()
 
 set(LIBICU_SOURCES_DIR ${CMAKE_BINARY_DIR}/icu)
-set(LIBICU_URL "http://orthanc.osimis.io/ThirdPartyDownloads/icu4c-63_1-src.tgz")
-set(LIBICU_MD5 "9e40f6055294284df958200e308bce50")
-set(LIBICU_DATA "icudt63${LIBICU_SUFFIX}_dat.c")
-set(LIBICU_SOURCE_DATA "${LIBICU_SOURCES_DIR}/source/data/in/icudt63l.dat")
+
+if (USE_LEGACY_LIBICU)
+  # This is the last version of icu that compiles with C++11
+  # support. It can be used for Linux Standard Base and Visual Studio 2008.
+  set(LIBICU_URL "http://orthanc.osimis.io/ThirdPartyDownloads/icu4c-58_2-src.tgz")
+  set(LIBICU_MD5 "fac212b32b7ec7ab007a12dff1f3aea1")
+  set(LIBICU_DATA "icudt58${LIBICU_SUFFIX}_dat.c")
+  set(LIBICU_SOURCE_DATA "${LIBICU_SOURCES_DIR}/source/data/in/icudt58l.dat")
+else()
+  set(LIBICU_URL "http://orthanc.osimis.io/ThirdPartyDownloads/icu4c-63_1-src.tgz")
+  set(LIBICU_MD5 "9e40f6055294284df958200e308bce50")
+  set(LIBICU_DATA "icudt63${LIBICU_SUFFIX}_dat.c")
+  set(LIBICU_SOURCE_DATA "${LIBICU_SOURCES_DIR}/source/data/in/icudt63l.dat")
+endif()
