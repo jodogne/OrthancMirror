@@ -5,17 +5,39 @@
 message("Using libicu")
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
-  set(LIBICU_SOURCES_DIR ${CMAKE_BINARY_DIR}/icu)
-  set(LIBICU_URL "http://orthanc.osimis.io/ThirdPartyDownloads/icu4c-63_1-src.tgz")
-  set(LIBICU_MD5 "9e40f6055294284df958200e308bce50")
-
+  include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
+  #DownloadPackage("2e12e17ae89e04768cfdc531aae4a5fb" "http://localhost/icudt63l_dat.c.gz" "icudt63l_dat.c")
 
+  include_directories(BEFORE
+    ${LIBICU_SOURCES_DIR}/source/common
+    ${LIBICU_SOURCES_DIR}/source/i18n
+    )
 
-  # TODO
+  set(LIBICU_SOURCES
+    ${LIBICU_SOURCES}
+    /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
+    )
+
+  aux_source_directory(${LIBICU_SOURCES_DIR}/source/common LIBICU_SOURCES)
+  aux_source_directory(${LIBICU_SOURCES_DIR}/source/i18n LIBICU_SOURCES)
+
   add_definitions(
-    -DU_STATIC_IMPLEMENTATION
     #-DU_COMBINED_IMPLEMENTATION
+    #-DU_DEF_ICUDATA_ENTRY_POINT=icudt63l_dat
+    #-DU_LIB_SUFFIX_C_NAME=l
+    -DUCONFIG_NO_SERVICE=1
+    -DU_COMMON_IMPLEMENTATION
+    -DU_ENABLE_DYLOAD=0
+    -DU_HAVE_STD_STRING=1
+    -DU_I18N_IMPLEMENTATION
+    -DU_IO_IMPLEMENTATION
+    -DU_STATIC_IMPLEMENTATION=1
+    )
+
+  set_source_files_properties(
+    /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
+    PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
     )
 
 
