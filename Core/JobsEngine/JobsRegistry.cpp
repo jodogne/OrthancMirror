@@ -110,7 +110,7 @@ namespace Orthanc
       job->GetJobType(jobType_);
       job->Start();
 
-      lastStatus_ = JobStatus(ErrorCode_Success, *job_);
+      lastStatus_ = JobStatus(ErrorCode_Success, "", *job_);
     }
 
     const std::string& GetId() const
@@ -318,7 +318,7 @@ namespace Orthanc
       job_->GetJobType(jobType_);
       job_->Start();
 
-      lastStatus_ = JobStatus(ErrorCode_Success, *job_);
+      lastStatus_ = JobStatus(ErrorCode_Success, "", *job_);
     }
   };
 
@@ -739,7 +739,7 @@ namespace Orthanc
   }
 
 
-  bool JobsRegistry::SubmitAndWait(Json::Value& successContent,
+  void JobsRegistry::SubmitAndWait(Json::Value& successContent,
                                    IJob* job,        // Takes ownership
                                    int priority)
   {
@@ -764,7 +764,25 @@ namespace Orthanc
         else if (state == JobState_Failure)
         {
           // Failure
-          break;
+          JobsIndex::const_iterator it = jobsIndex_.find(id);
+          if (it != jobsIndex_.end())  // Should always be true, already tested in GetStateInternal()
+          {
+            ErrorCode code = it->second->GetLastStatus().GetErrorCode();
+            const std::string& details = it->second->GetLastStatus().GetDetails();
+
+            if (details.empty())
+            {
+              throw OrthancException(code);
+            }
+            else
+            {
+              throw OrthancException(code, details);
+            }
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
         }
         else if (state == JobState_Success)
         {
@@ -781,7 +799,7 @@ namespace Orthanc
             successContent = status.GetPublicContent();
           }
           
-          break;
+          return;
         }
         else
         {
@@ -790,8 +808,6 @@ namespace Orthanc
         }
       }
     }
-
-    return (state == JobState_Success);
   }
 
 
@@ -1320,7 +1336,8 @@ namespace Orthanc
   }
       
 
-  void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code)
+  void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code,
+                                              const std::string& details)
   {
     if (!IsValid())
     {
@@ -1328,7 +1345,7 @@ namespace Orthanc
     }
     else
     {
-      JobStatus status(code, *job_);
+      JobStatus status(code, details, *job_);
           
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();

@@ -75,39 +75,39 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      result = JobStepResult::Failure(e.GetErrorCode());
+      result = JobStepResult::Failure(e);
     }
     catch (boost::bad_lexical_cast&)
     {
-      result = JobStepResult::Failure(ErrorCode_BadFileFormat);
+      result = JobStepResult::Failure(ErrorCode_BadFileFormat, NULL);
     }
     catch (...)
     {
-      result = JobStepResult::Failure(ErrorCode_InternalError);
+      result = JobStepResult::Failure(ErrorCode_InternalError, NULL);
     }
 
     switch (result.GetCode())
     {
       case JobStepCode_Success:
         running.GetJob().Stop(JobStopReason_Success);
-        running.UpdateStatus(ErrorCode_Success);
+        running.UpdateStatus(ErrorCode_Success, "");
         running.MarkSuccess();
         return false;
 
       case JobStepCode_Failure:
         running.GetJob().Stop(JobStopReason_Failure);
-        running.UpdateStatus(result.GetFailureCode());
+        running.UpdateStatus(result.GetFailureCode(), result.GetFailureDetails());
         running.MarkFailure();
         return false;
 
       case JobStepCode_Retry:
         running.GetJob().Stop(JobStopReason_Retry);
-        running.UpdateStatus(ErrorCode_Success);
+        running.UpdateStatus(ErrorCode_Success, "");
         running.MarkRetry(result.GetRetryTimeout());
         return false;
 
       case JobStepCode_Continue:
-        running.UpdateStatus(ErrorCode_Success);
+        running.UpdateStatus(ErrorCode_Success, "");
         return true;
             
       default:

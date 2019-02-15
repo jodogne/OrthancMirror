@@ -147,8 +147,9 @@ namespace Orthanc
       job->SetSynchronousTarget(tmp);
     
       Json::Value publicContent;
-      if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-          (publicContent, job.release(), priority))
+      context.GetJobsEngine().GetRegistry().SubmitAndWait
+        (publicContent, job.release(), priority);
+      
       {
         // The archive is now created: Prepare the sending of the ZIP file
         FilesystemHttpSender sender(tmp->GetPath(), MimeType_Zip);
@@ -156,10 +157,6 @@ namespace Orthanc
 
         // Send the ZIP
         output.AnswerStream(sender);
-      }
-      else
-      {
-        output.SignalError(HttpStatus_500_InternalServerError);
       }
     }
     else

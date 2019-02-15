@@ -105,7 +105,7 @@ namespace
     {
       if (fails_)
       {
-        return JobStepResult::Failure(ErrorCode_ParameterOutOfRange);
+        return JobStepResult::Failure(ErrorCode_ParameterOutOfRange, NULL);
       }
       else if (count_ == steps_ - 1)
       {
@@ -724,12 +724,12 @@ TEST(JobsEngine, SubmitAndWait)
   engine.Start();
 
   Json::Value content = Json::nullValue;
-  ASSERT_TRUE(engine.GetRegistry().SubmitAndWait(content, new DummyJob(), rand() % 10));
+  engine.GetRegistry().SubmitAndWait(content, new DummyJob(), rand() % 10);
   ASSERT_EQ(Json::objectValue, content.type());
   ASSERT_EQ("world", content["hello"].asString());
 
   content = Json::nullValue;
-  ASSERT_FALSE(engine.GetRegistry().SubmitAndWait(content, new DummyJob(true), rand() % 10));
+  ASSERT_THROW(engine.GetRegistry().SubmitAndWait(content, new DummyJob(true), rand() % 10), OrthancException);
   ASSERT_EQ(Json::nullValue, content.type());
 
   engine.Stop();

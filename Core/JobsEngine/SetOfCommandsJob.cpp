@@ -174,7 +174,7 @@ namespace Orthanc
         // Error
         if (!permissive_)
         {
-          return JobStepResult::Failure(ErrorCode_InternalError);
+          return JobStepResult::Failure(ErrorCode_InternalError, NULL);
         }
       }
     }
@@ -186,7 +186,7 @@ namespace Orthanc
       }
       else
       {
-        return JobStepResult::Failure(e.GetErrorCode());
+        return JobStepResult::Failure(e);
       }
     }
 
