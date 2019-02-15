@@ -19,6 +19,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
     -DIN_LIBRARY=1
     -DLIBDIR=""
     -DICONV_CONST=
+    #-DENABLE_EXTRA=1
     )
 
   configure_file(
