@@ -338,6 +338,29 @@ target_link_libraries(UnitTests
 
 
 #####################################################################
+## Build a static library to share code between the plugins
+#####################################################################
+
+if (ENABLE_PLUGINS AND
+    (BUILD_SERVE_FOLDERS OR BUILD_MODALITY_WORKLISTS))
+  add_library(ThirdPartyPlugins STATIC
+    ${BOOST_SOURCES}
+    ${JSONCPP_SOURCES}
+    ${LIBICONV_SOURCES}
+    ${LIBICU_SOURCES}
+    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
+    )
+
+  # Add the "-fPIC" option as this static library must be embedded
+  # inside shared libraries (important on UNIX)
+  set_property(
+    TARGET ThirdPartyPlugins
+    PROPERTY POSITION_INDEPENDENT_CODE ON
+    )
+endif()
+
+
+#####################################################################
 ## Build the "ServeFolders" plugin
 #####################################################################
 
@@ -359,13 +382,11 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
   endif()  
 
   add_library(ServeFolders SHARED 
-    ${BOOST_SOURCES}
-    ${JSONCPP_SOURCES}
-    ${LIBICONV_SOURCES}
     Plugins/Samples/ServeFolders/Plugin.cpp
-    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     ${SERVE_FOLDERS_RESOURCES}
     )
+
+  target_link_libraries(ServeFolders ThirdPartyPlugins)
 
   set_target_properties(
     ServeFolders PROPERTIES 
@@ -404,13 +425,11 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
   endif()
 
   add_library(ModalityWorklists SHARED 
-    ${BOOST_SOURCES}
-    ${JSONCPP_SOURCES}
-    ${LIBICONV_SOURCES}
-    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     Plugins/Samples/ModalityWorklists/Plugin.cpp
     ${MODALITY_WORKLISTS_RESOURCES}
     )
+
+  target_link_libraries(ModalityWorklists ThirdPartyPlugins)
 
   set_target_properties(
     ModalityWorklists PROPERTIES 
