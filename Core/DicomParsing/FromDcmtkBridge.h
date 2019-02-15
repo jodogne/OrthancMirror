@@ -131,6 +131,14 @@ namespace Orthanc
                                    DcmItem& dataset,
                                    Encoding defaultEncoding);
 
+    static Encoding DetectEncoding(DcmItem& dataset,
+                                   Encoding defaultEncoding)
+    {
+      // Compatibility wrapper for Orthanc <= 1.5.4
+      bool hasCodeExtensions;  // ignored
+      return DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
+    }
+
     static DicomTag Convert(const DcmTag& tag);
 
     static DicomTag GetTag(const DcmElement& element);

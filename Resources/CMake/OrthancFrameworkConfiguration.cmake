@@ -94,7 +94,7 @@ if (NOT ENABLE_PUGIXML)
 endif()
 
 if (NOT ENABLE_LOCALE)
-  unset(USE_SYSTEM_LIBICONV CACHE)
+  unset(BOOST_LOCALE_BACKEND CACHE)
   add_definitions(-DORTHANC_ENABLE_LOCALE=0)
 endif()
 
@@ -378,16 +378,24 @@ endif()
 
 
 ##
-## Locale support: libiconv
+## Locale support
 ##
 
 if (ENABLE_LOCALE)
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # In WebAssembly or asm.js, we rely on the version of iconv that
     # is shipped with the stdlib
-    unset(USE_BOOST_ICONV CACHE)
+    unset(BOOST_LOCALE_BACKEND CACHE)
   else()
-    include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
+    if (BOOST_LOCALE_BACKEND STREQUAL "iconv")
+      include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
+    elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
+      include(${CMAKE_CURRENT_LIST_DIR}/LibIcuConfiguration.cmake)
+    elseif (BOOST_LOCALE_BACKEND STREQUAL "wconv")
+      message("Using Microsoft Window's wconv")
+    else()
+      message(FATAL_ERROR "Invalid value for BOOST_LOCALE_BACKEND: ${BOOST_LOCALE_BACKEND}")
+    endif()
   endif()
   
   add_definitions(-DORTHANC_ENABLE_LOCALE=1)
@@ -610,6 +618,7 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${CURL_SOURCES}
   ${JSONCPP_SOURCES}
   ${LIBICONV_SOURCES}
+  ${LIBICU_SOURCES}
   ${LIBJPEG_SOURCES}
   ${LIBP11_SOURCES}
   ${LIBPNG_SOURCES}

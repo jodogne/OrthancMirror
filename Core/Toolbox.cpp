@@ -499,7 +499,11 @@ namespace Orthanc
         return "GB18030";
 
       case Encoding_Thai:
+#if BOOST_LOCALE_WITH_ICU == 1
+        return "tis620.2533";
+#else
         return "TIS620.2533-0";
+#endif
 
       case Encoding_Korean:
         return "ISO-IR-149";
