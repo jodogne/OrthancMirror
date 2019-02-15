@@ -335,7 +335,7 @@ namespace OrthancPlugins
 
     void Clear();
 
-    void CheckImageAvailable();
+    void CheckImageAvailable() const;
 
   public:
     OrthancImage();
@@ -368,30 +368,30 @@ namespace OrthancPlugins
                           size_t size,
                           unsigned int frame);
 
-    OrthancPluginPixelFormat GetPixelFormat();
+    OrthancPluginPixelFormat GetPixelFormat() const;
 
-    unsigned int GetWidth();
+    unsigned int GetWidth() const;
 
-    unsigned int GetHeight();
+    unsigned int GetHeight() const;
 
-    unsigned int GetPitch();
+    unsigned int GetPitch() const;
     
-    const void* GetBuffer();
+    const void* GetBuffer() const;
 
     const OrthancPluginImage* GetObject() const
     {
       return image_;
     }
 
-    void CompressPngImage(MemoryBuffer& target);
+    void CompressPngImage(MemoryBuffer& target) const;
 
     void CompressJpegImage(MemoryBuffer& target,
-                           uint8_t quality);
+                           uint8_t quality) const;
 
-    void AnswerPngImage(OrthancPluginRestOutput* output);
+    void AnswerPngImage(OrthancPluginRestOutput* output) const;
 
     void AnswerJpegImage(OrthancPluginRestOutput* output,
-                         uint8_t quality);
+                         uint8_t quality) const;
   };
 
 

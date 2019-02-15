@@ -891,7 +891,7 @@ namespace OrthancPlugins
   }
 
 
-  void OrthancImage::CheckImageAvailable()
+  void OrthancImage::CheckImageAvailable() const
   {
     if (image_ == NULL)
     {
@@ -985,42 +985,42 @@ namespace OrthancPlugins
   }
 
 
-  OrthancPluginPixelFormat OrthancImage::GetPixelFormat()
+  OrthancPluginPixelFormat OrthancImage::GetPixelFormat() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImagePixelFormat(GetGlobalContext(), image_);
   }
 
 
-  unsigned int OrthancImage::GetWidth()
+  unsigned int OrthancImage::GetWidth() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImageWidth(GetGlobalContext(), image_);
   }
 
 
-  unsigned int OrthancImage::GetHeight()
+  unsigned int OrthancImage::GetHeight() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImageHeight(GetGlobalContext(), image_);
   }
 
 
-  unsigned int OrthancImage::GetPitch()
+  unsigned int OrthancImage::GetPitch() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImagePitch(GetGlobalContext(), image_);
   }
 
 
-  const void* OrthancImage::GetBuffer()
+  const void* OrthancImage::GetBuffer() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImageBuffer(GetGlobalContext(), image_);
   }
 
 
-  void OrthancImage::CompressPngImage(MemoryBuffer& target)
+  void OrthancImage::CompressPngImage(MemoryBuffer& target) const
   {
     CheckImageAvailable();
 
@@ -1033,7 +1033,7 @@ namespace OrthancPlugins
 
 
   void OrthancImage::CompressJpegImage(MemoryBuffer& target,
-                                       uint8_t quality)
+                                       uint8_t quality) const
   {
     CheckImageAvailable();
 
@@ -1045,7 +1045,7 @@ namespace OrthancPlugins
   }
 
 
-  void OrthancImage::AnswerPngImage(OrthancPluginRestOutput* output)
+  void OrthancImage::AnswerPngImage(OrthancPluginRestOutput* output) const
   {
     CheckImageAvailable();
     OrthancPluginCompressAndAnswerPngImage(GetGlobalContext(), output, GetPixelFormat(),
@@ -1054,7 +1054,7 @@ namespace OrthancPlugins
 
 
   void OrthancImage::AnswerJpegImage(OrthancPluginRestOutput* output,
-                                     uint8_t quality)
+                                     uint8_t quality) const
   {
     CheckImageAvailable();
     OrthancPluginCompressAndAnswerJpegImage(GetGlobalContext(), output, GetPixelFormat(),
