@@ -46,13 +46,27 @@ namespace Orthanc
   }
 
 
-  JobStepResult JobStepResult::Failure(const ErrorCode& error)
+  JobStepResult JobStepResult::Failure(const ErrorCode& error,
+                                       const char* details)
   {
     JobStepResult result(JobStepCode_Failure);
     result.error_ = error;
+
+    if (details != NULL)
+    {
+      result.failureDetails_ = details;
+    }
+    
     return result;
   }
 
+
+  JobStepResult JobStepResult::Failure(const OrthancException& exception)
+  {
+    return Failure(exception.GetErrorCode(),
+                   exception.HasDetails() ? exception.GetDetails() : NULL);
+  }
+  
 
   unsigned int JobStepResult::GetRetryTimeout() const
   {
@@ -72,6 +86,19 @@ namespace Orthanc
     if (code_ == JobStepCode_Failure)
     {
       return error_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  const std::string& JobStepResult::GetFailureDetails() const
+  {
+    if (code_ == JobStepCode_Failure)
+    {
+      return failureDetails_;
     }
     else
     {

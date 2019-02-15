@@ -943,7 +943,8 @@ namespace Orthanc
         synchronousTarget_.unique())
     {
       LOG(WARNING) << "A client has disconnected while creating an archive";
-      return JobStepResult::Failure(ErrorCode_NetworkProtocol);          
+      return JobStepResult::Failure(ErrorCode_NetworkProtocol,
+                                    "A client has disconnected while creating an archive");
     }
         
     if (writer_->GetStepsCount() == 0)

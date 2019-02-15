@@ -88,7 +88,7 @@ namespace Orthanc
         return JobStepResult::Success();
 
       case OrthancPluginJobStepStatus_Failure:
-        return JobStepResult::Failure(ErrorCode_Plugin);
+        return JobStepResult::Failure(ErrorCode_Plugin, NULL);
 
       case OrthancPluginJobStepStatus_Continue:
         return JobStepResult::Continue();

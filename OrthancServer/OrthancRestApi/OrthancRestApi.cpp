@@ -250,17 +250,11 @@ namespace Orthanc
     if (synchronous)
     {
       Json::Value successContent;
-      if (context.GetJobsEngine().GetRegistry().SubmitAndWait
-          (successContent, raii.release(), priority))
-      {
-        // Success in synchronous execution
-        output.AnswerJson(successContent);
-      }
-      else
-      {
-        // Error during synchronous execution
-        output.SignalError(HttpStatus_500_InternalServerError);
-      }
+      context.GetJobsEngine().GetRegistry().SubmitAndWait
+        (successContent, raii.release(), priority);
+
+      // Success in synchronous execution
+      output.AnswerJson(successContent);
     }
     else
     {

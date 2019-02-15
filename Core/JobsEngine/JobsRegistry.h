@@ -175,7 +175,7 @@ namespace Orthanc
     void Submit(IJob* job,        // Takes ownership
                 int priority);
 
-    bool SubmitAndWait(Json::Value& successContent,
+    void SubmitAndWait(Json::Value& successContent,
                        IJob* job,        // Takes ownership
                        int priority);
     
@@ -248,7 +248,8 @@ namespace Orthanc
 
       void MarkRetry(unsigned int timeout);
 
-      void UpdateStatus(ErrorCode code);
+      void UpdateStatus(ErrorCode code,
+                        const std::string& details);
     };
   };
 }

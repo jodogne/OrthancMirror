@@ -46,11 +46,13 @@ namespace Orthanc
     Json::Value    publicContent_;
     Json::Value    serialized_;
     bool           hasSerialized_;
+    std::string    details_;
 
   public:
     JobStatus();
 
     JobStatus(ErrorCode code,
+              const std::string& details,
               IJob& job);
 
     ErrorCode GetErrorCode() const
@@ -83,6 +85,11 @@ namespace Orthanc
     bool HasSerialized() const
     {
       return hasSerialized_;
+    }
+
+    const std::string& GetDetails() const
+    {
+      return details_;
     }
   };
 }

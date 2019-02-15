@@ -37,12 +37,15 @@
 
 namespace Orthanc
 {
+  class OrthancException;
+  
   class JobStepResult
   {
   private:
     JobStepCode   code_;
     unsigned int  timeout_;
     ErrorCode     error_;
+    std::string   failureDetails_;
     
     explicit JobStepResult(JobStepCode code) :
       code_(code),
@@ -71,7 +74,10 @@ namespace Orthanc
 
     static JobStepResult Retry(unsigned int timeout);
 
-    static JobStepResult Failure(const ErrorCode& error);
+    static JobStepResult Failure(const ErrorCode& error,
+                                 const char* details);
+
+    static JobStepResult Failure(const OrthancException& exception);
 
     JobStepCode GetCode() const
     {
@@ -81,5 +87,7 @@ namespace Orthanc
     unsigned int GetRetryTimeout() const;
 
     ErrorCode GetFailureCode() const;
+
+    const std::string& GetFailureDetails() const;
   };
 }
