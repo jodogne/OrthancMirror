@@ -21,7 +21,7 @@ Legacy version for LSB:
 
 $ cmake .. -G Ninja -DUSE_LEGACY_LIBICU=ON && ninja install
 
-Legacy version using LSB:
+Legacy version, compiled using LSB:
 
 $ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE=../../../LinuxStandardBaseToolchain.cmake \

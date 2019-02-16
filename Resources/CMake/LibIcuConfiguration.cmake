@@ -9,15 +9,33 @@ message("Using libicu")
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
-  DownloadCompressedFile(${LIBICU_DATA_MD5} ${LIBICU_DATA_URL} ${LIBICU_DATA})
+
+  if (MSVC)
+    # In Visual Studio 2015, we get the following error if using plain
+    # C: "icudt58l_dat.c(1638339): fatal error C1060: compiler is out
+    # of heap space" => use Microsoft Assembler to circumvent this issue
+    DownloadCompressedFile(${LIBICU_MASM_MD5} ${LIBICU_MASM_URL} ${LIBICU_MASM})
+
+    set(LIBICU_SOURCES
+      ${CMAKE_BINARY_DIR}/${LIBICU_MASM}
+      )
+  else()
+    # Use plain C data library
+    DownloadCompressedFile(${LIBICU_DATA_MD5} ${LIBICU_DATA_URL} ${LIBICU_DATA})
+
+    set_source_files_properties(
+      ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
+      PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
+      )
+
+    set(LIBICU_SOURCES
+      ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
+      )
+  endif()
   
   include_directories(BEFORE
     ${LIBICU_SOURCES_DIR}/source/common
     ${LIBICU_SOURCES_DIR}/source/i18n
-    )
-
-  set(LIBICU_SOURCES
-    ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
     )
 
   aux_source_directory(${LIBICU_SOURCES_DIR}/source/common LIBICU_SOURCES)
@@ -39,12 +57,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     -DUNISTR_FROM_STRING_EXPLICIT=
     )
 
-  set_source_files_properties(
-    ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
-    PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
-    )
-
-  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set_source_files_properties(
       ${LIBICU_SOURCES_DIR}/source/common/locmap.c
       PROPERTIES COMPILE_DEFINITIONS "LOCALE_SNAME=0x0000005c"
