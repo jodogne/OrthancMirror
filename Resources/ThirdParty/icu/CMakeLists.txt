@@ -60,9 +60,11 @@ add_custom_command(
 
 message(${LIBICU_DATA}.gz)
 
+
+# "--no-name" is necessary for 7-zip on Windows to behave similarly to gunzip
 add_custom_command(
   OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
-  COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.c -c > ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
+  COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.c --no-name -c > ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
   DEPENDS  ${LIBICU_DATA}
   )
 
