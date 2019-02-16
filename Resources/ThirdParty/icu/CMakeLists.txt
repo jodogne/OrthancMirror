@@ -58,8 +58,11 @@ add_custom_command(
   DEPENDS  IcuCodeGeneration
   )
 
-message(${LIBICU_DATA}.gz)
-
+add_custom_command(
+  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_MASM}
+  COMMAND  IcuCodeGeneration ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat --assembly masm
+  DEPENDS  IcuCodeGeneration
+  )
 
 # "--no-name" is necessary for 7-zip on Windows to behave similarly to gunzip
 add_custom_command(
@@ -68,10 +71,21 @@ add_custom_command(
   DEPENDS  ${LIBICU_DATA}
   )
 
-add_custom_target(Final ALL DEPENDS  ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz)
+add_custom_command(
+  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
+  COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S --no-name -c > ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
+  DEPENDS  ${LIBICU_MASM}
+  )
+
+add_custom_target(Final ALL DEPENDS
+  ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
+  ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
+  )
 
 install(
-  FILES ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
+  FILES
+  ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
+  ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
   DESTINATION ${CMAKE_SOURCE_DIR}/../../../ThirdPartyDownloads
   )
 
