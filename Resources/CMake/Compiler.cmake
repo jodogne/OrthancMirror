@@ -39,7 +39,7 @@ elseif (MSVC)
   if (BOOST_LOCALE_BACKEND STREQUAL "icu")
     # If compiling icu, the heap space must be further increased:
     # "icudt58l_dat.c(1638339): fatal error C1060: compiler is out of heap space"
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zm512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zm1024")
   else()
     # Add /Zm256 compiler option to Visual Studio to fix PCH errors
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zm256")
