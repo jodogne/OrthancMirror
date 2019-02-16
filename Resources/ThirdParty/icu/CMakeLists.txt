@@ -59,7 +59,7 @@ add_custom_command(
   )
 
 add_custom_command(
-  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_MASM}
+  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S
   COMMAND  IcuCodeGeneration ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat --assembly masm
   DEPENDS  IcuCodeGeneration
   )
@@ -74,7 +74,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
   COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S --no-name -c > ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
-  DEPENDS  ${LIBICU_MASM}
+  DEPENDS  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S
   )
 
 add_custom_target(Final ALL DEPENDS
