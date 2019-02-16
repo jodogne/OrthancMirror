@@ -57,45 +57,64 @@ else()
   if (${TAR_EXECUTABLE} MATCHES "TAR_EXECUTABLE-NOTFOUND")
     message(FATAL_ERROR "Please install the 'tar' package")
   endif()
+
+  find_program(GUNZIP_EXECUTABLE gunzip)
+  if (${GUNZIP_EXECUTABLE} MATCHES "GUNZIP_EXECUTABLE-NOTFOUND")
+    message(FATAL_ERROR "Please install the 'gzip' package")
+  endif()
 endif()
+
+
+macro(DownloadFile MD5 Url)
+  GetUrlFilename(TMP_FILENAME "${Url}")
+
+  set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
+  if (NOT EXISTS "${TMP_PATH}")
+    message("Downloading ${Url}")
+
+    # This fixes issue 6: "I think cmake shouldn't download the
+    # packages which are not in the system, it should stop and let
+    # user know."
+    # https://code.google.com/p/orthanc/issues/detail?id=6
+    if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
+      message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
+    endif()
+
+    if ("${MD5}" STREQUAL "no-check")
+      message(WARNING "Not checking the MD5 of: ${Url}")
+      file(DOWNLOAD "${Url}" "${TMP_PATH}"
+        SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60
+        STATUS Failure)
+    else()
+      file(DOWNLOAD "${Url}" "${TMP_PATH}"
+        SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60
+        EXPECTED_MD5 "${MD5}" STATUS Failure)
+    endif()
+
+    list(GET Failure 0 Status)
+    if (NOT Status EQUAL 0)
+      message(FATAL_ERROR "Cannot download file: ${Url}")
+    endif()
+    
+  else()
+    message("Using local copy of ${Url}")
+
+    if ("${MD5}" STREQUAL "no-check")
+      message(WARNING "Not checking the MD5 of: ${Url}")
+    else()
+      file(MD5 ${TMP_PATH} ActualMD5)
+      if (NOT "${ActualMD5}" STREQUAL "${MD5}")
+        message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${TMP_PATH}")
+      endif()
+    endif()
+  endif()
+endmacro()
 
 
 macro(DownloadPackage MD5 Url TargetDirectory)
   if (NOT IS_DIRECTORY "${TargetDirectory}")
-    GetUrlFilename(TMP_FILENAME "${Url}")
-
-    set(TMP_PATH "${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${TMP_FILENAME}")
-    if (NOT EXISTS "${TMP_PATH}")
-      message("Downloading ${Url}")
-
-      # This fixes issue 6: "I think cmake shouldn't download the
-      # packages which are not in the system, it should stop and let
-      # user know."
-      # https://code.google.com/p/orthanc/issues/detail?id=6
-      if (NOT STATIC_BUILD AND NOT ALLOW_DOWNLOADS)
-	message(FATAL_ERROR "CMake is not allowed to download from Internet. Please set the ALLOW_DOWNLOADS option to ON")
-      endif()
-
-      if ("${MD5}" STREQUAL "no-check")
-        message(WARNING "Not checking the MD5 of: ${Url}")
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60)
-      else()
-        file(DOWNLOAD "${Url}" "${TMP_PATH}" SHOW_PROGRESS TIMEOUT 300 INACTIVITY_TIMEOUT 60 EXPECTED_MD5 "${MD5}")
-      endif()
-
-    else()
-      message("Using local copy of ${Url}")
-
-      if ("${MD5}" STREQUAL "no-check")
-        message(WARNING "Not checking the MD5 of: ${Url}")
-      else()
-        file(MD5 ${TMP_PATH} ActualMD5)
-        if (NOT "${ActualMD5}" STREQUAL "${MD5}")
-          message(FATAL_ERROR "The MD5 hash of a previously download file is invalid: ${TMP_PATH}")
-        endif()
-      endif()
-    endif()
-
+    DownloadFile("${MD5}" "${Url}")
+    
     GetUrlExtension(TMP_EXTENSION "${Url}")
     #message(${TMP_EXTENSION})
     message("Uncompressing ${TMP_FILENAME}")
@@ -140,7 +159,7 @@ macro(DownloadPackage MD5 Url TargetDirectory)
           OUTPUT_QUIET
           )
       else()
-        message(FATAL_ERROR "Support your platform here")
+        message(FATAL_ERROR "Unsupported package extension: ${TMP_EXTENSION}")
       endif()
 
     else()
@@ -170,7 +189,7 @@ macro(DownloadPackage MD5 Url TargetDirectory)
           RESULT_VARIABLE Failure
           )
       else()
-        message(FATAL_ERROR "Unknown package format.")
+        message(FATAL_ERROR "Unsupported package extension: ${TMP_EXTENSION}")
       endif()
     endif()
    
@@ -180,6 +199,61 @@ macro(DownloadPackage MD5 Url TargetDirectory)
 
     if (NOT IS_DIRECTORY "${TargetDirectory}")
       message(FATAL_ERROR "The package was not uncompressed at the proper location. Check the CMake instructions.")
+    endif()
+  endif()
+endmacro()
+
+
+
+macro(DownloadCompressedFile MD5 Url TargetFile)
+  message(${MD5})
+  message(${Url})
+  message(${TargetFile})
+  if (NOT EXISTS "${TargetFile}")
+    DownloadFile("${MD5}" "${Url}")
+    
+    GetUrlExtension(TMP_EXTENSION "${Url}")
+    #message(${TMP_EXTENSION})
+    message("Uncompressing ${TMP_FILENAME}")
+
+    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+      # How to silently extract files using 7-zip
+      # http://superuser.com/questions/331148/7zip-command-line-extract-silently-quietly
+
+      if ("${TMP_EXTENSION}" STREQUAL "gz")
+        execute_process(
+          COMMAND ${ZIP_EXECUTABLE} e -y ${TMP_PATH}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+          RESULT_VARIABLE Failure
+          OUTPUT_QUIET
+          )
+
+        if (Failure)
+          message(FATAL_ERROR "Error while running the uncompression tool")
+        endif()
+
+      else()
+        message(FATAL_ERROR "Unsupported file extension: ${TMP_EXTENSION}")
+      endif()
+
+    else()
+      if ("${TMP_EXTENSION}" STREQUAL "gz")
+        execute_process(
+          COMMAND sh -c "${GUNZIP_EXECUTABLE} -c ${TMP_PATH}"
+          OUTPUT_FILE "${TargetFile}"
+          RESULT_VARIABLE Failure
+          )
+      else()
+        message(FATAL_ERROR "Unsupported file extension: ${TMP_EXTENSION}")
+      endif()
+    endif()
+   
+    if (Failure)
+      message(FATAL_ERROR "Error while running the uncompression tool")
+    endif()
+
+    if (NOT EXISTS "${TargetFile}")
+      message(FATAL_ERROR "The file was not uncompressed at the proper location. Check the CMake instructions.")
     endif()
   endif()
 endmacro()

@@ -76,7 +76,6 @@ mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 mark_as_advanced(BOOST_LOCALE_BACKEND)
 mark_as_advanced(USE_PUGIXML)
-mark_as_advanced(USE_LEGACY_JSONCPP)
 
 
 #####################################################################

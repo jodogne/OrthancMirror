@@ -1,4 +1,6 @@
 
+# Check out: ../ThirdParty/icu/README.txt
+
 # http://userguide.icu-project.org/packaging
 # http://userguide.icu-project.org/howtouseicu
 
@@ -7,15 +9,15 @@ message("Using libicu")
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
-  #DownloadPackage("2e12e17ae89e04768cfdc531aae4a5fb" "http://localhost/icudt63l_dat.c.gz" "icudt63l_dat.c")
-
+  DownloadCompressedFile(${LIBICU_DATA_MD5} ${LIBICU_DATA_URL} ${LIBICU_DATA})
+  
   include_directories(BEFORE
     ${LIBICU_SOURCES_DIR}/source/common
     ${LIBICU_SOURCES_DIR}/source/i18n
     )
 
   set(LIBICU_SOURCES
-    /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
+    ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
     )
 
   aux_source_directory(${LIBICU_SOURCES_DIR}/source/common LIBICU_SOURCES)
@@ -38,7 +40,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     )
 
   set_source_files_properties(
-    /home/jodogne/Subversion/orthanc/ThirdPartyDownloads/${LIBICU_DATA}
+    ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
     PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
     )
 
