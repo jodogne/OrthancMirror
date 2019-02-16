@@ -1,9 +1,3 @@
-# Legacy version using LSB:
-# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../../../LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_LIBICU=ON -G Ninja && ninja
-
-# Newest release of icu:
-# cmake .. -DCMAKE_BUILD_TYPE=Debug -G Ninja && ninja
-
 cmake_minimum_required(VERSION 2.8)
 project(IcuCodeGeneration)
 
@@ -16,6 +10,9 @@ endif()
 include(${CMAKE_SOURCE_DIR}/../../CMake/Compiler.cmake)
 include(${CMAKE_SOURCE_DIR}/../../CMake/DownloadPackage.cmake)
 include(Version.cmake)
+
+set(SOURCE_DATA
+  "${LIBICU_SOURCES_DIR}/source/data/in/${LIBICU_DATA_VERSION}${LIBICU_SUFFIX}.dat")
 
 set(ALLOW_DOWNLOADS ON)
 DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
@@ -51,19 +48,25 @@ add_executable(IcuCodeGeneration
   ${LIBICU_SOURCES}
   )
 
+configure_file(${SOURCE_DATA}
+  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat
+  COPYONLY)
+
 add_custom_command(
-  OUTPUT   ${LIBICU_DATA}
-  COMMAND  IcuCodeGeneration ${LIBICU_SOURCE_DATA}
+  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
+  COMMAND  IcuCodeGeneration ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat
   DEPENDS  IcuCodeGeneration
   )
 
+message(${LIBICU_DATA}.gz)
+
 add_custom_command(
-  OUTPUT   ${LIBICU_DATA}.gz
-  COMMAND  gzip -f ${LIBICU_DATA}
+  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
+  COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.c -c > ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
   DEPENDS  ${LIBICU_DATA}
   )
 
-add_custom_target(Final ALL DEPENDS  ${LIBICU_DATA}.gz)
+add_custom_target(Final ALL DEPENDS  ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz)
 
 install(
   FILES ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz

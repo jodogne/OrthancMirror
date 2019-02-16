@@ -1,4 +1,4 @@
-# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_JSONCPP=ON -DBOOST_LOCALE_BACKEND=gcc
+# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_LIBICU=ON -DBOOST_LOCALE_BACKEND=icu
 
 INCLUDE(CMakeForceCompiler)
 
