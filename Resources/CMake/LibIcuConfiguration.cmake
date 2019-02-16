@@ -16,6 +16,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     # of heap space" => use Microsoft Assembler to circumvent this issue
     DownloadCompressedFile(${LIBICU_MASM_MD5} ${LIBICU_MASM_URL} ${LIBICU_MASM})
 
+    enable_language(ASM_MASM)
     set(LIBICU_SOURCES
       ${CMAKE_BINARY_DIR}/${LIBICU_MASM}
       )
