@@ -263,9 +263,11 @@ namespace Orthanc
       UID_BasicTextSRStorage,
       UID_BasicVoiceAudioWaveformStorage,
       UID_BlendingSoftcopyPresentationStateStorage,
-      UID_BreastTomosynthesisImageStorage,
+#if DCMTK_VERSION_NUMBER >= 361
       UID_BreastProjectionXRayImageStorageForProcessing,
       UID_BreastProjectionXRayImageStorageForPresentation,
+#endif
+      UID_BreastTomosynthesisImageStorage,
       UID_CardiacElectrophysiologyWaveformStorage,
       UID_ChestCADSRStorage,
       UID_ColonCADSRStorage,
