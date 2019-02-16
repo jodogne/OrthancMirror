@@ -47,7 +47,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set_source_files_properties(
       ${LIBICU_SOURCES_DIR}/source/common/locmap.c
-      PROPERTIES COMPILE_DEFINITIONS "LOCALE_SNAME=-"
+      PROPERTIES COMPILE_DEFINITIONS "LOCALE_SNAME=0x0000005c"
       )
   endif()
 
