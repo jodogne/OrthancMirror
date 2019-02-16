@@ -44,7 +44,10 @@
 #include <sqlite3.h>
 #include <lua.h>
 #include <jpeglib.h>
-#include <iconv.h>
+
+#if BUILDING_LIBICONV == 1
+#  include <iconv.h>
+#endif
 
 #if ORTHANC_ENABLE_SSL == 1
 #  include <openssl/opensslv.h>

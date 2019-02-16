@@ -44,6 +44,15 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
     )
 
+  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set_source_files_properties(
+      ${LIBICU_SOURCES_DIR}/source/common/locmap.c
+      PROPERTIES COMPILE_DEFINITIONS "LOCALE_SNAME=-"
+      )
+  endif()
+
+  source_group(ThirdParty\\libicu REGULAR_EXPRESSION ${LIBICU_SOURCES_DIR}/.*)
+
 else() 
   CHECK_INCLUDE_FILE_CXX(unicode/uvernum.h HAVE_ICU_H)
   if (NOT HAVE_ICU_H)

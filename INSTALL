@@ -71,11 +71,12 @@ See the file "DarwinCompilation.txt".
 
 
 
-Native Windows build with Microsoft Visual Studio
--------------------------------------------------
+Native Windows build with Microsoft Visual Studio 2008
+------------------------------------------------------
 
 # cd [...]\OrthancBuild
-# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\Orthanc
+# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON \
+  -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\Orthanc
 
 Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
 
@@ -91,6 +92,16 @@ NOTES:
   Visual Studio that do not support C++11
 
 
+Orthanc as compiled above will not work properly with some Asian
+encodings (unit tests will fail). In international setups, you can
+compile Orthanc together with ICU as follows:
+
+# cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON \
+  -DBOOST_LOCALE_BACKEND=icu -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_LIBICU=ON \
+  -G "Visual Studio 9 2008" [...]\Orthanc
+
+
+
 Native Windows build with Microsoft Visual Studio 2015, Ninja and QtCreator
 ---------------------------------------------------------------------------
 
@@ -103,6 +114,11 @@ Open a Visual Studio 2015 x64 Command Prompt.
 Then, you can open an existing project in QtCreator:
 * Select the CMakeLists.txt in [...]\Orthanc
 * Import build from [...]\OrthancBuild
+
+
+Instructions to include support for Asian encodings:
+
+# cmake -G Ninja -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu [...]\Orthanc
 
 
 
