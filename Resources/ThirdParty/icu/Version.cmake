@@ -34,5 +34,5 @@ set(LIBICU_DATA "${LIBICU_DATA_VERSION}${LIBICU_SUFFIX}_dat.c")
 set(LIBICU_DATA_URL "${LIBICU_BASE_URL}/${LIBICU_DATA}.gz")
 
 # For Microsoft assembler (masm). This is necessarily little-endian.
-set(LIBICU_MASM "${LIBICU_DATA_VERSION}_dat.S")
+set(LIBICU_MASM "${LIBICU_DATA_VERSION}_dat.asm")
 set(LIBICU_MASM_URL "${LIBICU_BASE_URL}/${LIBICU_MASM}.gz")
