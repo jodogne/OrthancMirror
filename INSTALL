@@ -118,7 +118,10 @@ Then, you can open an existing project in QtCreator:
 
 Instructions to include support for Asian encodings:
 
-# cmake -G Ninja -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu [...]\Orthanc
+# cmake -G Ninja -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu [...]\Orthanc
+
+The option "-T host=x64" is necessary to prevent error "C1060:
+compiler is out of heap space" when compiling Orthanc with ICU.
 
 
 
