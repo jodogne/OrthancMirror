@@ -10,7 +10,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
 
-  if (MSVC)
+  if (OFF)
     # In Visual Studio 2015, we get the following error if using plain
     # C: "icudt58l_dat.c(1638339): fatal error C1060: compiler is out
     # of heap space" => use Microsoft Assembler to circumvent this issue
