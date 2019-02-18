@@ -180,7 +180,7 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
   
   memset(image.GetBuffer(), 128, image.GetHeight() * image.GetWidth());
 
-  unsigned int c = 0;
+  float c = 0.0f;
   for (unsigned int y = 0; y < image.GetHeight(); y++)
   {
     for (unsigned int x = 0; x < image.GetWidth(); x++, c++)
@@ -189,7 +189,6 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
     }
   }
 
-  c = 0;
   for (unsigned int y = 0; y < image.GetHeight(); y++)
   {
     for (unsigned int x = 0; x < image.GetWidth(); x++, c++)
@@ -197,4 +196,29 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
       ASSERT_FLOAT_EQ(c, TestFixture::ImageTraits::GetFloatPixel(image, x, y));
     }
   }
+}
+
+TYPED_TEST(TestIntegerImageTraits, FillPolygon)
+{
+  ImageAccessor& image = this->GetImage();
+
+  ImageProcessing::Set(image, 128);
+
+  // draw a triangle
+  std::vector<ImageProcessing::ImagePoint> points;
+  points.push_back(ImageProcessing::ImagePoint(1,1));
+  points.push_back(ImageProcessing::ImagePoint(1,5));
+  points.push_back(ImageProcessing::ImagePoint(5,5));
+
+  Orthanc::ImageProcessing::FillPolygon(image, points, 255);
+
+  // outside polygon
+  ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
+  ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 6));
+  ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 6, 6));
+  ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 6, 0));
+
+  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 2));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 2, 4));
 }
