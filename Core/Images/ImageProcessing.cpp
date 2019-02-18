@@ -43,6 +43,7 @@
 #include <string.h>
 #include <limits>
 #include <stdint.h>
+#include <algorithm>
 
 namespace Orthanc
 {
@@ -1364,4 +1365,144 @@ namespace Orthanc
       throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
     }
   }
+
+  void ComputePolygonExtent(int32_t& left, int32_t& right, int32_t& top, int32_t& bottom, const std::vector<ImageProcessing::ImagePoint>& points)
+  {
+    left = std::numeric_limits<int32_t>::max();
+    right = std::numeric_limits<int32_t>::min();
+    top = std::numeric_limits<int32_t>::max();
+    bottom = std::numeric_limits<int32_t>::min();
+
+    for (size_t i = 0; i < points.size(); i++)
+    {
+      const ImageProcessing::ImagePoint& p = points[i];
+      left = std::min(p.GetX(), left);
+      right = std::max(p.GetX(), right);
+      bottom = std::max(p.GetY(), bottom);
+      top = std::min(p.GetY(), top);
+    }
+  }
+
+  template <PixelFormat TargetFormat>
+  void FillPolygon_(ImageAccessor& image,
+              const std::vector<ImageProcessing::ImagePoint>& points,
+              int64_t value_)
+  {
+    typedef typename PixelTraits<TargetFormat>::PixelType  TargetType;
+
+    TargetType value = PixelTraits<TargetFormat>::IntegerToPixel(value_);
+    int32_t left;
+    int32_t right;
+    int32_t top;
+    int32_t bottom;
+
+    ComputePolygonExtent(left, right, top, bottom, points);
+
+    // from http://alienryderflex.com/polygon_fill/
+
+    // convert all "corner"  points to double only once
+    std::vector<double> cpx;
+    std::vector<double> cpy;
+    size_t cpSize = points.size();
+    for (size_t i = 0; i < points.size(); i++)
+    {
+      cpx.push_back((double)points[i].GetX());
+      cpy.push_back((double)points[i].GetY());
+    }
+
+    std::vector<int32_t> nodeX;
+    nodeX.resize(cpSize);
+    int  nodes, pixelX, pixelY, i, j, swap ;
+
+    //  Loop through the rows of the image.
+    for (pixelY = top; pixelY < bottom; pixelY++)
+    {
+      double y = (double)pixelY;
+      //  Build a list of nodes.
+      nodes = 0;
+      j = static_cast<int>(cpSize) - 1;
+
+      for (i = 0; i < cpSize; i++)
+      {
+        if ((cpy[i] < y && cpy[j] >=  y) || (cpy[j] < y && cpy[i] >= y))
+        {
+          nodeX[nodes++] = (int32_t)(cpx[i] + (y - cpy[i])/(cpy[j] - cpy[i]) * (cpx[j] - cpx[i]));
+        }
+        j=i;
+      }
+
+      //  Sort the nodes, via a simple “Bubble” sort.
+      i=0;
+      while (i < nodes-1)
+      {
+        if (nodeX[i] > nodeX[i+1])
+        {
+          swap = nodeX[i];
+          nodeX[i] = nodeX[i+1];
+          nodeX[i+1] = swap;
+          if (i > 0)
+          {
+            i--;
+          }
+        }
+        else
+        {
+          i++;
+        }
+      }
+
+      TargetType* row = reinterpret_cast<TargetType*>(image.GetRow(pixelY));
+      //  Fill the pixels between node pairs.
+      for (i=0; i<nodes; i+=2)
+      {
+        if (nodeX[i] >= right)
+          break;
+
+        if (nodeX[i+1] >= left)
+        {
+          if (nodeX[i]< left)
+          {
+            nodeX[i] = left;
+          }
+
+          if (nodeX[i+1] > right)
+          {
+            nodeX[i+1] = right;
+          }
+
+          for (pixelX = nodeX[i]; pixelX <= nodeX[i+1]; pixelX++)
+          {
+            *(row + pixelX) = value;
+          }
+        }
+      }
+    }
+  }
+
+  void ImageProcessing::FillPolygon(ImageAccessor& image,
+                                    const std::vector<ImagePoint>& points,
+                                    int64_t value)
+  {
+    switch (image.GetFormat())
+    {
+    case Orthanc::PixelFormat_Grayscale8:
+    {
+      FillPolygon_<Orthanc::PixelFormat_Grayscale8>(image, points, value);
+      break;
+    }
+    case Orthanc::PixelFormat_Grayscale16:
+    {
+      FillPolygon_<Orthanc::PixelFormat_Grayscale16>(image, points, value);
+      break;
+    }
+    case Orthanc::PixelFormat_SignedGrayscale16:
+    {
+      FillPolygon_<Orthanc::PixelFormat_SignedGrayscale16>(image, points, value);
+      break;
+    }
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+    }
+  }
+
 }

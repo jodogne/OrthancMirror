@@ -34,6 +34,7 @@
 #pragma once
 
 #include "ImageAccessor.h"
+#include <vector>
 
 #include <stdint.h>
 
@@ -41,6 +42,22 @@ namespace Orthanc
 {
   namespace ImageProcessing
   {
+    class ImagePoint
+    {
+      int32_t x_;
+      int32_t y_;
+      
+     public:
+      ImagePoint(int32_t x, int32_t y)
+        : x_(x),
+          y_(y)
+      {
+      }
+
+      int32_t GetX() const {return x_;}
+      int32_t GetY() const {return y_;}
+    };
+
     void Copy(ImageAccessor& target,
               const ImageAccessor& source);
 
@@ -101,5 +118,9 @@ namespace Orthanc
                          uint8_t green,
                          uint8_t blue,
                          uint8_t alpha);
+
+    void FillPolygon(ImageAccessor& image,
+                     const std::vector<ImagePoint>& points,
+                     int64_t value);
   }
 }
