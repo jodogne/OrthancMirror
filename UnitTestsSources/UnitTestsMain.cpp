@@ -1235,9 +1235,11 @@ TEST(Toolbox, SubstituteVariables)
 
   // The "PATH" environment variable should always be available on
   // machines running the unit tests
-  ASSERT_TRUE(env.find("PATH") != env.end());
+  ASSERT_TRUE(env.find("PATH") != env.end() /* Case used by UNIX */ ||
+              env.find("Path") != env.end() /* Case used by Windows */);
 
-  ASSERT_EQ("A" + env["PATH"] + "B",
+  env["PATH"] = "hello";
+  ASSERT_EQ("AhelloB",
             Toolbox::SubstituteVariables("A${PATH}B", env));
 }
 

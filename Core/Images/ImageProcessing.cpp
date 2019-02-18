@@ -1422,7 +1422,7 @@ namespace Orthanc
       nodes = 0;
       j = static_cast<int>(cpSize) - 1;
 
-      for (i = 0; i < cpSize; i++)
+      for (i = 0; i < static_cast<int>(cpSize); i++)
       {
         if ((cpy[i] < y && cpy[j] >=  y) || (cpy[j] < y && cpy[i] >= y))
         {
