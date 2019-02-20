@@ -355,6 +355,10 @@ if (ENABLE_PLUGINS AND
     Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     )
 
+  if (LIBICU_LIBRARIES)
+    target_link_libraries(ThirdPartyPlugins ${LIBICU_LIBRARIES})
+  endif()
+
   # Add the "-fPIC" option as this static library must be embedded
   # inside shared libraries (important on UNIX)
   set_property(
