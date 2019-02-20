@@ -18,7 +18,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     # precompiled binary generated using MinGW on Linux
     DownloadCompressedFile(${LIBICU_DATA_WIN64_MD5} ${LIBICU_DATA_WIN64_URL} ${LIBICU_DATA_WIN64})
 
-    set(LIBICU_SOURCES
+    set(LIBICU_LIBRARIES
       ${CMAKE_BINARY_DIR}/${LIBICU_DATA_WIN64}
       )
   else()
