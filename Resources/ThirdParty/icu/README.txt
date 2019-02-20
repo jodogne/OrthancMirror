@@ -17,7 +17,7 @@ Newest release of icu:
 
 $ cmake .. -G Ninja && ninja install
 
-Legacy version for LSB:
+Legacy version suitable for LSB:
 
 $ cmake .. -G Ninja -DUSE_LEGACY_LIBICU=ON && ninja install
 
