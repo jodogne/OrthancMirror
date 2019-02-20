@@ -70,8 +70,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # Generate a precompiled version for Visual Studio 64bit
   set(TMP_ASSEMBLER      ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S)
   set(TMP_OBJECT         ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.o)
-  set(TMP_LIBRARY        ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.a)
-  set(PRECOMPILED_WIN64  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.a.gz)
+  set(TMP_LIBRARY        ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.lib)
+  set(PRECOMPILED_WIN64  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.lib.gz)
   
   add_custom_command(
     OUTPUT   ${TMP_ASSEMBLER}
