@@ -194,8 +194,8 @@
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
 
     /**
-     * By default, the Orthanc SCP accepts all DICOM commands (C-GET,
-     * C-STORE, C-FIND, C-MOVE) issued by the remote SCU
+     * By default, the Orthanc SCP accepts all DICOM commands (C-ECHO,
+     * C-STORE, C-FIND, C-MOVE) issued by the registered remote SCU
      * modalities. Starting with Orthanc 1.5.0, it is possible to
      * specify which DICOM commands are allowed, separately for each
      * remote modality, using the syntax below.
