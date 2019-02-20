@@ -157,6 +157,6 @@ disable C++11:
         -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake \
         -DSTANDALONE_BUILD=ON \
         -DSTATIC_BUILD=ON \
-        -DUSE_DCMTK_360=ON \
+        -DDCMTK_STATIC_VERSION=3.6.0 \
         -DUSE_LEGACY_JSONCPP=ON
 # make
