@@ -103,6 +103,7 @@ namespace Orthanc
     static void FloatToPixel(PixelType& target,
                              float value)
     {
+      value += 0.5f;
       if (value < static_cast<float>(std::numeric_limits<PixelType>::min()))
       {
         target = std::numeric_limits<PixelType>::min();
