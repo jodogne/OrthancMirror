@@ -10,15 +10,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
 
-  if (OFF)
-    # In Visual Studio 2015, we get the following error if using plain
-    # C: "icudt58l_dat.c(1638339): fatal error C1060: compiler is out
-    # of heap space" => use Microsoft Assembler to circumvent this issue
-    DownloadCompressedFile(${LIBICU_MASM_MD5} ${LIBICU_MASM_URL} ${LIBICU_MASM})
+  if (MSVC AND
+      CMAKE_SIZEOF_VOID_P EQUAL 8)
+    # In Visual Studio 2015 64bit, we get the following error if using
+    # the plain C version of the ICU data: "icudt58l_dat.c(1638339):
+    # fatal error C1060: compiler is out of heap space" => we use a
+    # precompiled binary generated using MinGW on Linux
+    DownloadCompressedFile(${LIBICU_DATA_WIN64_MD5} ${LIBICU_DATA_WIN64_URL} ${LIBICU_DATA_WIN64})
 
-    enable_language(ASM_MASM)
     set(LIBICU_SOURCES
-      ${CMAKE_BINARY_DIR}/${LIBICU_MASM}
+      ${CMAKE_BINARY_DIR}/${LIBICU_DATA_WIN64}
       )
   else()
     # Use plain C data library

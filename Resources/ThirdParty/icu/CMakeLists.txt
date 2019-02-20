@@ -58,12 +58,6 @@ add_custom_command(
   DEPENDS  IcuCodeGeneration
   )
 
-add_custom_command(
-  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S
-  COMMAND  IcuCodeGeneration ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat --assembly masm
-  DEPENDS  IcuCodeGeneration
-  )
-
 # "--no-name" is necessary for 7-zip on Windows to behave similarly to gunzip
 add_custom_command(
   OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
@@ -71,21 +65,51 @@ add_custom_command(
   DEPENDS  ${LIBICU_DATA}
   )
 
-add_custom_command(
-  OUTPUT   ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
-  COMMAND  gzip ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S --no-name -c > ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
-  DEPENDS  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S
-  )
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  # Generate a precompiled version for Visual Studio 64bit
+  set(TMP_ASSEMBLER      ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat.S)
+  set(TMP_OBJECT         ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.o)
+  set(TMP_LIBRARY        ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.a)
+  set(PRECOMPILED_WIN64  ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}_dat-x86_64-mingw32.a.gz)
+  
+  add_custom_command(
+    OUTPUT   ${TMP_ASSEMBLER}
+    COMMAND  IcuCodeGeneration ${CMAKE_BINARY_DIR}/${LIBICU_DATA_VERSION}.dat --assembly gcc-mingw64
+    DEPENDS  IcuCodeGeneration
+    )
+
+  add_custom_command(
+    OUTPUT   ${TMP_OBJECT}
+    COMMAND  x86_64-w64-mingw32-gcc -c ${TMP_ASSEMBLER} -o ${TMP_OBJECT}
+    DEPENDS  ${TMP_ASSEMBLER}
+    )
+
+  add_custom_command(
+    OUTPUT   ${TMP_LIBRARY}
+    COMMAND  x86_64-w64-mingw32-ar qc ${TMP_LIBRARY} ${TMP_OBJECT}
+    COMMAND  x86_64-w64-mingw32-ranlib ${TMP_LIBRARY}
+    DEPENDS  ${TMP_OBJECT}
+    )
+
+  # "--no-name" is necessary for 7-zip on Windows to behave similarly to gunzip
+  add_custom_command(
+    OUTPUT   ${PRECOMPILED_WIN64}
+    COMMAND  gzip ${TMP_LIBRARY} --no-name -c > ${PRECOMPILED_WIN64}
+    DEPENDS  ${TMP_LIBRARY}
+    )
+endif()
+
 
 add_custom_target(Final ALL DEPENDS
   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
-  ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
+  ${PRECOMPILED_WIN64}
   )
 
 install(
   FILES
   ${CMAKE_BINARY_DIR}/${LIBICU_DATA}.gz
-  ${CMAKE_BINARY_DIR}/${LIBICU_MASM}.gz
+  ${PRECOMPILED_WIN64}
   DESTINATION ${CMAKE_SOURCE_DIR}/../../../ThirdPartyDownloads
   )
 
