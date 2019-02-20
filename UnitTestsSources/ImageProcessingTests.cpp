@@ -189,6 +189,7 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
     }
   }
 
+  c = 0.0f;
   for (unsigned int y = 0; y < image.GetHeight(); y++)
   {
     for (unsigned int x = 0; x < image.GetWidth(); x++, c++)
