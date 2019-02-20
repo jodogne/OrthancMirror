@@ -47,6 +47,13 @@
 
 namespace Orthanc
 {
+  double ImageProcessing::ImagePoint::GetDistanceTo(const ImagePoint& other) const
+  {
+    double dx = (double)(other.GetX() - GetX());
+    double dy = (double)(other.GetY() - GetY());
+    return sqrt(dx * dx + dy * dy);
+  }
+
   template <typename TargetType, typename SourceType>
   static void ConvertInternal(ImageAccessor& target,
                               const ImageAccessor& source)
