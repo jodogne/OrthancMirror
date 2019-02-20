@@ -55,7 +55,16 @@ namespace Orthanc
       }
 
       int32_t GetX() const {return x_;}
+
       int32_t GetY() const {return y_;}
+
+      void Set(int32_t x, int32_t y)
+      {
+        x_ = x;
+        y_ = y;
+      }
+
+      double GetDistanceTo(const ImagePoint& other) const;
     };
 
     void Copy(ImageAccessor& target,
