@@ -148,7 +148,7 @@ endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX
     AND NOT CMAKE_CROSSCOMPILING 
-    AND USE_DCMTK_360)
+    AND DCMTK_STATIC_VERSION STREQUAL "3.6.0")
   # Add the "-pedantic" flag only on the Orthanc sources, and only if
   # cross-compiling DCMTK 3.6.0
   set(ORTHANC_ALL_SOURCES
