@@ -25,6 +25,19 @@ endif()
 DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
 
+# Apply the patches
+execute_process(
+  COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+  ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.4.patch
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  RESULT_VARIABLE Failure
+  )
+
+if (FirstRun AND Failure)
+  message(FATAL_ERROR "Error while patching files")
+endif()
+
+
 include_directories(
   ${DCMTK_SOURCES_DIR}/dcmiod/include
   )
