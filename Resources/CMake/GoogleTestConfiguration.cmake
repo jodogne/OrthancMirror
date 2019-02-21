@@ -28,19 +28,20 @@ if (USE_GOOGLE_TEST_DEBIAN_PACKAGE)
   endif()
 
 elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
-  set(GOOGLE_TEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
-  set(GOOGLE_TEST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/gtest-1.7.0.zip")
-  set(GOOGLE_TEST_MD5 "2d6ec8ccdf5c46b05ba54a9fd1d130d7")
+  set(GOOGLE_TEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/googletest-release-1.8.1)
+  set(GOOGLE_TEST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/gtest-1.8.1.tar.gz")
+  set(GOOGLE_TEST_MD5 "2e6fbeb6a91310a16efe181886c59596")
 
   DownloadPackage(${GOOGLE_TEST_MD5} ${GOOGLE_TEST_URL} "${GOOGLE_TEST_SOURCES_DIR}")
 
   include_directories(
-    ${GOOGLE_TEST_SOURCES_DIR}/include
+    ${GOOGLE_TEST_SOURCES_DIR}/googletest
+    ${GOOGLE_TEST_SOURCES_DIR}/googletest/include
     ${GOOGLE_TEST_SOURCES_DIR}
     )
 
   set(GOOGLE_TEST_SOURCES
-    ${GOOGLE_TEST_SOURCES_DIR}/src/gtest-all.cc
+    ${GOOGLE_TEST_SOURCES_DIR}/googletest/src/gtest-all.cc
     )
 
   # https://code.google.com/p/googletest/issues/detail?id=412
