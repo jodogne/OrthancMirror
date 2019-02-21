@@ -1,0 +1,24 @@
+diff -urEb e2fsprogs-1.44.5.orig/lib/uuid/uuid.h.in e2fsprogs-1.44.5/lib/uuid/uuid.h.in
+--- e2fsprogs-1.44.5.orig/lib/uuid/uuid.h.in	2019-02-21 20:17:23.461402522 +0100
++++ e2fsprogs-1.44.5/lib/uuid/uuid.h.in	2019-02-21 20:25:05.664540445 +0100
+@@ -35,6 +35,20 @@
+ #ifndef _UUID_UUID_H
+ #define _UUID_UUID_H
+ 
++
++#if defined(__APPLE__)
++// This patch defines the "uuid_string_t" type on OS X, which is
++// required if linking against Cocoa (this occurs in Stone of Orthanc)
++#include <sys/_types.h>
++#include <sys/_types/_uuid_t.h>
++
++#ifndef _UUID_STRING_T
++#define _UUID_STRING_T
++typedef __darwin_uuid_string_t  uuid_string_t;
++#endif /* _UUID_STRING_T */
++#endif
++
++
+ #include <sys/types.h>
+ #ifndef _WIN32
+ #include <sys/time.h>

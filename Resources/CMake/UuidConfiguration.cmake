@@ -1,9 +1,9 @@
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_UUID)
-    SET(E2FSPROGS_SOURCES_DIR ${CMAKE_BINARY_DIR}/e2fsprogs-1.43.8)
-    SET(E2FSPROGS_URL "http://orthanc.osimis.io/ThirdPartyDownloads/e2fsprogs-1.43.8.tar.gz")
-    SET(E2FSPROGS_MD5 "670b7a74a8ead5333acf21b9afc92b3c")
+    SET(E2FSPROGS_SOURCES_DIR ${CMAKE_BINARY_DIR}/e2fsprogs-1.44.5)
+    SET(E2FSPROGS_URL "http://orthanc.osimis.io/ThirdPartyDownloads/e2fsprogs-1.44.5.tar.gz")
+    SET(E2FSPROGS_MD5 "8d78b11d04d26c0b2dd149529441fa80")
 
     if (IS_DIRECTORY "${E2FSPROGS_SOURCES_DIR}")
       set(FirstRun OFF)
@@ -20,7 +20,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/e2fsprogs-1.43.8-apple.patch
+      ${ORTHANC_ROOT}/Resources/Patches/e2fsprogs-1.44.5-apple.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
