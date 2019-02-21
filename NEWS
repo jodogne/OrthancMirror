@@ -1,7 +1,6 @@
 Pending changes in the mainline
 ===============================
 
-
 General
 -------
 
@@ -28,6 +27,7 @@ Maintenance
   - DCMTK 3.6.4
   - GoogleTest 1.8.1
   - libpng 1.6.36
+  - libjpeg 9c
 
 
 Version 1.5.4 (2019-02-08)
