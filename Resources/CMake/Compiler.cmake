@@ -39,6 +39,18 @@ elseif (MSVC)
   # Add /Zm256 compiler option to Visual Studio to fix PCH errors
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zm256")
 
+  # New in Orthanc 1.5.5
+  if (MSVC_MULTIPLE_PROCESSES)
+    # "If you omit the processMax argument in the /MP option, the
+    # compiler obtains the number of effective processors from the
+    # operating system, and then creates one process per effective
+    # processor"
+    # https://blog.kitware.com/cmake-building-with-all-your-cores/
+    # https://docs.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  endif()
+    
   add_definitions(
     -D_CRT_SECURE_NO_WARNINGS=1
     -D_CRT_SECURE_NO_DEPRECATE=1
