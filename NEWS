@@ -24,6 +24,7 @@ Maintenance
 * More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
 * New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
 * Upgraded dependencies for static and Windows builds:
+  - Boost 1.69.0
   - DCMTK 3.6.4
   - GoogleTest 1.8.1
 
