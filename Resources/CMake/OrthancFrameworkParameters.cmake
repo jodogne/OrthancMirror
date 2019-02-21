@@ -75,7 +75,6 @@ set(MSVC_MULTIPLE_PROCESSES OFF CACHE BOOL "Add the /MP option to build with mul
 
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
-mark_as_advanced(BOOST_LOCALE_BACKEND)
 mark_as_advanced(USE_PUGIXML)
 mark_as_advanced(USE_DCMTK_362_PRIVATE_DIC)
 
