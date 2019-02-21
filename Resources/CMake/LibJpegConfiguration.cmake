@@ -1,8 +1,8 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
-  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9a)
+  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9c)
   DownloadPackage(
-    "3353992aecaee1805ef4109aadd433e7"
-    "http://orthanc.osimis.io/ThirdPartyDownloads/jpegsrc.v9a.tar.gz"
+    "93c62597eeef81a84d988bccbda1e990"
+    "http://orthanc.osimis.io/ThirdPartyDownloads/jpegsrc.v9c.tar.gz"
     "${LIBJPEG_SOURCES_DIR}")
 
   include_directories(
