@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
-  SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
-  SET(LIBPNG_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libpng-1.5.12.tar.gz")
-  SET(LIBPNG_MD5 "8ea7f60347a306c5faf70b977fa80e28")
+  SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.6.36)
+  SET(LIBPNG_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libpng-1.6.36.tar.gz")
+  SET(LIBPNG_MD5 "65afdeaa05f5ec14e31d9276143012e9")
 
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")
 
@@ -34,11 +34,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
     ${LIBPNG_SOURCES_DIR}/pngwutil.c
     )
 
-  #set_property(
-  #  SOURCE ${LIBPNG_SOURCES}
-  #  PROPERTY COMPILE_FLAGS -UHAVE_CONFIG_H)
-
   add_definitions(
+    -DPNG_NO_CONFIG_H=1
     -DPNG_NO_CONSOLE_IO=1
     -DPNG_NO_STDIO=1
     # The following declaration avoids "__declspec(dllexport)" in
