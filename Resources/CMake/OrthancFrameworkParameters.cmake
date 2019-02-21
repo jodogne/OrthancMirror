@@ -57,7 +57,7 @@ set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Parameters specific to DCMTK
 set(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)")
-set(DCMTK_STATIC_VERSION "3.6.2" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", or \"3.6.4\")")
+set(DCMTK_STATIC_VERSION "3.6.4" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", or \"3.6.4\")")
 set(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 set(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 set(ENABLE_DCMTK_LOG ON CACHE BOOL "Enable logging internal to DCMTK")
@@ -77,6 +77,7 @@ mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
 mark_as_advanced(BOOST_LOCALE_BACKEND)
 mark_as_advanced(USE_PUGIXML)
+mark_as_advanced(USE_DCMTK_362_PRIVATE_DIC)
 
 
 #####################################################################

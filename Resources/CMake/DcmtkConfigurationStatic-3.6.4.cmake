@@ -1,8 +1,20 @@
-SET(DCMTK_VERSION_NUMBER 360)
-SET(DCMTK_PACKAGE_VERSION "3.6.0")
-SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-SET(DCMTK_URL "http://orthanc.osimis.io/ThirdPartyDownloads/dcmtk-3.6.0.zip")
-SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
+SET(DCMTK_VERSION_NUMBER 364)
+SET(DCMTK_PACKAGE_VERSION "3.6.4")
+SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.4)
+SET(DCMTK_URL "http://orthanc.osimis.io/ThirdPartyDownloads/dcmtk-3.6.4.tar.gz")
+SET(DCMTK_MD5 "97597439a2ae7a39086066318db5f3bc")
+
+macro(DCMTK_UNSET)
+endmacro()
+
+macro(DCMTK_UNSET_CACHE)
+endmacro()
+
+set(DCMTK_BINARY_DIR ${DCMTK_SOURCES_DIR}/)
+set(DCMTK_CMAKE_INCLUDE ${DCMTK_SOURCES_DIR}/)
+set(DCMTK_WITH_THREADS ON)
+
+add_definitions(-DDCMTK_INSIDE_LOG4CPLUS=1)
 
 if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
   set(FirstRun OFF)
@@ -13,50 +25,9 @@ endif()
 DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
 
-if (FirstRun)
-  # If using DCMTK 3.6.0, backport the "private.dic" file from DCMTK
-  # 3.6.2. This adds support for more private tags, and fixes some
-  # import problems with Philips MRI Achieva.
-  if (USE_DCMTK_362_PRIVATE_DIC)
-    message("Using the dictionary of private tags from DCMTK 3.6.2")
-    configure_file(
-      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-private.dic
-      ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-      COPYONLY)
-  else()
-    message("Using the dictionary of private tags from DCMTK 3.6.0")
-  endif()
-  
-  # Patches specific to DCMTK 3.6.0
-  message("Applying patch to solve vulnerability in DCMTK 3.6.0")
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
-
-  if (Failure)
-    message(FATAL_ERROR "Error while patching a file")
-  endif()
-
-  # This patch is not needed anymore thanks to the following commit
-  # (information sent by Jorg Riesmeier on Twitter on 2017-07-19):
-  # http://git.dcmtk.org/?p=dcmtk.git;a=commit;h=8df1f5e517b8629ae09088d0935c2a8dd333c76f
-  message("Applying patch for speed in DCMTK 3.6.0")
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-speed.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
-
-  if (Failure)
-    message(FATAL_ERROR "Error while patching a file")
-  endif()
-else()
-  message("The patches for DCMTK have already been applied")
-endif()
+include_directories(
+  ${DCMTK_SOURCES_DIR}/dcmiod/include
+  )
 
 
 # C_CHAR_UNSIGNED *must* be set before calling "GenerateDCMTKConfigure.cmake"
@@ -86,18 +57,8 @@ ENDIF()
 if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
   SET(HAVE_SYS_GETTID 0 CACHE INTERNAL "")
-
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
-
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
-  endif()
 endif()
+
 
 SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
 include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
@@ -137,6 +98,23 @@ CONFIGURE_FILE(
   ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
   ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  link_libraries(netapi32)  # For NetWkstaUserGetInfo@12
+  link_libraries(iphlpapi)  # For GetAdaptersInfo@8
+
+  # Configure Wine if cross-compiling for Windows
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    include(${DCMTK_SOURCES_DIR}/CMake/dcmtkUseWine.cmake)
+    FIND_PROGRAM(WINE_WINE_PROGRAM wine)
+    FIND_PROGRAM(WINE_WINEPATH_PROGRAM winepath)
+    list(APPEND DCMTK_TRY_COMPILE_REQUIRED_CMAKE_FLAGS "-DCMAKE_EXE_LINKER_FLAGS=-static")
+  endif()
+endif()
+
+# This step must be after the generation of "osconfig.h"
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  INSPECT_FUNDAMENTAL_ARITHMETIC_TYPES()
+endif()
 
 
 # Source for the logging facility of DCMTK
@@ -158,20 +136,19 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/clfsap.cc
     )
+endif()
 
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    # This is a patch for DCMTK 3.6.0 and MinGW64
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-mingw64.patch
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      RESULT_VARIABLE Failure
-      )
 
-    if (Failure AND FirstRun)
-      message(FATAL_ERROR "Error while patching a file")
-    endif()
-  endif()
+if (ORTHANC_SANDBOXED)
+  configure_file(
+    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
+    ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
+    COPYONLY)
+  
+  configure_file(
+    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
+    COPYONLY)
 endif()
 
 
