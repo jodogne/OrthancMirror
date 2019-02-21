@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2o)
-  SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.0.2o.tar.gz")
-  SET(OPENSSL_MD5 "44279b8557c3247cbe324e2322ecd114")
+  SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.0.2p)
+  SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.0.2p.tar.gz")
+  SET(OPENSSL_MD5 "ac5eb30bf5798aa14b1ae6d0e7da58df")
 
   if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
     set(FirstRun OFF)
