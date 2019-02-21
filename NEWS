@@ -10,6 +10,7 @@ Pending changes in the mainline
 * Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Support of SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
 * More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
+* New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
 
 
 Version 1.5.4 (2019-02-08)

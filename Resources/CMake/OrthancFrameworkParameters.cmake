@@ -71,6 +71,7 @@ set(BOOST_LOCALE_BACKEND "libiconv" CACHE STRING "Back-end for locales that is u
 set(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)")
 set(USE_LEGACY_JSONCPP OFF CACHE BOOL "Use the old branch 0.x.y of JsonCpp, that does not require a C++11 compiler (for LSB and old versions of Visual Studio)")
 set(USE_LEGACY_LIBICU OFF CACHE BOOL "Use icu icu4c-58_2, latest version not requiring a C++11 compiler (for LSB and old versions of Visual Studio)")
+set(MSVC_MULTIPLE_PROCESSES OFF CACHE BOOL "Add the /MP option to build with multiple processes if using Visual Studio")
 
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
