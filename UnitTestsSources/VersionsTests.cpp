@@ -57,6 +57,10 @@
 #  include <civetweb.h>
 #endif
 
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include <pugixml.hpp>
+#endif
+
 
 TEST(Versions, Zlib)
 {
@@ -194,6 +198,12 @@ TEST(Version, Civetweb)
 #endif
 
 
+#if ORTHANC_ENABLE_PUGIXML == 1
+TEST(Version, Pugixml)
+{
+  ASSERT_EQ(190, PUGIXML_VERSION);
+}
 #endif
 
 
+#endif
