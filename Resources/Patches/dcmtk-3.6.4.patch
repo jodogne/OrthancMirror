@@ -1,0 +1,24 @@
+diff -urEb dcmtk-3.6.4.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.4/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.4.orig/dcmdata/libsrc/dcpxitem.cc	2019-02-21 15:30:21.657110805 +0100
++++ dcmtk-3.6.4/dcmdata/libsrc/dcpxitem.cc	2019-02-21 15:41:01.565099612 +0100
+@@ -28,6 +28,7 @@
+ #include "dcmtk/ofstd/ofstdinc.h"
+ 
+ #include "dcmtk/ofstd/ofstream.h"
++#include "dcmtk/ofstd/oflimits.h"
+ #include "dcmtk/dcmdata/dcpxitem.h"
+ #include "dcmtk/dcmdata/dcswap.h"
+ #include "dcmtk/ofstd/ofstring.h"
+diff -urEb dcmtk-3.6.4.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.4/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.4.orig/ofstd/include/dcmtk/ofstd/offile.h	2019-02-21 15:30:21.645110805 +0100
++++ dcmtk-3.6.4/ofstd/include/dcmtk/ofstd/offile.h	2019-02-21 15:30:48.273110339 +0100
+@@ -575,7 +575,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);
+Only in dcmtk-3.6.4/ofstd/include/dcmtk/ofstd: offile.h~
