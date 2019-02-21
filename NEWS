@@ -22,12 +22,13 @@ Maintenance
 * Support of SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
 * More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
 * New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
-* Upgraded dependencies for static and Windows builds:
+* Upgraded dependencies for static builds (notably Windows):
   - Boost 1.69.0
   - DCMTK 3.6.4
   - GoogleTest 1.8.1
   - libpng 1.6.36
   - libjpeg 9c
+  - openssl 1.0.2p
 
 
 Version 1.5.4 (2019-02-08)

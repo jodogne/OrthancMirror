@@ -122,7 +122,7 @@ TEST(Versions, CurlStatic)
 
 TEST(Versions, PngStatic)
 {
-  ASSERT_EQ(10512u, png_access_version_number());
+  ASSERT_EQ(10636u, png_access_version_number());
   ASSERT_STREQ("1.6.36", PNG_LIBPNG_VER_STRING);
 }
 
@@ -165,7 +165,7 @@ TEST(Version, LibIconvStatic)
 #if ORTHANC_ENABLE_SSL == 1
 TEST(Version, OpenSslStatic)
 {
-  ASSERT_EQ(0x100020ffL /* openssl-1.0.2o */, OPENSSL_VERSION_NUMBER);
+  ASSERT_EQ(0x1000210fL /* openssl-1.0.2p */, OPENSSL_VERSION_NUMBER);
 }
 #endif
 
