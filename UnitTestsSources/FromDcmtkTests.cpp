@@ -1126,7 +1126,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
 
   {
     DicomMap m;
-    ParsedDicomFile dicom(m, Encoding_Latin4);
+    ParsedDicomFile dicom(m, Encoding_Latin4, false);
     ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin4);
   }
@@ -1142,7 +1142,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
-    ParsedDicomFile dicom(m, Encoding_Latin1);
+    ParsedDicomFile dicom(m, Encoding_Latin1, false);
     ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin5);
   }
@@ -1192,7 +1192,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         DicomMap m;
         m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
 
-        ParsedDicomFile dicom(m, testEncodings[i]);
+        ParsedDicomFile dicom(m, testEncodings[i], false);
     
         const char* encoded = NULL;
         ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->findAndGetString(DCM_PatientName, encoded).good());
@@ -1212,7 +1212,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, GetDicomSpecificCharacterSet(testEncodings[i]), false);
         m.SetValue(DICOM_TAG_PATIENT_NAME, testEncodingsExpected[i], false);
 
-        ParsedDicomFile dicom(m, testEncodings[i]);
+        ParsedDicomFile dicom(m, testEncodings[i], false);
 
         Json::Value v2;
         dicom.DatasetToJson(v2, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
@@ -1237,7 +1237,7 @@ TEST(ParsedDicomFile, ChangeEncoding)
 
       std::string tag;
 
-      ParsedDicomFile dicom(m, Encoding_Utf8);
+      ParsedDicomFile dicom(m, Encoding_Utf8, false);
       bool hasCodeExtensions;
       ASSERT_EQ(Encoding_Utf8, dicom.DetectEncoding(hasCodeExtensions));
       ASSERT_FALSE(hasCodeExtensions);
@@ -1288,7 +1288,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     DicomMap m;
     m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
 
-    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */, false);
 
     bool hasCodeExtensions;
     ASSERT_EQ(Encoding_Latin3, d.DetectEncoding(hasCodeExtensions));
@@ -1301,7 +1301,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 13", false);
     m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
 
-    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */, false);
 
     bool hasCodeExtensions;
     ASSERT_EQ(Encoding_Japanese, d.DetectEncoding(hasCodeExtensions));
@@ -1314,7 +1314,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "nope", false);
     m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
 
-    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3), OrthancException);
+    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3, false), OrthancException);
   }
   
   {
@@ -1323,7 +1323,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 13", true);
     m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
 
-    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3), OrthancException);
+    ASSERT_THROW(ParsedDicomFile d(m, Encoding_Latin3, false), OrthancException);
   }
   
   {
@@ -1333,7 +1333,7 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "", false);
     m.SetValue(DICOM_TAG_PATIENT_NAME, "HELLO", false);
 
-    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */);
+    ParsedDicomFile d(m, Encoding_Latin3 /* default encoding */, false);
 
     bool hasCodeExtensions;
     ASSERT_EQ(Encoding_Latin3, d.DetectEncoding(hasCodeExtensions));
