@@ -53,10 +53,10 @@ if (BOOST_STATIC)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_68_0)
-  set(BOOST_VERSION 1.68.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.5.0)
-  set(BOOST_MD5 "5297c45ffda809b2da84223bac591abe")
+  set(BOOST_NAME boost_1_69_0)
+  set(BOOST_VERSION 1.69.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.5.5)
+  set(BOOST_MD5 "a5d027d6668b69ccee707c4ceaf2496e")
   set(BOOST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
