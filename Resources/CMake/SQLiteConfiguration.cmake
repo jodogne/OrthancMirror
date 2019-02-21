@@ -15,11 +15,11 @@ endif()
 
 
 if (SQLITE_STATIC)
-  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3210000)
-  SET(SQLITE_MD5 "fe330e88d81e77e1e61554a370ae5001")
-  SET(SQLITE_URL "http://orthanc.osimis.io/ThirdPartyDownloads/sqlite-amalgamation-3210000.zip")
+  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3270100)
+  SET(SQLITE_MD5 "16717b26358ba81f0bfdac07addc77da")
+  SET(SQLITE_URL "http://orthanc.osimis.io/ThirdPartyDownloads/sqlite-amalgamation-3270100.zip")
 
-  add_definitions(-DORTHANC_SQLITE_VERSION=3021000)
+  add_definitions(-DORTHANC_SQLITE_VERSION=3027001)
 
   DownloadPackage(${SQLITE_MD5} ${SQLITE_URL} "${SQLITE_SOURCES_DIR}")
 

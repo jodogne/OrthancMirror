@@ -32,6 +32,7 @@ Maintenance
   - libpng 1.6.36
   - openssl 1.0.2p
   - pugixml 1.9
+  - sqlite amalgamation 3.27.1
 
 
 Version 1.5.4 (2019-02-08)
