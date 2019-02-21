@@ -1,7 +1,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.57.0)
-  SET(CURL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/curl-7.57.0.tar.gz")
-  SET(CURL_MD5 "c7aab73aaf5e883ca1d7518f93649dc2")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.64.0)
+  SET(CURL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/curl-7.64.0.tar.gz")
+  SET(CURL_MD5 "a026740d599a32bcbbe6e70679397899")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -14,7 +14,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/curl-7.57.0-cmake.patch
+      ${ORTHANC_ROOT}/Resources/Patches/curl-7.64.0-cmake.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
