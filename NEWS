@@ -9,6 +9,7 @@ Pending changes in the mainline
 * Basic support for character sets with code extensions (ISO 2022 escape sequences)
 * Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Support of SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
+* More tolerance wrt. invalid DICOM files that must be returned by Orthanc C-FIND SCP
 
 
 Version 1.5.4 (2019-02-08)

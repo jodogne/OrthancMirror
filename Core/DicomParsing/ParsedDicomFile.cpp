@@ -956,7 +956,8 @@ namespace Orthanc
 
 
   void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
-                                           Encoding defaultEncoding)
+                                           Encoding defaultEncoding,
+                                           bool permissive)
   {
     pimpl_->file_.reset(new DcmFileFormat);
 
@@ -998,24 +999,35 @@ namespace Orthanc
       if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
           !it->second->IsNull())
       {
-        ReplacePlainString(it->first, it->second->GetContent());
+        try
+        {
+          ReplacePlainString(it->first, it->second->GetContent());
+        }
+        catch (OrthancException&)
+        {
+          if (!permissive)
+          {
+            throw;
+          }
+        }
       }
     }
   }
 
 
   ParsedDicomFile::ParsedDicomFile(const DicomMap& map,
-                                   Encoding defaultEncoding) :
+                                   Encoding defaultEncoding,
+                                   bool permissive) :
     pimpl_(new PImpl)
   {
-    CreateFromDicomMap(map, defaultEncoding);
+    CreateFromDicomMap(map, defaultEncoding, permissive);
   }
 
 
   ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : 
     pimpl_(new PImpl)
   {
-    CreateFromDicomMap(map, GetDefaultDicomEncoding());
+    CreateFromDicomMap(map, GetDefaultDicomEncoding(), false /* be strict by default */);
   }
 
 
