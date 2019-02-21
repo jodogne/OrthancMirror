@@ -25,6 +25,7 @@ Maintenance
 * New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
 * Upgraded dependencies for static and Windows builds:
   - DCMTK 3.6.4
+  - GoogleTest 1.8.1
 
 
 Version 1.5.4 (2019-02-08)
