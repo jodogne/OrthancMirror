@@ -84,3 +84,40 @@ diff -urEb boost_1_69_0.orig/boost/type_traits/detail/has_prefix_operator.hpp bo
  } // namespace detail
  
  // this is the accessible definition of the trait to end user
+diff -urEb boost_1_69_0.orig/libs/filesystem/src/operations.cpp boost_1_69_0/libs/filesystem/src/operations.cpp
+--- boost_1_69_0.orig/libs/filesystem/src/operations.cpp	2019-02-22 15:05:32.566360008 +0100
++++ boost_1_69_0/libs/filesystem/src/operations.cpp	2019-02-22 18:04:17.346573047 +0100
+@@ -2111,9 +2111,16 @@
+     std::size_t path_size (0);  // initialization quiets gcc warning (ticket #3509)
+     error_code ec = path_max(path_size);
+     if (ec)return ec;
+-    dirent de;
+-    buffer = std::malloc((sizeof(dirent) - sizeof(de.d_name))
+-      +  path_size + 1); // + 1 for "/0"
++
++    // Fixed possible use of uninitialized dirent::d_type in dir_iterator
++    // https://github.com/boostorg/filesystem/commit/bbe9d1771e5d679b3f10c42a58fc81f7e8c024a9
++    const std::size_t buffer_size = (sizeof(dirent) - sizeof(dirent().d_name))
++      +  path_size + 1; // + 1 for "\0"
++    buffer = std::malloc(buffer_size);
++    if (BOOST_UNLIKELY(!buffer))
++      return make_error_code(boost::system::errc::not_enough_memory);
++    std::memset(buffer, 0, buffer_size);
++    
+     return ok;
+   }  
+ 
+@@ -2142,6 +2149,13 @@
+     *result = 0;
+     if ((p = ::readdir(dirp))== 0)
+       return errno;
++
++    // Fixed possible use of uninitialized dirent::d_type in dir_iterator
++    // https://github.com/boostorg/filesystem/commit/bbe9d1771e5d679b3f10c42a58fc81f7e8c024a9    
++#   ifdef BOOST_FILESYSTEM_STATUS_CACHE
++    entry->d_type = p->d_type;
++#   endif
++
+     std::strcpy(entry->d_name, p->d_name);
+     *result = entry;
+     return 0;
