@@ -57,7 +57,8 @@ before_script:
     -DBOOST_LOCALE_BACKEND=icu
     ..; fi
 
-script: make && if [ $TRAVIS_MINGW == OFF ]; then ./UnitTests; fi
+# Old releases of MinGW are not compatible with GoogleTest 1.8.1
+script: make Orthanc ServeFolders ModalityWorklists && if [ $TRAVIS_MINGW == OFF ]; then make UnitTests && ./UnitTests; fi
 
 #script: cp ../README Orthanc
 #deploy:
