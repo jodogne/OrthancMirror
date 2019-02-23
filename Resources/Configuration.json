@@ -198,7 +198,10 @@
      * C-STORE, C-FIND, C-MOVE) issued by the registered remote SCU
      * modalities. Starting with Orthanc 1.5.0, it is possible to
      * specify which DICOM commands are allowed, separately for each
-     * remote modality, using the syntax below.
+     * remote modality, using the syntax below. The "AllowEcho" (resp.
+     * "AllowStore") option only has an effect respectively if global
+     * option "DicomAlwaysAllowEcho" (resp. "DicomAlwaysAllowStore")
+     * is set to false.
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
