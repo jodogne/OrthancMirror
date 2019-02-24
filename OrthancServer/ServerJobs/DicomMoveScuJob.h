@@ -53,12 +53,14 @@ namespace Orthanc
     std::string                         targetAet_;
     RemoteModalityParameters            remote_;
     std::auto_ptr<DicomUserConnection>  connection_;
+    Json::Value                         query_;
 
     void Retrieve(const DicomMap& findAnswer);
     
   public:
     DicomMoveScuJob(ServerContext& context) :
-      context_(context)
+      context_(context),
+      query_(Json::arrayValue)
     {
     }
 

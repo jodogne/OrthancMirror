@@ -10,6 +10,12 @@ General
   - Simplified Chinese (ISO 2022 IR 58)
 * Basic support for character sets with code extensions (ISO 2022 escape sequences)
 
+REST API
+--------
+
+* API version has been upgraded to 1.5
+* "DicomMoveScu" jobs provide the associated C-FIND answer in their "Query" public field
+
 Plugins
 -------
 
