@@ -64,7 +64,7 @@ namespace Orthanc
     public:
       SynchronousMove(ServerContext& context,
                       const std::string& targetAet,
-                      const std::string& publicId,
+                      const std::vector<std::string>& publicIds,
                       const std::string& originatorAet,
                       uint16_t originatorId) :
         context_(context),
@@ -73,21 +73,24 @@ namespace Orthanc
         originatorAet_(originatorAet),
         originatorId_(originatorId)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \""
-                  << targetAet << "\" in synchronous mode";
-
-        std::list<std::string> tmp;
-        context_.GetIndex().GetChildInstances(tmp, publicId);
-
-        instances_.reserve(tmp.size());
-        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
-        {
-          instances_.push_back(*it);
-        }
-
         {
           OrthancConfiguration::ReaderLock lock;
           remote_ = lock.GetConfiguration().GetModalityUsingAet(targetAet);
+        }
+
+        for (size_t i = 0; i < publicIds.size(); i++)
+        {
+          LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
+                    << targetAet << "\" in synchronous mode";
+
+          std::list<std::string> tmp;
+          context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
+
+          instances_.reserve(tmp.size());
+          for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            instances_.push_back(*it);
+          }
         }
       }
 
@@ -131,16 +134,13 @@ namespace Orthanc
     public:
       AsynchronousMove(ServerContext& context,
                        const std::string& targetAet,
-                       const std::string& publicId,
+                       const std::vector<std::string>& publicIds,
                        const std::string& originatorAet,
                        uint16_t originatorId) :
         context_(context),
         job_(new DicomModalityStoreJob(context)),
         position_(0)
       {
-        LOG(INFO) << "Sending resource " << publicId << " to modality \""
-                  << targetAet << "\" in asynchronous mode";
-
         job_->SetDescription("C-MOVE");
         job_->SetPermissive(true);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
@@ -154,17 +154,23 @@ namespace Orthanc
         {
           job_->SetMoveOriginator(originatorAet, originatorId);
         }
-        
-        std::list<std::string> tmp;
-        context_.GetIndex().GetChildInstances(tmp, publicId);
 
-        countInstances_ = tmp.size();
-
-        job_->Reserve(tmp.size());
-
-        for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+        for (size_t i = 0; i < publicIds.size(); i++)
         {
-          job_->AddInstance(*it);
+          LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
+                    << targetAet << "\" in asynchronous mode";
+
+          std::list<std::string> tmp;
+          context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
+
+          countInstances_ = tmp.size();
+
+          job_->Reserve(job_->GetCommandsCount() + tmp.size());
+
+          for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            job_->AddInstance(*it);
+          }
         }
       }
 
@@ -192,9 +198,9 @@ namespace Orthanc
   }
 
 
-  bool OrthancMoveRequestHandler::LookupIdentifier(std::string& publicId,
-                                                   ResourceType level,
-                                                   const DicomMap& input)
+  bool OrthancMoveRequestHandler::LookupIdentifiers(std::vector<std::string>& publicIds,
+                                                    ResourceType level,
+                                                    const DicomMap& input)
   {
     DicomTag tag(0, 0);   // Dummy initialization
 
@@ -232,19 +238,10 @@ namespace Orthanc
     {
       return false;
     }
-
-    const std::string& content = value.GetContent();
-
-    std::vector<std::string> ids;
-    context_.GetIndex().LookupIdentifierExact(ids, level, tag, content);
-
-    if (ids.size() != 1)
-    {
-      return false;
-    }
     else
     {
-      publicId = ids[0];
+      const std::string& content = value.GetContent();
+      context_.GetIndex().LookupIdentifierExact(publicIds, level, tag, content);
       return true;
     }
   }
@@ -252,10 +249,16 @@ namespace Orthanc
 
   static IMoveRequestIterator* CreateIterator(ServerContext& context,
                                               const std::string& targetAet,
-                                              const std::string& publicId,
+                                              const std::vector<std::string>& publicIds,
                                               const std::string& originatorAet,
                                               uint16_t originatorId)
   {
+    if (publicIds.empty())
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                             "C-MOVE request matching no resource stored in Orthanc");
+    }
+    
     bool synchronous;
 
     {
@@ -265,11 +268,11 @@ namespace Orthanc
 
     if (synchronous)
     {
-      return new SynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+      return new SynchronousMove(context, targetAet, publicIds, originatorAet, originatorId);
     }
     else
     {
-      return new AsynchronousMove(context, targetAet, publicId, originatorAet, originatorId);
+      return new AsynchronousMove(context, targetAet, publicIds, originatorAet, originatorId);
     }
   }
 
@@ -314,19 +317,19 @@ namespace Orthanc
       // query level: Start from the instance level, going up to the
       // patient level until a valid DICOM identifier is found.
 
-      std::string publicId;
+      std::vector<std::string> publicIds;
 
-      if (LookupIdentifier(publicId, ResourceType_Instance, input) ||
-          LookupIdentifier(publicId, ResourceType_Series, input) ||
-          LookupIdentifier(publicId, ResourceType_Study, input) ||
-          LookupIdentifier(publicId, ResourceType_Patient, input))
+      if (LookupIdentifiers(publicIds, ResourceType_Instance, input) ||
+          LookupIdentifiers(publicIds, ResourceType_Series, input) ||
+          LookupIdentifiers(publicIds, ResourceType_Study, input) ||
+          LookupIdentifiers(publicIds, ResourceType_Patient, input))
       {
-        return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
+        return CreateIterator(context_, targetAet, publicIds, originatorAet, originatorId);
       }
       else
       {
         // No identifier is present in the request.
-        throw OrthancException(ErrorCode_BadRequest);
+        throw OrthancException(ErrorCode_BadRequest, "Invalid fields in a C-MOVE request");
       }
     }
 
@@ -338,15 +341,15 @@ namespace Orthanc
      * Lookup for the resource to be sent.
      **/
 
-    std::string publicId;
+    std::vector<std::string> publicIds;
 
-    if (LookupIdentifier(publicId, level, input))
+    if (LookupIdentifiers(publicIds, level, input))
     {
-      return CreateIterator(context_, targetAet, publicId, originatorAet, originatorId);
+      return CreateIterator(context_, targetAet, publicIds, originatorAet, originatorId);
     }
     else
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest, "Invalid fields in a C-MOVE request");
     }
   }
 }
