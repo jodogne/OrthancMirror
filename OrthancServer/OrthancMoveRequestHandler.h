@@ -43,9 +43,9 @@ namespace Orthanc
   private:
     ServerContext& context_;
 
-    bool LookupIdentifier(std::string& publicId,
-                          ResourceType level,
-                          const DicomMap& input);
+    bool LookupIdentifiers(std::vector<std::string>& publicIds,
+                           ResourceType level,
+                           const DicomMap& input);
 
   public:
     OrthancMoveRequestHandler(ServerContext& context) :

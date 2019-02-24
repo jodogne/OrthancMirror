@@ -18,10 +18,11 @@ Plugins
 Maintenance
 -----------
 
-* Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Accept SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
 * More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
 * New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
+* Fix issue #131 (C-MOVE failure due to duplicate StudyInstanceUID in the database)
+* Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Upgraded dependencies for static builds (notably on Windows):
   - boost 1.69.0
   - curl 1.64.0
