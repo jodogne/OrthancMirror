@@ -36,6 +36,11 @@
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
+static const char* const LOCAL_AET = "LocalAet";
+static const char* const TARGET_AET = "TargetAet";
+static const char* const REMOTE = "Remote";
+static const char* const QUERY = "Query";
+
 namespace Orthanc
 {
   class DicomMoveScuJob::Command : public SetOfCommandsJob::ICommand
@@ -97,10 +102,36 @@ namespace Orthanc
     
     connection_->Move(targetAet_, findAnswer);
   }
-    
+
+
+  static void AddTagIfString(Json::Value& target,
+                             const DicomMap& answer,
+                             const DicomTag& tag)
+  {
+    const DicomValue* value = answer.TestAndGetValue(tag);
+    if (value != NULL &&
+        !value->IsNull() &&
+        !value->IsBinary())
+    {
+      target[tag.Format()] = value->GetContent();
+    }
+  }
+  
 
   void DicomMoveScuJob::AddFindAnswer(const DicomMap& answer)
   {
+    assert(query_.type() == Json::arrayValue);
+
+    // Copy the identifiers tags, if they exist
+    Json::Value item = Json::objectValue;
+    AddTagIfString(item, answer, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    AddTagIfString(item, answer, DICOM_TAG_PATIENT_ID);
+    AddTagIfString(item, answer, DICOM_TAG_STUDY_INSTANCE_UID);
+    AddTagIfString(item, answer, DICOM_TAG_SERIES_INSTANCE_UID);
+    AddTagIfString(item, answer, DICOM_TAG_SOP_INSTANCE_UID);
+    AddTagIfString(item, answer, DICOM_TAG_ACCESSION_NUMBER);
+    query_.append(item);
+    
     AddCommand(new Command(*this, answer));
   }
 
@@ -165,21 +196,25 @@ namespace Orthanc
     
     value["LocalAet"] = localAet_;
     value["RemoteAet"] = remote_.GetApplicationEntityTitle();
+    value["Query"] = query_;
   }
 
-
-  static const char* LOCAL_AET = "LocalAet";
-  static const char* TARGET_AET = "TargetAet";
-  static const char* REMOTE = "Remote";
 
   DicomMoveScuJob::DicomMoveScuJob(ServerContext& context,
                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
-    context_(context)
+    context_(context),
+    query_(Json::arrayValue)
   {
     localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
     targetAet_ = SerializationToolbox::ReadString(serialized, TARGET_AET);
     remote_ = RemoteModalityParameters(serialized[REMOTE]);
+
+    if (serialized.isMember(QUERY) &&
+        serialized[QUERY].type() == Json::arrayValue)
+    {
+      query_ = serialized[QUERY];
+    }
   }
 
   
@@ -193,6 +228,7 @@ namespace Orthanc
     {
       target[LOCAL_AET] = localAet_;
       target[TARGET_AET] = targetAet_;
+      target[QUERY] = query_;
       remote_.Serialize(target[REMOTE], true /* force advanced format */);
       return true;
     }
