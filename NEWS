@@ -20,7 +20,9 @@ Maintenance
 
 * Accept SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
 * More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
+* Orthanc now interprets the "DCMDICTPATH" environment variable the same way as DCMTK
 * New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
+* Fix issue #126 (Orthanc and DCMDICTPATH)
 * Fix issue #131 (C-MOVE failure due to duplicate StudyInstanceUID in the database)
 * Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Upgraded dependencies for static builds (notably on Windows):
