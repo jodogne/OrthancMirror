@@ -141,22 +141,6 @@ namespace Orthanc
     }
 #endif
   }
-                             
-#else
-  static void LoadExternalDictionary(DcmDataDictionary& dictionary,
-                                     const std::string& directory,
-                                     const std::string& filename)
-  {
-    boost::filesystem::path p = directory;
-    p = p / filename;
-
-    LOG(WARNING) << "Loading the external DICOM dictionary " << p;
-
-    if (!dictionary.loadDictionary(p.string().c_str()))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-  }
 #endif
 
 
@@ -274,28 +258,37 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         LOG(INFO) << "The dictionary of private tags has not been loaded";
       }
 
-#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-      std::string path = DCMTK_DICTIONARY_DIR;
-
+#else
+      std::vector<std::string> dictionaries;
+      
       const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
       if (env != NULL)
       {
-        path = std::string(env);
-      }
-
-      LoadExternalDictionary(*locker, path, "dicom.dic");
-
-      if (loadPrivateDictionary)
-      {
-        LoadExternalDictionary(*locker, path, "private.dic");
+        // This mimics the behavior of DCMTK:
+        // https://support.dcmtk.org/docs/file_envvars.html
+#if defined(_WIN32)
+        Toolbox::TokenizeString(dictionaries, std::string(env), ';');
+#else
+        Toolbox::TokenizeString(dictionaries, std::string(env), ':');
+#endif
       }
       else
       {
-        LOG(INFO) << "The dictionary of private tags has not been loaded";
+        boost::filesystem::path base = DCMTK_DICTIONARY_DIR;
+        dictionaries.push_back((base / "dicom.dic").string());
+        dictionaries.push_back((base / "private.dic").string());
       }
 
-#else
-#error Support your platform here
+      for (size_t i = 0; i < dictionaries.size(); i++)
+      {
+        LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
+        
+        if (!locker->loadDictionary(dictionaries[i].c_str()))
+        {
+          throw OrthancException(ErrorCode_InexistentFile);
+        }
+      }
+
 #endif
     }
 
