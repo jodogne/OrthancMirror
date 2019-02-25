@@ -505,7 +505,7 @@ endif()
 #####################################################################
 
 add_definitions(
-  -DORTHANC_API_VERSION="${ORTHANC_API_VERSION}"
+  -DORTHANC_API_VERSION=${ORTHANC_API_VERSION}
   -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
   -DORTHANC_DEFAULT_DICOM_ENCODING=Encoding_Latin1
   -DORTHANC_ENABLE_BASE64=1
