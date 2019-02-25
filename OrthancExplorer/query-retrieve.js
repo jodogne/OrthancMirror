@@ -90,7 +90,7 @@ $('#qr-submit').live('click', function() {
       'PatientName' : '',
       'PatientSex' : '',
       'StudyDate' : $('#qr-date').val(),
-      'StudyDescription' : ''
+      'StudyDescription' : '*'
     }
   };
 
