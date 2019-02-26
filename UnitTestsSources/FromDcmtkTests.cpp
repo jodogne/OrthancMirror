@@ -1521,6 +1521,18 @@ static std::string DecodeFromSpecification(const std::string& s)
 
 
 
+// Compatibility wrapper
+static pugi::xpath_node SelectNode(const pugi::xml_document& doc,
+                                   const char* xpath)
+{
+#if PUGIXML_VERSION <= 140
+  return doc.select_single_node(xpath);  // Deprecated in pugixml 1.5
+#else
+  return doc.select_node(xpath);
+#endif
+}
+
+
 TEST(Toolbox, EncodingsKorean)
 {
   // http://dicom.nema.org/MEDICAL/dicom/current/output/chtml/part05/sect_I.2.html
@@ -1569,35 +1581,34 @@ TEST(Toolbox, EncodingsKorean)
   pugi::xml_document doc;
   doc.load_buffer(xml.c_str(), xml.size());
 
-  pugi::xpath_node node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
+  pugi::xpath_node node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
   ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
   ASSERT_STREQ("CS", node.node().attribute("vr").value());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
   ASSERT_STREQ("PN", node.node().attribute("vr").value());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
   ASSERT_STREQ("Hong", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
   ASSERT_STREQ("Gildong", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
   ASSERT_EQ(utf8.substr(13, 3), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
   ASSERT_EQ(utf8.substr(17, 6), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
   ASSERT_EQ(utf8.substr(24, 3), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(28), node.node().text().as_string());
 #endif  
 }
-
 
 
 TEST(Toolbox, EncodingsJapaneseKanji)
@@ -1650,31 +1661,31 @@ TEST(Toolbox, EncodingsJapaneseKanji)
   pugi::xml_document doc;
   doc.load_buffer(xml.c_str(), xml.size());
 
-  pugi::xpath_node node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
+  pugi::xpath_node node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
   ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
   ASSERT_STREQ("CS", node.node().attribute("vr").value());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]");
   ASSERT_STREQ("PN", node.node().attribute("vr").value());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/FamilyName");
   ASSERT_STREQ("Yamada", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Alphabetic/GivenName");
   ASSERT_STREQ("Tarou", node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/FamilyName");
   ASSERT_EQ(utf8.substr(13, 6), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Ideographic/GivenName");
   ASSERT_EQ(utf8.substr(20, 6), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/FamilyName");
   ASSERT_EQ(utf8.substr(27, 9), node.node().text().as_string());
 
-  node = doc.select_node("//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
+  node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(37), node.node().text().as_string());
 #endif  
 }
