@@ -324,16 +324,25 @@ namespace Orthanc
     
   Json::Value DicomWebJsonVisitor::FormatDouble(double value)
   {
-    long long a = boost::math::llround<double>(value);
-
-    double d = fabs(value - static_cast<double>(a));
-
-    if (d <= std::numeric_limits<double>::epsilon() * 100.0)
+    try
     {
-      return FormatInteger(a);
+      long long a = boost::math::llround<double>(value);
+
+      double d = fabs(value - static_cast<double>(a));
+
+      if (d <= std::numeric_limits<double>::epsilon() * 100.0)
+      {
+        return FormatInteger(a);
+      }
+      else
+      {
+        return Json::Value(value);
+      }
     }
-    else
+    catch (boost::math::rounding_error&)
     {
+      // Can occur if "long long" is too small to receive this value
+      // (e.g. infinity)
       return Json::Value(value);
     }
   }
