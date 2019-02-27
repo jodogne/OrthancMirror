@@ -55,8 +55,8 @@ if (BOOST_STATIC)
   
   set(BOOST_NAME boost_1_69_0)
   set(BOOST_VERSION 1.69.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.5.5)
-  set(BOOST_MD5 "a5d027d6668b69ccee707c4ceaf2496e")
+  set(BOOST_BCP_SUFFIX bcpdigest-1.5.6)
+  set(BOOST_MD5 "579bccc0ea4d1a261c1d0c5e27446c3d")
   set(BOOST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
