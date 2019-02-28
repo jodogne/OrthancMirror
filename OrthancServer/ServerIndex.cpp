@@ -1935,13 +1935,19 @@ namespace Orthanc
   void ServerIndex::DeleteChanges()
   {
     boost::mutex::scoped_lock lock(mutex_);
+
+    Transaction transaction(*this);
     db_.ClearChanges();
+    transaction.Commit(0);
   }
 
   void ServerIndex::DeleteExportedResources()
   {
     boost::mutex::scoped_lock lock(mutex_);
+
+    Transaction transaction(*this);
     db_.ClearExportedResources();
+    transaction.Commit(0);
   }
 
 
@@ -2235,7 +2241,10 @@ namespace Orthanc
                                       const std::string& value)
   {
     boost::mutex::scoped_lock lock(mutex_);
+
+    Transaction transaction(*this);
     db_.SetGlobalProperty(property, value);
+    transaction.Commit(0);
   }
 
 
