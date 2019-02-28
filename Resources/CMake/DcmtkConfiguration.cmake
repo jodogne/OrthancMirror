@@ -88,6 +88,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     -DDCMTK_VERSION_NUMBER=${DCMTK_VERSION_NUMBER}
     )
 
+
   if (NOT ENABLE_DCMTK_LOG)
     # Disable logging internal to DCMTK
     # https://groups.google.com/d/msg/orthanc-users/v2SzzAmY948/VxT1QVGiBAAJ
