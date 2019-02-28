@@ -14,6 +14,7 @@ Maintenance
 
 * Enlarge the support of JSON-to-XML conversion in the REST API
 * Fix missing DB transactions in some write operations
+* Fix performance issue in DICOM protocol by disabling Nagle's algorithm
 
 
 Version 1.5.5 (2019-02-25)

@@ -169,3 +169,16 @@ list(REMOVE_ITEM DCMTK_SOURCES
   ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
   ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
   )
+
+
+# Starting with DCMTK 3.6.2, the Nagle algorithm is not disabled by
+# default since this does not seem to be appropriate (anymore) for
+# most modern operating systems. In order to change this default, the
+# environment variable NO_TCPDELAY can be set to "1" (see envvars.txt
+# for details). Alternatively, the macro DISABLE_NAGLE_ALGORITHM can
+# be defined to change this setting at compilation time (see
+# macros.txt for details).
+# https://forum.dcmtk.org/viewtopic.php?t=4632
+add_definitions(
+  -DDISABLE_NAGLE_ALGORITHM=1
+  )
