@@ -1,12 +1,19 @@
 Pending changes in the mainline
 ===============================
 
-General
--------
-* Orthanc Explorer : when performing a Query/Retrieve operation, the tag
-  default values are now set to an empty string instead of '*', which allows
-  to match even if the tag is not present. This allows malformed DICOM files
-  to be matched, even though they lack required tags such as `PatientSex`
+Orthanc Explorer
+----------------
+
+* If performing a Query/Retrieve operation, the default value for the
+  tags is set to an empty string instead of '*', which allows to match
+  even if the tag is not present. This allows malformed DICOM files to
+  be matched, even though they lack required tags such as "PatientSex"
+
+Maintenance
+-----------
+
+* Enlarge the support of JSON-to-XML conversion in the REST API
+
 
 Version 1.5.5 (2019-02-25)
 ==========================

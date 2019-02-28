@@ -128,9 +128,29 @@ namespace Orthanc
                                    MimeType contentType)
   {
     CheckStatus();
-    output_.SetContentType(contentType);
-    output_.Answer(buffer, length);
-    alreadySent_ = true;
+
+    if (convertJsonToXml_ &&
+        contentType == MimeType_Json)
+    {
+      Json::Value json;
+      Json::Reader reader;
+      if (reader.parse(reinterpret_cast<const char*>(buffer),
+                       reinterpret_cast<const char*>(buffer) + length, json))
+      {
+        AnswerJson(json);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The REST API tries and answers with an invalid JSON file");
+      } 
+    }
+    else
+    {
+      output_.SetContentType(contentType);
+      output_.Answer(buffer, length);
+      alreadySent_ = true;
+    }
   }
 
   void RestApiOutput::Redirect(const std::string& path)
