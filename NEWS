@@ -13,6 +13,7 @@ Maintenance
 -----------
 
 * Enlarge the support of JSON-to-XML conversion in the REST API
+* Fix missing DB transactions in some write operations
 
 
 Version 1.5.5 (2019-02-25)
