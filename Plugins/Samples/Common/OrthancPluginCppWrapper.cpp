@@ -1773,7 +1773,7 @@ namespace OrthancPlugins
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
         (GetGlobalContext(), &answer, NULL, &status, peers_,
-         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
+         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Delete, uri.c_str(),
          0, NULL, NULL, NULL, 0, timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
