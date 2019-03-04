@@ -129,6 +129,8 @@ namespace OrthancPlugins
     // This transfers ownership from "other" to "this"
     void Assign(OrthancPluginMemoryBuffer& other);
 
+    void Swap(MemoryBuffer& other);
+
     OrthancPluginMemoryBuffer Release();
 
     const char* GetData() const
