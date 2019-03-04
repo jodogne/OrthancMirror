@@ -145,6 +145,13 @@ namespace OrthancPlugins
   }
 
 
+  void MemoryBuffer::Swap(MemoryBuffer& other)
+  {
+    std::swap(buffer_.data, other.buffer_.data);
+    std::swap(buffer_.size, other.buffer_.size);
+  }
+
+
   OrthancPluginMemoryBuffer MemoryBuffer::Release()
   {
     OrthancPluginMemoryBuffer result = buffer_;
@@ -1024,11 +1031,11 @@ namespace OrthancPlugins
   {
     CheckImageAvailable();
 
-    OrthancPluginMemoryBuffer tmp;
-    OrthancPluginCompressPngImage(GetGlobalContext(), &tmp, GetPixelFormat(),
+    OrthancPlugins::MemoryBuffer answer;
+    OrthancPluginCompressPngImage(GetGlobalContext(), *answer, GetPixelFormat(),
                                   GetWidth(), GetHeight(), GetPitch(), GetBuffer());
 
-    target.Assign(tmp);
+    target.Swap(answer);
   }
 
 
@@ -1037,11 +1044,11 @@ namespace OrthancPlugins
   {
     CheckImageAvailable();
 
-    OrthancPluginMemoryBuffer tmp;
-    OrthancPluginCompressJpegImage(GetGlobalContext(), &tmp, GetPixelFormat(),
+    OrthancPlugins::MemoryBuffer answer;
+    OrthancPluginCompressJpegImage(GetGlobalContext(), *answer, GetPixelFormat(),
                                    GetWidth(), GetHeight(), GetPitch(), GetBuffer(), quality);
 
-    target.Assign(tmp);
+    target.Swap(answer);
   }
 
 
@@ -1580,16 +1587,16 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
-    OrthancPluginMemoryBuffer answer;
+    OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), &answer, NULL, &status, peers_,
+        (GetGlobalContext(), *answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Get, uri.c_str(),
          0, NULL, NULL, NULL, 0, timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      target.Assign(answer);
+      target.Swap(answer);
       return (status == 200);
     }
     else
@@ -1704,16 +1711,16 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
-    OrthancPluginMemoryBuffer answer;
+    OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), &answer, NULL, &status, peers_,
+        (GetGlobalContext(), *answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
          0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      target.Assign(answer);
+      target.Swap(answer);
       return (status == 200);
     }
     else
@@ -1732,16 +1739,15 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
-    OrthancPluginMemoryBuffer answer;
+    OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), &answer, NULL, &status, peers_,
+        (GetGlobalContext(), *answer, NULL, &status, peers_,
          static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
          0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      OrthancPluginFreeMemoryBuffer(GetGlobalContext(), &answer);
       return (status == 200);
     }
     else
@@ -1769,16 +1775,15 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
-    OrthancPluginMemoryBuffer answer;
+    OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), &answer, NULL, &status, peers_,
-         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Delete, uri.c_str(),
-         0, NULL, NULL, NULL, 0, timeout_);
+      (GetGlobalContext(), *answer, NULL, &status, peers_,
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Delete, uri.c_str(),
+       0, NULL, NULL, NULL, 0, timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
-      OrthancPluginFreeMemoryBuffer(GetGlobalContext(), &answer);
       return (status == 200);
     }
     else
