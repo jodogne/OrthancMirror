@@ -1457,7 +1457,6 @@ $('#job').live('pagebeforeshow', function() {
         target.listview('refresh');
 
         $('#job-cancel').closest('.ui-btn').hide();
-        $('#job-retry').closest('.ui-btn').hide();
         $('#job-resubmit').closest('.ui-btn').hide();
         $('#job-pause').closest('.ui-btn').hide();
         $('#job-resume').closest('.ui-btn').hide();
