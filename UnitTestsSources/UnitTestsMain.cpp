@@ -482,6 +482,69 @@ TEST(Toolbox, FixUtf8)
 }
 
 
+static int32_t GetUnicode(const uint8_t* data,
+                          size_t size,
+                          size_t expectedLength)
+{
+  std::string s((char*) &data[0], size);
+  uint32_t unicode;
+  size_t length;
+  Toolbox::Utf8ToUnicodeCharacter(unicode, length, s, 0);
+  if (length != expectedLength)
+  {
+    return -1;  // Error case
+  }
+  else
+  {
+    return unicode;
+  }
+}
+
+
+TEST(Toolbox, Utf8ToUnicode)
+{
+  // https://en.wikipedia.org/wiki/UTF-8
+  
+  ASSERT_EQ(1, sizeof(char));
+  ASSERT_EQ(1, sizeof(uint8_t));
+  
+  {
+    const uint8_t data[] = { 0x24 };
+    ASSERT_EQ(0x24, GetUnicode(data, 1, 1));
+    ASSERT_THROW(GetUnicode(data, 0, 1), OrthancException);
+  }
+  
+  {
+    const uint8_t data[] = { 0xc2, 0xa2 };
+    ASSERT_EQ(0xa2, GetUnicode(data, 2, 2));
+    ASSERT_THROW(GetUnicode(data, 1, 2), OrthancException);
+  }
+  
+  {
+    const uint8_t data[] = { 0xe0, 0xa4, 0xb9 };
+    ASSERT_EQ(0x0939, GetUnicode(data, 3, 3));
+    ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
+  }
+  
+  {
+    const uint8_t data[] = { 0xe2, 0x82, 0xac };
+    ASSERT_EQ(0x20ac, GetUnicode(data, 3, 3));
+    ASSERT_THROW(GetUnicode(data, 2, 3), OrthancException);
+  }
+  
+  {
+    const uint8_t data[] = { 0xf0, 0x90, 0x8d, 0x88 };
+    ASSERT_EQ(0x010348, GetUnicode(data, 4, 4));
+    ASSERT_THROW(GetUnicode(data, 3, 4), OrthancException);
+  }
+  
+  {
+    const uint8_t data[] = { 0xe0 };
+    ASSERT_THROW(GetUnicode(data, 1, 1), OrthancException);
+  }
+}
+
+
 TEST(Toolbox, UrlDecode)
 {
   std::string s;

@@ -1789,6 +1789,81 @@ namespace Orthanc
       }
     }
   }
+
+
+  void Toolbox::Utf8ToUnicodeCharacter(uint32_t& unicode,
+                                       size_t& length,
+                                       const std::string& utf8,
+                                       size_t position)
+  {
+    // https://en.wikipedia.org/wiki/UTF-8
+
+    static const uint8_t MASK_IS_1_BYTE = 0x80;     // printf '0x%x\n' "$((2#10000000))"
+    static const uint8_t TEST_IS_1_BYTE = 0x00;
+ 
+    static const uint8_t MASK_IS_2_BYTES = 0xe0;    // printf '0x%x\n' "$((2#11100000))"
+    static const uint8_t TEST_IS_2_BYTES = 0xc0;    // printf '0x%x\n' "$((2#11000000))"
+
+    static const uint8_t MASK_IS_3_BYTES = 0xf0;    // printf '0x%x\n' "$((2#11110000))"
+    static const uint8_t TEST_IS_3_BYTES = 0xe0;    // printf '0x%x\n' "$((2#11100000))"
+
+    static const uint8_t MASK_IS_4_BYTES = 0xf8;    // printf '0x%x\n' "$((2#11111000))"
+    static const uint8_t TEST_IS_4_BYTES = 0xf0;    // printf '0x%x\n' "$((2#11110000))"
+
+    static const uint8_t MASK_CONTINUATION = 0xc0;  // printf '0x%x\n' "$((2#11000000))"
+    static const uint8_t TEST_CONTINUATION = 0x80;  // printf '0x%x\n' "$((2#10000000))"
+
+    if (position >= utf8.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    const uint8_t* buffer = reinterpret_cast<const uint8_t*>(utf8.c_str());
+
+    if ((buffer[0] & MASK_IS_1_BYTE) == TEST_IS_1_BYTE)
+    {
+      length = 1;
+      unicode = buffer[0] & ~MASK_IS_1_BYTE;
+    }
+    else if ((buffer[0] & MASK_IS_2_BYTES) == TEST_IS_2_BYTES &&
+             position + 1 < utf8.size() &&
+             (buffer[1] & MASK_CONTINUATION) == TEST_CONTINUATION)
+    {
+      length = 2;
+      uint32_t a = buffer[0] & ~MASK_IS_2_BYTES;
+      uint32_t b = buffer[1] & ~MASK_CONTINUATION;
+      unicode = (a << 6) | b;
+    }
+    else if ((buffer[0] & MASK_IS_3_BYTES) == TEST_IS_3_BYTES &&
+             position + 2 < utf8.size() &&
+             (buffer[1] & MASK_CONTINUATION) == TEST_CONTINUATION &&
+             (buffer[2] & MASK_CONTINUATION) == TEST_CONTINUATION)
+    {
+      length = 3;
+      uint32_t a = buffer[0] & ~MASK_IS_3_BYTES;
+      uint32_t b = buffer[1] & ~MASK_CONTINUATION;
+      uint32_t c = buffer[2] & ~MASK_CONTINUATION;
+      unicode = (a << 12) | (b << 6) | c;
+    }
+    else if ((buffer[0] & MASK_IS_4_BYTES) == TEST_IS_4_BYTES &&
+             position + 3 < utf8.size() &&
+             (buffer[1] & MASK_CONTINUATION) == TEST_CONTINUATION &&
+             (buffer[2] & MASK_CONTINUATION) == TEST_CONTINUATION &&
+             (buffer[3] & MASK_CONTINUATION) == TEST_CONTINUATION)
+    {
+      length = 4;
+      uint32_t a = buffer[0] & ~MASK_IS_4_BYTES;
+      uint32_t b = buffer[1] & ~MASK_CONTINUATION;
+      uint32_t c = buffer[2] & ~MASK_CONTINUATION;
+      uint32_t d = buffer[3] & ~MASK_CONTINUATION;
+      unicode = (a << 18) | (b << 12) | (c << 6) | d;
+    }
+    else
+    {
+      // This is not a valid UTF-8 encoding
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
 }
 
 
