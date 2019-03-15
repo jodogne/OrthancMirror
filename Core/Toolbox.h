@@ -252,6 +252,11 @@ namespace Orthanc
 
     void RemoveIso2022EscapeSequences(std::string& dest,
                                       const std::string& src);
+
+    void Utf8ToUnicodeCharacter(uint32_t& unicode,
+                                size_t& utf8Length,
+                                const std::string& utf8,
+                                size_t position);
   }
 }
 
