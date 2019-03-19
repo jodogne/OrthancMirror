@@ -1398,12 +1398,32 @@ namespace Orthanc
     typedef typename PixelTraits<TargetFormat>::PixelType  TargetType;
 
     TargetType value = PixelTraits<TargetFormat>::IntegerToPixel(value_);
+    int imageWidth = static_cast<int>(image.GetWidth());
+    int imageHeight = static_cast<int>(image.GetHeight());
     int32_t left;
     int32_t right;
     int32_t top;
     int32_t bottom;
 
+    // TODO: test clipping in UT (in Trello board)
     ComputePolygonExtent(left, right, top, bottom, points);
+
+    // clip the computed extent with the target image
+    // L and R
+    left = std::max(0, left);
+    left = std::min(imageWidth, left);
+    right = std::max(0, right);
+    right = std::min(imageWidth, right);
+    if (left > right)
+      std::swap(left, right);
+
+    // T and B
+    top = std::max(0, top);
+    top = std::min(imageHeight, top);
+    bottom = std::max(0, bottom);
+    bottom = std::min(imageHeight, bottom);
+    if (top > bottom)
+      std::swap(top, bottom);
 
     // from http://alienryderflex.com/polygon_fill/
 
@@ -1460,24 +1480,24 @@ namespace Orthanc
 
       TargetType* row = reinterpret_cast<TargetType*>(image.GetRow(pixelY));
       //  Fill the pixels between node pairs.
-      for (i=0; i<nodes; i+=2)
+      for (i = 0; i < nodes; i += 2)
       {
         if (nodeX[i] >= right)
           break;
 
-        if (nodeX[i+1] >= left)
+        if (nodeX[i + 1] >= left)
         {
-          if (nodeX[i]< left)
+          if (nodeX[i] < left)
           {
             nodeX[i] = left;
           }
 
-          if (nodeX[i+1] > right)
+          if (nodeX[i + 1] > right)
           {
-            nodeX[i+1] = right;
+            nodeX[i + 1] = right;
           }
 
-          for (pixelX = nodeX[i]; pixelX <= nodeX[i+1]; pixelX++)
+          for (pixelX = nodeX[i]; pixelX <= nodeX[i + 1]; pixelX++)
           {
             *(row + pixelX) = value;
           }
