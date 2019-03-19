@@ -107,7 +107,7 @@ while True:
             })
 
     for change in r['Changes']:
-        # We are only interested interested in the arrival of new instances
+        # We are only interested in the arrival of new instances
         if change['ChangeType'] == 'NewInstance':
             try:
                 ClassifyInstance(change['ID'])
