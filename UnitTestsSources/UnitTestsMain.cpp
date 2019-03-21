@@ -374,34 +374,6 @@ TEST(Toolbox, ComputeSHA1)
   ASSERT_EQ("da39a3ee-5e6b4b0d-3255bfef-95601890-afd80709", s);
 }
 
-
-static std::string EncodeBase64Bis(const std::string& s)
-{
-  std::string result;
-  Toolbox::EncodeBase64(result, s);
-  return result;
-}
-
-
-TEST(Toolbox, Base64)
-{
-  ASSERT_EQ("", EncodeBase64Bis(""));
-  ASSERT_EQ("YQ==", EncodeBase64Bis("a"));
-
-  const std::string hello = "SGVsbG8gd29ybGQ=";
-  ASSERT_EQ(hello, EncodeBase64Bis("Hello world"));
-
-  std::string decoded;
-  Toolbox::DecodeBase64(decoded, hello);
-  ASSERT_EQ("Hello world", decoded);
-
-  // Invalid character
-  ASSERT_THROW(Toolbox::DecodeBase64(decoded, "?"), OrthancException);
-
-  // All the allowed characters
-  Toolbox::DecodeBase64(decoded, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
-}
-
 TEST(Toolbox, PathToExecutable)
 {
   printf("[%s]\n", SystemToolbox::GetPathToExecutable().c_str());

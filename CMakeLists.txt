@@ -123,6 +123,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/SQLiteTests.cpp
   UnitTestsSources/ServerIndexTests.cpp
   UnitTestsSources/StreamTests.cpp
+  UnitTestsSources/ToolboxTests.cpp
   UnitTestsSources/UnitTestsMain.cpp
   UnitTestsSources/VersionsTests.cpp
   UnitTestsSources/ZipTests.cpp
@@ -332,6 +333,7 @@ add_executable(UnitTests
   ${GOOGLE_TEST_SOURCES}
   ${ORTHANC_UNIT_TESTS_PCH}
   ${ORTHANC_UNIT_TESTS_SOURCES}
+  ${BOOST_EXTENDED_SOURCES}
   )
 
 target_link_libraries(UnitTests
