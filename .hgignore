@@ -4,4 +4,5 @@ CMakeLists.txt.user
 *.cpp.orig
 *.h.orig
 .vs/
+.vscode/
 *~
