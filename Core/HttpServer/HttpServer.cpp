@@ -1056,7 +1056,8 @@ namespace Orthanc
 
       if (!pimpl_->context_)
       {
-        throw OrthancException(ErrorCode_HttpPortInUse);
+        throw OrthancException(ErrorCode_HttpPortInUse,
+                               " (port = " + boost::lexical_cast<std::string>(port_) + ")");
       }
 
       LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()
