@@ -134,18 +134,33 @@ void base64_decode_old(std::string& result, const std::string& encoded_string) {
 // note that the encoding algorithm from this page was slower (and bugged !)
 // this code is not using std::vector::find
 
-static std::vector<int> decode_indexes;
+// static init equivalent to:
+// decode_indexes.assign(256, -1);
+// for (int i=0; i<64; ++i)
+//   decode_indexes[base64_chars[i]] = i;
+
+static const int decode_indexes[] = {
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+  52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+  -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+  15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+  -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+  41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
 
 void base64_decode(std::string& result, const std::string &stringToDecode) {
 
   result.reserve(result.size() + stringToDecode.size() * 3 / 4 + 10);
-
-  if (decode_indexes.size() != 256) // initialize the first time we pass here
-  {
-    decode_indexes.assign(256, -1);
-    for (int i=0; i<64; ++i)
-      decode_indexes[base64_chars[i]] = i;
-  }
 
   int val=0, valb=-8;
   for (std::string::const_iterator c = stringToDecode.begin(); c != stringToDecode.end(); ++c) {
