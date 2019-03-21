@@ -328,7 +328,7 @@ namespace Orthanc
     if (cond.bad())
     {
       throw OrthancException(ErrorCode_DicomPortInUse,
-                             "cannot create network: " + std::string(cond.text()));
+                             " (port = " + boost::lexical_cast<std::string>(port_) + ") cannot create network: " + std::string(cond.text()));
     }
 
     continue_ = true;
