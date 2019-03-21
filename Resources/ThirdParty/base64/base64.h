@@ -1,4 +1,4 @@
 #include <string>
 
-std::string base64_encode(const std::string& stringToEncode);
-std::string base64_decode(const std::string& s);
+void base64_encode(std::string& result, const std::string& stringToEncode);
+void base64_decode(std::string& result, const std::string& s);
