@@ -1821,7 +1821,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    const uint8_t* buffer = reinterpret_cast<const uint8_t*>(utf8.c_str());
+    assert(sizeof(uint8_t) == sizeof(char));
+    const uint8_t* buffer = reinterpret_cast<const uint8_t*>(utf8.c_str()) + position;
 
     if ((buffer[0] & MASK_IS_1_BYTE) == TEST_IS_1_BYTE)
     {
@@ -1864,7 +1865,7 @@ namespace Orthanc
     else
     {
       // This is not a valid UTF-8 encoding
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Invalid UTF-8 string");
     }
   }
 }
