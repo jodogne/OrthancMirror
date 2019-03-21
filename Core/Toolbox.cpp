@@ -398,6 +398,7 @@ namespace Orthanc
   void Toolbox::EncodeBase64(std::string& result, 
                              const std::string& data)
   {
+    result.clear();
     base64_encode(result, data);
   }
 
@@ -416,6 +417,7 @@ namespace Orthanc
       }
     }
 
+    result.clear();
     base64_decode(result, data);
   }
 
