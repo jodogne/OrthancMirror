@@ -158,15 +158,18 @@ static const int decode_indexes[] = {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 };
 
+
 void base64_decode(std::string& result, const std::string &stringToDecode) {
 
   result.reserve(result.size() + stringToDecode.size() * 3 / 4 + 10);
 
   int val=0, valb=-8;
-  for (std::string::const_iterator c = stringToDecode.begin(); c != stringToDecode.end(); ++c) {
-    if (decode_indexes[*c] == -1)
+  for (std::string::const_iterator c = stringToDecode.begin(); c != stringToDecode.end(); ++c)
+  {
+    size_t index = static_cast<size_t>(*c);
+    if (decode_indexes[index] == -1)
       break;
-    val = (val<<6) + decode_indexes[*c];
+    val = (val<<6) + decode_indexes[index];
     valb += 6;
     if (valb>=0) {
       result.push_back(char((val>>valb)&0xFF));
