@@ -33,6 +33,7 @@
 
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
+#include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 
 using namespace Orthanc;
