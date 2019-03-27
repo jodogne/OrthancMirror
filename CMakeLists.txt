@@ -193,6 +193,7 @@ if (STANDALONE_BUILD)
     ${ORTHANC_EMBEDDED_FILES}
     ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
     ${DCMTK_DICTIONARIES}
+    ${LIBICU_RESOURCES}
     )
 else()
   add_definitions(
@@ -201,6 +202,7 @@ else()
     )
   EmbedResources(
     ${ORTHANC_EMBEDDED_FILES}
+    ${LIBICU_RESOURCES}
     )
 endif()
 

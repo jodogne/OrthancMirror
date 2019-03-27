@@ -10,31 +10,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
   include(${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/icu/Version.cmake)
   DownloadPackage(${LIBICU_MD5} ${LIBICU_URL} "${LIBICU_SOURCES_DIR}")
 
-  if (MSVC AND
-      CMAKE_SIZEOF_VOID_P EQUAL 8)
-    # In Visual Studio 2015 64bit, we get the following error if using
-    # the plain C version of the ICU data: "icudt58l_dat.c(1638339):
-    # fatal error C1060: compiler is out of heap space" => we use a
-    # precompiled binary generated using MinGW on Linux
-    DownloadCompressedFile(${LIBICU_DATA_WIN64_MD5} ${LIBICU_DATA_WIN64_URL} ${LIBICU_DATA_WIN64})
+  # Use the gzip-compressed data
+  DownloadFile(${LIBICU_DATA_COMPRESSED_MD5} ${LIBICU_DATA_URL})
+  set(LIBICU_RESOURCES
+    LIBICU_DATA  ${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/${LIBICU_DATA}
+    )
 
-    set(LIBICU_LIBRARIES
-      ${CMAKE_BINARY_DIR}/${LIBICU_DATA_WIN64}
-      )
-  else()
-    # Use plain C data library
-    DownloadCompressedFile(${LIBICU_DATA_MD5} ${LIBICU_DATA_URL} ${LIBICU_DATA})
+  set_source_files_properties(
+    ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
+    PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
+    )
 
-    set_source_files_properties(
-      ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
-      PROPERTIES COMPILE_DEFINITIONS "char16_t=uint16_t"
-      )
-
-    set(LIBICU_SOURCES
-      ${CMAKE_BINARY_DIR}/${LIBICU_DATA}
-      )
-  endif()
-  
   include_directories(BEFORE
     ${LIBICU_SOURCES_DIR}/source/common
     ${LIBICU_SOURCES_DIR}/source/i18n
@@ -50,6 +36,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
 
     #-DUCONFIG_NO_SERVICE=1
     -DU_COMMON_IMPLEMENTATION
+    -DU_STATIC_IMPLEMENTATION
     -DU_ENABLE_DYLOAD=0
     -DU_HAVE_STD_STRING=1
     -DU_I18N_IMPLEMENTATION
@@ -57,6 +44,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICU)
     -DU_STATIC_IMPLEMENTATION=1
     #-DU_CHARSET_IS_UTF8
     -DUNISTR_FROM_STRING_EXPLICIT=
+
+    -DORTHANC_STATIC_ICU=1
+    -DORTHANC_ICU_DATA_MD5="${LIBICU_DATA_UNCOMPRESSED_MD5}"
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -83,4 +73,8 @@ else()
   else()
     link_libraries(icuuc icui18n)
   endif()
+
+  add_definitions(
+    -DORTHANC_STATIC_ICU=0
+    )
 endif()
