@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Size of the Orthanc static binaries are reduced by compressing ICU data
+
 
 Version 1.5.6 (2019-03-01)
 ==========================
