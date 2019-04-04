@@ -64,6 +64,8 @@ DICOM
 Short-term
 ----------
 
+* Support "Retrieve AE Title" (0008,0054) in C-FIND:
+  https://groups.google.com/d/msg/orthanc-users/wPl0g5mqZco/5X1Z8tEzBgAJ
 * Support C-GET: 
   http://dclunie.blogspot.be/2016/05/to-c-move-is-human-to-c-get-divine.html
 * Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
