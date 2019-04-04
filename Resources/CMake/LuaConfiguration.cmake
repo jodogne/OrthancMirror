@@ -101,9 +101,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 
 else()
-  include(FindLua51)
+  include(FindLua)
 
-  if (NOT LUA51_FOUND)
+  if (NOT LUA_FOUND)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
 
