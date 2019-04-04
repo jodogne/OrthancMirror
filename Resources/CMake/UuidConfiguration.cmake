@@ -114,12 +114,18 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       message(FATAL_ERROR "Please install uuid-dev, e2fsprogs (OpenBSD) or e2fsprogs-libuuid (FreeBSD)")
     endif()
 
-    check_library_exists(uuid uuid_generate_random "" HAVE_UUID_LIB)
-    if (NOT HAVE_UUID_LIB)
+    find_library(LIBUUID uuid
+      PATHS
+      /usr/lib
+      /usr/local/lib
+      )
+
+    check_library_exists(${LIBUUID} uuid_generate_random "" HAVE_LIBUUID)
+    if (NOT HAVE_LIBUUID)
       message(FATAL_ERROR "Unable to find the uuid library")
     endif()
     
-    link_libraries(uuid)
+    link_libraries(${LIBUUID})
   endif()
 
 endif()
