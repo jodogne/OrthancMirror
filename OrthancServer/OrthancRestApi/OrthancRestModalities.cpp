@@ -442,10 +442,24 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
     Json::Value request;
 
-    if (call.ParseJsonRequest(request) &&
-        request.type() == Json::objectValue &&
-        request.isMember(KEY_LEVEL) && request[KEY_LEVEL].type() == Json::stringValue &&
-        (!request.isMember(KEY_QUERY) || request[KEY_QUERY].type() == Json::objectValue))
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
+    }
+    else if (!request.isMember(KEY_LEVEL) ||
+             request[KEY_LEVEL].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "The JSON body must contain field " + std::string(KEY_LEVEL));
+    }
+    else if (request.isMember(KEY_QUERY) &&
+             request[KEY_QUERY].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "The field " + std::string(KEY_QUERY) + " must contain a JSON object");
+    }
+    else
     {
       std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
 
@@ -958,7 +972,8 @@ namespace Orthanc
         request[KEY_RESOURCES].type() != Json::arrayValue ||
         request[KEY_LEVEL].type() != Json::stringValue)
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON body containing fields " +
+                             std::string(KEY_RESOURCES) + " and " + std::string(KEY_LEVEL));
     }
 
     ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
@@ -1235,6 +1250,10 @@ namespace Orthanc
       Json::Value result;
       answers.ToJson(result, true);
       call.GetOutput().AnswerJson(result);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
     }
   }
 
