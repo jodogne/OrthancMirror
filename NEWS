@@ -2,7 +2,8 @@ Pending changes in the mainline
 ===============================
 
 * Size of the Orthanc static binaries are reduced by compressing ICU data
-* Fix issue #136 (C-Find request fails when found DICOM file does not have certain tags)
+* Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
+* Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
 * Fix issue #138 (POST to modalities/{name} accepts invalid characters)
 
 
