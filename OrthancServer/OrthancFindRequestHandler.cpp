@@ -371,7 +371,7 @@ namespace Orthanc
     }
     else
     {
-      ParsedDicomFile dicom(result);
+      ParsedDicomFile dicom(result, GetDefaultDicomEncoding(), true /* be permissive, cf. issue #136 */);
 
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)

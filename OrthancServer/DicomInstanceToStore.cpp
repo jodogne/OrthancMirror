@@ -179,7 +179,9 @@ namespace Orthanc
           }
           else
           {
-            parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent()));
+            parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent(),
+                                                      GetDefaultDicomEncoding(),
+                                                      false /* be strict */));
           }                                
         }
 

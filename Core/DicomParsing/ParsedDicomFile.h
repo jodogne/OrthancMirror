@@ -101,8 +101,6 @@ namespace Orthanc
                     Encoding defaultEncoding,
                     bool permissive);
 
-    ParsedDicomFile(const DicomMap& map);
-
     ParsedDicomFile(const void* content,
                     size_t size);
 
