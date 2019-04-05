@@ -590,11 +590,11 @@ namespace Orthanc
           }
         }
 
-        return new ParsedDicomFile(*fix);
+        return new ParsedDicomFile(*fix, GetDefaultDicomEncoding(), false /* be strict */);
       }
 
       default:
-        return new ParsedDicomFile(fields);
+        return new ParsedDicomFile(fields, GetDefaultDicomEncoding(), false /* be strict */);
     }
   }
 
