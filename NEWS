@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Size of the Orthanc static binaries are reduced by compressing ICU data
+* Fix issue #138 (POST to modalities/{name} accepts invalid characters)
 
 
 Version 1.5.6 (2019-03-01)

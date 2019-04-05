@@ -759,6 +759,8 @@ namespace Orthanc
   void OrthancConfiguration::UpdateModality(const std::string& symbolicName,
                                             const RemoteModalityParameters& modality)
   {
+    CheckAlphanumeric(symbolicName);
+    
     modalities_[symbolicName] = modality;
     SaveModalities();
   }
@@ -774,6 +776,8 @@ namespace Orthanc
   void OrthancConfiguration::UpdatePeer(const std::string& symbolicName,
                                         const WebServiceParameters& peer)
   {
+    CheckAlphanumeric(symbolicName);
+    
     peer.CheckClientCertificate();
 
     peers_[symbolicName] = peer;
