@@ -66,7 +66,8 @@ namespace Orthanc
         buffer_ = malloc(size);
         if (buffer_ == NULL)
         {
-          throw OrthancException(ErrorCode_NotEnoughMemory);
+          throw OrthancException(ErrorCode_NotEnoughMemory,
+                                 "Failed to allocate an image buffer of size " + boost::lexical_cast<std::string>(width_) + "x" + boost::lexical_cast<std::string>(height_));
         }
       }
 
