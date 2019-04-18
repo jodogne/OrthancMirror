@@ -397,7 +397,7 @@
   // Maximum number of query/retrieve DICOM requests that are
   // maintained by Orthanc. The least recently used requests get
   // deleted as new requests are issued.
-  "QueryRetrieveSize" : 10,
+  "QueryRetrieveSize" : 100,
 
   // When handling a C-Find SCP request, setting this flag to "true"
   // will enable case-sensitive match for PN value representation

@@ -1024,13 +1024,6 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(const DicomMap& map) : 
-    pimpl_(new PImpl)
-  {
-    CreateFromDicomMap(map, GetDefaultDicomEncoding(), false /* be strict by default */);
-  }
-
-
   ParsedDicomFile::ParsedDicomFile(const void* content, 
                                    size_t size) : pimpl_(new PImpl)
   {
