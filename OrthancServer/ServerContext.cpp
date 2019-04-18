@@ -245,7 +245,7 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
 
       queryRetrieveArchive_.reset(
-        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 10)));
+        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
       mediaArchive_.reset(
         new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
       defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");

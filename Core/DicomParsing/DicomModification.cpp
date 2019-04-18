@@ -158,6 +158,13 @@ namespace Orthanc
         newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
         return Action_Replace;
       }
+      else if (parentTags.size() == 1 &&
+               parentTags[0] == DICOM_TAG_REFERENCED_SERIES_SEQUENCE &&
+               tag == DICOM_TAG_SERIES_INSTANCE_UID)
+      {
+        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
+        return Action_Replace;
+      }
       else
       {
         return Action_None;

@@ -1119,7 +1119,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
 
   {
     DicomMap m;
-    ParsedDicomFile dicom(m);
+    ParsedDicomFile dicom(m, GetDefaultDicomEncoding(), false);
     ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Ascii);
   }
@@ -1134,7 +1134,7 @@ TEST(ParsedDicomFile, DicomMapEncodings1)
   {
     DicomMap m;
     m.SetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET, "ISO_IR 148", false);
-    ParsedDicomFile dicom(m);
+    ParsedDicomFile dicom(m, GetDefaultDicomEncoding(), false);
     ASSERT_EQ(1u, dicom.GetDcmtkObject().getDataset()->card());
     CheckEncoding(dicom, Encoding_Latin5);
   }
