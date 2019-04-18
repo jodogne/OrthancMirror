@@ -147,6 +147,13 @@ if (BOOST_STATIC)
       add_definitions(-DBOOST_HAS_SCHED_YIELD=1)
     endif()
 
+    # Fix for error: "boost_1_69_0/boost/chrono/detail/inlined/mac/thread_clock.hpp:54:28: 
+    # error: use of undeclared identifier 'pthread_mach_thread_np'"
+    # https://github.com/envoyproxy/envoy/pull/1785
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+      add_definitions(-D_DARWIN_C_SOURCE=1)
+    endif()
+
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     list(APPEND BOOST_SOURCES
       ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp
