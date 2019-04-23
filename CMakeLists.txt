@@ -115,6 +115,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/ImageTests.cpp
   UnitTestsSources/JpegLosslessTests.cpp
+  UnitTestsSources/LoggingTests.cpp
   UnitTestsSources/LuaTests.cpp
   UnitTestsSources/MemoryCacheTests.cpp
   UnitTestsSources/MultiThreadingTests.cpp

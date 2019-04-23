@@ -81,6 +81,14 @@ namespace Orthanc
 
     void EnableTraceLevel(bool enabled);
 
+#ifdef __EMSCRIPTEN__
+    // calling this function will change the error_, warning_ and info_ 
+    // stream objects so that their operator<< writes into the browser 
+    // console using emscripten_console_error(), emscripten_console_warn()
+    // and emscripten_console_log()
+    void EnableEmscriptenLogging();
+#endif
+
     void SetTargetFile(const std::string& path);
 
     void SetTargetFolder(const std::string& path);
@@ -188,6 +196,78 @@ namespace Orthanc
         return (*stream_) << boost::lexical_cast<std::string>(message);
       }
     };
+
+    /**
+    opaque pointer that represents the state of the logging configuration
+    */
+    typedef void* LoggingMemento;
+
+    /**
+    Returns an object that contains the logging configuration.
+
+    This function allocates resources that you must dispose of by
+    using either RestoreLoggingMemento or DiscardLoggingMemento.
+
+    This function is only to be used by tests.
+    */
+    LoggingMemento CreateLoggingMemento();
+
+    /**
+    Restores the logging configuration. The logging system is restored in 
+    the state it was in when the memento object was created through 
+    GetLoggingMemento().
+
+    After calling this function, the memento object may not be used 
+    again
+
+    This function is only to be used by tests.
+    */
+    void RestoreLoggingMemento(LoggingMemento memento);
+
+    /**
+    Call this function if you do not plan on restoring the logging 
+    configuration state that you captured with CreateLoggingMemento
+
+    This function is only to be used by tests.
+    */
+    void DiscardLoggingMemento(LoggingMemento memento);
+
+    /**
+      std::streambuf subclass used in FunctionCallingStream
+    */
+    template<typename T>
+    class FuncStreamBuf : public std::stringbuf
+    {
+    public:
+      FuncStreamBuf(T func) : func_(func) {}
+
+      virtual int sync()
+      {
+        std::string text = this->str();
+        const char* buf = text.c_str();
+        func_(buf);
+        this->str("");
+        return 0;
+      }
+    private:
+      T func_;
+    };
+
+    /**
+      Set custom logging streams for the error, warning and info logs.
+      This function may not be called if a log file or folder has been 
+      set beforehand. All three pointers must be valid and cannot be NULL.
+
+      Please ensure the supplied streams remain alive and valid as long as
+      logging calls are performed.
+
+      In order to prevent dangling pointer usage, it is recommended to call
+      Orthanc::Logging::Reset() before the stream objects are destroyed and 
+      the pointers become invalid.
+    */
+    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
+                                        std::ostream* warningStream, 
+                                        std::ostream* infoStream);
   }
 }
 

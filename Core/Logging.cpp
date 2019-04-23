@@ -253,6 +253,19 @@ namespace
     {
     }
   };
+
+  struct LoggingMementoImpl
+  {
+    bool valid_;
+    bool infoEnabled_;
+    bool traceEnabled_;
+    std::string  targetFile_;
+    std::string  targetFolder_;
+
+    std::ostream* error_;
+    std::ostream* warning_;
+    std::ostream* info_;
+  };
 }
 
 
@@ -368,6 +381,59 @@ namespace Orthanc
       {
         SetTargetFile(old->targetFile_);
       }
+    }
+
+
+    LoggingMemento CreateLoggingMemento()
+    {
+      LoggingMementoImpl* memento = new LoggingMementoImpl();
+
+      memento->valid_ = TRUE;
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+        memento->infoEnabled_ = loggingContext_->infoEnabled_;
+        memento->traceEnabled_ = loggingContext_->traceEnabled_;
+        memento->targetFile_ = loggingContext_->targetFile_;
+        memento->targetFolder_ = loggingContext_->targetFolder_;
+
+        memento->error_ = loggingContext_->error_;
+        memento->warning_ = loggingContext_->warning_;
+        memento->info_ = loggingContext_->info_;
+      }
+      return reinterpret_cast<void*>(memento);
+    }
+    
+    void RestoreLoggingMemento(LoggingMemento mementoPtr)
+    {
+      LoggingMementoImpl* memento = 
+        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
+      if (!memento->valid_)
+        throw std::runtime_error("Memento already used");
+      memento->valid_ = FALSE;
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+        loggingContext_.reset(new LoggingContext);
+        loggingContext_->error_ = memento->error_;
+        loggingContext_->warning_ = memento->warning_;
+        loggingContext_->info_ = memento->info_;
+      }
+      EnableInfoLevel(memento->infoEnabled_);
+      EnableTraceLevel(memento->traceEnabled_);
+      if (!memento->targetFolder_.empty())
+      {
+        SetTargetFolder(memento->targetFolder_);
+      }
+      else if (!memento->targetFile_.empty())
+      {
+        SetTargetFile(memento->targetFile_);
+      }
+    }
+
+    void DiscardLoggingMemento(LoggingMemento mementoPtr)
+    {
+      LoggingMementoImpl* memento =
+        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
+      delete memento;
     }
 
     void EnableInfoLevel(bool enabled)
@@ -597,7 +663,84 @@ namespace Orthanc
         loggingContext_->file_->flush();
       }
     }
+
+
+ 
+
+    /*
+    struct FunctionCallingStream : std::ostream, std::streambuf
+    {
+      template<typename T>
+      FunctionCallingStream(T func) : std::ostream(this), func_(func) {}
+
+      int overflow(int c)
+      {
+        if (c != '\n')
+        {
+          currentLine_
+        }
+        else
+        {
+          func_(currentLine_.str().c_str());
+          currentLine_.str("");
+          currentLine_.clear("");
+        }
+        return 0;
+      }
+
+    private:
+      std::stringstream currentLine_;
+    };
+    */
+
+    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
+      std::ostream* warningStream,
+      std::ostream* infoStream)
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      std::auto_ptr<LoggingContext> old = loggingContext_;
+      loggingContext_.reset(new LoggingContext);
+      loggingContext_->error_ = errorStream;
+      loggingContext_->warning_ = warningStream;
+      loggingContext_->info_ = infoStream;
+      lock.unlock();
+      EnableInfoLevel(old->infoEnabled_);
+      EnableTraceLevel(old->traceEnabled_);
+    }
+
+#ifdef __EMSCRIPTEN__
+
+    FuncStreamBuf<decltype(emscripten_console_error)> 
+      globalEmscriptenErrorStreamBuf(emscripten_console_error);
+    std::auto_ptr<std::ostream> globalEmscriptenErrorStream;
+
+    FuncStreamBuf<decltype(emscripten_console_warn)>
+      globalEmscriptenWarningStreamBuf(emscripten_console_warn);
+    std::auto_ptr<std::ostream> globalEmscriptenWarningStream;
+
+    FuncStreamBuf<decltype(emscripten_console_log)>
+      globalEmscriptenInfoStreamBuf(emscripten_console_log);
+    std::auto_ptr<std::ostream> globalEmscriptenInfoStream;
+
+    void EnableEmscriptenLogging()
+    {
+      globalEmscriptenErrorStream.reset(new ostream(
+        &globalEmscriptenErrorStreamBuf));
+
+      globalEmscriptenWarningStream.reset(new ostream(
+        &globalEmscriptenWarningStreamBuf));
+
+      globalEmscriptenInfoStream.reset(new ostream(
+        &globalEmscriptenInfoStreamBuf));
+
+      SetErrorWarnInfoLoggingStreams(
+        &globalEmscriptenErrorStream,
+        &globalEmscriptenWarningStream
+        &globalEmscriptenInfoStream);
+    }
+#endif
   }
 }
+
 
 #endif   // ORTHANC_ENABLE_LOGGING
