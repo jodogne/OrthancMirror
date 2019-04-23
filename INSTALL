@@ -12,7 +12,7 @@ Dependencies
    (http://www.python.org/).
 
 3) Mercurial: To use the cutting edge code, a Mercurial client must be
-   installed (http://mercurial.selenic.com/). We recommand TortoiseHg.
+   installed (http://mercurial.selenic.com/). We recommend TortoiseHg.
 
 W) 7-Zip: For the native build under Windows, the 7-Zip tool is used
    to uncompress the third-party packages (http://www.7-zip.org/).
