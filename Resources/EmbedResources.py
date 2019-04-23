@@ -231,6 +231,12 @@ def WriteResource(cpp, item):
 
     # http://stackoverflow.com/a/1035360
     pos = 0
+    buffer = []  # instead of appending a few bytes at a time to the cpp file, 
+                 # we first append each chunk to a list, join it and write it 
+                 # to the file.  We've measured that it was 2-3 times faster in python3.
+                 # Note that speed is important since if generation is too slow,
+                 # cmake might try to compile the EmbeddedResources.cpp file while it is
+                 # still being generated !
     for b in content:
         if PYTHON_MAJOR_VERSION == 2:
             c = ord(b[0])
@@ -238,17 +244,18 @@ def WriteResource(cpp, item):
             c = b
 
         if pos > 0:
-            cpp.write(', ')
+            buffer.append(",")
 
         if (pos % 16) == 0:
-            cpp.write('\n    ')
+            buffer.append("\n")
 
         if c < 0:
             raise Exception("Internal error")
 
-        cpp.write("0x%02x" % c)
+        buffer.append("0x%02x" % c)
         pos += 1
 
+    cpp.write("".join(buffer))
     # Zero-size array are disallowed, so we put one single void character in it.
     if pos == 0:
         cpp.write('  0')
