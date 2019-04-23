@@ -371,7 +371,10 @@ namespace OrthancPlugins
     if (decoded.empty())
     {
       decoded.resize(pimpl_->GetImage().GetBufferLength());
-      pimpl_->GetImage().GetBuffer(&decoded[0]);
+      if (!pimpl_->GetImage().GetBuffer(&decoded[0]))
+      {
+        throw std::runtime_error("Image not properly decoded to a memory buffer");
+      }
     }
 
     const void* sourceBuffer = &decoded[0];
