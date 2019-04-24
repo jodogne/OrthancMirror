@@ -60,7 +60,7 @@ system libraries is the default behavior, you just have to use:
 # cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
-Note that to build the documentation, you will have to install doxyen.
+Note that to build the documentation, you will have to install doxygen.
 
 However, on some GNU/Linux distributions, it is still required to
 download and static link against some third-party dependencies,
