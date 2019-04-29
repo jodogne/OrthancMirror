@@ -308,41 +308,73 @@ namespace Orthanc
     IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
     {
-      return PostDataStatus_NoLength;
-    }
+      // TODO - Avoid storing this entirely in RAM, use temporary
+      // files instead. The amount of RAM needed to receive one body
+      // of "N" bytes is currently "2*N" bytes (one copy in "buffer",
+      // one copy in "postData"). With a
+      // "ChunkedBufferInTemporaryFiles", one would need "N" bytes (in
+      // "postData" only).
+       
+      std::string tmp(1024 * 1024, 0);
+      
+      ChunkedBuffer buffer;
 
-    int length;      
-    try
-    {
-      length = boost::lexical_cast<int>(cs->second);
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return PostDataStatus_NoLength;
-    }
-
-    if (length < 0)
-    {
-      length = 0;
-    }
-
-    postData.resize(length);
-
-    size_t pos = 0;
-    while (length > 0)
-    {
-      int r = mg_read(connection, &postData[pos], length);
-      if (r <= 0)
+      for (;;)
       {
-        return PostDataStatus_Failure;
+        int r = mg_read(connection, &tmp[0], tmp.size());
+        if (r < 0)
+        {
+          return PostDataStatus_Failure;
+        }
+        else if (r == 0)
+        {
+          break;
+        }
+        else
+        {
+          buffer.AddChunk(tmp.c_str(), r);
+        }
       }
 
-      assert(r <= length);
-      length -= r;
-      pos += r;
-    }
+      buffer.Flatten(postData);
 
-    return PostDataStatus_Success;
+      return PostDataStatus_Success;
+    }
+    else
+    {
+      int length;      
+      try
+      {
+        length = boost::lexical_cast<int>(cs->second);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        return PostDataStatus_NoLength;
+      }
+
+      if (length < 0)
+      {
+        length = 0;
+      }
+
+      postData.resize(length);
+
+      size_t pos = 0;
+      while (length > 0)
+      {
+        int r = mg_read(connection, &postData[pos], length);
+        if (r <= 0)
+        {
+          return PostDataStatus_Failure;
+        }
+
+        assert(r <= length);
+        length -= r;
+        pos += r;
+      }
+
+      return PostDataStatus_Success;
+    }
   }
 
 

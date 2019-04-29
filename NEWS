@@ -5,6 +5,7 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* Orthanc now accepts "-H 'Transfer-Encoding: chunked'" option from curl
 * Size of the Orthanc static binaries are reduced by compressing ICU data
 * Anonymization: Preserve hierarchical relationships in (0008,1115) [] (0020,000e)
 * Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
