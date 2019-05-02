@@ -191,6 +191,10 @@ namespace Orthanc
       }
     }
 
+    void Initialize()
+    {
+    }
+
     void EnableInfoLevel(bool enabled)
     {
       globalVerbose_ = enabled;
