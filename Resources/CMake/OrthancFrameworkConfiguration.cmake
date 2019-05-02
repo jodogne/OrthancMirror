@@ -541,6 +541,7 @@ else()
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
+    ${ORTHANC_ROOT}/Core/FileBuffer.cpp
     ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
     ${ORTHANC_ROOT}/Core/MetricsRegistry.cpp
     ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
