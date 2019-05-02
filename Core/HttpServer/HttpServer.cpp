@@ -36,9 +36,11 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpServer.h"
 
-#include "../Logging.h"
 #include "../ChunkedBuffer.h"
+#include "../FileBuffer.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
+#include "../TemporaryFile.h"
 #include "HttpToolbox.h"
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
@@ -308,17 +310,12 @@ namespace Orthanc
     IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
     {
-      // TODO - Avoid storing this entirely in RAM, use temporary
-      // files instead. The amount of RAM needed to receive one body
-      // of "N" bytes is currently "2*N" bytes (one copy in "buffer",
-      // one copy in "postData"). With a
-      // "ChunkedBufferInTemporaryFiles", one would need "N" bytes (in
-      // "postData" only).
-       
+      // Store all the individual chunks within a temporary file, then
+      // read it back into the memory buffer "postData"
+      FileBuffer buffer;
+
       std::string tmp(1024 * 1024, 0);
       
-      ChunkedBuffer buffer;
-
       for (;;)
       {
         int r = mg_read(connection, &tmp[0], tmp.size());
@@ -332,16 +329,17 @@ namespace Orthanc
         }
         else
         {
-          buffer.AddChunk(tmp.c_str(), r);
+          buffer.Append(tmp.c_str(), r);
         }
       }
 
-      buffer.Flatten(postData);
+      buffer.Read(postData);
 
       return PostDataStatus_Success;
     }
     else
     {
+      // "Content-Length" is available
       int length;      
       try
       {
