@@ -358,7 +358,7 @@ namespace Orthanc
 
     url_ = "";
     method_ = HttpMethod_Get;
-    lastStatus_ = HttpStatus_200_Ok;
+    lastStatus_ = HttpStatus_None;
     SetVerbose(GlobalParameters::GetInstance().IsDefaultVerbose());
     timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
     GlobalParameters::GetInstance().GetDefaultProxy(proxy_);

@@ -39,6 +39,7 @@
 #include <ctype.h>
 
 #include "../Core/DicomFormat/DicomTag.h"
+#include "../Core/FileBuffer.h"
 #include "../Core/HttpServer/HttpToolbox.h"
 #include "../Core/Logging.h"
 #include "../Core/MetricsRegistry.h"
@@ -676,6 +677,21 @@ TEST(Toolbox, WriteFile)
 
   std::string u;
   ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
+}
+
+
+TEST(Toolbox, FileBuffer)
+{
+  FileBuffer f;
+  f.Append("a", 1);
+  f.Append("", 0);
+  f.Append("bc", 2);
+
+  std::string s;
+  f.Read(s);
+  ASSERT_EQ("abc", s);
+
+  ASSERT_THROW(f.Append("d", 1), OrthancException);  // File is closed
 }
 
 

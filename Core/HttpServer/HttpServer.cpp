@@ -36,9 +36,11 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpServer.h"
 
-#include "../Logging.h"
 #include "../ChunkedBuffer.h"
+#include "../FileBuffer.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
+#include "../TemporaryFile.h"
 #include "HttpToolbox.h"
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
@@ -308,41 +310,69 @@ namespace Orthanc
     IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
     if (cs == headers.end())
     {
-      return PostDataStatus_NoLength;
-    }
+      // Store all the individual chunks within a temporary file, then
+      // read it back into the memory buffer "postData"
+      FileBuffer buffer;
 
-    int length;      
-    try
-    {
-      length = boost::lexical_cast<int>(cs->second);
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return PostDataStatus_NoLength;
-    }
-
-    if (length < 0)
-    {
-      length = 0;
-    }
-
-    postData.resize(length);
-
-    size_t pos = 0;
-    while (length > 0)
-    {
-      int r = mg_read(connection, &postData[pos], length);
-      if (r <= 0)
+      std::string tmp(1024 * 1024, 0);
+      
+      for (;;)
       {
-        return PostDataStatus_Failure;
+        int r = mg_read(connection, &tmp[0], tmp.size());
+        if (r < 0)
+        {
+          return PostDataStatus_Failure;
+        }
+        else if (r == 0)
+        {
+          break;
+        }
+        else
+        {
+          buffer.Append(tmp.c_str(), r);
+        }
       }
 
-      assert(r <= length);
-      length -= r;
-      pos += r;
-    }
+      buffer.Read(postData);
 
-    return PostDataStatus_Success;
+      return PostDataStatus_Success;
+    }
+    else
+    {
+      // "Content-Length" is available
+      int length;      
+      try
+      {
+        length = boost::lexical_cast<int>(cs->second);
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        return PostDataStatus_NoLength;
+      }
+
+      if (length < 0)
+      {
+        length = 0;
+      }
+
+      postData.resize(length);
+
+      size_t pos = 0;
+      while (length > 0)
+      {
+        int r = mg_read(connection, &postData[pos], length);
+        if (r <= 0)
+        {
+          return PostDataStatus_Failure;
+        }
+
+        assert(r <= length);
+        length -= r;
+        pos += r;
+      }
+
+      return PostDataStatus_Success;
+    }
   }
 
 
