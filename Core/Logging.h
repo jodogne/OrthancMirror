@@ -29,8 +29,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
-
-
 #pragma once
 
 #include <iostream>
@@ -81,17 +79,23 @@ namespace Orthanc
 
     void EnableTraceLevel(bool enabled);
 
-#ifdef __EMSCRIPTEN__
-    // calling this function will change the error_, warning_ and info_ 
-    // stream objects so that their operator<< writes into the browser 
-    // console using emscripten_console_error(), emscripten_console_warn()
-    // and emscripten_console_log()
-    void EnableEmscriptenLogging();
-#endif
+    bool IsTraceLevelEnabled();
+
+    bool IsInfoLevelEnabled();
 
     void SetTargetFile(const std::string& path);
 
     void SetTargetFolder(const std::string& path);
+
+#if ORTHANC_ENABLE_LOGGING_STDIO == 1
+    typedef void (*LoggingFunction)(const char*);
+    void SetErrorWarnInfoTraceLoggingFunctions(
+      LoggingFunction errorLogFunc,
+      LoggingFunction warningLogfunc,
+      LoggingFunction infoLogFunc,
+      LoggingFunction traceLogFunc);
+#endif
+
 
     struct NullStream : public std::ostream 
     {
@@ -110,12 +114,10 @@ namespace Orthanc
   }
 }
 
-
 #if ORTHANC_ENABLE_LOGGING != 1
 
 #  define LOG(level)   ::Orthanc::Logging::NullStream()
 #  define VLOG(level)  ::Orthanc::Logging::NullStream()
-
 
 #elif (ORTHANC_ENABLE_LOGGING_PLUGIN == 1 ||    \
        ORTHANC_ENABLE_LOGGING_STDIO == 1)
@@ -233,27 +235,6 @@ namespace Orthanc
     void DiscardLoggingMemento(LoggingMemento memento);
 
     /**
-      std::streambuf subclass used in FunctionCallingStream
-    */
-    template<typename T>
-    class FuncStreamBuf : public std::stringbuf
-    {
-    public:
-      FuncStreamBuf(T func) : func_(func) {}
-
-      virtual int sync()
-      {
-        std::string text = this->str();
-        const char* buf = text.c_str();
-        func_(buf);
-        this->str("");
-        return 0;
-      }
-    private:
-      T func_;
-    };
-
-    /**
       Set custom logging streams for the error, warning and info logs.
       This function may not be called if a log file or folder has been 
       set beforehand. All three pointers must be valid and cannot be NULL.
@@ -268,6 +249,19 @@ namespace Orthanc
     void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
                                         std::ostream* warningStream, 
                                         std::ostream* infoStream);
+
+#ifdef __EMSCRIPTEN__
+    /**
+      This function will change the logging streams so that the logging functions 
+      provided by emscripten html5.h API functions are used : it will change the 
+      error_, warning_ and info_  stream objects so that their operator<< writes 
+      into the browser console using emscripten_console_error(), 
+      emscripten_console_warn() and emscripten_console_log(). This will allow for
+      logging levels to be correctly handled by the browser when the code executes
+      in Web Assembly
+    */
+    void EnableEmscriptenLogging();
+#endif
   }
 }
 

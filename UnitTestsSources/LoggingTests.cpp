@@ -36,6 +36,7 @@
 #include <sstream>
 
 #include "../Core/Logging.h"
+#include "../Core/LoggingUtils.h"
 
 using namespace Orthanc::Logging;
 
@@ -66,11 +67,19 @@ Extracts the log line payload
 
 If the log line cannot be matched, the function returns false.
 */
+
+#ifdef WIN32
+# define EOLSTRING "\r\n"
+#else 
+# define EOLSTRING "\n"
+#endif
+
 static bool GetLogLinePayload(std::string& payload,
   const std::string& logLine)
 {
   const char* regexStr = "[A-Z][0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} "
-    "[a-zA-Z\\.\\-_]+:[0-9]+\\] (.*)\r\n$";
+    "[a-zA-Z\\.\\-_]+:[0-9]+\\] (.*)" EOLSTRING "$";
+
   boost::regex regexObj(regexStr);
 
   //std::stringstream regexSStr;
@@ -109,7 +118,7 @@ TEST(FuncStreamBuf, BasicTest)
 {
   LoggingMementoScope loggingConfiguration;
 
-  EnableTraceLevel(TRUE);
+  EnableTraceLevel(true);
 
   typedef void(*LoggingFunctionFunc)(const char*);
 
@@ -132,6 +141,7 @@ TEST(FuncStreamBuf, BasicTest)
     testErrorStream.clear();
     std::string payload;
     bool ok = GetLogLinePayload(payload, logLine);
+    ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
 
@@ -144,6 +154,7 @@ TEST(FuncStreamBuf, BasicTest)
     testErrorStream.clear();
     std::string payload;
     bool ok = GetLogLinePayload(payload, logLine);
+    ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
 
@@ -155,6 +166,7 @@ TEST(FuncStreamBuf, BasicTest)
     testWarningStream.clear();
     std::string payload;
     bool ok = GetLogLinePayload(payload, logLine);
+    ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
 
@@ -166,6 +178,7 @@ TEST(FuncStreamBuf, BasicTest)
     testInfoStream.clear();
     std::string payload;
     bool ok = GetLogLinePayload(payload, logLine);
+    ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
 }
