@@ -60,7 +60,7 @@ system libraries is the default behavior, you just have to use:
 # cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
 # make
 
-Note that to build the documentation, you will have to install doxyen.
+Note that to build the documentation, you will have to install doxygen.
 
 However, on some GNU/Linux distributions, it is still required to
 download and static link against some third-party dependencies,
@@ -99,21 +99,19 @@ SUPPORTED - Ubuntu 12.04.5 LTS
 ------------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
-		       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+                       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+                       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
                        libcharls-dev
 
 # cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
         -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_CIVETWEB=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
-	-DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
-
-
+        ~/Orthanc
 
 SUPPORTED - Ubuntu 14.04 LTS and 16.04 LTS
 ------------------------------------------

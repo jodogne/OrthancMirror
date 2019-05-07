@@ -29,8 +29,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
-
-
 #pragma once
 
 #include <iostream>
@@ -81,9 +79,23 @@ namespace Orthanc
 
     void EnableTraceLevel(bool enabled);
 
+    bool IsTraceLevelEnabled();
+
+    bool IsInfoLevelEnabled();
+
     void SetTargetFile(const std::string& path);
 
     void SetTargetFolder(const std::string& path);
+
+#if ORTHANC_ENABLE_LOGGING_STDIO == 1
+    typedef void (*LoggingFunction)(const char*);
+    void SetErrorWarnInfoTraceLoggingFunctions(
+      LoggingFunction errorLogFunc,
+      LoggingFunction warningLogfunc,
+      LoggingFunction infoLogFunc,
+      LoggingFunction traceLogFunc);
+#endif
+
 
     struct NullStream : public std::ostream 
     {
@@ -102,12 +114,10 @@ namespace Orthanc
   }
 }
 
-
 #if ORTHANC_ENABLE_LOGGING != 1
 
 #  define LOG(level)   ::Orthanc::Logging::NullStream()
 #  define VLOG(level)  ::Orthanc::Logging::NullStream()
-
 
 #elif (ORTHANC_ENABLE_LOGGING_PLUGIN == 1 ||    \
        ORTHANC_ENABLE_LOGGING_STDIO == 1)
@@ -188,6 +198,70 @@ namespace Orthanc
         return (*stream_) << boost::lexical_cast<std::string>(message);
       }
     };
+
+    /**
+    opaque pointer that represents the state of the logging configuration
+    */
+    typedef void* LoggingMemento;
+
+    /**
+    Returns an object that contains the logging configuration.
+
+    This function allocates resources that you must dispose of by
+    using either RestoreLoggingMemento or DiscardLoggingMemento.
+
+    This function is only to be used by tests.
+    */
+    LoggingMemento CreateLoggingMemento();
+
+    /**
+    Restores the logging configuration. The logging system is restored in 
+    the state it was in when the memento object was created through 
+    GetLoggingMemento().
+
+    After calling this function, the memento object may not be used 
+    again
+
+    This function is only to be used by tests.
+    */
+    void RestoreLoggingMemento(LoggingMemento memento);
+
+    /**
+    Call this function if you do not plan on restoring the logging 
+    configuration state that you captured with CreateLoggingMemento
+
+    This function is only to be used by tests.
+    */
+    void DiscardLoggingMemento(LoggingMemento memento);
+
+    /**
+      Set custom logging streams for the error, warning and info logs.
+      This function may not be called if a log file or folder has been 
+      set beforehand. All three pointers must be valid and cannot be NULL.
+
+      Please ensure the supplied streams remain alive and valid as long as
+      logging calls are performed.
+
+      In order to prevent dangling pointer usage, it is recommended to call
+      Orthanc::Logging::Reset() before the stream objects are destroyed and 
+      the pointers become invalid.
+    */
+    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
+                                        std::ostream* warningStream, 
+                                        std::ostream* infoStream);
+
+#ifdef __EMSCRIPTEN__
+    /**
+      This function will change the logging streams so that the logging functions 
+      provided by emscripten html5.h API functions are used : it will change the 
+      error_, warning_ and info_  stream objects so that their operator<< writes 
+      into the browser console using emscripten_console_error(), 
+      emscripten_console_warn() and emscripten_console_log(). This will allow for
+      logging levels to be correctly handled by the browser when the code executes
+      in Web Assembly
+    */
+    void EnableEmscriptenLogging();
+#endif
   }
 }
 

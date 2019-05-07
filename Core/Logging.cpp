@@ -63,7 +63,17 @@ namespace Orthanc
     void EnableTraceLevel(bool enabled)
     {
     }
+    
+    bool IsTraceLevelEnabled()
+    {
+      return false;
+    }
 
+    bool IsInfoLevelEnabled()
+    {
+      return false;
+    }
+    
     void SetTargetFile(const std::string& path)
     {
     }
@@ -140,11 +150,17 @@ namespace Orthanc
 #elif ORTHANC_ENABLE_LOGGING_STDIO == 1
 
 /*********************************************************
- * Logger compatible with <stdio.h>
+ * Logger compatible with <stdio.h> OR logger that sends its
+ * output to the emscripten html5 api (depending on the 
+ * definition of __EMSCRIPTEN__)
  *********************************************************/
 
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
+
+#ifdef __EMSCRIPTEN__
+#include "emscripten/html5.h"
+#endif
 
 namespace Orthanc
 {
@@ -153,6 +169,67 @@ namespace Orthanc
     static bool globalVerbose_ = false;
     static bool globalTrace_ = false;
     
+#ifdef __EMSCRIPTEN__
+    void defaultErrorLogFunc(const char* msg)
+    {
+      emscripten_console_error(msg);
+    }
+
+    void defaultWarningLogFunc(const char* msg)
+    {
+      emscripten_console_warn(msg);
+    }
+
+    void defaultInfoLogFunc(const char* msg)
+    {
+      emscripten_console_log(msg);
+    }
+
+    void defaultTraceLogFunc(const char* msg)
+    {
+      emscripten_console_log(msg);
+    }
+#else
+// __EMSCRIPTEN__ not #defined
+    void defaultErrorLogFunc(const char* msg)
+    {
+      fprintf(stderr, "E: %s\n", msg);
+    }
+
+    void defaultWarningLogFunc(const char*)
+    {
+      fprintf(stdout, "W: %s\n", msg);
+    }
+
+    void defaultInfoLogFunc(const char*)
+    {
+      fprintf(stdout, "I: %s\n", msg);
+    }
+
+    void defaultTraceLogFunc(const char*)
+    {
+      fprintf(stdout, "T: %s\n", msg);
+    }
+#endif 
+// __EMSCRIPTEN__
+
+    static LoggingFunction globalErrorLogFunc = defaultErrorLogFunc;
+    static LoggingFunction globalWarningLogFunc = defaultWarningLogFunc;
+    static LoggingFunction globalInfoLogFunc = defaultInfoLogFunc;
+    static LoggingFunction globalTraceLogFunc = defaultTraceLogFunc;
+
+    void SetErrorWarnInfoTraceLoggingFunctions(
+      LoggingFunction errorLogFunc,
+      LoggingFunction warningLogfunc,
+      LoggingFunction infoLogFunc,
+      LoggingFunction traceLogFunc)
+    {
+      globalErrorLogFunc = errorLogFunc;
+      globalWarningLogFunc = warningLogfunc;
+      globalInfoLogFunc = infoLogFunc;
+      globalTraceLogFunc = traceLogFunc;
+    }
+
     InternalLogger::InternalLogger(InternalLevel level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
@@ -165,29 +242,35 @@ namespace Orthanc
       switch (level_)
       {
         case InternalLevel_ERROR:
-          fprintf(stderr, "E: %s\n", message_.c_str());
+          globalErrorLogFunc(message_.c_str());
           break;
 
         case InternalLevel_WARNING:
-          fprintf(stdout, "W: %s\n", message_.c_str());
+          globalWarningLogFunc(message_.c_str());
           break;
 
         case InternalLevel_INFO:
           if (globalVerbose_)
           {
-            fprintf(stdout, "I: %s\n", message_.c_str());
+            globalInfoLogFunc(message_.c_str());
+            // TODO: stone_console_info(message_.c_str());
           }
           break;
 
         case InternalLevel_TRACE:
           if (globalTrace_)
           {
-            fprintf(stdout, "T: %s\n", message_.c_str());
+            globalTraceLogFunc(message_.c_str());
           }
           break;
 
         default:
-          fprintf(stderr, "Unknown log level (%d) for message: %s\n", level_, message_.c_str());
+        {
+          std::stringstream ss;
+          ss << "Unknown log level (" << level_ << ") for message: " << message_;
+          auto s = ss.str();
+          globalErrorLogFunc(s.c_str());
+        }
       }
     }
 
@@ -200,10 +283,21 @@ namespace Orthanc
       globalVerbose_ = enabled;
     }
 
+    bool IsInfoLevelEnabled()
+    {
+      return globalVerbose_;
+    }
+
     void EnableTraceLevel(bool enabled)
     {
       globalTrace_ = enabled;
     }
+
+    bool IsTraceLevelEnabled()
+    {
+      return globalTrace_;
+    }
+
   }
 }
 
@@ -256,6 +350,19 @@ namespace
       info_(&std::cerr)
     {
     }
+  };
+
+  struct LoggingMementoImpl
+  {
+    bool valid_;
+    bool infoEnabled_;
+    bool traceEnabled_;
+    std::string  targetFile_;
+    std::string  targetFolder_;
+
+    std::ostream* error_;
+    std::ostream* warning_;
+    std::ostream* info_;
   };
 }
 
@@ -374,6 +481,59 @@ namespace Orthanc
       }
     }
 
+
+    LoggingMemento CreateLoggingMemento()
+    {
+      LoggingMementoImpl* memento = new LoggingMementoImpl();
+
+      memento->valid_ = true;
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+        memento->infoEnabled_ = loggingContext_->infoEnabled_;
+        memento->traceEnabled_ = loggingContext_->traceEnabled_;
+        memento->targetFile_ = loggingContext_->targetFile_;
+        memento->targetFolder_ = loggingContext_->targetFolder_;
+
+        memento->error_ = loggingContext_->error_;
+        memento->warning_ = loggingContext_->warning_;
+        memento->info_ = loggingContext_->info_;
+      }
+      return reinterpret_cast<void*>(memento);
+    }
+    
+    void RestoreLoggingMemento(LoggingMemento mementoPtr)
+    {
+      LoggingMementoImpl* memento = 
+        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
+      if (!memento->valid_)
+        throw std::runtime_error("Memento already used");
+      memento->valid_ = false;
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+        loggingContext_.reset(new LoggingContext);
+        loggingContext_->error_ = memento->error_;
+        loggingContext_->warning_ = memento->warning_;
+        loggingContext_->info_ = memento->info_;
+      }
+      EnableInfoLevel(memento->infoEnabled_);
+      EnableTraceLevel(memento->traceEnabled_);
+      if (!memento->targetFolder_.empty())
+      {
+        SetTargetFolder(memento->targetFolder_);
+      }
+      else if (!memento->targetFile_.empty())
+      {
+        SetTargetFile(memento->targetFile_);
+      }
+    }
+
+    void DiscardLoggingMemento(LoggingMemento mementoPtr)
+    {
+      LoggingMementoImpl* memento =
+        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
+      delete memento;
+    }
+
     void EnableInfoLevel(bool enabled)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
@@ -388,6 +548,14 @@ namespace Orthanc
       }
     }
 
+    bool IsInfoLevelEnable()
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingContext_.get() != NULL);
+
+      return loggingContext_->infoEnabled_;
+    }
+
     void EnableTraceLevel(bool enabled)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
@@ -400,6 +568,14 @@ namespace Orthanc
         // Also enable the "INFO" level when trace-level debugging is enabled
         loggingContext_->infoEnabled_ = true;
       }
+    }
+
+    bool IsTraceLevelEnable()
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      assert(loggingContext_.get() != NULL);
+
+      return loggingContext_->traceEnabled_;
     }
 
 
@@ -601,7 +777,55 @@ namespace Orthanc
         loggingContext_->file_->flush();
       }
     }
+
+    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
+      std::ostream* warningStream,
+      std::ostream* infoStream)
+    {
+      boost::mutex::scoped_lock lock(loggingMutex_);
+      std::auto_ptr<LoggingContext> old = loggingContext_;
+      loggingContext_.reset(new LoggingContext);
+      loggingContext_->error_ = errorStream;
+      loggingContext_->warning_ = warningStream;
+      loggingContext_->info_ = infoStream;
+      lock.unlock();
+      EnableInfoLevel(old->infoEnabled_);
+      EnableTraceLevel(old->traceEnabled_);
+    }
+
+#ifdef __EMSCRIPTEN__
+
+    FuncStreamBuf<decltype(emscripten_console_error)> 
+      globalEmscriptenErrorStreamBuf(emscripten_console_error);
+    std::auto_ptr<std::ostream> globalEmscriptenErrorStream;
+
+    FuncStreamBuf<decltype(emscripten_console_warn)>
+      globalEmscriptenWarningStreamBuf(emscripten_console_warn);
+    std::auto_ptr<std::ostream> globalEmscriptenWarningStream;
+
+    FuncStreamBuf<decltype(emscripten_console_log)>
+      globalEmscriptenInfoStreamBuf(emscripten_console_log);
+    std::auto_ptr<std::ostream> globalEmscriptenInfoStream;
+
+    void EnableEmscriptenLogging()
+    {
+      globalEmscriptenErrorStream.reset(new ostream(
+        &globalEmscriptenErrorStreamBuf));
+
+      globalEmscriptenWarningStream.reset(new ostream(
+        &globalEmscriptenWarningStreamBuf));
+
+      globalEmscriptenInfoStream.reset(new ostream(
+        &globalEmscriptenInfoStreamBuf));
+
+      SetErrorWarnInfoLoggingStreams(
+        &globalEmscriptenErrorStream,
+        &globalEmscriptenWarningStream
+        &globalEmscriptenInfoStream);
+    }
+#endif
   }
 }
+
 
 #endif   // ORTHANC_ENABLE_LOGGING
