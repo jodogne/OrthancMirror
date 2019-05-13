@@ -1433,6 +1433,11 @@ namespace Orthanc
     size_t cpSize = points.size();
     for (size_t i = 0; i < points.size(); i++)
     {
+      if (points[i].GetX() < 0 || points[i].GetX() >= imageWidth
+          || points[i].GetY() < 0 || points[i].GetY() >= imageHeight)
+      {
+        throw Orthanc::OrthancException(ErrorCode_ParameterOutOfRange);
+      }
       cpx.push_back((double)points[i].GetX());
       cpy.push_back((double)points[i].GetY());
     }
