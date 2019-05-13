@@ -223,3 +223,41 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 2));
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 2, 4));
 }
+
+TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThandImage)
+{
+  ImageAccessor& image = this->GetImage();
+
+  ImageProcessing::Set(image, 0);
+
+  std::vector<ImageProcessing::ImagePoint> points;
+  points.push_back(ImageProcessing::ImagePoint(0, 0));
+  points.push_back(ImageProcessing::ImagePoint(image.GetWidth(),0));
+  points.push_back(ImageProcessing::ImagePoint(image.GetWidth(),image.GetHeight()));
+  points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight()));
+
+  ASSERT_THROW(Orthanc::ImageProcessing::FillPolygon(image, points, 255), Orthanc::OrthancException);
+
+  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth()-1, 0));
+}
+
+TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
+{
+  ImageAccessor& image = this->GetImage();
+
+  ImageProcessing::Set(image, 0);
+
+  std::vector<ImageProcessing::ImagePoint> points;
+  points.push_back(ImageProcessing::ImagePoint(0, 0));
+  points.push_back(ImageProcessing::ImagePoint(image.GetWidth() - 1,0));
+  points.push_back(ImageProcessing::ImagePoint(image.GetWidth() - 1,image.GetHeight() - 1));
+  points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight() - 1));
+
+  Orthanc::ImageProcessing::FillPolygon(image, points, 255);
+
+  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 1));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth() - 2, image.GetHeight() - 2));
+}
