@@ -508,6 +508,7 @@ namespace Orthanc
       if (!memento->valid_)
         throw std::runtime_error("Memento already used");
       memento->valid_ = false;
+      std::auto_ptr<LoggingMementoImpl> deleter(memento);
       {
         boost::mutex::scoped_lock lock(loggingMutex_);
         loggingContext_.reset(new LoggingContext);
