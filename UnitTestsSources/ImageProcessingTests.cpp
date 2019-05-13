@@ -38,6 +38,7 @@
 #include "../Core/Images/Image.h"
 #include "../Core/Images/ImageProcessing.h"
 #include "../Core/Images/ImageTraits.h"
+#include "../Core/OrthancException.h"
 
 #include <memory>
 
@@ -224,7 +225,7 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 2, 4));
 }
 
-TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThandImage)
+TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThanImage)
 {
   ImageAccessor& image = this->GetImage();
 
@@ -237,10 +238,6 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThandImage)
   points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight()));
 
   ASSERT_THROW(Orthanc::ImageProcessing::FillPolygon(image, points, 255), Orthanc::OrthancException);
-
-  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
-  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
-  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth()-1, 0));
 }
 
 TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
