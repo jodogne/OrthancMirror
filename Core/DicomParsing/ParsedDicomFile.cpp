@@ -771,9 +771,12 @@ namespace Orthanc
 
       std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
 
-      bool hasCodeExtensions;
-      Encoding encoding = DetectEncoding(hasCodeExtensions);
-      FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, decodeDataUriScheme, encoding);
+      if (!utf8Value.empty())
+      {
+        bool hasCodeExtensions;
+        Encoding encoding = DetectEncoding(hasCodeExtensions);
+        FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, decodeDataUriScheme, encoding);
+      }
 
       InsertInternal(dicom, element.release());
       UpdateStorageUid(tag, utf8Value, false);
