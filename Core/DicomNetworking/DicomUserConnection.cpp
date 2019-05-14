@@ -92,9 +92,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../DicomParsing/FromDcmtkBridge.h"
 #include "../DicomParsing/ToDcmtkBridge.h"
 
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcistrmf.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmnet/diutil.h>
 
@@ -316,9 +317,8 @@ namespace Orthanc
           connection.remoteAet_, "C-STORE");
 
     // Determine the storage SOP class UID for this instance
-    static const DcmTagKey DCM_SOP_CLASS_UID(0x0008, 0x0016);
     OFString sopClassUid;
-    if (dcmff.getDataset()->findAndGetOFString(DCM_SOP_CLASS_UID, sopClassUid).good())
+    if (dcmff.getDataset()->findAndGetOFString(DCM_SOPClassUID, sopClassUid).good())
     {
       connection.AddStorageSOPClass(sopClassUid.c_str());
     }
@@ -659,12 +659,23 @@ namespace Orthanc
                                  ResourceType level,
                                  const DicomMap& originalFields)
   {
-    DicomMap fields;
-    FixFindQuery(fields, level, originalFields);
-
     CheckIsOpen();
 
-    std::auto_ptr<ParsedDicomFile> query(ConvertQueryFields(fields, manufacturer_));
+    std::auto_ptr<ParsedDicomFile> query;
+
+    if (0)
+    {
+      query.reset(new ParsedDicomFile(originalFields,
+                                      GetDefaultDicomEncoding(),
+                                      false /* be strict */));
+    }
+    else
+    {
+      DicomMap fields;
+      FixFindQuery(fields, level, originalFields);
+      query.reset(ConvertQueryFields(fields, manufacturer_));
+    }
+    
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
 
     const char* clevel = NULL;
@@ -674,19 +685,19 @@ namespace Orthanc
     {
       case ResourceType_Patient:
         clevel = "PATIENT";
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "PATIENT");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Study:
         clevel = "STUDY";
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "STUDY");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Series:
         clevel = "SERIES";
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "SERIES");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
@@ -699,12 +710,12 @@ namespace Orthanc
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
           // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "IMAGE");
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
           clevel = "IMAGE";
         }
         else
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "INSTANCE");
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "INSTANCE");
         }
 
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
@@ -731,37 +742,32 @@ namespace Orthanc
     switch (level)
     {
       case ResourceType_Instance:
-        // SOP Instance UID
-        if (!fields.HasTag(0x0008, 0x0018))
+        if (!dataset->tagExists(DCM_SOPInstanceUID))
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0018), universal);
+          DU_putStringDOElement(dataset, DCM_SOPInstanceUID, universal);
         }
 
       case ResourceType_Series:
-        // Series instance UID
-        if (!fields.HasTag(0x0020, 0x000e))
+        if (!dataset->tagExists(DCM_SeriesInstanceUID))
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000e), universal);
+          DU_putStringDOElement(dataset, DCM_SeriesInstanceUID, universal);
         }
 
       case ResourceType_Study:
-        // Accession number
-        if (!fields.HasTag(0x0008, 0x0050))
+        if (!dataset->tagExists(DCM_AccessionNumber))
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0050), universal);
+          DU_putStringDOElement(dataset, DCM_AccessionNumber, universal);
         }
 
-        // Study instance UID
-        if (!fields.HasTag(0x0020, 0x000d))
+        if (!dataset->tagExists(DCM_StudyInstanceUID))
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0020, 0x000d), universal);
+          DU_putStringDOElement(dataset, DCM_StudyInstanceUID, universal);
         }
 
       case ResourceType_Patient:
-        // Patient ID
-        if (!fields.HasTag(0x0010, 0x0020))
+        if (!dataset->tagExists(DCM_PatientID))
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0010, 0x0020), universal);
+          DU_putStringDOElement(dataset, DCM_PatientID, universal);
         }
         
         break;
@@ -789,15 +795,15 @@ namespace Orthanc
     switch (level)
     {
       case ResourceType_Patient:
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "PATIENT");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
         break;
 
       case ResourceType_Study:
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "STUDY");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
         break;
 
       case ResourceType_Series:
-        DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "SERIES");
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
         break;
 
       case ResourceType_Instance:
@@ -808,11 +814,11 @@ namespace Orthanc
           // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
           // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
           // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "IMAGE");
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
         }
         else
         {
-          DU_putStringDOElement(dataset, DcmTagKey(0x0008, 0x0052), "INSTANCE");
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "INSTANCE");
         }
         break;
 
