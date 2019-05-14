@@ -51,6 +51,7 @@ namespace Orthanc
     DicomMap                   query_;
     DicomFindAnswers           answers_;
     std::string                modalityName_;
+    bool                       findNormalized_;
 
     void Invalidate();
 
@@ -98,5 +99,12 @@ namespace Orthanc
 
     void GetAnswer(DicomMap& target,
                    size_t i);
+
+    bool IsFindNormalized() const
+    {
+      return findNormalized_;
+    }
+
+    void SetFindNormalized(bool normalized);
   };
 }

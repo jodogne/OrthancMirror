@@ -2,6 +2,12 @@ Pending changes in the mainline
 ===============================
 
 
+REST API
+--------
+
+* "/modalities/{id}/query": New argument "Normalize" can be set to "false"
+  to bypass the automated correction of outgoing C-FIND queries
+
 Maintenance
 -----------
 
