@@ -472,7 +472,7 @@ namespace Orthanc
         break;
 
       case CompletedReason_Failure:
-        tmp = "success";
+        tmp = "failure";
         break;
 
       case CompletedReason_Canceled:
