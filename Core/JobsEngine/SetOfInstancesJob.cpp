@@ -193,17 +193,22 @@ namespace Orthanc
   }
 
 
+  static const char* KEY_TRAILING_STEP = "TrailingStep";
+  static const char* KEY_FAILED_INSTANCES = "FailedInstances";
+  static const char* KEY_PARENT_RESOURCES = "ParentResources";
+
   void SetOfInstancesJob::GetPublicContent(Json::Value& target)
   {
     SetOfCommandsJob::GetPublicContent(target);
     target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
     target["FailedInstancesCount"] = static_cast<uint32_t>(failedInstances_.size());
-  }    
 
+    if (!parentResources_.empty())
+    {
+      SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
+    }
+  }
 
-
-  static const char* KEY_TRAILING_STEP = "TrailingStep";
-  static const char* KEY_FAILED_INSTANCES = "FailedInstances";
 
   bool SetOfInstancesJob::Serialize(Json::Value& target) 
   {
@@ -211,6 +216,7 @@ namespace Orthanc
     {
       target[KEY_TRAILING_STEP] = hasTrailingStep_;
       SerializationToolbox::WriteSetOfStrings(target, failedInstances_, KEY_FAILED_INSTANCES);
+      SerializationToolbox::WriteSetOfStrings(target, parentResources_, KEY_PARENT_RESOURCES);
       return true;
     }
     else
@@ -225,6 +231,12 @@ namespace Orthanc
   {
     SerializationToolbox::ReadSetOfStrings(failedInstances_, source, KEY_FAILED_INSTANCES);
 
+    if (source.isMember(KEY_PARENT_RESOURCES))
+    {
+      // Backward compatibility with Orthanc <= 1.5.6
+      SerializationToolbox::ReadSetOfStrings(parentResources_, source, KEY_PARENT_RESOURCES);
+    }
+    
     if (source.isMember(KEY_TRAILING_STEP))
     {
       hasTrailingStep_ = SerializationToolbox::ReadBoolean(source, KEY_TRAILING_STEP);

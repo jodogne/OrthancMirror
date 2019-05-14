@@ -927,6 +927,8 @@ namespace Orthanc
                                "This string is not a valid Orthanc identifier: " + stripped);
       }
 
+      job.AddParentResource(stripped);  // New in Orthanc 1.5.7
+      
       context.AddChildInstances(job, stripped);
 
       if (logExportedResources)
