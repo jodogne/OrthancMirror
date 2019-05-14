@@ -49,6 +49,7 @@ namespace Orthanc
     
     bool                   hasTrailingStep_;
     std::set<std::string>  failedInstances_;
+    std::set<std::string>  parentResources_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
@@ -63,6 +64,13 @@ namespace Orthanc
 
     SetOfInstancesJob(const Json::Value& source);  // Unserialization
 
+    // Only used for reporting in the public content
+    // https://groups.google.com/d/msg/orthanc-users/9GCV88GLEzw/6wAgP_PRAgAJ
+    void AddParentResource(const std::string& resource)
+    {
+      parentResources_.insert(resource);
+    }
+    
     void AddInstance(const std::string& instance);
 
     void AddTrailingStep(); 
