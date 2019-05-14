@@ -37,6 +37,7 @@
 #include <vector>
 
 #include <stdint.h>
+#include <algorithm>
 
 namespace Orthanc
 {
@@ -62,6 +63,12 @@ namespace Orthanc
       {
         x_ = x;
         y_ = y;
+      }
+
+      void ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY)
+      {
+        x_ = std::max(minX, std::min(maxX, x_));
+        y_ = std::max(minY, std::min(maxY, y_));
       }
 
       double GetDistanceTo(const ImagePoint& other) const;
