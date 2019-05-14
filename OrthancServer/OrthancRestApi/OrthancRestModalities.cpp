@@ -52,6 +52,7 @@ namespace Orthanc
 {
   static const char* const KEY_LEVEL = "Level";
   static const char* const KEY_QUERY = "Query";
+  static const char* const KEY_NORMALIZE = "Normalize";
   static const char* const KEY_RESOURCES = "Resources";
 
   
@@ -131,7 +132,7 @@ namespace Orthanc
     // Only keep the filters from "fields" that are related to the patient
     DicomMap s;
     fields.ExtractPatientInformation(s);
-    connection.Find(result, ResourceType_Patient, s);
+    connection.Find(result, ResourceType_Patient, s, true /* normalize */);
   }
 
 
@@ -147,7 +148,7 @@ namespace Orthanc
     s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
     s.CopyTagIfExists(fields, DICOM_TAG_MODALITIES_IN_STUDY);
 
-    connection.Find(result, ResourceType_Study, s);
+    connection.Find(result, ResourceType_Study, s, true /* normalize */);
   }
 
   static void FindSeries(DicomFindAnswers& result,
@@ -162,7 +163,7 @@ namespace Orthanc
     s.CopyTagIfExists(fields, DICOM_TAG_ACCESSION_NUMBER);
     s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
 
-    connection.Find(result, ResourceType_Series, s);
+    connection.Find(result, ResourceType_Series, s, true /* normalize */);
   }
 
   static void FindInstance(DicomFindAnswers& result,
@@ -178,7 +179,7 @@ namespace Orthanc
     s.CopyTagIfExists(fields, DICOM_TAG_STUDY_INSTANCE_UID);
     s.CopyTagIfExists(fields, DICOM_TAG_SERIES_INSTANCE_UID);
 
-    connection.Find(result, ResourceType_Instance, s);
+    connection.Find(result, ResourceType_Instance, s, true /* normalize */);
   }
 
 
@@ -453,6 +454,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat,
                              "The JSON body must contain field " + std::string(KEY_LEVEL));
     }
+    else if (request.isMember(KEY_NORMALIZE) &&
+             request[KEY_NORMALIZE].type() != Json::booleanValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "The field " + std::string(KEY_NORMALIZE) + " must contain a Boolean");
+    }
     else if (request.isMember(KEY_QUERY) &&
              request[KEY_QUERY].type() != Json::objectValue)
     {
@@ -462,7 +469,7 @@ namespace Orthanc
     else
     {
       std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
-
+      
       handler->SetModality(call.GetUriComponent("id", ""));
       handler->SetLevel(StringToResourceType(request[KEY_LEVEL].asCString()));
 
@@ -476,6 +483,11 @@ namespace Orthanc
         {
           handler->SetQuery(it->first, it->second);
         }
+      }
+
+      if (request.isMember(KEY_NORMALIZE))
+      {
+        handler->SetFindNormalized(request[KEY_NORMALIZE].asBool());
       }
 
       AnswerQueryHandler(call, handler);
@@ -772,6 +784,7 @@ namespace Orthanc
       }
       else
       {
+        handler->SetFindNormalized(parent.GetHandler().IsFindNormalized());
         handler->SetModality(parent.GetHandler().GetModalitySymbolicName());
         handler->SetLevel(CHILDREN_LEVEL);
 

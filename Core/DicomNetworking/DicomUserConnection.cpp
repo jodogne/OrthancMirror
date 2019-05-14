@@ -482,9 +482,9 @@ namespace Orthanc
   }
 
 
-  static void FixFindQuery(DicomMap& fixedQuery,
-                           ResourceType level,
-                           const DicomMap& fields)
+  static void NormalizeFindQuery(DicomMap& fixedQuery,
+                                 ResourceType level,
+                                 const DicomMap& fields)
   {
     std::set<DicomTag> allowedTags;
 
@@ -657,23 +657,24 @@ namespace Orthanc
 
   void DicomUserConnection::Find(DicomFindAnswers& result,
                                  ResourceType level,
-                                 const DicomMap& originalFields)
+                                 const DicomMap& originalFields,
+                                 bool normalize)
   {
     CheckIsOpen();
 
     std::auto_ptr<ParsedDicomFile> query;
 
-    if (0)
+    if (normalize)
+    {
+      DicomMap fields;
+      NormalizeFindQuery(fields, level, originalFields);
+      query.reset(ConvertQueryFields(fields, manufacturer_));
+    }
+    else
     {
       query.reset(new ParsedDicomFile(originalFields,
                                       GetDefaultDicomEncoding(),
                                       false /* be strict */));
-    }
-    else
-    {
-      DicomMap fields;
-      FixFindQuery(fields, level, originalFields);
-      query.reset(ConvertQueryFields(fields, manufacturer_));
     }
     
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();

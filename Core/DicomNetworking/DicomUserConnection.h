@@ -176,7 +176,8 @@ namespace Orthanc
 
     void Find(DicomFindAnswers& result,
               ResourceType level,
-              const DicomMap& fields);
+              const DicomMap& fields,
+              bool normalize);  // Whether to normalize the DICOM query
 
     void Move(const std::string& targetAet,
               ResourceType level,

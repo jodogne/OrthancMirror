@@ -62,21 +62,6 @@ namespace Orthanc
   }
 
 
-  static void FixQueryBuiltin(DicomMap& query,
-                              ModalityManufacturer manufacturer)
-  {
-    /**
-     * Introduce patches for specific manufacturers below.
-     **/
-
-    switch (manufacturer)
-    {
-      default:
-        break;
-    }
-  }
-
-
   void QueryRetrieveHandler::Invalidate()
   {
     done_ = false;
@@ -91,7 +76,6 @@ namespace Orthanc
       // Firstly, fix the content of the query for specific manufacturers
       DicomMap fixed;
       fixed.Assign(query_);
-      FixQueryBuiltin(fixed, modality_.GetManufacturer());
 
       // Secondly, possibly fix the query with the user-provider Lua callback
       FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
@@ -99,7 +83,7 @@ namespace Orthanc
       {
         DicomUserConnection connection(localAet_, modality_);
         connection.Open();
-        connection.Find(answers_, level_, fixed);
+        connection.Find(answers_, level_, fixed, findNormalized_);
       }
 
       done_ = true;
@@ -112,7 +96,8 @@ namespace Orthanc
     localAet_(context.GetDefaultLocalApplicationEntityTitle()),
     done_(false),
     level_(ResourceType_Study),
-    answers_(false)
+    answers_(false),
+    findNormalized_(true)
   {
   }
 
@@ -174,5 +159,12 @@ namespace Orthanc
   {
     Run();
     answers_.GetAnswer(i).ExtractDicomSummary(target);
+  }
+
+  
+  void QueryRetrieveHandler::SetFindNormalized(bool normalized)
+  {
+    Invalidate();
+    findNormalized_ = normalized;
   }
 }
