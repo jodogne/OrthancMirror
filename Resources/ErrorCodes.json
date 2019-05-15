@@ -212,6 +212,11 @@
     "Name": "CanceledJob", 
     "Description": "This job was canceled"
   }, 
+  {
+    "Code": 38, 
+    "Name": "BadGeometry", 
+    "Description": "Geometry error encountered in Stone"
+  }, 
 
 
 

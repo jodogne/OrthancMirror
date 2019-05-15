@@ -185,6 +185,9 @@ namespace Orthanc
       case ErrorCode_CanceledJob:
         return "This job was canceled";
 
+      case ErrorCode_BadGeometry:
+        return "Geometry error encountered in Stone";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
