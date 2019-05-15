@@ -178,6 +178,7 @@ namespace Orthanc
     ErrorCode_NullPointer = 35    /*!< Cannot handle a NULL pointer */,
     ErrorCode_DatabaseUnavailable = 36    /*!< The database is currently not available (probably a transient situation) */,
     ErrorCode_CanceledJob = 37    /*!< This job was canceled */,
+    ErrorCode_BadGeometry = 38    /*!< Geometry error encountered in Stone */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
