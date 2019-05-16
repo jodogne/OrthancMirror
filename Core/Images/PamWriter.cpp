@@ -58,6 +58,7 @@ namespace Orthanc
         tupleType = "GRAYSCALE";
         break;
           
+      case PixelFormat_SignedGrayscale16:
       case PixelFormat_Grayscale16:
         maxValue = 65535;
         channelCount = 1;
