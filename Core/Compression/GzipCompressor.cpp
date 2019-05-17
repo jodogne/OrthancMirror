@@ -91,7 +91,9 @@ namespace Orthanc
                                 const void* uncompressed,
                                 size_t uncompressedSize)
   {
-    uLongf compressedSize = compressBound(uncompressedSize) + 1024 /* security margin */;
+    uLongf compressedSize = compressBound(static_cast<uLong>(uncompressedSize))
+      + 1024 /* security margin */;
+    
     if (compressedSize == 0)
     {
       compressedSize = 1;

@@ -322,7 +322,8 @@ namespace Orthanc
     if (active_)
     {   
       boost::posix_time::time_duration diff = GetNow() - start_;
-      registry_.SetValue(name_, diff.total_milliseconds(), type_);
+      registry_.SetValue(
+        name_, static_cast<float>(diff.total_milliseconds()), type_);
     }
   }
 }
