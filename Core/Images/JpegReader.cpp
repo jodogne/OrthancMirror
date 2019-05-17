@@ -161,12 +161,15 @@ namespace Orthanc
     {
       jpeg_destroy_decompress(&cinfo);
       throw OrthancException(ErrorCode_InternalError,
-                             "Error during JPEG decoding: " + jerr.GetMessage());
+        "Error during JPEG decoding: " + jerr.GetMessage());
     }
 
     // Below this line, we are under the scope of a "setjmp"
     jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(buffer)), size);
+    jpeg_mem_src(&cinfo, 
+      const_cast<unsigned char*>(
+        reinterpret_cast<const unsigned char*>(buffer)),
+      static_cast<unsigned long>(size));
 
     try
     {

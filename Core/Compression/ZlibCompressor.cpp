@@ -53,7 +53,8 @@ namespace Orthanc
       return;
     }
 
-    uLongf compressedSize = compressBound(uncompressedSize) + 1024 /* security margin */;
+    uLongf compressedSize = compressBound(static_cast<uLong>(uncompressedSize))
+      + 1024 /* security margin */;
     if (compressedSize == 0)
     {
       compressedSize = 1;
@@ -74,7 +75,7 @@ namespace Orthanc
     int error = compress2(target,
                           &compressedSize,
                           const_cast<Bytef *>(static_cast<const Bytef *>(uncompressed)), 
-                          uncompressedSize,
+                          static_cast<uLong>(uncompressedSize),
                           GetCompressionLevel());
 
     if (error != Z_OK)
@@ -137,7 +138,7 @@ namespace Orthanc
       (reinterpret_cast<uint8_t*>(&uncompressed[0]), 
        &tmp,
        reinterpret_cast<const uint8_t*>(compressed) + sizeof(uint64_t),
-       compressedSize - sizeof(uint64_t));
+        static_cast<uLong>(compressedSize - sizeof(uint64_t)));
 
     if (error != Z_OK)
     {
