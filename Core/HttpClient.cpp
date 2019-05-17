@@ -68,22 +68,22 @@ extern "C"
       return code;
     }
   }
+}
 
-  // This is a dummy wrapper function to suppress any OpenSSL-related
-  // problem in valgrind. Inlining is prevented.
+// This is a dummy wrapper function to suppress any OpenSSL-related
+// problem in valgrind. Inlining is prevented.
 #if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline)) 
+  __attribute__((noinline)) 
 #endif
-    static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
-  {
+static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
+{
 #if ORTHANC_ENABLE_SSL == 1
-    return GetHttpStatus(curl_easy_perform(curl), curl, status);
+  return GetHttpStatus(curl_easy_perform(curl), curl, status);
 #else
-    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
-                                    "Orthanc was compiled without SSL support, "
-                                    "cannot make HTTPS request");
+  throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
+                                  "Orthanc was compiled without SSL support, "
+                                  "cannot make HTTPS request");
 #endif
-  }
 }
 
 
