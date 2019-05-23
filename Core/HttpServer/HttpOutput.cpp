@@ -34,11 +34,12 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpOutput.h"
 
+#include "../ChunkedBuffer.h"
+#include "../Compression/GzipCompressor.h"
+#include "../Compression/ZlibCompressor.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
-#include "../Compression/GzipCompressor.h"
-#include "../Compression/ZlibCompressor.h"
 
 #include <iostream>
 #include <vector>
@@ -599,6 +600,34 @@ namespace Orthanc
   }
 
 
+  static void AnswerStreamAsBuffer(HttpOutput& output,
+                                   IHttpStreamAnswer& stream)
+  {
+    ChunkedBuffer buffer;
+
+    while (stream.ReadNextChunk())
+    {
+      if (stream.GetChunkSize() > 0)
+      {
+        buffer.AddChunk(stream.GetChunkContent(), stream.GetChunkSize());
+      }
+    }
+
+    std::string s;
+    buffer.Flatten(s);
+
+    output.SetContentType(stream.GetContentType());
+    
+    std::string filename;
+    if (stream.HasContentFilename(filename))
+    {
+      output.SetContentFilename(filename.c_str());
+    }
+
+    output.Answer(s);
+  }
+
+
   void HttpOutput::Answer(IHttpStreamAnswer& stream)
   {
     HttpCompression compression = stream.SetupHttpCompression(isGzipAllowed_, isDeflateAllowed_);
@@ -606,7 +635,18 @@ namespace Orthanc
     switch (compression)
     {
       case HttpCompression_None:
+      {
+        if (isGzipAllowed_ || isDeflateAllowed_)
+        {
+          // New in Orthanc 1.5.7: Compress streams without built-in
+          // compression, if requested by the "Accept-Encoding" HTTP
+          // header
+          AnswerStreamAsBuffer(*this, stream);
+          return;
+        }
+        
         break;
+      }
 
       case HttpCompression_Gzip:
         stateMachine_.AddHeader("Content-Encoding", "gzip");
