@@ -956,7 +956,18 @@ namespace Orthanc
                                const std::string& value,
                                char separator)
   {
+    size_t countSeparators = 0;
+    
+    for (size_t i = 0; i < value.size(); i++)
+    {
+      if (value[i] == separator)
+      {
+        countSeparators++;
+      }
+    }
+    
     result.clear();
+    result.reserve(countSeparators + 1);
 
     std::string currentItem;
 
