@@ -50,6 +50,8 @@ namespace OrthancPlugins
 
     const Prefix& GetPrefixItem(size_t depth) const;
 
+    Prefix& GetPrefixItem(size_t depth);
+
   public:
     DicomPath(const DicomTag& finalTag) :
     finalTag_(finalTag)
@@ -93,6 +95,12 @@ namespace OrthancPlugins
     size_t GetPrefixIndex(size_t depth) const
     {
       return GetPrefixItem(depth).second;
+    }
+
+    void SetPrefixIndex(size_t depth,
+                        size_t value)
+    {
+      GetPrefixItem(depth).second = value;
     }
     
     const DicomTag& GetFinalTag() const

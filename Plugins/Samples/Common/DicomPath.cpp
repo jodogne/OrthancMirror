@@ -50,6 +50,19 @@ namespace OrthancPlugins
   }
 
 
+  DicomPath::Prefix& DicomPath::GetPrefixItem(size_t depth)
+  {
+    if (depth >= prefix_.size())
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
+    }
+    else
+    {
+      return prefix_[depth];
+    }
+  }
+
+
   DicomPath::DicomPath(const DicomTag& sequence,
                        size_t index,
                        const DicomTag& tag) :
