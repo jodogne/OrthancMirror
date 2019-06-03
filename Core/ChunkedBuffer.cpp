@@ -77,6 +77,19 @@ namespace Orthanc
   }
 
 
+  void ChunkedBuffer::AddChunkDestructive(std::string& chunk)
+  {
+    size_t chunkSize = chunk.size();
+    
+    if (chunkSize > 0)
+    {
+      chunks_.push_back(new std::string);
+      chunks_.back()->swap(chunk);
+      numBytes_ += chunkSize;
+    }
+  }
+
+
   void ChunkedBuffer::Flatten(std::string& result)
   {
     result.resize(numBytes_);
