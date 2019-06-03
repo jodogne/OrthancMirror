@@ -67,6 +67,9 @@ namespace Orthanc
 
     void AddChunk(const std::string& chunk);
 
+    // The source content will be emptied
+    void AddChunkDestructive(std::string& chunk);
+
     void Flatten(std::string& result);
   };
 }
