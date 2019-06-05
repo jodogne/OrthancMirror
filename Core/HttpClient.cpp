@@ -90,6 +90,213 @@ static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
 
 namespace Orthanc
 {
+  static CURLcode CheckCode(CURLcode code)
+  {
+    if (code == CURLE_NOT_BUILT_IN)
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Your libcurl does not contain a required feature, "
+                             "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF");
+    }
+
+    if (code != CURLE_OK)
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "libCURL error: " + std::string(curl_easy_strerror(code)));
+    }
+
+    return code;
+  }
+
+
+  // RAII pattern around a "curl_slist"
+  class HttpClient::CurlHeaders : public boost::noncopyable
+  {
+  private:
+    struct curl_slist *content_;
+    bool               isChunkedTransfer_;
+    bool               hasExpect_;
+
+  public:
+    CurlHeaders() :
+      content_(NULL),
+      isChunkedTransfer_(false),
+      hasExpect_(false)
+    {
+    }
+
+    CurlHeaders(const HttpClient::HttpHeaders& headers)
+    {
+      for (HttpClient::HttpHeaders::const_iterator
+             it = headers.begin(); it != headers.end(); ++it)
+      {
+        AddHeader(it->first, it->second);
+      }
+    }
+
+    ~CurlHeaders()
+    {
+      Clear();
+    }
+
+    bool IsEmpty() const
+    {
+      return content_ == NULL;
+    }
+
+    void Clear()
+    {
+      if (content_ != NULL)
+      {
+        curl_slist_free_all(content_);
+        content_ = NULL;
+      }
+
+      isChunkedTransfer_ = false;
+      hasExpect_ = false;
+    }
+
+    void AddHeader(const std::string& key,
+                   const std::string& value)
+    {
+      if (boost::iequals(key, "Expect"))
+      {
+        hasExpect_ = true;
+      }
+
+      if (boost::iequals(key, "Transfer-Encoding") &&
+          value == "chunked")
+      {
+        isChunkedTransfer_ = true;
+      }
+        
+      std::string item = key + ": " + value;
+
+      struct curl_slist *tmp = curl_slist_append(content_, item.c_str());
+        
+      if (tmp == NULL)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+      else
+      {
+        content_ = tmp;
+      }
+    }
+
+    void Assign(CURL* curl) const
+    {
+      CheckCode(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, content_));
+    }
+
+    bool HasExpect() const
+    {
+      return hasExpect_;
+    }
+
+    bool IsChunkedTransfer() const
+    {
+      return isChunkedTransfer_;
+    }
+  };
+
+
+  class HttpClient::CurlBodyStream : public boost::noncopyable
+  {
+  private:
+    HttpClient::IBodyStream*  stream_;
+    std::string               buffer_;
+
+    size_t CallbackInternal(char* curlBuffer,
+                            size_t curlBufferSize)
+    {
+      if (stream_ == NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+
+      if (curlBufferSize == 0)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      // Read chunks from the stream so as to fill the target buffer
+      std::string chunk;
+      
+      while (buffer_.size() < curlBufferSize &&
+             stream_->ReadNextChunk(chunk))
+      {
+        buffer_ += chunk;
+      }
+
+      size_t s = std::min(buffer_.size(), curlBufferSize);
+      
+      if (s != 0)
+      {
+        memcpy(curlBuffer, buffer_.c_str(), s);
+
+        // Remove the bytes that were actually sent from the buffer
+        buffer_.erase(0, s);
+      }
+
+      return s;
+    }
+    
+  public:
+    CurlBodyStream() :
+      stream_(NULL)
+    {
+    }
+
+    void SetStream(HttpClient::IBodyStream& stream)
+    {
+      stream_ = &stream;
+      buffer_.clear();
+    }
+
+    void Clear()
+    {
+      stream_ = NULL;
+      buffer_.clear();
+    }
+
+    bool IsValid() const
+    {
+      return stream_ != NULL;
+    }
+
+    static size_t Callback(char *buffer,
+                           size_t size,
+                           size_t nitems,
+                           void *userdata)
+    {
+      try
+      {
+        HttpClient::CurlBodyStream* stream = reinterpret_cast<HttpClient::CurlBodyStream*>(userdata);
+
+        if (stream == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+          return stream->CallbackInternal(buffer, size * nitems);
+        }
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Exception while streaming HTTP body: " << e.What();
+        return CURL_READFUNC_ABORT;
+      }
+      catch (...)
+      {
+        LOG(ERROR) << "Native exception while streaming HTTP body";
+        return CURL_READFUNC_ABORT;
+      }
+    }
+  };
+
+
   class HttpClient::GlobalParameters
   {
   private:
@@ -194,8 +401,10 @@ namespace Orthanc
   struct HttpClient::PImpl
   {
     CURL* curl_;
-    struct curl_slist *defaultPostHeaders_;
-    struct curl_slist *userHeaders_;
+    CurlHeaders defaultPostHeaders_;
+    CurlHeaders defaultChunkedHeaders_;
+    CurlHeaders userHeaders_;
+    CurlBodyStream  bodyStream_;
   };
 
 
@@ -216,25 +425,6 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_NetworkProtocol);
     }
-  }
-
-
-  static CURLcode CheckCode(CURLcode code)
-  {
-    if (code == CURLE_NOT_BUILT_IN)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Your libcurl does not contain a required feature, "
-                             "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF");
-    }
-
-    if (code != CURLE_OK)
-    {
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "libCURL error: " + std::string(curl_easy_strerror(code)));
-    }
-
-    return code;
   }
 
 
@@ -333,19 +523,11 @@ namespace Orthanc
 
   void HttpClient::Setup()
   {
-    pimpl_->userHeaders_ = NULL;
-    pimpl_->defaultPostHeaders_ = NULL;
-    if ((pimpl_->defaultPostHeaders_ = curl_slist_append(pimpl_->defaultPostHeaders_, "Expect:")) == NULL)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
-    }
+    pimpl_->defaultPostHeaders_.AddHeader("Expect", "");
+    pimpl_->defaultChunkedHeaders_.AddHeader("Expect", "");
+    pimpl_->defaultChunkedHeaders_.AddHeader("Transfer-Encoding", "chunked");
 
     pimpl_->curl_ = curl_easy_init();
-    if (!pimpl_->curl_)
-    {
-      curl_slist_free_all(pimpl_->defaultPostHeaders_);
-      throw OrthancException(ErrorCode_NotEnoughMemory);
-    }
 
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEFUNCTION, &CurlBodyCallback));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADER, 0));
@@ -367,7 +549,7 @@ namespace Orthanc
 
 
   HttpClient::HttpClient() : 
-    pimpl_(new PImpl), 
+    pimpl_(new PImpl),
     verifyPeers_(true),
     pkcs11Enabled_(false),
     headersToLowerCase_(true),
@@ -379,7 +561,7 @@ namespace Orthanc
 
   HttpClient::HttpClient(const WebServiceParameters& service,
                          const std::string& uri) : 
-    pimpl_(new PImpl), 
+    pimpl_(new PImpl),
     verifyPeers_(true),
     headersToLowerCase_(true),
     redirectionFollowed_(true)
@@ -416,8 +598,25 @@ namespace Orthanc
   HttpClient::~HttpClient()
   {
     curl_easy_cleanup(pimpl_->curl_);
-    curl_slist_free_all(pimpl_->defaultPostHeaders_);
-    ClearHeaders();
+  }
+
+
+  void HttpClient::SetBody(const std::string& data)
+  {
+    body_ = data;
+    pimpl_->bodyStream_.Clear();
+  }
+
+
+  void HttpClient::SetBodyStream(IBodyStream& stream)
+  {
+    pimpl_->bodyStream_.SetStream(stream);
+  }
+
+  
+  void HttpClient::ClearBodyStream()
+  {
+    pimpl_->bodyStream_.Clear();
   }
 
 
@@ -444,23 +643,16 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
-
-    std::string s = key + ": " + value;
-
-    if ((pimpl_->userHeaders_ = curl_slist_append(pimpl_->userHeaders_, s.c_str())) == NULL)
+    else
     {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
+      pimpl_->userHeaders_.AddHeader(key, value);
     }
   }
 
 
   void HttpClient::ClearHeaders()
   {
-    if (pimpl_->userHeaders_ != NULL)
-    {
-      curl_slist_free_all(pimpl_->userHeaders_);
-      pimpl_->userHeaders_ = NULL;
-    }
+    pimpl_->userHeaders_.Clear();
   }
 
 
@@ -555,7 +747,7 @@ namespace Orthanc
     }
 
     // Reset the parameters from previous calls to Apply()
-    CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->userHeaders_));
+    pimpl_->userHeaders_.Assign(pimpl_->curl_);
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 0L));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 0L));
@@ -604,11 +796,6 @@ namespace Orthanc
     case HttpMethod_Post:
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
 
-      if (pimpl_->userHeaders_ == NULL)
-      {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->defaultPostHeaders_));
-      }
-
       break;
 
     case HttpMethod_Delete:
@@ -623,31 +810,58 @@ namespace Orthanc
       // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
 
       curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
-
-      if (pimpl_->userHeaders_ == NULL)
-      {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPHEADER, pimpl_->defaultPostHeaders_));
-      }
-
       break;
 
     default:
       throw OrthancException(ErrorCode_InternalError);
     }
 
-
     if (method_ == HttpMethod_Post ||
         method_ == HttpMethod_Put)
     {
-      if (body_.size() > 0)
+      if (!pimpl_->userHeaders_.IsEmpty() &&
+          !pimpl_->userHeaders_.HasExpect())
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, body_.c_str()));
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, body_.size()));
+        LOG(INFO) << "For performance, the HTTP header \"Expect\" should be set to empty string in POST/PUT requests";
+      }
+
+      if (pimpl_->bodyStream_.IsValid())
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, CurlBodyStream::Callback));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READDATA, &pimpl_->bodyStream_));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, -1L));
+    
+        if (pimpl_->userHeaders_.IsEmpty())
+        {
+          pimpl_->defaultChunkedHeaders_.Assign(pimpl_->curl_);
+        }
+        else if (!pimpl_->userHeaders_.IsChunkedTransfer())
+        {
+          LOG(WARNING) << "The HTTP header \"Transfer-Encoding\" must be set to \"chunked\" in streamed POST/PUT requests";
+        }
       }
       else
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
+        // Disable possible previous stream transfers
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, NULL));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_UPLOAD, 0));
+
+        if (pimpl_->userHeaders_.IsEmpty())
+        {
+          pimpl_->defaultPostHeaders_.Assign(pimpl_->curl_);
+        }
+
+        if (body_.size() > 0)
+        {
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, body_.c_str()));
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, body_.size()));
+        }
+        else
+        {
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, NULL));
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, 0));
+        }
       }
     }
 

@@ -37,6 +37,7 @@
 #include "WebServiceParameters.h"
 
 #include <string>
+#include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
 
@@ -51,12 +52,24 @@
 
 namespace Orthanc
 {
-  class HttpClient
+  class HttpClient : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
 
+    class IBodyStream : public boost::noncopyable
+    {
+    public:
+      virtual ~IBodyStream()
+      {
+      }
+      
+      virtual bool ReadNextChunk(std::string& chunk) = 0;
+    };
+
   private:
+    class CurlHeaders;
+    class CurlBodyStream;
     class GlobalParameters;
 
     struct PImpl;
@@ -133,10 +146,7 @@ namespace Orthanc
       return timeout_;
     }
 
-    void SetBody(const std::string& data)
-    {
-      body_ = data;
-    }
+    void SetBody(const std::string& data);
 
     std::string& GetBody()
     {
@@ -147,6 +157,10 @@ namespace Orthanc
     {
       return body_;
     }
+
+    void SetBodyStream(IBodyStream& stream);
+
+    void ClearBodyStream();
 
     void SetVerbose(bool isVerbose);
 
