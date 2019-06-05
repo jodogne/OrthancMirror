@@ -89,7 +89,8 @@ namespace Orthanc
     class WorklistHandler;
     class FindHandler;
     class MoveHandler;
-
+    class ChunkedBody;
+    
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 
@@ -163,6 +164,8 @@ namespace Orthanc
     void CallHttpClient(const void* parameters);
 
     void CallHttpClient2(const void* parameters);
+
+    void HttpClientChunkedBody(const void* parameters);
 
     void CallPeerApi(const void* parameters);
   

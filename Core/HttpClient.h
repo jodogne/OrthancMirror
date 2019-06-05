@@ -57,10 +57,10 @@ namespace Orthanc
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
 
-    class IBodyStream : public boost::noncopyable
+    class IChunkedBody : public boost::noncopyable
     {
     public:
-      virtual ~IBodyStream()
+      virtual ~IChunkedBody()
       {
       }
       
@@ -69,7 +69,7 @@ namespace Orthanc
 
   private:
     class CurlHeaders;
-    class CurlBodyStream;
+    class CurlChunkedBody;
     class GlobalParameters;
 
     struct PImpl;
@@ -158,9 +158,9 @@ namespace Orthanc
       return body_;
     }
 
-    void SetBodyStream(IBodyStream& stream);
+    void SetBody(IChunkedBody& body);
 
-    void ClearBodyStream();
+    void ClearBody();
 
     void SetVerbose(bool isVerbose);
 

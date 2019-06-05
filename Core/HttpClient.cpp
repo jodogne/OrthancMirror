@@ -201,16 +201,16 @@ namespace Orthanc
   };
 
 
-  class HttpClient::CurlBodyStream : public boost::noncopyable
+  class HttpClient::CurlChunkedBody : public boost::noncopyable
   {
   private:
-    HttpClient::IBodyStream*  stream_;
-    std::string               buffer_;
+    HttpClient::IChunkedBody*  body_;
+    std::string                buffer_;
 
     size_t CallbackInternal(char* curlBuffer,
                             size_t curlBufferSize)
     {
-      if (stream_ == NULL)
+      if (body_ == NULL)
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
@@ -220,11 +220,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      // Read chunks from the stream so as to fill the target buffer
+      // Read chunks from the body stream so as to fill the target buffer
       std::string chunk;
       
       while (buffer_.size() < curlBufferSize &&
-             stream_->ReadNextChunk(chunk))
+             body_->ReadNextChunk(chunk))
       {
         buffer_ += chunk;
       }
@@ -243,26 +243,26 @@ namespace Orthanc
     }
     
   public:
-    CurlBodyStream() :
-      stream_(NULL)
+    CurlChunkedBody() :
+      body_(NULL)
     {
     }
 
-    void SetStream(HttpClient::IBodyStream& stream)
+    void SetBody(HttpClient::IChunkedBody& body)
     {
-      stream_ = &stream;
+      body_ = &body;
       buffer_.clear();
     }
 
     void Clear()
     {
-      stream_ = NULL;
+      body_ = NULL;
       buffer_.clear();
     }
 
     bool IsValid() const
     {
-      return stream_ != NULL;
+      return body_ != NULL;
     }
 
     static size_t Callback(char *buffer,
@@ -272,15 +272,15 @@ namespace Orthanc
     {
       try
       {
-        HttpClient::CurlBodyStream* stream = reinterpret_cast<HttpClient::CurlBodyStream*>(userdata);
+        HttpClient::CurlChunkedBody* body = reinterpret_cast<HttpClient::CurlChunkedBody*>(userdata);
 
-        if (stream == NULL)
+        if (body == NULL)
         {
           throw OrthancException(ErrorCode_NullPointer);
         }
         else
         {
-          return stream->CallbackInternal(buffer, size * nitems);
+          return body->CallbackInternal(buffer, size * nitems);
         }
       }
       catch (OrthancException& e)
@@ -404,7 +404,7 @@ namespace Orthanc
     CurlHeaders defaultPostHeaders_;
     CurlHeaders defaultChunkedHeaders_;
     CurlHeaders userHeaders_;
-    CurlBodyStream  bodyStream_;
+    CurlChunkedBody chunkedBody_;
   };
 
 
@@ -604,19 +604,21 @@ namespace Orthanc
   void HttpClient::SetBody(const std::string& data)
   {
     body_ = data;
-    pimpl_->bodyStream_.Clear();
+    pimpl_->chunkedBody_.Clear();
   }
 
 
-  void HttpClient::SetBodyStream(IBodyStream& stream)
+  void HttpClient::SetBody(IChunkedBody& body)
   {
-    pimpl_->bodyStream_.SetStream(stream);
+    body_.clear();
+    pimpl_->chunkedBody_.SetBody(body);
   }
 
   
-  void HttpClient::ClearBodyStream()
+  void HttpClient::ClearBody()
   {
-    pimpl_->bodyStream_.Clear();
+    body_.clear();
+    pimpl_->chunkedBody_.Clear();
   }
 
 
@@ -825,10 +827,10 @@ namespace Orthanc
         LOG(INFO) << "For performance, the HTTP header \"Expect\" should be set to empty string in POST/PUT requests";
       }
 
-      if (pimpl_->bodyStream_.IsValid())
+      if (pimpl_->chunkedBody_.IsValid())
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, CurlBodyStream::Callback));
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READDATA, &pimpl_->bodyStream_));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, CurlChunkedBody::Callback));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READDATA, &pimpl_->chunkedBody_));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, -1L));
     

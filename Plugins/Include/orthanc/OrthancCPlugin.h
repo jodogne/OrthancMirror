@@ -120,7 +120,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     5
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  4
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  7
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -429,6 +429,7 @@ extern "C"
     _OrthancPluginService_SetMetricsValue = 31,
     _OrthancPluginService_EncodeDicomWebJson = 32,
     _OrthancPluginService_EncodeDicomWebXml = 33,
+    _OrthancPluginService_HttpClientChunkedBody = 34,   /* New in Orthanc 1.5.7 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -6794,6 +6795,110 @@ extern "C"
   }
   
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  typedef uint8_t (*OrthancPluginChunkedBodyIsDone) (void* body);
+
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedBodyNext) (void* body);
+
+  typedef const void* (*OrthancPluginChunkedBodyGetChunkData) (void* body);
+
+  typedef uint32_t (*OrthancPluginChunkedBodyGetChunkSize) (void* body);
+
+  
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*            answerBody;
+    OrthancPluginMemoryBuffer*            answerHeaders;
+    uint16_t*                             httpStatus;
+    OrthancPluginHttpMethod               method;
+    const char*                           url;
+    uint32_t                              headersCount;
+    const char* const*                    headersKeys;
+    const char* const*                    headersValues;
+    const char*                           username;
+    const char*                           password;
+    uint32_t                              timeout;
+    const char*                           certificateFile;
+    const char*                           certificateKeyFile;
+    const char*                           certificateKeyPassword;
+    uint8_t                               pkcs11;
+    void*                                 body;
+    OrthancPluginChunkedBodyIsDone        bodyDone;
+    OrthancPluginChunkedBodyGetChunkData  bodyChunkData;
+    OrthancPluginChunkedBodyGetChunkSize  bodyChunkSize;
+    OrthancPluginChunkedBodyNext          bodyNext;
+  } _OrthancPluginHttpClientChunkedBody;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClientChunkedBody(
+    OrthancPluginContext*                 context,
+    OrthancPluginMemoryBuffer*            answerBody,
+    OrthancPluginMemoryBuffer*            answerHeaders,
+    uint16_t*                             httpStatus,
+    OrthancPluginHttpMethod               method,
+    const char*                           url,
+    uint32_t                              headersCount,
+    const char* const*                    headersKeys,
+    const char* const*                    headersValues,
+    const char*                           username,
+    const char*                           password,
+    uint32_t                              timeout,
+    const char*                           certificateFile,
+    const char*                           certificateKeyFile,
+    const char*                           certificateKeyPassword,
+    uint8_t                               pkcs11,
+    void*                                 body,
+    OrthancPluginChunkedBodyIsDone        bodyDone,
+    OrthancPluginChunkedBodyGetChunkData  bodyChunkData,
+    OrthancPluginChunkedBodyGetChunkSize  bodyChunkSize,
+    OrthancPluginChunkedBodyNext          bodyNext)
+  {
+    _OrthancPluginHttpClientChunkedBody params;
+    memset(&params, 0, sizeof(params));
+
+    /* In common with OrthancPluginHttpClient() */
+    params.answerBody = answerBody;
+    params.answerHeaders = answerHeaders;
+    params.httpStatus = httpStatus;
+    params.method = method;
+    params.url = url;
+    params.headersCount = headersCount;
+    params.headersKeys = headersKeys;
+    params.headersValues = headersValues;
+    params.username = username;
+    params.password = password;
+    params.timeout = timeout;
+    params.certificateFile = certificateFile;
+    params.certificateKeyFile = certificateKeyFile;
+    params.certificateKeyPassword = certificateKeyPassword;
+    params.pkcs11 = pkcs11;
+
+    /* For body stream */
+    params.body = body;
+    params.bodyDone = bodyDone;
+    params.bodyChunkData = bodyChunkData;
+    params.bodyChunkSize = bodyChunkSize;
+    params.bodyNext = bodyNext;
+
+    return context->InvokeService(context, _OrthancPluginService_HttpClientChunkedBody, &params);
+  }
+
+
+  
 #ifdef  __cplusplus
 }
 #endif
