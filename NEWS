@@ -9,6 +9,12 @@ REST API
   to bypass the automated correction of outgoing C-FIND queries
 * Reporting of "ParentResources" in "DicomModalityStore" and "DicomModalityStore" jobs
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginHttpClientChunkedBody(): POST/PUT query with a chunked body
+
 Maintenance
 -----------
 

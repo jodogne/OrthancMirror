@@ -973,7 +973,55 @@ namespace Orthanc
       return new Driver(driver, size, params_.applyMove, params_.freeMove);
     }
   };
-  
+
+
+
+  class OrthancPlugins::ChunkedBody : public HttpClient::IChunkedBody
+  {
+  private:
+    const _OrthancPluginHttpClientChunkedBody&  params_;
+    PluginsErrorDictionary&                     errorDictionary_;
+
+  public:
+    ChunkedBody(const _OrthancPluginHttpClientChunkedBody& params,
+               PluginsErrorDictionary&  errorDictionary) :
+      params_(params),
+      errorDictionary_(errorDictionary)
+    {
+    }
+
+    virtual bool ReadNextChunk(std::string& chunk)
+    {
+      if (params_.bodyDone(params_.body))
+      {
+        return false;
+      }
+      else
+      {
+        size_t size = params_.bodyChunkSize(params_.body);
+
+        chunk.resize(size);
+        
+        if (size != 0)
+        {
+          const void* data = params_.bodyChunkData(params_.body);
+          memcpy(&chunk[0], data, size);
+        }
+
+        OrthancPluginErrorCode error = params_.bodyNext(params_.body);
+        
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+        else
+        {
+          return true;
+        }
+      }
+    }
+  };
 
 
   OrthancPlugins::OrthancPlugins()
@@ -2037,104 +2085,55 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::CallHttpClient(const void* parameters)
+  static void RunHttpClient(HttpClient& client,
+                            const _OrthancPluginCallHttpClient2& parameters)
   {
-    const _OrthancPluginCallHttpClient& p = *reinterpret_cast<const _OrthancPluginCallHttpClient*>(parameters);
-
-    HttpClient client;
-    client.SetUrl(p.url);
-
-    if (p.username != NULL && 
-        p.password != NULL)
-    {
-      client.SetCredentials(p.username, p.password);
-    }
-
-    switch (p.method)
-    {
-      case OrthancPluginHttpMethod_Get:
-        client.SetMethod(HttpMethod_Get);
-        break;
-
-      case OrthancPluginHttpMethod_Post:
-        client.SetMethod(HttpMethod_Post);
-        client.GetBody().assign(p.body, p.bodySize);
-        break;
-
-      case OrthancPluginHttpMethod_Put:
-        client.SetMethod(HttpMethod_Put);
-        client.GetBody().assign(p.body, p.bodySize);
-        break;
-
-      case OrthancPluginHttpMethod_Delete:
-        client.SetMethod(HttpMethod_Delete);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    std::string s;
-    client.ApplyAndThrowException(s);
-
-    if (p.method != OrthancPluginHttpMethod_Delete)
-    {
-      CopyToMemoryBuffer(*p.target, s);
-    }
-  }
-
-
-  void OrthancPlugins::CallHttpClient2(const void* parameters)
-  {
-    const _OrthancPluginCallHttpClient2& p = *reinterpret_cast<const _OrthancPluginCallHttpClient2*>(parameters);
-
-    HttpClient client;
-    client.SetUrl(p.url);
+    client.SetUrl(parameters.url);
     client.SetConvertHeadersToLowerCase(false);
 
-    if (p.timeout != 0)
+    if (parameters.timeout != 0)
     {
-      client.SetTimeout(p.timeout);
+      client.SetTimeout(parameters.timeout);
     }
 
-    if (p.username != NULL && 
-        p.password != NULL)
+    if (parameters.username != NULL && 
+        parameters.password != NULL)
     {
-      client.SetCredentials(p.username, p.password);
+      client.SetCredentials(parameters.username, parameters.password);
     }
 
-    if (p.certificateFile != NULL)
+    if (parameters.certificateFile != NULL)
     {
-      std::string certificate(p.certificateFile);
+      std::string certificate(parameters.certificateFile);
       std::string key, password;
 
-      if (p.certificateKeyFile)
+      if (parameters.certificateKeyFile)
       {
-        key.assign(p.certificateKeyFile);
+        key.assign(parameters.certificateKeyFile);
       }
 
-      if (p.certificateKeyPassword)
+      if (parameters.certificateKeyPassword)
       {
-        password.assign(p.certificateKeyPassword);
+        password.assign(parameters.certificateKeyPassword);
       }
 
       client.SetClientCertificate(certificate, key, password);
     }
 
-    client.SetPkcs11Enabled(p.pkcs11 ? true : false);
+    client.SetPkcs11Enabled(parameters.pkcs11 ? true : false);
 
-    for (uint32_t i = 0; i < p.headersCount; i++)
+    for (uint32_t i = 0; i < parameters.headersCount; i++)
     {
-      if (p.headersKeys[i] == NULL ||
-          p.headersValues[i] == NULL)
+      if (parameters.headersKeys[i] == NULL ||
+          parameters.headersValues[i] == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);
       }
 
-      client.AddHeader(p.headersKeys[i], p.headersValues[i]);
+      client.AddHeader(parameters.headersKeys[i], parameters.headersValues[i]);
     }
 
-    switch (p.method)
+    switch (parameters.method)
     {
       case OrthancPluginHttpMethod_Get:
         client.SetMethod(HttpMethod_Get);
@@ -2142,12 +2141,10 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Post:
         client.SetMethod(HttpMethod_Post);
-        client.GetBody().assign(p.body, p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Put:
         client.SetMethod(HttpMethod_Put);
-        client.GetBody().assign(p.body, p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Delete:
@@ -2164,7 +2161,7 @@ namespace Orthanc
     bool success = client.Apply(body, headers);
 
     // The HTTP request has succeeded
-    *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+    *parameters.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
 
     if (!success)
     {
@@ -2172,7 +2169,7 @@ namespace Orthanc
     }
 
     // Copy the HTTP headers of the answer, if the plugin requested them
-    if (p.answerHeaders != NULL)
+    if (parameters.answerHeaders != NULL)
     {
       Json::Value json = Json::objectValue;
 
@@ -2183,14 +2180,104 @@ namespace Orthanc
       }
         
       std::string s = json.toStyledString();
-      CopyToMemoryBuffer(*p.answerHeaders, s);
+      CopyToMemoryBuffer(*parameters.answerHeaders, s);
     }
 
     // Copy the body of the answer if it makes sense
-    if (p.method != OrthancPluginHttpMethod_Delete)
+    if (parameters.method != OrthancPluginHttpMethod_Delete)
     {
-      CopyToMemoryBuffer(*p.answerBody, body);
+      CopyToMemoryBuffer(*parameters.answerBody, body);
     }
+  }
+
+
+  void OrthancPlugins::CallHttpClient(const void* parameters)
+  {
+    const _OrthancPluginCallHttpClient& p = *reinterpret_cast<const _OrthancPluginCallHttpClient*>(parameters);
+    
+    _OrthancPluginCallHttpClient2 converted;
+    memset(&converted, 0, sizeof(converted));
+
+    uint16_t httpStatus;
+
+    converted.answerBody = p.target;
+    converted.answerHeaders = NULL;
+    converted.httpStatus = &httpStatus;
+    converted.method = p.method;
+    converted.url = p.url;
+    converted.headersCount = 0;
+    converted.headersKeys = NULL;
+    converted.headersValues = NULL;
+    converted.body = p.body;
+    converted.bodySize = p.bodySize;
+    converted.username = p.username;
+    converted.password = p.password;
+    converted.timeout = 0;  // Use default timeout
+    converted.certificateFile = NULL;
+    converted.certificateKeyFile = NULL;
+    converted.certificateKeyPassword = NULL;
+    converted.pkcs11 = false;
+
+    HttpClient client;
+    RunHttpClient(client, converted);
+  }
+
+
+  void OrthancPlugins::CallHttpClient2(const void* parameters)
+  {
+    const _OrthancPluginCallHttpClient2& p = *reinterpret_cast<const _OrthancPluginCallHttpClient2*>(parameters);
+    
+    HttpClient client;
+
+    if (p.method == OrthancPluginHttpMethod_Post ||
+        p.method == OrthancPluginHttpMethod_Put)
+    {
+        client.GetBody().assign(p.body, p.bodySize);
+    }
+    
+    RunHttpClient(client, p);
+  }
+
+
+  void OrthancPlugins::HttpClientChunkedBody(const void* parameters)
+  {
+    const _OrthancPluginHttpClientChunkedBody& p =
+      *reinterpret_cast<const _OrthancPluginHttpClientChunkedBody*>(parameters);
+    
+    if (p.method != OrthancPluginHttpMethod_Post &&
+        p.method != OrthancPluginHttpMethod_Put)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "This plugin service is only allowed for PUT and POST HTTP requests");
+    }
+
+    ChunkedBody body(p, pimpl_->dictionary_);
+
+    HttpClient client;
+    client.SetBody(body);
+    
+    _OrthancPluginCallHttpClient2 converted;
+    memset(&converted, 0, sizeof(converted));
+
+    converted.answerBody = p.answerBody;
+    converted.answerHeaders = p.answerHeaders;
+    converted.httpStatus = p.httpStatus;
+    converted.method = p.method;
+    converted.url = p.url;
+    converted.headersCount = p.headersCount;
+    converted.headersKeys = p.headersKeys;
+    converted.headersValues = p.headersValues;
+    converted.body = NULL;
+    converted.bodySize = 0;
+    converted.username = p.username;
+    converted.password = p.password;
+    converted.timeout = p.timeout;
+    converted.certificateFile = p.certificateFile;
+    converted.certificateKeyFile = p.certificateKeyFile;
+    converted.certificateKeyPassword = p.certificateKeyPassword;
+    converted.pkcs11 = p.pkcs11;
+    
+    RunHttpClient(client, converted);
   }
 
 
@@ -2870,6 +2957,10 @@ namespace Orthanc
 
       case _OrthancPluginService_CallHttpClient2:
         CallHttpClient2(parameters);
+        return true;
+
+      case _OrthancPluginService_HttpClientChunkedBody:
+        HttpClientChunkedBody(parameters);
         return true;
 
       case _OrthancPluginService_ConvertPixelFormat:

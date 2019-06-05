@@ -440,9 +440,9 @@ namespace OrthancPlugins
                   const std::string& password)
   {
     OrthancPluginErrorCode error = OrthancPluginHttpDelete
-        (GetGlobalContext(), url.c_str(),
-         username.empty() ? NULL : username.c_str(),
-         password.empty() ? NULL : password.c_str());
+      (GetGlobalContext(), url.c_str(),
+       username.empty() ? NULL : username.c_str(),
+       password.empty() ? NULL : password.c_str());
 
     if (error == OrthancPluginErrorCode_Success)
     {
@@ -591,19 +591,19 @@ namespace OrthancPlugins
 
     switch (configuration_[key].type())
     {
-    case Json::intValue:
-      target = configuration_[key].asInt();
-      return true;
+      case Json::intValue:
+        target = configuration_[key].asInt();
+        return true;
 
-    case Json::uintValue:
-      target = configuration_[key].asUInt();
-      return true;
+      case Json::uintValue:
+        target = configuration_[key].asUInt();
+        return true;
 
-    default:
-      LogError("The configuration option \"" + GetPath(key) +
-               "\" is not an integer as expected");
+      default:
+        LogError("The configuration option \"" + GetPath(key) +
+                 "\" is not an integer as expected");
 
-      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
 
@@ -667,23 +667,23 @@ namespace OrthancPlugins
 
     switch (configuration_[key].type())
     {
-    case Json::realValue:
-      target = configuration_[key].asFloat();
-      return true;
+      case Json::realValue:
+        target = configuration_[key].asFloat();
+        return true;
 
-    case Json::intValue:
-      target = static_cast<float>(configuration_[key].asInt());
-      return true;
+      case Json::intValue:
+        target = static_cast<float>(configuration_[key].asInt());
+        return true;
 
-    case Json::uintValue:
-      target = static_cast<float>(configuration_[key].asUInt());
-      return true;
+      case Json::uintValue:
+        target = static_cast<float>(configuration_[key].asUInt());
+        return true;
 
-    default:
-      LogError("The configuration option \"" + GetPath(key) +
-               "\" is not an integer as expected");
+      default:
+        LogError("The configuration option \"" + GetPath(key) +
+                 "\" is not an integer as expected");
 
-      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
   }
 
@@ -703,41 +703,41 @@ namespace OrthancPlugins
 
     switch (configuration_[key].type())
     {
-    case Json::arrayValue:
-    {
-      bool ok = true;
-
-      for (Json::Value::ArrayIndex i = 0; ok && i < configuration_[key].size(); i++)
+      case Json::arrayValue:
       {
-        if (configuration_[key][i].type() == Json::stringValue)
+        bool ok = true;
+
+        for (Json::Value::ArrayIndex i = 0; ok && i < configuration_[key].size(); i++)
         {
-          target.push_back(configuration_[key][i].asString());
+          if (configuration_[key][i].type() == Json::stringValue)
+          {
+            target.push_back(configuration_[key][i].asString());
+          }
+          else
+          {
+            ok = false;
+          }
         }
-        else
+
+        if (ok)
         {
-          ok = false;
+          return true;
         }
+
+        break;
       }
 
-      if (ok)
-      {
-        return true;
-      }
+      case Json::stringValue:
+        if (allowSingleString)
+        {
+          target.push_back(configuration_[key].asString());
+          return true;
+        }
 
-      break;
-    }
+        break;
 
-    case Json::stringValue:
-      if (allowSingleString)
-      {
-        target.push_back(configuration_[key].asString());
-        return true;
-      }
-
-      break;
-
-    default:
-      break;
+      default:
+        break;
     }
 
     LogError("The configuration option \"" + GetPath(key) +
@@ -758,7 +758,7 @@ namespace OrthancPlugins
       target.clear();
 
       for (std::list<std::string>::const_iterator
-           it = lst.begin(); it != lst.end(); ++it)
+             it = lst.begin(); it != lst.end(); ++it)
       {
         target.insert(*it);
       }
@@ -941,7 +941,7 @@ namespace OrthancPlugins
                              void*                     buffer)
   {
     image_ = OrthancPluginCreateImageAccessor
-        (GetGlobalContext(), format, width, height, pitch, buffer);
+      (GetGlobalContext(), format, width, height, pitch, buffer);
 
     if (image_ == NULL)
     {
@@ -1143,7 +1143,7 @@ namespace OrthancPlugins
 
   void AnswerJson(const Json::Value& value,
                   OrthancPluginRestOutput* output
-                  )
+    )
   {
     Json::StyledWriter writer;
     std::string bodyString = writer.write(value);
@@ -1154,7 +1154,7 @@ namespace OrthancPlugins
   void AnswerString(const std::string& answer,
                     const char* mimeType,
                     OrthancPluginRestOutput* output
-                    )
+    )
   {
     OrthancPluginAnswerBuffer(GetGlobalContext(), output, answer.c_str(), answer.size(), mimeType);
   }
@@ -1354,15 +1354,15 @@ namespace OrthancPlugins
     // Parse the version of the Orthanc core
     int aa, bb, cc;
     if (
-    #ifdef _MSC_VER
-        sscanf_s
-    #else
-        sscanf
-    #endif
-        (GetGlobalContext()->orthancVersion, "%4d.%4d.%4d", &aa, &bb, &cc) != 3 ||
-        aa < 0 ||
-        bb < 0 ||
-        cc < 0)
+#ifdef _MSC_VER
+      sscanf_s
+#else
+      sscanf
+#endif
+      (GetGlobalContext()->orthancVersion, "%4d.%4d.%4d", &aa, &bb, &cc) != 3 ||
+      aa < 0 ||
+      bb < 0 ||
+      cc < 0)
     {
       return false;
     }
@@ -1590,9 +1590,9 @@ namespace OrthancPlugins
     OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), *answer, NULL, &status, peers_,
-         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Get, uri.c_str(),
-         0, NULL, NULL, NULL, 0, timeout_);
+      (GetGlobalContext(), *answer, NULL, &status, peers_,
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Get, uri.c_str(),
+       0, NULL, NULL, NULL, 0, timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
@@ -1714,9 +1714,9 @@ namespace OrthancPlugins
     OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), *answer, NULL, &status, peers_,
-         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
-         0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
+      (GetGlobalContext(), *answer, NULL, &status, peers_,
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
+       0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
@@ -1742,9 +1742,9 @@ namespace OrthancPlugins
     OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-        (GetGlobalContext(), *answer, NULL, &status, peers_,
-         static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
-         0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
+      (GetGlobalContext(), *answer, NULL, &status, peers_,
+       static_cast<uint32_t>(index), OrthancPluginHttpMethod_Put, uri.c_str(),
+       0, NULL, NULL, body.empty() ? NULL : body.c_str(), body.size(), timeout_);
 
     if (code == OrthancPluginErrorCode_Success)
     {
@@ -2000,9 +2000,9 @@ namespace OrthancPlugins
     }
 
     OrthancPluginJob* orthanc = OrthancPluginCreateJob(
-          GetGlobalContext(), job, CallbackFinalize, job->jobType_.c_str(),
-          CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
-          CallbackStep, CallbackStop, CallbackReset);
+      GetGlobalContext(), job, CallbackFinalize, job->jobType_.c_str(),
+      CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
+      CallbackStep, CallbackStop, CallbackReset);
 
     if (orthanc == NULL)
     {
@@ -2055,4 +2055,220 @@ namespace OrthancPlugins
                                  OrthancPluginMetricsType_Timer);
   }
 #endif
+
+
+
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
+  class HttpClient::ChunkedBody : public boost::noncopyable
+  {
+  private:
+    static ChunkedBody& GetObject(void* body)
+    {
+      assert(body != NULL);
+      return *reinterpret_cast<ChunkedBody*>(body);
+    }
+
+    IChunkedBody&  body_;
+    bool           done_;
+    std::string    chunk_;
+
+  public:
+    ChunkedBody(IChunkedBody& body) :
+      body_(body),
+      done_(false)
+    {
+    }      
+
+    static uint8_t IsDone(void* body)
+    {
+      return GetObject(body).done_;
+    }
+    
+    static const void* GetChunkData(void* body)
+    {
+      return GetObject(body).chunk_.c_str();
+    }
+    
+    static uint32_t GetChunkSize(void* body)
+    {
+      return static_cast<uint32_t>(GetObject(body).chunk_.size());
+    }
+
+    static OrthancPluginErrorCode Next(void* body)
+    {
+      ChunkedBody& that = GetObject(body);
+        
+      if (that.done_)
+      {
+        return OrthancPluginErrorCode_BadSequenceOfCalls;
+      }
+      else
+      {
+        try
+        {
+          that.done_ = !that.body_.ReadNextChunk(that.chunk_);
+          return OrthancPluginErrorCode_Success;
+        }
+        catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+        {
+          return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+        }
+        catch (...)
+        {
+          return OrthancPluginErrorCode_InternalError;
+        }
+      }
+    }    
+  };
+#endif
+
+  HttpClient::HttpClient() :
+    httpStatus_(0),
+    method_(OrthancPluginHttpMethod_Get),
+    timeout_(0),
+    pkcs11_(false),
+    chunkedBody_(NULL)
+  {
+  }
+
+  
+  void HttpClient::SetCredentials(const std::string& username,
+                                  const std::string& password)
+  {
+    username_ = username;
+    password_ = password;
+  }
+
+  
+  void HttpClient::ClearCredentials()
+  {
+    username_.empty();
+    password_.empty();
+  }
+
+
+  void HttpClient::SetCertificate(const std::string& certificateFile,
+                                  const std::string& keyFile,
+                                  const std::string& keyPassword)
+  {
+    certificateFile_ = certificateFile;
+    certificateKeyFile_ = keyFile;
+    certificateKeyPassword_ = keyPassword;
+  }
+
+  
+  void HttpClient::ClearCertificate()
+  {
+    certificateFile_.clear();
+    certificateKeyFile_.clear();
+    certificateKeyPassword_.clear();
+  }
+
+
+  void HttpClient::ClearBody()
+  {
+    body_.clear();
+    chunkedBody_ = NULL;
+  }
+
+  
+  void HttpClient::SwapBody(std::string& body)
+  {
+    body_.swap(body);
+    chunkedBody_ = NULL;
+  }
+
+  
+  void HttpClient::SetBody(const std::string& body)
+  {
+    body_ = body;
+    chunkedBody_ = NULL;
+  }
+
+  
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
+  void HttpClient::SetBody(IChunkedBody& body)
+  {
+    body_.clear();
+    chunkedBody_ = &body;
+  }
+#endif
+
+  
+  void HttpClient::Execute()
+  {
+    std::vector<const char*> headersKeys;
+    std::vector<const char*> headersValues;
+
+    headersKeys.reserve(headers_.size());
+    headersValues.reserve(headers_.size());
+
+    for (HttpHeaders::const_iterator it = headers_.begin();
+         it != headers_.end(); ++it)
+    {
+      headersKeys.push_back(it->first.c_str());
+      headersValues.push_back(it->second.c_str());
+    }
+
+    OrthancPluginErrorCode error;
+      
+    if (chunkedBody_ == NULL)
+    {
+      error = OrthancPluginHttpClient(
+        GetGlobalContext(),
+        *answerBody_,
+        *answerHeaders_,
+        &httpStatus_,
+        method_,
+        url_.c_str(),
+        headersKeys.size(),
+        headersKeys.empty() ? NULL : &headersKeys[0],
+        headersValues.empty() ? NULL : &headersValues[0],
+        body_.empty() ? NULL : body_.c_str(),
+        body_.size(),
+        username_.empty() ? NULL : username_.c_str(),
+        password_.empty() ? NULL : password_.c_str(),
+        timeout_,
+        certificateFile_.empty() ? NULL : certificateFile_.c_str(),
+        certificateFile_.empty() ? NULL : certificateKeyFile_.c_str(),
+        certificateFile_.empty() ? NULL : certificateKeyPassword_.c_str(),
+        pkcs11_ ? 1 : 0);
+    }
+    else
+    {
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY != 1
+      error = OrthancPluginErrorCode_InternalError;
+#else
+      ChunkedBody wrapper(*chunkedBody_);
+        
+      error = OrthancPluginHttpClientChunkedBody(
+        GetGlobalContext(),
+        *answerBody_,
+        *answerHeaders_,
+        &httpStatus_,
+        method_,
+        url_.c_str(),
+        headersKeys.size(),
+        headersKeys.empty() ? NULL : &headersKeys[0],
+        headersValues.empty() ? NULL : &headersValues[0],
+        username_.empty() ? NULL : username_.c_str(),
+        password_.empty() ? NULL : password_.c_str(),
+        timeout_,
+        certificateFile_.empty() ? NULL : certificateFile_.c_str(),
+        certificateFile_.empty() ? NULL : certificateKeyFile_.c_str(),
+        certificateFile_.empty() ? NULL : certificateKeyPassword_.c_str(),
+        pkcs11_ ? 1 : 0,
+        &wrapper,
+        ChunkedBody::IsDone,
+        ChunkedBody::GetChunkData,
+        ChunkedBody::GetChunkSize,
+        ChunkedBody::Next);
+#endif
+    }
+
+    if (error != OrthancPluginErrorCode_Success)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
+    }
+  }
 }

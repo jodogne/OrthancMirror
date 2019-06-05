@@ -85,6 +85,12 @@
 #  define HAS_ORTHANC_PLUGIN_METRICS  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
+#  define HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY  1
+#else
+#  define HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY  0
+#endif
+
 
 
 namespace OrthancPlugins
@@ -771,4 +777,120 @@ namespace OrthancPlugins
     ~MetricsTimer();
   };
 #endif
+
+
+  class HttpClient : public boost::noncopyable
+  {
+  public:
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
+    class IChunkedBody : public boost::noncopyable
+    {
+    public:
+      virtual ~IChunkedBody()
+      {
+      }
+
+      virtual bool ReadNextChunk(std::string& chunk) = 0;
+    };
+#endif
+  
+
+  private:
+    typedef std::map<std::string, std::string>  HttpHeaders;
+    
+    MemoryBuffer             answerBody_;
+    MemoryBuffer             answerHeaders_;
+    uint16_t                 httpStatus_;
+    OrthancPluginHttpMethod  method_;
+    std::string              url_;
+    HttpHeaders              headers_;
+    std::string              username_;
+    std::string              password_;
+    uint32_t                 timeout_;
+    std::string              certificateFile_;
+    std::string              certificateKeyFile_;
+    std::string              certificateKeyPassword_;
+    bool                     pkcs11_;
+    std::string              body_;
+
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
+    class ChunkedBody;
+    IChunkedBody*            chunkedBody_;
+#else
+    // Dummy variable for backward compatibility
+    void*                    chunkedBody_;
+#endif
+
+  public:
+    HttpClient();
+
+    const MemoryBuffer& GetAnswerBody() const
+    {
+      return answerBody_;
+    }
+
+    const MemoryBuffer& GetAnswerHeaders() const
+    {
+      return answerHeaders_;
+    }
+
+    uint16_t GetHttpStatus() const
+    {
+      return httpStatus_;
+    }
+
+    void SetMethod(OrthancPluginHttpMethod method)
+    {
+      method_ = method;
+    }
+
+    const std::string& GetUrl() const
+    {
+      return url_;
+    }
+
+    void SetUrl(const std::string& url)
+    {
+      url_ = url;
+    }
+
+    void AddHeader(const std::string& key,
+                   const std::string& value)
+    {
+      headers_[key] = value;
+    }
+
+    void SetCredentials(const std::string& username,
+                        const std::string& password);
+
+    void ClearCredentials();
+
+    void SetTimeout(unsigned int timeout)  // 0 for default timeout
+    {
+      timeout_ = timeout;
+    }
+
+    void SetCertificate(const std::string& certificateFile,
+                        const std::string& keyFile,
+                        const std::string& keyPassword);
+
+    void ClearCertificate();
+
+    void SetPkcs11(bool pkcs11)
+    {
+      pkcs11_ = pkcs11;
+    }
+
+    void ClearBody();
+
+    void SwapBody(std::string& body);
+
+    void SetBody(const std::string& body);
+
+#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
+    void SetBody(IChunkedBody& body);
+#endif
+
+    void Execute();
+  };
 }
