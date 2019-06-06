@@ -33,6 +33,7 @@
 
 #include "OrthancPluginCppWrapper.h"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
 
@@ -2262,6 +2263,13 @@ namespace OrthancPlugins
         }
       }
 
+      void AddStaticString(const char* key,
+                           const char* value)
+      {
+        headersKeys_.push_back(key);
+        headersValues_.push_back(value);
+      }
+
       uint32_t GetCount() const
       {
         return headersKeys_.size();
@@ -2405,18 +2413,23 @@ namespace OrthancPlugins
                                      IAnswer& answer,
                                      IRequestBody& body) const
   {
-    std::auto_ptr<HeadersWrapper> h;
+    HeadersWrapper h(headers_);
 
     // Automatically set the "Transfer-Encoding" header if absent
-    if (headers_.find("Transfer-Encoding") == headers_.end())
+    bool found = false;
+
+    for (HttpHeaders::const_iterator it = headers_.begin(); it != headers_.end(); ++it)
     {
-      HttpHeaders tmp = headers_;
-      tmp["Transfer-Encoding"] = "chunked";
-      h.reset(new HeadersWrapper(tmp));
+      if (boost::iequals(it->first, "Transfer-Encoding"))
+      {
+        found = true;
+        break;
+      }
     }
-    else
+
+    if (!found)
     {
-      h.reset(new HeadersWrapper(headers_));
+      h.AddStaticString("Transfer-Encoding", "chunked");
     }
 
     RequestBodyWrapper request(body);
@@ -2429,9 +2442,9 @@ namespace OrthancPlugins
       &httpStatus,
       method_,
       url_.c_str(),
-      h->GetCount(),
-      h->GetKeys(),
-      h->GetValues(),
+      h.GetCount(),
+      h.GetKeys(),
+      h.GetValues(),
       &request,
       RequestBodyWrapper::IsDone,
       RequestBodyWrapper::GetChunkData,
