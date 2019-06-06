@@ -6810,13 +6810,13 @@ extern "C"
 
 
 
-  typedef uint8_t (*OrthancPluginChunkedBodyIsDone) (void* body);
+  typedef uint8_t (*OrthancPluginHttpRequestBodyIsDone) (void* body);
 
-  typedef OrthancPluginErrorCode (*OrthancPluginChunkedBodyNext) (void* body);
+  typedef OrthancPluginErrorCode (*OrthancPluginHttpRequestBodyNext) (void* body);
 
-  typedef const void* (*OrthancPluginChunkedBodyGetChunkData) (void* body);
+  typedef const void* (*OrthancPluginHttpRequestBodyGetChunkData) (void* body);
 
-  typedef uint32_t (*OrthancPluginChunkedBodyGetChunkSize) (void* body);
+  typedef uint32_t (*OrthancPluginHttpRequestBodyGetChunkSize) (void* body);
 
   
 
@@ -6837,11 +6837,11 @@ extern "C"
     const char*                           certificateKeyFile;
     const char*                           certificateKeyPassword;
     uint8_t                               pkcs11;
-    void*                                 body;
-    OrthancPluginChunkedBodyIsDone        bodyDone;
-    OrthancPluginChunkedBodyGetChunkData  bodyChunkData;
-    OrthancPluginChunkedBodyGetChunkSize  bodyChunkSize;
-    OrthancPluginChunkedBodyNext          bodyNext;
+    void*                                 requestBody;
+    OrthancPluginHttpRequestBodyIsDone        requestBodyIsDone;
+    OrthancPluginHttpRequestBodyGetChunkData  requestBodyChunkData;
+    OrthancPluginHttpRequestBodyGetChunkSize  requestBodyChunkSize;
+    OrthancPluginHttpRequestBodyNext          requestBodyNext;
   } _OrthancPluginHttpClientChunkedBody;
 
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginHttpClientChunkedBody(
@@ -6861,11 +6861,11 @@ extern "C"
     const char*                           certificateKeyFile,
     const char*                           certificateKeyPassword,
     uint8_t                               pkcs11,
-    void*                                 body,
-    OrthancPluginChunkedBodyIsDone        bodyDone,
-    OrthancPluginChunkedBodyGetChunkData  bodyChunkData,
-    OrthancPluginChunkedBodyGetChunkSize  bodyChunkSize,
-    OrthancPluginChunkedBodyNext          bodyNext)
+    void*                                 requestBody,
+    OrthancPluginHttpRequestBodyIsDone        requestBodyIsDone,
+    OrthancPluginHttpRequestBodyGetChunkData  requestBodyChunkData,
+    OrthancPluginHttpRequestBodyGetChunkSize  requestBodyChunkSize,
+    OrthancPluginHttpRequestBodyNext          requestBodyNext)
   {
     _OrthancPluginHttpClientChunkedBody params;
     memset(&params, 0, sizeof(params));
@@ -6888,11 +6888,11 @@ extern "C"
     params.pkcs11 = pkcs11;
 
     /* For body stream */
-    params.body = body;
-    params.bodyDone = bodyDone;
-    params.bodyChunkData = bodyChunkData;
-    params.bodyChunkSize = bodyChunkSize;
-    params.bodyNext = bodyNext;
+    params.requestBody = requestBody;
+    params.requestBodyIsDone = requestBodyIsDone;
+    params.requestBodyChunkData = requestBodyChunkData;
+    params.requestBodyChunkSize = requestBodyChunkSize;
+    params.requestBodyNext = requestBodyNext;
 
     return context->InvokeService(context, _OrthancPluginService_HttpClientChunkedBody, &params);
   }

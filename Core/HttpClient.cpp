@@ -201,11 +201,11 @@ namespace Orthanc
   };
 
 
-  class HttpClient::CurlChunkedBody : public boost::noncopyable
+  class HttpClient::CurlRequestChunkedBody : public boost::noncopyable
   {
   private:
-    HttpClient::IChunkedBody*  body_;
-    std::string                buffer_;
+    HttpClient::IRequestChunkedBody*  body_;
+    std::string                       buffer_;
 
     size_t CallbackInternal(char* curlBuffer,
                             size_t curlBufferSize)
@@ -243,12 +243,12 @@ namespace Orthanc
     }
     
   public:
-    CurlChunkedBody() :
+    CurlRequestChunkedBody() :
       body_(NULL)
     {
     }
 
-    void SetBody(HttpClient::IChunkedBody& body)
+    void SetBody(HttpClient::IRequestChunkedBody& body)
     {
       body_ = &body;
       buffer_.clear();
@@ -272,7 +272,7 @@ namespace Orthanc
     {
       try
       {
-        HttpClient::CurlChunkedBody* body = reinterpret_cast<HttpClient::CurlChunkedBody*>(userdata);
+        HttpClient::CurlRequestChunkedBody* body = reinterpret_cast<HttpClient::CurlRequestChunkedBody*>(userdata);
 
         if (body == NULL)
         {
@@ -404,7 +404,7 @@ namespace Orthanc
     CurlHeaders defaultPostHeaders_;
     CurlHeaders defaultChunkedHeaders_;
     CurlHeaders userHeaders_;
-    CurlChunkedBody chunkedBody_;
+    CurlRequestChunkedBody chunkedBody_;
   };
 
 
@@ -608,7 +608,7 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetBody(IChunkedBody& body)
+  void HttpClient::SetBody(IRequestChunkedBody& body)
   {
     body_.clear();
     pimpl_->chunkedBody_.SetBody(body);
@@ -829,7 +829,7 @@ namespace Orthanc
 
       if (pimpl_->chunkedBody_.IsValid())
       {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, CurlChunkedBody::Callback));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READFUNCTION, CurlRequestChunkedBody::Callback));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_READDATA, &pimpl_->chunkedBody_));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, -1L));
