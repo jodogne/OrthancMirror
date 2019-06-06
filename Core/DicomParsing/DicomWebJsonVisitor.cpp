@@ -551,6 +551,15 @@ namespace Orthanc
           node[KEY_VALUE] = Json::arrayValue;
           for (size_t i = 0; i < tokens.size(); i++)
           {
+            /**
+             * The following call to "StripSpaces()" fixes the issue
+             * reported by Rana Asim Wajid on 2019-06-05 ("Error
+             * Exception while invoking plugin service 32: Bad file
+             * format"):
+             * https://groups.google.com/d/msg/orthanc-users/T32FovWPcCE/-hKFbfRJBgAJ
+             **/
+            tokens[i] = Orthanc::Toolbox::StripSpaces(tokens[i]);
+
             try
             {
               switch (vr)
