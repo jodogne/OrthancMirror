@@ -57,19 +57,35 @@ namespace Orthanc
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
 
-    class IRequestChunkedBody : public boost::noncopyable
+    class IRequestBody : public boost::noncopyable
     {
     public:
-      virtual ~IRequestChunkedBody()
+      virtual ~IRequestBody()
       {
       }
       
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
 
+    class IAnswer : public boost::noncopyable
+    {
+    public:
+      virtual ~IAnswer()
+      {
+      }
+
+      virtual void AddHeader(const std::string& key,
+                             const std::string& value) = 0;
+      
+      virtual void AddChunk(const void* data,
+                            size_t size) = 0;
+    };
+
   private:
     class CurlHeaders;
-    class CurlRequestChunkedBody;
+    class CurlRequestBody;
+    class CurlAnswer;
+    class DefaultAnswer;
     class GlobalParameters;
 
     struct PImpl;
@@ -96,6 +112,8 @@ namespace Orthanc
 
     void operator= (const HttpClient&);  // Assignment forbidden
     HttpClient(const HttpClient& base);  // Copy forbidden
+
+    bool ApplyInternal(CurlAnswer& answer);
 
     bool ApplyInternal(std::string& answerBody,
                        HttpHeaders* answerHeaders);
@@ -158,7 +176,7 @@ namespace Orthanc
       return body_;
     }
 
-    void SetBody(IRequestChunkedBody& body);
+    void SetBody(IRequestBody& body);
 
     void ClearBody();
 
@@ -173,6 +191,8 @@ namespace Orthanc
                    const std::string& value);
 
     void ClearHeaders();
+
+    bool Apply(IAnswer& answer);
 
     bool Apply(std::string& answerBody)
     {
@@ -294,6 +314,8 @@ namespace Orthanc
     static void SetDefaultProxy(const std::string& proxy);
 
     static void SetDefaultTimeout(long timeout);
+
+    void ApplyAndThrowException(IAnswer& answer);
 
     void ApplyAndThrowException(std::string& answerBody);
 

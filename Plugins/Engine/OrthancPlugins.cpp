@@ -43,7 +43,6 @@
 #endif
 
 
-#include "../../Core/ChunkedBuffer.h"
 #include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Compression/ZlibCompressor.h"
 #include "../../Core/DicomFormat/DicomArray.h"
@@ -356,7 +355,7 @@ namespace Orthanc
       
     public:
       DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
-        callback_(parameters.callback)
+      callback_(parameters.callback)
       {
       }
       
@@ -422,8 +421,8 @@ namespace Orthanc
 
     public:
       PluginHttpOutput(HttpOutput& output) :
-        output_(output),
-        logDetails_(false)
+      output_(output),
+      logDetails_(false)
       {
       }
 
@@ -520,8 +519,8 @@ namespace Orthanc
 
     public:
       ServerContextLock(PImpl& that) : 
-        lock_(that.contextMutex_),
-        context_(that.context_)
+      lock_(that.contextMutex_),
+      context_(that.context_)
       {
         if (context_ == NULL)
         {
@@ -976,15 +975,15 @@ namespace Orthanc
 
 
 
-  class OrthancPlugins::HttpRequestBody : public HttpClient::IRequestChunkedBody
+  class OrthancPlugins::StreamingHttpRequest : public HttpClient::IRequestBody
   {
   private:
-    const _OrthancPluginHttpClientChunkedBody&  params_;
-    PluginsErrorDictionary&                     errorDictionary_;
+    const _OrthancPluginStreamingHttpClient&  params_;
+    PluginsErrorDictionary&                   errorDictionary_;
 
   public:
-    HttpRequestBody(const _OrthancPluginHttpClientChunkedBody& params,
-                       PluginsErrorDictionary&  errorDictionary) :
+    StreamingHttpRequest(const _OrthancPluginStreamingHttpClient& params,
+                         PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
     {
@@ -992,23 +991,23 @@ namespace Orthanc
 
     virtual bool ReadNextChunk(std::string& chunk)
     {
-      if (params_.requestBodyIsDone(params_.requestBody))
+      if (params_.requestIsDone(params_.request))
       {
         return false;
       }
       else
       {
-        size_t size = params_.requestBodyChunkSize(params_.requestBody);
+        size_t size = params_.requestChunkSize(params_.request);
 
         chunk.resize(size);
         
         if (size != 0)
         {
-          const void* data = params_.requestBodyChunkData(params_.requestBody);
+          const void* data = params_.requestChunkData(params_.request);
           memcpy(&chunk[0], data, size);
         }
 
-        OrthancPluginErrorCode error = params_.requestBodyNext(params_.requestBody);
+        OrthancPluginErrorCode error = params_.requestNext(params_.request);
         
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -1019,6 +1018,46 @@ namespace Orthanc
         {
           return true;
         }
+      }
+    }
+  };
+
+
+  class OrthancPlugins::StreamingHttpAnswer : public HttpClient::IAnswer
+  {
+  private:
+    const _OrthancPluginStreamingHttpClient&  params_;
+    PluginsErrorDictionary&                   errorDictionary_;
+
+  public:
+    StreamingHttpAnswer(const _OrthancPluginStreamingHttpClient& params,
+                        PluginsErrorDictionary&  errorDictionary) :
+      params_(params),
+      errorDictionary_(errorDictionary)
+    {
+    }
+
+    virtual void AddHeader(const std::string& key,
+                           const std::string& value)
+    {
+      OrthancPluginErrorCode error = params_.answerAddHeader(params_.answer, key.c_str(), value.c_str());
+        
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        errorDictionary_.LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
+    }
+      
+    virtual void AddChunk(const void* data,
+                          size_t size)
+    {
+      OrthancPluginErrorCode error = params_.answerAddChunk(params_.answer, data, size);
+        
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        errorDictionary_.LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
       }
     }
   };
@@ -2085,8 +2124,8 @@ namespace Orthanc
   }
 
 
-  static void RunHttpClient(HttpClient& client,
-                            const _OrthancPluginCallHttpClient2& parameters)
+  static void SetupHttpClient(HttpClient& client,
+                              const _OrthancPluginCallHttpClient2& parameters)
   {
     client.SetUrl(parameters.url);
     client.SetConvertHeadersToLowerCase(false);
@@ -2154,6 +2193,18 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }
+
+
+  static void ExecuteHttpClientWithoutStream(uint16_t& httpStatus,
+                                             OrthancPluginMemoryBuffer* answerBody,
+                                             OrthancPluginMemoryBuffer* answerHeaders,
+                                             HttpClient& client)
+  {
+    if (answerBody == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
 
     std::string body;
     HttpClient::HttpHeaders headers;
@@ -2161,7 +2212,7 @@ namespace Orthanc
     bool success = client.Apply(body, headers);
 
     // The HTTP request has succeeded
-    *parameters.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+    httpStatus = static_cast<uint16_t>(client.GetLastStatus());
 
     if (!success)
     {
@@ -2169,7 +2220,7 @@ namespace Orthanc
     }
 
     // Copy the HTTP headers of the answer, if the plugin requested them
-    if (parameters.answerHeaders != NULL)
+    if (answerHeaders != NULL)
     {
       Json::Value json = Json::objectValue;
 
@@ -2180,13 +2231,13 @@ namespace Orthanc
       }
         
       std::string s = json.toStyledString();
-      CopyToMemoryBuffer(*parameters.answerHeaders, s);
+      CopyToMemoryBuffer(*answerHeaders, s);
     }
 
     // Copy the body of the answer if it makes sense
-    if (parameters.method != OrthancPluginHttpMethod_Delete)
+    if (client.GetMethod() != HttpMethod_Delete)
     {
-      CopyToMemoryBuffer(*parameters.answerBody, body);
+      CopyToMemoryBuffer(*answerBody, body);
     }
   }
 
@@ -2194,32 +2245,36 @@ namespace Orthanc
   void OrthancPlugins::CallHttpClient(const void* parameters)
   {
     const _OrthancPluginCallHttpClient& p = *reinterpret_cast<const _OrthancPluginCallHttpClient*>(parameters);
-    
-    _OrthancPluginCallHttpClient2 converted;
-    memset(&converted, 0, sizeof(converted));
-
-    uint16_t httpStatus;
-
-    converted.answerBody = p.target;
-    converted.answerHeaders = NULL;
-    converted.httpStatus = &httpStatus;
-    converted.method = p.method;
-    converted.url = p.url;
-    converted.headersCount = 0;
-    converted.headersKeys = NULL;
-    converted.headersValues = NULL;
-    converted.body = p.body;
-    converted.bodySize = p.bodySize;
-    converted.username = p.username;
-    converted.password = p.password;
-    converted.timeout = 0;  // Use default timeout
-    converted.certificateFile = NULL;
-    converted.certificateKeyFile = NULL;
-    converted.certificateKeyPassword = NULL;
-    converted.pkcs11 = false;
 
     HttpClient client;
-    RunHttpClient(client, converted);
+
+    {    
+      _OrthancPluginCallHttpClient2 converted;
+      memset(&converted, 0, sizeof(converted));
+
+      converted.answerBody = NULL;
+      converted.answerHeaders = NULL;
+      converted.httpStatus = NULL;
+      converted.method = p.method;
+      converted.url = p.url;
+      converted.headersCount = 0;
+      converted.headersKeys = NULL;
+      converted.headersValues = NULL;
+      converted.body = p.body;
+      converted.bodySize = p.bodySize;
+      converted.username = p.username;
+      converted.password = p.password;
+      converted.timeout = 0;  // Use default timeout
+      converted.certificateFile = NULL;
+      converted.certificateKeyFile = NULL;
+      converted.certificateKeyPassword = NULL;
+      converted.pkcs11 = false;
+
+      SetupHttpClient(client, converted);
+    }
+
+    uint16_t status;
+    ExecuteHttpClientWithoutStream(status, p.target, NULL, client);
   }
 
 
@@ -2227,57 +2282,74 @@ namespace Orthanc
   {
     const _OrthancPluginCallHttpClient2& p = *reinterpret_cast<const _OrthancPluginCallHttpClient2*>(parameters);
     
+    if (p.httpStatus == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
     HttpClient client;
 
     if (p.method == OrthancPluginHttpMethod_Post ||
         p.method == OrthancPluginHttpMethod_Put)
     {
-        client.GetBody().assign(p.body, p.bodySize);
+      client.GetBody().assign(p.body, p.bodySize);
     }
     
-    RunHttpClient(client, p);
+    SetupHttpClient(client, p);
+    ExecuteHttpClientWithoutStream(*p.httpStatus, p.answerBody, p.answerHeaders, client);
   }
 
 
-  void OrthancPlugins::HttpClientChunkedBody(const void* parameters)
+  void OrthancPlugins::StreamingHttpClient(const void* parameters)
   {
-    const _OrthancPluginHttpClientChunkedBody& p =
-      *reinterpret_cast<const _OrthancPluginHttpClientChunkedBody*>(parameters);
-    
-    if (p.method != OrthancPluginHttpMethod_Post &&
-        p.method != OrthancPluginHttpMethod_Put)
+    const _OrthancPluginStreamingHttpClient& p =
+      *reinterpret_cast<const _OrthancPluginStreamingHttpClient*>(parameters);
+        
+    if (p.httpStatus == NULL)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "This plugin service is only allowed for PUT and POST HTTP requests");
+      throw OrthancException(ErrorCode_NullPointer);
     }
 
-    HttpRequestBody body(p, pimpl_->dictionary_);
-
     HttpClient client;
-    client.SetBody(body);
-    
-    _OrthancPluginCallHttpClient2 converted;
-    memset(&converted, 0, sizeof(converted));
 
-    converted.answerBody = p.answerBody;
-    converted.answerHeaders = p.answerHeaders;
-    converted.httpStatus = p.httpStatus;
-    converted.method = p.method;
-    converted.url = p.url;
-    converted.headersCount = p.headersCount;
-    converted.headersKeys = p.headersKeys;
-    converted.headersValues = p.headersValues;
-    converted.body = NULL;
-    converted.bodySize = 0;
-    converted.username = p.username;
-    converted.password = p.password;
-    converted.timeout = p.timeout;
-    converted.certificateFile = p.certificateFile;
-    converted.certificateKeyFile = p.certificateKeyFile;
-    converted.certificateKeyPassword = p.certificateKeyPassword;
-    converted.pkcs11 = p.pkcs11;
+    {
+      _OrthancPluginCallHttpClient2 converted;
+      memset(&converted, 0, sizeof(converted));
+
+      converted.answerBody = NULL;
+      converted.answerHeaders = NULL;
+      converted.httpStatus = NULL;
+      converted.method = p.method;
+      converted.url = p.url;
+      converted.headersCount = p.headersCount;
+      converted.headersKeys = p.headersKeys;
+      converted.headersValues = p.headersValues;
+      converted.body = NULL;
+      converted.bodySize = 0;
+      converted.username = p.username;
+      converted.password = p.password;
+      converted.timeout = p.timeout;
+      converted.certificateFile = p.certificateFile;
+      converted.certificateKeyFile = p.certificateKeyFile;
+      converted.certificateKeyPassword = p.certificateKeyPassword;
+      converted.pkcs11 = p.pkcs11;
+
+      SetupHttpClient(client, converted);
+    }
     
-    RunHttpClient(client, converted);
+    StreamingHttpRequest body(p, pimpl_->dictionary_);
+    client.SetBody(body);
+
+    StreamingHttpAnswer answer(p, pimpl_->dictionary_);
+
+    bool success = client.Apply(answer);
+
+    *p.httpStatus = static_cast<uint16_t>(client.GetLastStatus());
+
+    if (!success)
+    {
+      HttpClient::ThrowException(client.GetLastStatus());
+    }
   }
 
 
@@ -2959,8 +3031,8 @@ namespace Orthanc
         CallHttpClient2(parameters);
         return true;
 
-      case _OrthancPluginService_HttpClientChunkedBody:
-        HttpClientChunkedBody(parameters);
+      case _OrthancPluginService_StreamingHttpClient:
+        StreamingHttpClient(parameters);
         return true;
 
       case _OrthancPluginService_ConvertPixelFormat:

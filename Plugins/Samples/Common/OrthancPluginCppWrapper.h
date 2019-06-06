@@ -92,9 +92,9 @@
 #endif
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
-#  define HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY  1
+#  define HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT  1
 #else
-#  define HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY  0
+#  define HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT  0
 #endif
 
 
@@ -789,24 +789,38 @@ namespace OrthancPlugins
   class HttpClient : public boost::noncopyable
   {
   public:
-#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    class IRequestChunkedBody : public boost::noncopyable
+    typedef std::map<std::string, std::string>  HttpHeaders;
+
+    class IRequestBody : public boost::noncopyable
     {
     public:
-      virtual ~IRequestChunkedBody()
+      virtual ~IRequestBody()
       {
       }
 
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
+
+#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+    class IAnswer : public boost::noncopyable
+    {
+    public:
+      virtual ~IAnswer()
+      {
+      }
+
+      virtual void AddHeader(const std::string& key,
+                             const std::string& value) = 0;
+
+      virtual void AddChunk(const void* data,
+                            size_t size) = 0;
+    };
 #endif
-  
+
 
   private:
-    typedef std::map<std::string, std::string>  HttpHeaders;
-    
-    MemoryBuffer             answerBody_;
-    MemoryBuffer             answerHeaders_;
+    class RequestBodyWrapper;
+
     uint16_t                 httpStatus_;
     OrthancPluginHttpMethod  method_;
     std::string              url_;
@@ -819,27 +833,21 @@ namespace OrthancPlugins
     std::string              certificateKeyPassword_;
     bool                     pkcs11_;
     std::string              body_;
+    IRequestBody*            streamingBody_;    
 
-#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    class RequestChunkedBody;
-    IRequestChunkedBody*     chunkedBody_;
-#else
-    // Dummy variable for backward compatibility
-    void*                    chunkedBody_;
+#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+    void ExecuteWithStream(uint16_t& httpStatus,  // out
+                           IAnswer& answer,       // out
+                           IRequestBody& body) const;
 #endif
 
+    void ExecuteWithoutStream(uint16_t& httpStatus,        // out
+                              HttpHeaders& answerHeaders,  // out
+                              std::string& answerBody,     // out
+                              const std::string& body) const;
+    
   public:
     HttpClient();
-
-    const MemoryBuffer& GetAnswerBody() const
-    {
-      return answerBody_;
-    }
-
-    const MemoryBuffer& GetAnswerHeaders() const
-    {
-      return answerHeaders_;
-    }
 
     uint16_t GetHttpStatus() const
     {
@@ -894,11 +902,14 @@ namespace OrthancPlugins
 
     void SetBody(const std::string& body);
 
-#if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    void SetBody(IRequestChunkedBody& body);
+    void SetBody(IRequestBody& body);
+
+#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+    void Execute(IAnswer& answer);
 #endif
 
-    void Execute();
+    void Execute(HttpHeaders& answerHeaders /* out */,
+                 std::string& answerBody /* out */);
   };
 #endif
 }

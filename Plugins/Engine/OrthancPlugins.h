@@ -89,7 +89,8 @@ namespace Orthanc
     class WorklistHandler;
     class FindHandler;
     class MoveHandler;
-    class HttpRequestBody;
+    class StreamingHttpRequest;
+    class StreamingHttpAnswer;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
@@ -165,7 +166,7 @@ namespace Orthanc
 
     void CallHttpClient2(const void* parameters);
 
-    void HttpClientChunkedBody(const void* parameters);
+    void StreamingHttpClient(const void* parameters);
 
     void CallPeerApi(const void* parameters);
   
