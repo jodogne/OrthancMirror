@@ -91,9 +91,12 @@ namespace Orthanc
     class MoveHandler;
     class StreamingHttpRequest;
     class StreamingHttpAnswer;
+    class MultipartStream;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
+
+    void RegisterMultipartRestCallback(const void* parameters);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 

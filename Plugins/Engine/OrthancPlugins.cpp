@@ -459,6 +459,33 @@ namespace Orthanc
           return *errorDetails_;
         }
       }
+
+      void Close(OrthancPluginErrorCode error,
+                 PluginsErrorDictionary& dictionary)
+      {
+        if (error == OrthancPluginErrorCode_Success)
+        {
+          if (GetOutput().IsWritingMultipart())
+          {
+            GetOutput().CloseMultipart();
+          }
+        }
+        else
+        {
+          dictionary.LogError(error, false);
+
+          if (HasErrorDetails())
+          {
+            throw OrthancException(static_cast<ErrorCode>(error),
+                                   GetErrorDetails(),
+                                   IsLogDetails());
+          }
+          else
+          {
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+      }
     };
 
     
@@ -511,6 +538,31 @@ namespace Orthanc
     };
 
 
+    class MultipartRestCallback : public boost::noncopyable
+    {
+    private:
+      _OrthancPluginMultipartRestCallback parameters_;
+      boost::regex                        regex_;
+
+    public:
+      MultipartRestCallback(_OrthancPluginMultipartRestCallback parameters) :
+        parameters_(parameters),
+        regex_(parameters.pathRegularExpression)
+      {
+      }
+
+      const boost::regex& GetRegularExpression() const
+      {
+        return regex_;
+      }
+
+      const _OrthancPluginMultipartRestCallback& GetParameters() const
+      {
+        return parameters_;
+      }
+    };
+
+
     class ServerContextLock
     {
     private:
@@ -545,6 +597,7 @@ namespace Orthanc
 
     typedef std::pair<std::string, _OrthancPluginProperty>  Property;
     typedef std::list<RestCallback*>  RestCallbacks;
+    typedef std::list<MultipartRestCallback*>  MultipartRestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
@@ -557,6 +610,7 @@ namespace Orthanc
     PluginsManager manager_;
 
     RestCallbacks restCallbacks_;
+    MultipartRestCallbacks multipartRestCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginFindCallback  findCallback_;
@@ -1124,6 +1178,12 @@ namespace Orthanc
     {
       delete *it;
     }
+
+    for (PImpl::MultipartRestCallbacks::iterator it = pimpl_->multipartRestCallbacks_.begin(); 
+         it != pimpl_->multipartRestCallbacks_.end(); ++it)
+    {
+      delete *it;
+    }
   }
 
 
@@ -1160,6 +1220,68 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    class RestCallbackMatcher : public boost::noncopyable
+    {
+    private:
+      std::string               flatUri_;
+      std::vector<std::string>  groups_;
+      std::vector<const char*>  cgroups_;
+      
+    public:
+      RestCallbackMatcher(const UriComponents& uri) :
+        flatUri_(Toolbox::FlattenUri(uri))
+      {
+      }
+
+      bool IsMatch(const boost::regex& re)
+      {
+        // Check whether the regular expression associated to this
+        // callback matches the URI
+        boost::cmatch what;
+
+        if (boost::regex_match(flatUri_.c_str(), what, re))
+        {
+          // Extract the value of the free parameters of the regular expression
+          if (what.size() > 1)
+          {
+            groups_.resize(what.size() - 1);
+            cgroups_.resize(what.size() - 1);
+            for (size_t i = 1; i < what.size(); i++)
+            {
+              groups_[i - 1] = what[i];
+              cgroups_[i - 1] = groups_[i - 1].c_str();
+            }
+          }
+
+          return true;
+        }
+        else
+        {
+          // Not a match
+          return false;
+        }
+      }
+
+      uint32_t GetGroupsCount() const
+      {
+        return cgroups_.size();
+      }
+
+      const char* const* GetGroups() const
+      {
+        return cgroups_.empty() ? NULL : &cgroups_[0];
+      }
+
+      const std::string& GetFlatUri() const
+      {
+        return flatUri_;
+      }
+    };
+  }
+
+
   bool OrthancPlugins::Handle(HttpOutput& output,
                               RequestOrigin /*origin*/,
                               const char* /*remoteIp*/,
@@ -1171,35 +1293,18 @@ namespace Orthanc
                               const char* bodyData,
                               size_t bodySize)
   {
-    std::string flatUri = Toolbox::FlattenUri(uri);
+    RestCallbackMatcher matcher(uri);
+
     PImpl::RestCallback* callback = NULL;
 
-    std::vector<std::string> groups;
-    std::vector<const char*> cgroups;
-
     // Loop over the callbacks registered by the plugins
-    bool found = false;
     for (PImpl::RestCallbacks::const_iterator it = pimpl_->restCallbacks_.begin(); 
-         it != pimpl_->restCallbacks_.end() && !found; ++it)
+         it != pimpl_->restCallbacks_.end(); ++it)
     {
-      // Check whether the regular expression associated to this
-      // callback matches the URI
-      boost::cmatch what;
-      if (boost::regex_match(flatUri.c_str(), what, (*it)->GetRegularExpression()))
+      if (matcher.IsMatch((*it)->GetRegularExpression()))
       {
         callback = *it;
-
-        // Extract the value of the free parameters of the regular expression
-        if (what.size() > 1)
-        {
-          groups.resize(what.size() - 1);
-          cgroups.resize(what.size() - 1);
-          for (size_t i = 1; i < what.size(); i++)
-          {
-            groups[i - 1] = what[i];
-            cgroups[i - 1] = groups[i - 1].c_str();
-          }
-        }
+        break;
       }
     }
 
@@ -1209,7 +1314,7 @@ namespace Orthanc
       return false;
     }
 
-    LOG(INFO) << "Delegating HTTP request to plugin for URI: " << flatUri;
+    LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
     std::vector<const char*> getKeys, getValues, headersKeys, headersValues;
 
@@ -1241,9 +1346,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-
-    request.groups = (cgroups.size() ? &cgroups[0] : NULL);
-    request.groupsCount = cgroups.size();
+    request.groups = matcher.GetGroups();
+    request.groupsCount = matcher.GetGroupsCount();
     request.getCount = getArguments.size();
     request.body = bodyData;
     request.bodySize = bodySize;
@@ -1266,33 +1370,10 @@ namespace Orthanc
     PImpl::PluginHttpOutput pluginOutput(output);
 
     OrthancPluginErrorCode error = callback->Invoke
-      (pimpl_->restCallbackMutex_, pluginOutput, flatUri, request);
+      (pimpl_->restCallbackMutex_, pluginOutput, matcher.GetFlatUri(), request);
 
-    if (error == OrthancPluginErrorCode_Success && 
-        output.IsWritingMultipart())
-    {
-      output.CloseMultipart();
-    }
-
-    if (error == OrthancPluginErrorCode_Success)
-    {
-      return true;
-    }
-    else
-    {
-      GetErrorDictionary().LogError(error, false);
-
-      if (pluginOutput.HasErrorDetails())
-      {
-        throw OrthancException(static_cast<ErrorCode>(error),
-                               pluginOutput.GetErrorDetails(),
-                               pluginOutput.IsLogDetails());
-      }
-      else
-      {
-        throw OrthancException(static_cast<ErrorCode>(error));
-      }
-    }
+    pluginOutput.Close(error, GetErrorDictionary());
+    return true;
   }
 
 
@@ -1365,6 +1446,17 @@ namespace Orthanc
     pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, lock));
   }
 
+
+  void OrthancPlugins::RegisterMultipartRestCallback(const void* parameters)
+  {
+    const _OrthancPluginMultipartRestCallback& p = 
+      *reinterpret_cast<const _OrthancPluginMultipartRestCallback*>(parameters);
+
+    LOG(INFO) << "Plugin has registered a REST callback for multipart streams on: " 
+              << p.pathRegularExpression;
+
+    pimpl_->multipartRestCallbacks_.push_back(new PImpl::MultipartRestCallback(p));
+  }
 
 
   void OrthancPlugins::RegisterOnStoredInstanceCallback(const void* parameters)
@@ -3451,6 +3543,10 @@ namespace Orthanc
         RegisterRestCallback(parameters, false);
         return true;
 
+      case _OrthancPluginService_RegisterMultipartRestCallback:
+        RegisterMultipartRestCallback(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:
         RegisterOnStoredInstanceCallback(parameters);
         return true;
@@ -4011,6 +4107,57 @@ namespace Orthanc
   }
 
 
+  class OrthancPlugins::MultipartStream : public IHttpHandler::IStream
+  {
+  private:
+    OrthancPluginMultipartRestHandler*   handler_;
+    _OrthancPluginMultipartRestCallback  parameters_;
+    PluginsErrorDictionary&              errorDictionary_;
+
+  public:
+    MultipartStream(OrthancPluginMultipartRestHandler* handler,
+                    const _OrthancPluginMultipartRestCallback& parameters,
+                    PluginsErrorDictionary& errorDictionary) :
+      handler_(handler),
+      parameters_(parameters),
+      errorDictionary_(errorDictionary)
+    {
+      if (handler_ == NULL)
+      {
+        throw OrthancException(ErrorCode_Plugin, "The plugin has not created a multipart stream handler");
+      }
+    }
+
+    virtual ~MultipartStream()
+    {
+      if (handler_ != NULL)
+      {
+        parameters_.finalize(handler_);
+      }
+    }
+
+    virtual void AddBodyChunk(const void* data,
+                              size_t size)
+    {
+      assert(handler_ != NULL);
+
+      // TODO => multipart parsing
+    }
+
+    virtual void Execute(HttpOutput& output)
+    {
+      assert(handler_ != NULL);
+
+      PImpl::PluginHttpOutput pluginOutput(output);
+
+      OrthancPluginErrorCode error = parameters_.execute(
+        handler_, reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput));
+
+      pluginOutput.Close(error, errorDictionary_);
+    }
+  };
+
+
   IHttpHandler::IStream* OrthancPlugins::CreateStreamHandler(RequestOrigin origin,
                                                              const char* remoteIp,
                                                              const char* username,
@@ -4018,7 +4165,45 @@ namespace Orthanc
                                                              const UriComponents& uri,
                                                              const Arguments& headers)
   {
-    // TODO - Plugins to install a handler for multipart body.
+    RestCallbackMatcher matcher(uri);
+
+    // Loop over the callbacks registered by the plugins
+    for (PImpl::MultipartRestCallbacks::const_iterator it = pimpl_->multipartRestCallbacks_.begin(); 
+         it != pimpl_->multipartRestCallbacks_.end(); ++it)
+    {
+      if (matcher.IsMatch((*it)->GetRegularExpression()))
+      {
+        LOG(INFO) << "Delegating HTTP multipart request to plugin for URI: " << matcher.GetFlatUri();
+
+        std::vector<const char*> headersKeys, headersValues;
+        ArgumentsToPlugin(headersKeys, headersValues, headers);
+
+        OrthancPluginHttpMethod convertedMethod;
+        switch (method)
+        {
+          case HttpMethod_Post:
+            convertedMethod = OrthancPluginHttpMethod_Post;
+            break;
+
+          case HttpMethod_Put:
+            convertedMethod = OrthancPluginHttpMethod_Put;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+        std::string contentType = "TODO";   // TODO
+
+        OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().factory(
+          convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(),
+          matcher.GetGroupsCount(), matcher.GetGroups(), headers.size(),
+          headers.empty() ? NULL : &headersKeys[0],
+          headers.empty() ? NULL : &headersValues[0]);
+
+        return new MultipartStream(handler, (*it)->GetParameters(), GetErrorDictionary());
+      }
+    }
 
     return NULL;
   }

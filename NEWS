@@ -13,7 +13,8 @@ Plugins
 -------
 
 * New functions in the SDK:
-  - OrthancPluginHttpClientChunkedBody(): POST/PUT query with a chunked body
+  - OrthancPluginHttpClientChunkedBody(): HTTP client for POST/PUT with a chunked body
+  - OrthancPluginRegisterMultipartRestCallback(): HTTP server for POST/PUT with multipart body
 
 Maintenance
 -----------

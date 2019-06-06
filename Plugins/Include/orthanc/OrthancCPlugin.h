@@ -333,7 +333,7 @@ extern "C"
     /**
      * @brief The HTTP method.
      **/
-    OrthancPluginHttpMethod method;    
+    OrthancPluginHttpMethod method;
 
     /**
      * @brief The number of groups of the regular expression.
@@ -444,6 +444,7 @@ extern "C"
     _OrthancPluginService_RegisterMoveCallback = 1009,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
     _OrthancPluginService_RegisterRefreshMetricsCallback = 1011,
+    _OrthancPluginService_RegisterMultipartRestCallback = 1012,  /* New in Orthanc 1.5.7 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -6907,7 +6908,60 @@ extern "C"
   }
 
 
+
+  typedef struct _OrthancPluginMultipartRestHandler_t OrthancPluginMultipartRestHandler;
+
+  typedef OrthancPluginMultipartRestHandler* (*OrthancPluginMultipartRestFactory) (
+    OrthancPluginHttpMethod method,
+    const char*             url,
+    const char*             contentType,
+    uint32_t                groupsCount,
+    const char* const*      groups,
+    uint32_t                headersCount,
+    const char* const*      headersKeys,
+    const char* const*      headersValues);
+
+  typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerAddPart) (
+    OrthancPluginMultipartRestHandler* handler,
+    uint32_t                           headersCount,
+    const char* const*                 headersKeys,
+    const char* const*                 headersValues,
+    const char*                        contentType);
+    
+  typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerExecute) (
+    OrthancPluginMultipartRestHandler* handler,
+    OrthancPluginRestOutput*           output);
   
+  typedef void (*OrthancPluginMultipartHandlerFinalize) (
+    OrthancPluginMultipartRestHandler* handler);
+  
+  typedef struct
+  {
+    const char*                           pathRegularExpression;
+    OrthancPluginMultipartRestFactory     factory;
+    OrthancPluginMultipartHandlerAddPart  addPart;
+    OrthancPluginMultipartHandlerExecute  execute;
+   OrthancPluginMultipartHandlerFinalize  finalize;
+  } _OrthancPluginMultipartRestCallback;
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterMultipartRestCallback(
+    OrthancPluginContext*                  context,
+    const char*                            pathRegularExpression,
+    OrthancPluginMultipartRestFactory      factory,
+    OrthancPluginMultipartHandlerAddPart   addPart,
+    OrthancPluginMultipartHandlerExecute   execute,
+    OrthancPluginMultipartHandlerFinalize  finalize)
+  {
+    _OrthancPluginMultipartRestCallback params;
+    params.pathRegularExpression = pathRegularExpression;
+    params.factory = factory;
+    params.addPart = addPart;
+    params.execute = execute;
+    params.finalize = finalize;
+
+    context->InvokeService(context, _OrthancPluginService_RegisterMultipartRestCallback, &params);
+  }
+
 #ifdef  __cplusplus
 }
 #endif
