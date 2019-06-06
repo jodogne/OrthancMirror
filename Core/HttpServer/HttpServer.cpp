@@ -79,8 +79,8 @@
 
 namespace Orthanc
 {
-  static const char multipart[] = "multipart/form-data; boundary=";
-  static unsigned int multipartLength = sizeof(multipart) / sizeof(char) - 1;
+  static const char MULTIPART_FORM[] = "multipart/form-data; boundary=";
+  static unsigned int MULTIPART_FORM_LENGTH = sizeof(MULTIPART_FORM) / sizeof(char) - 1;
 
 
   namespace
@@ -302,16 +302,60 @@ namespace Orthanc
   }
 
 
-
-  static PostDataStatus ReadBody(std::string& postData,
-                                 struct mg_connection *connection,
-                                 const IHttpHandler::Arguments& headers)
+  static PostDataStatus ReadBodyWithContentLength(std::string& body,
+                                                  struct mg_connection *connection,
+                                                  const std::string& contentLength)
   {
-    IHttpHandler::Arguments::const_iterator cs = headers.find("content-length");
-    if (cs == headers.end())
+    int length;      
+    try
     {
-      // Store all the individual chunks within a temporary file, then
-      // read it back into the memory buffer "postData"
+      length = boost::lexical_cast<int>(contentLength);
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return PostDataStatus_NoLength;
+    }
+
+    if (length < 0)
+    {
+      length = 0;
+    }
+
+    body.resize(length);
+
+    size_t pos = 0;
+    while (length > 0)
+    {
+      int r = mg_read(connection, &body[pos], length);
+      if (r <= 0)
+      {
+        return PostDataStatus_Failure;
+      }
+
+      assert(r <= length);
+      length -= r;
+      pos += r;
+    }
+
+    return PostDataStatus_Success;
+  }
+                                                  
+
+  static PostDataStatus ReadBodyToString(std::string& body,
+                                         struct mg_connection *connection,
+                                         const IHttpHandler::Arguments& headers)
+  {
+    IHttpHandler::Arguments::const_iterator contentLength = headers.find("content-length");
+
+    if (contentLength != headers.end())
+    {
+      // "Content-Length" is available
+      return ReadBodyWithContentLength(body, connection, contentLength->second);
+    }
+    else
+    {
+      // No Content-Length. Store the individual chunks in a temporary
+      // file, then read it back into the memory buffer "body"
       FileBuffer buffer;
 
       std::string tmp(1024 * 1024, 0);
@@ -333,42 +377,54 @@ namespace Orthanc
         }
       }
 
-      buffer.Read(postData);
+      buffer.Read(body);
 
       return PostDataStatus_Success;
     }
-    else
+  }
+
+
+  static PostDataStatus ReadBodyToStream(IHttpHandler::IStream& stream,
+                                         struct mg_connection *connection,
+                                         const IHttpHandler::Arguments& headers)
+  {
+    IHttpHandler::Arguments::const_iterator contentLength = headers.find("content-length");
+
+    if (contentLength != headers.end())
     {
       // "Content-Length" is available
-      int length;      
-      try
-      {
-        length = boost::lexical_cast<int>(cs->second);
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        return PostDataStatus_NoLength;
-      }
+      
+      std::string body;
+      PostDataStatus status = ReadBodyWithContentLength(body, connection, contentLength->second);
 
-      if (length < 0)
+      if (status == PostDataStatus_Success &&
+          !body.empty())
       {
-        length = 0;
+        stream.AddBodyChunk(body.c_str(), body.size());
       }
 
-      postData.resize(length);
-
-      size_t pos = 0;
-      while (length > 0)
+      return status;
+    }
+    else
+    {
+      // No Content-Length. Stream the HTTP connection.
+      std::string tmp(1024 * 1024, 0);
+      
+      for (;;)
       {
-        int r = mg_read(connection, &postData[pos], length);
-        if (r <= 0)
+        int r = mg_read(connection, &tmp[0], tmp.size());
+        if (r < 0)
         {
           return PostDataStatus_Failure;
         }
-
-        assert(r <= length);
-        length -= r;
-        pos += r;
+        else if (r == 0)
+        {
+          break;
+        }
+        else
+        {
+          stream.AddBodyChunk(tmp.c_str(), r);
+        }
       }
 
       return PostDataStatus_Success;
@@ -376,17 +432,16 @@ namespace Orthanc
   }
 
 
-
-  static PostDataStatus ParseMultipartPost(std::string &completedFile,
+  static PostDataStatus ParseMultipartForm(std::string &completedFile,
                                            struct mg_connection *connection,
                                            const IHttpHandler::Arguments& headers,
                                            const std::string& contentType,
                                            ChunkStore& chunkStore)
   {
-    std::string boundary = "--" + contentType.substr(multipartLength);
+    std::string boundary = "--" + contentType.substr(MULTIPART_FORM_LENGTH);
 
-    std::string postData;
-    PostDataStatus status = ReadBody(postData, connection, headers);
+    std::string body;
+    PostDataStatus status = ReadBodyToString(body, connection, headers);
 
     if (status != PostDataStatus_Success)
     {
@@ -433,7 +488,7 @@ namespace Orthanc
     {
       FindIterator last;
       for (FindIterator it =
-             make_find_iterator(postData, boost::first_finder(boundary));
+             make_find_iterator(body, boost::first_finder(boundary));
            it!=FindIterator();
            ++it)
       {
@@ -752,7 +807,25 @@ namespace Orthanc
     }
 
 
-    // Extract the body of the request for PUT and POST
+    // Decompose the URI into its components
+    UriComponents uri;
+    try
+    {
+      Toolbox::SplitUriComponents(uri, requestUri);
+    }
+    catch (OrthancException&)
+    {
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+
+    LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+
+
+    bool found = false;
+
+    // Extract the body of the request for PUT and POST, or process
+    // the body as a stream
 
     // TODO Avoid unneccessary memcopy of the body
 
@@ -762,23 +835,39 @@ namespace Orthanc
     {
       PostDataStatus status;
 
+      bool isMultipartForm = false;
+
       IHttpHandler::Arguments::const_iterator ct = headers.find("content-type");
-      if (ct == headers.end())
+      if (ct != headers.end() &&
+          ct->second.size() >= MULTIPART_FORM_LENGTH &&
+          !memcmp(ct->second.c_str(), MULTIPART_FORM, MULTIPART_FORM_LENGTH))
       {
-        // No content-type specified. Assume no multi-part content occurs at this point.
-        status = ReadBody(body, connection, headers);          
+        status = ParseMultipartForm(body, connection, headers, ct->second, server.GetChunkStore());
+        isMultipartForm = true;
       }
-      else
+
+      if (!isMultipartForm)
       {
-        std::string contentType = ct->second;
-        if (contentType.size() >= multipartLength &&
-            !memcmp(contentType.c_str(), multipart, multipartLength))
+        std::auto_ptr<IHttpHandler::IStream> stream;
+
+        if (server.HasHandler())
         {
-          status = ParseMultipartPost(body, connection, headers, contentType, server.GetChunkStore());
+          stream.reset(server.GetHandler().CreateStreamHandler
+                       (RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers));
+        }
+
+        if (stream.get() != NULL)
+        {
+          status = ReadBodyToStream(*stream, connection, headers);
+
+          if (status == PostDataStatus_Success)
+          {
+            stream->Execute(output);
+          }
         }
         else
         {
-          status = ReadBody(body, connection, headers);
+          status = ReadBodyToString(body, connection, headers);
         }
       }
 
@@ -796,30 +885,17 @@ namespace Orthanc
           output.AnswerEmpty();
           return;
 
-        default:
+        case PostDataStatus_Success:
           break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
     }
 
 
-    // Decompose the URI into its components
-    UriComponents uri;
-    try
-    {
-      Toolbox::SplitUriComponents(uri, requestUri);
-    }
-    catch (OrthancException&)
-    {
-      output.SendStatus(HttpStatus_400_BadRequest);
-      return;
-    }
-
-
-    LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
-
-    bool found = false;
-
-    if (server.HasHandler())
+    if (!found && 
+        server.HasHandler())
     {
       found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
                                          method, uri, headers, argumentsGET, body.c_str(), body.size());

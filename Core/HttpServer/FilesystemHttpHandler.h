@@ -53,6 +53,16 @@ namespace Orthanc
     FilesystemHttpHandler(const std::string& baseUri,
                           const std::string& root);
 
+    virtual IStream* CreateStreamHandler(RequestOrigin origin,
+                                         const char* remoteIp,
+                                         const char* username,
+                                         HttpMethod method,
+                                         const UriComponents& uri,
+                                         const Arguments& headers)
+    {
+      return NULL;
+    }
+
     virtual bool Handle(
       HttpOutput& output,
       RequestOrigin origin,

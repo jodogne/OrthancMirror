@@ -49,9 +49,33 @@ namespace Orthanc
     typedef std::map<std::string, std::string>                  Arguments;
     typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
 
+
+    class IStream : public boost::noncopyable
+    {
+    public:
+      virtual ~IStream()
+      {
+      }
+
+      virtual void AddBodyChunk(const void* data,
+                                size_t size) = 0;
+
+      virtual void Execute(HttpOutput& output) = 0;
+    };
+
+
     virtual ~IHttpHandler()
     {
     }
+
+    // This function is called for each incomding POST/PUT request
+    // (new in Orthanc 1.5.7). It allows to deal with chunked transfers.
+    virtual IStream* CreateStreamHandler(RequestOrigin origin,
+                                         const char* remoteIp,
+                                         const char* username,
+                                         HttpMethod method,
+                                         const UriComponents& uri,
+                                         const Arguments& headers) = 0;
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,

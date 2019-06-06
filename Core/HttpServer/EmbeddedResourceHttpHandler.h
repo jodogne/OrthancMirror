@@ -51,6 +51,16 @@ namespace Orthanc
       const std::string& baseUri,
       EmbeddedResources::DirectoryResourceId resourceId);
 
+    virtual IStream* CreateStreamHandler(RequestOrigin origin,
+                                         const char* remoteIp,
+                                         const char* username,
+                                         HttpMethod method,
+                                         const UriComponents& uri,
+                                         const Arguments& headers)
+    {
+      return NULL;
+    }
+
     virtual bool Handle(
       HttpOutput& output,
       RequestOrigin origin,
