@@ -2060,21 +2060,21 @@ namespace OrthancPlugins
 
 #if HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-  class HttpClient::ChunkedBody : public boost::noncopyable
+  class HttpClient::RequestChunkedBody : public boost::noncopyable
   {
   private:
-    static ChunkedBody& GetObject(void* body)
+    static RequestChunkedBody& GetObject(void* body)
     {
       assert(body != NULL);
-      return *reinterpret_cast<ChunkedBody*>(body);
+      return *reinterpret_cast<RequestChunkedBody*>(body);
     }
 
-    IChunkedBody&  body_;
+    IRequestChunkedBody&  body_;
     bool           done_;
     std::string    chunk_;
 
   public:
-    ChunkedBody(IChunkedBody& body) :
+    RequestChunkedBody(IRequestChunkedBody& body) :
       body_(body),
       done_(false)
     {
@@ -2097,7 +2097,7 @@ namespace OrthancPlugins
 
     static OrthancPluginErrorCode Next(void* body)
     {
-      ChunkedBody& that = GetObject(body);
+      RequestChunkedBody& that = GetObject(body);
         
       if (that.done_)
       {
@@ -2188,7 +2188,7 @@ namespace OrthancPlugins
 
   
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-  void HttpClient::SetBody(IChunkedBody& body)
+  void HttpClient::SetBody(IRequestChunkedBody& body)
   {
     body_.clear();
     chunkedBody_ = &body;
@@ -2240,7 +2240,7 @@ namespace OrthancPlugins
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY != 1
       error = OrthancPluginErrorCode_InternalError;
 #else
-      ChunkedBody wrapper(*chunkedBody_);
+      RequestChunkedBody wrapper(*chunkedBody_);
         
       error = OrthancPluginHttpClientChunkedBody(
         GetGlobalContext(),
@@ -2260,10 +2260,10 @@ namespace OrthancPlugins
         certificateFile_.empty() ? NULL : certificateKeyPassword_.c_str(),
         pkcs11_ ? 1 : 0,
         &wrapper,
-        ChunkedBody::IsDone,
-        ChunkedBody::GetChunkData,
-        ChunkedBody::GetChunkSize,
-        ChunkedBody::Next);
+        RequestChunkedBody::IsDone,
+        RequestChunkedBody::GetChunkData,
+        RequestChunkedBody::GetChunkSize,
+        RequestChunkedBody::Next);
 #endif
     }
 

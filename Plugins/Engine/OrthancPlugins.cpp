@@ -976,15 +976,15 @@ namespace Orthanc
 
 
 
-  class OrthancPlugins::ChunkedBody : public HttpClient::IChunkedBody
+  class OrthancPlugins::HttpRequestBody : public HttpClient::IRequestChunkedBody
   {
   private:
     const _OrthancPluginHttpClientChunkedBody&  params_;
     PluginsErrorDictionary&                     errorDictionary_;
 
   public:
-    ChunkedBody(const _OrthancPluginHttpClientChunkedBody& params,
-               PluginsErrorDictionary&  errorDictionary) :
+    HttpRequestBody(const _OrthancPluginHttpClientChunkedBody& params,
+                       PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
     {
@@ -992,23 +992,23 @@ namespace Orthanc
 
     virtual bool ReadNextChunk(std::string& chunk)
     {
-      if (params_.bodyDone(params_.body))
+      if (params_.requestBodyIsDone(params_.requestBody))
       {
         return false;
       }
       else
       {
-        size_t size = params_.bodyChunkSize(params_.body);
+        size_t size = params_.requestBodyChunkSize(params_.requestBody);
 
         chunk.resize(size);
         
         if (size != 0)
         {
-          const void* data = params_.bodyChunkData(params_.body);
+          const void* data = params_.requestBodyChunkData(params_.requestBody);
           memcpy(&chunk[0], data, size);
         }
 
-        OrthancPluginErrorCode error = params_.bodyNext(params_.body);
+        OrthancPluginErrorCode error = params_.requestBodyNext(params_.requestBody);
         
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -2251,7 +2251,7 @@ namespace Orthanc
                              "This plugin service is only allowed for PUT and POST HTTP requests");
     }
 
-    ChunkedBody body(p, pimpl_->dictionary_);
+    HttpRequestBody body(p, pimpl_->dictionary_);
 
     HttpClient client;
     client.SetBody(body);

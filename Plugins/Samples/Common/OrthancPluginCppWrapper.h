@@ -790,10 +790,10 @@ namespace OrthancPlugins
   {
   public:
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    class IChunkedBody : public boost::noncopyable
+    class IRequestChunkedBody : public boost::noncopyable
     {
     public:
-      virtual ~IChunkedBody()
+      virtual ~IRequestChunkedBody()
       {
       }
 
@@ -821,8 +821,8 @@ namespace OrthancPlugins
     std::string              body_;
 
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    class ChunkedBody;
-    IChunkedBody*            chunkedBody_;
+    class RequestChunkedBody;
+    IRequestChunkedBody*     chunkedBody_;
 #else
     // Dummy variable for backward compatibility
     void*                    chunkedBody_;
@@ -895,7 +895,7 @@ namespace OrthancPlugins
     void SetBody(const std::string& body);
 
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
-    void SetBody(IChunkedBody& body);
+    void SetBody(IRequestChunkedBody& body);
 #endif
 
     void Execute();

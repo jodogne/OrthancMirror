@@ -89,7 +89,7 @@ namespace Orthanc
     class WorklistHandler;
     class FindHandler;
     class MoveHandler;
-    class ChunkedBody;
+    class HttpRequestBody;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
