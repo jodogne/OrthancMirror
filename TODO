@@ -108,6 +108,9 @@ SDK
   https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
 * Provide access to the Orthanc::DicomUserConnection class in plugins:
   https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
+* Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
+  https://book.orthanc-server.com/users/lua.html#filtering-incoming-dicom-instances
+  https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 
 ----------------
 Ideas of plugins
