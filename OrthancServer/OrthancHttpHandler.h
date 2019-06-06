@@ -50,6 +50,13 @@ namespace Orthanc
     {
     }
 
+    virtual IStream* CreateStreamHandler(RequestOrigin origin,
+                                         const char* remoteIp,
+                                         const char* username,
+                                         HttpMethod method,
+                                         const UriComponents& uri,
+                                         const Arguments& headers);
+
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
                         const char* remoteIp,

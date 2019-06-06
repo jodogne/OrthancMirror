@@ -4009,4 +4009,17 @@ namespace Orthanc
       }
     }
   }
+
+
+  IHttpHandler::IStream* OrthancPlugins::CreateStreamHandler(RequestOrigin origin,
+                                                             const char* remoteIp,
+                                                             const char* username,
+                                                             HttpMethod method,
+                                                             const UriComponents& uri,
+                                                             const Arguments& headers)
+  {
+    // TODO - Plugins to install a handler for multipart body.
+
+    return NULL;
+  }
 }

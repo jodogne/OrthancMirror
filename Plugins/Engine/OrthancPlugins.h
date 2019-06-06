@@ -321,6 +321,14 @@ namespace Orthanc
                          const Json::Value& value);
 
     void RefreshMetrics();
+
+    // New in Orthanc 1.5.7
+    virtual IStream* CreateStreamHandler(RequestOrigin origin,
+                                         const char* remoteIp,
+                                         const char* username,
+                                         HttpMethod method,
+                                         const UriComponents& uri,
+                                         const Arguments& headers);
   };
 }
 

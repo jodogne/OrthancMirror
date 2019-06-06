@@ -39,6 +39,28 @@
 
 namespace Orthanc
 {
+  IHttpHandler::IStream* OrthancHttpHandler::CreateStreamHandler(RequestOrigin origin,
+                                                                 const char* remoteIp,
+                                                                 const char* username,
+                                                                 HttpMethod method,
+                                                                 const UriComponents& uri,
+                                                                 const Arguments& headers)
+  {
+    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
+    {
+      IHttpHandler::IStream* stream = (*it)->CreateStreamHandler(
+        origin, remoteIp, username, method, uri, headers);
+
+      if (stream != NULL)
+      {
+        return stream;
+      }
+    }
+
+    return NULL;
+  }
+
+
   bool OrthancHttpHandler::Handle(HttpOutput& output,
                                   RequestOrigin origin,
                                   const char* remoteIp,
@@ -50,16 +72,16 @@ namespace Orthanc
                                   const char* bodyData,
                                   size_t bodySize)
   {
-    bool found = false;
-
-    for (Handlers::const_iterator it = handlers_.begin(); 
-         it != handlers_.end() && !found; ++it) 
+    for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
     {
-      found = (*it)->Handle(output, origin, remoteIp, username, method, uri, 
-                            headers, getArguments, bodyData, bodySize);
+      if ((*it)->Handle(output, origin, remoteIp, username, method, uri, 
+                        headers, getArguments, bodyData, bodySize))
+      {
+        return true;
+      }
     }
 
-    return found;
+    return false;
   }
 
 
