@@ -2058,6 +2058,7 @@ namespace OrthancPlugins
 
 
 
+#if HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1
 #if HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY == 1
   class HttpClient::ChunkedBody : public boost::noncopyable
   {
@@ -2271,4 +2272,5 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(error);
     }
   }
+#endif  /* HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1 */
 }

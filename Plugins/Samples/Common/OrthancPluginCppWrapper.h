@@ -85,6 +85,12 @@
 #  define HAS_ORTHANC_PLUGIN_METRICS  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 1, 0)
+#  define HAS_ORTHANC_PLUGIN_HTTP_CLIENT  1
+#else
+#  define HAS_ORTHANC_PLUGIN_HTTP_CLIENT  0
+#endif
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
 #  define HAS_ORTHANC_PLUGIN_HTTP_CHUNKED_BODY  1
 #else
@@ -779,6 +785,7 @@ namespace OrthancPlugins
 #endif
 
 
+#if HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1
   class HttpClient : public boost::noncopyable
   {
   public:
@@ -893,4 +900,5 @@ namespace OrthancPlugins
 
     void Execute();
   };
+#endif
 }
