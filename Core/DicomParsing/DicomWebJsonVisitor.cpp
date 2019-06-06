@@ -551,15 +551,6 @@ namespace Orthanc
           node[KEY_VALUE] = Json::arrayValue;
           for (size_t i = 0; i < tokens.size(); i++)
           {
-            /**
-             * The following call to "StripSpaces()" fixes the issue
-             * reported by Rana Asim Wajid on 2019-06-05 ("Error
-             * Exception while invoking plugin service 32: Bad file
-             * format"):
-             * https://groups.google.com/d/msg/orthanc-users/T32FovWPcCE/-hKFbfRJBgAJ
-             **/
-            tokens[i] = Orthanc::Toolbox::StripSpaces(tokens[i]);
-
             try
             {
               switch (vr)
@@ -593,30 +584,45 @@ namespace Orthanc
                 }
                   
                 case ValueRepresentation_IntegerString:
-                  if (tokens[i].empty())
+                {
+                  /**
+                   * The calls to "StripSpaces()" below fix the
+                   * issue reported by Rana Asim Wajid on 2019-06-05
+                   * ("Error Exception while invoking plugin service
+                   * 32: Bad file format"):
+                   * https://groups.google.com/d/msg/orthanc-users/T32FovWPcCE/-hKFbfRJBgAJ
+                   **/
+
+                  std::string t = Orthanc::Toolbox::StripSpaces(tokens[i]);
+                  if (t.empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);
                   }
                   else
                   {
-                    int64_t value = boost::lexical_cast<int64_t>(tokens[i]);
+                    int64_t value = boost::lexical_cast<int64_t>(t);
                     node[KEY_VALUE].append(FormatInteger(value));
                   }
-                  
+                 
                   break;
+                }
               
                 case ValueRepresentation_DecimalString:
-                  if (tokens[i].empty())
+                {
+                  std::string t = Orthanc::Toolbox::StripSpaces(tokens[i]);
+                  if (t.empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);
                   }
                   else
                   {
-                    double value = boost::lexical_cast<double>(tokens[i]);
+                    double value = boost::lexical_cast<double>(t);
                     node[KEY_VALUE].append(FormatDouble(value));
                   }
+
                   break;
-              
+                }
+
                 default:
                   if (tokens[i].empty())
                   {
