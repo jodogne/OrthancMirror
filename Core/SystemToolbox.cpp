@@ -231,7 +231,7 @@ namespace Orthanc
     content.resize(static_cast<size_t>(size));
     if (size != 0)
     {
-      f.read(reinterpret_cast<char*>(&content[0]), size);
+      f.read(&content[0], size);
     }
 
     f.close();
@@ -274,7 +274,7 @@ namespace Orthanc
     header.resize(headerSize);
     if (headerSize != 0)
     {
-      f.read(reinterpret_cast<char*>(&header[0]), headerSize);
+      f.read(&header[0], headerSize);
     }
 
     f.close();

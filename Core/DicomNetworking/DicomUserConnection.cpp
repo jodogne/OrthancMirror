@@ -1123,7 +1123,7 @@ namespace Orthanc
                                   uint16_t moveOriginatorID)
   {
     if (buffer.size() > 0)
-      Store(reinterpret_cast<const char*>(&buffer[0]), buffer.size(), moveOriginatorAET, moveOriginatorID);
+      Store(&buffer[0], buffer.size(), moveOriginatorAET, moveOriginatorID);
     else
       Store(NULL, 0, moveOriginatorAET, moveOriginatorID);
   }
