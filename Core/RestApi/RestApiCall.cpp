@@ -37,11 +37,13 @@
 namespace Orthanc
 {
   bool RestApiCall::ParseJsonRequestInternal(Json::Value& result,
-                                             const char* request)
+                                             const void* body,
+                                             size_t size)
   {
     result.clear();
     Json::Reader reader;
-    return reader.parse(request, result);
+    return reader.parse(reinterpret_cast<const char*>(body),
+                        reinterpret_cast<const char*>(body) + size, result);
   }
 
 

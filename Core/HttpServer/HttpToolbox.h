@@ -76,14 +76,14 @@ namespace Orthanc
                            IHttpHandler& handler,
                            RequestOrigin origin,
                            const std::string& uri,
-                           const char* bodyData,
+                           const void* bodyData,
                            size_t bodySize);
 
     static bool SimplePut(std::string& result,
                           IHttpHandler& handler,
                           RequestOrigin origin,
                           const std::string& uri,
-                          const char* bodyData,
+                          const void* bodyData,
                           size_t bodySize);
 
     static bool SimpleDelete(IHttpHandler& handler,

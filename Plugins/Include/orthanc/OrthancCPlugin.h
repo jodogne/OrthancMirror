@@ -363,7 +363,7 @@ extern "C"
     /**
      * @brief For a PUT or POST request, the content of the body.
      **/
-    const char*             body;
+    const void*             body;
 
     /**
      * @brief For a PUT or POST request, the number of bytes of the body.
@@ -4032,7 +4032,7 @@ extern "C"
     const char*                 url;
     const char*                 username;
     const char*                 password;
-    const char*                 body;
+    const void*                 body;
     uint32_t                    bodySize;
   } _OrthancPluginCallHttpClient;
 
@@ -4093,7 +4093,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 url,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize,
     const char*                 username,
     const char*                 password)
@@ -4134,7 +4134,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 url,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize,
     const char*                 username,
     const char*                 password)
@@ -5485,7 +5485,7 @@ extern "C"
     uint32_t                    headersCount;
     const char* const*          headersKeys;
     const char* const*          headersValues;
-    const char*                 body;
+    const void*                 body;
     uint32_t                    bodySize;
     const char*                 username;
     const char*                 password;
@@ -5546,7 +5546,7 @@ extern "C"
     uint32_t                    headersCount,
     const char* const*          headersKeys,
     const char* const*          headersValues,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize,
     const char*                 username,
     const char*                 password,
@@ -6295,7 +6295,7 @@ extern "C"
     uint32_t                    additionalHeadersCount;
     const char* const*          additionalHeadersKeys;
     const char* const*          additionalHeadersValues;
-    const char*                 body;
+    const void*                 body;
     uint32_t                    bodySize;
     uint32_t                    timeout;
   } _OrthancPluginCallPeerApi;
@@ -6347,7 +6347,7 @@ extern "C"
     uint32_t                    additionalHeadersCount,
     const char* const*          additionalHeadersKeys,
     const char* const*          additionalHeadersValues,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize,
     uint32_t                    timeout)
   {

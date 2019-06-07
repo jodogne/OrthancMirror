@@ -118,7 +118,8 @@ namespace Orthanc
     LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
 
     // TODO Remove unneccessary memcpy
-    std::string postData(call.GetBodyData(), call.GetBodySize());
+    std::string postData;
+    call.BodyToString(postData);
 
     DicomInstanceToStore toStore;
     toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
@@ -168,7 +169,7 @@ namespace Orthanc
                               const UriComponents& uri,
                               const Arguments& headers,
                               const GetArguments& getArguments,
-                              const char* bodyData,
+                              const void* bodyData,
                               size_t bodySize)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_rest_api_duration_ms");

@@ -240,7 +240,7 @@ namespace Orthanc
                               RequestOrigin origin,
                               HttpMethod method,
                               const std::string& uri,
-                              const char* bodyData,
+                              const void* bodyData,
                               size_t bodySize)
   {
     IHttpHandler::Arguments headers;  // No HTTP header
@@ -269,7 +269,7 @@ namespace Orthanc
                                IHttpHandler& handler,
                                RequestOrigin origin,
                                const std::string& uri,
-                               const char* bodyData,
+                               const void* bodyData,
                                size_t bodySize)
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize);
@@ -280,7 +280,7 @@ namespace Orthanc
                               IHttpHandler& handler,
                               RequestOrigin origin,
                               const std::string& uri,
-                              const char* bodyData,
+                              const void* bodyData,
                               size_t bodySize)
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize);

@@ -62,7 +62,7 @@ namespace Orthanc
     const UriComponents& uri,
     const Arguments& headers,
     const GetArguments& arguments,
-    const char* /*bodyData*/,
+    const void* /*bodyData*/,
     size_t /*bodySize*/)
   {
     if (!Toolbox::IsChildUri(baseUri_, uri))

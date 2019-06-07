@@ -745,7 +745,7 @@ namespace Orthanc
   }
 
 
-  bool Toolbox::IsSHA1(const char* str,
+  bool Toolbox::IsSHA1(const void* str,
                        size_t size)
   {
     if (size == 0)
@@ -753,8 +753,8 @@ namespace Orthanc
       return false;
     }
 
-    const char* start = str;
-    const char* end = str + size;
+    const char* start = reinterpret_cast<const char*>(str);
+    const char* end = start + size;
 
     // Trim the beginning of the string
     while (start < end)

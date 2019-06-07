@@ -174,7 +174,10 @@ namespace Orthanc
 
   static void SetDefaultEncoding(RestApiPutCall& call)
   {
-    Encoding encoding = StringToEncoding(call.GetBodyData());
+    std::string body;
+    call.BodyToString(body);
+
+    Encoding encoding = StringToEncoding(body.c_str());
 
     {
       OrthancConfiguration::WriterLock lock;
@@ -453,7 +456,8 @@ namespace Orthanc
   {
     bool enabled;
 
-    std::string body(call.GetBodyData());
+    std::string body;
+    call.BodyToString(body);
 
     if (body == "1")
     {
