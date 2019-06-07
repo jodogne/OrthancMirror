@@ -47,6 +47,8 @@
 #include "../Core/Compression/ZlibCompressor.h"
 #include "../Core/RestApi/RestApiHierarchy.h"
 #include "../Core/HttpServer/HttpContentNegociation.h"
+#include "../Core/HttpServer/MultipartStreamReader.h"
+
 
 using namespace Orthanc;
 
@@ -353,7 +355,7 @@ TEST(RestApi, RestApiHierarchy)
 
 namespace
 {
-  class AcceptHandler : public Orthanc::HttpContentNegociation::IHandler
+  class AcceptHandler : public HttpContentNegociation::IHandler
   {
   private:
     std::string type_;
@@ -397,7 +399,7 @@ TEST(RestApi, HttpContentNegociation)
   AcceptHandler h;
 
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("audio/mp3", h);
     d.Register("audio/basic", h);
 
@@ -422,7 +424,7 @@ TEST(RestApi, HttpContentNegociation)
   const std::string T1 = "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c";
   
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("text/plain", h);
     d.Register("text/html", h);
     d.Register("text/x-dvi", h);
@@ -432,7 +434,7 @@ TEST(RestApi, HttpContentNegociation)
   }
   
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("text/plain", h);
     d.Register("text/x-dvi", h);
     d.Register("text/x-c", h);
@@ -442,7 +444,7 @@ TEST(RestApi, HttpContentNegociation)
   }
   
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("text/plain", h);
     d.Register("text/x-dvi", h);
     d.Register("text/x-c", h);
@@ -453,7 +455,7 @@ TEST(RestApi, HttpContentNegociation)
   }
   
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("text/plain", h);
     d.Register("text/x-dvi", h);
     ASSERT_TRUE(d.Apply(T1));
@@ -462,7 +464,7 @@ TEST(RestApi, HttpContentNegociation)
   }
   
   {
-    Orthanc::HttpContentNegociation d;
+    HttpContentNegociation d;
     d.Register("text/plain", h);
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
@@ -641,5 +643,227 @@ TEST(WebServiceParameters, UserProperties)
     ASSERT_TRUE(p.LookupUserProperty(s, "a"));      ASSERT_TRUE(s == "b");
     ASSERT_TRUE(p.LookupUserProperty(s, "Hello"));  ASSERT_TRUE(s == "world");
     ASSERT_FALSE(p.LookupUserProperty(s, "hello"));
+  }
+}
+
+
+TEST(StringMatcher, Basic)
+{
+  StringMatcher matcher("---");
+
+  ASSERT_THROW(matcher.GetMatchBegin(), OrthancException);
+
+  {
+    const std::string s = "";
+    ASSERT_FALSE(matcher.Apply(s));
+  }
+
+  {
+    const std::string s = "abc----def";
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(3, std::distance(s.begin(), matcher.GetMatchBegin()));
+    ASSERT_EQ("---", std::string(matcher.GetMatchBegin(), matcher.GetMatchEnd()));
+  }
+
+  {
+    const std::string s = "abc---";
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(3, std::distance(s.begin(), matcher.GetMatchBegin()));
+    ASSERT_EQ(s.end(), matcher.GetMatchEnd());
+    ASSERT_EQ("---", std::string(matcher.GetMatchBegin(), matcher.GetMatchEnd()));
+    ASSERT_EQ("", std::string(matcher.GetMatchEnd(), s.end()));
+  }
+
+  {
+    const std::string s = "abc--def";
+    ASSERT_FALSE(matcher.Apply(s));
+    ASSERT_THROW(matcher.GetMatchBegin(), OrthancException);
+    ASSERT_THROW(matcher.GetMatchEnd(), OrthancException);
+  }
+
+  {
+    std::string s(10u, '\0');  // String with null values
+    ASSERT_EQ(10u, s.size());
+    ASSERT_EQ(10u, s.size());
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[9] = '-';
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[8] = '-';
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[7] = '-';
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(s.c_str() + 7, matcher.GetPointerBegin());
+    ASSERT_EQ(s.c_str() + 10, matcher.GetPointerEnd());
+    ASSERT_EQ(s.end() - 3, matcher.GetMatchBegin());
+    ASSERT_EQ(s.end(), matcher.GetMatchEnd());
+  }
+}
+
+
+
+class MultipartTester : public MultipartStreamReader::IHandler
+{
+private:
+  struct Part
+  {
+    MultipartStreamReader::HttpHeaders   headers_;
+    std::string  data_;
+
+    Part(const MultipartStreamReader::HttpHeaders& headers,
+         const void* part,
+         size_t size) :
+      headers_(headers),
+      data_(reinterpret_cast<const char*>(part), size)
+    {
+    }
+  };
+
+  std::vector<Part> parts_;
+
+public:
+  virtual void Apply(const MultipartStreamReader::HttpHeaders& headers,
+                     const void* part,
+                     size_t size)
+  {
+    parts_.push_back(Part(headers, part, size));
+  }
+
+  unsigned int GetCount() const
+  {
+    return parts_.size();
+  }
+
+  MultipartStreamReader::HttpHeaders& GetHeaders(size_t i)
+  {
+    return parts_[i].headers_;
+  }
+
+  const std::string& GetData(size_t i) const
+  {
+    return parts_[i].data_;
+  }
+};
+
+
+TEST(MultipartStreamReader, ParseHeaders)
+{
+  std::string ct, b, st;
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["hello"] = "world";
+    h["Content-Type"] = "world";  // Should be in lower-case
+    h["CONTENT-type"] = "world";  // Should be in lower-case
+    ASSERT_FALSE(MultipartStreamReader::GetMainContentType(ct, h));
+    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+  }
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["content-type"] = "world";
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
+    ASSERT_EQ(ct, "world");
+    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+  }
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["content-type"] = "multipart/related; dummy=value; boundary=1234; hello=world";
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
+    ASSERT_EQ(ct, h["content-type"]);
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_EQ(ct, "multipart/related");
+    ASSERT_EQ(b, "1234");
+    ASSERT_TRUE(st.empty());
+  }
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["content-type"] = "multipart/related; boundary=";
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
+    ASSERT_EQ(ct, h["content-type"]);
+    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));  // Empty boundary
+  }
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["content-type"] = "Multipart/Related; TYPE=Application/Dicom; Boundary=heLLO";
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_EQ(ct, "multipart/related");
+    ASSERT_EQ(b, "heLLO");
+    ASSERT_EQ(st, "application/dicom");
+  }
+
+  {
+    MultipartStreamReader::HttpHeaders h;
+    h["content-type"] = "Multipart/Related; type=\"application/DICOM\"; Boundary=a";
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_EQ(ct, "multipart/related");
+    ASSERT_EQ(b, "a");
+    ASSERT_EQ(st, "application/dicom");
+  }
+}
+
+
+TEST(MultipartStreamReader, BytePerByte)
+{
+  std::string stream = "GARBAGE";
+
+  std::string boundary = "123456789123456789";
+
+  {
+    for (size_t i = 0; i < 10; i++)
+    {
+      std::string f = "hello " + boost::lexical_cast<std::string>(i);
+    
+      stream += "\r\n--" + boundary + "\r\n";
+      if (i % 2 == 0)
+        stream += "Content-Length: " + boost::lexical_cast<std::string>(f.size()) + "\r\n";
+      stream += "Content-Type: toto " + boost::lexical_cast<std::string>(i) + "\r\n\r\n";
+      stream += f;
+    }
+  
+    stream += "\r\n--" + boundary + "--";
+    stream += "GARBAGE";
+  }
+
+  for (unsigned int k = 0; k < 2; k++)
+  {
+    MultipartTester decoded;
+
+    MultipartStreamReader reader(boundary);
+    reader.SetBlockSize(1);
+    reader.SetHandler(decoded);
+
+    if (k == 0)
+    {
+      for (size_t i = 0; i < stream.size(); i++)
+      {
+        reader.AddChunk(&stream[i], 1);
+      }
+    }
+    else
+    {
+      reader.AddChunk(stream);
+    }
+
+    reader.CloseStream();
+
+    ASSERT_EQ(10u, decoded.GetCount());
+
+    for (size_t i = 0; i < 10; i++)
+    {
+      ASSERT_EQ("hello " + boost::lexical_cast<std::string>(i), decoded.GetData(i));
+      ASSERT_EQ("toto " + boost::lexical_cast<std::string>(i), decoded.GetHeaders(i)["content-type"]);
+
+      if (i % 2 == 0)
+      {
+        ASSERT_EQ(2u, decoded.GetHeaders(i).size());
+        ASSERT_TRUE(decoded.GetHeaders(i).find("content-length") != decoded.GetHeaders(i).end());
+      }
+    }
   }
 }

@@ -128,6 +128,8 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/EnumerationDictionary.h
   ${ORTHANC_ROOT}/Core/Enumerations.cpp
   ${ORTHANC_ROOT}/Core/FileStorage/MemoryStorageArea.cpp
+  ${ORTHANC_ROOT}/Core/HttpServer/MultipartStreamReader.cpp
+  ${ORTHANC_ROOT}/Core/HttpServer/StringMatcher.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
   ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
