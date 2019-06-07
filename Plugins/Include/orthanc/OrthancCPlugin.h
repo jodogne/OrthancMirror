@@ -6918,6 +6918,7 @@ extern "C"
     OrthancPluginHttpMethod            method,
     const char*                        url,
     const char*                        contentType,
+    const char*                        subType,
     uint32_t                           groupsCount,
     const char* const*                 groups,
     uint32_t                           headersCount,

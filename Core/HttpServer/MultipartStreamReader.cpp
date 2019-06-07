@@ -205,7 +205,7 @@ namespace Orthanc
                                "No endline at the end of a part");
       }
           
-      handler_->Apply(headers, headersMatcher_.GetPointerEnd(), contentLength);
+      handler_->HandlePart(headers, headersMatcher_.GetPointerEnd(), contentLength);
       current = headersMatcher_.GetMatchEnd() + contentLength + 2;
     }
 
@@ -293,19 +293,13 @@ namespace Orthanc
   }
 
 
-  bool MultipartStreamReader::ParseMultipartHeaders(std::string& contentType,
-                                                    std::string& subType,
-                                                    std::string& boundary,
-                                                    const HttpHeaders& headers)
+  bool MultipartStreamReader::ParseMultipartContentType(std::string& contentType,
+                                                        std::string& subType,
+                                                        std::string& boundary,
+                                                        const std::string& contentTypeHeader)
   {
-    std::string tmp;
-    if (!GetMainContentType(tmp, headers))
-    {
-      return false;
-    }
-
     std::vector<std::string> tokens;
-    Orthanc::Toolbox::TokenizeString(tokens, tmp, ';');
+    Orthanc::Toolbox::TokenizeString(tokens, contentTypeHeader, ';');
 
     if (tokens.empty())
     {

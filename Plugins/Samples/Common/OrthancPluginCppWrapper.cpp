@@ -2613,6 +2613,7 @@ namespace OrthancPlugins
     OrthancPluginHttpMethod            method,
     const char*                        url,
     const char*                        contentType,
+    const char*                        subType,
     uint32_t                           groupsCount,
     const char* const*                 groups,
     uint32_t                           headersCount,
@@ -2639,7 +2640,8 @@ namespace OrthancPlugins
       }
 
       return reinterpret_cast<OrthancPluginMultipartRestHandler*>(
-        that.CreateHandler(method, url, contentType, g, headers));
+        that.CreateHandler(method, url, contentType, 
+                           subType == NULL ? "" : subType, g, headers));
     }
     catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
     {
@@ -2676,12 +2678,12 @@ namespace OrthancPlugins
     }
     catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
     {
-      LogError("Exception while add a part to a multipart handler");
+      LogError("Exception while adding a part to a multipart handler");
       return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
     }
     catch (...)
     {
-      LogError("Native exception while add a part to a multipart handler");
+      LogError("Native exception while adding a part to a multipart handler");
       return OrthancPluginErrorCode_Plugin;
     }
   }
