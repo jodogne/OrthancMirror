@@ -671,6 +671,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
     PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
     PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
+    PrintErrorCode(ErrorCode_UnsupportedMediaType, "Unsupported media type");
   }
 
   std::cout << std::endl;

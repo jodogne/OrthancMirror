@@ -4247,14 +4247,30 @@ namespace Orthanc
           continue;
         }
 
+        OrthancPluginErrorCode errorCode = OrthancPluginErrorCode_Plugin;
+
         OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().createHandler(
-          (*it)->GetParameters().factory,
+          (*it)->GetParameters().factory, &errorCode,
           convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(), subType.c_str(),
           matcher.GetGroupsCount(), matcher.GetGroups(), headers.size(),
           headers.empty() ? NULL : &headersKeys[0],
           headers.empty() ? NULL : &headersValues[0]);
 
-        return new MultipartStream(handler, (*it)->GetParameters(), boundary, GetErrorDictionary());
+        if (handler == NULL)
+        {
+          if (errorCode == OrthancPluginErrorCode_Success)
+          {
+            // Ignore: The factory cannot create a handler for this request
+          }
+          else
+          {
+            throw OrthancException(static_cast<ErrorCode>(errorCode));
+          }          
+        }
+        else
+        {
+          return new MultipartStream(handler, (*it)->GetParameters(), boundary, GetErrorDictionary());
+        }
       }
     }
 
