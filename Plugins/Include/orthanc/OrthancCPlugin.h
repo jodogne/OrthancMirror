@@ -2105,7 +2105,7 @@ extern "C"
   {
     OrthancPluginMemoryBuffer*  target;
     const char*                 uri;
-    const char*                 body;
+    const void*                 body;
     uint32_t                    bodySize;
   } _OrthancPluginRestApiPostPut;
 
@@ -2129,7 +2129,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize)
   {
     _OrthancPluginRestApiPostPut params;
@@ -2164,7 +2164,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize)
   {
     _OrthancPluginRestApiPostPut params;
@@ -2241,7 +2241,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize)
   {
     _OrthancPluginRestApiPostPut params;
@@ -2277,7 +2277,7 @@ extern "C"
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     const char*                 uri,
-    const char*                 body,
+    const void*                 body,
     uint32_t                    bodySize)
   {
     _OrthancPluginRestApiPostPut params;
