@@ -226,7 +226,7 @@ namespace Orthanc
                         const UriComponents& uri,
                         const Arguments& headers,
                         const GetArguments& getArguments,
-                        const char* bodyData,
+                        const void* bodyData,
                         size_t bodySize);
 
     virtual bool InvokeService(SharedLibrary& plugin,

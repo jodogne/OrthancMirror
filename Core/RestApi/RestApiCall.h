@@ -59,7 +59,8 @@ namespace Orthanc
 
   protected:
     static bool ParseJsonRequestInternal(Json::Value& result,
-                                         const char* request);
+                                         const void* body,
+                                         size_t size);
 
   public:
     RestApiCall(RestApiOutput& output,

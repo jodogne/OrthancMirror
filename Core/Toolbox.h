@@ -140,7 +140,7 @@ namespace Orthanc
                      const void* data,
                      size_t size);
 
-    bool IsSHA1(const char* str,
+    bool IsSHA1(const void* str,
                 size_t size);
 
     bool IsSHA1(const std::string& s);

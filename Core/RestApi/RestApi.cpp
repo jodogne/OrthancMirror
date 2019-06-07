@@ -55,7 +55,7 @@ namespace Orthanc
       HttpMethod method_;
       const IHttpHandler::Arguments& headers_;
       const IHttpHandler::Arguments& getArguments_;
-      const char* bodyData_;
+      const void* bodyData_;
       size_t bodySize_;
 
     public:
@@ -67,7 +67,7 @@ namespace Orthanc
                          HttpMethod method,
                          const IHttpHandler::Arguments& headers,
                          const IHttpHandler::Arguments& getArguments,
-                         const char* bodyData,
+                         const void* bodyData,
                          size_t bodySize) :
         api_(api),
         output_(output),
@@ -181,7 +181,7 @@ namespace Orthanc
                        const UriComponents& uri,
                        const Arguments& headers,
                        const GetArguments& getArguments,
-                       const char* bodyData,
+                       const void* bodyData,
                        size_t bodySize)
   {
     RestApiOutput wrappedOutput(output, method);

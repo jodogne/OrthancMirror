@@ -102,13 +102,11 @@ namespace Orthanc
    ***************************************************************************/
 
   static bool MergeQueryAndTemplate(DicomMap& result,
-                                    const char* postData,
-                                    size_t postSize)
+                                    const RestApiCall& call)
   {
     Json::Value query;
-    Json::Reader reader;
 
-    if (!reader.parse(postData, postData + postSize, query) ||
+    if (!call.ParseJsonRequest(query) ||
         query.type() != Json::objectValue)
     {
       return false;
@@ -190,7 +188,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindPatientTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
+    if (!MergeQueryAndTemplate(fields, call))
     {
       return;
     }
@@ -219,7 +217,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindStudyTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
+    if (!MergeQueryAndTemplate(fields, call))
     {
       return;
     }
@@ -254,7 +252,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindSeriesTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
+    if (!MergeQueryAndTemplate(fields, call))
     {
       return;
     }
@@ -290,7 +288,7 @@ namespace Orthanc
 
     DicomMap fields;
     DicomMap::SetupFindInstanceTemplate(fields);
-    if (!MergeQueryAndTemplate(fields, call.GetBodyData(), call.GetBodySize()))
+    if (!MergeQueryAndTemplate(fields, call))
     {
       return;
     }
@@ -340,7 +338,7 @@ namespace Orthanc
 
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
-    if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
+    if (!MergeQueryAndTemplate(m, call))
     {
       return;
     }
@@ -363,7 +361,7 @@ namespace Orthanc
       patients.ToJson(patient, i, true);
 
       DicomMap::SetupFindStudyTemplate(m);
-      if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
+      if (!MergeQueryAndTemplate(m, call))
       {
         return;
       }
@@ -382,7 +380,7 @@ namespace Orthanc
         studies.ToJson(study, j, true);
 
         DicomMap::SetupFindSeriesTemplate(m);
-        if (!MergeQueryAndTemplate(m, call.GetBodyData(), call.GetBodySize()))
+        if (!MergeQueryAndTemplate(m, call))
         {
           return;
         }
@@ -1169,8 +1167,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
-    Json::Reader reader;
-    if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
+    if (call.ParseJsonRequest(json))
     {
       RemoteModalityParameters modality;
       modality.Unserialize(json);
@@ -1207,8 +1204,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
-    Json::Reader reader;
-    if (reader.parse(call.GetBodyData(), call.GetBodyData() + call.GetBodySize(), json))
+    if (call.ParseJsonRequest(json))
     {
       WebServiceParameters peer;
       peer.Unserialize(json);

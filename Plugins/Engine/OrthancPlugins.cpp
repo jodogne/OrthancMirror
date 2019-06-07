@@ -1291,7 +1291,7 @@ namespace Orthanc
                               const UriComponents& uri,
                               const Arguments& headers,
                               const GetArguments& getArguments,
-                              const char* bodyData,
+                              const void* bodyData,
                               size_t bodySize)
   {
     RestCallbackMatcher matcher(uri);
@@ -2387,7 +2387,7 @@ namespace Orthanc
     if (p.method == OrthancPluginHttpMethod_Post ||
         p.method == OrthancPluginHttpMethod_Put)
     {
-      client.GetBody().assign(p.body, p.bodySize);
+      client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
     }
     
     SetupHttpClient(client, p);
@@ -2480,12 +2480,12 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Post:
         client.SetMethod(HttpMethod_Post);
-        client.GetBody().assign(p.body, p.bodySize);
+        client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Put:
         client.SetMethod(HttpMethod_Put);
-        client.GetBody().assign(p.body, p.bodySize);
+        client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Delete:
