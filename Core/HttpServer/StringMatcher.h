@@ -48,8 +48,6 @@ namespace Orthanc
   private:
     class Search;
       
-    // WARNING - The lifetime of "pattern_" must be larger than
-    // "search_", as the latter references "pattern_"
     boost::shared_ptr<Search>  search_;  // PImpl pattern
     std::string                pattern_;
     bool                       valid_;

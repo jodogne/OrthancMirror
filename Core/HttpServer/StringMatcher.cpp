@@ -51,6 +51,8 @@ namespace Orthanc
     Algorithm algorithm_;
 
   public:
+    // WARNING - The lifetime of "pattern_" must be larger than
+    // "search_", as the latter internally keeps a pointer to "pattern" (*)
     Search(const std::string& pattern) :
       algorithm_(pattern.begin(), pattern.end())
     {
@@ -69,10 +71,14 @@ namespace Orthanc
     
 
   StringMatcher::StringMatcher(const std::string& pattern) :
-    search_(new Search(pattern)),
     pattern_(pattern),
     valid_(false)
   {
+    // WARNING - Don't use "pattern" (local variable, will be
+    // destroyed once exiting the constructor) but "pattern_"
+    // (variable member, will last as long as the algorithm),
+    // otherwise lifetime is bad! (*)
+    search_.reset(new Search(pattern_));
   }
   
 
