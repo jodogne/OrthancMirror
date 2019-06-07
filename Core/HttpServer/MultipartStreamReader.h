@@ -52,9 +52,9 @@ namespace Orthanc
       {
       }
       
-      virtual void Apply(const HttpHeaders& headers,
-                         const void* part,
-                         size_t size) = 0;
+      virtual void HandlePart(const HttpHeaders& headers,
+                              const void* part,
+                              size_t size) = 0;
     };
     
   private:
@@ -99,9 +99,9 @@ namespace Orthanc
     static bool GetMainContentType(std::string& contentType,
                                    const HttpHeaders& headers);
 
-    static bool ParseMultipartHeaders(std::string& contentType,
-                                      std::string& subType,  // Possibly empty
-                                      std::string& boundary,
-                                      const HttpHeaders& headers);
+    static bool ParseMultipartContentType(std::string& contentType,
+                                          std::string& subType,  // Possibly empty
+                                          std::string& boundary,
+                                          const std::string& contentTypeHeader);
   };
 }

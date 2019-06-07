@@ -724,9 +724,9 @@ private:
   std::vector<Part> parts_;
 
 public:
-  virtual void Apply(const MultipartStreamReader::HttpHeaders& headers,
-                     const void* part,
-                     size_t size)
+  virtual void HandlePart(const MultipartStreamReader::HttpHeaders& headers,
+                          const void* part,
+                          size_t size)
   {
     parts_.push_back(Part(headers, part, size));
   }
@@ -750,57 +750,51 @@ public:
 
 TEST(MultipartStreamReader, ParseHeaders)
 {
-  std::string ct, b, st;
+  std::string ct, b, st, header;
 
   {
     MultipartStreamReader::HttpHeaders h;
     h["hello"] = "world";
     h["Content-Type"] = "world";  // Should be in lower-case
     h["CONTENT-type"] = "world";  // Should be in lower-case
-    ASSERT_FALSE(MultipartStreamReader::GetMainContentType(ct, h));
-    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_FALSE(MultipartStreamReader::GetMainContentType(header, h));
   }
 
   {
     MultipartStreamReader::HttpHeaders h;
     h["content-type"] = "world";
-    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
-    ASSERT_EQ(ct, "world");
-    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h)); 
+    ASSERT_EQ(header, "world");
+    ASSERT_FALSE(MultipartStreamReader::ParseMultipartContentType(ct, st, b, header));
   }
 
   {
     MultipartStreamReader::HttpHeaders h;
     h["content-type"] = "multipart/related; dummy=value; boundary=1234; hello=world";
-    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
-    ASSERT_EQ(ct, h["content-type"]);
-    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(header, h)); 
+    ASSERT_EQ(header, h["content-type"]);
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartContentType(ct, st, b, header));
     ASSERT_EQ(ct, "multipart/related");
     ASSERT_EQ(b, "1234");
     ASSERT_TRUE(st.empty());
   }
 
   {
-    MultipartStreamReader::HttpHeaders h;
-    h["content-type"] = "multipart/related; boundary=";
-    ASSERT_TRUE(MultipartStreamReader::GetMainContentType(ct, h)); 
-    ASSERT_EQ(ct, h["content-type"]);
-    ASSERT_FALSE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));  // Empty boundary
+    ASSERT_FALSE(MultipartStreamReader::ParseMultipartContentType
+                 (ct, st, b, "multipart/related; boundary="));  // Empty boundary
   }
 
   {
-    MultipartStreamReader::HttpHeaders h;
-    h["content-type"] = "Multipart/Related; TYPE=Application/Dicom; Boundary=heLLO";
-    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartContentType
+                (ct, st, b, "Multipart/Related; TYPE=Application/Dicom; Boundary=heLLO"));
     ASSERT_EQ(ct, "multipart/related");
     ASSERT_EQ(b, "heLLO");
     ASSERT_EQ(st, "application/dicom");
   }
 
   {
-    MultipartStreamReader::HttpHeaders h;
-    h["content-type"] = "Multipart/Related; type=\"application/DICOM\"; Boundary=a";
-    ASSERT_TRUE(MultipartStreamReader::ParseMultipartHeaders(ct, st, b, h));
+    ASSERT_TRUE(MultipartStreamReader::ParseMultipartContentType
+                (ct, st, b, "Multipart/Related; type=\"application/DICOM\"; Boundary=a"));
     ASSERT_EQ(ct, "multipart/related");
     ASSERT_EQ(b, "a");
     ASSERT_EQ(st, "application/dicom");

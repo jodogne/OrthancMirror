@@ -51,6 +51,7 @@
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
+#include "../../Core/HttpServer/MultipartStreamReader.h"
 #include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Images/JpegReader.h"
@@ -1322,12 +1323,14 @@ namespace Orthanc
     memset(&request, 0, sizeof(OrthancPluginHttpRequest));
 
     ArgumentsToPlugin(headersKeys, headersValues, headers);
+    assert(headersKeys.size() == headersValues.size());
 
     switch (method)
     {
       case HttpMethod_Get:
         request.method = OrthancPluginHttpMethod_Get;
         ArgumentsToPlugin(getKeys, getValues, getArguments);
+        assert(getKeys.size() == getValues.size());
         break;
 
       case HttpMethod_Post:
@@ -4107,25 +4110,59 @@ namespace Orthanc
   }
 
 
-  class OrthancPlugins::MultipartStream : public IHttpHandler::IStream
+  class OrthancPlugins::MultipartStream : 
+    public IHttpHandler::IStream,
+    private MultipartStreamReader::IHandler
   {
   private:
     OrthancPluginMultipartRestHandler*   handler_;
     _OrthancPluginMultipartRestCallback  parameters_;
+    MultipartStreamReader                reader_;
     PluginsErrorDictionary&              errorDictionary_;
+
+    virtual void HandlePart(const MultipartStreamReader::HttpHeaders& headers,
+                            const void* part,
+                            size_t size)
+    {
+      assert(handler_ != NULL);
+
+      std::string contentType;
+      MultipartStreamReader::GetMainContentType(contentType, headers);
+      Orthanc::Toolbox::ToLowerCase(contentType);
+
+      std::vector<const char*>  headersKeys, headersValues;
+      ArgumentsToPlugin(headersKeys, headersValues, headers);
+      assert(headersKeys.size() == headersValues.size());
+
+      OrthancPluginErrorCode error = parameters_.addPart(
+        handler_, contentType.c_str(), headersKeys.size(),
+        headersKeys.empty() ? NULL : &headersKeys[0],
+        headersValues.empty() ? NULL : &headersValues[0],
+        part, size);
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        errorDictionary_.LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
+    }
 
   public:
     MultipartStream(OrthancPluginMultipartRestHandler* handler,
                     const _OrthancPluginMultipartRestCallback& parameters,
+                    const std::string& boundary,
                     PluginsErrorDictionary& errorDictionary) :
       handler_(handler),
       parameters_(parameters),
+      reader_(boundary),
       errorDictionary_(errorDictionary)
     {
       if (handler_ == NULL)
       {
         throw OrthancException(ErrorCode_Plugin, "The plugin has not created a multipart stream handler");
       }
+
+      reader_.SetHandler(*this);
     }
 
     virtual ~MultipartStream()
@@ -4139,24 +4176,14 @@ namespace Orthanc
     virtual void AddBodyChunk(const void* data,
                               size_t size)
     {
-      assert(handler_ != NULL);
-
-      // TODO => multipart parsing
-
-      OrthancPluginErrorCode error = 
-        parameters_.addPart(handler_, "content-type", 0 /* headers */, NULL, NULL,
-                            data, size);
-
-      if (error != OrthancPluginErrorCode_Success)
-      {
-        errorDictionary_.LogError(error, true);
-        throw OrthancException(static_cast<ErrorCode>(error));
-      }
+      reader_.AddChunk(data, size);
     }
 
     virtual void Execute(HttpOutput& output)
     {
       assert(handler_ != NULL);
+
+      reader_.CloseStream();
 
       PImpl::PluginHttpOutput pluginOutput(output);
 
@@ -4187,6 +4214,7 @@ namespace Orthanc
 
         std::vector<const char*> headersKeys, headersValues;
         ArgumentsToPlugin(headersKeys, headersValues, headers);
+        assert(headersKeys.size() == headersValues.size());
 
         OrthancPluginHttpMethod convertedMethod;
         switch (method)
@@ -4203,16 +4231,30 @@ namespace Orthanc
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
 
-        std::string contentType = "TODO";   // TODO
+        std::string multipartContentType;
+        if (!MultipartStreamReader::GetMainContentType(multipartContentType, headers))
+        {
+          LOG(INFO) << "Missing Content-Type HTTP header, prevents streaming the body";
+          continue;
+        }
+
+        std::string contentType, subType, boundary;
+        if (!MultipartStreamReader::ParseMultipartContentType
+            (contentType, subType, boundary, multipartContentType))
+        {
+          LOG(INFO) << "Invalid Content-Type HTTP header, "
+                    << "prevents streaming the body: \"" << multipartContentType << "\"";
+          continue;
+        }
 
         OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().createHandler(
           (*it)->GetParameters().factory,
-          convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(),
+          convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(), subType.c_str(),
           matcher.GetGroupsCount(), matcher.GetGroups(), headers.size(),
           headers.empty() ? NULL : &headersKeys[0],
           headers.empty() ? NULL : &headersValues[0]);
 
-        return new MultipartStream(handler, (*it)->GetParameters(), GetErrorDictionary());
+        return new MultipartStream(handler, (*it)->GetParameters(), boundary, GetErrorDictionary());
       }
     }
 

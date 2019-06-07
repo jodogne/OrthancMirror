@@ -948,6 +948,7 @@ namespace OrthancPlugins
     virtual IHandler* CreateHandler(OrthancPluginHttpMethod method,
                                     const std::string& url,
                                     const std::string& contentType,
+                                    const std::string& subType,  // Possibly empty
                                     const std::vector<std::string>& groups,
                                     const std::map<std::string, std::string>& headers) = 0;
 
