@@ -59,7 +59,7 @@ namespace Orthanc
   {
     if (!isHeader)
     {
-      buffer_.AddChunk(reinterpret_cast<const char*>(buffer), length);
+      buffer_.AddChunk(buffer, length);
     }
   }
 

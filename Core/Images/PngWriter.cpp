@@ -243,7 +243,7 @@ namespace Orthanc
                              png_size_t size)
   {
     ChunkedBuffer* buffer = reinterpret_cast<ChunkedBuffer*>(png_get_io_ptr(png_ptr));
-    buffer->AddChunk(reinterpret_cast<const char*>(data), size);
+    buffer->AddChunk(data, size);
   }
 
 
