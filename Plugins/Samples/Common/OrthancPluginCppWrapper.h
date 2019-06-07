@@ -187,12 +187,12 @@ namespace OrthancPlugins
                     bool applyPlugins);
 
     bool RestApiPost(const std::string& uri,
-                     const char* body,
+                     const void* body,
                      size_t bodySize,
                      bool applyPlugins);
 
     bool RestApiPut(const std::string& uri,
-                    const char* body,
+                    const void* body,
                     size_t bodySize,
                     bool applyPlugins);
 
@@ -467,7 +467,7 @@ namespace OrthancPlugins
 
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
-                   const char* body,
+                   const void* body,
                    size_t bodySize,
                    bool applyPlugins);
 
@@ -496,7 +496,7 @@ namespace OrthancPlugins
 
   bool RestApiPut(Json::Value& result,
                   const std::string& uri,
-                  const char* body,
+                  const void* body,
                   size_t bodySize,
                   bool applyPlugins);
 

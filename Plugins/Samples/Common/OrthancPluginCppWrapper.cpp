@@ -234,7 +234,7 @@ namespace OrthancPlugins
   }
 
   bool MemoryBuffer::RestApiPost(const std::string& uri,
-                                 const char* body,
+                                 const void* body,
                                  size_t bodySize,
                                  bool applyPlugins)
   {
@@ -252,7 +252,7 @@ namespace OrthancPlugins
 
 
   bool MemoryBuffer::RestApiPut(const std::string& uri,
-                                const char* body,
+                                const void* body,
                                 size_t bodySize,
                                 bool applyPlugins)
   {
@@ -1228,7 +1228,7 @@ namespace OrthancPlugins
 
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
-                   const char* body,
+                   const void* body,
                    size_t bodySize,
                    bool applyPlugins)
   {
@@ -1261,7 +1261,7 @@ namespace OrthancPlugins
 
   bool RestApiPut(Json::Value& result,
                   const std::string& uri,
-                  const char* body,
+                  const void* body,
                   size_t bodySize,
                   bool applyPlugins)
   {
