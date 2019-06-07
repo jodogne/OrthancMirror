@@ -365,6 +365,9 @@ namespace Orthanc
       case ErrorCode_AlreadyExistingTag:
         return "Cannot override the value of a tag that already exists";
 
+      case ErrorCode_UnsupportedMediaType:
+        return "Unsupported media type";
+
       default:
         if (error >= ErrorCode_START_PLUGINS)
         {
@@ -2129,6 +2132,9 @@ namespace Orthanc
 
       case ErrorCode_CreateDicomParentIsInstance:
         return HttpStatus_400_BadRequest;
+
+      case ErrorCode_UnsupportedMediaType:
+        return HttpStatus_415_UnsupportedMediaType;
 
       default:
         return HttpStatus_500_InternalServerError;

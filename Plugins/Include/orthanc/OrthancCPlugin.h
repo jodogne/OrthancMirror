@@ -298,6 +298,7 @@ extern "C"
     OrthancPluginErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
     OrthancPluginErrorCode_NoWorklistHandler = 2041    /*!< No request handler factory for DICOM C-Find Modality SCP */,
     OrthancPluginErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
+    OrthancPluginErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
   } OrthancPluginErrorCode;
@@ -6915,6 +6916,7 @@ extern "C"
 
   typedef OrthancPluginMultipartRestHandler* (*OrthancPluginMultipartRestCreateHandler) (
     OrthancPluginMultipartRestFactory* factory,
+    OrthancPluginErrorCode*            errorCode,   /* out: to report an exception on handler creation */
     OrthancPluginHttpMethod            method,
     const char*                        url,
     const char*                        contentType,

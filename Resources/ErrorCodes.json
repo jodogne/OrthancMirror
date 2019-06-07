@@ -322,11 +322,6 @@
 
 
 
-
-
-
-
-
   /** Specific error codes **/
 
   
@@ -551,5 +546,16 @@
     "Code": 2042,
     "Name": "AlreadyExistingTag",
     "Description": "Cannot override the value of a tag that already exists"
+  },
+
+
+
+  /** HTTP-related error codes **/
+
+  {
+    "Code": 3000,
+    "HttpStatus": 415, 
+    "Name": "UnsupportedMediaType",
+    "Description": "Unsupported media type"
   }
 ]

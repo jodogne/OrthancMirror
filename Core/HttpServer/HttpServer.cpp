@@ -393,7 +393,6 @@ namespace Orthanc
     if (contentLength != headers.end())
     {
       // "Content-Length" is available
-      
       std::string body;
       PostDataStatus status = ReadBodyWithContentLength(body, connection, contentLength->second);
 
@@ -407,7 +406,7 @@ namespace Orthanc
     }
     else
     {
-      // No Content-Length. Stream the HTTP connection.
+      // No Content-Length: This is a chunked transfer. Stream the HTTP connection.
       std::string tmp(1024 * 1024, 0);
       
       for (;;)

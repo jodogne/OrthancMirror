@@ -2610,6 +2610,7 @@ namespace OrthancPlugins
 #if HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER == 1
   static OrthancPluginMultipartRestHandler* MultipartRestFactory(
     OrthancPluginMultipartRestFactory* factory,
+    OrthancPluginErrorCode*            errorCode,
     OrthancPluginHttpMethod            method,
     const char*                        url,
     const char*                        contentType,
@@ -2620,6 +2621,8 @@ namespace OrthancPlugins
     const char* const*                 headersKeys,
     const char* const*                 headersValues)
   {
+    *errorCode = OrthancPluginErrorCode_Success;
+
     try
     {
       assert(factory != NULL);
@@ -2646,11 +2649,13 @@ namespace OrthancPlugins
     catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
     {
       LogError("Exception while creating a multipart handler");
+      *errorCode = static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
       return NULL;
     }
     catch (...)
     {
       LogError("Native exception while creating a multipart handler");
+      *errorCode = OrthancPluginErrorCode_Plugin;
       return NULL;
     }
   }
