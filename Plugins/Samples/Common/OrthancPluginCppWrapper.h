@@ -97,6 +97,12 @@
 #  define HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
+#  define HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER  1
+#else
+#  define HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER  0
+#endif
+
 
 
 namespace OrthancPlugins
@@ -365,7 +371,7 @@ namespace OrthancPlugins
                  uint32_t                  height,
                  uint32_t                  pitch,
                  void*                     buffer
-                 );
+      );
 
     ~OrthancImage()
     {
@@ -568,7 +574,7 @@ namespace OrthancPlugins
           // error message. This is to avoid duplicating the details,
           // because "OrthancException" already does it on construction.
           OrthancPluginSetHttpErrorDetails
-              (GetGlobalContext(), output, e.GetDetails(), false);
+            (GetGlobalContext(), output, e.GetDetails(), false);
         }
 #endif
 
@@ -593,12 +599,12 @@ namespace OrthancPlugins
     if (isThreadSafe)
     {
       OrthancPluginRegisterRestCallbackNoLock
-          (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
+        (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
     }
     else
     {
       OrthancPluginRegisterRestCallback
-          (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
+        (GetGlobalContext(), uri.c_str(), Internals::Protect<Callback>);
     }
   }
 
@@ -910,6 +916,42 @@ namespace OrthancPlugins
 
     void Execute(HttpHeaders& answerHeaders /* out */,
                  std::string& answerBody /* out */);
+  };
+#endif
+
+
+
+#if HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER == 1
+  class MultipartRestCallback : public boost::noncopyable
+  {
+  public:
+    class IHandler : public boost::noncopyable
+    {
+    public:
+      virtual ~IHandler()
+      {
+      }
+
+      virtual OrthancPluginErrorCode AddPart(const std::string& contentType,
+                                             const std::map<std::string, std::string>& headers,
+                                             const void* data,
+                                             size_t size) = 0;
+
+      virtual OrthancPluginErrorCode Execute(OrthancPluginRestOutput* output) = 0;
+    };
+
+
+    virtual ~MultipartRestCallback()
+    {
+    }
+
+    virtual IHandler* CreateHandler(OrthancPluginHttpMethod method,
+                                    const std::string& url,
+                                    const std::string& contentType,
+                                    const std::vector<std::string>& groups,
+                                    const std::map<std::string, std::string>& headers) = 0;
+
+    void Register(const std::string& regularExpression);
   };
 #endif
 }

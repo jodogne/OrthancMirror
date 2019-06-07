@@ -4142,6 +4142,16 @@ namespace Orthanc
       assert(handler_ != NULL);
 
       // TODO => multipart parsing
+
+      OrthancPluginErrorCode error = 
+        parameters_.addPart(handler_, "content-type", 0 /* headers */, NULL, NULL,
+                            data, size);
+
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        errorDictionary_.LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
     }
 
     virtual void Execute(HttpOutput& output)
@@ -4195,7 +4205,8 @@ namespace Orthanc
 
         std::string contentType = "TODO";   // TODO
 
-        OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().factory(
+        OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().createHandler(
+          (*it)->GetParameters().factory,
           convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(),
           matcher.GetGroupsCount(), matcher.GetGroups(), headers.size(),
           headers.empty() ? NULL : &headersKeys[0],

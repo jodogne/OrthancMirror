@@ -6911,22 +6911,27 @@ extern "C"
 
   typedef struct _OrthancPluginMultipartRestHandler_t OrthancPluginMultipartRestHandler;
 
-  typedef OrthancPluginMultipartRestHandler* (*OrthancPluginMultipartRestFactory) (
-    OrthancPluginHttpMethod method,
-    const char*             url,
-    const char*             contentType,
-    uint32_t                groupsCount,
-    const char* const*      groups,
-    uint32_t                headersCount,
-    const char* const*      headersKeys,
-    const char* const*      headersValues);
+  typedef struct _OrthancPluginMultipartRestFactory_t OrthancPluginMultipartRestFactory;
+
+  typedef OrthancPluginMultipartRestHandler* (*OrthancPluginMultipartRestCreateHandler) (
+    OrthancPluginMultipartRestFactory* factory,
+    OrthancPluginHttpMethod            method,
+    const char*                        url,
+    const char*                        contentType,
+    uint32_t                           groupsCount,
+    const char* const*                 groups,
+    uint32_t                           headersCount,
+    const char* const*                 headersKeys,
+    const char* const*                 headersValues);
 
   typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerAddPart) (
     OrthancPluginMultipartRestHandler* handler,
+    const char*                        contentType,
     uint32_t                           headersCount,
     const char* const*                 headersKeys,
     const char* const*                 headersValues,
-    const char*                        contentType);
+    const void*                        data,
+    uint32_t                           size);
     
   typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerExecute) (
     OrthancPluginMultipartRestHandler* handler,
@@ -6937,24 +6942,27 @@ extern "C"
   
   typedef struct
   {
-    const char*                           pathRegularExpression;
-    OrthancPluginMultipartRestFactory     factory;
-    OrthancPluginMultipartHandlerAddPart  addPart;
-    OrthancPluginMultipartHandlerExecute  execute;
-   OrthancPluginMultipartHandlerFinalize  finalize;
+    const char*                              pathRegularExpression;
+    OrthancPluginMultipartRestFactory*       factory;
+    OrthancPluginMultipartRestCreateHandler  createHandler;
+    OrthancPluginMultipartHandlerAddPart     addPart;
+    OrthancPluginMultipartHandlerExecute     execute;
+   OrthancPluginMultipartHandlerFinalize     finalize;
   } _OrthancPluginMultipartRestCallback;
 
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterMultipartRestCallback(
-    OrthancPluginContext*                  context,
-    const char*                            pathRegularExpression,
-    OrthancPluginMultipartRestFactory      factory,
-    OrthancPluginMultipartHandlerAddPart   addPart,
-    OrthancPluginMultipartHandlerExecute   execute,
-    OrthancPluginMultipartHandlerFinalize  finalize)
+    OrthancPluginContext*                    context,
+    const char*                              pathRegularExpression,
+    OrthancPluginMultipartRestFactory*       factory,
+    OrthancPluginMultipartRestCreateHandler  createHandler,
+    OrthancPluginMultipartHandlerAddPart     addPart,
+    OrthancPluginMultipartHandlerExecute     execute,
+    OrthancPluginMultipartHandlerFinalize    finalize)
   {
     _OrthancPluginMultipartRestCallback params;
     params.pathRegularExpression = pathRegularExpression;
     params.factory = factory;
+    params.createHandler = createHandler;
     params.addPart = addPart;
     params.execute = execute;
     params.finalize = finalize;

@@ -1805,6 +1805,12 @@ namespace OrthancPlugins
 
 
 
+
+
+  /******************************************************************
+   ** JOBS
+   ******************************************************************/
+
 #if HAS_ORTHANC_PLUGIN_JOB == 1
   void OrthancJob::CallbackFinalize(void* job)
   {
@@ -2041,6 +2047,12 @@ namespace OrthancPlugins
 #endif
 
 
+
+
+  /******************************************************************
+   ** METRICS
+   ******************************************************************/
+
 #if HAS_ORTHANC_PLUGIN_METRICS == 1
   MetricsTimer::MetricsTimer(const char* name) :
     name_(name)
@@ -2058,6 +2070,11 @@ namespace OrthancPlugins
 #endif
 
 
+
+
+  /******************************************************************
+   ** HTTP CLIENT
+   ******************************************************************/
 
 #if HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1
   class HttpClient::RequestBodyWrapper : public boost::noncopyable
@@ -2581,4 +2598,139 @@ namespace OrthancPlugins
   }
 
 #endif  /* HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1 */
+
+
+
+
+
+  /******************************************************************
+   ** MULTIPART REST SERVER
+   ******************************************************************/
+
+#if HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER == 1
+  static OrthancPluginMultipartRestHandler* MultipartRestFactory(
+    OrthancPluginMultipartRestFactory* factory,
+    OrthancPluginHttpMethod            method,
+    const char*                        url,
+    const char*                        contentType,
+    uint32_t                           groupsCount,
+    const char* const*                 groups,
+    uint32_t                           headersCount,
+    const char* const*                 headersKeys,
+    const char* const*                 headersValues)
+  {
+    try
+    {
+      assert(factory != NULL);
+      MultipartRestCallback& that = *reinterpret_cast<MultipartRestCallback*>(factory);
+
+      std::vector<std::string> g;
+      g.resize(groupsCount);
+
+      for (uint32_t i = 0; i < groupsCount; i++)
+      {
+        g[i] = groups[i];
+      }
+
+      std::map<std::string, std::string> headers;
+      for (uint32_t i = 0; i < headersCount; i++)
+      {
+        headers[headersKeys[i]] = headersValues[i];
+      }
+
+      return reinterpret_cast<OrthancPluginMultipartRestHandler*>(
+        that.CreateHandler(method, url, contentType, g, headers));
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      LogError("Exception while creating a multipart handler");
+      return NULL;
+    }
+    catch (...)
+    {
+      LogError("Native exception while creating a multipart handler");
+      return NULL;
+    }
+  }
+
+  static OrthancPluginErrorCode MultipartRestAddPart(
+    OrthancPluginMultipartRestHandler* handler,
+    const char*                        contentType,
+    uint32_t                           headersCount,
+    const char* const*                 headersKeys,
+    const char* const*                 headersValues,
+    const void*                        data,
+    uint32_t                           size)
+  {
+    try
+    {
+      assert(handler != NULL);
+      std::map<std::string, std::string> headers;
+      for (uint32_t i = 0; i < headersCount; i++)
+      {
+        headers[headersKeys[i]] = headersValues[i];
+      }
+
+      return reinterpret_cast<MultipartRestCallback::IHandler*>(handler)->
+        AddPart(contentType, headers, data, size);
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      LogError("Exception while add a part to a multipart handler");
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      LogError("Native exception while add a part to a multipart handler");
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+    
+  static OrthancPluginErrorCode MultipartRestExecute(
+    OrthancPluginMultipartRestHandler* handler,
+    OrthancPluginRestOutput*           output)
+  {
+    try
+    {
+      assert(handler != NULL);
+      return reinterpret_cast<MultipartRestCallback::IHandler*>(handler)->Execute(output);
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      LogError("Exception while executing a multipart handler");
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      LogError("Native exception while executing a multipart handler");
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+  
+  static void MultipartRestFinalize(OrthancPluginMultipartRestHandler* handler)
+  {
+    try
+    {
+      assert(handler != NULL);
+      delete reinterpret_cast<MultipartRestCallback::IHandler*>(handler);
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      LogError("Exception while finalizing a multipart handler");
+    }
+    catch (...)
+    {
+      LogError("Native exception while finalizing a multipart handler");
+    }
+  }  
+
+  void MultipartRestCallback::Register(const std::string& regularExpression)
+  {
+    OrthancPluginRegisterMultipartRestCallback(
+      GetGlobalContext(), regularExpression.c_str(), 
+      reinterpret_cast<OrthancPluginMultipartRestFactory*>(this), 
+      MultipartRestFactory, MultipartRestAddPart, MultipartRestExecute, MultipartRestFinalize);
+  }
+#endif
+
 }
