@@ -33,6 +33,17 @@
 
 #include "OrthancPluginCppWrapper.h"
 
+#if HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER == 0
+#  if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 5, 7)
+#    define HAS_ORTHANC_FRAMEWORK_MULTIPART_READER 1
+#    include "../../../Core/HttpServer/MultipartStreamReader.h"
+#    include <boost/thread/shared_mutex.hpp>
+#  else
+#    define HAS_ORTHANC_FRAMEWORK_MULTIPART_READER 0
+#  endif
+#endif
+
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
@@ -2744,6 +2755,144 @@ namespace OrthancPlugins
       reinterpret_cast<OrthancPluginMultipartRestFactory*>(this), 
       MultipartRestFactory, MultipartRestAddPart, MultipartRestExecute, MultipartRestFinalize);
   }
+
+#elif HAS_ORTHANC_FRAMEWORK_MULTIPART_READER == 1
+
+  namespace
+  {
+    class CompatibilityPartHandler : public Orthanc::MultipartStreamReader::IHandler
+    {
+    private:
+      MultipartRestCallback::IHandler&  handler_;
+
+    public:
+      CompatibilityPartHandler(MultipartRestCallback::IHandler& handler) :
+        handler_(handler)
+      {
+      }
+
+      virtual void HandlePart(const Orthanc::MultipartStreamReader::HttpHeaders& headers,
+                              const void* part,
+                              size_t size)
+      {
+        std::string contentType;
+        if (!Orthanc::MultipartStreamReader::GetMainContentType(contentType, headers))
+        {
+          contentType.clear();
+        }        
+
+        OrthancPluginErrorCode code = handler_.AddPart(contentType, headers, part, size);
+
+        if (code != OrthancPluginErrorCode_Success)
+        {
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+        }
+      }
+    };
+  }
+
+  static boost::shared_mutex  compatibilityMultipartMutex_;
+  static std::set<MultipartRestCallback*> compatibilityMultipartCallbacks_;
+    
+
+  namespace
+  {
+    void CompatibilityMultipartRestCallback(OrthancPluginRestOutput* output,
+                                            const char* url,
+                                            const OrthancPluginHttpRequest* request)
+    {
+      std::map<std::string, std::string> headers;
+      for (uint32_t i = 0; i < request->headersCount; i++)
+      {
+        headers[request->headersKeys[i]] = request->headersValues[i];
+      }
+
+      std::string mainContentType;
+      if (!Orthanc::MultipartStreamReader::GetMainContentType(mainContentType, headers))
+      {
+        LogError("Missing Content-Type HTTP header, prevents streaming the body");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(UnsupportedMediaType);
+      }
+
+      std::string contentType, subType, boundary;
+      if (!Orthanc::MultipartStreamReader::ParseMultipartContentType
+          (contentType, subType, boundary, mainContentType))
+      {
+        LogError("Invalid Content-Type HTTP header, prevents streaming the body: \"" + 
+                 mainContentType + "\"");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(UnsupportedMediaType);
+      }
+
+      std::vector<std::string> groups;
+      groups.reserve(request->groupsCount);
+      for (uint32_t i = 0; i < request->groupsCount; i++)
+      {
+        groups[i] = request->groups[i];
+      }
+
+      std::auto_ptr<MultipartRestCallback::IHandler> handler;
+
+      {
+        boost::shared_lock<boost::shared_mutex> lock(compatibilityMultipartMutex_);
+
+        for (std::set<MultipartRestCallback*>::const_iterator 
+               it = compatibilityMultipartCallbacks_.begin();
+             it != compatibilityMultipartCallbacks_.end(); ++it)
+        {
+          assert(*it != NULL);
+          handler.reset((*it)->CreateHandler(request->method, url, contentType, subType, groups, headers));
+          if (handler.get() != NULL)
+          {
+            break;
+          }
+        }
+      }
+
+      if (handler.get() != NULL)
+      {
+        {
+          CompatibilityPartHandler wrapper(*handler);
+          Orthanc::MultipartStreamReader reader(boundary);
+          reader.SetHandler(wrapper);
+          reader.AddChunk(request->body, request->bodySize);
+          reader.CloseStream();
+        }
+
+        handler->Execute(output);
+      }
+    }
+  }
+
+  void MultipartRestCallback::Register(const std::string& regularExpression)
+  {
+    LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
+               "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
+
+    {
+      boost::unique_lock<boost::shared_mutex> lock(compatibilityMultipartMutex_);
+      compatibilityMultipartCallbacks_.insert(this);
+    }
+
+    OrthancPluginRegisterRestCallback(GetGlobalContext(), regularExpression.c_str(), 
+                                      Internals::Protect<CompatibilityMultipartRestCallback>);
+  }
+
+
+#else
+
+  void MultipartRestCallback::Register(const std::string& regularExpression)
+  {
+    /**
+     * Version >= 1.5.7 of the Orthanc framework must be
+     * available. Make sure that macros
+     * "ORTHANC_FRAMEWORK_VERSION_MAJOR",
+     * "ORTHANC_FRAMEWORK_VERSION_MINOR" and
+     * "ORTHANC_FRAMEWORK_VERSION_REVISION" are properly set.
+     **/
+    LogError("The compatibility mode for multipart transfers is not available.");
+    ORTHANC_PLUGINS_THROW_EXCEPTION(NotImplemented);
+  }  
+
 #endif
 
 }
