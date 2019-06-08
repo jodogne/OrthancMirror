@@ -57,6 +57,19 @@
 #endif
 
 
+#if !defined(ORTHANC_FRAMEWORK_VERSION_IS_ABOVE)
+#define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
+  (defined(ORTHANC_FRAMEWORK_VERSION_MAJOR) &&                          \
+   defined(ORTHANC_FRAMEWORK_VERSION_MINOR) &&                          \
+   defined(ORTHANC_FRAMEWORK_VERSION_REVISION) &&                       \
+   ORTHANC_FRAMEWORK_VERSION_MAJOR > major ||                           \
+   (ORTHANC_FRAMEWORK_VERSION_MAJOR == major &&                         \
+    (ORTHANC_FRAMEWORK_VERSION_MINOR > minor ||                         \
+     (ORTHANC_FRAMEWORK_VERSION_MINOR == minor &&                       \
+      ORTHANC_FRAMEWORK_VERSION_REVISION >= revision))))
+#endif
+
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
 // The "OrthancPluginFindMatcher()" primitive was introduced in Orthanc 1.2.0
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1
@@ -921,7 +934,6 @@ namespace OrthancPlugins
 
 
 
-#if HAS_ORTHANC_PLUGIN_HTTP_MULTIPART_SERVER == 1
   class MultipartRestCallback : public boost::noncopyable
   {
   public:
@@ -954,5 +966,4 @@ namespace OrthancPlugins
 
     void Register(const std::string& regularExpression);
   };
-#endif
 }
