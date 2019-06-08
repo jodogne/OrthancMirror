@@ -66,6 +66,9 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
   if (NOT DEFINED ORTHANC_FRAMEWORK_BRANCH)
     if (ORTHANC_FRAMEWORK_VERSION STREQUAL "mainline")
       set(ORTHANC_FRAMEWORK_BRANCH "default")
+      set(ORTHANC_FRAMEWORK_MAJOR 999)
+      set(ORTHANC_FRAMEWORK_MINOR 999)
+      set(ORTHANC_FRAMEWORK_REVISION 999)
 
     else()
       set(ORTHANC_FRAMEWORK_BRANCH "Orthanc-${ORTHANC_FRAMEWORK_VERSION}")
@@ -108,6 +111,11 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
       endif()
     endif()
   endif()
+else()
+  message("Using the Orthanc framework from a path of the filesystem. Assuming mainline version.")
+  set(ORTHANC_FRAMEWORK_MAJOR 999)
+  set(ORTHANC_FRAMEWORK_MINOR 999)
+  set(ORTHANC_FRAMEWORK_REVISION 999)
 endif()
 
 

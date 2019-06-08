@@ -4231,8 +4231,8 @@ namespace Orthanc
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
 
-        std::string multipartContentType;
-        if (!MultipartStreamReader::GetMainContentType(multipartContentType, headers))
+        std::string mainContentType;
+        if (!MultipartStreamReader::GetMainContentType(mainContentType, headers))
         {
           LOG(INFO) << "Missing Content-Type HTTP header, prevents streaming the body";
           continue;
@@ -4240,10 +4240,10 @@ namespace Orthanc
 
         std::string contentType, subType, boundary;
         if (!MultipartStreamReader::ParseMultipartContentType
-            (contentType, subType, boundary, multipartContentType))
+            (contentType, subType, boundary, mainContentType))
         {
           LOG(INFO) << "Invalid Content-Type HTTP header, "
-                    << "prevents streaming the body: \"" << multipartContentType << "\"";
+                    << "prevents streaming the body: \"" << mainContentType << "\"";
           continue;
         }
 
