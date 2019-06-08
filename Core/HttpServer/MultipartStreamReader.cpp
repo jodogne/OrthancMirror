@@ -40,8 +40,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
+#  include <BaseTsd.h>   // Definition of ssize_t
 #endif
 
 namespace Orthanc
