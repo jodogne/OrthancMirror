@@ -2877,19 +2877,18 @@ namespace OrthancPlugins
                                       Internals::Protect<CompatibilityMultipartRestCallback>);
   }
 
-
 #else
 
   void MultipartRestCallback::Register(const std::string& regularExpression)
   {
     /**
      * Version >= 1.5.7 of the Orthanc framework must be
-     * available. Make sure that macros
+     * available. Make sure that macros "HAS_ORTHANC_FRAMEWORK=1",
      * "ORTHANC_FRAMEWORK_VERSION_MAJOR",
      * "ORTHANC_FRAMEWORK_VERSION_MINOR" and
      * "ORTHANC_FRAMEWORK_VERSION_REVISION" are properly set.
      **/
-    LogError("The compatibility mode for multipart transfers is not available.");
+    LogError("The compatibility wrappers for multipart transfers is not available, stopping now.");
     ORTHANC_PLUGINS_THROW_EXCEPTION(NotImplemented);
   }  
 

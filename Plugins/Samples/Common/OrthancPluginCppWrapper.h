@@ -59,9 +59,11 @@
 
 #if !defined(ORTHANC_FRAMEWORK_VERSION_IS_ABOVE)
 #define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
-  (defined(ORTHANC_FRAMEWORK_VERSION_MAJOR) &&                          \
+  (defined(HAS_ORTHANC_FRAMEWORK) &&                                    \
+   defined(ORTHANC_FRAMEWORK_VERSION_MAJOR) &&                          \
    defined(ORTHANC_FRAMEWORK_VERSION_MINOR) &&                          \
    defined(ORTHANC_FRAMEWORK_VERSION_REVISION) &&                       \
+   HAS_ORTHANC_FRAMEWORK == 1 &&                                        \
    ORTHANC_FRAMEWORK_VERSION_MAJOR > major ||                           \
    (ORTHANC_FRAMEWORK_VERSION_MAJOR == major &&                         \
     (ORTHANC_FRAMEWORK_VERSION_MINOR > minor ||                         \
