@@ -137,6 +137,6 @@ namespace Orthanc
 
   const char* StringMatcher::GetPointerEnd() const
   {
-    return &GetMatchEnd()[0];
+    return GetPointerBegin() + pattern_.size();
   }
 }

@@ -192,7 +192,7 @@ namespace Orthanc
         }
       }
 
-      if (headersMatcher_.GetMatchEnd() + contentLength + 2 > corpusEnd)
+	  if (static_cast<ssize_t>(contentLength + 2) > std::distance(headersMatcher_.GetMatchEnd(), corpusEnd))
       {
         break;  // Not enough data available to have a full part
       }
