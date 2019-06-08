@@ -239,14 +239,17 @@ namespace OrthancPlugins
                                  bool applyPlugins)
   {
     Clear();
+    
+    // Cast for compatibility with Orthanc SDK <= 1.5.6
+    const char* b = reinterpret_cast<const char*>(body);
 
     if (applyPlugins)
     {
-      return CheckHttp(OrthancPluginRestApiPostAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPostAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), b, bodySize));
     }
     else
     {
-      return CheckHttp(OrthancPluginRestApiPost(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPost(GetGlobalContext(), &buffer_, uri.c_str(), b, bodySize));
     }
   }
 
@@ -258,13 +261,16 @@ namespace OrthancPlugins
   {
     Clear();
 
+    // Cast for compatibility with Orthanc SDK <= 1.5.6
+    const char* b = reinterpret_cast<const char*>(body);
+
     if (applyPlugins)
     {
-      return CheckHttp(OrthancPluginRestApiPutAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPutAfterPlugins(GetGlobalContext(), &buffer_, uri.c_str(), b, bodySize));
     }
     else
     {
-      return CheckHttp(OrthancPluginRestApiPut(GetGlobalContext(), &buffer_, uri.c_str(), body, bodySize));
+      return CheckHttp(OrthancPluginRestApiPut(GetGlobalContext(), &buffer_, uri.c_str(), b, bodySize));
     }
   }
 

@@ -39,9 +39,27 @@ Debian Wheezy (7.x)
 	~/Orthanc
 
 
+Ubuntu 12.04.5 LTS
+------------------
 
-SUPPORTED - Ubuntu 12.10
-------------------------
+# sudo apt-get install build-essential unzip cmake mercurial \
+                       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+                       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+                       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       libcharls-dev
+
+# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        ~/Orthanc
+
+
+Ubuntu 12.10
+------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
@@ -73,8 +91,8 @@ Without JPEG:
 	~/Orthanc
 
 
-SUPPORTED - Ubuntu 13.10
-------------------------
+Ubuntu 13.10
+------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
@@ -92,8 +110,8 @@ SUPPORTED - Ubuntu 13.10
 	~/Orthanc
 
 
-SUPPORTED - Fedora 19
----------------------
+Fedora 19
+---------
 
 # sudo yum install unzip make automake gcc gcc-c++ python cmake \
                    boost-devel curl-devel dcmtk-devel glog-devel \
@@ -106,3 +124,24 @@ SUPPORTED - Fedora 19
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
+
+
+CentOS 6
+--------
+
+# yum install unzip make automake gcc gcc-c++ python cmake curl-devel \
+              libpng-devel sqlite-devel libuuid-devel openssl-devel \
+              lua-devel mercurial patch tar
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_SYSTEM_SQLITE=OFF \
+        -DUSE_SYSTEM_BOOST=OFF \
+        -DUSE_SYSTEM_DCMTK=OFF \
+        -DUSE_SYSTEM_GOOGLE_TEST=OFF \
+        -DUSE_SYSTEM_LIBJPEG=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+        ~/Orthanc
+

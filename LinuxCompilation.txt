@@ -95,29 +95,30 @@ Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 
 
-SUPPORTED - Ubuntu 12.04.5 LTS
-------------------------------
+SUPPORTED - Ubuntu 14.04 LTS
+----------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
-                       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-                       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
-                       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
-                       libcharls-dev
+       	       	       uuid-dev libcurl4-openssl-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev
 
-# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DUSE_SYSTEM_JSONCPP=OFF \
-        -DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
         ~/Orthanc
+# make
 
-SUPPORTED - Ubuntu 14.04 LTS and 16.04 LTS
-------------------------------------------
+
+SUPPORTED - Ubuntu 16.04 LTS
+----------------------------
 
 # sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.3-0-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
                        libcharls-dev libjsoncpp-dev libpugixml-dev
@@ -182,40 +183,23 @@ SUPPORTED - FreeBSD 10.1
 
 
 
-SUPPORTED - CentOS 6
---------------------
-
-# yum install unzip make automake gcc gcc-c++ python cmake curl-devel \
-              libpng-devel sqlite-devel libuuid-devel openssl-devel \
-              lua-devel mercurial patch tar
-
-# cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_SYSTEM_JSONCPP=OFF \
-        -DUSE_SYSTEM_CIVETWEB=OFF \
-        -DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_SYSTEM_SQLITE=OFF \
-        -DUSE_SYSTEM_BOOST=OFF \
-        -DUSE_SYSTEM_DCMTK=OFF \
-        -DUSE_SYSTEM_GOOGLE_TEST=OFF \
-        -DUSE_SYSTEM_LIBJPEG=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
-
-
-
 Other GNU/Linux distributions?
 ------------------------------
 
-Please send us your build instructions (by a mail to
+Don't hesitate to send us your build instructions (by a mail to
 s.jodogne@orthanc-labs.com)!
+
+The file "./Resources/OldBuildInstructions.txt" contains build
+instructions that once worked for older versions of Orthanc or older
+GNU/Linux distributions, but are not tested anymore. Even if they may
+not work anymore as such, they can serve as a basis.
 
 You can find build instructions for Orthanc up to 0.7.0 on the
 following Wiki page:
-https://code.google.com/p/orthanc/wiki/LinuxCompilationUpTo070
+https://book.orthanc-server.com/faq/compiling-old.html
 
 These instructions will not work as such beyond Orthanc 0.7.0, but
 they might give indications.
-
 
 
 
