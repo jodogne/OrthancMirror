@@ -196,7 +196,9 @@ namespace Orthanc
         }
       }
 
-	  if (static_cast<ssize_t>(contentLength + 2) > std::distance(headersMatcher_.GetMatchEnd(), corpusEnd))
+      // Explicit conversion to avoid warning about signed vs. unsigned comparison
+      std::iterator_traits<StringMatcher::Iterator>::difference_type d = contentLength + 2;
+      if (d > std::distance(headersMatcher_.GetMatchEnd(), corpusEnd))
       {
         break;  // Not enough data available to have a full part
       }
