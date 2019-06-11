@@ -1030,14 +1030,14 @@ namespace Orthanc
 
 
 
-  class OrthancPlugins::StreamingHttpRequest : public HttpClient::IRequestBody
+  class OrthancPlugins::ChunkedHttpRequest : public HttpClient::IRequestBody
   {
   private:
-    const _OrthancPluginStreamingHttpClient&  params_;
-    PluginsErrorDictionary&                   errorDictionary_;
+    const _OrthancPluginChunkedHttpClient&  params_;
+    PluginsErrorDictionary&                 errorDictionary_;
 
   public:
-    StreamingHttpRequest(const _OrthancPluginStreamingHttpClient& params,
+    ChunkedHttpRequest(const _OrthancPluginChunkedHttpClient& params,
                          PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
@@ -1078,14 +1078,14 @@ namespace Orthanc
   };
 
 
-  class OrthancPlugins::StreamingHttpAnswer : public HttpClient::IAnswer
+  class OrthancPlugins::ChunkedHttpAnswer : public HttpClient::IAnswer
   {
   private:
-    const _OrthancPluginStreamingHttpClient&  params_;
-    PluginsErrorDictionary&                   errorDictionary_;
+    const _OrthancPluginChunkedHttpClient&  params_;
+    PluginsErrorDictionary&                 errorDictionary_;
 
   public:
-    StreamingHttpAnswer(const _OrthancPluginStreamingHttpClient& params,
+    ChunkedHttpAnswer(const _OrthancPluginChunkedHttpClient& params,
                         PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
@@ -2291,10 +2291,10 @@ namespace Orthanc
   }
 
 
-  static void ExecuteHttpClientWithoutStream(uint16_t& httpStatus,
-                                             OrthancPluginMemoryBuffer* answerBody,
-                                             OrthancPluginMemoryBuffer* answerHeaders,
-                                             HttpClient& client)
+  static void ExecuteHttpClientWithoutChunkedBody(uint16_t& httpStatus,
+                                                  OrthancPluginMemoryBuffer* answerBody,
+                                                  OrthancPluginMemoryBuffer* answerHeaders,
+                                                  HttpClient& client)
   {
     if (answerBody == NULL)
     {
@@ -2369,7 +2369,7 @@ namespace Orthanc
     }
 
     uint16_t status;
-    ExecuteHttpClientWithoutStream(status, p.target, NULL, client);
+    ExecuteHttpClientWithoutChunkedBody(status, p.target, NULL, client);
   }
 
 
@@ -2391,14 +2391,14 @@ namespace Orthanc
     }
     
     SetupHttpClient(client, p);
-    ExecuteHttpClientWithoutStream(*p.httpStatus, p.answerBody, p.answerHeaders, client);
+    ExecuteHttpClientWithoutChunkedBody(*p.httpStatus, p.answerBody, p.answerHeaders, client);
   }
 
 
-  void OrthancPlugins::StreamingHttpClient(const void* parameters)
+  void OrthancPlugins::ChunkedHttpClient(const void* parameters)
   {
-    const _OrthancPluginStreamingHttpClient& p =
-      *reinterpret_cast<const _OrthancPluginStreamingHttpClient*>(parameters);
+    const _OrthancPluginChunkedHttpClient& p =
+      *reinterpret_cast<const _OrthancPluginChunkedHttpClient*>(parameters);
         
     if (p.httpStatus == NULL)
     {
@@ -2432,10 +2432,10 @@ namespace Orthanc
       SetupHttpClient(client, converted);
     }
     
-    StreamingHttpRequest body(p, pimpl_->dictionary_);
+    ChunkedHttpRequest body(p, pimpl_->dictionary_);
     client.SetBody(body);
 
-    StreamingHttpAnswer answer(p, pimpl_->dictionary_);
+    ChunkedHttpAnswer answer(p, pimpl_->dictionary_);
 
     bool success = client.Apply(answer);
 
@@ -3126,8 +3126,8 @@ namespace Orthanc
         CallHttpClient2(parameters);
         return true;
 
-      case _OrthancPluginService_StreamingHttpClient:
-        StreamingHttpClient(parameters);
+      case _OrthancPluginService_ChunkedHttpClient:
+        ChunkedHttpClient(parameters);
         return true;
 
       case _OrthancPluginService_ConvertPixelFormat:

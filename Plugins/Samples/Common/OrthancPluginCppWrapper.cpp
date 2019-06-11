@@ -2157,7 +2157,7 @@ namespace OrthancPlugins
   };
 
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   static OrthancPluginErrorCode AnswerAddHeaderCallback(void* answer,
                                                         const char* key,
                                                         const char* value)
@@ -2181,7 +2181,7 @@ namespace OrthancPlugins
 #endif
 
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   static OrthancPluginErrorCode AnswerAddChunkCallback(void* answer,
                                                        const void* data,
                                                        uint32_t size)
@@ -2210,7 +2210,7 @@ namespace OrthancPlugins
     method_(OrthancPluginHttpMethod_Get),
     timeout_(0),
     pkcs11_(false),
-    streamingBody_(NULL)
+    chunkedBody_(NULL)
   {
   }
 
@@ -2250,29 +2250,29 @@ namespace OrthancPlugins
 
   void HttpClient::ClearBody()
   {
-    body_.clear();
-    streamingBody_ = NULL;
+    fullBody_.clear();
+    chunkedBody_ = NULL;
   }
 
   
   void HttpClient::SwapBody(std::string& body)
   {
-    body_.swap(body);
-    streamingBody_ = NULL;
+    fullBody_.swap(body);
+    chunkedBody_ = NULL;
   }
 
   
   void HttpClient::SetBody(const std::string& body)
   {
-    body_ = body;
-    streamingBody_ = NULL;
+    fullBody_ = body;
+    chunkedBody_ = NULL;
   }
 
   
   void HttpClient::SetBody(IRequestBody& body)
   {
-    body_.clear();
-    streamingBody_ = &body;
+    fullBody_.clear();
+    chunkedBody_ = &body;
   }
 
 
@@ -2408,7 +2408,7 @@ namespace OrthancPlugins
     };
 
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     class MemoryAnswer : public HttpClient::IAnswer
     {
     private:
@@ -2442,7 +2442,7 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   void HttpClient::ExecuteWithStream(uint16_t& httpStatus,
                                      IAnswer& answer,
                                      IRequestBody& body) const
@@ -2468,7 +2468,7 @@ namespace OrthancPlugins
 
     RequestBodyWrapper request(body);
         
-    OrthancPluginErrorCode error = OrthancPluginStreamingHttpClient(
+    OrthancPluginErrorCode error = OrthancPluginChunkedHttpClient(
       GetGlobalContext(),
       &answer,
       AnswerAddChunkCallback,
@@ -2562,16 +2562,16 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   void HttpClient::Execute(IAnswer& answer)
   {
-    if (streamingBody_ != NULL)
+    if (chunkedBody_ != NULL)
     {
-      ExecuteWithStream(httpStatus_, answer, *streamingBody_);
+      ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
     }
     else
     {
-      MemoryRequestBody wrapper(body_);
+      MemoryRequestBody wrapper(fullBody_);
       ExecuteWithStream(httpStatus_, answer, wrapper);
     }
   }
@@ -2581,7 +2581,7 @@ namespace OrthancPlugins
   void HttpClient::Execute(HttpHeaders& answerHeaders /* out */,
                            std::string& answerBody /* out */)
   {
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     MemoryAnswer answer;
     Execute(answer);
     answerHeaders = answer.GetHeaders();
@@ -2592,12 +2592,12 @@ namespace OrthancPlugins
     // higher memory usage (all chunks from the body request are sent
     // at once)
 
-    if (streamingBody_ != NULL)
+    if (chunkedBody_ != NULL)
     {
       ChunkedBuffer buffer;
       
       std::string chunk;
-      while (streamingBody_->ReadNextChunk(chunk))
+      while (chunkedBody_->ReadNextChunk(chunk))
       {
         buffer.AddChunk(chunk);
       }
@@ -2609,7 +2609,7 @@ namespace OrthancPlugins
     }
     else
     {
-      ExecuteWithoutStream(httpStatus_, answerHeaders, answerBody, body_);
+      ExecuteWithoutStream(httpStatus_, answerHeaders, answerBody, fullBody_);
     }
 #endif
   }
