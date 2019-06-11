@@ -6912,9 +6912,8 @@ extern "C"
 
   typedef struct _OrthancPluginServerChunkedRequestReader_t OrthancPluginServerChunkedRequestReader;
 
-  typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestHandler) (
-    OrthancPluginRestOutput*                   output,  /* out, for GET/DELETE only, NULL if POST/PUT */
-    OrthancPluginServerChunkedRequestReader**  reader, /* out, for POST/PUT only, NULL if GET/DELETE */
+  typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestReaderFactory) (
+    OrthancPluginServerChunkedRequestReader**  reader, /* out, for POST/PUT only */
     const char*                                url,
     const OrthancPluginHttpRequest*            request); /* body and bodySize are not used */
 
@@ -6933,7 +6932,10 @@ extern "C"
   typedef struct
   {
     const char*                                      pathRegularExpression;
-    OrthancPluginServerChunkedRequestHandler         handler;
+    OrthancPluginRestCallback                        getHandler;
+    OrthancPluginServerChunkedRequestReaderFactory   postHandler;
+    OrthancPluginRestCallback                        deleteHandler;
+    OrthancPluginServerChunkedRequestReaderFactory   putHandler;
     OrthancPluginServerChunkedRequestReaderAddChunk  addChunk;
     OrthancPluginServerChunkedRequestReaderExecute   execute;
     OrthancPluginServerChunkedRequestReaderFinalize  finalize;
@@ -6942,14 +6944,20 @@ extern "C"
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterChunkedRestCallback(
     OrthancPluginContext*                            context,
     const char*                                      pathRegularExpression,
-    OrthancPluginServerChunkedRequestHandler         handler,
+    OrthancPluginRestCallback                        getHandler,
+    OrthancPluginServerChunkedRequestReaderFactory   postHandler,
+    OrthancPluginRestCallback                        deleteHandler,
+    OrthancPluginServerChunkedRequestReaderFactory   putHandler,
     OrthancPluginServerChunkedRequestReaderAddChunk  addChunk,
     OrthancPluginServerChunkedRequestReaderExecute   execute,
     OrthancPluginServerChunkedRequestReaderFinalize  finalize)
   {
     _OrthancPluginChunkedRestCallback params;
     params.pathRegularExpression = pathRegularExpression;
-    params.handler = handler;
+    params.getHandler = getHandler;
+    params.postHandler = postHandler;
+    params.deleteHandler = deleteHandler;
+    params.putHandler = putHandler;
     params.addChunk = addChunk;
     params.execute = execute;
     params.finalize = finalize;
