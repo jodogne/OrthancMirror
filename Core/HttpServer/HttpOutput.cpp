@@ -503,7 +503,7 @@ namespace Orthanc
       tmp = "\"" + contentType + "\"";
     }
 
-    multipartBoundary_ = Toolbox::GenerateUuid();
+    multipartBoundary_ = Toolbox::GenerateUuid() + "-" + Toolbox::GenerateUuid();
     multipartContentType_ = contentType;
     header += ("Content-Type: multipart/" + subType + "; type=" +
                tmp + "; boundary=" + multipartBoundary_ + "\r\n\r\n");
