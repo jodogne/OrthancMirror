@@ -1026,33 +1026,39 @@ namespace OrthancPlugins
   }
 
 
-  
+
+  // NB: We use a templated class instead of a templated function, because
+  // default values are only available in functions since C++11
   template<
     RestCallback         GetHandler    = Internals::NullRestCallback,
     ChunkedRestCallback  PostHandler   = Internals::NullChunkedRestCallback,
     RestCallback         DeleteHandler = Internals::NullRestCallback,
     ChunkedRestCallback  PutHandler    = Internals::NullChunkedRestCallback
     >
-  void RegisterChunkedRestCallback(const std::string& uri)
+  class ChunkedRestRegistration : public boost::noncopyable
   {
+  public:
+    static void Apply(const std::string& uri)
+    {
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER == 1
-    OrthancPluginRegisterChunkedRestCallback(
-      GetGlobalContext(), uri.c_str(),
-      GetHandler == Internals::NullRestCallback         ? NULL : Internals::Protect<GetHandler>,
-      PostHandler == Internals::NullChunkedRestCallback ? NULL : Internals::Protect<PostHandler>,
-      DeleteHandler == Internals::NullRestCallback      ? NULL : Internals::Protect<DeleteHandler>,
-      PutHandler == Internals::NullChunkedRestCallback  ? NULL : Internals::Protect<PutHandler>,
-      Internals::ChunkedRequestReaderAddChunk,
-      Internals::ChunkedRequestReaderExecute,
-      Internals::ChunkedRequestReaderFinalize);
+      OrthancPluginRegisterChunkedRestCallback(
+        GetGlobalContext(), uri.c_str(),
+        GetHandler == Internals::NullRestCallback         ? NULL : Internals::Protect<GetHandler>,
+        PostHandler == Internals::NullChunkedRestCallback ? NULL : Internals::Protect<PostHandler>,
+        DeleteHandler == Internals::NullRestCallback      ? NULL : Internals::Protect<DeleteHandler>,
+        PutHandler == Internals::NullChunkedRestCallback  ? NULL : Internals::Protect<PutHandler>,
+        Internals::ChunkedRequestReaderAddChunk,
+        Internals::ChunkedRequestReaderExecute,
+        Internals::ChunkedRequestReaderFinalize);
 #else
-    LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
-               "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
-    
-    OrthancPluginRegisterRestCallback(
-      GetGlobalContext(), uri.c_str(), 
-      Internals::Protect< Internals::ChunkedRestCompatibility<
-      GetHandler, PostHandler, DeleteHandler, PutHandler> >);
+      LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
+                 "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
+      
+      OrthancPluginRegisterRestCallback(
+        GetGlobalContext(), uri.c_str(), 
+        Internals::Protect< Internals::ChunkedRestCompatibility<
+        GetHandler, PostHandler, DeleteHandler, PutHandler> >);
 #endif
-  }
+    }
+  };
 }
