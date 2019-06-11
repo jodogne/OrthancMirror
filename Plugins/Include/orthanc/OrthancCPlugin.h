@@ -6912,6 +6912,7 @@ extern "C"
 
   typedef struct _OrthancPluginServerChunkedRequestReader_t OrthancPluginServerChunkedRequestReader;
 
+  /* POST and PUT must share the same reader */
   typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestReaderFactory) (
     OrthancPluginServerChunkedRequestReader**  reader, /* out, for POST/PUT only */
     const char*                                url,
