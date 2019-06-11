@@ -89,14 +89,20 @@ namespace Orthanc
     class WorklistHandler;
     class FindHandler;
     class MoveHandler;
-    class ChunkedHttpRequest;
-    class ChunkedHttpAnswer;
-    class MultipartStream;
+    class HttpClientChunkedRequest;
+    class HttpClientChunkedAnswer;
+    class HttpServerChunkedReader;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 
-    void RegisterMultipartRestCallback(const void* parameters);
+    void RegisterChunkedRestCallback(const void* parameters);
+
+    bool HandleChunkedGetDelete(HttpOutput& output,
+                                HttpMethod method,
+                                const UriComponents& uri,
+                                const Arguments& headers,
+                                const GetArguments& getArguments);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
@@ -326,12 +332,13 @@ namespace Orthanc
     void RefreshMetrics();
 
     // New in Orthanc 1.5.7
-    virtual IStream* CreateStreamHandler(RequestOrigin origin,
-                                         const char* remoteIp,
-                                         const char* username,
-                                         HttpMethod method,
-                                         const UriComponents& uri,
-                                         const Arguments& headers);
+    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+                                            RequestOrigin origin,
+                                            const char* remoteIp,
+                                            const char* username,
+                                            HttpMethod method,
+                                            const UriComponents& uri,
+                                            const Arguments& headers);
   };
 }
 

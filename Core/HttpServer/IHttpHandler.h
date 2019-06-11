@@ -40,6 +40,7 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace Orthanc
 {
@@ -50,10 +51,10 @@ namespace Orthanc
     typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
 
 
-    class IStream : public boost::noncopyable
+    class IChunkedRequestReader : public boost::noncopyable
     {
     public:
-      virtual ~IStream()
+      virtual ~IChunkedRequestReader()
       {
       }
 
@@ -68,14 +69,17 @@ namespace Orthanc
     {
     }
 
-    // This function is called for each incomding POST/PUT request
-    // (new in Orthanc 1.5.7). It allows to deal with chunked transfers.
-    virtual IStream* CreateStreamHandler(RequestOrigin origin,
-                                         const char* remoteIp,
-                                         const char* username,
-                                         HttpMethod method,
-                                         const UriComponents& uri,
-                                         const Arguments& headers) = 0;
+    /**
+     * This function allows to deal with chunked transfers (new in
+     * Orthanc 1.5.7). It is only called if "method" is POST or PUT.
+     **/
+    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+                                            RequestOrigin origin,
+                                            const char* remoteIp,
+                                            const char* username,
+                                            HttpMethod method,
+                                            const UriComponents& uri,
+                                            const Arguments& headers) = 0;
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,

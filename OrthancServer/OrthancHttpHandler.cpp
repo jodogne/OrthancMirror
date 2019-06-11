@@ -39,25 +39,36 @@
 
 namespace Orthanc
 {
-  IHttpHandler::IStream* OrthancHttpHandler::CreateStreamHandler(RequestOrigin origin,
-                                                                 const char* remoteIp,
-                                                                 const char* username,
-                                                                 HttpMethod method,
-                                                                 const UriComponents& uri,
-                                                                 const Arguments& headers)
+  bool OrthancHttpHandler::CreateChunkedRequestReader(
+    std::auto_ptr<IHttpHandler::IChunkedRequestReader>& target,
+    RequestOrigin origin,
+    const char* remoteIp,
+    const char* username,
+    HttpMethod method,
+    const UriComponents& uri,
+    const Arguments& headers)
   {
+    if (method != HttpMethod_Post &&
+        method != HttpMethod_Put)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
     {
-      IHttpHandler::IStream* stream = (*it)->CreateStreamHandler(
-        origin, remoteIp, username, method, uri, headers);
-
-      if (stream != NULL)
+      if ((*it)->CreateChunkedRequestReader
+          (target, origin, remoteIp, username, method, uri, headers))
       {
-        return stream;
+        if (target.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        return true;
       }
     }
 
-    return NULL;
+    return false;
   }
 
 
