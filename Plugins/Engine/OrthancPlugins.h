@@ -89,8 +89,8 @@ namespace Orthanc
     class WorklistHandler;
     class FindHandler;
     class MoveHandler;
-    class StreamingHttpRequest;
-    class StreamingHttpAnswer;
+    class ChunkedHttpRequest;
+    class ChunkedHttpAnswer;
     class MultipartStream;
     
     void RegisterRestCallback(const void* parameters,
@@ -169,7 +169,7 @@ namespace Orthanc
 
     void CallHttpClient2(const void* parameters);
 
-    void StreamingHttpClient(const void* parameters);
+    void ChunkedHttpClient(const void* parameters);
 
     void CallPeerApi(const void* parameters);
   

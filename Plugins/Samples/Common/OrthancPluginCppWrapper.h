@@ -107,9 +107,9 @@
 #endif
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
-#  define HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT  1
+#  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT  1
 #else
-#  define HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT  0
+#  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT  0
 #endif
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 7)
@@ -822,7 +822,7 @@ namespace OrthancPlugins
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     class IAnswer : public boost::noncopyable
     {
     public:
@@ -853,10 +853,10 @@ namespace OrthancPlugins
     std::string              certificateKeyFile_;
     std::string              certificateKeyPassword_;
     bool                     pkcs11_;
-    std::string              body_;
-    IRequestBody*            streamingBody_;    
+    std::string              fullBody_;
+    IRequestBody*            chunkedBody_;    
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     void ExecuteWithStream(uint16_t& httpStatus,  // out
                            IAnswer& answer,       // out
                            IRequestBody& body) const;
@@ -925,7 +925,7 @@ namespace OrthancPlugins
 
     void SetBody(IRequestBody& body);
 
-#if HAS_ORTHANC_PLUGIN_STREAMING_HTTP_CLIENT == 1
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     void Execute(IAnswer& answer);
 #endif
 

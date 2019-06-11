@@ -430,7 +430,7 @@ extern "C"
     _OrthancPluginService_SetMetricsValue = 31,
     _OrthancPluginService_EncodeDicomWebJson = 32,
     _OrthancPluginService_EncodeDicomWebXml = 33,
-    _OrthancPluginService_StreamingHttpClient = 34,   /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_ChunkedHttpClient = 34,   /* New in Orthanc 1.5.7 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -6810,74 +6810,74 @@ extern "C"
 
 
 
-  typedef OrthancPluginErrorCode (*OrthancPluginHttpAnswerStreamAddHeader) (void* answer,
-                                                                            const char* key,
-                                                                            const char* value);
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpAnswerAddHeader) (void* answer,
+                                                                             const char* key,
+                                                                             const char* value);
 
-  typedef OrthancPluginErrorCode (*OrthancPluginHttpAnswerStreamAddChunk) (void* answer,
-                                                                           const void* data,
-                                                                           uint32_t size);
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpAnswerAddChunk) (void* answer,
+                                                                            const void* data,
+                                                                            uint32_t size);
 
-  typedef uint8_t (*OrthancPluginHttpRequestStreamIsDone) (void* request);
+  typedef uint8_t (*OrthancPluginChunkedHttpRequestIsDone) (void* request);
 
-  typedef OrthancPluginErrorCode (*OrthancPluginHttpRequestStreamNext) (void* request);
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpRequestNext) (void* request);
 
-  typedef const void* (*OrthancPluginHttpRequestStreamGetChunkData) (void* request);
+  typedef const void* (*OrthancPluginChunkedHttpRequestGetChunkData) (void* request);
 
-  typedef uint32_t (*OrthancPluginHttpRequestStreamGetChunkSize) (void* request);
+  typedef uint32_t (*OrthancPluginChunkedHttpRequestGetChunkSize) (void* request);
 
   
 
   typedef struct
   {
-    void*                                       answer;
-    OrthancPluginHttpAnswerStreamAddChunk       answerAddChunk;
-    OrthancPluginHttpAnswerStreamAddHeader      answerAddHeader;
-    uint16_t*                                   httpStatus;
-    OrthancPluginHttpMethod                     method;
-    const char*                                 url;
-    uint32_t                                    headersCount;
-    const char* const*                          headersKeys;
-    const char* const*                          headersValues;
-    void*                                       request;
-    OrthancPluginHttpRequestStreamIsDone        requestIsDone;
-    OrthancPluginHttpRequestStreamGetChunkData  requestChunkData;
-    OrthancPluginHttpRequestStreamGetChunkSize  requestChunkSize;
-    OrthancPluginHttpRequestStreamNext          requestNext;
-    const char*                                 username;
-    const char*                                 password;
-    uint32_t                                    timeout;
-    const char*                                 certificateFile;
-    const char*                                 certificateKeyFile;
-    const char*                                 certificateKeyPassword;
-    uint8_t                                     pkcs11;
-  } _OrthancPluginStreamingHttpClient;
+    void*                                        answer;
+    OrthancPluginChunkedHttpAnswerAddChunk       answerAddChunk;
+    OrthancPluginChunkedHttpAnswerAddHeader      answerAddHeader;
+    uint16_t*                                    httpStatus;
+    OrthancPluginHttpMethod                      method;
+    const char*                                  url;
+    uint32_t                                     headersCount;
+    const char* const*                           headersKeys;
+    const char* const*                           headersValues;
+    void*                                        request;
+    OrthancPluginChunkedHttpRequestIsDone        requestIsDone;
+    OrthancPluginChunkedHttpRequestGetChunkData  requestChunkData;
+    OrthancPluginChunkedHttpRequestGetChunkSize  requestChunkSize;
+    OrthancPluginChunkedHttpRequestNext          requestNext;
+    const char*                                  username;
+    const char*                                  password;
+    uint32_t                                     timeout;
+    const char*                                  certificateFile;
+    const char*                                  certificateKeyFile;
+    const char*                                  certificateKeyPassword;
+    uint8_t                                      pkcs11;
+  } _OrthancPluginChunkedHttpClient;
 
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStreamingHttpClient(
-    OrthancPluginContext*                       context,
-    void*                                       answer,
-    OrthancPluginHttpAnswerStreamAddChunk       answerAddChunk,
-    OrthancPluginHttpAnswerStreamAddHeader      answerAddHeader,
-    uint16_t*                                   httpStatus,
-    OrthancPluginHttpMethod                     method,
-    const char*                                 url,
-    uint32_t                                    headersCount,
-    const char* const*                          headersKeys,
-    const char* const*                          headersValues,
-    void*                                       request,
-    OrthancPluginHttpRequestStreamIsDone        requestIsDone,
-    OrthancPluginHttpRequestStreamGetChunkData  requestChunkData,
-    OrthancPluginHttpRequestStreamGetChunkSize  requestChunkSize,
-    OrthancPluginHttpRequestStreamNext          requestNext,
-    const char*                                 username,
-    const char*                                 password,
-    uint32_t                                    timeout,
-    const char*                                 certificateFile,
-    const char*                                 certificateKeyFile,
-    const char*                                 certificateKeyPassword,
-    uint8_t                                     pkcs11)
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginChunkedHttpClient(
+    OrthancPluginContext*                        context,
+    void*                                        answer,
+    OrthancPluginChunkedHttpAnswerAddChunk       answerAddChunk,
+    OrthancPluginChunkedHttpAnswerAddHeader      answerAddHeader,
+    uint16_t*                                    httpStatus,
+    OrthancPluginHttpMethod                      method,
+    const char*                                  url,
+    uint32_t                                     headersCount,
+    const char* const*                           headersKeys,
+    const char* const*                           headersValues,
+    void*                                        request,
+    OrthancPluginChunkedHttpRequestIsDone        requestIsDone,
+    OrthancPluginChunkedHttpRequestGetChunkData  requestChunkData,
+    OrthancPluginChunkedHttpRequestGetChunkSize  requestChunkSize,
+    OrthancPluginChunkedHttpRequestNext          requestNext,
+    const char*                                  username,
+    const char*                                  password,
+    uint32_t                                     timeout,
+    const char*                                  certificateFile,
+    const char*                                  certificateKeyFile,
+    const char*                                  certificateKeyPassword,
+    uint8_t                                      pkcs11)
   {
-    _OrthancPluginStreamingHttpClient params;
+    _OrthancPluginChunkedHttpClient params;
     memset(&params, 0, sizeof(params));
 
     /* In common with OrthancPluginHttpClient() */
@@ -6895,7 +6895,7 @@ extern "C"
     params.certificateKeyPassword = certificateKeyPassword;
     params.pkcs11 = pkcs11;
 
-    /* For streaming */
+    /* For chunked body/answer */
     params.answer = answer;
     params.answerAddChunk = answerAddChunk;
     params.answerAddHeader = answerAddHeader;
@@ -6905,7 +6905,7 @@ extern "C"
     params.requestChunkSize = requestChunkSize;
     params.requestNext = requestNext;
 
-    return context->InvokeService(context, _OrthancPluginService_StreamingHttpClient, &params);
+    return context->InvokeService(context, _OrthancPluginService_ChunkedHttpClient, &params);
   }
 
 
