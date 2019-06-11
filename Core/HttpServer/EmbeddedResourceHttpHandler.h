@@ -51,26 +51,26 @@ namespace Orthanc
       const std::string& baseUri,
       EmbeddedResources::DirectoryResourceId resourceId);
 
-    virtual IStream* CreateStreamHandler(RequestOrigin origin,
-                                         const char* remoteIp,
-                                         const char* username,
-                                         HttpMethod method,
-                                         const UriComponents& uri,
-                                         const Arguments& headers)
+    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+                                            RequestOrigin origin,
+                                            const char* remoteIp,
+                                            const char* username,
+                                            HttpMethod method,
+                                            const UriComponents& uri,
+                                            const Arguments& headers)
     {
-      return NULL;
+      return false;
     }
 
-    virtual bool Handle(
-      HttpOutput& output,
-      RequestOrigin origin,
-      const char* remoteIp,
-      const char* username,
-      HttpMethod method,
-      const UriComponents& uri,
-      const Arguments& headers,
-      const GetArguments& arguments,
-      const void* /*bodyData*/,
-      size_t /*bodySize*/);
+    virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
+                        HttpMethod method,
+                        const UriComponents& uri,
+                        const Arguments& headers,
+                        const GetArguments& arguments,
+                        const void* /*bodyData*/,
+                        size_t /*bodySize*/);
   };
 }

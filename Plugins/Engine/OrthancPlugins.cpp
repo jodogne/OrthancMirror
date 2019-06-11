@@ -51,7 +51,6 @@
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/DicomParsing/ToDcmtkBridge.h"
 #include "../../Core/HttpServer/HttpToolbox.h"
-#include "../../Core/HttpServer/MultipartStreamReader.h"
 #include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Images/JpegReader.h"
@@ -76,12 +75,19 @@
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 
+#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
+
 namespace Orthanc
 {
   static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
                                  const void* data,
                                  size_t size)
   {
+    if (static_cast<uint32_t>(size) != size)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
+    }
+
     target.size = size;
 
     if (size == 0)
@@ -120,6 +126,11 @@ namespace Orthanc
 
   static char* CopyString(const std::string& str)
   {
+    if (static_cast<uint32_t>(str.size()) != str.size())
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
+    }
+
     char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
     if (result == NULL)
     {
@@ -539,16 +550,16 @@ namespace Orthanc
     };
 
 
-    class MultipartRestCallback : public boost::noncopyable
+    class ChunkedRestCallback : public boost::noncopyable
     {
     private:
-      _OrthancPluginMultipartRestCallback parameters_;
+      _OrthancPluginChunkedRestCallback parameters_;
       boost::regex                        regex_;
 
     public:
-      MultipartRestCallback(_OrthancPluginMultipartRestCallback parameters) :
-        parameters_(parameters),
-        regex_(parameters.pathRegularExpression)
+      ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
+      parameters_(parameters),
+      regex_(parameters.pathRegularExpression)
       {
       }
 
@@ -557,7 +568,7 @@ namespace Orthanc
         return regex_;
       }
 
-      const _OrthancPluginMultipartRestCallback& GetParameters() const
+      const _OrthancPluginChunkedRestCallback& GetParameters() const
       {
         return parameters_;
       }
@@ -598,7 +609,7 @@ namespace Orthanc
 
     typedef std::pair<std::string, _OrthancPluginProperty>  Property;
     typedef std::list<RestCallback*>  RestCallbacks;
-    typedef std::list<MultipartRestCallback*>  MultipartRestCallbacks;
+    typedef std::list<ChunkedRestCallback*>  ChunkedRestCallbacks;
     typedef std::list<OrthancPluginOnStoredInstanceCallback>  OnStoredCallbacks;
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
@@ -611,7 +622,7 @@ namespace Orthanc
     PluginsManager manager_;
 
     RestCallbacks restCallbacks_;
-    MultipartRestCallbacks multipartRestCallbacks_;
+    ChunkedRestCallbacks chunkedRestCallbacks_;
     OnStoredCallbacks  onStoredCallbacks_;
     OnChangeCallbacks  onChangeCallbacks_;
     OrthancPluginFindCallback  findCallback_;
@@ -1030,15 +1041,15 @@ namespace Orthanc
 
 
 
-  class OrthancPlugins::ChunkedHttpRequest : public HttpClient::IRequestBody
+  class OrthancPlugins::HttpClientChunkedRequest : public HttpClient::IRequestBody
   {
   private:
     const _OrthancPluginChunkedHttpClient&  params_;
     PluginsErrorDictionary&                 errorDictionary_;
 
   public:
-    ChunkedHttpRequest(const _OrthancPluginChunkedHttpClient& params,
-                         PluginsErrorDictionary&  errorDictionary) :
+    HttpClientChunkedRequest(const _OrthancPluginChunkedHttpClient& params,
+                             PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
     {
@@ -1078,15 +1089,15 @@ namespace Orthanc
   };
 
 
-  class OrthancPlugins::ChunkedHttpAnswer : public HttpClient::IAnswer
+  class OrthancPlugins::HttpClientChunkedAnswer : public HttpClient::IAnswer
   {
   private:
     const _OrthancPluginChunkedHttpClient&  params_;
     PluginsErrorDictionary&                 errorDictionary_;
 
   public:
-    ChunkedHttpAnswer(const _OrthancPluginChunkedHttpClient& params,
-                        PluginsErrorDictionary&  errorDictionary) :
+    HttpClientChunkedAnswer(const _OrthancPluginChunkedHttpClient& params,
+                            PluginsErrorDictionary&  errorDictionary) :
       params_(params),
       errorDictionary_(errorDictionary)
     {
@@ -1180,8 +1191,8 @@ namespace Orthanc
       delete *it;
     }
 
-    for (PImpl::MultipartRestCallbacks::iterator it = pimpl_->multipartRestCallbacks_.begin(); 
-         it != pimpl_->multipartRestCallbacks_.end(); ++it)
+    for (PImpl::ChunkedRestCallbacks::iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
+         it != pimpl_->chunkedRestCallbacks_.end(); ++it)
     {
       delete *it;
     }
@@ -1232,7 +1243,7 @@ namespace Orthanc
       
     public:
       RestCallbackMatcher(const UriComponents& uri) :
-        flatUri_(Toolbox::FlattenUri(uri))
+      flatUri_(Toolbox::FlattenUri(uri))
       {
       }
 
@@ -1280,6 +1291,133 @@ namespace Orthanc
         return flatUri_;
       }
     };
+
+
+    // WARNING - The lifetime of this internal object must be smaller
+    // than "matcher", "headers" and "getArguments" objects
+    class HttpRequestConverter
+    {
+    private:
+      std::vector<const char*>    getKeys_;
+      std::vector<const char*>    getValues_;
+      std::vector<const char*>    headersKeys_;
+      std::vector<const char*>    headersValues_;
+      OrthancPluginHttpRequest    converted_;
+
+    public:
+      HttpRequestConverter(const RestCallbackMatcher& matcher,
+                           HttpMethod method,
+                           const IHttpHandler::Arguments& headers)
+      {
+        memset(&converted_, 0, sizeof(OrthancPluginHttpRequest));
+
+        ArgumentsToPlugin(headersKeys_, headersValues_, headers);
+        assert(headersKeys_.size() == headersValues_.size());
+
+        switch (method)
+        {
+          case HttpMethod_Get:
+            converted_.method = OrthancPluginHttpMethod_Get;
+            break;
+
+          case HttpMethod_Post:
+            converted_.method = OrthancPluginHttpMethod_Post;
+            break;
+
+          case HttpMethod_Delete:
+            converted_.method = OrthancPluginHttpMethod_Delete;
+            break;
+
+          case HttpMethod_Put:
+            converted_.method = OrthancPluginHttpMethod_Put;
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        converted_.groups = matcher.GetGroups();
+        converted_.groupsCount = matcher.GetGroupsCount();
+        converted_.getCount = 0;
+        converted_.getKeys = NULL;
+        converted_.getValues = NULL;
+        converted_.body = NULL;
+        converted_.bodySize = 0;
+        converted_.headersCount = headers.size();
+       
+        if (headers.size() > 0)
+        {
+          converted_.headersKeys = &headersKeys_[0];
+          converted_.headersValues = &headersValues_[0];
+        }
+      }
+
+      void SetGetArguments(const IHttpHandler::GetArguments& getArguments)
+      {
+        ArgumentsToPlugin(getKeys_, getValues_, getArguments);
+        assert(getKeys_.size() == getValues_.size());
+
+        converted_.getCount = getArguments.size();
+
+        if (getArguments.size() > 0)
+        {
+          converted_.getKeys = &getKeys_[0];
+          converted_.getValues = &getValues_[0];
+        }
+      }
+
+      OrthancPluginHttpRequest& GetRequest()
+      {
+        return converted_;
+      }
+    };
+  }
+
+
+  bool OrthancPlugins::HandleChunkedGetDelete(HttpOutput& output,
+                                              HttpMethod method,
+                                              const UriComponents& uri,
+                                              const Arguments& headers,
+                                              const GetArguments& getArguments)
+  {
+    if (method == HttpMethod_Get ||
+        method == HttpMethod_Delete)
+    {
+      RestCallbackMatcher matcher(uri);
+
+      PImpl::ChunkedRestCallback* callback = NULL;
+
+      // Loop over the callbacks registered by the plugins
+      for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
+           it != pimpl_->chunkedRestCallbacks_.end(); ++it)
+      {
+        if (matcher.IsMatch((*it)->GetRegularExpression()))
+        {
+          callback = *it;
+          break;
+        }
+      }
+
+      if (callback != NULL)
+      {
+        LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
+
+        HttpRequestConverter converter(matcher, method, headers);
+        converter.SetGetArguments(getArguments);
+        
+        PImpl::PluginHttpOutput pluginOutput(output);
+        
+        assert(callback != NULL);
+        OrthancPluginErrorCode error = callback->GetParameters().handler
+          (reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput), 
+           NULL /* no reader */, matcher.GetFlatUri().c_str(), &converter.GetRequest());
+        
+        pluginOutput.Close(error, GetErrorDictionary());
+        return true;
+      }
+    }
+
+    return false;
   }
 
 
@@ -1311,69 +1449,22 @@ namespace Orthanc
 
     if (callback == NULL)
     {
-      // Callback not found
-      return false;
+      // Callback not found, try to find a chunked callback
+      return HandleChunkedGetDelete(output, method, uri, headers, getArguments);
     }
 
     LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
-    std::vector<const char*> getKeys, getValues, headersKeys, headersValues;
-
-    OrthancPluginHttpRequest request;
-    memset(&request, 0, sizeof(OrthancPluginHttpRequest));
-
-    ArgumentsToPlugin(headersKeys, headersValues, headers);
-    assert(headersKeys.size() == headersValues.size());
-
-    switch (method)
-    {
-      case HttpMethod_Get:
-        request.method = OrthancPluginHttpMethod_Get;
-        ArgumentsToPlugin(getKeys, getValues, getArguments);
-        assert(getKeys.size() == getValues.size());
-        break;
-
-      case HttpMethod_Post:
-        request.method = OrthancPluginHttpMethod_Post;
-        break;
-
-      case HttpMethod_Delete:
-        request.method = OrthancPluginHttpMethod_Delete;
-        break;
-
-      case HttpMethod_Put:
-        request.method = OrthancPluginHttpMethod_Put;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    request.groups = matcher.GetGroups();
-    request.groupsCount = matcher.GetGroupsCount();
-    request.getCount = getArguments.size();
-    request.body = bodyData;
-    request.bodySize = bodySize;
-    request.headersCount = headers.size();
-    
-    if (getArguments.size() > 0)
-    {
-      request.getKeys = &getKeys[0];
-      request.getValues = &getValues[0];
-    }
-    
-    if (headers.size() > 0)
-    {
-      request.headersKeys = &headersKeys[0];
-      request.headersValues = &headersValues[0];
-    }
-
-    assert(callback != NULL);
+    HttpRequestConverter converter(matcher, method, headers);
+    converter.SetGetArguments(getArguments);
+    converter.GetRequest().body = bodyData;
+    converter.GetRequest().bodySize = bodySize;
 
     PImpl::PluginHttpOutput pluginOutput(output);
 
+    assert(callback != NULL);
     OrthancPluginErrorCode error = callback->Invoke
-      (pimpl_->restCallbackMutex_, pluginOutput, matcher.GetFlatUri(), request);
+      (pimpl_->restCallbackMutex_, pluginOutput, matcher.GetFlatUri(), converter.GetRequest());
 
     pluginOutput.Close(error, GetErrorDictionary());
     return true;
@@ -1450,15 +1541,15 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::RegisterMultipartRestCallback(const void* parameters)
+  void OrthancPlugins::RegisterChunkedRestCallback(const void* parameters)
   {
-    const _OrthancPluginMultipartRestCallback& p = 
-      *reinterpret_cast<const _OrthancPluginMultipartRestCallback*>(parameters);
+    const _OrthancPluginChunkedRestCallback& p = 
+      *reinterpret_cast<const _OrthancPluginChunkedRestCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a REST callback for multipart streams on: " 
+    LOG(INFO) << "Plugin has registered a REST callback for chunked streams on: " 
               << p.pathRegularExpression;
 
-    pimpl_->multipartRestCallbacks_.push_back(new PImpl::MultipartRestCallback(p));
+    pimpl_->chunkedRestCallbacks_.push_back(new PImpl::ChunkedRestCallback(p));
   }
 
 
@@ -2432,10 +2523,10 @@ namespace Orthanc
       SetupHttpClient(client, converted);
     }
     
-    ChunkedHttpRequest body(p, pimpl_->dictionary_);
+    HttpClientChunkedRequest body(p, pimpl_->dictionary_);
     client.SetBody(body);
 
-    ChunkedHttpAnswer answer(p, pimpl_->dictionary_);
+    HttpClientChunkedAnswer answer(p, pimpl_->dictionary_);
 
     bool success = client.Apply(answer);
 
@@ -3546,8 +3637,8 @@ namespace Orthanc
         RegisterRestCallback(parameters, false);
         return true;
 
-      case _OrthancPluginService_RegisterMultipartRestCallback:
-        RegisterMultipartRestCallback(parameters);
+      case _OrthancPluginService_RegisterChunkedRestCallback:
+        RegisterChunkedRestCallback(parameters);
         return true;
 
       case _OrthancPluginService_RegisterOnStoredInstanceCallback:
@@ -4110,170 +4201,115 @@ namespace Orthanc
   }
 
 
-  class OrthancPlugins::MultipartStream : 
-    public IHttpHandler::IStream,
-    private MultipartStreamReader::IHandler
+  class OrthancPlugins::HttpServerChunkedReader : public IHttpHandler::IChunkedRequestReader
   {
   private:
-    OrthancPluginMultipartRestHandler*   handler_;
-    _OrthancPluginMultipartRestCallback  parameters_;
-    MultipartStreamReader                reader_;
-    PluginsErrorDictionary&              errorDictionary_;
-
-    virtual void HandlePart(const MultipartStreamReader::HttpHeaders& headers,
-                            const void* part,
-                            size_t size)
-    {
-      assert(handler_ != NULL);
-
-      std::string contentType;
-      MultipartStreamReader::GetMainContentType(contentType, headers);
-      Orthanc::Toolbox::ToLowerCase(contentType);
-
-      std::vector<const char*>  headersKeys, headersValues;
-      ArgumentsToPlugin(headersKeys, headersValues, headers);
-      assert(headersKeys.size() == headersValues.size());
-
-      OrthancPluginErrorCode error = parameters_.addPart(
-        handler_, contentType.c_str(), headersKeys.size(),
-        headersKeys.empty() ? NULL : &headersKeys[0],
-        headersValues.empty() ? NULL : &headersValues[0],
-        part, size);
-
-      if (error != OrthancPluginErrorCode_Success)
-      {
-        errorDictionary_.LogError(error, true);
-        throw OrthancException(static_cast<ErrorCode>(error));
-      }
-    }
+    OrthancPluginServerChunkedRequestReader*  reader_;
+    _OrthancPluginChunkedRestCallback         parameters_;
+    PluginsErrorDictionary&                   errorDictionary_;
 
   public:
-    MultipartStream(OrthancPluginMultipartRestHandler* handler,
-                    const _OrthancPluginMultipartRestCallback& parameters,
-                    const std::string& boundary,
-                    PluginsErrorDictionary& errorDictionary) :
-      handler_(handler),
+    HttpServerChunkedReader(OrthancPluginServerChunkedRequestReader* reader,
+                            const _OrthancPluginChunkedRestCallback& parameters,
+                            PluginsErrorDictionary& errorDictionary) :
+      reader_(reader),
       parameters_(parameters),
-      reader_(boundary),
       errorDictionary_(errorDictionary)
     {
-      if (handler_ == NULL)
-      {
-        throw OrthancException(ErrorCode_Plugin, "The plugin has not created a multipart stream handler");
-      }
-
-      reader_.SetHandler(*this);
+      assert(reader_ != NULL);
     }
 
-    virtual ~MultipartStream()
+    virtual ~HttpServerChunkedReader()
     {
-      if (handler_ != NULL)
-      {
-        parameters_.finalize(handler_);
-      }
+      assert(reader_ != NULL);
+      parameters_.finalize(reader_);
     }
 
     virtual void AddBodyChunk(const void* data,
                               size_t size)
     {
-      reader_.AddChunk(data, size);
-    }
+      if (static_cast<uint32_t>(size) != size)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
+      }
+
+      assert(reader_ != NULL);
+      parameters_.addChunk(reader_, data, size);
+    }    
 
     virtual void Execute(HttpOutput& output)
     {
-      assert(handler_ != NULL);
-
-      reader_.CloseStream();
+      assert(reader_ != NULL);
 
       PImpl::PluginHttpOutput pluginOutput(output);
 
       OrthancPluginErrorCode error = parameters_.execute(
-        handler_, reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput));
+        reader_, reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput));
 
       pluginOutput.Close(error, errorDictionary_);
     }
   };
 
 
-  IHttpHandler::IStream* OrthancPlugins::CreateStreamHandler(RequestOrigin origin,
-                                                             const char* remoteIp,
-                                                             const char* username,
-                                                             HttpMethod method,
-                                                             const UriComponents& uri,
-                                                             const Arguments& headers)
+  bool OrthancPlugins::CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+                                                  RequestOrigin origin,
+                                                  const char* remoteIp,
+                                                  const char* username,
+                                                  HttpMethod method,
+                                                  const UriComponents& uri,
+                                                  const Arguments& headers)
   {
+    if (method != HttpMethod_Post &&
+        method != HttpMethod_Put)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     RestCallbackMatcher matcher(uri);
 
+    PImpl::ChunkedRestCallback* callback = NULL;
+
     // Loop over the callbacks registered by the plugins
-    for (PImpl::MultipartRestCallbacks::const_iterator it = pimpl_->multipartRestCallbacks_.begin(); 
-         it != pimpl_->multipartRestCallbacks_.end(); ++it)
+    for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
+         it != pimpl_->chunkedRestCallbacks_.end(); ++it)
     {
       if (matcher.IsMatch((*it)->GetRegularExpression()))
       {
-        LOG(INFO) << "Delegating HTTP multipart request to plugin for URI: " << matcher.GetFlatUri();
-
-        std::vector<const char*> headersKeys, headersValues;
-        ArgumentsToPlugin(headersKeys, headersValues, headers);
-        assert(headersKeys.size() == headersValues.size());
-
-        OrthancPluginHttpMethod convertedMethod;
-        switch (method)
-        {
-          case HttpMethod_Post:
-            convertedMethod = OrthancPluginHttpMethod_Post;
-            break;
-
-          case HttpMethod_Put:
-            convertedMethod = OrthancPluginHttpMethod_Put;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-
-        std::string mainContentType;
-        if (!MultipartStreamReader::GetMainContentType(mainContentType, headers))
-        {
-          LOG(INFO) << "Missing Content-Type HTTP header, prevents streaming the body";
-          continue;
-        }
-
-        std::string contentType, subType, boundary;
-        if (!MultipartStreamReader::ParseMultipartContentType
-            (contentType, subType, boundary, mainContentType))
-        {
-          LOG(INFO) << "Invalid Content-Type HTTP header, "
-                    << "prevents streaming the body: \"" << mainContentType << "\"";
-          continue;
-        }
-
-        OrthancPluginErrorCode errorCode = OrthancPluginErrorCode_Plugin;
-
-        OrthancPluginMultipartRestHandler* handler = (*it)->GetParameters().createHandler(
-          (*it)->GetParameters().factory, &errorCode,
-          convertedMethod, matcher.GetFlatUri().c_str(), contentType.c_str(), subType.c_str(),
-          matcher.GetGroupsCount(), matcher.GetGroups(), headers.size(),
-          headers.empty() ? NULL : &headersKeys[0],
-          headers.empty() ? NULL : &headersValues[0]);
-
-        if (handler == NULL)
-        {
-          if (errorCode == OrthancPluginErrorCode_Success)
-          {
-            // Ignore: The factory cannot create a handler for this request
-          }
-          else
-          {
-            throw OrthancException(static_cast<ErrorCode>(errorCode));
-          }          
-        }
-        else
-        {
-          return new MultipartStream(handler, (*it)->GetParameters(), boundary, GetErrorDictionary());
-        }
+        callback = *it;
+        break;
       }
     }
 
-    return NULL;
+    if (callback == NULL)
+    {
+      // Callback not found
+      return false;
+    }
+
+    LOG(INFO) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
+
+    HttpRequestConverter converter(matcher, method, headers);
+    converter.GetRequest().body = NULL;
+    converter.GetRequest().bodySize = 0;
+
+    OrthancPluginServerChunkedRequestReader* reader = NULL;
+    
+    OrthancPluginErrorCode errorCode = callback->GetParameters().handler(
+      NULL /* no HTTP output */, &reader, matcher.GetFlatUri().c_str(), &converter.GetRequest());
+    
+    if (reader == NULL)
+    {
+      // The plugin has not created a reader for chunked body
+      return false;
+    }
+    else if (errorCode != OrthancPluginErrorCode_Success)
+    {
+      throw OrthancException(static_cast<ErrorCode>(errorCode));
+    }
+    else
+    {
+      target.reset(new HttpServerChunkedReader(reader, callback->GetParameters(), GetErrorDictionary()));
+      return true;
+    }
   }
 }

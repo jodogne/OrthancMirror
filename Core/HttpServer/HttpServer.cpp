@@ -384,7 +384,7 @@ namespace Orthanc
   }
 
 
-  static PostDataStatus ReadBodyToStream(IHttpHandler::IStream& stream,
+  static PostDataStatus ReadBodyToStream(IHttpHandler::IChunkedRequestReader& stream,
                                          struct mg_connection *connection,
                                          const IHttpHandler::Arguments& headers)
   {
@@ -847,16 +847,21 @@ namespace Orthanc
 
       if (!isMultipartForm)
       {
-        std::auto_ptr<IHttpHandler::IStream> stream;
+        std::auto_ptr<IHttpHandler::IChunkedRequestReader> stream;
 
         if (server.HasHandler())
         {
-          stream.reset(server.GetHandler().CreateStreamHandler
-                       (RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers));
+          found = server.GetHandler().CreateChunkedRequestReader
+            (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers);
         }
-
-        if (stream.get() != NULL)
+        
+        if (found)
         {
+          if (stream.get() == NULL)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
           status = ReadBodyToStream(*stream, connection, headers);
 
           if (status == PostDataStatus_Success)

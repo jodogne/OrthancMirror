@@ -445,7 +445,7 @@ extern "C"
     _OrthancPluginService_RegisterMoveCallback = 1009,
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
     _OrthancPluginService_RegisterRefreshMetricsCallback = 1011,
-    _OrthancPluginService_RegisterMultipartRestCallback = 1012,  /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_RegisterChunkedRestCallback = 1012,  /* New in Orthanc 1.5.7 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -6810,72 +6810,72 @@ extern "C"
 
 
 
-  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpAnswerAddHeader) (void* answer,
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedClientAnswerAddHeader) (void* answer,
                                                                              const char* key,
                                                                              const char* value);
 
-  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpAnswerAddChunk) (void* answer,
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedClientAnswerAddChunk) (void* answer,
                                                                             const void* data,
                                                                             uint32_t size);
 
-  typedef uint8_t (*OrthancPluginChunkedHttpRequestIsDone) (void* request);
+  typedef uint8_t (*OrthancPluginChunkedClientRequestIsDone) (void* request);
 
-  typedef OrthancPluginErrorCode (*OrthancPluginChunkedHttpRequestNext) (void* request);
+  typedef OrthancPluginErrorCode (*OrthancPluginChunkedClientRequestNext) (void* request);
 
-  typedef const void* (*OrthancPluginChunkedHttpRequestGetChunkData) (void* request);
+  typedef const void* (*OrthancPluginChunkedClientRequestGetChunkData) (void* request);
 
-  typedef uint32_t (*OrthancPluginChunkedHttpRequestGetChunkSize) (void* request);
+  typedef uint32_t (*OrthancPluginChunkedClientRequestGetChunkSize) (void* request);
 
   
 
   typedef struct
   {
-    void*                                        answer;
-    OrthancPluginChunkedHttpAnswerAddChunk       answerAddChunk;
-    OrthancPluginChunkedHttpAnswerAddHeader      answerAddHeader;
-    uint16_t*                                    httpStatus;
-    OrthancPluginHttpMethod                      method;
-    const char*                                  url;
-    uint32_t                                     headersCount;
-    const char* const*                           headersKeys;
-    const char* const*                           headersValues;
-    void*                                        request;
-    OrthancPluginChunkedHttpRequestIsDone        requestIsDone;
-    OrthancPluginChunkedHttpRequestGetChunkData  requestChunkData;
-    OrthancPluginChunkedHttpRequestGetChunkSize  requestChunkSize;
-    OrthancPluginChunkedHttpRequestNext          requestNext;
-    const char*                                  username;
-    const char*                                  password;
-    uint32_t                                     timeout;
-    const char*                                  certificateFile;
-    const char*                                  certificateKeyFile;
-    const char*                                  certificateKeyPassword;
-    uint8_t                                      pkcs11;
+    void*                                          answer;
+    OrthancPluginChunkedClientAnswerAddChunk       answerAddChunk;
+    OrthancPluginChunkedClientAnswerAddHeader      answerAddHeader;
+    uint16_t*                                      httpStatus;
+    OrthancPluginHttpMethod                        method;
+    const char*                                    url;
+    uint32_t                                       headersCount;
+    const char* const*                             headersKeys;
+    const char* const*                             headersValues;
+    void*                                          request;
+    OrthancPluginChunkedClientRequestIsDone        requestIsDone;
+    OrthancPluginChunkedClientRequestGetChunkData  requestChunkData;
+    OrthancPluginChunkedClientRequestGetChunkSize  requestChunkSize;
+    OrthancPluginChunkedClientRequestNext          requestNext;
+    const char*                                    username;
+    const char*                                    password;
+    uint32_t                                       timeout;
+    const char*                                    certificateFile;
+    const char*                                    certificateKeyFile;
+    const char*                                    certificateKeyPassword;
+    uint8_t                                        pkcs11;
   } _OrthancPluginChunkedHttpClient;
 
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginChunkedHttpClient(
-    OrthancPluginContext*                        context,
-    void*                                        answer,
-    OrthancPluginChunkedHttpAnswerAddChunk       answerAddChunk,
-    OrthancPluginChunkedHttpAnswerAddHeader      answerAddHeader,
-    uint16_t*                                    httpStatus,
-    OrthancPluginHttpMethod                      method,
-    const char*                                  url,
-    uint32_t                                     headersCount,
-    const char* const*                           headersKeys,
-    const char* const*                           headersValues,
-    void*                                        request,
-    OrthancPluginChunkedHttpRequestIsDone        requestIsDone,
-    OrthancPluginChunkedHttpRequestGetChunkData  requestChunkData,
-    OrthancPluginChunkedHttpRequestGetChunkSize  requestChunkSize,
-    OrthancPluginChunkedHttpRequestNext          requestNext,
-    const char*                                  username,
-    const char*                                  password,
-    uint32_t                                     timeout,
-    const char*                                  certificateFile,
-    const char*                                  certificateKeyFile,
-    const char*                                  certificateKeyPassword,
-    uint8_t                                      pkcs11)
+    OrthancPluginContext*                          context,
+    void*                                          answer,
+    OrthancPluginChunkedClientAnswerAddChunk       answerAddChunk,
+    OrthancPluginChunkedClientAnswerAddHeader      answerAddHeader,
+    uint16_t*                                      httpStatus,
+    OrthancPluginHttpMethod                        method,
+    const char*                                    url,
+    uint32_t                                       headersCount,
+    const char* const*                             headersKeys,
+    const char* const*                             headersValues,
+    void*                                          request,
+    OrthancPluginChunkedClientRequestIsDone        requestIsDone,
+    OrthancPluginChunkedClientRequestGetChunkData  requestChunkData,
+    OrthancPluginChunkedClientRequestGetChunkSize  requestChunkSize,
+    OrthancPluginChunkedClientRequestNext          requestNext,
+    const char*                                    username,
+    const char*                                    password,
+    uint32_t                                       timeout,
+    const char*                                    certificateFile,
+    const char*                                    certificateKeyFile,
+    const char*                                    certificateKeyPassword,
+    uint8_t                                        pkcs11)
   {
     _OrthancPluginChunkedHttpClient params;
     memset(&params, 0, sizeof(params));
@@ -6910,67 +6910,51 @@ extern "C"
 
 
 
-  typedef struct _OrthancPluginMultipartRestHandler_t OrthancPluginMultipartRestHandler;
+  typedef struct _OrthancPluginServerChunkedRequestReader_t OrthancPluginServerChunkedRequestReader;
 
-  typedef struct _OrthancPluginMultipartRestFactory_t OrthancPluginMultipartRestFactory;
+  typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestHandler) (
+    OrthancPluginRestOutput*                   output,  /* out, for GET/DELETE only, NULL if POST/PUT */
+    OrthancPluginServerChunkedRequestReader**  reader, /* out, for POST/PUT only, NULL if GET/DELETE */
+    const char*                                url,
+    const OrthancPluginHttpRequest*            request); /* body and bodySize are not used */
 
-  typedef OrthancPluginMultipartRestHandler* (*OrthancPluginMultipartRestCreateHandler) (
-    OrthancPluginMultipartRestFactory* factory,
-    OrthancPluginErrorCode*            errorCode,   /* out: to report an exception on handler creation */
-    OrthancPluginHttpMethod            method,
-    const char*                        url,
-    const char*                        contentType,
-    const char*                        subType,
-    uint32_t                           groupsCount,
-    const char* const*                 groups,
-    uint32_t                           headersCount,
-    const char* const*                 headersKeys,
-    const char* const*                 headersValues);
-
-  typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerAddPart) (
-    OrthancPluginMultipartRestHandler* handler,
-    const char*                        contentType,
-    uint32_t                           headersCount,
-    const char* const*                 headersKeys,
-    const char* const*                 headersValues,
-    const void*                        data,
-    uint32_t                           size);
+  typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestReaderAddChunk) (
+    OrthancPluginServerChunkedRequestReader* reader,
+    const void*                              data,
+    uint32_t                                 size);
     
-  typedef OrthancPluginErrorCode (*OrthancPluginMultipartHandlerExecute) (
-    OrthancPluginMultipartRestHandler* handler,
-    OrthancPluginRestOutput*           output);
-  
-  typedef void (*OrthancPluginMultipartHandlerFinalize) (
-    OrthancPluginMultipartRestHandler* handler);
+  typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestReaderExecute) (
+    OrthancPluginServerChunkedRequestReader* reader,
+    OrthancPluginRestOutput*                 output);
+    
+  typedef void (*OrthancPluginServerChunkedRequestReaderFinalize) (
+    OrthancPluginServerChunkedRequestReader* reader);
   
   typedef struct
   {
-    const char*                              pathRegularExpression;
-    OrthancPluginMultipartRestFactory*       factory;
-    OrthancPluginMultipartRestCreateHandler  createHandler;
-    OrthancPluginMultipartHandlerAddPart     addPart;
-    OrthancPluginMultipartHandlerExecute     execute;
-   OrthancPluginMultipartHandlerFinalize     finalize;
-  } _OrthancPluginMultipartRestCallback;
+    const char*                                      pathRegularExpression;
+    OrthancPluginServerChunkedRequestHandler         handler;
+    OrthancPluginServerChunkedRequestReaderAddChunk  addChunk;
+    OrthancPluginServerChunkedRequestReaderExecute   execute;
+    OrthancPluginServerChunkedRequestReaderFinalize  finalize;
+  } _OrthancPluginChunkedRestCallback;
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterMultipartRestCallback(
-    OrthancPluginContext*                    context,
-    const char*                              pathRegularExpression,
-    OrthancPluginMultipartRestFactory*       factory,
-    OrthancPluginMultipartRestCreateHandler  createHandler,
-    OrthancPluginMultipartHandlerAddPart     addPart,
-    OrthancPluginMultipartHandlerExecute     execute,
-    OrthancPluginMultipartHandlerFinalize    finalize)
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterChunkedRestCallback(
+    OrthancPluginContext*                            context,
+    const char*                                      pathRegularExpression,
+    OrthancPluginServerChunkedRequestHandler         handler,
+    OrthancPluginServerChunkedRequestReaderAddChunk  addChunk,
+    OrthancPluginServerChunkedRequestReaderExecute   execute,
+    OrthancPluginServerChunkedRequestReaderFinalize  finalize)
   {
-    _OrthancPluginMultipartRestCallback params;
+    _OrthancPluginChunkedRestCallback params;
     params.pathRegularExpression = pathRegularExpression;
-    params.factory = factory;
-    params.createHandler = createHandler;
-    params.addPart = addPart;
+    params.handler = handler;
+    params.addChunk = addChunk;
     params.execute = execute;
     params.finalize = finalize;
 
-    context->InvokeService(context, _OrthancPluginService_RegisterMultipartRestCallback, &params);
+    context->InvokeService(context, _OrthancPluginService_RegisterChunkedRestCallback, &params);
   }
 
 #ifdef  __cplusplus
