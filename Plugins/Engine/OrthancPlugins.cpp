@@ -554,7 +554,7 @@ namespace Orthanc
     {
     private:
       _OrthancPluginChunkedRestCallback parameters_;
-      boost::regex                        regex_;
+      boost::regex                      regex_;
 
     public:
       ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
@@ -1374,50 +1374,115 @@ namespace Orthanc
   }
 
 
+  static std::string GetAllowedMethods(_OrthancPluginChunkedRestCallback parameters)
+  {
+    std::string s;
+
+    if (parameters.getHandler != NULL)
+    {
+      s += "GET";
+    }
+
+    if (parameters.postHandler != NULL)
+    {
+      if (!s.empty())
+      {
+        s+= ",";
+      }
+      
+      s += "POST";
+    }
+
+    if (parameters.deleteHandler != NULL)
+    {
+      if (!s.empty())
+      {
+        s+= ",";
+      }
+      
+      s += "DELETE";
+    }
+
+    if (parameters.putHandler != NULL)
+    {
+      if (!s.empty())
+      {
+        s+= ",";
+      }
+      
+      s += "PUT";
+    }
+
+    return s;
+  }
+
+
   bool OrthancPlugins::HandleChunkedGetDelete(HttpOutput& output,
                                               HttpMethod method,
                                               const UriComponents& uri,
                                               const Arguments& headers,
                                               const GetArguments& getArguments)
   {
-    if (method == HttpMethod_Get ||
-        method == HttpMethod_Delete)
+    RestCallbackMatcher matcher(uri);
+
+    PImpl::ChunkedRestCallback* callback = NULL;
+
+    // Loop over the callbacks registered by the plugins
+    for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
+         it != pimpl_->chunkedRestCallbacks_.end(); ++it)
     {
-      RestCallbackMatcher matcher(uri);
-
-      PImpl::ChunkedRestCallback* callback = NULL;
-
-      // Loop over the callbacks registered by the plugins
-      for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
-           it != pimpl_->chunkedRestCallbacks_.end(); ++it)
+      if (matcher.IsMatch((*it)->GetRegularExpression()))
       {
-        if (matcher.IsMatch((*it)->GetRegularExpression()))
-        {
-          callback = *it;
-          break;
-        }
-      }
-
-      if (callback != NULL)
-      {
-        LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
-
-        HttpRequestConverter converter(matcher, method, headers);
-        converter.SetGetArguments(getArguments);
-        
-        PImpl::PluginHttpOutput pluginOutput(output);
-        
-        assert(callback != NULL);
-        OrthancPluginErrorCode error = callback->GetParameters().handler
-          (reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput), 
-           NULL /* no reader */, matcher.GetFlatUri().c_str(), &converter.GetRequest());
-        
-        pluginOutput.Close(error, GetErrorDictionary());
-        return true;
+        callback = *it;
+        break;
       }
     }
 
-    return false;
+    if (callback == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
+
+      OrthancPluginRestCallback handler;
+
+      switch (method)
+      {
+        case HttpMethod_Get:
+          handler = callback->GetParameters().getHandler;
+          break;
+
+        case HttpMethod_Delete:
+          handler = callback->GetParameters().deleteHandler;
+          break;
+
+        default:
+          handler = NULL;
+          break;
+      }
+
+      if (handler == NULL)
+      {
+        output.SendMethodNotAllowed(GetAllowedMethods(callback->GetParameters()));
+      }
+      else
+      {
+        HttpRequestConverter converter(matcher, method, headers);
+        converter.SetGetArguments(getArguments);
+      
+        PImpl::PluginHttpOutput pluginOutput(output);
+        
+        OrthancPluginErrorCode error = handler(
+          reinterpret_cast<OrthancPluginRestOutput*>(&pluginOutput), 
+          matcher.GetFlatUri().c_str(), &converter.GetRequest());
+        
+        pluginOutput.Close(error, GetErrorDictionary());
+      }
+      
+      return true;
+    }
   }
 
 
@@ -4285,31 +4350,57 @@ namespace Orthanc
       // Callback not found
       return false;
     }
-
-    LOG(INFO) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
-
-    HttpRequestConverter converter(matcher, method, headers);
-    converter.GetRequest().body = NULL;
-    converter.GetRequest().bodySize = 0;
-
-    OrthancPluginServerChunkedRequestReader* reader = NULL;
-    
-    OrthancPluginErrorCode errorCode = callback->GetParameters().handler(
-      NULL /* no HTTP output */, &reader, matcher.GetFlatUri().c_str(), &converter.GetRequest());
-    
-    if (reader == NULL)
-    {
-      // The plugin has not created a reader for chunked body
-      return false;
-    }
-    else if (errorCode != OrthancPluginErrorCode_Success)
-    {
-      throw OrthancException(static_cast<ErrorCode>(errorCode));
-    }
     else
     {
-      target.reset(new HttpServerChunkedReader(reader, callback->GetParameters(), GetErrorDictionary()));
-      return true;
+      OrthancPluginServerChunkedRequestReaderFactory handler;
+
+      switch (method)
+      {
+        case HttpMethod_Post:
+          handler = callback->GetParameters().postHandler;
+          break;
+
+        case HttpMethod_Put:
+          handler = callback->GetParameters().putHandler;
+          break;
+
+        default:
+          handler = NULL;
+          break;
+      }
+
+      if (handler == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        LOG(INFO) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
+
+        HttpRequestConverter converter(matcher, method, headers);
+        converter.GetRequest().body = NULL;
+        converter.GetRequest().bodySize = 0;
+
+        OrthancPluginServerChunkedRequestReader* reader = NULL;
+    
+        OrthancPluginErrorCode errorCode = handler(
+          &reader, matcher.GetFlatUri().c_str(), &converter.GetRequest());
+    
+        if (reader == NULL)
+        {
+          // The plugin has not created a reader for chunked body
+          return false;
+        }
+        else if (errorCode != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(static_cast<ErrorCode>(errorCode));
+        }
+        else
+        {
+          target.reset(new HttpServerChunkedReader(reader, callback->GetParameters(), GetErrorDictionary()));
+          return true;
+        }
+      }
     }
   }
 }
