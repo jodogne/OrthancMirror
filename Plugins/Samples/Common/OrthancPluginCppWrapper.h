@@ -950,9 +950,9 @@ namespace OrthancPlugins
 
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER == 1
     template <ChunkedRestCallback Callback>
-    static OrthancPluginErrorCode Protect(OrthancPluginServerChunkedRequestReader** reader,
-                                          const char* url,
-                                          const OrthancPluginHttpRequest* request)
+    static OrthancPluginErrorCode ChunkedProtect(OrthancPluginServerChunkedRequestReader** reader,
+                                                const char* url,
+                                                const OrthancPluginHttpRequest* request)
     {
       try
       {
@@ -1044,9 +1044,9 @@ namespace OrthancPlugins
       OrthancPluginRegisterChunkedRestCallback(
         GetGlobalContext(), uri.c_str(),
         GetHandler == Internals::NullRestCallback         ? NULL : Internals::Protect<GetHandler>,
-        PostHandler == Internals::NullChunkedRestCallback ? NULL : Internals::Protect<PostHandler>,
+        PostHandler == Internals::NullChunkedRestCallback ? NULL : Internals::ChunkedProtect<PostHandler>,
         DeleteHandler == Internals::NullRestCallback      ? NULL : Internals::Protect<DeleteHandler>,
-        PutHandler == Internals::NullChunkedRestCallback  ? NULL : Internals::Protect<PutHandler>,
+        PutHandler == Internals::NullChunkedRestCallback  ? NULL : Internals::ChunkedProtect<PutHandler>,
         Internals::ChunkedRequestReaderAddChunk,
         Internals::ChunkedRequestReaderExecute,
         Internals::ChunkedRequestReaderFinalize);
@@ -1056,7 +1056,7 @@ namespace OrthancPlugins
       
       OrthancPluginRegisterRestCallback(
         GetGlobalContext(), uri.c_str(), 
-        Internals::Protect< Internals::ChunkedRestCompatibility<
+        Internals::ChunkedProtect< Internals::ChunkedRestCompatibility<
         GetHandler, PostHandler, DeleteHandler, PutHandler> >);
 #endif
     }

@@ -2070,7 +2070,7 @@ namespace OrthancPlugins
   {
     const boost::posix_time::ptime stop = boost::posix_time::microsec_clock::universal_time();
     const boost::posix_time::time_duration diff = stop - start_;
-    OrthancPluginSetMetricsValue(GetGlobalContext(), name_.c_str(), diff.total_milliseconds(),
+    OrthancPluginSetMetricsValue(GetGlobalContext(), name_.c_str(), static_cast<float>(diff.total_milliseconds()),
                                  OrthancPluginMetricsType_Timer);
   }
 #endif
