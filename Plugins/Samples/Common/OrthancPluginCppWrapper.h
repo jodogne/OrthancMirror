@@ -292,8 +292,12 @@ namespace OrthancPlugins
 
     std::string GetPath(const std::string& key) const;
 
+    void LoadConfiguration();
+    
   public:
     OrthancConfiguration();
+
+    OrthancConfiguration(bool load);
 
     const Json::Value& GetJson() const
     {
