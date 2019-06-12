@@ -3672,7 +3672,7 @@ namespace Orthanc
         {
           visitor.FormatXml(s);
         }
-        
+
         *p.target = CopyString(s);
         return true;
       }

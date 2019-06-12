@@ -521,15 +521,21 @@ namespace Orthanc
       Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
       node[KEY_VR] = EnumerationToString(vr);
 
+#if 0
+      /**
+       * TODO - The JSON file has an UTF-8 encoding, thus DCMTK
+       * replaces the specific character set with "ISO_IR 192"
+       * (UNICODE UTF-8). On Google Cloud Healthcare, however, the
+       * source encoding is reported, which seems more logical. We
+       * thus choose the Google convention. Enabling this block will
+       * mimic the DCMTK behavior.
+       **/
       if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        // TODO - The JSON file has an UTF-8 encoding, thus DCMTK
-        // replaces the specific character set with "ISO_IR 192"
-        // (UNICODE UTF-8). It is unclear whether the source
-        // character set should be kept: We thus mimic DCMTK.
         node[KEY_VALUE].append("ISO_IR 192");
       }
       else
+#endif
       {
         std::string truncated;
         
@@ -542,11 +548,20 @@ namespace Orthanc
         {
           truncated = value;
         }
-        
+
         if (!truncated.empty())
         {
           std::vector<std::string> tokens;
           Toolbox::TokenizeString(tokens, truncated, '\\');
+
+          if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET &&
+              tokens.size() > 1 &&
+              tokens[0].empty())
+          {
+            std::string s = tokens[1];
+            tokens.clear();
+            tokens.push_back(s);
+          }
 
           node[KEY_VALUE] = Json::arrayValue;
           for (size_t i = 0; i < tokens.size(); i++)
