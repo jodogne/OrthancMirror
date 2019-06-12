@@ -2314,17 +2314,27 @@ namespace OrthancPlugins
     {
     private:
       std::string  body_;
+      bool         done_;
 
     public:
       MemoryRequestBody(const std::string& body) :
-        body_(body)
+        body_(body),
+        done_(false)
       {
       }
 
       virtual bool ReadNextChunk(std::string& chunk)
       {
-        chunk.swap(body_);
-        return true;
+        if (done_)
+        {
+          return false;
+        }
+        else
+        {
+          chunk.swap(body_);
+          done_ = true;
+          return true;
+        }
       }
     };
 
@@ -2601,6 +2611,21 @@ namespace OrthancPlugins
       ExecuteWithoutStream(httpStatus_, answerHeaders, answerBody, fullBody_);
     }
 #endif
+  }
+
+
+  void HttpClient::Execute(HttpHeaders& answerHeaders /* out */,
+                           Json::Value& answerBody /* out */)
+  {
+    std::string body;
+    Execute(answerHeaders, body);
+    
+    Json::Reader reader;
+    if (!reader.parse(body, answerBody))
+    {
+      LogError("Cannot convert HTTP answer body to JSON");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
   }
 
 #endif  /* HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1 */

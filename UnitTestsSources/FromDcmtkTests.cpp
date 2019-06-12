@@ -1582,7 +1582,7 @@ TEST(Toolbox, EncodingsKorean)
   doc.load_buffer(xml.c_str(), xml.size());
 
   pugi::xpath_node node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
-  ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
+  ASSERT_STREQ("ISO 2022 IR 149", node.node().text().as_string());
 
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
   ASSERT_STREQ("CS", node.node().attribute("vr").value());
@@ -1662,7 +1662,7 @@ TEST(Toolbox, EncodingsJapaneseKanji)
   doc.load_buffer(xml.c_str(), xml.size());
 
   pugi::xpath_node node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]/Value");
-  ASSERT_STREQ("ISO_IR 192", node.node().text().as_string());
+  ASSERT_STREQ("ISO 2022 IR 87", node.node().text().as_string());
 
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00080005\"]");
   ASSERT_STREQ("CS", node.node().attribute("vr").value());

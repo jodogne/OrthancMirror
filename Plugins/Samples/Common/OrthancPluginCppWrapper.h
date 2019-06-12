@@ -915,6 +915,9 @@ namespace OrthancPlugins
 
     void Execute(HttpHeaders& answerHeaders /* out */,
                  std::string& answerBody /* out */);
+
+    void Execute(HttpHeaders& answerHeaders /* out */,
+                 Json::Value& answerBody /* out */);
   };
 #endif
 
