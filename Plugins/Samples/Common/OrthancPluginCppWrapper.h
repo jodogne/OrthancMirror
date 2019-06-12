@@ -1056,7 +1056,7 @@ namespace OrthancPlugins
       
       OrthancPluginRegisterRestCallback(
         GetGlobalContext(), uri.c_str(), 
-        Internals::ChunkedProtect< Internals::ChunkedRestCompatibility<
+        Internals::Protect< Internals::ChunkedRestCompatibility<
         GetHandler, PostHandler, DeleteHandler, PutHandler> >);
 #endif
     }
