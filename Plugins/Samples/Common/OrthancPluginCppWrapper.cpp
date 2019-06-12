@@ -494,7 +494,7 @@ namespace OrthancPlugins
   }
 
 
-  OrthancConfiguration::OrthancConfiguration()
+  void OrthancConfiguration::LoadConfiguration()
   {
     OrthancString str;
     str.Assign(OrthancPluginGetConfiguration(GetGlobalContext()));
@@ -511,6 +511,25 @@ namespace OrthancPlugins
     {
       LogError("Unable to read the Orthanc configuration");
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+  }
+    
+
+  OrthancConfiguration::OrthancConfiguration()
+  {
+    LoadConfiguration();
+  }
+
+
+  OrthancConfiguration::OrthancConfiguration(bool loadConfiguration)
+  {
+    if (loadConfiguration)
+    {
+      LoadConfiguration();
+    }
+    else
+    {
+      configuration_ = Json::objectValue;
     }
   }
 
