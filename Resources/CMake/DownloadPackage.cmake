@@ -222,7 +222,9 @@ macro(DownloadCompressedFile MD5 Url TargetFile)
 
       if ("${TMP_EXTENSION}" STREQUAL "gz")
         execute_process(
-          COMMAND ${ZIP_EXECUTABLE} e -y ${TMP_PATH}
+          # "-so" writes uncompressed file to stdout
+          COMMAND ${ZIP_EXECUTABLE} e -so -y ${TMP_PATH}
+          OUTPUT_FILE "${TargetFile}"
           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
           RESULT_VARIABLE Failure
           OUTPUT_QUIET
