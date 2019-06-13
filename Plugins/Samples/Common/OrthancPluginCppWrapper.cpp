@@ -1298,7 +1298,7 @@ namespace OrthancPlugins
     }
     else
     {
-      if (!answer.IsEmpty()) // i.e, on a PUT to metadata/..., orthand returns an empty response
+      if (!answer.IsEmpty()) // i.e, on a PUT to metadata/..., orthanc returns an empty response
       {
         answer.ToJson(result);
       }
