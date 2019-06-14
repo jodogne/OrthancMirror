@@ -889,6 +889,8 @@ namespace OrthancPlugins
       headers_[key] = value;
     }
 
+    void AddHeaders(const HttpHeaders& headers);
+
     void SetCredentials(const std::string& username,
                         const std::string& password);
 
