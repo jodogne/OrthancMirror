@@ -878,6 +878,11 @@ namespace OrthancPlugins
       url_ = url;
     }
 
+    void SetHeaders(const HttpHeaders& headers)
+    {
+      headers_ = headers;
+    }
+
     void AddHeader(const std::string& key,
                    const std::string& value)
     {
