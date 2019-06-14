@@ -2222,6 +2222,16 @@ namespace OrthancPlugins
   {
   }
 
+
+  void HttpClient::AddHeaders(const HttpHeaders& headers)
+  {
+    for (HttpHeaders::const_iterator it = headers.begin();
+         it != headers.end(); ++it)
+    {
+      headers_[it->first] = it->second;
+    }
+  }
+
   
   void HttpClient::SetCredentials(const std::string& username,
                                   const std::string& password)
