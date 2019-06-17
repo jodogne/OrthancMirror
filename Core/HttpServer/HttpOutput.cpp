@@ -306,7 +306,7 @@ namespace Orthanc
 			      size_t messageSize)
   {
     if (status == HttpStatus_301_MovedPermanently ||
-        status == HttpStatus_401_Unauthorized ||
+        //status == HttpStatus_401_Unauthorized ||
         status == HttpStatus_405_MethodNotAllowed)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,

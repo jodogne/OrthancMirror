@@ -1298,7 +1298,7 @@ namespace OrthancPlugins
     }
     else
     {
-      if (!answer.IsEmpty()) // i.e, on a PUT to metadata/..., orthand returns an empty response
+      if (!answer.IsEmpty()) // i.e, on a PUT to metadata/..., orthanc returns an empty response
       {
         answer.ToJson(result);
       }
@@ -2220,6 +2220,16 @@ namespace OrthancPlugins
     pkcs11_(false),
     chunkedBody_(NULL)
   {
+  }
+
+
+  void HttpClient::AddHeaders(const HttpHeaders& headers)
+  {
+    for (HttpHeaders::const_iterator it = headers.begin();
+         it != headers.end(); ++it)
+    {
+      headers_[it->first] = it->second;
+    }
   }
 
   

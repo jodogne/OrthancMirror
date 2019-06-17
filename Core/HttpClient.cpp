@@ -46,6 +46,10 @@
 #include <boost/thread/mutex.hpp>
 
 
+// Default timeout = 60 seconds (in Orthanc <= 1.5.6, it was 10 seconds)
+static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
+
+
 #if ORTHANC_ENABLE_PKCS11 == 1
 #  include "Pkcs11.h"
 #endif
@@ -818,8 +822,8 @@ namespace Orthanc
     // Set timeouts
     if (timeout_ <= 0)
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, 10));  /* default: 10 seconds */
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, 10));  /* default: 10 seconds */
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_TIMEOUT, DEFAULT_HTTP_TIMEOUT));
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CONNECTTIMEOUT, DEFAULT_HTTP_TIMEOUT));
     }
     else
     {
