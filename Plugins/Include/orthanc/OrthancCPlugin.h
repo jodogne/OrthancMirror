@@ -433,6 +433,7 @@ extern "C"
     _OrthancPluginService_EncodeDicomWebJson = 32,
     _OrthancPluginService_EncodeDicomWebXml = 33,
     _OrthancPluginService_ChunkedHttpClient = 34,   /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_GetTagName = 35,   /* New in Orthanc 1.5.7 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -6968,6 +6969,45 @@ extern "C"
     context->InvokeService(context, _OrthancPluginService_RegisterChunkedRestCallback, &params);
   }
 
+
+
+
+
+  typedef struct
+  {
+    char**       result;
+    uint16_t     group;
+    uint16_t     element;
+    const char*  privateCreator;
+  } _OrthancPluginGetTagName;
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetTagName(
+    OrthancPluginContext*  context,
+    uint16_t               group,
+    uint16_t               element,
+    const char*            privateCreator /* can be NULL */)
+  {
+    char* result;
+
+    _OrthancPluginGetTagName params;
+    params.result = &result;
+    params.group = group;
+    params.element = element;
+    params.privateCreator = privateCreator;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetTagName, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  
 #ifdef  __cplusplus
 }
 #endif
