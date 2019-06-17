@@ -920,7 +920,7 @@ namespace Orthanc
         !GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID) ||
         !GetTagValue(instanceUid, DICOM_TAG_SOP_INSTANCE_UID))
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "missing PatientID, StudyInstanceUID, SeriesInstanceUID or SOPInstanceUID");
     }
 
     return DicomInstanceHasher(patientId, studyUid, seriesUid, instanceUid);
