@@ -24,6 +24,7 @@ Maintenance
 * Anonymization: Preserve hierarchical relationships in (0008,1115) [] (0020,000e)
 * Allow the serialization of signed 16bpp images in PAM format
 * HTTP header "Accept-Encoding" is honored for streams without built-in support for compression
+* The default HTTP timeout is now 60 seconds (instead of 10 seconds in previous versions)
 * Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
 * Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
 * Fix issue #138 (POST to modalities/{name} accepts invalid characters)
