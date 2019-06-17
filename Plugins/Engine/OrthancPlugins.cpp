@@ -2842,6 +2842,23 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::GetTagName(const void* parameters)
+  {
+    const _OrthancPluginGetTagName& p =
+      *reinterpret_cast<const _OrthancPluginGetTagName*>(parameters);
+
+    std::string privateCreator;
+    
+    if (p.privateCreator != NULL)
+    {
+      privateCreator = p.privateCreator;
+    }
+   
+    DicomTag tag(p.group, p.element);
+    *p.result = CopyString(FromDcmtkBridge::GetTagName(tag, privateCreator));
+  }
+
+
   void OrthancPlugins::ApplyCreateImage(_OrthancPluginService service,
                                         const void* parameters)
   {
@@ -3676,6 +3693,10 @@ namespace Orthanc
         *p.target = CopyString(s);
         return true;
       }
+
+      case _OrthancPluginService_GetTagName:
+        GetTagName(parameters);
+        return true;
 
       default:
         return false;
