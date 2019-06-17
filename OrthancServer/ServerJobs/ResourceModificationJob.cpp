@@ -158,9 +158,9 @@ namespace Orthanc
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
       modified.reset(original.Clone(true));
     }
-    catch (OrthancException&)
+    catch (OrthancException& e)
     {
-      LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
+      LOG(WARNING) << "An error occurred while executing a Modification job on instance " << instance << ": " << e.GetDetails();
       return false;
     }
 
