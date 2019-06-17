@@ -1117,7 +1117,11 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                              lock.GetConfiguration().InterpretStringParameterAsPath
                              (lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "")));
     HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose", false));
+
+    // The value "0" below makes the class HttpClient use its default
+    // value (DEFAULT_HTTP_TIMEOUT = 60 seconds in Orthanc 1.5.7)
     HttpClient::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpTimeout", 0));
+    
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
     DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
