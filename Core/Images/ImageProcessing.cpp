@@ -1442,6 +1442,13 @@ namespace Orthanc
       cpy.push_back((double)points[i].GetY());
     }
 
+    // Draw the lines segments
+    for (size_t i = 0; i < (points.size() -1); i++)
+    {
+      ImageProcessing::DrawLineSegment(image, points[i].GetX(), points[i].GetY(), points[i+1].GetX(), points[i+1].GetY(), value_);
+    }
+    ImageProcessing::DrawLineSegment(image, points[points.size() -1].GetX(), points[points.size() -1].GetY(), points[0].GetX(), points[0].GetY(), value_);
+
     std::vector<int32_t> nodeX;
     nodeX.resize(cpSize);
     int  nodes, pixelX, pixelY, i, j, swap ;
