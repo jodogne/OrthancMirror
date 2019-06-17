@@ -203,6 +203,8 @@ namespace Orthanc
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 
+    void GetTagName(const void* parameters);
+
     void SignalChangeInternal(OrthancPluginChangeType changeType,
                               OrthancPluginResourceType resourceType,
                               const char* resource);

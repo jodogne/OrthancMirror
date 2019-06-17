@@ -15,6 +15,7 @@ Plugins
 * New functions in the SDK:
   - OrthancPluginHttpClientChunkedBody(): HTTP client for POST/PUT with a chunked body
   - OrthancPluginRegisterMultipartRestCallback(): HTTP server for POST/PUT with multipart body
+  - OrthancPluginGetTagName(): Retrieve the name of a DICOM tag from its group and element
 
 Maintenance
 -----------
