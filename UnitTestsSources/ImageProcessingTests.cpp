@@ -220,9 +220,11 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 6, 6));
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 6, 0));
 
-  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 1));
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 2));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 5));
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 2, 4));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 5, 5));
 }
 
 TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThanImage)
@@ -254,7 +256,6 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
 
   Orthanc::ImageProcessing::FillPolygon(image, points, 255);
 
-  // inside polygon (note: we don't test too close from the edges since the current algo is taking some margin from the edges and might be improved in that sense)
-  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 1, 1));
-  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth() - 2, image.GetHeight() - 2));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
+  ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth() - 1, image.GetHeight() - 1));
 }
