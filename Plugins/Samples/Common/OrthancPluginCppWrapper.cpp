@@ -2350,6 +2350,10 @@ namespace OrthancPlugins
         body_(body),
         done_(false)
       {
+        if (body_.empty())
+        {
+          done_ = true;
+        }
       }
 
       virtual bool ReadNextChunk(std::string& chunk)
@@ -2477,21 +2481,25 @@ namespace OrthancPlugins
   {
     HeadersWrapper h(headers_);
 
-    // Automatically set the "Transfer-Encoding" header if absent
-    bool found = false;
-
-    for (HttpHeaders::const_iterator it = headers_.begin(); it != headers_.end(); ++it)
+    if (method_ == OrthancPluginHttpMethod_Post ||
+        method_ == OrthancPluginHttpMethod_Put)
     {
-      if (boost::iequals(it->first, "Transfer-Encoding"))
+      // Automatically set the "Transfer-Encoding" header if absent
+      bool found = false;
+
+      for (HttpHeaders::const_iterator it = headers_.begin(); it != headers_.end(); ++it)
       {
-        found = true;
-        break;
+        if (boost::iequals(it->first, "Transfer-Encoding"))
+        {
+          found = true;
+          break;
+        }
       }
-    }
 
-    if (!found)
-    {
-      h.AddStaticString("Transfer-Encoding", "chunked");
+      if (!found)
+      {
+        h.AddStaticString("Transfer-Encoding", "chunked");
+      }
     }
 
     RequestBodyWrapper request(body);
@@ -2655,6 +2663,14 @@ namespace OrthancPlugins
       LogError("Cannot convert HTTP answer body to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
+  }
+
+
+  void HttpClient::Execute()
+  {
+    HttpHeaders answerHeaders;
+    std::string body;
+    Execute(answerHeaders, body);
   }
 
 #endif  /* HAS_ORTHANC_PLUGIN_HTTP_CLIENT == 1 */
