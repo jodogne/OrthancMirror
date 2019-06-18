@@ -2754,125 +2754,150 @@ namespace OrthancPlugins
 
 #else
     
-    void ChunkedRestCompatibility(OrthancPluginRestOutput* output,
-                                  const char* url,
-                                  const OrthancPluginHttpRequest* request,
-                                  RestCallback         GetHandler,
-                                  ChunkedRestCallback  PostHandler,
-                                  RestCallback         DeleteHandler,
-                                  ChunkedRestCallback  PutHandler)
+    OrthancPluginErrorCode ChunkedRestCompatibility(OrthancPluginRestOutput* output,
+                                                    const char* url,
+                                                    const OrthancPluginHttpRequest* request,
+                                                    RestCallback         GetHandler,
+                                                    ChunkedRestCallback  PostHandler,
+                                                    RestCallback         DeleteHandler,
+                                                    ChunkedRestCallback  PutHandler)
     {
-      std::string allowed;
-
-      if (GetHandler != Internals::NullRestCallback)
+      try
       {
-        allowed += "GET";
-      }
+        std::string allowed;
 
-      if (PostHandler != Internals::NullChunkedRestCallback)
-      {
-        if (!allowed.empty())
+        if (GetHandler != Internals::NullRestCallback)
         {
-          allowed += ",";
+          allowed += "GET";
         }
-        
-        allowed += "POST";
-      }
 
-      if (DeleteHandler != Internals::NullRestCallback)
-      {
-        if (!allowed.empty())
+        if (PostHandler != Internals::NullChunkedRestCallback)
         {
-          allowed += ",";
-        }
+          if (!allowed.empty())
+          {
+            allowed += ",";
+          }
         
-        allowed += "DELETE";
-      }
+          allowed += "POST";
+        }
 
-      if (PutHandler != Internals::NullChunkedRestCallback)
-      {
-        if (!allowed.empty())
+        if (DeleteHandler != Internals::NullRestCallback)
         {
-          allowed += ",";
-        }
+          if (!allowed.empty())
+          {
+            allowed += ",";
+          }
         
-        allowed += "PUT";
-      }
+          allowed += "DELETE";
+        }
+
+        if (PutHandler != Internals::NullChunkedRestCallback)
+        {
+          if (!allowed.empty())
+          {
+            allowed += ",";
+          }
+        
+          allowed += "PUT";
+        }
       
-      switch (request->method)
+        switch (request->method)
+        {
+          case OrthancPluginHttpMethod_Get:
+            if (GetHandler == Internals::NullRestCallback)
+            {
+              OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
+            }
+            else
+            {
+              GetHandler(output, url, request);
+            }
+
+            break;
+
+          case OrthancPluginHttpMethod_Post:
+            if (PostHandler == Internals::NullChunkedRestCallback)
+            {
+              OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
+            }
+            else
+            {
+              std::auto_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
+              if (reader.get() == NULL)
+              {
+                ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+              }
+              else
+              {
+                reader->AddChunk(request->body, request->bodySize);
+                reader->Execute(output);
+              }
+            }
+
+            break;
+
+          case OrthancPluginHttpMethod_Delete:
+            if (DeleteHandler == Internals::NullRestCallback)
+            {
+              OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
+            }
+            else
+            {
+              DeleteHandler(output, url, request);
+            }
+
+            break;
+
+          case OrthancPluginHttpMethod_Put:
+            if (PutHandler == Internals::NullChunkedRestCallback)
+            {
+              OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
+            }
+            else
+            {
+              std::auto_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
+              if (reader.get() == NULL)
+              {
+                ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+              }
+              else
+              {
+                reader->AddChunk(request->body, request->bodySize);
+                reader->Execute(output);
+              }
+            }
+
+            break;
+
+          default:
+            ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+        }
+
+        return OrthancPluginErrorCode_Success;
+      }
+      catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
       {
-        case OrthancPluginHttpMethod_Get:
+#if HAS_ORTHANC_EXCEPTION == 1 && HAS_ORTHANC_PLUGIN_EXCEPTION_DETAILS == 1
+        if (HasGlobalContext() &&
+            e.HasDetails())
         {
-          if (GetHandler == Internals::NullRestCallback)
-          {
-            OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
-          }
-          else
-          {
-            GetHandler(output, url, request);
-          }
-          return;
+          // The "false" instructs Orthanc not to log the detailed
+          // error message. This is to avoid duplicating the details,
+          // because "OrthancException" already does it on construction.
+          OrthancPluginSetHttpErrorDetails
+            (GetGlobalContext(), output, e.GetDetails(), false);
         }
+#endif
 
-        case OrthancPluginHttpMethod_Post:
-        {
-          if (PostHandler == Internals::NullChunkedRestCallback)
-          {
-            OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
-          }
-          else
-          {
-            std::auto_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
-            if (reader.get() == NULL)
-            {
-              ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
-            }
-            else
-            {
-              reader->AddChunk(request->body, request->bodySize);
-              reader->Execute(output);
-            }
-          }
-          return;
-        }
-
-        case OrthancPluginHttpMethod_Delete:
-        {
-          if (DeleteHandler == Internals::NullRestCallback)
-          {
-            OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
-          }
-          else
-          {
-            DeleteHandler(output, url, request);
-          }
-          return;
-        }
-
-        case OrthancPluginHttpMethod_Put:
-        {
-          if (PutHandler == Internals::NullChunkedRestCallback)
-          {
-            OrthancPluginSendMethodNotAllowed(GetGlobalContext(), output, allowed.c_str());
-          }
-          else
-          {
-            std::auto_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
-            if (reader.get() == NULL)
-            {
-              ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
-            }
-            else
-            {
-              reader->AddChunk(request->body, request->bodySize);
-              reader->Execute(output);
-            }
-          }
-          return;
-        }
-
-        default:
-          ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+        return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        return OrthancPluginErrorCode_BadFileFormat;
+      }
+      catch (...)
+      {
+        return OrthancPluginErrorCode_Plugin;
       }
     }
 #endif
