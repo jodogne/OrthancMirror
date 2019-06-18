@@ -1014,14 +1014,14 @@ namespace OrthancPlugins
       OrthancPluginServerChunkedRequestReader* reader);
 
 #else  
-    
-    void ChunkedRestCompatibility(OrthancPluginRestOutput* output,
-                                  const char* url,
-                                  const OrthancPluginHttpRequest* request,
-                                  RestCallback GetHandler,
-                                  ChunkedRestCallback PostHandler,
-                                  RestCallback DeleteHandler,
-                                  ChunkedRestCallback PutHandler);
+
+    OrthancPluginErrorCode ChunkedRestCompatibility(OrthancPluginRestOutput* output,
+                                                    const char* url,
+                                                    const OrthancPluginHttpRequest* request,
+                                                    RestCallback GetHandler,
+                                                    ChunkedRestCallback PostHandler,
+                                                    RestCallback DeleteHandler,
+                                                    ChunkedRestCallback PutHandler);
 
     template<
       RestCallback         GetHandler,
@@ -1029,12 +1029,12 @@ namespace OrthancPlugins
       RestCallback         DeleteHandler,
       ChunkedRestCallback  PutHandler
       >
-    static void ChunkedRestCompatibility(OrthancPluginRestOutput* output,
-                                         const char* url,
-                                         const OrthancPluginHttpRequest* request)
+    inline OrthancPluginErrorCode ChunkedRestCompatibility(OrthancPluginRestOutput* output,
+                                                           const char* url,
+                                                           const OrthancPluginHttpRequest* request)
     {
-      ChunkedRestCompatibility(output, url, request, GetHandler,
-                               PostHandler, DeleteHandler, PutHandler);
+      return ChunkedRestCompatibility(output, url, request, GetHandler,
+                                      PostHandler, DeleteHandler, PutHandler);
     }
 #endif
   }
@@ -1068,10 +1068,9 @@ namespace OrthancPlugins
       LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
                  "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
       
-      OrthancPluginRegisterRestCallback(
+      OrthancPluginRegisterRestCallbackNoLock(
         GetGlobalContext(), uri.c_str(), 
-        Internals::Protect< Internals::ChunkedRestCompatibility<
-        GetHandler, PostHandler, DeleteHandler, PutHandler> >);
+        Internals::ChunkedRestCompatibility<GetHandler, PostHandler, DeleteHandler, PutHandler>);
 #endif
     }
   };
