@@ -929,6 +929,8 @@ namespace OrthancPlugins
 
     void Execute(HttpHeaders& answerHeaders /* out */,
                  Json::Value& answerBody /* out */);
+
+    void Execute();
   };
 #endif
 
