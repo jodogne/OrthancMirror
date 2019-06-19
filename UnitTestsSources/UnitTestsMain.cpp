@@ -332,6 +332,7 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_EQ(MimeType_PNaCl, SystemToolbox::AutodetectMimeType("NOTES.pexe"));
   ASSERT_EQ(MimeType_Svg, SystemToolbox::AutodetectMimeType("NOTES.svg"));
   ASSERT_EQ(MimeType_Woff, SystemToolbox::AutodetectMimeType("NOTES.woff"));
+  ASSERT_EQ(MimeType_Woff2, SystemToolbox::AutodetectMimeType("NOTES.woff2"));
 
   // Test primitives from the "RegisterDefaultExtensions()" that was
   // present in the sample "Serve Folders plugin" of Orthanc 1.4.2
@@ -344,6 +345,7 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("application/x-nacl", EnumerationToString(SystemToolbox::AutodetectMimeType(".nexe")));
   ASSERT_STREQ("application/x-pnacl", EnumerationToString(SystemToolbox::AutodetectMimeType(".pexe")));
   ASSERT_STREQ("application/xml", EnumerationToString(SystemToolbox::AutodetectMimeType(".xml")));
+  ASSERT_STREQ("font/woff2", EnumerationToString(SystemToolbox::AutodetectMimeType(".woff2")));
   ASSERT_STREQ("image/gif", EnumerationToString(SystemToolbox::AutodetectMimeType(".gif")));
   ASSERT_STREQ("image/jpeg", EnumerationToString(SystemToolbox::AutodetectMimeType(".jpeg")));
   ASSERT_STREQ("image/jpeg", EnumerationToString(SystemToolbox::AutodetectMimeType(".jpg")));

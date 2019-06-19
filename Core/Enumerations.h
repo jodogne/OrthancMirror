@@ -121,6 +121,7 @@ namespace Orthanc
     MimeType_WebAssembly,
     MimeType_Xml,
     MimeType_Woff,            // Web Open Font Format
+    MimeType_Woff2,
     MimeType_Zip,
     MimeType_PrometheusText,  // Prometheus text-based exposition format (for metrics)
     MimeType_DicomWebJson,

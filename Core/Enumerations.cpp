@@ -57,6 +57,7 @@ namespace Orthanc
   static const char* const MIME_SVG = "image/svg+xml";
   static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
   static const char* const MIME_WOFF = "application/x-font-woff";
+  static const char* const MIME_WOFF2 = "font/woff2";
   static const char* const MIME_XML_2 = "text/xml";
   static const char* const MIME_ZIP = "application/zip";
   static const char* const MIME_DICOM_WEB_JSON = "application/dicom+json";
@@ -1121,6 +1122,9 @@ namespace Orthanc
       case MimeType_Woff:
         return MIME_WOFF;
 
+      case MimeType_Woff2:
+        return MIME_WOFF2;
+
       case MimeType_PrometheusText:
         // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
         return "text/plain; version=0.0.4";
@@ -1753,6 +1757,10 @@ namespace Orthanc
     else if (mime == MIME_WOFF)
     {
       return MimeType_Woff;
+    }
+    else if (mime == MIME_WOFF2)
+    {
+      return MimeType_Woff2;
     }
     else if (mime == MIME_DICOM_WEB_JSON)
     {

@@ -699,6 +699,10 @@ namespace Orthanc
     {
       return MimeType_Woff;
     }
+    else if (extension == ".woff2")
+    {
+      return MimeType_Woff2;
+    }
 
     // Default type
     else
