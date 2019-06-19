@@ -5,6 +5,7 @@ Pending changes in the mainline
 REST API
 --------
 
+* API version has been upgraded to 3
 * "/modalities/{id}/query": New argument "Normalize" can be set to "false"
   to bypass the automated correction of outgoing C-FIND queries
 * Reporting of "ParentResources" in "DicomModalityStore" and "DicomModalityStore" jobs
