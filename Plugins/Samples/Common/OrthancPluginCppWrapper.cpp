@@ -33,6 +33,7 @@
 
 #include "OrthancPluginCppWrapper.h"
 
+#include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
@@ -2050,6 +2051,11 @@ namespace OrthancPlugins
   std::string OrthancJob::Submit(OrthancJob* job,
                                  int priority)
   {
+    if (job == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
+    }
+
     OrthancPluginJob* orthanc = Create(job);
 
     char* id = OrthancPluginSubmitJob(GetGlobalContext(), orthanc, priority);
@@ -2069,6 +2075,70 @@ namespace OrthancPlugins
       return tmp;
     }
   }
+
+
+  void OrthancJob::SubmitAndWait(Json::Value& result,
+                                 OrthancJob* job /* takes ownership */,
+                                 int priority)
+  {
+    std::string id = Submit(job, priority);
+
+    for (;;)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+      Json::Value status;
+      if (!RestApiGet(status, "/jobs/" + id, false) ||
+          !status.isMember("State") ||
+          status["State"].type() != Json::stringValue)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InexistentItem);        
+      }
+
+      const std::string state = status["State"].asString();
+      if (state == "Success")
+      {
+        if (status.isMember("Content"))
+        {
+          result = status["Content"];
+        }
+        else
+        {
+          result = Json::objectValue;
+        }
+
+        return;
+      }
+      else if (state == "Running")
+      {
+        continue;
+      }
+      else if (!status.isMember("ErrorCode") ||
+               status["ErrorCode"].type() != Json::intValue)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
+      }
+      else
+      {
+        if (!status.isMember("ErrorDescription") ||
+            status["ErrorDescription"].type() != Json::stringValue)
+        {
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());
+        }
+        else
+        {
+#if HAS_ORTHANC_EXCEPTION == 1
+          throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(status["ErrorCode"].asInt()),
+                                          status["ErrorDescription"].asString());
+#else
+          LogError("Exception while executing the job: " + status["ErrorDescription"].asString());
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());          
+#endif
+        }
+      }
+    }
+  }
+
 #endif
 
 
