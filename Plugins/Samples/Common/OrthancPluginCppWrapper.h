@@ -768,6 +768,10 @@ namespace OrthancPlugins
 
     static std::string Submit(OrthancJob* job /* takes ownership */,
                               int priority);
+
+    static void SubmitAndWait(Json::Value& result,
+                              OrthancJob* job /* takes ownership */,
+                              int priority);
   };
 #endif
 
