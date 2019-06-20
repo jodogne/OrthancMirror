@@ -814,7 +814,7 @@ namespace OrthancPlugins
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+
     class IAnswer : public boost::noncopyable
     {
     public:
@@ -828,7 +828,6 @@ namespace OrthancPlugins
       virtual void AddChunk(const void* data,
                             size_t size) = 0;
     };
-#endif
 
 
   private:
@@ -924,9 +923,7 @@ namespace OrthancPlugins
 
     void SetBody(IRequestBody& body);
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     void Execute(IAnswer& answer);
-#endif
 
     void Execute(HttpHeaders& answerHeaders /* out */,
                  std::string& answerBody /* out */);
@@ -1071,9 +1068,6 @@ namespace OrthancPlugins
         Internals::ChunkedRequestReaderExecute,
         Internals::ChunkedRequestReaderFinalize);
 #else
-      LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
-                 "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
-      
       OrthancPluginRegisterRestCallbackNoLock(
         GetGlobalContext(), uri.c_str(), 
         Internals::ChunkedRestCompatibility<GetHandler, PostHandler, DeleteHandler, PutHandler>);

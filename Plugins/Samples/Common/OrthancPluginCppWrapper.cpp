@@ -2668,9 +2668,9 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   void HttpClient::Execute(IAnswer& answer)
   {
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     if (chunkedBody_ != NULL)
     {
       ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
@@ -2680,8 +2680,27 @@ namespace OrthancPlugins
       MemoryRequestBody wrapper(fullBody_);
       ExecuteWithStream(httpStatus_, answer, wrapper);
     }
-  }
+#else
+    // Compatibility mode for Orthanc SDK <= 1.5.6. This results in
+    // higher memory usage (all chunks from the answer body are sent
+    // at once)
+
+    HttpHeaders answerHeaders;
+    std::string answerBody;
+    Execute(answerHeaders, answerBody);
+
+    for (HttpHeaders::const_iterator it = answerHeaders.begin(); 
+         it != answerHeaders.end(); ++it)
+    {
+      answer.AddHeader(it->first, it->second);      
+    }
+
+    if (!answerBody.empty())
+    {
+      answer.AddChunk(answerBody.c_str(), answerBody.size());
+    }
 #endif
+  }
 
 
   void HttpClient::Execute(HttpHeaders& answerHeaders /* out */,
@@ -2695,7 +2714,7 @@ namespace OrthancPlugins
 
 #else
     // Compatibility mode for Orthanc SDK <= 1.5.6. This results in
-    // higher memory usage (all chunks from the body request are sent
+    // higher memory usage (all chunks from the request body are sent
     // at once)
 
     if (chunkedBody_ != NULL)
