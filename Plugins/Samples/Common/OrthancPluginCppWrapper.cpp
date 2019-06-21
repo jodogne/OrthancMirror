@@ -334,13 +334,10 @@ namespace OrthancPlugins
 
   void OrthancString::Assign(char* str)
   {
-    if (str == NULL)
+    Clear();
+
+    if (str != NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-    }
-    else
-    {
-      Clear();
       str_ = str;
     }
   }
