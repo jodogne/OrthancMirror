@@ -175,7 +175,7 @@ namespace Orthanc
       HttpHeaders headers;
       ParseHeaders(headers, start, headersMatcher_.GetMatchBegin());
 
-      size_t contentLength;
+      size_t contentLength = 0;
       if (!LookupHeaderSizeValue(contentLength, headers, "content-length"))
       {
         if (boundaryMatcher_.Apply(headersMatcher_.GetMatchEnd(), corpusEnd))
