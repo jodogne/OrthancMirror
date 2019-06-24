@@ -30,6 +30,7 @@ Maintenance
 * Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
 * Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
 * Fix issue #138 (POST to modalities/{name} accepts invalid characters)
+* Fix issue #141 (/tools/create-dicom removes non-ASCII characters from study description)
 
 
 Version 1.5.6 (2019-03-01)

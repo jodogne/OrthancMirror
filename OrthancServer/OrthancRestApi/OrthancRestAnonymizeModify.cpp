@@ -518,11 +518,8 @@ namespace Orthanc
           }
           else if (tag["Type"] == "String")
           {
-            std::string value = tag["Value"].asString();
-
-            bool hasCodeExtensions;
-            Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
-            dicom.ReplacePlainString(*it, Toolbox::ConvertFromUtf8(value, encoding));
+            std::string value = tag["Value"].asString();  // This is an UTF-8 value (as it comes from JSON)
+            dicom.ReplacePlainString(*it, value);
           }
         }
       }
