@@ -64,11 +64,6 @@ namespace Orthanc
     static bool SimpleGet(std::string& result,
                           IHttpHandler& handler,
                           RequestOrigin origin,
-                          const std::string& uri);
-
-    static bool SimpleGet(std::string& result,
-                          IHttpHandler& handler,
-                          RequestOrigin origin,
                           const std::string& uri,
                           const IHttpHandler::Arguments& httpHeaders);
 
@@ -77,17 +72,20 @@ namespace Orthanc
                            RequestOrigin origin,
                            const std::string& uri,
                            const void* bodyData,
-                           size_t bodySize);
+                           size_t bodySize,
+                          const IHttpHandler::Arguments& httpHeaders);
 
     static bool SimplePut(std::string& result,
                           IHttpHandler& handler,
                           RequestOrigin origin,
                           const std::string& uri,
                           const void* bodyData,
-                          size_t bodySize);
+                          size_t bodySize,
+                          const IHttpHandler::Arguments& httpHeaders);
 
     static bool SimpleDelete(IHttpHandler& handler,
                              RequestOrigin origin,
-                             const std::string& uri);
+                             const std::string& uri,
+                             const IHttpHandler::Arguments& httpHeaders);
   };
 }
