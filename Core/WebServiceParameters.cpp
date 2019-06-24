@@ -289,13 +289,22 @@ namespace Orthanc
     {
       if (!IsReservedKey(*it))
       {
-        if (peer[*it].type() != Json::stringValue)
+        switch (peer[*it].type())
         {
-          throw OrthancException(ErrorCode_BadFileFormat);
-        }
-        else
-        {
-          userProperties_[*it] = peer[*it].asString();
+          case Json::stringValue:
+            userProperties_[*it] = peer[*it].asString();
+            break;
+
+          case Json::booleanValue:
+            userProperties_[*it] = peer[*it].asBool() ? "1" : "0";
+            break;
+
+          case Json::intValue:
+            userProperties_[*it] = boost::lexical_cast<std::string>(peer[*it].asInt());
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_BadFileFormat);
         }
       }
     }
@@ -401,6 +410,33 @@ namespace Orthanc
       value = found->second;
       return true;
     }
+  }
+  
+
+  bool WebServiceParameters::GetBooleanUserProperty(const std::string& key,
+                                                    bool defaultValue) const
+  {
+    Dictionary::const_iterator found = userProperties_.find(key);
+
+    if (found == userProperties_.end())
+    {
+      return defaultValue;
+    }
+    else if (found->second == "0" ||
+             found->second == "false")
+    {
+      return false;
+    }
+    else if (found->second == "1" ||
+             found->second == "true")
+    {
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Bad value for a Boolean user property in the parameters "
+                             "of a Web service: Property \"" + key + "\" equals: " + found->second);
+    }    
   }
 
 
