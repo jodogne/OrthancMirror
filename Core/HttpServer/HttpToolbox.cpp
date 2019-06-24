@@ -225,25 +225,15 @@ namespace Orthanc
   }
 
 
-  bool HttpToolbox::SimpleGet(std::string& result,
-                              IHttpHandler& handler,
-                              RequestOrigin origin,
-                              const std::string& uri)
-  {
-    IHttpHandler::Arguments headers;  // No HTTP header
-    return SimpleGet(result, handler, origin, uri, headers);
-  }
-
-
   static bool SimplePostOrPut(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
                               HttpMethod method,
                               const std::string& uri,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const IHttpHandler::Arguments& httpHeaders)
   {
-    IHttpHandler::Arguments headers;  // No HTTP header
     IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
 
     UriComponents curi;
@@ -253,7 +243,7 @@ namespace Orthanc
     HttpOutput http(stream, false /* no keep alive */);
 
     if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
-                       headers, getArguments, bodyData, bodySize))
+                       httpHeaders, getArguments, bodyData, bodySize))
     {
       stream.GetOutput(result);
       return true;
@@ -270,9 +260,10 @@ namespace Orthanc
                                RequestOrigin origin,
                                const std::string& uri,
                                const void* bodyData,
-                               size_t bodySize)
+                               size_t bodySize,
+                               const IHttpHandler::Arguments& httpHeaders)
   {
-    return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize);
+    return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize, httpHeaders);
   }
 
 
@@ -281,26 +272,27 @@ namespace Orthanc
                               RequestOrigin origin,
                               const std::string& uri,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const IHttpHandler::Arguments& httpHeaders)
   {
-    return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize);
+    return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize, httpHeaders);
   }
 
 
   bool HttpToolbox::SimpleDelete(IHttpHandler& handler,
                                  RequestOrigin origin,
-                                 const std::string& uri)
+                                 const std::string& uri,
+                                 const IHttpHandler::Arguments& httpHeaders)
   {
     UriComponents curi;
     Toolbox::SplitUriComponents(curi, uri);
 
-    IHttpHandler::Arguments headers;  // No HTTP header
     IHttpHandler::GetArguments getArguments;  // No GET argument for DELETE
 
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
     return handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
-                          headers, getArguments, NULL /* no body for DELETE */, 0);
+                          httpHeaders, getArguments, NULL /* no body for DELETE */, 0);
   }
 }

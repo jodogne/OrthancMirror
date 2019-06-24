@@ -36,6 +36,7 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 #include <set>
 #include <cassert>
@@ -156,7 +157,7 @@ namespace Orthanc
     }
 
     Json::Value json;
-    that.GetJson(json, 1, keepStrings);
+    that.GetJson(json, state, 1, keepStrings);
 
     Json::FastWriter writer;
     std::string s = writer.write(json);
@@ -208,27 +209,21 @@ namespace Orthanc
 
     return true;
   }
-
-  void LuaContext::SetHttpHeaders(lua_State *state, int top)
-  {
-    this->httpClient_.ClearHeaders(); // always reset headers in case they have been set in a previous request
-
-    if (lua_gettop(state) >= top)
-    {
-      Json::Value headers;
-      this->GetJson(headers, top, true);
-
-      Json::Value::Members members = headers.getMemberNames();
-
-      for (Json::Value::Members::const_iterator 
-           it = members.begin(); it != members.end(); ++it)
-      {
-        this->httpClient_.AddHeader(*it, headers[*it].asString());
-      }
-    }
-
-  }
   
+
+  void LuaContext::SetHttpHeaders(int top)
+  {
+    std::map<std::string, std::string> headers;
+    GetDictionaryArgument(headers, lua_, top, false /* keep key case as provided by Lua script */);
+      
+    httpClient_.ClearHeaders(); // always reset headers in case they have been set in a previous request
+
+    for (std::map<std::string, std::string>::const_iterator
+           it = headers.begin(); it != headers.end(); ++it)
+    {
+      httpClient_.AddHeader(it->first, it->second);
+    }
+  }  
 
 
   int LuaContext::CallHttpGet(lua_State *state)
@@ -237,8 +232,8 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs < 1 || nArgs > 2) ||         // check args count
-       !lua_isstring(state, 1))             // URL is a string
+    if (nArgs < 1 || nArgs > 2 ||         // check args count
+       !lua_isstring(state, 1))           // URL is a string
     {
       LOG(ERROR) << "Lua: Bad parameters to HttpGet()";
       lua_pushnil(state);
@@ -250,7 +245,7 @@ namespace Orthanc
     that.httpClient_.SetMethod(HttpMethod_Get);
     that.httpClient_.SetUrl(url);
     that.httpClient_.GetBody().clear();
-    that.SetHttpHeaders(state, 2);
+    that.SetHttpHeaders(2);
 
     // Do the HTTP GET request
     if (!that.AnswerHttpQuery(state))
@@ -283,7 +278,7 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(method);
     that.httpClient_.SetUrl(url);
-    that.SetHttpHeaders(state, 3);
+    that.SetHttpHeaders(3);
 
     if (nArgs >= 2 && !lua_isnil(state, 2))
     {
@@ -345,7 +340,7 @@ namespace Orthanc
     that.httpClient_.SetMethod(HttpMethod_Delete);
     that.httpClient_.SetUrl(url);
     that.httpClient_.GetBody().clear();
-    that.SetHttpHeaders(state, 2);
+    that.SetHttpHeaders(2);
 
     // Do the HTTP DELETE request
     std::string s;
@@ -434,10 +429,11 @@ namespace Orthanc
 
 
   void LuaContext::GetJson(Json::Value& result,
+                           lua_State* state,
                            int top,
                            bool keepStrings)
   {
-    if (lua_istable(lua_, top))
+    if (lua_istable(state, top))
     {
       Json::Value tmp = Json::objectValue;
       bool isArray = true;
@@ -448,19 +444,19 @@ namespace Orthanc
       // Push another reference to the table on top of the stack (so we know
       // where it is, and this function can work for negative, positive and
       // pseudo indices
-      lua_pushvalue(lua_, top);
+      lua_pushvalue(state, top);
       // stack now contains: -1 => table
-      lua_pushnil(lua_);
+      lua_pushnil(state);
       // stack now contains: -1 => nil; -2 => table
-      while (lua_next(lua_, -2))
+      while (lua_next(state, -2))
       {
         // stack now contains: -1 => value; -2 => key; -3 => table
         // copy the key so that lua_tostring does not modify the original
-        lua_pushvalue(lua_, -2);
+        lua_pushvalue(state, -2);
         // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
-        std::string key(lua_tostring(lua_, -1));
+        std::string key(lua_tostring(state, -1));
         Json::Value v;
-        GetJson(v, -2, keepStrings);
+        GetJson(v, state, -2, keepStrings);
 
         tmp[key] = v;
 
@@ -479,13 +475,13 @@ namespace Orthanc
         }
         
         // pop value + copy of key, leaving original key
-        lua_pop(lua_, 2);
+        lua_pop(state, 2);
         // stack now contains: -1 => key; -2 => table
       }
       // stack now contains: -1 => table (when lua_next returns 0 it pops the key
       // but does not push anything.)
       // Pop table
-      lua_pop(lua_, 1);
+      lua_pop(state, 1);
 
       // Stack is now the same as it was on entry to this function
 
@@ -502,20 +498,20 @@ namespace Orthanc
         result = tmp;
       }
     }
-    else if (lua_isnil(lua_, top))
+    else if (lua_isnil(state, top))
     {
       result = Json::nullValue;
     }
     else if (!keepStrings &&
-             lua_isboolean(lua_, top))
+             lua_isboolean(state, top))
     {
-      result = lua_toboolean(lua_, top) ? true : false;
+      result = lua_toboolean(state, top) ? true : false;
     }
     else if (!keepStrings &&
-             lua_isnumber(lua_, top))
+             lua_isnumber(state, top))
     {
       // Convert to "int" if truncation does not loose precision
-      double value = static_cast<double>(lua_tonumber(lua_, top));
+      double value = static_cast<double>(lua_tonumber(state, top));
       int truncated = static_cast<int>(value);
 
       if (std::abs(value - static_cast<double>(truncated)) <= 
@@ -528,15 +524,15 @@ namespace Orthanc
         result = value;
       }
     }
-    else if (lua_isstring(lua_, top))
+    else if (lua_isstring(state, top))
     {
       // Caution: The "lua_isstring()" case must be the last, since
       // Lua can convert most types to strings by default.
-      result = std::string(lua_tostring(lua_, top));
+      result = std::string(lua_tostring(state, top));
     }
-    else if (lua_isboolean(lua_, top))
+    else if (lua_isboolean(state, top))
     {
-      result = lua_toboolean(lua_, top) ? true : false;
+      result = lua_toboolean(state, top) ? true : false;
     }
     else
     {
@@ -652,5 +648,34 @@ namespace Orthanc
     const void* value = lua_topointer(state, -1);
     lua_pop(state, 1);
     return value;
+  }
+
+
+  void LuaContext::GetDictionaryArgument(std::map<std::string, std::string>& target,
+                                         lua_State* state,
+                                         int top,
+                                         bool keyToLowerCase)
+  {
+    target.clear();
+
+    if (lua_gettop(state) >= top)
+    {
+      Json::Value headers;
+      GetJson(headers, state, top, true);
+
+      Json::Value::Members members = headers.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        std::string key = members[i];
+
+        if (keyToLowerCase)
+        {
+          Toolbox::ToLowerCase(key);
+        }
+        
+        target[key] = headers[members[i]].asString();
+      }
+    }
   }
 }

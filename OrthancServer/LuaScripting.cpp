@@ -279,9 +279,9 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs != 1 && nArgs != 2) || 
+    if (nArgs < 1 || nArgs > 3 || 
         !lua_isstring(state, 1) ||                 // URI
-        (nArgs == 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
+        (nArgs >= 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
     {
       LOG(ERROR) << "Lua: Bad parameters to RestApiGet()";
       lua_pushnil(state);
@@ -291,11 +291,14 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
+    std::map<std::string, std::string> headers;
+    LuaContext::GetDictionaryArgument(headers, state, 3, true /* HTTP header key to lower case */);
+
     try
     {
       std::string result;
       if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                 RequestOrigin_Lua, uri))
+                                 RequestOrigin_Lua, uri, headers))
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -325,10 +328,10 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs != 2 && nArgs != 3) || 
+    if (nArgs < 2 || nArgs > 4 || 
         !lua_isstring(state, 1) ||                 // URI
         !lua_isstring(state, 2) ||                 // Body
-        (nArgs == 3 && !lua_isboolean(state, 3)))  // Restrict to built-in API?
+        (nArgs >= 3 && !lua_isboolean(state, 3)))  // Restrict to built-in API?
     {
       LOG(ERROR) << "Lua: Bad parameters to " << (isPost ? "RestApiPost()" : "RestApiPut()");
       lua_pushnil(state);
@@ -340,14 +343,17 @@ namespace Orthanc
     const char* bodyData = lua_tolstring(state, 2, &bodySize);
     bool builtin = (nArgs == 3 ? lua_toboolean(state, 3) != 0 : false);
 
+    std::map<std::string, std::string> headers;
+    LuaContext::GetDictionaryArgument(headers, state, 4, true /* HTTP header key to lower case */);
+        
     try
     {
       std::string result;
       if (isPost ?
           HttpToolbox::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                  RequestOrigin_Lua, uri, bodyData, bodySize) :
+                                  RequestOrigin_Lua, uri, bodyData, bodySize, headers) :
           HttpToolbox::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                 RequestOrigin_Lua, uri, bodyData, bodySize))
+                                 RequestOrigin_Lua, uri, bodyData, bodySize, headers))
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -391,9 +397,9 @@ namespace Orthanc
 
     // Check the types of the arguments
     int nArgs = lua_gettop(state);
-    if ((nArgs != 1 && nArgs != 2) || 
+    if (nArgs < 1 || nArgs > 3 ||
         !lua_isstring(state, 1) ||                 // URI
-        (nArgs == 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
+        (nArgs >= 2 && !lua_isboolean(state, 2)))  // Restrict to built-in API?
     {
       LOG(ERROR) << "Lua: Bad parameters to RestApiDelete()";
       lua_pushnil(state);
@@ -403,10 +409,13 @@ namespace Orthanc
     const char* uri = lua_tostring(state, 1);
     bool builtin = (nArgs == 2 ? lua_toboolean(state, 2) != 0 : false);
 
+    std::map<std::string, std::string> headers;
+    LuaContext::GetDictionaryArgument(headers, state, 3, true /* HTTP header key to lower case */);
+    
     try
     {
       if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                    RequestOrigin_Lua, uri))
+                                    RequestOrigin_Lua, uri, headers))
       {
         lua_pushboolean(state, 1);
         return 1;

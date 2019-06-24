@@ -134,7 +134,7 @@ namespace Orthanc
                                       bool keepStrings)
   {
     ExecuteInternal(1);
-    context_.GetJson(result, lua_gettop(context_.lua_), keepStrings);
+    context_.GetJson(result, context_.lua_, lua_gettop(context_.lua_), keepStrings);
   }
 
 

@@ -87,11 +87,12 @@ namespace Orthanc
     void ExecuteInternal(std::string* output,
                          const std::string& command);
 
-    void GetJson(Json::Value& result,
-                 int top,
-                 bool keepStrings);
+    static void GetJson(Json::Value& result,
+                        lua_State* state,
+                        int top,
+                        bool keepStrings);
 
-    void SetHttpHeaders(lua_State* state, int top);
+    void SetHttpHeaders(int top);
     
   public:
     LuaContext();
@@ -136,5 +137,10 @@ namespace Orthanc
                                          const char* name);
 
     void PushJson(const Json::Value& value);
+
+    static void GetDictionaryArgument(std::map<std::string, std::string>& target,
+                                      lua_State* state,
+                                      int top,
+                                      bool keyToLowerCase);
   };
 }
