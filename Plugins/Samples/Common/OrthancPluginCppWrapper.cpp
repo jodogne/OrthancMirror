@@ -2285,7 +2285,8 @@ namespace OrthancPlugins
     method_(OrthancPluginHttpMethod_Get),
     timeout_(0),
     pkcs11_(false),
-    chunkedBody_(NULL)
+    chunkedBody_(NULL),
+    allowChunkedTransfers_(true)
   {
   }
 
@@ -2668,19 +2669,25 @@ namespace OrthancPlugins
   void HttpClient::Execute(IAnswer& answer)
   {
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
-    if (chunkedBody_ != NULL)
+    if (allowChunkedTransfers_)
     {
-      ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
+      if (chunkedBody_ != NULL)
+      {
+        ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
+      }
+      else
+      {
+        MemoryRequestBody wrapper(fullBody_);
+        ExecuteWithStream(httpStatus_, answer, wrapper);
+      }
+
+      return;
     }
-    else
-    {
-      MemoryRequestBody wrapper(fullBody_);
-      ExecuteWithStream(httpStatus_, answer, wrapper);
-    }
-#else
-    // Compatibility mode for Orthanc SDK <= 1.5.6. This results in
-    // higher memory usage (all chunks from the answer body are sent
-    // at once)
+#endif
+    
+    // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
+    // transfers are disabled. This results in higher memory usage
+    // (all chunks from the answer body are sent at once)
 
     HttpHeaders answerHeaders;
     std::string answerBody;
@@ -2696,7 +2703,6 @@ namespace OrthancPlugins
     {
       answer.AddChunk(answerBody.c_str(), answerBody.size());
     }
-#endif
   }
 
 
@@ -2704,15 +2710,19 @@ namespace OrthancPlugins
                            std::string& answerBody /* out */)
   {
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
-    MemoryAnswer answer;
-    Execute(answer);
-    answerHeaders = answer.GetHeaders();
-    answer.GetBody().Flatten(answerBody);
-
-#else
-    // Compatibility mode for Orthanc SDK <= 1.5.6. This results in
-    // higher memory usage (all chunks from the request body are sent
-    // at once)
+    if (allowChunkedTransfers_)
+    {
+      MemoryAnswer answer;
+      Execute(answer);
+      answerHeaders = answer.GetHeaders();
+      answer.GetBody().Flatten(answerBody);
+      return;
+    }
+#endif
+    
+    // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
+    // transfers are disabled. This results in higher memory usage
+    // (all chunks from the request body are sent at once)
 
     if (chunkedBody_ != NULL)
     {
@@ -2733,7 +2743,6 @@ namespace OrthancPlugins
     {
       ExecuteWithoutStream(httpStatus_, answerHeaders, answerBody, fullBody_);
     }
-#endif
   }
 
 
