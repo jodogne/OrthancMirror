@@ -845,7 +845,8 @@ namespace OrthancPlugins
     std::string              certificateKeyPassword_;
     bool                     pkcs11_;
     std::string              fullBody_;
-    IRequestBody*            chunkedBody_;    
+    IRequestBody*            chunkedBody_;
+    bool                     allowChunkedTransfers_;
 
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     void ExecuteWithStream(uint16_t& httpStatus,  // out
@@ -922,6 +923,18 @@ namespace OrthancPlugins
     void SetBody(const std::string& body);
 
     void SetBody(IRequestBody& body);
+
+    // This function can be used to disable chunked transfers if the
+    // remote server is Orthanc with a version <= 1.5.6.
+    void SetChunkedTransfersAllowed(bool allow)
+    {
+      allowChunkedTransfers_ = allow;
+    }
+
+    bool IsChunkedTransfersAllowed() const
+    {
+      return allowChunkedTransfers_;
+    }
 
     void Execute(IAnswer& answer);
 
