@@ -27,6 +27,7 @@ Maintenance
 * Allow the serialization of signed 16bpp images in PAM format
 * HTTP header "Accept-Encoding" is honored for streams without built-in support for compression
 * The default HTTP timeout is now 60 seconds (instead of 10 seconds in previous versions)
+* Allow anonymizing/modifying instances without the PatientID tag
 * Fix issue #106 (Unable to export preview as jpeg from Lua script)
 * Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
 * Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
