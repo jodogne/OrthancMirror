@@ -83,6 +83,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../PrecompiledHeaders.h"
 #include "FindScp.h"
 
+#include "../../DicomFormat/DicomArray.h"
 #include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../DicomParsing/ToDcmtkBridge.h"
 #include "../../Logging.h"
