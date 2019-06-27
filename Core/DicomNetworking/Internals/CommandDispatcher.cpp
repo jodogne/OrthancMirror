@@ -459,7 +459,7 @@ namespace Orthanc
       // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
       // only published if DCMTK >= 3.6.2:
       // https://bitbucket.org/sjodogne/orthanc/issues/137
-      assert(count == numberOfDcmAllStorageSOPClassUIDs);
+      assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
       cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
