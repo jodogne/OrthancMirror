@@ -558,9 +558,9 @@ namespace Orthanc
               tokens.size() > 1 &&
               tokens[0].empty())
           {
-            std::string s = tokens[1];
-            tokens.clear();
-            tokens.push_back(s);
+            // Specific character set with code extension: Remove the
+            // first element from the vector of encodings
+            tokens.erase(tokens.begin());
           }
 
           node[KEY_VALUE] = Json::arrayValue;

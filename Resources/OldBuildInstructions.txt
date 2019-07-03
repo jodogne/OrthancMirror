@@ -133,6 +133,18 @@ CentOS 6
               libpng-devel sqlite-devel libuuid-devel openssl-devel \
               lua-devel mercurial patch tar
 
+Using static linking with Civetweb (tested with Orthanc 1.5.7):
+
+# cmake -DSTATIC_BUILD=ON \
+        -DSTANDALONE_BUILD=ON \
+        -DUSE_LEGACY_JSONCPP=ON \
+        -DUSE_LEGACY_LIBICU=ON \
+        -DBOOST_LOCALE_BACKEND=icu \
+        -DCMAKE_BUILD_TYPE=Debug \
+        ~/Orthanc
+
+Using Mongoose (untested):
+
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_JSONCPP=OFF \
         -DUSE_SYSTEM_CIVETWEB=OFF \

@@ -1948,8 +1948,10 @@ namespace Orthanc
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
 
+    std::map<std::string, std::string> httpHeaders;
+
     std::string result;
-    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri))
+    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, httpHeaders))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2013,10 +2015,12 @@ namespace Orthanc
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
+    std::map<std::string, std::string> httpHeaders;
+
     std::string result;
     if (isPost ? 
-        HttpToolbox::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize) :
-        HttpToolbox::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize))
+        HttpToolbox::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders) :
+        HttpToolbox::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2041,7 +2045,9 @@ namespace Orthanc
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
-    if (!HttpToolbox::SimpleDelete(*handler, RequestOrigin_Plugins, uri))
+    std::map<std::string, std::string> httpHeaders;
+
+    if (!HttpToolbox::SimpleDelete(*handler, RequestOrigin_Plugins, uri, httpHeaders))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }

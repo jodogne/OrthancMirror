@@ -915,12 +915,23 @@ namespace Orthanc
   {
     std::string patientId, studyUid, seriesUid, instanceUid;
 
-    if (!GetTagValue(patientId, DICOM_TAG_PATIENT_ID) ||
-        !GetTagValue(studyUid, DICOM_TAG_STUDY_INSTANCE_UID) ||
+    if (!GetTagValue(patientId, DICOM_TAG_PATIENT_ID))
+    {
+      /**
+       * If "PatientID" is absent, be tolerant by considering it
+       * equals the empty string, then proceed. In Orthanc <= 1.5.6,
+       * an exception "Bad file format" was generated.
+       * https://groups.google.com/d/msg/orthanc-users/aphG_h1AHVg/rfOTtTPTAgAJ
+       * https://bitbucket.org/sjodogne/orthanc/commits/4c45e018bd3de3cfa21d6efc6734673aaaee4435
+       **/
+      patientId.clear();
+    }        
+    
+    if (!GetTagValue(studyUid, DICOM_TAG_STUDY_INSTANCE_UID) ||
         !GetTagValue(seriesUid, DICOM_TAG_SERIES_INSTANCE_UID) ||
         !GetTagValue(instanceUid, DICOM_TAG_SOP_INSTANCE_UID))
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "missing PatientID, StudyInstanceUID, SeriesInstanceUID or SOPInstanceUID");
+      throw OrthancException(ErrorCode_BadFileFormat, "missing StudyInstanceUID, SeriesInstanceUID or SOPInstanceUID");
     }
 
     return DicomInstanceHasher(patientId, studyUid, seriesUid, instanceUid);

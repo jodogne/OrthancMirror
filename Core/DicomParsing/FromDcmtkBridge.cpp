@@ -2312,8 +2312,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
       if (c != NULL)  // This case corresponds to the empty string
       {
-        std::string s(c);
-        utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+        if (element.getTag() == DCM_SpecificCharacterSet)
+        {
+          utf8.assign(c);
+        }
+        else
+        {
+          std::string s(c);
+          utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+        }
       }
 
       std::string newValue;

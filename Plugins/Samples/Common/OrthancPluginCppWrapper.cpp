@@ -33,6 +33,7 @@
 
 #include "OrthancPluginCppWrapper.h"
 
+#include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
@@ -333,13 +334,10 @@ namespace OrthancPlugins
 
   void OrthancString::Assign(char* str)
   {
-    if (str == NULL)
+    Clear();
+
+    if (str != NULL)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-    }
-    else
-    {
-      Clear();
       str_ = str;
     }
   }
@@ -2050,6 +2048,11 @@ namespace OrthancPlugins
   std::string OrthancJob::Submit(OrthancJob* job,
                                  int priority)
   {
+    if (job == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
+    }
+
     OrthancPluginJob* orthanc = Create(job);
 
     char* id = OrthancPluginSubmitJob(GetGlobalContext(), orthanc, priority);
@@ -2069,6 +2072,70 @@ namespace OrthancPlugins
       return tmp;
     }
   }
+
+
+  void OrthancJob::SubmitAndWait(Json::Value& result,
+                                 OrthancJob* job /* takes ownership */,
+                                 int priority)
+  {
+    std::string id = Submit(job, priority);
+
+    for (;;)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+      Json::Value status;
+      if (!RestApiGet(status, "/jobs/" + id, false) ||
+          !status.isMember("State") ||
+          status["State"].type() != Json::stringValue)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InexistentItem);        
+      }
+
+      const std::string state = status["State"].asString();
+      if (state == "Success")
+      {
+        if (status.isMember("Content"))
+        {
+          result = status["Content"];
+        }
+        else
+        {
+          result = Json::objectValue;
+        }
+
+        return;
+      }
+      else if (state == "Running")
+      {
+        continue;
+      }
+      else if (!status.isMember("ErrorCode") ||
+               status["ErrorCode"].type() != Json::intValue)
+      {
+        ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_InternalError);
+      }
+      else
+      {
+        if (!status.isMember("ErrorDescription") ||
+            status["ErrorDescription"].type() != Json::stringValue)
+        {
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());
+        }
+        else
+        {
+#if HAS_ORTHANC_EXCEPTION == 1
+          throw Orthanc::OrthancException(static_cast<Orthanc::ErrorCode>(status["ErrorCode"].asInt()),
+                                          status["ErrorDescription"].asString());
+#else
+          LogError("Exception while executing the job: " + status["ErrorDescription"].asString());
+          ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(status["ErrorCode"].asInt());          
+#endif
+        }
+      }
+    }
+  }
+
 #endif
 
 
@@ -2218,7 +2285,8 @@ namespace OrthancPlugins
     method_(OrthancPluginHttpMethod_Get),
     timeout_(0),
     pkcs11_(false),
-    chunkedBody_(NULL)
+    chunkedBody_(NULL),
+    allowChunkedTransfers_(true)
   {
   }
 
@@ -2598,35 +2666,63 @@ namespace OrthancPlugins
   }
 
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
   void HttpClient::Execute(IAnswer& answer)
   {
-    if (chunkedBody_ != NULL)
+#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+    if (allowChunkedTransfers_)
     {
-      ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
+      if (chunkedBody_ != NULL)
+      {
+        ExecuteWithStream(httpStatus_, answer, *chunkedBody_);
+      }
+      else
+      {
+        MemoryRequestBody wrapper(fullBody_);
+        ExecuteWithStream(httpStatus_, answer, wrapper);
+      }
+
+      return;
     }
-    else
+#endif
+    
+    // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
+    // transfers are disabled. This results in higher memory usage
+    // (all chunks from the answer body are sent at once)
+
+    HttpHeaders answerHeaders;
+    std::string answerBody;
+    Execute(answerHeaders, answerBody);
+
+    for (HttpHeaders::const_iterator it = answerHeaders.begin(); 
+         it != answerHeaders.end(); ++it)
     {
-      MemoryRequestBody wrapper(fullBody_);
-      ExecuteWithStream(httpStatus_, answer, wrapper);
+      answer.AddHeader(it->first, it->second);      
+    }
+
+    if (!answerBody.empty())
+    {
+      answer.AddChunk(answerBody.c_str(), answerBody.size());
     }
   }
-#endif
 
 
   void HttpClient::Execute(HttpHeaders& answerHeaders /* out */,
                            std::string& answerBody /* out */)
   {
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
-    MemoryAnswer answer;
-    Execute(answer);
-    answerHeaders = answer.GetHeaders();
-    answer.GetBody().Flatten(answerBody);
-
-#else
-    // Compatibility mode for Orthanc SDK <= 1.5.6. This results in
-    // higher memory usage (all chunks from the body request are sent
-    // at once)
+    if (allowChunkedTransfers_)
+    {
+      MemoryAnswer answer;
+      Execute(answer);
+      answerHeaders = answer.GetHeaders();
+      answer.GetBody().Flatten(answerBody);
+      return;
+    }
+#endif
+    
+    // Compatibility mode for Orthanc SDK <= 1.5.6 or if chunked
+    // transfers are disabled. This results in higher memory usage
+    // (all chunks from the request body are sent at once)
 
     if (chunkedBody_ != NULL)
     {
@@ -2647,7 +2743,6 @@ namespace OrthancPlugins
     {
       ExecuteWithoutStream(httpStatus_, answerHeaders, answerBody, fullBody_);
     }
-#endif
   }
 
 

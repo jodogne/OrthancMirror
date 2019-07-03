@@ -2,9 +2,14 @@ Pending changes in the mainline
 ===============================
 
 
+
+Version 1.5.7 (2019-06-25)
+==========================
+
 REST API
 --------
 
+* API version has been upgraded to 3
 * "/modalities/{id}/query": New argument "Normalize" can be set to "false"
   to bypass the automated correction of outgoing C-FIND queries
 * Reporting of "ParentResources" in "DicomModalityStore" and "DicomModalityStore" jobs
@@ -26,9 +31,12 @@ Maintenance
 * Allow the serialization of signed 16bpp images in PAM format
 * HTTP header "Accept-Encoding" is honored for streams without built-in support for compression
 * The default HTTP timeout is now 60 seconds (instead of 10 seconds in previous versions)
+* Allow anonymizing/modifying instances without the PatientID tag
+* Fix issue #106 (Unable to export preview as jpeg from Lua script)
 * Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
 * Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
 * Fix issue #138 (POST to modalities/{name} accepts invalid characters)
+* Fix issue #141 (/tools/create-dicom removes non-ASCII characters from study description)
 
 
 Version 1.5.6 (2019-03-01)

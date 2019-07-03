@@ -768,6 +768,10 @@ namespace OrthancPlugins
 
     static std::string Submit(OrthancJob* job /* takes ownership */,
                               int priority);
+
+    static void SubmitAndWait(Json::Value& result,
+                              OrthancJob* job /* takes ownership */,
+                              int priority);
   };
 #endif
 
@@ -810,7 +814,7 @@ namespace OrthancPlugins
       virtual bool ReadNextChunk(std::string& chunk) = 0;
     };
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+
     class IAnswer : public boost::noncopyable
     {
     public:
@@ -824,7 +828,6 @@ namespace OrthancPlugins
       virtual void AddChunk(const void* data,
                             size_t size) = 0;
     };
-#endif
 
 
   private:
@@ -842,7 +845,8 @@ namespace OrthancPlugins
     std::string              certificateKeyPassword_;
     bool                     pkcs11_;
     std::string              fullBody_;
-    IRequestBody*            chunkedBody_;    
+    IRequestBody*            chunkedBody_;
+    bool                     allowChunkedTransfers_;
 
 #if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
     void ExecuteWithStream(uint16_t& httpStatus,  // out
@@ -920,9 +924,19 @@ namespace OrthancPlugins
 
     void SetBody(IRequestBody& body);
 
-#if HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_CLIENT == 1
+    // This function can be used to disable chunked transfers if the
+    // remote server is Orthanc with a version <= 1.5.6.
+    void SetChunkedTransfersAllowed(bool allow)
+    {
+      allowChunkedTransfers_ = allow;
+    }
+
+    bool IsChunkedTransfersAllowed() const
+    {
+      return allowChunkedTransfers_;
+    }
+
     void Execute(IAnswer& answer);
-#endif
 
     void Execute(HttpHeaders& answerHeaders /* out */,
                  std::string& answerBody /* out */);
@@ -1067,9 +1081,6 @@ namespace OrthancPlugins
         Internals::ChunkedRequestReaderExecute,
         Internals::ChunkedRequestReaderFinalize);
 #else
-      LogWarning("Performance warning: The plugin was compiled against a pre-1.5.7 version "
-                 "of the Orthanc SDK. Multipart transfers will be entirely stored in RAM.");
-      
       OrthancPluginRegisterRestCallbackNoLock(
         GetGlobalContext(), uri.c_str(), 
         Internals::ChunkedRestCompatibility<GetHandler, PostHandler, DeleteHandler, PutHandler>);

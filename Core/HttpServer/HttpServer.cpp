@@ -483,6 +483,7 @@ namespace Orthanc
 
     //chunkStore.Print();
 
+    // TODO - Refactor using class "MultipartStreamReader"
     try
     {
       FindIterator last;
@@ -841,6 +842,10 @@ namespace Orthanc
           ct->second.size() >= MULTIPART_FORM_LENGTH &&
           !memcmp(ct->second.c_str(), MULTIPART_FORM, MULTIPART_FORM_LENGTH))
       {
+        /** 
+         * The user uses the "upload" form of Orthanc Explorer, for
+         * file uploads through a HTML form.
+         **/
         status = ParseMultipartForm(body, connection, headers, ct->second, server.GetChunkStore());
         isMultipartForm = true;
       }
