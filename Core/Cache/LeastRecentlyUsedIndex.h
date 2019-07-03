@@ -35,6 +35,7 @@
 
 #include <list>
 #include <map>
+#include <vector>
 #include <boost/noncopyable.hpp>
 #include <cassert>
 
@@ -151,6 +152,17 @@ namespace Orthanc
     const T& GetOldest() const;
     
     const Payload& GetOldestPayload() const;
+
+    void GetAllKeys(std::vector<T>& keys) const
+    {
+      keys.clear();
+      keys.reserve(GetSize());
+      for (typename Index::const_iterator it = index_.begin(); it != index_.end(); it++)
+      {
+        keys.push_back(it->first);
+      }
+    }
+
   };
 
 
