@@ -49,8 +49,6 @@ namespace Orthanc
     std::string content_;
 
   public:
-    // virtual ~PamReader()
-    // {}
 
 #if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
