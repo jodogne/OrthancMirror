@@ -162,7 +162,10 @@ namespace Orthanc
     void ListUserProperties(std::set<std::string>& target) const; 
 
     bool LookupUserProperty(std::string& value,
-                            const std::string& key) const; 
+                            const std::string& key) const;
+
+    bool GetBooleanUserProperty(const std::string& key,
+                                bool defaultValue) const;
 
     bool IsAdvancedFormatNeeded() const;
 
