@@ -139,6 +139,23 @@ extern "C"
   } U_ICUDATA_ENTRY_POINT = { 0.0, NULL };
 }
 
+#    if defined(__LSB_VERSION__)
+extern "C"
+{
+  /**
+   * The "tzname" global variable is declared as "extern" but is not
+   * defined in any compilation module, if using Linux Standard Base,
+   * as soon as OpenSSL or cURL is in use on Ubuntu >= 18.04 (glibc >=
+   * 2.27). The variable "__tzname" is always properly declared *and*
+   * defined. The reason is unclear, and is maybe a bug in the gcc 4.8
+   * linker that is used by LSB if facing a weak symbol (as "tzname").
+   * This makes Orthanc crash if the timezone is set to UTC.
+   * https://groups.google.com/d/msg/orthanc-users/0m8sxxwSm1E/2p8du_89CAAJ
+   **/
+  char *tzname[2] = { (char *) "GMT", (char *) "GMT" };
+}
+#    endif
+
 #  endif
 #endif
  
