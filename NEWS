@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Fix compatibility of LSB binaries with Ubuntu >= 18.04
 
 
 Version 1.5.7 (2019-06-25)
