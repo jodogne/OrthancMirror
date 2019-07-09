@@ -145,6 +145,30 @@ NB: Instructions to use clang and ninja:
 # ninja
 
 
+SUPPORTED - Ubuntu 18.04 LTS
+----------------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.3-0-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev locales
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
+        ~/Orthanc
+# make
+
+
+NB: A suitable environment for locales can be setup as follows:
+
+# echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+# locale-gen
+
+
 
 SUPPORTED - Fedora 20-22
 ------------------------
