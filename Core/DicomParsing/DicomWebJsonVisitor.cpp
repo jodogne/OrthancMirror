@@ -653,7 +653,15 @@ namespace Orthanc
             }
             catch (boost::bad_lexical_cast&)
             {
-              throw OrthancException(ErrorCode_BadFileFormat);
+              std::string tmp;
+              if (value.size() < 64 &&
+                  Toolbox::IsAsciiString(value))
+              {
+                tmp = ": " + value;
+              }
+              
+              LOG(WARNING) << "Ignoring DICOM tag (" << tag.Format()
+                           << ") with invalid content for VR " << EnumerationToString(vr) << tmp;
             }
           }
         }
