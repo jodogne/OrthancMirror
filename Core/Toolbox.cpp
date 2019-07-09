@@ -144,6 +144,10 @@ extern "C"
  
 
 
+#if defined(__unix__) && ORTHANC_SANDBOXED != 1
+#  include "SystemToolbox.h"  // Check out "InitializeGlobalLocale()"
+#endif
+
 
 
 namespace Orthanc
@@ -1416,8 +1420,6 @@ namespace Orthanc
 
   static bool SetGlobalLocale(const char* locale)
   {
-    globalLocale_.reset(NULL);
-
     try
     {
       if (locale == NULL)
@@ -1431,8 +1433,12 @@ namespace Orthanc
         globalLocale_.reset(new std::locale(locale));
       }
     }
-    catch (std::runtime_error&)
+    catch (std::runtime_error& e)
     {
+      LOG(ERROR) << "Cannot set globale locale to "
+                 << (locale ? std::string(locale) : "(null)")
+                 << ": " << e.what();
+      globalLocale_.reset(NULL);
     }
 
     return (globalLocale_.get() != NULL);
@@ -1537,6 +1543,23 @@ namespace Orthanc
   void Toolbox::InitializeGlobalLocale(const char* locale)
   {
     InitializeIcu();
+
+#if defined(__unix__) && ORTHANC_SANDBOXED != 1
+    static const char* LOCALTIME = "/etc/localtime";
+    
+    if (!SystemToolbox::IsExistingFile(LOCALTIME))
+    {
+      // Check out file
+      // "boost_1_69_0/libs/locale/src/icu/time_zone.cpp": Direct
+      // access is made to this file if ICU is not used. Crash arises
+      // in Boost if the file is a symbolic link to a non-existing
+      // file (such as in Ubuntu 16.04 base Docker image).
+      throw OrthancException(
+        ErrorCode_InternalError,
+        "On UNIX-like systems, the file " + std::string(LOCALTIME) +
+        " must be present on the filesystem (install \"tzdata\" package on Debian)");
+    }
+#endif
 
     // Make Orthanc use English, United States locale
     // Linux: use "en_US.UTF-8"
