@@ -1,4 +1,4 @@
-#pragma once
+v#pragma once
 
 #include <string>
 #include <vector>
@@ -39,7 +39,7 @@ namespace OrthancHelpers
 #if defined(BOOST_ENABLE_THREADS)
     boost::thread_specific_ptr<std::vector<std::string>> contexts_;
 #else
-    boost::thread_specific_ptr<std::vector<std::string>> contexts_;
+    std::auto_ptr<std::vector<std::string>> contexts_;
 #endif
     bool logContextChanges_;
 
