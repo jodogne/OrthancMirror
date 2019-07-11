@@ -36,7 +36,11 @@ namespace OrthancHelpers
   // check LogContext class for more details
   class BaseLogger : public ILogger
   {
+#if defined(BOOST_ENABLE_THREADS)
     boost::thread_specific_ptr<std::vector<std::string>> contexts_;
+#else
+    std::auto_ptr<std::vector<std::string>> contexts_;
+#endif
     bool logContextChanges_;
 
   public:
