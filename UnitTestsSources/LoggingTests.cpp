@@ -61,18 +61,14 @@ void TestInfo(const char* message)
 /**
 Extracts the log line payload
 
-"E0423 16:55:43.001194 LoggingTests.cpp:102] Foo bar?\r\n"
+"E0423 16:55:43.001194 LoggingTests.cpp:102] Foo bar?\n"
 -->
 "Foo bar"
 
 If the log line cannot be matched, the function returns false.
 */
 
-#ifdef WIN32
-# define EOLSTRING "\r\n"
-#else 
-# define EOLSTRING "\n"
-#endif
+#define EOLSTRING "\n"
 
 static bool GetLogLinePayload(std::string& payload,
   const std::string& logLine)
