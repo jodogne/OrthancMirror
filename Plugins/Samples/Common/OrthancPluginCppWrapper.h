@@ -468,6 +468,12 @@ namespace OrthancPlugins
                         const std::map<std::string, std::string>& httpHeaders,
                         bool applyPlugins);
 
+  bool RestApiPost(std::string& result,
+                   const std::string& uri,
+                   const void* body,
+                   size_t bodySize,
+                   bool applyPlugins);
+
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
                    const void* body,

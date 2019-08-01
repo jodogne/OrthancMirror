@@ -1249,6 +1249,29 @@ namespace OrthancPlugins
   }
 
 
+  bool RestApiPost(std::string& result,
+                   const std::string& uri,
+                   const void* body,
+                   size_t bodySize,
+                   bool applyPlugins)
+  {
+    MemoryBuffer answer;
+
+    if (!answer.RestApiPost(uri, body, bodySize, applyPlugins))
+    {
+      return false;
+    }
+    else
+    {
+      if (!answer.IsEmpty())
+      {
+        result.assign(answer.GetData(), answer.GetSize());
+      }
+      return true;
+    }
+  }
+
+
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
                    const void* body,
