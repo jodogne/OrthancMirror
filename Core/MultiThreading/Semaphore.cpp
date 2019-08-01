@@ -39,10 +39,10 @@
 
 namespace Orthanc
 {
-  Semaphore::Semaphore(unsigned int count) :
-    count_(count)
+  Semaphore::Semaphore(unsigned int availableResources) :
+    availableResources_(availableResources)
   {
-    if (count_ == 0)
+    if (availableResources_ == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -52,7 +52,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    count_++;
+    availableResources_++;
     condition_.notify_one(); 
   }
 
@@ -60,11 +60,24 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    while (count_ == 0)
+    while (availableResources_ == 0)
     {
       condition_.wait(lock);
     }
 
-    count_++;
+    availableResources_--;
+  }
+
+  bool Semaphore::TryAcquire()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (availableResources_ == 0)
+    {
+      return false;
+    }
+
+    availableResources_--;
+    return true;
   }
 }
