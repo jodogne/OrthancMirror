@@ -41,7 +41,7 @@ namespace Orthanc
   class Semaphore : public boost::noncopyable
   {
   private:
-    unsigned int count_;
+    unsigned int availableResources_;
     boost::mutex mutex_;
     boost::condition_variable condition_;
     
@@ -49,8 +49,9 @@ namespace Orthanc
 
     void Acquire();
 
+    bool TryAcquire();
   public:
-    explicit Semaphore(unsigned int count);
+    explicit Semaphore(unsigned int availableResources);
 
     class Locker : public boost::noncopyable
     {
@@ -69,5 +70,33 @@ namespace Orthanc
         that_.Release();
       }
     };
+
+    class TryLocker : public boost::noncopyable
+    {
+    private:
+      Semaphore&  that_;
+      bool        isAcquired_;
+
+    public:
+      explicit TryLocker(Semaphore& that) :
+        that_(that)
+      {
+        isAcquired_ = that_.TryAcquire();
+      }
+
+      ~TryLocker()
+      {
+        if (isAcquired_)
+        {
+          that_.Release();
+        }
+      }
+
+      bool IsAcquired() const
+      {
+        return isAcquired_;
+      }
+    };
+
   };
 }
