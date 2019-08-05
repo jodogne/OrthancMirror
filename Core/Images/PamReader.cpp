@@ -208,7 +208,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
-    
+
     if (Toolbox::DetectEndianness() == Endianness_Little &&
         bytesPerChannel == 2)
     {
@@ -218,12 +218,35 @@ namespace Orthanc
         
         for (unsigned int w = 0; w < GetWidth(); ++w, ++pixel)
         {
+#if ORTHANC_ENABLE_WASM == 1
+          /* 
+          
+          crash (2019-08-05):
+
+          Uncaught abort(alignment fault) at Error
+            at jsStackTrace
+            at stackTrace
+            at abort
+            at alignfault
+            at SAFE_HEAP_LOAD_i32_2_2 (wasm-function[251132]:39)
+            at __ZN7Orthanc9PamReader12ParseContentEv (wasm-function[11457]:8088)
+
+          Web Assenmbly IS LITTLE ENDIAN!
+
+          Perhaps in htobe16 ?
+          */
+          uint8_t* srcdst = reinterpret_cast<uint8_t*>(pixel);
+          uint8_t tmp = srcdst[0];
+          srcdst[0] = srcdst[1];
+          srcdst[1] = tmp;
+#else
           // memcpy() is necessary to avoid segmentation fault if the
           // "pixel" pointer is not 16-bit aligned (which is the case
           // if "offset" is an odd number). Check out issue #99:
           // https://bitbucket.org/sjodogne/orthanc/issues/99
           uint16_t v = htobe16(*pixel);
           memcpy(pixel, &v, sizeof(v));
+#endif
         }
       }
     }
