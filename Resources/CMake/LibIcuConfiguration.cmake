@@ -71,7 +71,7 @@ else()
       NOT LIBICU_PATH_2)
     message(FATAL_ERROR "Please install the libicu-dev package")
   else()
-    link_libraries(icuuc icui18n)
+    link_libraries(${LIBICU_PATH_1} ${LIBICU_PATH_2})
   endif()
 
   add_definitions(
