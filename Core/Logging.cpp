@@ -92,6 +92,7 @@ namespace Orthanc
  *********************************************************/
 
 #include <boost/lexical_cast.hpp>
+#include <sstream>
 
 namespace Orthanc
 {
@@ -113,20 +114,21 @@ namespace Orthanc
 
     InternalLogger::~InternalLogger()
     {
+      std::string message = messageStream_.str();
       if (context_ != NULL)
       {
         switch (level_)
         {
           case InternalLevel_ERROR:
-            OrthancPluginLogError(context_, message_.c_str());
+            OrthancPluginLogError(context_, message.c_str());
             break;
 
           case InternalLevel_WARNING:
-            OrthancPluginLogWarning(context_, message_.c_str());
+            OrthancPluginLogWarning(context_, message.c_str());
             break;
 
           case InternalLevel_INFO:
-            OrthancPluginLogInfo(context_, message_.c_str());
+            OrthancPluginLogInfo(context_, message.c_str());
             break;
 
           case InternalLevel_TRACE:
@@ -136,7 +138,7 @@ namespace Orthanc
           default:
           {
             std::string s = ("Unknown log level (" + boost::lexical_cast<std::string>(level_) +
-                             ") for message: " + message_);
+                             ") for message: " + message);
             OrthancPluginLogError(context_, s.c_str());
             break;
           }
@@ -239,20 +241,22 @@ namespace Orthanc
 
     InternalLogger::~InternalLogger()
     {
+      std::string message = messageStream_.str();
+
       switch (level_)
       {
         case InternalLevel_ERROR:
-          globalErrorLogFunc(message_.c_str());
+          globalErrorLogFunc(message.c_str());
           break;
 
         case InternalLevel_WARNING:
-          globalWarningLogFunc(message_.c_str());
+          globalWarningLogFunc(message.c_str());
           break;
 
         case InternalLevel_INFO:
           if (globalVerbose_)
           {
-            globalInfoLogFunc(message_.c_str());
+            globalInfoLogFunc(message.c_str());
             // TODO: stone_console_info(message_.c_str());
           }
           break;
@@ -260,14 +264,14 @@ namespace Orthanc
         case InternalLevel_TRACE:
           if (globalTrace_)
           {
-            globalTraceLogFunc(message_.c_str());
+            globalTraceLogFunc(message.c_str());
           }
           break;
 
         default:
         {
           std::stringstream ss;
-          ss << "Unknown log level (" << level_ << ") for message: " << message_;
+          ss << "Unknown log level (" << level_ << ") for message: " << message;
           auto s = ss.str();
           globalErrorLogFunc(s.c_str());
         }
