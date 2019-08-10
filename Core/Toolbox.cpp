@@ -923,14 +923,16 @@ namespace Orthanc
   {
     // http://sourceforge.net/p/predef/wiki/Endianness/
 
-    uint8_t buffer[4];
+    uint32_t bufferView;
+
+    uint8_t* buffer = reinterpret_cast<uint8_t*>(&bufferView);
 
     buffer[0] = 0x00;
     buffer[1] = 0x01;
     buffer[2] = 0x02;
     buffer[3] = 0x03;
 
-    switch (*((uint32_t *)buffer)) 
+    switch (bufferView) 
     {
       case 0x00010203: 
         return Endianness_Big;
@@ -942,7 +944,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
-
 
   std::string Toolbox::WildcardToRegularExpression(const std::string& source)
   {
