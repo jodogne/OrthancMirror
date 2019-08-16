@@ -110,12 +110,13 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+
     if (call.GetBodySize() == 0)
     {
-      return;
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Received an empty DICOM file");
     }
-
-    LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
 
     // TODO Remove unneccessary memcpy
     std::string postData;
