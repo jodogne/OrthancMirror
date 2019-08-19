@@ -821,7 +821,7 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
-      httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", true));
+      httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
       lock.GetConfiguration().SetupRegisteredUsers(httpServer);
