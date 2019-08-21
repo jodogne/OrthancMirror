@@ -1607,7 +1607,24 @@ TEST(Toolbox, EncodingsKorean)
 
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(28), node.node().text().as_string());
-#endif  
+#endif
+  
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(2u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
+    ASSERT_EQ("ISO 2022 IR 149", s);
+
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    std::vector<std::string> v;
+    Toolbox::TokenizeString(v, s, '=');
+    ASSERT_EQ(3u, v.size());
+    ASSERT_EQ("Hong^Gildong", v[0]);
+    ASSERT_EQ(utf8, s);
+  }
 }
 
 
@@ -1688,6 +1705,23 @@ TEST(Toolbox, EncodingsJapaneseKanji)
   node = SelectNode(doc, "//NativeDicomModel/DicomAttribute[@tag=\"00100010\"]/PersonName/Phonetic/GivenName");
   ASSERT_EQ(utf8.substr(37), node.node().text().as_string());
 #endif  
+  
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(2u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
+    ASSERT_EQ("ISO 2022 IR 87", s);
+
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    std::vector<std::string> v;
+    Toolbox::TokenizeString(v, s, '=');
+    ASSERT_EQ(3u, v.size());
+    ASSERT_EQ("Yamada^Tarou", v[0]);
+    ASSERT_EQ(utf8, s);
+  }
 }
 
 

@@ -570,7 +570,7 @@ TEST(DicomWebJson, Multiplicity)
   dicom.Apply(visitor);
 
   {
-    const Json::Value& tag = visitor.GetResult() ["00200037"];
+    const Json::Value& tag = visitor.GetResult() ["00200037"];  // ImageOrientationPatient
     const Json::Value& value = tag["Value"];
   
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
@@ -583,13 +583,33 @@ TEST(DicomWebJson, Multiplicity)
   }
 
   {
-    const Json::Value& tag = visitor.GetResult() ["00200032"];
+    const Json::Value& tag = visitor.GetResult() ["00200032"];  // ImagePositionPatient
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(1u, tag.getMemberNames().size());
   }
 
   std::string xml;
   visitor.FormatXml(xml);
+
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(3u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    ASSERT_EQ("SB1^SB2^SB3^SB4^SB5", s);
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_POSITION_PATIENT, false));
+    ASSERT_TRUE(s.empty());
+
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
+
+    std::vector<std::string> v;
+    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    ASSERT_FLOAT_EQ(1.0f, boost::lexical_cast<float>(v[0]));
+    ASSERT_FLOAT_EQ(2.3f, boost::lexical_cast<float>(v[1]));
+    ASSERT_FLOAT_EQ(4.0f, boost::lexical_cast<float>(v[2]));
+  }
 }
 
 
@@ -620,6 +640,22 @@ TEST(DicomWebJson, NullValue)
 
   std::string xml;
   visitor.FormatXml(xml);
+  
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(1u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
+
+    std::vector<std::string> v;
+    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    ASSERT_FLOAT_EQ(1.5f, boost::lexical_cast<float>(v[0]));
+    ASSERT_TRUE(v[1].empty());
+    ASSERT_TRUE(v[2].empty());
+    ASSERT_FLOAT_EQ(2.5f, boost::lexical_cast<float>(v[3]));
+  }
 }
 
 
@@ -679,12 +715,16 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
-  
+
   Orthanc::DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   std::string s;
-  
+
+  // The tag (0002,0002) is "Media Storage SOP Class UID" and is
+  // automatically copied by DCMTK from tag (0008,0016)
+  ASSERT_EQ("UI", visitor.GetResult() ["00020002"]["vr"].asString());
+  ASSERT_EQ("UI", visitor.GetResult() ["00020002"]["Value"][0].asString());
   ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["vr"].asString());
   ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["Value"][0].asString());
   ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["vr"].asString());
@@ -804,6 +844,45 @@ TEST(DicomWebJson, ValueRepresentation)
 
   std::string xml;
   visitor.FormatXml(xml);
+  
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(31u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0020, 0x9165), false));  ASSERT_EQ("00100020", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0052), false));  ASSERT_EQ("CS", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0012), false));  ASSERT_EQ("DA", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x1020), false));  ASSERT_EQ("42", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x002a), false));  ASSERT_EQ("DT", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x9431), false));  ASSERT_EQ("43", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1163), false));  ASSERT_EQ("44", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1160), false));  ASSERT_EQ("45", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0070), false));  ASSERT_EQ("LO", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x4000), false));  ASSERT_EQ("LT", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x7fe0, 0x0009), true));   ASSERT_EQ("OD", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0064, 0x0009), true));   ASSERT_EQ("OF", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), false));  ASSERT_EQ("46", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0018, 0x9219), false));  ASSERT_EQ("-16", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0081), false));  ASSERT_EQ("ST", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0013), false));  ASSERT_EQ("TM", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0016), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1161), false));  ASSERT_EQ("128", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x4342, 0x1234), true));   ASSERT_EQ("UN", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
+  }
 }
 
 
@@ -848,4 +927,10 @@ TEST(DicomWebJson, Sequence)
 
   std::string xml;
   visitor.FormatXml(xml);
+
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(0, m.GetSize());  // Sequences are not handled by Orthanc::DicomMap
+  }
 }
