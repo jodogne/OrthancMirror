@@ -231,5 +231,7 @@ namespace Orthanc
     void Serialize(Json::Value& target) const;
 
     void Unserialize(const Json::Value& source);
+
+    void FromDicomWeb(const Json::Value& source);
   };
 }
