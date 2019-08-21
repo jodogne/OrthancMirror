@@ -867,7 +867,6 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x7fe0, 0x0009), true));   ASSERT_EQ("OD", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0064, 0x0009), true));   ASSERT_EQ("OF", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), false));  ASSERT_EQ("46", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
@@ -882,6 +881,13 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
     ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
+
+#if DCMTK_VERSION_NUMBER == 361
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), false));
+#else
+    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), true));
+#endif
+    ASSERT_EQ("46", s);
   }
 }
 
@@ -931,6 +937,6 @@ TEST(DicomWebJson, Sequence)
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
-    ASSERT_EQ(0, m.GetSize());  // Sequences are not handled by Orthanc::DicomMap
+    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by Orthanc::DicomMap
   }
 }

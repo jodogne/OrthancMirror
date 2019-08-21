@@ -480,8 +480,8 @@ TEST(Toolbox, Utf8ToUnicode)
 {
   // https://en.wikipedia.org/wiki/UTF-8
   
-  ASSERT_EQ(1, sizeof(char));
-  ASSERT_EQ(1, sizeof(uint8_t));
+  ASSERT_EQ(1u, sizeof(char));
+  ASSERT_EQ(1u, sizeof(uint8_t));
   
   {
     const uint8_t data[] = { 0x24 };

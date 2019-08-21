@@ -179,13 +179,13 @@ TEST(LRU, GetAllKeys)
   r.AddOrMakeMostRecent("a", 420);
   r.GetAllKeys(keys);
 
-  ASSERT_EQ(1, keys.size());
+  ASSERT_EQ(1u, keys.size());
   ASSERT_EQ("a", keys[0]);
 
   r.AddOrMakeMostRecent("b", 421);
   r.GetAllKeys(keys);
 
-  ASSERT_EQ(2, keys.size());
+  ASSERT_EQ(2u, keys.size());
   ASSERT_TRUE(std::find(keys.begin(), keys.end(),"a") != keys.end());
   ASSERT_TRUE(std::find(keys.begin(), keys.end(),"b") != keys.end());
 }
