@@ -985,6 +985,11 @@ namespace Orthanc
   
   void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson)
   {
+    if (dicomAsJson.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    
     Clear();
     
     Json::Value::Members tags = dicomAsJson.getMemberNames();
