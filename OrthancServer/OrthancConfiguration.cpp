@@ -611,13 +611,13 @@ namespace Orthanc
   }
 
 
-  void OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
+  bool OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
   {
     httpServer.ClearUsers();
 
     if (!json_.isMember("RegisteredUsers"))
     {
-      return;
+      return false;
     }
 
     const Json::Value& users = json_["RegisteredUsers"];
@@ -626,13 +626,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
     }
 
+    bool hasUser = false;
     Json::Value::Members usernames = users.getMemberNames();
     for (size_t i = 0; i < usernames.size(); i++)
     {
       const std::string& username = usernames[i];
       std::string password = users[username].asString();
       httpServer.RegisterUser(username.c_str(), password.c_str());
+      hasUser = true;
     }
+
+    return hasUser;
   }
     
 

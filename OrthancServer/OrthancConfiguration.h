@@ -185,7 +185,8 @@ namespace Orthanc
 
     void GetListOfOrthancPeers(std::set<std::string>& target) const;
 
-    void SetupRegisteredUsers(HttpServer& httpServer) const;
+    // Returns "true" iff. at least one user is registered
+    bool SetupRegisteredUsers(HttpServer& httpServer) const;
 
     std::string InterpretStringParameterAsPath(const std::string& parameter) const;
     

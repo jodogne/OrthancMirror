@@ -821,11 +821,27 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
-      httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
-      lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      if (httpServer.IsRemoteAccessAllowed())
+      {
+        // Starting with Orthanc 1.5.8, enabling remote access forces user authentication.
+        httpServer.SetAuthenticationEnabled(true);
+      }
+      else
+      {
+        httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
+      }
 
+      bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+
+      if (httpServer.IsAuthenticationEnabled() &&
+          !hasUsers)
+      {
+        LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
+                     << "check the value of configuration option \"RegisteredUsers\"";
+      }
+      
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))
       {
         std::string certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
