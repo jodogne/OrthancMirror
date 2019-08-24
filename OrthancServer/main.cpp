@@ -823,14 +823,20 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
+      bool authenticationEnabled = lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false);
       if (httpServer.IsRemoteAccessAllowed())
       {
+        if (!authenticationEnabled)
+        {
+          LOG(WARNING) << "Remote access is allowed, automatically turning on HTTP authentication for security";
+        }
+
         // Starting with Orthanc 1.5.8, enabling remote access forces user authentication.
         httpServer.SetAuthenticationEnabled(true);
       }
       else
       {
-        httpServer.SetAuthenticationEnabled(lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false));
+        httpServer.SetAuthenticationEnabled(authenticationEnabled);
       }
 
       bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
