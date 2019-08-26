@@ -138,5 +138,15 @@ namespace Orthanc
     void FillPolygon(ImageAccessor& image,
                      const std::vector<ImagePoint>& points,
                      int64_t value);
+
+    void Resize(ImageAccessor& target,
+                const ImageAccessor& source);
+
+    ImageAccessor* Halve(const ImageAccessor& source,
+                         bool forceMinimalPitch);
+
+    void FlipX(ImageAccessor& image);
+
+    void FlipY(ImageAccessor& image);
   }
 }

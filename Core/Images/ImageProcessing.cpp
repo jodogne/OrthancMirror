@@ -34,6 +34,8 @@
 #include "../PrecompiledHeaders.h"
 #include "ImageProcessing.h"
 
+#include "Image.h"
+#include "ImageTraits.h"
 #include "PixelTraits.h"
 #include "../OrthancException.h"
 
@@ -1550,6 +1552,217 @@ namespace Orthanc
       }
       default:
         throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+    }
+  }
+
+
+  template <PixelFormat Format>
+  static void ResizeInternal(ImageAccessor& target,
+                             const ImageAccessor& source)
+  {
+    assert(target.GetFormat() == source.GetFormat() &&
+           target.GetFormat() == Format);
+      
+    const unsigned int sourceWidth = source.GetWidth();
+    const unsigned int sourceHeight = source.GetHeight();
+    const unsigned int targetWidth = target.GetWidth();
+    const unsigned int targetHeight = target.GetHeight();
+
+    if (targetWidth == 0 || targetHeight == 0)
+    {
+      return;
+    }
+
+    if (sourceWidth == 0 || sourceHeight == 0)
+    {
+      // Avoids division by zero below
+      ImageProcessing::Set(target, 0);
+      return;
+    }
+      
+    const float scaleX = static_cast<float>(sourceWidth) / static_cast<float>(targetWidth);
+    const float scaleY = static_cast<float>(sourceHeight) / static_cast<float>(targetHeight);
+
+
+    /**
+     * Create two lookup tables to quickly know the (x,y) position
+     * in the source image, given the (x,y) position in the target
+     * image.
+     **/
+      
+    std::vector<unsigned int>  lookupX(targetWidth);
+      
+    for (unsigned int x = 0; x < targetWidth; x++)
+    {
+      int sourceX = std::floor((static_cast<float>(x) + 0.5f) * scaleX);
+      if (sourceX < 0)
+      {
+        sourceX = 0;  // Should never happen
+      }
+      else if (sourceX >= static_cast<int>(sourceWidth))
+      {
+        sourceX = sourceWidth - 1;
+      }
+
+      lookupX[x] = static_cast<unsigned int>(sourceX);
+    }
+      
+    std::vector<unsigned int>  lookupY(targetHeight);
+      
+    for (unsigned int y = 0; y < targetHeight; y++)
+    {
+      int sourceY = std::floor((static_cast<float>(y) + 0.5f) * scaleY);
+      if (sourceY < 0)
+      {
+        sourceY = 0;  // Should never happen
+      }
+      else if (sourceY >= static_cast<int>(sourceHeight))
+      {
+        sourceY = sourceHeight - 1;
+      }
+
+      lookupY[y] = static_cast<unsigned int>(sourceY);
+    }
+
+
+    /**
+     * Actual resizing
+     **/
+      
+    for (unsigned int targetY = 0; targetY < targetHeight; targetY++)
+    {
+      unsigned int sourceY = lookupY[targetY];
+
+      for (unsigned int targetX = 0; targetX < targetWidth; targetX++)
+      {
+        unsigned int sourceX = lookupX[targetX];
+
+        typename ImageTraits<Format>::PixelType pixel;
+        ImageTraits<Format>::GetPixel(pixel, source, sourceX, sourceY);
+        ImageTraits<Format>::SetPixel(target, pixel, targetX, targetY);
+      }
+    }            
+  }
+
+
+
+  void ImageProcessing::Resize(ImageAccessor& target,
+                               const ImageAccessor& source)
+  {
+    if (source.GetFormat() != source.GetFormat())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+
+    if (source.GetWidth() == target.GetWidth() &&
+        source.GetHeight() == target.GetHeight())
+    {
+      Copy(target, source);
+      return;
+    }
+      
+    switch (source.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        ResizeInternal<PixelFormat_Grayscale8>(target, source);
+        break;
+
+      case PixelFormat_RGB24:
+        ResizeInternal<PixelFormat_RGB24>(target, source);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  ImageAccessor* ImageProcessing::Halve(const ImageAccessor& source,
+                                        bool forceMinimalPitch)
+  {
+    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth() / 2,
+                                          source.GetHeight() / 2, forceMinimalPitch));
+    Resize(*target, source);
+    return target.release();
+  }
+
+    
+  template <PixelFormat Format>
+  static void FlipXInternal(ImageAccessor& image)
+  {     
+    const unsigned int height = image.GetHeight();
+    const unsigned int width = image.GetWidth();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      for (unsigned int x1 = 0; x1 < width / 2; x1++)
+      {
+        unsigned int x2 = width - 1 - x1;
+          
+        typename ImageTraits<Format>::PixelType a, b;
+        ImageTraits<Format>::GetPixel(a, image, x1, y);
+        ImageTraits<Format>::GetPixel(b, image, x2, y);
+        ImageTraits<Format>::SetPixel(image, a, x2, y);
+        ImageTraits<Format>::SetPixel(image, b, x1, y);
+      }
+    }        
+  }
+
+    
+  void ImageProcessing::FlipX(ImageAccessor& image)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        FlipXInternal<PixelFormat_Grayscale8>(image);
+        break;
+
+      case PixelFormat_RGB24:
+        FlipXInternal<PixelFormat_RGB24>(image);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+    
+  template <PixelFormat Format>
+  static void FlipYInternal(ImageAccessor& image)
+  {     
+    const unsigned int height = image.GetHeight();
+    const unsigned int width = image.GetWidth();
+
+    for (unsigned int y1 = 0; y1 < height / 2; y1++)
+    {
+      unsigned int y2 = height - 1 - y1;
+        
+      for (unsigned int x = 0; x < width; x++)
+      {
+        typename ImageTraits<Format>::PixelType a, b;
+        ImageTraits<Format>::GetPixel(a, image, x, y1);
+        ImageTraits<Format>::GetPixel(b, image, x, y2);
+        ImageTraits<Format>::SetPixel(image, a, x, y2);
+        ImageTraits<Format>::SetPixel(image, b, x, y1);
+      }
+    }        
+  }
+
+    
+  void ImageProcessing::FlipY(ImageAccessor& image)
+  {
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        FlipYInternal<PixelFormat_Grayscale8>(image);
+        break;
+
+      case PixelFormat_RGB24:
+        FlipYInternal<PixelFormat_RGB24>(image);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 }
