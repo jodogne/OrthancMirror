@@ -278,6 +278,7 @@ static bool TestGrayscale8Pixel(const ImageAccessor& image,
 {
   PixelTraits<PixelFormat_Grayscale8>::PixelType p;
   ImageTraits<PixelFormat_Grayscale8>::GetPixel(p, image, x, y);
+  if (p != value) printf("%d %d\n", p, value);
   return p == value;
 }
 
@@ -304,9 +305,11 @@ static bool TestRGB24Pixel(const ImageAccessor& image,
 {
   PixelTraits<PixelFormat_RGB24>::PixelType p;
   ImageTraits<PixelFormat_RGB24>::GetPixel(p, image, x, y);
-  return (p.red_ == red &&
-          p.green_ == green &&
-          p.blue_ == blue);
+  bool ok = (p.red_ == red &&
+             p.green_ == green &&
+             p.blue_ == blue);
+  if (!ok) printf("%d,%d,%d  %d,%d,%d\n", p.red_, p.green_, p.blue_, red, green, blue);
+  return ok;
 }
 
 
@@ -465,5 +468,309 @@ TEST(ImageProcessing, ResizeEmptyGrayscale8)
     Image source(PixelFormat_Grayscale8, 2, 2, false);
     Image target(PixelFormat_Grayscale8, 0, 0, false);
     ImageProcessing::Resize(target, source);
+  }
+}
+
+
+TEST(ImageProcessing, Convolution)
+{
+  std::vector<float> k1(5, 1);
+  std::vector<float> k2(1, 1);
+
+  {
+    Image image(PixelFormat_Grayscale8, 1, 1, false);
+    SetGrayscale8Pixel(image, 0, 0, 100);    
+    ImageProcessing::SeparableConvolution(image, k1, 2, k2, 0);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 100));
+    ImageProcessing::SeparableConvolution(image, k1, 2, k1, 2);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 100));
+    ImageProcessing::SeparableConvolution(image, k2, 0, k1, 2);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 100));
+    ImageProcessing::SeparableConvolution(image, k2, 0, k2, 0);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 100));
+  }
+  
+  {
+    Image image(PixelFormat_RGB24, 1, 1, false);
+    SetRGB24Pixel(image, 0, 0, 10, 20, 30);    
+    ImageProcessing::SeparableConvolution(image, k1, 2, k2, 0);
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 10, 20, 30));
+    ImageProcessing::SeparableConvolution(image, k1, 2, k1, 2);
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 10, 20, 30));
+    ImageProcessing::SeparableConvolution(image, k2, 0, k1, 2);
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 10, 20, 30));
+    ImageProcessing::SeparableConvolution(image, k2, 0, k2, 0);
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 10, 20, 30));
+  }
+
+  {  
+    Image dirac(PixelFormat_Grayscale8, 9, 1, false);
+    ImageProcessing::Set(dirac, 0);
+    SetGrayscale8Pixel(dirac, 4, 0, 100);
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 2, 0, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 3, 0, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 4, 0, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 5, 0, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 6, 0, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 7, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 8, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 2, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 4, 0, 100));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 5, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 6, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 7, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 8, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 2, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 4, 0, 100));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 5, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 6, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 7, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 8, 0, 0));    
+    }
+  }
+
+  {  
+    Image dirac(PixelFormat_Grayscale8, 1, 9, false);
+    ImageProcessing::Set(dirac, 0);
+    SetGrayscale8Pixel(dirac, 0, 4, 100);
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 2, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 3, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 4, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 5, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 6, 20));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 7, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 8, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 2, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 3, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 4, 100));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 5, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 6, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 7, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 8, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 2, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 3, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 4, 100));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 5, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 6, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 7, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 8, 0));    
+    }
+  }
+
+  {
+    Image dirac(PixelFormat_RGB24, 9, 1, false);
+    ImageProcessing::Set(dirac, 0);
+    SetRGB24Pixel(dirac, 4, 0, 100, 120, 140);
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 2, 0, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 3, 0, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 4, 0, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 5, 0, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 6, 0, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 7, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 8, 0, 0, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 2, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 3, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 4, 0, 100, 120, 140));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 5, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 6, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 7, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 8, 0, 0, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 2, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 3, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 4, 0, 100, 120, 140));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 5, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 6, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 7, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 8, 0, 0, 0, 0));    
+    }
+  }
+
+  {
+    Image dirac(PixelFormat_RGB24, 1, 9, false);
+    ImageProcessing::Set(dirac, 0);
+    SetRGB24Pixel(dirac, 0, 4, 100, 120, 140);
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 2, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 3, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 4, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 5, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 6, 20, 24, 28));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 7, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 8, 0, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 2, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 3, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 4, 100, 120, 140));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 5, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 6, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 7, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 8, 0, 0, 0));    
+    }
+
+    {
+      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 2, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 3, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 4, 100, 120, 140));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 5, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 6, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 7, 0, 0, 0));
+      ASSERT_TRUE(TestRGB24Pixel(*image, 0, 8, 0, 0, 0));    
+    }
+  }
+}
+
+
+TEST(ImageProcessing, SmoothGaussian5x5)
+{
+  /**
+     Test the point spread function, as can be seen in Octave:
+     g1 = [ 1 4 6 4 1 ];
+     g1 /= sum(g1);
+     g2 = conv2(g1, g1');
+     floor(conv2(diag([ 0 0 100 0 0 ]), g2, 'same'))  % red/green channels
+     floor(conv2(diag([ 0 0 200 0 0 ]), g2, 'same'))  % blue channel
+  **/
+
+  {
+    Image image(PixelFormat_Grayscale8, 5, 5, false);
+    ImageProcessing::Set(image, 0);
+    SetGrayscale8Pixel(image, 2, 2, 100);
+    ImageProcessing::SmoothGaussian5x5(image);
+
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 0, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 0, 2));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 0, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 0, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 1, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 1, 6));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 1, 9));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 1, 6));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 1, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 2, 2));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 2, 9));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 2, 14));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 2, 9));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 2, 2));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 3, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 3, 6));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 3, 9));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 3, 6));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 3, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 4, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 4, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 4, 2));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 4, 1));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 4, 0));
+  }
+
+  {
+    Image image(PixelFormat_RGB24, 5, 5, false);
+    ImageProcessing::Set(image, 0);
+    SetRGB24Pixel(image, 2, 2, 100, 100, 200);
+    ImageProcessing::SmoothGaussian5x5(image);
+
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 0, 0, 0));
+    ASSERT_TRUE(TestRGB24Pixel(image, 1, 0, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 2, 0, 2, 2, 4));
+    ASSERT_TRUE(TestRGB24Pixel(image, 3, 0, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 4, 0, 0, 0, 0));
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 1, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 1, 1, 6, 6, 12));
+    ASSERT_TRUE(TestRGB24Pixel(image, 2, 1, 9, 9, 18));
+    ASSERT_TRUE(TestRGB24Pixel(image, 3, 1, 6, 6, 12));
+    ASSERT_TRUE(TestRGB24Pixel(image, 4, 1, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 2, 2, 2, 4));
+    ASSERT_TRUE(TestRGB24Pixel(image, 1, 2, 9, 9, 18));
+    ASSERT_TRUE(TestRGB24Pixel(image, 2, 2, 14, 14, 28));
+    ASSERT_TRUE(TestRGB24Pixel(image, 3, 2, 9, 9, 18));
+    ASSERT_TRUE(TestRGB24Pixel(image, 4, 2, 2, 2, 4));
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 3, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 1, 3, 6, 6, 12));
+    ASSERT_TRUE(TestRGB24Pixel(image, 2, 3, 9, 9, 18));
+    ASSERT_TRUE(TestRGB24Pixel(image, 3, 3, 6, 6, 12));
+    ASSERT_TRUE(TestRGB24Pixel(image, 4, 3, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 0, 4, 0, 0, 0));
+    ASSERT_TRUE(TestRGB24Pixel(image, 1, 4, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 2, 4, 2, 2, 4));
+    ASSERT_TRUE(TestRGB24Pixel(image, 3, 4, 1, 1, 3));
+    ASSERT_TRUE(TestRGB24Pixel(image, 4, 4, 0, 0, 0));
   }
 }
