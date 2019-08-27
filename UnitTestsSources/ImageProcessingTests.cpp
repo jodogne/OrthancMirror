@@ -212,7 +212,7 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
   points.push_back(ImageProcessing::ImagePoint(1,5));
   points.push_back(ImageProcessing::ImagePoint(5,5));
 
-  Orthanc::ImageProcessing::FillPolygon(image, points, 255);
+  ImageProcessing::FillPolygon(image, points, 255);
 
   // outside polygon
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
@@ -239,7 +239,7 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThanImage)
   points.push_back(ImageProcessing::ImagePoint(image.GetWidth(),image.GetHeight()));
   points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight()));
 
-  ASSERT_THROW(Orthanc::ImageProcessing::FillPolygon(image, points, 255), Orthanc::OrthancException);
+  ASSERT_THROW(ImageProcessing::FillPolygon(image, points, 255), OrthancException);
 }
 
 TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
@@ -254,8 +254,216 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
   points.push_back(ImageProcessing::ImagePoint(image.GetWidth() - 1,image.GetHeight() - 1));
   points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight() - 1));
 
-  Orthanc::ImageProcessing::FillPolygon(image, points, 255);
+  ImageProcessing::FillPolygon(image, points, 255);
 
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
   ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, image.GetWidth() - 1, image.GetHeight() - 1));
+}
+
+
+
+
+static void SetGrayscale8Pixel(ImageAccessor& image,
+                               unsigned int x,
+                               unsigned int y,
+                               uint8_t value)
+{
+  ImageTraits<PixelFormat_Grayscale8>::SetPixel(image, value, x, y);
+}
+
+static bool TestGrayscale8Pixel(const ImageAccessor& image,
+                                unsigned int x,
+                                unsigned int y,
+                                uint8_t value)
+{
+  PixelTraits<PixelFormat_Grayscale8>::PixelType p;
+  ImageTraits<PixelFormat_Grayscale8>::GetPixel(p, image, x, y);
+  return p == value;
+}
+
+static void SetRGB24Pixel(ImageAccessor& image,
+                          unsigned int x,
+                          unsigned int y,
+                          uint8_t red,
+                          uint8_t green,
+                          uint8_t blue)
+{
+  PixelTraits<PixelFormat_RGB24>::PixelType p;
+  p.red_ = red;
+  p.green_ = green;
+  p.blue_ = blue;
+  ImageTraits<PixelFormat_RGB24>::SetPixel(image, p, x, y);
+}
+
+static bool TestRGB24Pixel(const ImageAccessor& image,
+                           unsigned int x,
+                           unsigned int y,
+                           uint8_t red,
+                           uint8_t green,
+                           uint8_t blue)
+{
+  PixelTraits<PixelFormat_RGB24>::PixelType p;
+  ImageTraits<PixelFormat_RGB24>::GetPixel(p, image, x, y);
+  return (p.red_ == red &&
+          p.green_ == green &&
+          p.blue_ == blue);
+}
+
+
+TEST(ImageProcessing, FlipGrayscale8)
+{
+  {
+    Image image(PixelFormat_Grayscale8, 0, 0, false);
+    ImageProcessing::FlipX(image);
+    ImageProcessing::FlipY(image);
+  }
+
+  {
+    Image image(PixelFormat_Grayscale8, 1, 1, false);
+    SetGrayscale8Pixel(image, 0, 0, 128);
+    ImageProcessing::FlipX(image);
+    ImageProcessing::FlipY(image);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 128));
+  }
+
+  {
+    Image image(PixelFormat_Grayscale8, 3, 2, false);
+    SetGrayscale8Pixel(image, 0, 0, 10);
+    SetGrayscale8Pixel(image, 1, 0, 20);
+    SetGrayscale8Pixel(image, 2, 0, 30);
+    SetGrayscale8Pixel(image, 0, 1, 40);
+    SetGrayscale8Pixel(image, 1, 1, 50);
+    SetGrayscale8Pixel(image, 2, 1, 60);
+
+    ImageProcessing::FlipX(image);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 0, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 0, 10));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 1, 60));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 1, 50));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 1, 40));
+
+    ImageProcessing::FlipY(image);
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 60));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 0, 50));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 0, 40));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 1, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 1, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 1, 10));
+  }
+}
+
+
+
+TEST(ImageProcessing, FlipRGB24)
+{
+  Image image(PixelFormat_RGB24, 2, 2, false);
+  SetRGB24Pixel(image, 0, 0, 10, 100, 110);
+  SetRGB24Pixel(image, 1, 0, 20, 100, 110);
+  SetRGB24Pixel(image, 0, 1, 30, 100, 110);
+  SetRGB24Pixel(image, 1, 1, 40, 100, 110);
+
+  ImageProcessing::FlipX(image);
+  ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 20, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 1, 0, 10, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 0, 1, 40, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 1, 1, 30, 100, 110));
+
+  ImageProcessing::FlipY(image);
+  ASSERT_TRUE(TestRGB24Pixel(image, 0, 0, 40, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 1, 0, 30, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 0, 1, 20, 100, 110));
+  ASSERT_TRUE(TestRGB24Pixel(image, 1, 1, 10, 100, 110));
+}
+
+
+TEST(ImageProcessing, ResizeBasicGrayscale8)
+{
+  Image source(PixelFormat_Grayscale8, 2, 2, false);
+  SetGrayscale8Pixel(source, 0, 0, 10);
+  SetGrayscale8Pixel(source, 1, 0, 20);
+  SetGrayscale8Pixel(source, 0, 1, 30);
+  SetGrayscale8Pixel(source, 1, 1, 40);
+
+  {
+    Image target(PixelFormat_Grayscale8, 2, 4, false);
+    ImageProcessing::Resize(target, source);
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 10));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 1, 10));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 1, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 2, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 2, 40));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 3, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 3, 40));
+  }
+
+  {
+    Image target(PixelFormat_Grayscale8, 4, 2, false);
+    ImageProcessing::Resize(target, source);
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 10));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 10));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 20));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 1, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 1, 30));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 1, 40));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 1, 40));
+  }
+}
+
+
+TEST(ImageProcessing, ResizeBasicRGB24)
+{
+  Image source(PixelFormat_RGB24, 2, 2, false);
+  SetRGB24Pixel(source, 0, 0, 10, 100, 110);
+  SetRGB24Pixel(source, 1, 0, 20, 100, 110);
+  SetRGB24Pixel(source, 0, 1, 30, 100, 110);
+  SetRGB24Pixel(source, 1, 1, 40, 100, 110);
+
+  {
+    Image target(PixelFormat_RGB24, 2, 4, false);
+    ImageProcessing::Resize(target, source);
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 0, 10, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 0, 20, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 1, 10, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 1, 20, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 2, 30, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 2, 40, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 3, 30, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 3, 40, 100, 110));
+  }
+
+  {
+    Image target(PixelFormat_RGB24, 4, 2, false);
+    ImageProcessing::Resize(target, source);
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 0, 10, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 0, 10, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 2, 0, 20, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 3, 0, 20, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 0, 1, 30, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 1, 1, 30, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 2, 1, 40, 100, 110));
+    ASSERT_TRUE(TestRGB24Pixel(target, 3, 1, 40, 100, 110));
+  }
+}
+
+
+TEST(ImageProcessing, ResizeEmptyGrayscale8)
+{
+  {
+    Image source(PixelFormat_Grayscale8, 0, 0, false);
+    Image target(PixelFormat_Grayscale8, 2, 2, false);
+    ImageProcessing::Resize(target, source);
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 1, 0));
+    ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 1, 0));
+  }
+
+  {
+    Image source(PixelFormat_Grayscale8, 2, 2, false);
+    Image target(PixelFormat_Grayscale8, 0, 0, false);
+    ImageProcessing::Resize(target, source);
+  }
 }

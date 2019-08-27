@@ -1765,4 +1765,266 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+  // This is a slow implementation of horizontal convolution on one
+  // individual channel, that checks for out-of-image values
+  template <typename RawPixel, unsigned int ChannelsCount>
+  static float GetHorizontalConvolutionFloatSecure(const Orthanc::ImageAccessor& source,
+                                                   const std::vector<float>& horizontal,
+                                                   size_t horizontalAnchor,
+                                                   unsigned int x,
+                                                   unsigned int y,
+                                                   float leftBorder,
+                                                   float rightBorder,
+                                                   unsigned int channel)
+  {
+    const RawPixel* row = reinterpret_cast<const RawPixel*>(source.GetConstRow(y)) + channel;
+
+    float p = 0;
+
+    for (unsigned int k = 0; k < horizontal.size(); k++)
+    {
+      float value;
+
+      if (x + k < horizontalAnchor)   // Negation of "x - horizontalAnchor + k >= 0"
+      {
+        value = leftBorder;
+      }
+      else if (x + k >= source.GetWidth() + horizontalAnchor)   // Negation of "x - horizontalAnchor + k < width"
+      {
+        value = rightBorder;
+      }
+      else
+      {
+        // The value lies within the image
+        value = row[(x - horizontalAnchor + k) * ChannelsCount];
+      }
+
+      p += value * horizontal[k];
+    }
+
+    return p;
+  }
+  
+
+  
+  // This is an implementation of separable convolution that uses
+  // floating-point arithmetics, and an intermediate Float32
+  // image. The out-of-image values are taken as the border
+  // value. Further optimization is possible.
+  template <typename RawPixel, unsigned int ChannelsCount>
+  static void SeparableConvolutionFloat(ImageAccessor& image /* inplace */,
+                                        const std::vector<float>& horizontal,
+                                        size_t horizontalAnchor,
+                                        const std::vector<float>& vertical,
+                                        size_t verticalAnchor,
+                                        float normalization)
+  {
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    
+
+    /**
+     * Horizontal convolution
+     **/
+
+    Image tmp(PixelFormat_Float32, ChannelsCount * width, height, false);
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const RawPixel* row = reinterpret_cast<const RawPixel*>(image.GetConstRow(y));
+
+      float leftBorder[ChannelsCount], rightBorder[ChannelsCount];
+      
+      for (unsigned int c = 0; c < ChannelsCount; c++)
+      {
+        leftBorder[c] = row[c];
+        rightBorder[c] = row[ChannelsCount * (width - 1) + c];
+      }
+
+      float* p = static_cast<float*>(tmp.GetRow(y));
+
+      if (width < horizontal.size())
+      {
+        // It is not possible to have the full kernel within the image, use the direct implementation
+        for (unsigned int x = 0; x < width; x++)
+        {
+          for (unsigned int c = 0; c < ChannelsCount; c++, p++)
+          {
+            *p = GetHorizontalConvolutionFloatSecure<RawPixel, ChannelsCount>
+              (image, horizontal, horizontalAnchor, x, y, leftBorder[c], rightBorder[c], c);
+          }
+        }
+      }
+      else
+      {
+        // Deal with the left border
+        for (unsigned int x = 0; x < horizontalAnchor; x++)
+        {
+          for (unsigned int c = 0; c < ChannelsCount; c++, p++)
+          {
+            *p = GetHorizontalConvolutionFloatSecure<RawPixel, ChannelsCount>
+              (image, horizontal, horizontalAnchor, x, y, leftBorder[c], rightBorder[c], c);
+          }
+        }
+
+        // Deal with the central portion of the image (all pixel values
+        // scanned by the kernel lie inside the image)
+
+        for (unsigned int x = 0; x < width - horizontal.size() + 1; x++)
+        {
+          for (unsigned int c = 0; c < ChannelsCount; c++, p++)
+          {
+            *p = 0;
+            for (unsigned int k = 0; k < horizontal.size(); k++)
+            {
+              *p += static_cast<float>(row[(x + k) * ChannelsCount + c]) * horizontal[k];
+            }
+          }
+        }
+
+        // Deal with the right border
+        for (unsigned int x = horizontalAnchor + width - horizontal.size() + 1; x < width; x++)
+        {
+          for (unsigned int c = 0; c < ChannelsCount; c++, p++)
+          {
+            *p = GetHorizontalConvolutionFloatSecure<RawPixel, ChannelsCount>
+              (image, horizontal, horizontalAnchor, x, y, leftBorder[c], rightBorder[c], c);
+          }
+        }
+      }
+    }
+
+
+    /**
+     * Vertical convolution
+     **/
+
+    std::vector<const float*> rows(vertical.size());
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      for (unsigned int k = 0; k < vertical.size(); k++)
+      {
+        if (y < verticalAnchor)
+        {
+          rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(0));   // Use top border
+        }
+        else if (y + k >= height + verticalAnchor)
+        {
+          rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(height - 1));  // Use bottom border
+        }
+        else
+        {
+          rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(y + k - verticalAnchor));
+        }
+      }
+
+      RawPixel* p = reinterpret_cast<RawPixel*>(image.GetRow(y));
+        
+      for (unsigned int x = 0; x < width; x++)
+      {
+        for (unsigned int c = 0; c < ChannelsCount; c++, p++)
+        {
+          float accumulator = 0;
+        
+          for (unsigned int k = 0; k < vertical.size(); k++)
+          {
+            accumulator += rows[k][ChannelsCount * x + c] * vertical[k];
+          }
+
+          accumulator *= normalization;
+
+          if (accumulator <= static_cast<float>(std::numeric_limits<RawPixel>::min()))
+          {
+            *p = std::numeric_limits<RawPixel>::min();
+          }
+          else if (accumulator >= static_cast<float>(std::numeric_limits<RawPixel>::max()))
+          {
+            *p = std::numeric_limits<RawPixel>::max();
+          }
+          else
+          {
+            *p = static_cast<RawPixel>(accumulator);
+          }
+        }
+      }
+    }
+  }
+
+
+  void ImageProcessing::SeparableConvolution(ImageAccessor& image /* inplace */,
+                                             const std::vector<float>& horizontal,
+                                             size_t horizontalAnchor,
+                                             const std::vector<float>& vertical,
+                                             size_t verticalAnchor)
+  {
+    if (horizontal.size() == 0 ||
+        vertical.size() == 0 ||
+        horizontalAnchor >= horizontal.size() ||
+        verticalAnchor >= vertical.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    if (image.GetWidth() == 0 ||
+        image.GetHeight() == 0)
+    {
+      return;
+    }
+    
+    /**
+     * Compute normalization
+     **/
+    
+    float sumHorizontal = 0;
+    for (size_t i = 0; i < horizontal.size(); i++)
+    {
+      sumHorizontal += horizontal[i];
+    }
+    
+    float sumVertical = 0;
+    for (size_t i = 0; i < vertical.size(); i++)
+    {
+      sumVertical += vertical[i];
+    }
+
+    if (fabsf(sumHorizontal) <= std::numeric_limits<float>::epsilon() ||
+        fabsf(sumVertical) <= std::numeric_limits<float>::epsilon())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Singular convolution kernel");
+    }      
+
+    const float normalization = 1.0f / (sumHorizontal * sumVertical);
+
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        SeparableConvolutionFloat<uint8_t, 1u>
+          (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        break;
+
+      case PixelFormat_RGB24:
+        SeparableConvolutionFloat<uint8_t, 3u>
+          (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::SmoothGaussian5x5(ImageAccessor& image)
+  {
+    std::vector<float> kernel(5);
+    kernel[0] = 1;
+    kernel[1] = 4;
+    kernel[2] = 6;
+    kernel[3] = 4;
+    kernel[4] = 1;
+
+    SeparableConvolution(image, kernel, 2, kernel, 2);
+  }
 }
