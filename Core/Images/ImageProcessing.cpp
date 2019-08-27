@@ -1907,7 +1907,7 @@ namespace Orthanc
     {
       for (unsigned int k = 0; k < vertical.size(); k++)
       {
-        if (y < verticalAnchor)
+        if (y + k < verticalAnchor)
         {
           rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(0));   // Use top border
         }
