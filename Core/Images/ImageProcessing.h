@@ -148,5 +148,13 @@ namespace Orthanc
     void FlipX(ImageAccessor& image);
 
     void FlipY(ImageAccessor& image);
+
+    void SeparableConvolution(ImageAccessor& image /* inplace */,
+                              const std::vector<float>& horizontal,
+                              size_t horizontalAnchor,
+                              const std::vector<float>& vertical,
+                              size_t verticalAnchor);
+
+    void SmoothGaussian5x5(ImageAccessor& image);
   }
 }
