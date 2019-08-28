@@ -161,7 +161,7 @@ namespace Orthanc
 #include <boost/lexical_cast.hpp>
 
 #ifdef __EMSCRIPTEN__
-#include "emscripten/html5.h"
+#  include <emscripten/html5.h>
 #endif
 
 namespace Orthanc

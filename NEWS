@@ -4,7 +4,7 @@ Pending changes in the mainline
 Maintenance
 -----------
 
-* Security: If remote HTTP access is enabled, HTTP authentication automatically gets enabled
+* Security: If remote access is enabled, HTTP authentication is also enabled by default
 * Log an explicit error if uploading an empty DICOM file using REST API
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04
 

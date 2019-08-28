@@ -484,8 +484,8 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter,
-                                                 bool defaultValue) const
+  bool OrthancConfiguration::LookupBooleanParameter(bool& target,
+                                                    const std::string& parameter) const
   {
     if (json_.isMember(parameter))
     {
@@ -497,8 +497,24 @@ namespace Orthanc
       }
       else
       {
-        return json_[parameter].asBool();
+        target = json_[parameter].asBool();
+        return true;
       }
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool OrthancConfiguration::GetBooleanParameter(const std::string& parameter,
+                                                 bool defaultValue) const
+  {
+    bool value;
+    if (LookupBooleanParameter(value, parameter))
+    {
+      return value;
     }
     else
     {
