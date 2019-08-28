@@ -2113,6 +2113,12 @@ namespace Orthanc
     }
     else
     {
+      if (result.size() > 1)
+      {
+        LOG(WARNING) << "LookupResource(): Multiple resources match the query (instead of 0 or 1), which indicates "
+                     << "your DICOM database breaks the DICOM model of the real world";
+      }
+      
       throw OrthancException(ErrorCode_UnknownResource);
     }
   }

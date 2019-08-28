@@ -7,6 +7,7 @@ Maintenance
 * Security: If remote access is enabled, HTTP authentication is also enabled by default
 * Log an explicit error if uploading an empty DICOM file using REST API
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04
+* Fix generation of "SOP Instance UID" on split and merge
 
 
 Version 1.5.7 (2019-06-25)
