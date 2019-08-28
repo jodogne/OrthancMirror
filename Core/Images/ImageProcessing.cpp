@@ -378,11 +378,11 @@ namespace Orthanc
       {
         float v = (static_cast<float>(*p) + offset) * scaling;
 
-        if (v > maxFloatValue)
+        if (v >= maxFloatValue)
         {
           *p = maxPixelValue;
         }
-        else if (v < minFloatValue)
+        else if (v <= minFloatValue)
         {
           *p = minPixelValue;
         }
@@ -1087,6 +1087,17 @@ namespace Orthanc
         else
         {
           ShiftScaleInternal<int16_t, false>(image, offset, scaling);
+        }
+        return;
+
+      case PixelFormat_Float32:
+        if (useRound)
+        {
+          ShiftScaleInternal<float, true>(image, offset, scaling);
+        }
+        else
+        {
+          ShiftScaleInternal<float, false>(image, offset, scaling);
         }
         return;
 

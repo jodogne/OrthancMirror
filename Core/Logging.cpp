@@ -272,7 +272,7 @@ namespace Orthanc
         {
           std::stringstream ss;
           ss << "Unknown log level (" << level_ << ") for message: " << message;
-          auto s = ss.str();
+          std::string s = ss.str();
           globalErrorLogFunc(s.c_str());
         }
       }
