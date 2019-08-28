@@ -137,6 +137,9 @@ namespace Orthanc
     
     modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid->second);
 
+    // Fix since Orthanc 1.5.8: Assign new "SOPInstanceUID", as the instance has been modified
+    modified->ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+
     DicomInstanceToStore toStore;
     toStore.SetOrigin(origin_);
     toStore.SetParsedDicomFile(*modified);

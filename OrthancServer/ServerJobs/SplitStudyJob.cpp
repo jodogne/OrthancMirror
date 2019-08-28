@@ -125,6 +125,9 @@ namespace Orthanc
     modified->ReplacePlainString(DICOM_TAG_STUDY_INSTANCE_UID, targetStudyUid_);
     modified->ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, targetSeriesUid->second);
 
+    // Fix since Orthanc 1.5.8: Assign new "SOPInstanceUID", as the instance has been modified
+    modified->ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
+
     if (targetStudy_.empty())
     {
       targetStudy_ = modified->GetHasher().HashStudy();
