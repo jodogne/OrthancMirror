@@ -139,10 +139,7 @@
    * Security-related options for the HTTP server
    **/
 
-  // Whether remote hosts can connect to the HTTP server. For security
-  // reasons, starting with Orthanc 1.5.8, as soon as this option is
-  // set to "true", authentication is enabled, and you have to declare
-  // an user in "RegisteredUsers" to access the HTTP server.
+  // Whether remote hosts can connect to the HTTP server
   "RemoteAccessAllowed" : false,
 
   // Whether or not SSL is enabled
@@ -152,10 +149,14 @@
   // SSL is enabled)
   "SslCertificate" : "certificate.pem",
 
-  // Whether or not the password protection is enabled. Starting with
-  // Orthanc 1.5.8, password protection is automatically enabled as
-  // soon as "RemoteAccessAllowed" is set to "true".
-  "AuthenticationEnabled" : false,
+  // Whether or not the password protection is enabled (using HTTP
+  // basic access authentication). Starting with Orthanc 1.5.8, if
+  // "AuthenticationEnabled" is not explicitly set, authentication is
+  // enabled iff. remote access is allowed (i.e. the default value of
+  // "AuthenticationEnabled" equals that of "RemoteAccessAllowed").
+  /**
+     "AuthenticationEnabled" : false,
+   **/
 
   // The list of the registered users. Because Orthanc uses HTTP
   // Basic Authentication, the passwords are stored as plain text.

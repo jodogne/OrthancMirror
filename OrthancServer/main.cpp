@@ -823,20 +823,32 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
-      bool authenticationEnabled = lock.GetConfiguration().GetBooleanParameter("AuthenticationEnabled", false);
-      if (httpServer.IsRemoteAccessAllowed())
+      bool authenticationEnabled;
+      if (lock.GetConfiguration().LookupBooleanParameter(authenticationEnabled, "AuthenticationEnabled"))
       {
-        if (!authenticationEnabled)
-        {
-          LOG(WARNING) << "Remote access is allowed, automatically turning on HTTP authentication for security";
-        }
+        httpServer.SetAuthenticationEnabled(authenticationEnabled);
 
-        // Starting with Orthanc 1.5.8, enabling remote access forces user authentication.
+        if (httpServer.IsRemoteAccessAllowed() &&
+            !authenticationEnabled)
+        {
+          LOG(WARNING) << "Remote access is enabled while user authentication is disabled, "
+                       << "make sure this does not affect the security of your setup";
+        }
+      }
+      else if (httpServer.IsRemoteAccessAllowed())
+      {
+        // Starting with Orthanc 1.5.8, it is impossible to enable
+        // remote access without having explicitly disabled user
+        // authentication.
+        LOG(WARNING) << "Remote access is allowed but \"AuthenticationEnabled\" is not in the configuration, "
+                     << "automatically enabling HTTP authentication for security";          
         httpServer.SetAuthenticationEnabled(true);
       }
       else
       {
-        httpServer.SetAuthenticationEnabled(authenticationEnabled);
+        // If Orthanc only listens on the localhost, it is OK to have
+        // "AuthenticationEnabled" disabled
+        httpServer.SetAuthenticationEnabled(false);
       }
 
       bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
