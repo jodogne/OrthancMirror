@@ -6,6 +6,7 @@ Maintenance
 
 * Security: If remote access is enabled, HTTP authentication is also enabled by default
 * Log an explicit error if uploading an empty DICOM file using REST API
+* Name of temporary files now include the process ID to ease design of scripts cleaning /tmp
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04
 * Fix generation of "SOP Instance UID" on split and merge
 
