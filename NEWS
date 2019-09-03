@@ -9,6 +9,7 @@ Maintenance
 * Name of temporary files now include the process ID to ease design of scripts cleaning /tmp
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04
 * Fix generation of "SOP Instance UID" on split and merge
+* Orthanc Explorer: include the url search params into HTTP headers to the Rest API to ease usage of the Authorization plugin
 
 
 Version 1.5.7 (2019-06-25)
