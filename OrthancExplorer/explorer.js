@@ -91,6 +91,31 @@ $(document).ready(function() {
   }
 });
 
+var GetUrlParametersAsDict = function getUrlParametersAsDict(sParam) {
+  var urlVariables = window.location.search.substring(1).split('&');
+  var dict = {};
+
+  for (var i = 0; i < urlVariables.length; i++) {
+      var split = urlVariables[i].split('=');
+
+      if (split.length == 2) {
+        dict[split[0]] = split[1];
+      }
+  }
+  return dict;
+};
+
+var initSearchParams = GetUrlParametersAsDict();
+
+/* Copy all url search parameters into HTTP headers in every request to the Rest API.  
+Thanks to this behaviour, you may specify a ?token=xxx in your url and this will be passed 
+as the "token" header in every request to the API allowing you to use the authorization plugin */
+$.ajaxSetup(
+  {
+    headers : initSearchParams
+  }
+);
+
 
 function SplitLongUid(s)
 {
