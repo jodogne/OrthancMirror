@@ -91,28 +91,28 @@ $(document).ready(function() {
   }
 });
 
-var GetUrlParametersAsDict = function getUrlParametersAsDict(sParam) {
+function GetAuthorizationTokensFromUrl() {
   var urlVariables = window.location.search.substring(1).split('&');
   var dict = {};
 
   for (var i = 0; i < urlVariables.length; i++) {
       var split = urlVariables[i].split('=');
 
-      if (split.length == 2) {
+      if (split.length == 2 && (split[0] == "token" || split[0] == "auth-token" || split[0] == "authorization")) {
         dict[split[0]] = split[1];
       }
   }
   return dict;
 };
 
-var initSearchParams = GetUrlParametersAsDict();
+var authorizationTokens = GetAuthorizationTokensFromUrl();
 
-/* Copy all url search parameters into HTTP headers in every request to the Rest API.  
+/* Copy the authoziation toekn from the url search parameters into HTTP headers in every request to the Rest API.  
 Thanks to this behaviour, you may specify a ?token=xxx in your url and this will be passed 
 as the "token" header in every request to the API allowing you to use the authorization plugin */
 $.ajaxSetup(
   {
-    headers : initSearchParams
+    headers : authorizationTokens
   }
 );
 
