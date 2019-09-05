@@ -12,6 +12,7 @@ Maintenance
 * Orthanc Explorer: include the url search params into HTTP headers to the Rest API to ease usage of the Authorization plugin
   Note that only the 'token', 'auth-token' & 'authorization' search params are transmitted into HTTP headers.
 * in /ordered-slices route, ignore instances without position/normal/seriesIndex
+* Fix lost relationships between CT and RT-STRUCT during anonymization
 
 Version 1.5.7 (2019-06-25)
 ==========================

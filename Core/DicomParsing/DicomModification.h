@@ -92,6 +92,10 @@ namespace Orthanc
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
 
+    void RegisterMappedDicomIdentifier(const std::string& original,
+                                       const std::string& mapped,
+                                       ResourceType level);
+
     void MapDicomTags(ParsedDicomFile& dicom,
                       ResourceType level);
 
