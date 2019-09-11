@@ -41,6 +41,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "DicomArray.h"
 
 
 namespace Orthanc
@@ -876,9 +877,9 @@ namespace Orthanc
   }
 
 
-  bool DicomMap::CopyToString(std::string& result,
-                              const DicomTag& tag,
-                              bool allowBinary) const
+  bool DicomMap::LookupStringValue(std::string& result,
+                                   const DicomTag& tag,
+                                   bool allowBinary) const
   {
     const DicomValue* value = TestAndGetValue(tag);
 
@@ -1274,5 +1275,28 @@ namespace Orthanc
         }
       }
     }
+  }
+
+
+  std::string DicomMap::GetStringValue(const DicomTag& tag,
+                                       const std::string& defaultValue,
+                                       bool allowBinary) const
+  {
+    std::string s;
+    if (LookupStringValue(s, tag, allowBinary))
+    {
+      return s;
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
+  void DicomMap::Print(FILE* fp) const
+  {
+    DicomArray a(*this);
+    a.Print(fp);
   }
 }
