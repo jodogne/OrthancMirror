@@ -310,7 +310,11 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator
            it = instancesId.begin(); it != instancesId.end(); ++it)
     {
-      instances_.push_back(new Instance(index_, *it));
+      std::auto_ptr<Instance> instance(new Instance(index_, *it));
+      if (instance->HasPosition() || instance->HasNormal() || instance->HasIndexInSeries())
+      {
+        instances_.push_back(instance.release());
+      }
     }
   }
   

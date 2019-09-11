@@ -1915,7 +1915,7 @@ extern "C"
   typedef struct
   {
     OrthancPluginRestOutput* output;
-    const char*              answer;
+    const void*              answer;
     uint32_t                 answerSize;
     const char*              mimeType;
   } _OrthancPluginAnswerBuffer;
@@ -1935,7 +1935,7 @@ extern "C"
   ORTHANC_PLUGIN_INLINE void OrthancPluginAnswerBuffer(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
-    const char*              answer,
+    const void*              answer,
     uint32_t                 answerSize,
     const char*              mimeType)
   {

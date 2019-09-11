@@ -135,7 +135,18 @@ namespace Orthanc
       {
         return Action_None;
       }
-      else if (tag == DICOM_TAG_FRAME_OF_REFERENCE_UID || 
+      else if (parentTags.size() == 2 &&
+               parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
+               parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
+               tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+      {
+        // in RT-STRUCT, this ReferencedSOPInstanceUID is actually referencing a StudyInstanceUID !!
+        // (observed in many data sets including: https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
+        // tested in test_anonymize_relationships_5
+        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Study);
+        return Action_Replace;
+      }
+      else if (tag == DICOM_TAG_FRAME_OF_REFERENCE_UID ||
                tag == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID || 
                tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID ||
                tag == DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID)
@@ -153,6 +164,15 @@ namespace Orthanc
       else if (parentTags.size() == 2 &&
                parentTags[0] == DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE &&
                parentTags[1] == DICOM_TAG_REFERENCED_SERIES_SEQUENCE &&
+               tag == DICOM_TAG_SERIES_INSTANCE_UID)
+      {
+        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
+        return Action_Replace;
+      }
+      else if (parentTags.size() == 3 &&
+               parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
+               parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
+               parentTags[2] == DICOM_TAG_RT_REFERENCED_SERIES_SEQUENCE &&
                tag == DICOM_TAG_SERIES_INSTANCE_UID)
       {
         newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
@@ -249,7 +269,17 @@ namespace Orthanc
     }
   }
 
+  void DicomModification::RegisterMappedDicomIdentifier(const std::string& original,
+                                                        const std::string& mapped,
+                                                        ResourceType level)
+  {
+    UidMap::const_iterator previous = uidMap_.find(std::make_pair(level, original));
 
+    if (previous == uidMap_.end())
+    {
+      uidMap_.insert(std::make_pair(std::make_pair(level, original), mapped));
+    }
+  }
 
   std::string DicomModification::MapDicomIdentifier(const std::string& original,
                                                     ResourceType level)
@@ -976,7 +1006,6 @@ namespace Orthanc
                              "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified");
     }
 
-
     // (0) Create a summary of the source file, if a custom generator
     // is provided
     if (identifierGenerator_ != NULL)
@@ -984,35 +1013,64 @@ namespace Orthanc
       toModify.ExtractDicomSummary(currentSource_);
     }
 
+    // (1) Make sure the relationships are updated with the ids that we force too
+    // i.e: an RT-STRUCT is referencing its own StudyInstanceUID
+    if (isAnonymization_ && updateReferencedRelationships_)
+    {
+      if (IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        std::string original;
+        std::string replacement = GetReplacementAsString(DICOM_TAG_STUDY_INSTANCE_UID);
+        toModify.GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
+        RegisterMappedDicomIdentifier(original, replacement, ResourceType_Study);
+      }
 
-    // (1) Remove the private tags, if need be
+      if (IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        std::string original;
+        std::string replacement = GetReplacementAsString(DICOM_TAG_SERIES_INSTANCE_UID);
+        toModify.GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
+        RegisterMappedDicomIdentifier(original, replacement, ResourceType_Series);
+      }
+
+      if (IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        std::string original;
+        std::string replacement = GetReplacementAsString(DICOM_TAG_SOP_INSTANCE_UID);
+        toModify.GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
+        RegisterMappedDicomIdentifier(original, replacement, ResourceType_Instance);
+      }
+    }
+
+
+    // (2) Remove the private tags, if need be
     if (removePrivateTags_)
     {
       toModify.RemovePrivateTags(privateTagsToKeep_);
     }
 
-    // (2) Clear the tags specified by the user
+    // (3) Clear the tags specified by the user
     for (SetOfTags::const_iterator it = clearings_.begin(); 
          it != clearings_.end(); ++it)
     {
       toModify.Clear(*it, true /* only clear if the tag exists in the original file */);
     }
 
-    // (3) Remove the tags specified by the user
+    // (4) Remove the tags specified by the user
     for (SetOfTags::const_iterator it = removals_.begin(); 
          it != removals_.end(); ++it)
     {
       toModify.Remove(*it);
     }
 
-    // (4) Replace the tags
+    // (5) Replace the tags
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
       toModify.Replace(it->first, *it->second, true /* decode data URI scheme */, DicomReplaceMode_InsertIfAbsent);
     }
 
-    // (5) Update the DICOM identifiers
+    // (6) Update the DICOM identifiers
     if (level_ <= ResourceType_Study &&
         !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
@@ -1045,7 +1103,7 @@ namespace Orthanc
       MapDicomTags(toModify, ResourceType_Instance);
     }
 
-    // (6) Update the "referenced" relationships in the case of an anonymization
+    // (7) Update the "referenced" relationships in the case of an anonymization
     if (isAnonymization_)
     {
       RelationshipsVisitor visitor(*this);
