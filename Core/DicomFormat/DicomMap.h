@@ -198,9 +198,9 @@ namespace Orthanc
 
     void LogMissingTagsForStore() const;
 
-    bool CopyToString(std::string& result,
-                      const DicomTag& tag,
-                      bool allowBinary) const;
+    bool LookupStringValue(std::string& result,
+                           const DicomTag& tag,
+                           bool allowBinary) const;
     
     bool ParseInteger32(int32_t& result,
                         const DicomTag& tag) const;
@@ -233,5 +233,11 @@ namespace Orthanc
     void Unserialize(const Json::Value& source);
 
     void FromDicomWeb(const Json::Value& source);
+
+    std::string GetStringValue(const DicomTag& tag,
+                               const std::string& defaultValue,
+                               bool allowBinary) const;
+
+    void Print(FILE* fp) const;  // For debugging only
   };
 }

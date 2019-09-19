@@ -258,8 +258,8 @@ TEST(DicomMap, Parse)
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger32(k));
   ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).ParseUnsignedInteger64(l));
 
-  ASSERT_FALSE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
-  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, true));
+  ASSERT_FALSE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
+  ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, true));
   ASSERT_EQ("0", s);
                
 
@@ -293,9 +293,9 @@ TEST(DicomMap, Parse)
   ASSERT_EQ(42u, k);
   ASSERT_EQ(42ull, l);
 
-  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+  ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
   ASSERT_EQ("42", s);
-  ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, true));
+  ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, true));
   ASSERT_EQ("42", s);
                
   
@@ -607,12 +607,12 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_EQ(3u, m.GetSize());
 
     std::string s;
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
     ASSERT_EQ("SB1^SB2^SB3^SB4^SB5", s);
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_POSITION_PATIENT, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_POSITION_PATIENT, false));
     ASSERT_TRUE(s.empty());
 
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
     Orthanc::Toolbox::TokenizeString(v, s, '\\');
@@ -657,7 +657,7 @@ TEST(DicomWebJson, NullValue)
     ASSERT_EQ(1u, m.GetSize());
 
     std::string s;
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
     Orthanc::Toolbox::TokenizeString(v, s, '\\');
@@ -861,41 +861,41 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_EQ(31u, m.GetSize());
 
     std::string s;
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0020, 0x9165), false));  ASSERT_EQ("00100020", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0052), false));  ASSERT_EQ("CS", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0012), false));  ASSERT_EQ("DA", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x1020), false));  ASSERT_EQ("42", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x002a), false));  ASSERT_EQ("DT", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x9431), false));  ASSERT_EQ("43", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1163), false));  ASSERT_EQ("44", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1160), false));  ASSERT_EQ("45", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0070), false));  ASSERT_EQ("LO", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x4000), false));  ASSERT_EQ("LT", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x7fe0, 0x0009), true));   ASSERT_EQ("OD", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0064, 0x0009), true));   ASSERT_EQ("OF", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0018, 0x9219), false));  ASSERT_EQ("-16", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0081), false));  ASSERT_EQ("ST", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0013), false));  ASSERT_EQ("TM", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0016), false));  ASSERT_EQ("UI", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x1161), false));  ASSERT_EQ("128", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x4342, 0x1234), true));   ASSERT_EQ("UN", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0020, 0x9165), false));  ASSERT_EQ("00100020", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0052), false));  ASSERT_EQ("CS", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0012), false));  ASSERT_EQ("DA", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1020), false));  ASSERT_EQ("42", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x002a), false));  ASSERT_EQ("DT", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x9431), false));  ASSERT_EQ("43", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1163), false));  ASSERT_EQ("44", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1160), false));  ASSERT_EQ("45", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0070), false));  ASSERT_EQ("LO", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x4000), false));  ASSERT_EQ("LT", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7fe0, 0x0009), true));   ASSERT_EQ("OD", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));   ASSERT_EQ("OF", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x9219), false));  ASSERT_EQ("-16", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0081), false));  ASSERT_EQ("ST", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0013), false));  ASSERT_EQ("TM", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0016), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1161), false));  ASSERT_EQ("128", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x4342, 0x1234), true));   ASSERT_EQ("UN", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
 
 #if DCMTK_VERSION_NUMBER == 361
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), false));
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), false));
 #else
-    ASSERT_TRUE(m.CopyToString(s, DicomTag(0x0066, 0x0040), true));
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), true));
 #endif
     ASSERT_EQ("46", s);
   }
