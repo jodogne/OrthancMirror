@@ -239,6 +239,7 @@ TEST(DicomMap, Parse)
   int64_t j;
   uint32_t k;
   uint64_t l;
+  unsigned int ui;
   std::string s;
   
   m.SetValue(DICOM_TAG_PATIENT_NAME, "      ", false);  // Empty value
@@ -375,6 +376,15 @@ TEST(DicomMap, Parse)
   ASSERT_FLOAT_EQ(-2147483649.0f, f);
   ASSERT_DOUBLE_EQ(-2147483649.0, d); 
   ASSERT_EQ(-2147483649ll, j);
+
+
+  // "800\0" in US COLMUNS tag
+  m.SetValue(DICOM_TAG_COLUMNS, "800\0", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(ui));
+  ASSERT_EQ(800, ui);
+  m.SetValue(DICOM_TAG_COLUMNS, "800", false);
+  ASSERT_TRUE(m.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(ui));
+  ASSERT_EQ(800, ui);
 }
 
 
