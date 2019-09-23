@@ -933,6 +933,8 @@ namespace Orthanc
 
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_WRITEDATA, &answer));
 
+    const boost::posix_time::ptime start = boost::posix_time::microsec_clock::universal_time();
+    
     if (boost::starts_with(url_, "https://"))
     {
       code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
@@ -942,7 +944,10 @@ namespace Orthanc
       code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
     }
 
-    LOG(INFO) << "HTTP status code " << status << " after "
+    const boost::posix_time::ptime end = boost::posix_time::microsec_clock::universal_time();
+    
+    LOG(INFO) << "HTTP status code " << status << " in "
+              << ((end - start).total_milliseconds()) << " ms after "
               << EnumerationToString(method_) << " request on: " << url_;
 
     if (isVerbose_)

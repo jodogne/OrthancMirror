@@ -1615,10 +1615,10 @@ TEST(Toolbox, EncodingsKorean)
     ASSERT_EQ(2u, m.GetSize());
 
     std::string s;
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
     ASSERT_EQ("ISO 2022 IR 149", s);
 
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
     std::vector<std::string> v;
     Toolbox::TokenizeString(v, s, '=');
     ASSERT_EQ(3u, v.size());
@@ -1712,10 +1712,10 @@ TEST(Toolbox, EncodingsJapaneseKanji)
     ASSERT_EQ(2u, m.GetSize());
 
     std::string s;
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_SPECIFIC_CHARACTER_SET, false));
     ASSERT_EQ("ISO 2022 IR 87", s);
 
-    ASSERT_TRUE(m.CopyToString(s, DICOM_TAG_PATIENT_NAME, false));
+    ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
     std::vector<std::string> v;
     Toolbox::TokenizeString(v, s, '=');
     ASSERT_EQ(3u, v.size());
