@@ -94,6 +94,60 @@ namespace Orthanc
   }
 #endif
 
+  // same as ParseValue but in case the value actually contains a sequence,
+  // it will return the first value
+  // this has been introduced to support invalid "width/height" DICOM tags in some US
+  // images where the width is stored as "800\0" !
+  template <typename T,
+            bool allowSigned>
+  static bool ParseFirstValue(T& result,
+                              const DicomValue& source)
+  {
+    if (source.IsBinary() ||
+        source.IsNull())
+    {
+      return false;
+    }
+
+    try
+    {
+      std::string value = Toolbox::StripSpaces(source.GetContent());
+      if (value.empty())
+      {
+        return false;
+      }
+
+      if (!allowSigned &&
+          value[0] == '-')
+      {
+        return false;
+      }
+
+      if (value.find("\\") == std::string::npos)
+      {
+        result = boost::lexical_cast<T>(value);
+        return true;
+      }
+      else
+      {
+        std::vector<std::string> tokens;
+        Toolbox::TokenizeString(tokens, value, '\\');
+
+        if (tokens.size() >= 1)
+        {
+          result = boost::lexical_cast<T>(tokens[0]);
+          return true;
+        }
+
+        return false;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return false;
+    }
+  }
+
 
   template <typename T,
             bool allowSigned>
@@ -175,6 +229,11 @@ namespace Orthanc
   bool DicomValue::ParseDouble(double& result) const
   {
     return ParseValue<double, true>(result, *this);
+  }
+
+  bool DicomValue::ParseFirstUnsignedInteger(unsigned int& result) const
+  {
+    return ParseFirstValue<unsigned int, true>(result, *this);
   }
 
   bool DicomValue::CopyToString(std::string& result,

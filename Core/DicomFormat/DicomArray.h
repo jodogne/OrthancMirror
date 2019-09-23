@@ -62,6 +62,6 @@ namespace Orthanc
       return *elements_[i];
     }
 
-    void Print(FILE* fp) const;
+    void Print(FILE* fp) const;  // For debugging only
   };
 }

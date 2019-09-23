@@ -112,6 +112,8 @@ namespace Orthanc
 
     bool ParseDouble(double& result) const;
 
+    bool ParseFirstUnsignedInteger(unsigned int& result) const;
+
     void Serialize(Json::Value& target) const;
 
     void Unserialize(const Json::Value& source);

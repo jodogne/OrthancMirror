@@ -116,8 +116,9 @@ namespace Orthanc
         photometric_ = PhotometricInterpretation_Unknown;
       }
 
-      width_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_COLUMNS).GetContent());
-      height_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_ROWS).GetContent());
+      values.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(width_); // in some US images, we've seen tag values of "800\0"; that's why we parse the 'first' value
+      values.GetValue(DICOM_TAG_ROWS).ParseFirstUnsignedInteger(height_);
+
       bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).GetContent());
 
       try
