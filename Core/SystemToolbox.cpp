@@ -212,19 +212,23 @@ namespace Orthanc
 
 
   void SystemToolbox::ReadFile(std::string& content,
-                               const std::string& path) 
+                               const std::string& path,
+                               bool log)
   {
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path);
+                             "The path does not point to a regular file: " + path,
+                             log);
     }
 
     boost::filesystem::ifstream f;
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException(ErrorCode_InexistentFile);
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "File not found: " + path,
+                             log);
     }
 
     std::streamsize size = GetStreamSize(f);
