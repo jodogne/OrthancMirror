@@ -59,7 +59,8 @@ namespace Orthanc
     ServerBarrierEvent ServerBarrier();
 
     void ReadFile(std::string& content,
-                  const std::string& path);
+                  const std::string& path,
+                  bool log = true);
 
     bool ReadHeader(std::string& header,
                     const std::string& path,
