@@ -200,7 +200,13 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_WINDOW_CENTER(0x0028, 0x1050);
   static const DicomTag DICOM_TAG_WINDOW_WIDTH(0x0028, 0x1051);
   static const DicomTag DICOM_TAG_DOSE_GRID_SCALING(0x3004, 0x000e);
-                                    
+  static const DicomTag DICOM_TAG_RED_PALETTE_COLOR_LOOKUP_TABLE_DATA(0x0028, 0x1201);
+  static const DicomTag DICOM_TAG_GREEN_PALETTE_COLOR_LOOKUP_TABLE_DATA(0x0028, 0x1202);
+  static const DicomTag DICOM_TAG_BLUE_PALETTE_COLOR_LOOKUP_TABLE_DATA(0x0028, 0x1203);
+  static const DicomTag DICOM_TAG_RED_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1101);
+  static const DicomTag DICOM_TAG_GREEN_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1102);
+  static const DicomTag DICOM_TAG_BLUE_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1103);
+                             
   // Counting patients, studies and series
   // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
   static const DicomTag DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES(0x0020, 0x1200);  
