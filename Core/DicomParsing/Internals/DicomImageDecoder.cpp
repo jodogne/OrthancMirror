@@ -357,6 +357,8 @@ namespace Orthanc
   static void CopyPixels(ImageAccessor& target,
                          const DicomIntegerPixelAccessor& source)
   {
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
     const PixelType minValue = std::numeric_limits<PixelType>::min();
     const PixelType maxValue = std::numeric_limits<PixelType>::max();
 

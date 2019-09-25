@@ -60,6 +60,9 @@ namespace Orthanc
   static void ConvertInternal(ImageAccessor& target,
                               const ImageAccessor& source)
   {
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(TargetType) <= 2);  // Safeguard to remember about "float/double"
     const TargetType minValue = std::numeric_limits<TargetType>::min();
     const TargetType maxValue = std::numeric_limits<TargetType>::max();
 
@@ -142,6 +145,9 @@ namespace Orthanc
   {
     assert(source.GetFormat() == PixelFormat_RGB24);
 
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(TargetType) <= 2);  // Safeguard to remember about "float/double"
     const TargetType minValue = std::numeric_limits<TargetType>::min();
     const TargetType maxValue = std::numeric_limits<TargetType>::max();
 
@@ -227,7 +233,8 @@ namespace Orthanc
   template <typename PixelType>
   static void GetMinMaxValueInternal(PixelType& minValue,
                                      PixelType& maxValue,
-                                     const ImageAccessor& source)
+                                     const ImageAccessor& source,
+                                     const PixelType LowestValue = std::numeric_limits<PixelType>::min())
   {
     // Deal with the special case of empty image
     if (source.GetWidth() == 0 ||
@@ -239,7 +246,7 @@ namespace Orthanc
     }
 
     minValue = std::numeric_limits<PixelType>::max();
-    maxValue = std::numeric_limits<PixelType>::min();
+    maxValue = LowestValue;
 
     const unsigned int height = source.GetHeight();
     const unsigned int width = source.GetWidth();
@@ -274,6 +281,9 @@ namespace Orthanc
       return;
     }
 
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(PixelType) <= 2);  // Safeguard to remember about "float/double"
     const int64_t minValue = std::numeric_limits<PixelType>::min();
     const int64_t maxValue = std::numeric_limits<PixelType>::max();
 
@@ -316,6 +326,9 @@ namespace Orthanc
       return;
     }
 
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(PixelType) <= 2);  // Safeguard to remember about "float/double"
     const int64_t minValue = std::numeric_limits<PixelType>::min();
     const int64_t maxValue = std::numeric_limits<PixelType>::max();
 
@@ -360,12 +373,13 @@ namespace Orthanc
             bool UseRound>
   static void ShiftScaleInternal(ImageAccessor& image,
                                  float offset,
-                                 float scaling)
+                                 float scaling,
+                                 const PixelType LowestValue = std::numeric_limits<PixelType>::min())
   {
-    const float minFloatValue = static_cast<float>(std::numeric_limits<PixelType>::min());
-    const float maxFloatValue = static_cast<float>(std::numeric_limits<PixelType>::max());
-    const PixelType minPixelValue = std::numeric_limits<PixelType>::min();
+    const PixelType minPixelValue = LowestValue;
     const PixelType maxPixelValue = std::numeric_limits<PixelType>::max();
+    const float minFloatValue = static_cast<float>(LowestValue);
+    const float maxFloatValue = static_cast<float>(maxPixelValue);
 
     const unsigned int height = image.GetHeight();
     const unsigned int width = image.GetWidth();
@@ -969,7 +983,14 @@ namespace Orthanc
       {
         assert(sizeof(float) == 4);
         float a, b;
-        GetMinMaxValueInternal<float>(a, b, image);
+
+        /**
+         * WARNING - On floating-point types, the minimal value is
+         * "-FLT_MAX" (as implemented by "::lowest()"), not "FLT_MIN"
+         * (as implemented by "::min()")
+         * https://en.cppreference.com/w/cpp/types/numeric_limits
+         **/
+        GetMinMaxValueInternal<float>(a, b, image, -std::numeric_limits<float>::max());
         minValue = a;
         maxValue = b;
         break;
@@ -1093,11 +1114,11 @@ namespace Orthanc
       case PixelFormat_Float32:
         if (useRound)
         {
-          ShiftScaleInternal<float, true>(image, offset, scaling);
+          ShiftScaleInternal<float, true>(image, offset, scaling, -std::numeric_limits<float>::max());
         }
         else
         {
-          ShiftScaleInternal<float, false>(image, offset, scaling);
+          ShiftScaleInternal<float, false>(image, offset, scaling, -std::numeric_limits<float>::max());
         }
         return;
 
@@ -1832,6 +1853,10 @@ namespace Orthanc
                                         size_t verticalAnchor,
                                         float normalization)
   {
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(RawPixel) <= 2);  // Safeguard to remember about "float/double"
+
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
     
