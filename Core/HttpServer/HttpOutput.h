@@ -41,6 +41,7 @@
 #include <string>
 #include <stdint.h>
 #include <map>
+#include <vector>
 
 namespace Orthanc
 {
@@ -113,6 +114,8 @@ namespace Orthanc
       {
         return state_;
       }
+
+      void CheckHeadersCompatibilityWithMultipart() const;
     };
 
     StateMachine stateMachine_;
@@ -229,5 +232,19 @@ namespace Orthanc
     }
 
     void Answer(IHttpStreamAnswer& stream);
+
+    /**
+     * This method is a replacement to the combination
+     * "StartMultipart()" + "SendMultipartItem()". It generates the
+     * same answer, but it gives a chance to compress the body if
+     * "Accept-Encoding: gzip" is provided by the client, which is not
+     * possible in chunked transfers.
+     **/
+    void AnswerMultipartWithoutChunkedTransfer(
+      const std::string& subType,
+      const std::string& contentType,
+      const std::vector<const void*>& parts,
+      const std::vector<size_t>& sizes,
+      const std::vector<const std::map<std::string, std::string>*>& headers);
   };
 }

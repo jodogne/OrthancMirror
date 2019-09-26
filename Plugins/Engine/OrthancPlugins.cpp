@@ -422,25 +422,46 @@ namespace Orthanc
     boost::mutex   contextMutex_;
     ServerContext* context_;
     
-
   public:
     class PluginHttpOutput : public boost::noncopyable
     {
     private:
+      enum MultipartState
+      {
+        MultipartState_None,
+        MultipartState_FirstPart,
+        MultipartState_SecondPart,
+        MultipartState_NextParts
+      };
+
       HttpOutput&                 output_;
       std::auto_ptr<std::string>  errorDetails_;
       bool                        logDetails_;
+      MultipartState              multipartState_;
+      std::string                 multipartSubType_;
+      std::string                 multipartContentType_;
+      std::string                 multipartFirstPart_;
+      std::map<std::string, std::string>  multipartFirstHeaders_;
 
     public:
       PluginHttpOutput(HttpOutput& output) :
-      output_(output),
-      logDetails_(false)
+        output_(output),
+        logDetails_(false),
+        multipartState_(MultipartState_None)
       {
       }
 
       HttpOutput& GetOutput()
       {
-        return output_;
+        if (multipartState_ == MultipartState_None)
+        {
+          return output_;
+        }
+        else
+        {
+          // Must use "SendMultipartItem()" on multipart streams
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
       }
 
       void SetErrorDetails(const std::string& details,
@@ -472,14 +493,100 @@ namespace Orthanc
         }
       }
 
+      void StartMultipart(const char* subType,
+                          const char* contentType)
+      {
+        if (multipartState_ != MultipartState_None)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          multipartState_ = MultipartState_FirstPart;
+          multipartSubType_ = subType;
+          multipartContentType_ = contentType;
+        }
+      }
+
+      void SendMultipartItem(const void* data,
+                             size_t size,
+                             const std::map<std::string, std::string>& headers)
+      {
+        if (size != 0 && data == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        switch (multipartState_)
+        {
+          case MultipartState_None:
+            // Must call "StartMultipart()" before
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+
+          case MultipartState_FirstPart:
+            multipartFirstPart_.assign(reinterpret_cast<const char*>(data), size);
+            multipartFirstHeaders_ = headers;
+            multipartState_ = MultipartState_SecondPart;
+            break;
+
+          case MultipartState_SecondPart:
+            // Start an actual stream for chunked transfer as soon as
+            // there are more than 2 elements in the multipart stream
+            output_.StartMultipart(multipartSubType_, multipartContentType_);
+            output_.SendMultipartItem(multipartFirstPart_.c_str(), multipartFirstPart_.size(), 
+                                      multipartFirstHeaders_);
+            multipartFirstPart_.clear();  // Release memory
+
+            output_.SendMultipartItem(data, size, headers);
+            multipartState_ = MultipartState_NextParts;
+            break;
+
+          case MultipartState_NextParts:
+            output_.SendMultipartItem(data, size, headers);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+
       void Close(OrthancPluginErrorCode error,
                  PluginsErrorDictionary& dictionary)
       {
         if (error == OrthancPluginErrorCode_Success)
         {
-          if (GetOutput().IsWritingMultipart())
+          switch (multipartState_)
           {
-            GetOutput().CloseMultipart();
+            case MultipartState_None:
+              assert(!output_.IsWritingMultipart());
+              break;
+
+            case MultipartState_FirstPart:   // Multipart started, but no part was sent
+            case MultipartState_SecondPart:  // Multipart started, first part is pending
+            {
+              assert(!output_.IsWritingMultipart());
+              std::vector<const void*> parts;
+              std::vector<size_t> sizes;
+              std::vector<const std::map<std::string, std::string>*> headers;
+
+              if (multipartState_ == MultipartState_SecondPart)
+              {
+                parts.push_back(multipartFirstPart_.c_str());
+                sizes.push_back(multipartFirstPart_.size());
+                headers.push_back(&multipartFirstHeaders_);
+              }
+
+              output_.AnswerMultipartWithoutChunkedTransfer(multipartSubType_, multipartContentType_,
+                                                            parts, sizes, headers);
+              break;
+            }
+
+            case MultipartState_NextParts:
+              assert(output_.IsWritingMultipart());
+              output_.CloseMultipart();
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
           }
         }
         else
@@ -2911,10 +3018,8 @@ namespace Orthanc
     const _OrthancPluginAnswerBuffer& p =
       *reinterpret_cast<const _OrthancPluginAnswerBuffer*>(parameters);
 
-    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
-
     std::map<std::string, std::string> headers;  // No custom headers
-    output.SendMultipartItem(p.answer, p.answerSize, headers);
+    reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
 
 
@@ -2924,7 +3029,6 @@ namespace Orthanc
     // connection was closed by the HTTP client.
     const _OrthancPluginSendMultipartItem2& p =
       *reinterpret_cast<const _OrthancPluginSendMultipartItem2*>(parameters);
-    HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     
     std::map<std::string, std::string> headers;
     for (uint32_t i = 0; i < p.headersCount; i++)
@@ -2932,7 +3036,7 @@ namespace Orthanc
       headers[p.headersKeys[i]] = p.headersValues[i];
     }
     
-    output.SendMultipartItem(p.answer, p.answerSize, headers);
+    reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
       
 
@@ -3207,8 +3311,7 @@ namespace Orthanc
       {
         const _OrthancPluginStartMultipartAnswer& p =
           *reinterpret_cast<const _OrthancPluginStartMultipartAnswer*>(parameters);
-        HttpOutput& output = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
-        output.StartMultipart(p.subType, p.contentType);
+        reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->StartMultipart(p.subType, p.contentType);
         return true;
       }
 
