@@ -410,8 +410,25 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
-                                                const std::string& contentType)
+  void HttpOutput::StateMachine::CheckHeadersCompatibilityWithMultipart() const
+  {
+    for (std::list<std::string>::const_iterator
+           it = headers_.begin(); it != headers_.end(); ++it)
+    {
+      if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "The only headers that can be set in multipart answers "
+                               "are Set-Cookie (here: " + *it + " is set)");
+      }
+    }
+  }
+
+
+  static void PrepareMultipartMainHeader(std::string& boundary,
+                                         std::string& contentTypeHeader,
+                                         const std::string& subType,
+                                         const std::string& contentType)
   {
     if (subType != "mixed" &&
         subType != "related")
@@ -419,6 +436,40 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+    /**
+     * Fix for issue 54 ("Decide what to do wrt. quoting of multipart
+     * answers"). The "type" parameter in the "Content-Type" HTTP
+     * header must be quoted if it contains a forward slash "/". This
+     * is necessary for DICOMweb compatibility with OsiriX, but breaks
+     * compatibility with old releases of the client in the Orthanc
+     * DICOMweb plugin <= 0.3 (releases >= 0.4 work fine).
+     *
+     * Full history is available at the following locations:
+     * - In changeset 2248:69b0f4e8a49b:
+     *   # hg history -v -r 2248
+     * - https://bitbucket.org/sjodogne/orthanc/issues/54/
+     * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
+     **/
+    std::string tmp;
+    if (contentType.find('/') == std::string::npos)
+    {
+      // No forward slash in the content type
+      tmp = contentType;
+    }
+    else
+    {
+      // Quote the content type because of the forward slash
+      tmp = "\"" + contentType + "\"";
+    }
+
+    boundary = Toolbox::GenerateUuid() + "-" + Toolbox::GenerateUuid();
+    contentTypeHeader = ("multipart/" + subType + "; type=" + tmp + "; boundary=" + boundary);
+  }
+
+
+  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
+                                                const std::string& contentType)
+  {
     if (state_ != State_WritingHeader)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -464,65 +515,31 @@ namespace Orthanc
     }
 
     // Possibly add the cookies
+    CheckHeadersCompatibilityWithMultipart();
+
     for (std::list<std::string>::const_iterator
            it = headers_.begin(); it != headers_.end(); ++it)
     {
-      if (!Toolbox::StartsWith(*it, "Set-Cookie: "))
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls,
-                               "The only headers that can be set in multipart answers "
-                               "are Set-Cookie (here: " + *it + " is set)");
-      }
-
       header += *it;
     }
 
-    /**
-     * Fix for issue 54 ("Decide what to do wrt. quoting of multipart
-     * answers"). The "type" parameter in the "Content-Type" HTTP
-     * header must be quoted if it contains a forward slash "/". This
-     * is necessary for DICOMweb compatibility with OsiriX, but breaks
-     * compatibility with old releases of the client in the Orthanc
-     * DICOMweb plugin <= 0.3 (releases >= 0.4 work fine).
-     *
-     * Full history is available at the following locations:
-     * - In changeset 2248:69b0f4e8a49b:
-     *   # hg history -v -r 2248
-     * - https://bitbucket.org/sjodogne/orthanc/issues/54/
-     * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
-     **/
-    std::string tmp;
-    if (contentType.find('/') == std::string::npos)
-    {
-      // No forward slash in the content type
-      tmp = contentType;
-    }
-    else
-    {
-      // Quote the content type because of the forward slash
-      tmp = "\"" + contentType + "\"";
-    }
-
-    multipartBoundary_ = Toolbox::GenerateUuid() + "-" + Toolbox::GenerateUuid();
+    std::string contentTypeHeader;
+    PrepareMultipartMainHeader(multipartBoundary_, contentTypeHeader, subType, contentType);
     multipartContentType_ = contentType;
-    header += ("Content-Type: multipart/" + subType + "; type=" +
-               tmp + "; boundary=" + multipartBoundary_ + "\r\n\r\n");
+    header += ("Content-Type: " + contentTypeHeader + "\r\n\r\n");
 
     stream_.Send(true, header.c_str(), header.size());
     state_ = State_WritingMultipart;
   }
 
 
-  void HttpOutput::StateMachine::SendMultipartItem(const void* item, 
-                                                   size_t length,
-                                                   const std::map<std::string, std::string>& headers)
+  static void PrepareMultipartItemHeader(std::string& target,
+                                         size_t length,
+                                         const std::map<std::string, std::string>& headers,
+                                         const std::string& boundary,
+                                         const std::string& contentType)
   {
-    if (state_ != State_WritingMultipart)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    std::string header = "--" + multipartBoundary_ + "\r\n";
+    target = "--" + boundary + "\r\n";
 
     bool hasContentType = false;
     bool hasContentLength = false;
@@ -531,7 +548,7 @@ namespace Orthanc
     for (std::map<std::string, std::string>::const_iterator
            it = headers.begin(); it != headers.end(); ++it)
     {
-      header += it->first + ": " + it->second + "\r\n";
+      target += it->first + ": " + it->second + "\r\n";
 
       std::string tmp;
       Toolbox::ToLowerCase(tmp, it->first);
@@ -554,19 +571,32 @@ namespace Orthanc
 
     if (!hasContentType)
     {
-      header += "Content-Type: " + multipartContentType_ + "\r\n";
+      target += "Content-Type: " + contentType + "\r\n";
     }
 
     if (!hasContentLength)
     {
-      header += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\r\n";
+      target += "Content-Length: " + boost::lexical_cast<std::string>(length) + "\r\n";
     }
 
     if (!hasMimeVersion)
     {
-      header += "MIME-Version: 1.0\r\n\r\n";
+      target += "MIME-Version: 1.0\r\n\r\n";
+    }
+  }
+
+
+  void HttpOutput::StateMachine::SendMultipartItem(const void* item,
+                                                   size_t length,
+                                                   const std::map<std::string, std::string>& headers)
+  {
+    if (state_ != State_WritingMultipart)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
+    std::string header;
+    PrepareMultipartItemHeader(header, length, headers, multipartBoundary_, multipartContentType_);
     stream_.Send(false, header.c_str(), header.size());
 
     if (length > 0)
@@ -685,4 +715,43 @@ namespace Orthanc
     stateMachine_.CloseBody();
   }
 
+
+  void HttpOutput::AnswerMultipartWithoutChunkedTransfer(
+    const std::string& subType,
+    const std::string& contentType,
+    const std::vector<const void*>& parts,
+    const std::vector<size_t>& sizes,
+    const std::vector<const std::map<std::string, std::string>*>& headers)
+  {
+    if (parts.size() != sizes.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    stateMachine_.CheckHeadersCompatibilityWithMultipart();
+
+    std::string boundary, contentTypeHeader;
+    PrepareMultipartMainHeader(boundary, contentTypeHeader, subType, contentType);
+    SetContentType(contentTypeHeader);
+
+    std::map<std::string, std::string> empty;
+
+    ChunkedBuffer chunked;
+    for (size_t i = 0; i < parts.size(); i++)
+    {
+      std::string partHeader;
+      PrepareMultipartItemHeader(partHeader, sizes[i], headers[i] == NULL ? empty : *headers[i], 
+                                 boundary, contentType);
+
+      chunked.AddChunk(partHeader);
+      chunked.AddChunk(parts[i], sizes[i]);
+      chunked.AddChunk("\r\n");    
+    }
+
+    chunked.AddChunk("--" + boundary + "--\r\n");
+
+    std::string body;
+    chunked.Flatten(body);
+    Answer(body);
+  }
 }
