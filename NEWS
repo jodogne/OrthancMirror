@@ -4,14 +4,18 @@ Pending changes in the mainline
 Maintenance
 -----------
 
-* Security: If remote access is enabled, HTTP authentication is also enabled by default
+* Security: If remote access is enabled, HTTP authentication is also
+  enabled by default. This modification was done to mitigate security
+  risks reported by independant security researcher Amitay Dan.
 * Security: New configuration option "ExecuteLuaEnabled" to allow "/tools/execute-script"
 * Log an explicit error if uploading an empty DICOM file using REST API
 * Name of temporary files now include the process ID to ease design of scripts cleaning /tmp
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04
 * Fix generation of "SOP Instance UID" on split and merge
-* Orthanc Explorer: include the URL search params into HTTP headers to the REST API to ease usage of the Authorization plugin
-  Note that only the 'token', 'auth-token' & 'authorization' search params are transmitted into HTTP headers.
+* Orthanc Explorer: include the URL search params into HTTP headers to
+  the REST API to ease usage of the Authorization plugin. Note that
+  only the 'token', 'auth-token' & 'authorization' search params are
+  transmitted into HTTP headers.
 * in /ordered-slices route, ignore instances without position/normal/seriesIndex
 * Fix lost relationships between CT and RT-STRUCT during anonymization
 
