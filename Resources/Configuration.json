@@ -507,5 +507,9 @@
   // set to "true", the metrics can be retrieved at
   // "/tools/metrics-prometheus" formetted using the Prometheus
   // text-based exposition format.
-  "MetricsEnabled" : true
+  "MetricsEnabled" : true,
+
+  // Whether calls to URI "/tools/execute-script" is enabled. Starting
+  // with Orthanc 1.5.8, this URI is disabled by default for security.
+  "ExecuteLuaEnabled" : false
 }
