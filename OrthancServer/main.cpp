@@ -516,6 +516,7 @@ static void PrintHelp(const char* path)
     << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
     << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
+    << "\t\t\t(if file is \"-\", dumps to stdout)" << std::endl
     << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
     << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
@@ -1436,7 +1437,15 @@ int main(int argc, char* argv[])
 
       try
       {
-        SystemToolbox::WriteFile(configurationSample, target);
+        if (target == "-")
+        {
+          // New in 1.5.8: Print to stdout
+          std::cout << configurationSample;
+        }
+        else
+        {
+          SystemToolbox::WriteFile(configurationSample, target);
+        }
         return 0;
       }
       catch (OrthancException&)
