@@ -1141,6 +1141,25 @@ namespace Orthanc
   }
   
 
+  const char* EnumerationToString(Endianness endianness)
+  {
+    switch (endianness)
+    {
+      case Endianness_Little:
+        return "Little-endian";
+
+      case Endianness_Big:
+        return "Big-endian";
+
+      case Endianness_Unknown:
+        return "Unknown endianness";
+                
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
