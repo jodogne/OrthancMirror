@@ -302,7 +302,7 @@ static void ConfigureFolders(const Json::Value& folders)
     const std::string folder = folders[*it].asString();
     if (!boost::filesystem::is_directory(folder))
     {
-      OrthancPlugins::LogError("Trying and serve an inexistent folder: " + folder);
+      OrthancPlugins::LogError("Trying to serve an inexistent folder: " + folder);
       ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
     }
 
