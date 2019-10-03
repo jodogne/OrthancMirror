@@ -749,6 +749,8 @@ namespace Orthanc
 
   const char* EnumerationToString(MimeType mime);
 
+  const char* EnumerationToString(Endianness endianness);
+
   Encoding StringToEncoding(const char* encoding);
 
   ResourceType StringToResourceType(const char* type);
