@@ -395,8 +395,8 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
       }
 
       // New in Orthanc 1.5.8
-      if ('IsDefaultUser' in s &&
-          s.IsDefaultUser) {
+      if ('IsHttpServerSecure' in s &&
+          !s.IsHttpServerSecure) {
         $('.warning-insecure').show();
       } else {
         $('.warning-insecure').hide();
