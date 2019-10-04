@@ -220,6 +220,7 @@ namespace Orthanc
     bool saveJobs_;
 
     std::auto_ptr<MetricsRegistry>  metricsRegistry_;
+    bool isDefaultUser_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -401,6 +402,16 @@ namespace Orthanc
     MetricsRegistry& GetMetricsRegistry()
     {
       return *metricsRegistry_;
+    }
+
+    void SetDefaultUser(bool isDefaultUser)
+    {
+      isDefaultUser_ = isDefaultUser;
+    }
+
+    bool IsDefaultUser() const
+    {
+      return isDefaultUser_;
     }
   };
 }

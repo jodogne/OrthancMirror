@@ -53,11 +53,14 @@ namespace Orthanc
  
   static void GetSystemInformation(RestApiGetCall& call)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
     Json::Value result = Json::objectValue;
 
     result["ApiVersion"] = ORTHANC_API_VERSION;
     result["Version"] = ORTHANC_VERSION;
     result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
+    result["IsDefaultUser"] = context.IsDefaultUser();  // New in Orthanc 1.5.8
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -72,7 +75,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     result["PluginsEnabled"] = true;
-    const OrthancPlugins& plugins = OrthancRestApi::GetContext(call).GetPlugins();
+    const OrthancPlugins& plugins = context.GetPlugins();
 
     if (plugins.HasStorageArea())
     {

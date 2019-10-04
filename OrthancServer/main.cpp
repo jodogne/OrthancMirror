@@ -832,8 +832,8 @@ static bool StartHttpServer(ServerContext& context,
         if (httpServer.IsRemoteAccessAllowed() &&
             !authenticationEnabled)
         {
-          LOG(WARNING) << "Remote access is enabled while user authentication is disabled, "
-                       << "make sure this does not affect the security of your setup";
+          LOG(WARNING) << "====> Remote access is enabled while user authentication is explicitly disabled, "
+                       << "make sure this does not affect the security of your setup <====";
         }
       }
       else if (httpServer.IsRemoteAccessAllowed())
@@ -857,8 +857,35 @@ static bool StartHttpServer(ServerContext& context,
       if (httpServer.IsAuthenticationEnabled() &&
           !hasUsers)
       {
-        LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
-                     << "check the value of configuration option \"RegisteredUsers\"";
+        if (httpServer.IsRemoteAccessAllowed())
+        {
+          /**
+           * Starting with Orthanc 1.5.8, if no user is explicitly
+           * defined while remote access is allowed, we create a
+           * default user, and Orthanc Explorer shows a warning
+           * message about an "Insecure setup". This convention is
+           * used in Docker images "jodogne/orthanc",
+           * "jodogne/orthanc-plugins" and "osimis/orthanc".
+           **/
+          LOG(ERROR) << "====> HTTP authentication is enabled, but no user is declared. "
+                     << "Creating a default user: Review your configuration option \"RegisteredUsers\". "
+                     << "Your setup is INSECURE <====";
+
+          context.SetDefaultUser(true);
+
+          // This is the username/password of the default user in Orthanc.
+          httpServer.RegisterUser("orthanc", "orthanc");
+        }
+        else
+        {
+          LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
+                       << "check the value of configuration option \"RegisteredUsers\"";
+        }
+      }
+      else
+      {
+        // This setup is secure
+        context.SetDefaultUser(false);
       }
       
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))

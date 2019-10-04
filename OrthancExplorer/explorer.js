@@ -79,6 +79,11 @@ $(document).ready(function() {
         $tree.tree('openNode', event.node, true);
     }
   );
+
+  // Inject the template of the warning about insecure setup as the
+  // first child of each page
+  var insecure = $('#template-insecure').html();
+  $('[data-role="page"]>[data-role="content"]').prepend(insecure);
   
   currentPage = $.mobile.pageData.active;
   currentUuid = $.mobile.pageData.uuid;
@@ -387,6 +392,14 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
                                 .attr('href', 'explorer.html')
                                 .text(s.Name)
                                 .append(' &raquo; '));
+      }
+
+      // New in Orthanc 1.5.8
+      if ('IsDefaultUser' in s &&
+          s.IsDefaultUser) {
+        $('.warning-insecure').show();
+      } else {
+        $('.warning-insecure').hide();
       }
     }
   });
