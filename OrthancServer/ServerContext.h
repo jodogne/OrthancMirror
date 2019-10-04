@@ -220,7 +220,7 @@ namespace Orthanc
     bool saveJobs_;
 
     std::auto_ptr<MetricsRegistry>  metricsRegistry_;
-    bool isDefaultUser_;
+    bool isHttpServerSecure_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -404,14 +404,14 @@ namespace Orthanc
       return *metricsRegistry_;
     }
 
-    void SetDefaultUser(bool isDefaultUser)
+    void SetHttpServerSecure(bool isSecure)
     {
-      isDefaultUser_ = isDefaultUser;
+      isHttpServerSecure_ = isSecure;
     }
 
-    bool IsDefaultUser() const
+    bool IsHttpServerSecure() const
     {
-      return isDefaultUser_;
+      return isHttpServerSecure_;
     }
   };
 }

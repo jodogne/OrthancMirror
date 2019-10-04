@@ -824,6 +824,9 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
 
+      // Let's assume that the HTTP server is secure
+      context.SetHttpServerSecure(true);
+
       bool authenticationEnabled;
       if (lock.GetConfiguration().LookupBooleanParameter(authenticationEnabled, "AuthenticationEnabled"))
       {
@@ -833,7 +836,8 @@ static bool StartHttpServer(ServerContext& context,
             !authenticationEnabled)
         {
           LOG(WARNING) << "====> Remote access is enabled while user authentication is explicitly disabled, "
-                       << "make sure this does not affect the security of your setup <====";
+                       << "your setup is POSSIBLY INSECURE <====";
+          context.SetHttpServerSecure(false);
         }
       }
       else if (httpServer.IsRemoteAccessAllowed())
@@ -867,11 +871,11 @@ static bool StartHttpServer(ServerContext& context,
            * used in Docker images "jodogne/orthanc",
            * "jodogne/orthanc-plugins" and "osimis/orthanc".
            **/
-          LOG(ERROR) << "====> HTTP authentication is enabled, but no user is declared. "
-                     << "Creating a default user: Review your configuration option \"RegisteredUsers\". "
-                     << "Your setup is INSECURE <====";
+          LOG(WARNING) << "====> HTTP authentication is enabled, but no user is declared. "
+                       << "Creating a default user: Review your configuration option \"RegisteredUsers\". "
+                       << "Your setup is INSECURE <====";
 
-          context.SetDefaultUser(true);
+          context.SetHttpServerSecure(false);
 
           // This is the username/password of the default user in Orthanc.
           httpServer.RegisterUser("orthanc", "orthanc");
@@ -881,11 +885,6 @@ static bool StartHttpServer(ServerContext& context,
           LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
                        << "check the value of configuration option \"RegisteredUsers\"";
         }
-      }
-      else
-      {
-        // This setup is secure
-        context.SetDefaultUser(false);
       }
       
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))

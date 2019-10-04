@@ -60,7 +60,7 @@ namespace Orthanc
     result["ApiVersion"] = ORTHANC_API_VERSION;
     result["Version"] = ORTHANC_VERSION;
     result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
-    result["IsDefaultUser"] = context.IsDefaultUser();  // New in Orthanc 1.5.8
+    result["IsHttpServerSecure"] = context.IsHttpServerSecure();  // New in Orthanc 1.5.8
 
     {
       OrthancConfiguration::ReaderLock lock;
