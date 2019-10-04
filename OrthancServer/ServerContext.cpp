@@ -239,7 +239,8 @@ namespace Orthanc
     done_(false),
     haveJobsChanged_(false),
     isJobsEngineUnserialized_(false),
-    metricsRegistry_(new MetricsRegistry)
+    metricsRegistry_(new MetricsRegistry),
+    isDefaultUser_(false)
   {
     {
       OrthancConfiguration::ReaderLock lock;

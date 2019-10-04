@@ -646,6 +646,19 @@
 
   <div id="dialog" style="display:none">
   </div>
+
+  <div id="template-insecure" style="display:none">
+    <div class="warning-insecure ui-body ui-body-e">
+      <h1>Insecure setup</h1>
+      <p>
+        Your Orthanc server is accepting remote connections, but is
+	using the default username and password. Please carefully read
+	your logs and review your configuration, especially
+	options <tt>RemoteAccessAllowed</tt>, <tt>AuthenticationEnabled</tt>,
+	and <tt>RegisteredUsers</tt>.
+      </p>
+    </div>
+  </div>
 </body>
 
 </html>
