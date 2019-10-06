@@ -656,11 +656,6 @@ namespace Orthanc
   }
     
 
-  bool OrthancConfiguration::IsExecuteLuaEnabled() const
-  {
-    return GetBooleanParameter("ExecuteLuaEnabled", false);
-  }
-
   std::string OrthancConfiguration::InterpretStringParameterAsPath(
     const std::string& parameter) const
   {

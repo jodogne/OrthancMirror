@@ -231,7 +231,5 @@ namespace Orthanc
     void ResetServerIndex();
 
     TemporaryFile* CreateTemporaryFile() const;
-
-    bool IsExecuteLuaEnabled() const;
   };
 }
