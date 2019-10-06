@@ -240,7 +240,8 @@ namespace Orthanc
     haveJobsChanged_(false),
     isJobsEngineUnserialized_(false),
     metricsRegistry_(new MetricsRegistry),
-    isHttpServerSecure_(true)
+    isHttpServerSecure_(true),
+    isExecuteLuaEnabled_(false)
   {
     {
       OrthancConfiguration::ReaderLock lock;

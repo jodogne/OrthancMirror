@@ -139,22 +139,17 @@ namespace Orthanc
 
   static void ExecuteScript(RestApiPostCall& call)
   {
-    {
-      OrthancConfiguration::ReaderLock lock;
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
-      static const char* const OPTION = "ExecuteLuaEnabled";
-      if (!lock.GetConfiguration().GetBooleanParameter(OPTION, false))
-      {
-        LOG(ERROR) << "The URI /tools/execute-script is disallowed for security, "
-                   << "check value of configuration option \"" << OPTION << "\"";
-        call.GetOutput().SignalError(HttpStatus_403_Forbidden);
-        return;
-      }
+    if (!context.IsExecuteLuaEnabled())
+    {
+      LOG(ERROR) << "The URI /tools/execute-script is disallowed for security, "
+                 << "check your configuration file";
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
+      return;
     }
 
     std::string result;
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     std::string command;
     call.BodyToString(command);
 
