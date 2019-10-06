@@ -898,6 +898,18 @@ static bool StartHttpServer(ServerContext& context,
       {
         httpServer.SetSslEnabled(false);
       }
+
+      if (lock.GetConfiguration().GetBooleanParameter("ExecuteLuaEnabled", false))
+      {
+        context.SetExecuteLuaEnabled(true);
+        LOG(WARNING) << "====> Remote LUA script execution is enabled.  Review your configuration option \"ExecuteLuaEnabled\". "
+                     << "Your setup is POSSIBLY INSECURE <====";
+      }
+      else
+      {
+        context.SetExecuteLuaEnabled(false);
+        LOG(WARNING) << "Remote LUA script execution is disabled";
+      }
     }
 
     MyHttpExceptionFormatter exceptionFormatter(httpDescribeErrors, plugins);

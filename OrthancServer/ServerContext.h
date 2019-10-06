@@ -221,6 +221,7 @@ namespace Orthanc
 
     std::auto_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
+    bool isExecuteLuaEnabled_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -412,6 +413,16 @@ namespace Orthanc
     bool IsHttpServerSecure() const
     {
       return isHttpServerSecure_;
+    }
+
+    void SetExecuteLuaEnabled(bool enabled)
+    {
+      isExecuteLuaEnabled_ = enabled;
+    }
+
+    bool IsExecuteLuaEnabled() const
+    {
+      return isExecuteLuaEnabled_;
     }
   };
 }
