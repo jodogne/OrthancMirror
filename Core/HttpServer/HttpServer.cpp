@@ -1073,6 +1073,7 @@ namespace Orthanc
     realm_ = ORTHANC_REALM;
     threadsCount_ = 50;  // Default value in mongoose
     tcpNoDelay_ = true;
+    requestTimeout_ = 30;  // Default value in mongoose/civetweb (30 seconds)
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     LOG(INFO) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -1120,6 +1121,7 @@ namespace Orthanc
     {
       std::string port = boost::lexical_cast<std::string>(port_);
       std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
+      std::string requestTimeoutMilliseconds = boost::lexical_cast<std::string>(requestTimeout_ * 1000);
 
       if (ssl_)
       {
@@ -1150,6 +1152,9 @@ namespace Orthanc
         // Set the number of threads
         "num_threads", numThreads.c_str(),
         
+        // Set the timeout for the HTTP server
+        "request_timeout_ms", requestTimeoutMilliseconds.c_str(),
+
         // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
         certificate_.c_str(),
@@ -1322,12 +1327,26 @@ namespace Orthanc
     LOG(INFO) << "The embedded HTTP server will use " << threads << " threads";
   }
 
-
+  
   void HttpServer::SetTcpNoDelay(bool tcpNoDelay)
   {
     Stop();
     tcpNoDelay_ = tcpNoDelay;
     LOG(INFO) << "TCP_NODELAY for the HTTP sockets is set to "
               << (tcpNoDelay ? "true" : "false");
+  }
+
+
+  void HttpServer::SetRequestTimeout(unsigned int seconds)
+  {
+    if (seconds <= 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Request timeout must be a stricly positive integer");
+    }
+
+    Stop();
+    requestTimeout_ = seconds;
+    LOG(INFO) << "Request timeout in the HTTP server is set to " << seconds << " seconds";
   }
 }

@@ -8,6 +8,7 @@ Maintenance
   enabled by default. This modification was done to mitigate security
   risks reported by independant security researcher Amitay Dan.
 * Security: New configuration option "ExecuteLuaEnabled" to allow "/tools/execute-script"
+* New configuration option: "HttpRequestTimeout"
 * Log an explicit error if uploading an empty DICOM file using REST API
 * Name of temporary files now include the process ID to ease design of scripts cleaning /tmp
 * Fix compatibility of LSB binaries with Ubuntu >= 18.04

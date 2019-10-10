@@ -98,6 +98,7 @@ namespace Orthanc
     std::string realm_;
     unsigned int threadsCount_;
     bool tcpNoDelay_;
+    unsigned int requestTimeout_;  // In seconds
   
     bool IsRunning() const;
 
@@ -214,6 +215,13 @@ namespace Orthanc
     bool IsTcpNoDelay() const
     {
       return tcpNoDelay_;
+    }
+
+    void SetRequestTimeout(unsigned int seconds);
+
+    unsigned int GetRequestTimeout() const
+    {
+      return requestTimeout_;
     }
   };
 }

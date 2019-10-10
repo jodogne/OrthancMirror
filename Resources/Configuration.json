@@ -511,5 +511,11 @@
 
   // Whether calls to URI "/tools/execute-script" is enabled. Starting
   // with Orthanc 1.5.8, this URI is disabled by default for security.
-  "ExecuteLuaEnabled" : false
+  "ExecuteLuaEnabled" : false,
+
+  // Set the timeout for HTTP requests, in seconds. This corresponds
+  // to option "request_timeout_ms" of Mongoose/Civetweb. It will set
+  // the socket options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the
+  // specified value.
+  "HttpRequestTimeout" : 30
 }
