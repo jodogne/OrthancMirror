@@ -335,7 +335,9 @@ namespace Orthanc
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (instances_[i]->HasPosition() && (!instances_[i]->HasNormal() || IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
+      if (instances_[i]->HasPosition() &&
+          (!instances_[i]->HasNormal() ||
+           IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
       {
         sortedInstances_.push_back(instances_[i]);
       }
