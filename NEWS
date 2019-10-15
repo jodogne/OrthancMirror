@@ -1,6 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version has been upgraded to 4
+* in /ordered-slices route, ignore instances without position/normal/seriesIndex
+  unless there are only such instances in the series.
+
+
 Maintenance
 -----------
 
@@ -17,7 +25,6 @@ Maintenance
   the REST API to ease usage of the Authorization plugin. Note that
   only the 'token', 'auth-token' & 'authorization' search params are
   transmitted into HTTP headers.
-* in /ordered-slices route, ignore instances without position/normal/seriesIndex
 * Fix lost relationships between CT and RT-STRUCT during anonymization
 
 Version 1.5.7 (2019-06-25)
