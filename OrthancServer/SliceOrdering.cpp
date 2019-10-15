@@ -331,12 +331,11 @@ namespace Orthanc
 
     sortedInstances_.clear();
 
-    // consider only the instances with a position
+    // consider only the instances with a position and correctly oriented (if they have a normal)
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-
-      if (instances_[i]->HasPosition())
+      if (instances_[i]->HasPosition() && (!instances_[i]->HasNormal() || IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
       {
         sortedInstances_.push_back(instances_[i]);
       }
