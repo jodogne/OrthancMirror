@@ -47,7 +47,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* ou
     return OrthancPluginErrorCode_ParameterOutOfRange;
   }
   
-  sprintf(buffer, "Callback on URL [%s] with body [%s]\n", url, request->body);
+  sprintf(buffer, "Callback on URL [%s] with body [%s]\n", url, (const char*) request->body);
   OrthancPluginLogWarning(context, buffer);
 
   OrthancPluginSetCookie(context, output, "hello", "world");
