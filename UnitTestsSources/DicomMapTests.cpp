@@ -381,10 +381,10 @@ TEST(DicomMap, Parse)
   // "800\0" in US COLMUNS tag
   m.SetValue(DICOM_TAG_COLUMNS, "800\0", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(ui));
-  ASSERT_EQ(800, ui);
+  ASSERT_EQ(800u, ui);
   m.SetValue(DICOM_TAG_COLUMNS, "800", false);
   ASSERT_TRUE(m.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(ui));
-  ASSERT_EQ(800, ui);
+  ASSERT_EQ(800u, ui);
 }
 
 
