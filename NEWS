@@ -1,13 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.5.8 (2019-10-16)
+==========================
+
 REST API
 --------
 
 * API version has been upgraded to 4
-* in /ordered-slices route, ignore instances without position/normal/seriesIndex
-  unless there are only such instances in the series.
-
+* In /ordered-slices route, ignore instances without position/normal/seriesIndex,
+  unless there are only such instances in the series
 
 Maintenance
 -----------
@@ -26,6 +29,7 @@ Maintenance
   only the 'token', 'auth-token' & 'authorization' search params are
   transmitted into HTTP headers.
 * Fix lost relationships between CT and RT-STRUCT during anonymization
+
 
 Version 1.5.7 (2019-06-25)
 ==========================
