@@ -92,6 +92,9 @@ namespace Orthanc
     void ShiftRight(ImageAccessor& target,
                     unsigned int shift);
 
+    void ShiftLeft(ImageAccessor& target,
+                   unsigned int shift);
+
     void GetMinMaxIntegerValue(int64_t& minValue,
                                int64_t& maxValue,
                                const ImageAccessor& image);

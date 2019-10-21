@@ -413,6 +413,41 @@ namespace Orthanc
     }
   }
 
+  template <typename PixelType>
+  static void ShiftRightInternal(ImageAccessor& image,
+                                 unsigned int shift)
+  {
+    const unsigned int height = image.GetHeight();
+    const unsigned int width = image.GetWidth();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < width; x++, p++)
+      {
+        *p = *p >> shift;
+      }
+    }
+  }
+
+  template <typename PixelType>
+  static void ShiftLeftInternal(ImageAccessor& image,
+                                unsigned int shift)
+  {
+    const unsigned int height = image.GetHeight();
+    const unsigned int width = image.GetWidth();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+
+      for (unsigned int x = 0; x < width; x++, p++)
+      {
+        *p = *p << shift;
+      }
+    }
+  }
 
   void ImageProcessing::Copy(ImageAccessor& target,
                              const ImageAccessor& source)
@@ -921,9 +956,52 @@ namespace Orthanc
       return;
     }
 
-    throw OrthancException(ErrorCode_NotImplemented);
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+      {
+        ShiftRightInternal<uint8_t>(image, shift);
+        break;
+      }
+
+      case PixelFormat_Grayscale16:
+      {
+        ShiftRightInternal<uint16_t>(image, shift);
+        break;
+      }
+    default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
+  void ImageProcessing::ShiftLeft(ImageAccessor& image,
+                                  unsigned int shift)
+  {
+    if (image.GetWidth() == 0 ||
+        image.GetHeight() == 0 ||
+        shift == 0)
+    {
+      // Nothing to do
+      return;
+    }
+
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+      {
+        ShiftLeftInternal<uint8_t>(image, shift);
+        break;
+      }
+
+      case PixelFormat_Grayscale16:
+      {
+        ShiftLeftInternal<uint16_t>(image, shift);
+        break;
+      }
+    default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
 
   void ImageProcessing::GetMinMaxIntegerValue(int64_t& minValue,
                                               int64_t& maxValue,
