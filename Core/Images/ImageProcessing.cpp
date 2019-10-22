@@ -803,6 +803,29 @@ namespace Orthanc
       return;
     }
 
+    if ((target.GetFormat() == PixelFormat_BGRA32 &&
+         source.GetFormat() == PixelFormat_RGBA32)
+        || (target.GetFormat() == PixelFormat_RGBA32 &&
+            source.GetFormat() == PixelFormat_BGRA32))
+    {
+      for (unsigned int y = 0; y < height; y++)
+      {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
+        uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
+        for (unsigned int x = 0; x < width; x++)
+        {
+          q[0] = p[2];
+          q[1] = p[1];
+          q[2] = p[0];
+          q[3] = p[3];
+          p += 4;
+          q += 4;
+        }
+      }
+
+      return;
+    }
+
     if (target.GetFormat() == PixelFormat_RGB24 &&
         source.GetFormat() == PixelFormat_RGB48)
     {
@@ -940,6 +963,63 @@ namespace Orthanc
         }
 
         q += size;
+      }
+    }
+  }
+
+  void ImageProcessing::Set(ImageAccessor& image,
+           uint8_t red,
+           uint8_t green,
+           uint8_t blue,
+           ImageAccessor& alpha)
+  {
+    uint8_t p[4];
+
+    if (alpha.GetWidth() != image.GetWidth() || alpha.GetHeight() != image.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
+    }
+
+    if (alpha.GetFormat() != PixelFormat_Grayscale8)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    switch (image.GetFormat())
+    {
+      case PixelFormat_RGBA32:
+        p[0] = red;
+        p[1] = green;
+        p[2] = blue;
+        break;
+
+      case PixelFormat_BGRA32:
+        p[0] = blue;
+        p[1] = green;
+        p[2] = red;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      uint8_t* q = reinterpret_cast<uint8_t*>(image.GetRow(y));
+      uint8_t* a = reinterpret_cast<uint8_t*>(alpha.GetRow(y));
+
+      for (unsigned int x = 0; x < width; x++)
+      {
+        for (unsigned int i = 0; i < 3; i++)
+        {
+          q[i] = p[i];
+        }
+        q[3] = *a;
+        q += 4;
+        ++a;
       }
     }
   }
