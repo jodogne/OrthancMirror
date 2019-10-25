@@ -474,6 +474,91 @@ namespace Orthanc
   }
 
 
+  void ImageProcessing::ApplyWindowing(ImageAccessor& target,
+                                       const ImageAccessor& source,
+                                       float windowCenter,
+                                       float windowWidth,
+                                       Orthanc::PhotometricInterpretation sourcePhotometricInterpretation)
+  {
+    if (source.GetFormat() != Orthanc::PixelFormat_Float32)
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    if (sourcePhotometricInterpretation != Orthanc::PhotometricInterpretation_Monochrome1
+        && sourcePhotometricInterpretation != Orthanc::PhotometricInterpretation_Monochrome2)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (target.GetWidth() != source.GetWidth() ||
+        target.GetHeight() != source.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
+    }
+
+    unsigned int targetBytesPerPixels = target.GetBytesPerPixel();
+    unsigned int targetChannelsPerPixels = 0;
+    switch (target.GetFormat())
+    {
+    case Orthanc::PixelFormat_Grayscale8:
+      targetChannelsPerPixels = 1;
+      break;
+    case Orthanc::PixelFormat_RGBA32:
+    case Orthanc::PixelFormat_BGRA32:
+    case Orthanc::PixelFormat_RGB24:
+      targetChannelsPerPixels = 3;
+      break;
+    default:
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    const float a = windowCenter - windowWidth / 2.0f;
+    const float slope = 256.0f / windowWidth;
+    bool isInverted = sourcePhotometricInterpretation == Orthanc::PhotometricInterpretation_Monochrome1;
+
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+
+    assert(sizeof(float) == 4);
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const float* p = reinterpret_cast<const float*>(source.GetConstRow(y));
+      uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
+
+      for (unsigned int x = 0; x < width; x++)
+      {
+        float v = (*p - a) * slope;
+        if (v <= 0)
+        {
+          v = 0;
+        }
+        else if (v >= 255)
+        {
+          v = 255;
+        }
+
+        uint8_t vv = static_cast<uint8_t>(v);
+
+        if (isInverted)
+        {
+          vv = 255 - vv;
+        }
+
+        for (unsigned int c = 0; c < targetChannelsPerPixels; c++)
+        {
+          q[c] = vv;
+        }
+
+        p++;
+        q += targetBytesPerPixels;
+      }
+    }
+
+  }
+
+
   void ImageProcessing::Convert(ImageAccessor& target,
                                 const ImageAccessor& source)
   {
@@ -968,10 +1053,10 @@ namespace Orthanc
   }
 
   void ImageProcessing::Set(ImageAccessor& image,
-           uint8_t red,
-           uint8_t green,
-           uint8_t blue,
-           ImageAccessor& alpha)
+                            uint8_t red,
+                            uint8_t green,
+                            uint8_t blue,
+                            ImageAccessor& alpha)
   {
     uint8_t p[4];
 
@@ -1850,11 +1935,15 @@ namespace Orthanc
       Copy(target, source);
       return;
     }
-      
+
     switch (source.GetFormat())
     {
       case PixelFormat_Grayscale8:
         ResizeInternal<PixelFormat_Grayscale8>(target, source);
+        break;
+
+      case PixelFormat_Float32:
+        ResizeInternal<PixelFormat_Float32>(target, source);
         break;
 
       case PixelFormat_RGB24:
