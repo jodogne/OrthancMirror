@@ -165,5 +165,12 @@ namespace Orthanc
                               size_t verticalAnchor);
 
     void SmoothGaussian5x5(ImageAccessor& image);
+
+    void FitSize(ImageAccessor& target,
+                 const ImageAccessor& source);
+    
+    ImageAccessor* FitSize(const ImageAccessor& source,
+                           unsigned int width,
+                           unsigned int height);
   }
 }
