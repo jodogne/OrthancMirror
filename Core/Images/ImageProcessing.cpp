@@ -2221,4 +2221,57 @@ namespace Orthanc
 
     SeparableConvolution(image, kernel, 2, kernel, 2);
   }
+
+
+  void ImageProcessing::FitSize(ImageAccessor& target,
+                                const ImageAccessor& source)
+  {
+    if (target.GetWidth() == 0 ||
+        target.GetHeight() == 0)
+    {
+      return;
+    }
+
+    if (source.GetWidth() == target.GetWidth() &&
+        source.GetHeight() == target.GetHeight())
+    {
+      Copy(target, source);
+      return;
+    }
+
+    Set(target, 0);
+
+    // Preserve the aspect ratio
+    float cw = static_cast<float>(source.GetWidth());
+    float ch = static_cast<float>(source.GetHeight());
+    float r = std::min(
+      static_cast<float>(target.GetWidth()) / cw,
+      static_cast<float>(target.GetHeight()) / ch);
+
+    unsigned int sw = std::min(static_cast<unsigned int>(boost::math::iround(cw * r)), target.GetWidth());  
+    unsigned int sh = std::min(static_cast<unsigned int>(boost::math::iround(ch * r)), target.GetHeight());
+    Image resized(target.GetFormat(), sw, sh, false);
+  
+    //ImageProcessing::SmoothGaussian5x5(source);
+    ImageProcessing::Resize(resized, source);
+
+    assert(target.GetWidth() >= resized.GetWidth() &&
+           target.GetHeight() >= resized.GetHeight());
+    unsigned int offsetX = (target.GetWidth() - resized.GetWidth()) / 2;
+    unsigned int offsetY = (target.GetHeight() - resized.GetHeight()) / 2;
+
+    ImageAccessor region;
+    target.GetRegion(region, offsetX, offsetY, resized.GetWidth(), resized.GetHeight());
+    ImageProcessing::Copy(region, resized);
+  }
+
+
+  ImageAccessor* ImageProcessing::FitSize(const ImageAccessor& source,
+                                          unsigned int width,
+                                          unsigned int height)
+  {
+    std::auto_ptr<ImageAccessor> target(new Image(source.GetFormat(), width, height, false));
+    FitSize(*target, source);
+    return target.release();
+  }
 }
