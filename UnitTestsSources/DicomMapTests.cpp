@@ -566,6 +566,24 @@ TEST(DicomMap, ExtractMainDicomTags)
 }
 
 
+TEST(DicomMap, RemoveBinary)
+{
+  DicomMap b;
+  b.SetValue(DICOM_TAG_PATIENT_NAME, "A", false);
+  b.SetValue(DICOM_TAG_PATIENT_ID, "B", true);
+  b.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, DicomValue());  // NULL
+  b.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, DicomValue("C", false));
+  b.SetValue(DICOM_TAG_SOP_INSTANCE_UID, DicomValue("D", true));
+
+  b.RemoveBinaryTags();
+
+  std::string s;
+  ASSERT_EQ(2u, b.GetSize());
+  ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false)); ASSERT_EQ("A", s);
+  ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_SERIES_INSTANCE_UID, false)); ASSERT_EQ("C", s);
+}
+
+
 
 TEST(DicomWebJson, Multiplicity)
 {
