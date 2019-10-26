@@ -238,6 +238,8 @@ namespace Orthanc
                                const std::string& defaultValue,
                                bool allowBinary) const;
 
+    void RemoveBinaryTags();
+
     void Print(FILE* fp) const;  // For debugging only
   };
 }

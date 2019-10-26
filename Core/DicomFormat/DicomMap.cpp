@@ -1294,6 +1294,29 @@ namespace Orthanc
   }
 
 
+  void DicomMap::RemoveBinaryTags()
+  {
+    Map kept;
+
+    for (Map::iterator it = map_.begin(); it != map_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (!it->second->IsBinary() &&
+          !it->second->IsNull())
+      {
+        kept[it->first] = it->second;
+      }
+      else
+      {
+        delete it->second;
+      }
+    }
+
+    map_ = kept;
+  }
+
+
   void DicomMap::Print(FILE* fp) const
   {
     DicomArray a(*this);
