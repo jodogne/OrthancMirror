@@ -107,7 +107,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      uint32_t next, lower;
+      Uint32 next, lower;
       if (!item->findAndGetUint32(DCM_OffsetOfTheNextDirectoryRecord, next).good() ||
           !item->findAndGetUint32(DCM_OffsetOfReferencedLowerLevelDirectoryEntity, lower).good())
       {
