@@ -461,6 +461,7 @@ if (ENABLE_DCMTK)
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomModification.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomWebJsonVisitor.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/FromDcmtkBridge.cpp
+    ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomDir.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomFile.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/ToDcmtkBridge.cpp
 
