@@ -53,6 +53,14 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
+#if !defined(ORTHANC_ENABLE_DCMTK)
+#  error The macro ORTHANC_ENABLE_DCMTK must be defined
+#endif
+
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1 to use this file
+#endif
+
 #include "ITagVisitor.h"
 #include "../DicomFormat/DicomInstanceHasher.h"
 #include "../Images/ImageAccessor.h"
