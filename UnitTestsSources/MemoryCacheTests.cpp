@@ -40,6 +40,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/MemoryStringCache.h"
 #include "../Core/Cache/SharedArchive.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/Logging.h"
@@ -212,7 +213,7 @@ namespace
     }
   };
 
-  class IntegerProvider : public Orthanc::ICachePageProvider
+  class IntegerProvider : public Orthanc::Deprecated::ICachePageProvider
   {
   public:
     std::string log_;
@@ -231,7 +232,7 @@ TEST(MemoryCache, Basic)
   IntegerProvider provider;
 
   {
-    Orthanc::MemoryCache cache(provider, 3);
+    Orthanc::Deprecated::MemoryCache cache(provider, 3);
     cache.Access("42");  // 42 -> exit
     cache.Access("43");  // 43, 42 -> exit
     cache.Access("45");  // 45, 43, 42 -> exit
@@ -316,4 +317,52 @@ TEST(LRU, SharedArchive)
   }
 
   ASSERT_EQ(2u, count);
+}
+
+
+TEST(MemoryStringCache, Basic)
+{
+  Orthanc::MemoryStringCache c;
+  ASSERT_THROW(c.SetMaximumSize(0), Orthanc::OrthancException);
+  
+  c.SetMaximumSize(2);
+
+  std::string v;
+  ASSERT_FALSE(c.Fetch(v, "hello"));
+
+  c.Add("hello", "a");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_FALSE(c.Fetch(v, "hello2"));
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+
+  c.Add("hello2", "b");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+
+  c.Add("hello3", "too large value");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+  
+  c.Add("hello3", "c");
+  ASSERT_FALSE(c.Fetch(v, "hello"));  // Recycled
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_TRUE(c.Fetch(v, "hello3"));  ASSERT_EQ("c", v);
+}
+
+
+TEST(MemoryStringCache, Invalidate)
+{
+  Orthanc::MemoryStringCache c;
+  c.Add("hello", "a");
+  c.Add("hello2", "b");
+
+  std::string v;
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+
+  c.Invalidate("hello");
+  ASSERT_FALSE(c.Fetch(v, "hello"));
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
 }

@@ -123,6 +123,8 @@ endif()
 
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
+  ${ORTHANC_ROOT}/Core/Cache/MemoryObjectCache.cpp
+  ${ORTHANC_ROOT}/Core/Cache/MemoryStringCache.cpp
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
   ${ORTHANC_ROOT}/Core/EnumerationDictionary.h

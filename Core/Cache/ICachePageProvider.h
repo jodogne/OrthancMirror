@@ -38,13 +38,16 @@
 
 namespace Orthanc
 {
-  class ICachePageProvider
+  namespace Deprecated
   {
-  public:
-    virtual ~ICachePageProvider()
+    class ICachePageProvider
     {
-    }
+    public:
+      virtual ~ICachePageProvider()
+      {
+      }
 
-    virtual IDynamicObject* Provide(const std::string& id) = 0;
-  };
+      virtual IDynamicObject* Provide(const std::string& id) = 0;
+    };
+  }
 }

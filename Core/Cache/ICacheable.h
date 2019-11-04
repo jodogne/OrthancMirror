@@ -33,41 +33,17 @@
 
 #pragma once
 
-#include <memory>
-#include "LeastRecentlyUsedIndex.h"
-#include "ICachePageProvider.h"
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  namespace Deprecated
+  class ICacheable : public boost::noncopyable
   {
-    /**
-     * WARNING: This class is NOT thread-safe.
-     **/
-    class MemoryCache
+  public:
+    virtual ~ICacheable()
     {
-    private:
-      struct Page
-      {
-        std::string id_;
-        std::auto_ptr<IDynamicObject> content_;
-      };
+    }
 
-      ICachePageProvider& provider_;
-      size_t cacheSize_;
-      LeastRecentlyUsedIndex<std::string, Page*>  index_;
-
-      Page& Load(const std::string& id);
-
-    public:
-      MemoryCache(ICachePageProvider& provider,
-                  size_t cacheSize);
-
-      ~MemoryCache();
-
-      IDynamicObject& Access(const std::string& id);
-
-      void Invalidate(const std::string& id);
-    };
-  }
+    virtual size_t GetMemoryUsage() const = 0;
+  };
 }

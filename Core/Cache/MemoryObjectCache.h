@@ -33,41 +33,77 @@
 
 #pragma once
 
-#include <memory>
+#include "ICacheable.h"
 #include "LeastRecentlyUsedIndex.h"
-#include "ICachePageProvider.h"
+
+#if !defined(__EMSCRIPTEN__)
+// Multithreading is not supported in WebAssembly
+#  include <boost/thread/shared_mutex.hpp>
+#endif
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 namespace Orthanc
 {
-  namespace Deprecated
+  class MemoryObjectCache : public boost::noncopyable
   {
-    /**
-     * WARNING: This class is NOT thread-safe.
-     **/
-    class MemoryCache
+  private:
+    class Item;
+
+#if !defined(__EMSCRIPTEN__)
+    typedef boost::unique_lock<boost::shared_mutex> WriterLock;
+    typedef boost::shared_lock<boost::shared_mutex> ReaderLock;
+
+    // This mutex protects modifications to the structure of the cache (monitor)
+    boost::mutex   cacheMutex_;
+
+    // This mutex protects modifications to the items that are stored in the cache
+    boost::shared_mutex contentMutex_;
+#endif
+
+    size_t currentSize_;
+    size_t maxSize_;
+    LeastRecentlyUsedIndex<std::string, Item*>  content_;
+
+    void Recycle(size_t targetSize);
+    
+  public:
+    MemoryObjectCache();
+
+    ~MemoryObjectCache();
+
+    size_t GetMaximumSize();
+
+    void SetMaximumSize(size_t size);
+
+    void Acquire(const std::string& key,
+                 ICacheable* value);
+
+    void Invalidate(const std::string& key);
+
+    class Reader : public boost::noncopyable
     {
     private:
-      struct Page
-      {
-        std::string id_;
-        std::auto_ptr<IDynamicObject> content_;
-      };
-
-      ICachePageProvider& provider_;
-      size_t cacheSize_;
-      LeastRecentlyUsedIndex<std::string, Page*>  index_;
-
-      Page& Load(const std::string& id);
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock                 contentLock_;
+      boost::mutex::scoped_lock  cacheLock_;
+#endif
+      
+      Item*         item_;
 
     public:
-      MemoryCache(ICachePageProvider& provider,
-                  size_t cacheSize);
+      Reader(MemoryObjectCache& cache,
+             const std::string& key);
 
-      ~MemoryCache();
+      bool IsValid() const
+      {
+        return item_ != NULL;
+      }
 
-      IDynamicObject& Access(const std::string& id);
+      ICacheable& GetValue() const;
 
-      void Invalidate(const std::string& id);
+      const boost::posix_time::ptime& GetTime() const;
     };
-  }
+  };
 }
