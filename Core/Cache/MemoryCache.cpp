@@ -38,71 +38,74 @@
 
 namespace Orthanc
 {
-  MemoryCache::Page& MemoryCache::Load(const std::string& id)
+  namespace Deprecated
   {
-    // Reuse the cache entry if it already exists
-    Page* p = NULL;
-    if (index_.Contains(id, p))
+    MemoryCache::Page& MemoryCache::Load(const std::string& id)
     {
-      VLOG(1) << "Reusing a cache page";
-      assert(p != NULL);
-      index_.MakeMostRecent(id);
+      // Reuse the cache entry if it already exists
+      Page* p = NULL;
+      if (index_.Contains(id, p))
+      {
+        VLOG(1) << "Reusing a cache page";
+        assert(p != NULL);
+        index_.MakeMostRecent(id);
+        return *p;
+      }
+
+      // The id is not in the cache yet. Make some room if the cache
+      // is full.
+      if (index_.GetSize() == cacheSize_)
+      {
+        VLOG(1) << "Dropping the oldest cache page";
+        index_.RemoveOldest(p);
+        delete p;
+      }
+
+      // Create a new cache page
+      std::auto_ptr<Page> result(new Page);
+      result->id_ = id;
+      result->content_.reset(provider_.Provide(id));
+
+      // Add the newly create page to the cache
+      VLOG(1) << "Registering new data in a cache page";
+      p = result.release();
+      index_.Add(id, p);
       return *p;
     }
 
-    // The id is not in the cache yet. Make some room if the cache
-    // is full.
-    if (index_.GetSize() == cacheSize_)
+    MemoryCache::MemoryCache(ICachePageProvider& provider,
+                             size_t cacheSize) : 
+      provider_(provider),
+      cacheSize_(cacheSize)
     {
-      VLOG(1) << "Dropping the oldest cache page";
-      index_.RemoveOldest(p);
-      delete p;
     }
 
-    // Create a new cache page
-    std::auto_ptr<Page> result(new Page);
-    result->id_ = id;
-    result->content_.reset(provider_.Provide(id));
-
-    // Add the newly create page to the cache
-    VLOG(1) << "Registering new data in a cache page";
-    p = result.release();
-    index_.Add(id, p);
-    return *p;
-  }
-
-  MemoryCache::MemoryCache(ICachePageProvider& provider,
-                           size_t cacheSize) : 
-    provider_(provider),
-    cacheSize_(cacheSize)
-  {
-  }
-
-  void MemoryCache::Invalidate(const std::string& id)
-  {
-    Page* p = NULL;
-    if (index_.Contains(id, p))
+    void MemoryCache::Invalidate(const std::string& id)
     {
-      VLOG(1) << "Invalidating a cache page";
-      assert(p != NULL);
-      delete p;
-      index_.Invalidate(id);
+      Page* p = NULL;
+      if (index_.Contains(id, p))
+      {
+        VLOG(1) << "Invalidating a cache page";
+        assert(p != NULL);
+        delete p;
+        index_.Invalidate(id);
+      }
     }
-  }
 
-  MemoryCache::~MemoryCache()
-  {
-    while (!index_.IsEmpty())
+    MemoryCache::~MemoryCache()
     {
-      Page* element = NULL;
-      index_.RemoveOldest(element);
-      assert(element != NULL);
-      delete element;
+      while (!index_.IsEmpty())
+      {
+        Page* element = NULL;
+        index_.RemoveOldest(element);
+        assert(element != NULL);
+        delete element;
+      }
     }
-  }
 
-  IDynamicObject& MemoryCache::Access(const std::string& id)
-  {
-    return *Load(id).content_;
+    IDynamicObject& MemoryCache::Access(const std::string& id)
+    {
+      return *Load(id).content_;
+    }
   }
 }

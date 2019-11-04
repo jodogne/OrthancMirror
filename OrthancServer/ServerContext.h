@@ -120,7 +120,7 @@ namespace Orthanc
       }
     };
     
-    class DicomCacheProvider : public ICachePageProvider
+    class DicomCacheProvider : public Deprecated::ICachePageProvider  // TODO
     {
     private:
       ServerContext& context_;
@@ -186,7 +186,7 @@ namespace Orthanc
     
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
-    MemoryCache dicomCache_;
+    Deprecated::MemoryCache dicomCache_;  // TODO
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;

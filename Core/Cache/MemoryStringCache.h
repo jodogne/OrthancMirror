@@ -33,41 +33,41 @@
 
 #pragma once
 
-#include <memory>
-#include "LeastRecentlyUsedIndex.h"
-#include "ICachePageProvider.h"
+#include "MemoryObjectCache.h"
 
 namespace Orthanc
 {
-  namespace Deprecated
+  /**
+   * Facade object around "MemoryObjectCache" that caches a dictionary
+   * of strings, using the "fetch/add" paradigm of memcached.
+   **/
+  class MemoryStringCache : public boost::noncopyable
   {
-    /**
-     * WARNING: This class is NOT thread-safe.
-     **/
-    class MemoryCache
+  private:
+    class StringValue;
+
+    MemoryObjectCache  cache_;
+
+  public:
+    size_t GetMaximumSize()
     {
-    private:
-      struct Page
-      {
-        std::string id_;
-        std::auto_ptr<IDynamicObject> content_;
-      };
+      return cache_.GetMaximumSize();
+    }
+    
+    void SetMaximumSize(size_t size)
+    {
+      cache_.SetMaximumSize(size);
+    }
 
-      ICachePageProvider& provider_;
-      size_t cacheSize_;
-      LeastRecentlyUsedIndex<std::string, Page*>  index_;
+    void Add(const std::string& key,
+             const std::string& value);
+    
+    void Invalidate(const std::string& key)
+    {
+      cache_.Invalidate(key);
+    }
 
-      Page& Load(const std::string& id);
-
-    public:
-      MemoryCache(ICachePageProvider& provider,
-                  size_t cacheSize);
-
-      ~MemoryCache();
-
-      IDynamicObject& Access(const std::string& id);
-
-      void Invalidate(const std::string& id);
-    };
-  }
+    bool Fetch(std::string& value,
+               const std::string& key);
+  };
 }

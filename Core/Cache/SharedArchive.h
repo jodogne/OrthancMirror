@@ -57,7 +57,7 @@ namespace Orthanc
     size_t         maxSize_;
     boost::mutex   mutex_;
     Archive        archive_;
-    Orthanc::LeastRecentlyUsedIndex<std::string> lru_;
+    LeastRecentlyUsedIndex<std::string> lru_;
 
     void RemoveInternal(const std::string& id);
 

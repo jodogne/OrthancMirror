@@ -31,43 +31,54 @@
  **/
 
 
-#pragma once
-
-#include <memory>
-#include "LeastRecentlyUsedIndex.h"
-#include "ICachePageProvider.h"
+#include "../PrecompiledHeaders.h"
+#include "MemoryStringCache.h"
 
 namespace Orthanc
 {
-  namespace Deprecated
+  class MemoryStringCache::StringValue : public ICacheable
   {
-    /**
-     * WARNING: This class is NOT thread-safe.
-     **/
-    class MemoryCache
+  private:
+    std::string  content_;
+
+  public:
+    StringValue(const std::string& content) :
+      content_(content)
     {
-    private:
-      struct Page
-      {
-        std::string id_;
-        std::auto_ptr<IDynamicObject> content_;
-      };
+    }
+      
+    const std::string& GetContent() const
+    {
+      return content_;
+    }
 
-      ICachePageProvider& provider_;
-      size_t cacheSize_;
-      LeastRecentlyUsedIndex<std::string, Page*>  index_;
+    virtual size_t GetMemoryUsage() const
+    {
+      return content_.size();
+    }      
+  };
 
-      Page& Load(const std::string& id);
 
-    public:
-      MemoryCache(ICachePageProvider& provider,
-                  size_t cacheSize);
+  void MemoryStringCache::Add(const std::string& key,
+                              const std::string& value)
+  {
+    cache_.Acquire(key, new StringValue(value));
+  }
 
-      ~MemoryCache();
+  
+  bool MemoryStringCache::Fetch(std::string& value,
+                                const std::string& key)
+  {
+    MemoryObjectCache::Reader reader(cache_, key);
 
-      IDynamicObject& Access(const std::string& id);
-
-      void Invalidate(const std::string& id);
-    };
+    if (reader.IsValid())
+    {
+      value = dynamic_cast<StringValue&>(reader.GetValue()).GetContent();
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 }
