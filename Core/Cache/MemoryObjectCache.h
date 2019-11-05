@@ -38,6 +38,7 @@
 
 #if !defined(__EMSCRIPTEN__)
 // Multithreading is not supported in WebAssembly
+#  include <boost/thread/mutex.hpp>
 #  include <boost/thread/shared_mutex.hpp>
 #endif
 
