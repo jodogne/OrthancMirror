@@ -824,12 +824,6 @@ namespace Orthanc
       case ModalityManufacturer_StoreScp:
         return "StoreScp";
       
-      case ModalityManufacturer_ClearCanvas:
-        return "ClearCanvas";
-      
-      case ModalityManufacturer_Dcm4Chee:
-        return "Dcm4Chee";
-      
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
       
@@ -1560,17 +1554,9 @@ namespace Orthanc
     {
       return ModalityManufacturer_GenericNoUniversalWildcard;
     }
-    else if (manufacturer == "ClearCanvas")
-    {
-      return ModalityManufacturer_ClearCanvas;
-    }
     else if (manufacturer == "StoreScp")
     {
       return ModalityManufacturer_StoreScp;
-    }
-    else if (manufacturer == "Dcm4Chee")
-    {
-      return ModalityManufacturer_Dcm4Chee;
     }
     else if (manufacturer == "Vitrea")
     {
@@ -1587,7 +1573,10 @@ namespace Orthanc
       obsolete = true;
     }
     else if (manufacturer == "EFilm2" ||
-             manufacturer == "MedInria")
+             manufacturer == "MedInria" ||
+             manufacturer == "ClearCanvas" ||
+             manufacturer == "Dcm4Chee"
+             )
     {
       result = ModalityManufacturer_Generic;
       obsolete = true;
@@ -1600,8 +1589,8 @@ namespace Orthanc
 
     if (obsolete)
     {
-      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
-                   << "Orthanc 1.3.0. To guarantee compatibility with future Orthanc "
+      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is now obsolete. "
+                   << "To guarantee compatibility with future Orthanc "
                    << "releases, you should replace it by \""
                    << EnumerationToString(result)
                    << "\" in your configuration file.";

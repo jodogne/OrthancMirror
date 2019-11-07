@@ -189,15 +189,13 @@
      * - "GenericNoUniversalWildcard" (to replace "*" by "" in all fields
      *   in outgoing C-Find SCU requests originating from Orthanc),
      * - "StoreScp" (storescp tool from DCMTK),
-     * - "ClearCanvas",
-     * - "Dcm4Chee",
      * - "Vitrea",
      * - "GE" (Enterprise Archive, MRI consoles and Advantage Workstation
      *   from GE Healthcare).
      *
      * This parameter is case-sensitive.
      **/
-    // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
+    // "vitrea" : [ "VITREA", "192.168.1.1", 104, "Vitrea" ]
 
     /**
      * By default, the Orthanc SCP accepts all DICOM commands (C-ECHO,

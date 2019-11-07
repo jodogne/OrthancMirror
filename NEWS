@@ -2,7 +2,8 @@ Pending changes in the mainline
 ===============================
 
 * "/changes": Allow the "limit" argument to be greater than 100
-
+* C-Find SCU at Instance level now sets the 0008,0052 tag at IMAGE per default (was INSTANCE).
+  Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
 
 Version 1.5.8 (2019-10-16)
 ==========================
