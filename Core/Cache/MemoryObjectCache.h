@@ -83,19 +83,21 @@ namespace Orthanc
 
     void Invalidate(const std::string& key);
 
-    class Reader : public boost::noncopyable
+    class Accessor : public boost::noncopyable
     {
     private:
 #if !defined(__EMSCRIPTEN__)
-      ReaderLock                 contentLock_;
+      ReaderLock                 readerLock_;
+      WriterLock                 writerLock_;
       boost::mutex::scoped_lock  cacheLock_;
 #endif
       
-      Item*         item_;
+      Item*  item_;
 
     public:
-      Reader(MemoryObjectCache& cache,
-             const std::string& key);
+      Accessor(MemoryObjectCache& cache,
+               const std::string& key,
+               bool unique);
 
       bool IsValid() const
       {

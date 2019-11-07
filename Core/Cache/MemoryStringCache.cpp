@@ -69,7 +69,7 @@ namespace Orthanc
   bool MemoryStringCache::Fetch(std::string& value,
                                 const std::string& key)
   {
-    MemoryObjectCache::Reader reader(cache_, key);
+    MemoryObjectCache::Accessor reader(cache_, key, false /* multiple readers are allowed */);
 
     if (reader.IsValid())
     {
