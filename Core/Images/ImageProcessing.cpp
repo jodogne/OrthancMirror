@@ -56,6 +56,11 @@ namespace Orthanc
     return sqrt(dx * dx + dy * dy);
   }
 
+  double ImageProcessing::ImagePoint::GetDistanceToLine(double a, double b, double c) const // where ax + by + c = 0 is the equation of the line
+  {
+    return std::abs(a * static_cast<double>(GetX()) + b * static_cast<double>(GetY()) + c) / pow(a * a + b * b, 0.5);
+  }
+
   template <typename TargetType, typename SourceType>
   static void ConvertInternal(ImageAccessor& target,
                               const ImageAccessor& source)

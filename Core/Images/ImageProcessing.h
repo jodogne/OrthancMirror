@@ -72,6 +72,8 @@ namespace Orthanc
       }
 
       double GetDistanceTo(const ImagePoint& other) const;
+
+      double GetDistanceToLine(double a, double b, double c) const; // where ax + by + c = 0 is the equation of the line
     };
 
     void Copy(ImageAccessor& target,
