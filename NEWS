@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* "/changes": Allow the "limit" argument to be greater than 100
+
 
 Version 1.5.8 (2019-10-16)
 ==========================
