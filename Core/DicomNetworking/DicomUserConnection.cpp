@@ -703,22 +703,8 @@ namespace Orthanc
         break;
 
       case ResourceType_Instance:
-        clevel = "INSTANCE";
-        if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
-            manufacturer_ == ModalityManufacturer_Dcm4Chee ||
-            manufacturer_ == ModalityManufacturer_GE)
-        {
-          // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
-          // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
-          // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
-          clevel = "IMAGE";
-        }
-        else
-        {
-          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "INSTANCE");
-        }
-
+        clevel = "IMAGE";
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
@@ -808,19 +794,7 @@ namespace Orthanc
         break;
 
       case ResourceType_Instance:
-        if (manufacturer_ == ModalityManufacturer_ClearCanvas ||
-            manufacturer_ == ModalityManufacturer_Dcm4Chee ||
-            manufacturer_ == ModalityManufacturer_GE)
-        {
-          // This is a particular case for ClearCanvas, thanks to Peter Somlo <peter.somlo@gmail.com>.
-          // https://groups.google.com/d/msg/orthanc-users/j-6C3MAVwiw/iolB9hclom8J
-          // http://www.clearcanvas.ca/Home/Community/OldForums/tabid/526/aff/11/aft/14670/afv/topic/Default.aspx
-          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
-        }
-        else
-        {
-          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "INSTANCE");
-        }
+        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
         break;
 
       default:

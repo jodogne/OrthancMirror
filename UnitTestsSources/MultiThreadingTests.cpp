@@ -1909,7 +1909,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     modality.SetApplicationEntityTitle("HELLO");
     modality.SetHost("world");
     modality.SetPortNumber(45);
-    modality.SetManufacturer(ModalityManufacturer_Dcm4Chee);
+    modality.SetManufacturer(ModalityManufacturer_GenericNoWildcardInDates);
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
   }
@@ -1919,7 +1919,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ("HELLO", modality.GetApplicationEntityTitle());
     ASSERT_EQ("world", modality.GetHost());
     ASSERT_EQ(45u, modality.GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_Dcm4Chee, modality.GetManufacturer());
+    ASSERT_EQ(ModalityManufacturer_GenericNoWildcardInDates, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
