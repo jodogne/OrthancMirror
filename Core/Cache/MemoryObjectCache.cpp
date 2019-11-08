@@ -208,31 +208,52 @@ namespace Orthanc
   }
 
 
-  MemoryObjectCache::Reader::Reader(MemoryObjectCache& cache,
-                                    const std::string& key) :
-#if !defined(__EMSCRIPTEN__)
-    contentLock_(cache.contentMutex_),
-    cacheLock_(cache.cacheMutex_),
-#endif
+  MemoryObjectCache::Accessor::Accessor(MemoryObjectCache& cache,
+                                        const std::string& key,
+                                        bool unique) :
     item_(NULL)
   {
+#if !defined(__EMSCRIPTEN__)
+    if (unique)
+    {
+      writerLock_ = WriterLock(cache.contentMutex_);
+    }
+    else
+    {
+      readerLock_ = ReaderLock(cache.contentMutex_);
+    }
+
+    // Lock the global structure of the cache, must be *after* the
+    // reader/writer lock
+    cacheLock_ = boost::mutex::scoped_lock(cache.cacheMutex_);
+#endif
+
     if (cache.content_.Contains(key, item_))
     {
       cache.content_.MakeMostRecent(key);
     }
-        
+    
 #if !defined(__EMSCRIPTEN__)
     cacheLock_.unlock();
 
     if (item_ == NULL)
     {
-      contentLock_.unlock();
+      // This item does not exist in the cache, we can release the
+      // reader/writer lock
+      if (unique)
+      {
+        writerLock_.unlock();
+      }
+      else
+      {
+        readerLock_.unlock();
+      }
     }
 #endif
   }
 
 
-  ICacheable& MemoryObjectCache::Reader::GetValue() const
+  ICacheable& MemoryObjectCache::Accessor::GetValue() const
   {
     if (IsValid())
     {
@@ -245,7 +266,7 @@ namespace Orthanc
   }
 
 
-  const boost::posix_time::ptime& MemoryObjectCache::Reader::GetTime() const
+  const boost::posix_time::ptime& MemoryObjectCache::Accessor::GetTime() const
   {
     if (IsValid())
     {
