@@ -88,8 +88,15 @@ TEST(Versions, SQLite)
 #else
   // http://www.sqlite.org/capi3ref.html#sqlite3_libversion
   EXPECT_EQ(sqlite3_libversion_number(), SQLITE_VERSION_NUMBER);
-  EXPECT_STREQ(sqlite3_sourceid(), SQLITE_SOURCE_ID);
   EXPECT_STREQ(sqlite3_libversion(), SQLITE_VERSION);
+  
+  /**
+   * On Orthanc > 1.5.8, we comment out the following test, that is
+   * too strict for some GNU/Linux distributions to apply their own
+   * security fixes. Checking the main version macros is sufficient.
+   * https://bugzilla.suse.com/show_bug.cgi?id=1154550#c2
+   **/
+  // EXPECT_STREQ(sqlite3_sourceid(), SQLITE_SOURCE_ID);
 #endif
 
   // Ensure that the SQLite version is above 3.7.0.
