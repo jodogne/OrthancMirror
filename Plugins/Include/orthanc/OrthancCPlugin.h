@@ -1148,6 +1148,12 @@ extern "C"
    * @param type The content type corresponding to this file. 
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * 
+   * @warning The "content" buffer *must* have been allocated using
+   * the "malloc()" function of your C standard library (i.e. nor
+   * "new[]", neither a pointer to a buffer). The "free()" function of
+   * your C standard library will automatically be invoked on the
+   * "content" pointer.
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginStorageRead) (
     void** content,
