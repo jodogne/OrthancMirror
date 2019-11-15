@@ -114,7 +114,7 @@ SDK
 * Image transcoding API
 * Add plugins for normalized operations (notably so as to support
   Print SCU/SCP):
-  https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+  https://web.archive.org/web/20170923150432/https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
 * Provide access to the Orthanc::DicomUserConnection class in plugins:
   https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
