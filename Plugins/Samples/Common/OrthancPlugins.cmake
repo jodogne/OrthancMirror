@@ -20,13 +20,18 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   link_libraries(dl rt pthread)
 endif()
 
-
 include_directories(${SAMPLES_ROOT}/../Include/)
 
-
 if (MSVC)
-  include_directories(${SAMPLES_ROOT}/../../Resources/ThirdParty/VisualStudio/)
+  if (MSVC_VERSION LESS 1600)
+  # Starting with Visual Studio >= 2010 (i.e. macro _MSC_VER >=
+  # 1600), Microsoft ships a standard-compliant <stdint.h>
+  # header. For earlier versions of Visual Studio, give access to a
+  # compatibility header.
+  # http://stackoverflow.com/a/70630/881731
+  # https://en.wikibooks.org/wiki/C_Programming/C_Reference/stdint.h#External_links
+    include_directories(${SAMPLES_ROOT}/../../Resources/ThirdParty/VisualStudio/)
+  endif()
 endif()
-
 
 add_definitions(-DHAS_ORTHANC_EXCEPTION=0)
