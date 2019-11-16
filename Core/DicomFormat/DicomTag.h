@@ -149,6 +149,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PHOTOMETRIC_INTERPRETATION(0x0028, 0x0004);
   static const DicomTag DICOM_TAG_IMAGE_ORIENTATION_PATIENT(0x0020, 0x0037);
   static const DicomTag DICOM_TAG_IMAGE_POSITION_PATIENT(0x0020, 0x0032);
+  static const DicomTag DICOM_TAG_LARGEST_IMAGE_PIXEL_VALUE(0x0028, 0x0107);
+  static const DicomTag DICOM_TAG_SMALLEST_IMAGE_PIXEL_VALUE(0x0028, 0x0106);
 
   // Tags related to date and time
   static const DicomTag DICOM_TAG_ACQUISITION_DATE(0x0008, 0x0022);
