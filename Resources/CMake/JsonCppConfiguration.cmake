@@ -78,9 +78,11 @@ if (JSONCPP_CXX11)
   # https://gitlab.kitware.com/third-party/jsoncpp/commit/56df2068470241f9043b676bfae415ed62a0c172
   add_definitions(-DJSONCPP_DEPRECATED_STACK_LIMIT=5000)
 
-  if (CMAKE_COMPILER_IS_GNUCXX OR
-      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    message("Switching to C++11 standard in gcc/clang, as version of JsonCpp is >= 1.0.0")
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    message("Switching to C++11 standard in gcc, as version of JsonCpp is >= 1.0.0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wno-deprecated-declarations")
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    message("Switching to C++11 standard in clang, as version of JsonCpp is >= 1.0.0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-deprecated-declarations")
   endif()
 endif()
