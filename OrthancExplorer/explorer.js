@@ -163,6 +163,22 @@ function FormatDicomDate(s)
     return d.toString('dddd, MMMM d, yyyy');
 }
 
+function FormatFloatSequence(s)
+{
+  if (s == undefined || s.length == 0)
+    return "-";
+
+  if (s.indexOf("\\") == -1)
+    return s;
+
+  var oldValues = s.split("\\");
+  var newValues = [];
+  for (var i = 0; i < oldValues.length; i++)
+  {
+    newValues.push(parseFloat(oldValues[i]).toFixed(3));
+  }
+  return newValues.join("\\");
+}
 
 function Sort(arr, fieldExtractor, isInteger, reverse)
 {
@@ -277,6 +293,11 @@ function FormatMainDicomTags(target, tags, tagsToIgnore)
       {
         v = SplitLongUid(v);
       }
+      else if (i == "ImagePositionPatient" ||
+               i == "ImageOrientationPatient")
+      {
+        v = FormatFloatSequence(v);
+      }
       
       target.append($('<p>')
                     .text(i + ': ')
@@ -371,8 +392,7 @@ function FormatInstance(instance, link, isReverse)
     "AcquisitionNumber", 
     "InstanceNumber", 
     "InstanceCreationDate", 
-    "InstanceCreationTime",
-    "ImagePositionPatient"
+    "InstanceCreationTime"
   ]);
     
   return CompleteFormatting(node, link, isReverse);
