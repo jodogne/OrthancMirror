@@ -84,7 +84,8 @@ namespace Orthanc
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset,
                                     unsigned int maxStringLength,
-                                    Encoding defaultEncoding);
+                                    Encoding defaultEncoding,
+                                    const std::set<DicomTag>& ignoreTagLength);
 
     static void DatasetToJson(Json::Value& parent,
                               DcmItem& item,
@@ -245,7 +246,15 @@ namespace Orthanc
 #endif
 
     static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset);
+                                    DcmItem& dataset,
+                                    const std::set<DicomTag>& ignoreTagLength);
+
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset)
+    {
+      std::set<DicomTag> none;
+      ExtractDicomSummary(target, dataset, none);
+    }
 
     static void ExtractDicomAsJson(Json::Value& target, 
                                    DcmDataset& dataset,

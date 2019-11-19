@@ -240,6 +240,9 @@ namespace Orthanc
 
     void ExtractDicomSummary(DicomMap& target) const;
 
+    void ExtractDicomSummary(DicomMap& target,
+                             const std::set<DicomTag>& ignoreTagLength) const;
+
     bool LookupTransferSyntax(std::string& result);
 
     bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;

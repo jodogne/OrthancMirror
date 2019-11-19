@@ -456,10 +456,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
                                             DcmItem& dataset,
                                             unsigned int maxStringLength,
-                                            Encoding defaultEncoding)
+                                            Encoding defaultEncoding,
+                                            const std::set<DicomTag>& ignoreTagLength)
   {
-    std::set<DicomTag> ignoreTagLength;
-
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
@@ -2148,11 +2147,12 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
 
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
-                                            DcmItem& dataset)
+                                            DcmItem& dataset,
+                                            const std::set<DicomTag>& ignoreTagLength)
   {
     ExtractDicomSummary(target, dataset,
                         ORTHANC_MAXIMUM_TAG_LENGTH,
-                        GetDefaultDicomEncoding());
+                        GetDefaultDicomEncoding(), ignoreTagLength);
   }
 
   
