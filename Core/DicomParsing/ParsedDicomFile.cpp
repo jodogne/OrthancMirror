@@ -1581,6 +1581,13 @@ namespace Orthanc
   }
 
 
+  void ParsedDicomFile::ExtractDicomSummary(DicomMap& target,
+                                            const std::set<DicomTag>& ignoreTagLength) const
+  {
+    FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset(), ignoreTagLength);
+  }
+
+
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
     return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
