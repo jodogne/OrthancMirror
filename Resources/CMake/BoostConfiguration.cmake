@@ -107,6 +107,13 @@ if (BOOST_STATIC)
     -DBOOST_REGEX_NO_LIB
     -DBOOST_SYSTEM_NO_LIB
     -DBOOST_LOCALE_NO_LIB
+
+    # In static builds, explicitly prevent Boost from using the system
+    # locale in lexical casts. This is notably important if
+    # "boost::lexical_cast<double>()" is applied to strings containing
+    # "," instead of "." as decimal separators. Check out function
+    # "OrthancStone::LinearAlgebra::ParseVector()".
+    -DBOOST_LEXICAL_CAST_ASSUME_C_LOCALE
     )
 
   set(BOOST_SOURCES
