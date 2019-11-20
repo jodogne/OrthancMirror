@@ -108,4 +108,12 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(NotImplemented);
     }
   }
+
+
+  std::string DicomTag::FormatHexadecimal() const
+  {
+    char buf[16];
+    sprintf(buf, "(%04x,%04x)", group_, element_);
+    return buf;
+  }
 }
