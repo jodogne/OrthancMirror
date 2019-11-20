@@ -35,6 +35,8 @@
 
 #include "OrthancPluginException.h"
 
+#include <boost/lexical_cast.hpp>
+
 namespace OrthancPlugins
 {
   const DicomPath::Prefix& DicomPath::GetPrefixItem(size_t depth) const
@@ -96,5 +98,19 @@ namespace OrthancPlugins
     AddToPrefix(sequence1, index1);
     AddToPrefix(sequence2, index2);
     AddToPrefix(sequence3, index3);
+  }
+
+
+  std::string DicomPath::Format() const
+  {
+    std::string s;
+      
+    for (size_t i = 0; i < GetPrefixLength(); i++)
+    {
+      s += (GetPrefixTag(i).FormatHexadecimal() + " / " +
+            boost::lexical_cast<std::string>(i) + " / ");
+    }
+
+    return s + GetFinalTag().FormatHexadecimal();
   }
 }

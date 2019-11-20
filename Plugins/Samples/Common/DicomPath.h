@@ -112,5 +112,7 @@ namespace OrthancPlugins
     {
       finalTag_ = tag;
     }
+
+    std::string Format() const;
   };
 }

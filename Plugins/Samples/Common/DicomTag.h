@@ -34,6 +34,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 
 namespace OrthancPlugins
 {
@@ -74,6 +75,8 @@ namespace OrthancPlugins
     {
       return !(*this == other);
     }
+
+    std::string FormatHexadecimal() const;
   };
 
 
