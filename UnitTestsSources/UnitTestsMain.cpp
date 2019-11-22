@@ -1414,6 +1414,7 @@ TEST(MetricsRegistry, Basic)
 int main(int argc, char **argv)
 {
   Logging::Initialize();
+  Toolbox::InitializeGlobalLocale(NULL);
   Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");
