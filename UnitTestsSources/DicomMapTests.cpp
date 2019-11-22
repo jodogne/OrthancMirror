@@ -594,7 +594,7 @@ TEST(DicomWebJson, Multiplicity)
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -633,7 +633,7 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
-    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    Toolbox::TokenizeString(v, s, '\\');
     ASSERT_FLOAT_EQ(1.0f, boost::lexical_cast<float>(v[0]));
     ASSERT_FLOAT_EQ(2.3f, boost::lexical_cast<float>(v[1]));
     ASSERT_FLOAT_EQ(4.0f, boost::lexical_cast<float>(v[2]));
@@ -648,7 +648,7 @@ TEST(DicomWebJson, NullValue)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1.5\\\\\\2.5");
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -678,7 +678,7 @@ TEST(DicomWebJson, NullValue)
     ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
-    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    Toolbox::TokenizeString(v, s, '\\');
     ASSERT_FLOAT_EQ(1.5f, boost::lexical_cast<float>(v[0]));
     ASSERT_TRUE(v[1].empty());
     ASSERT_TRUE(v[2].empty());
@@ -744,7 +744,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   std::string s;
@@ -938,7 +938,7 @@ TEST(DicomWebJson, Sequence)
     ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
   }
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   ASSERT_EQ("SQ", visitor.GetResult() ["00081115"]["vr"].asString());
@@ -965,6 +965,29 @@ TEST(DicomWebJson, Sequence)
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
-    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by Orthanc::DicomMap
+    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by DicomMap
   }
+}
+
+
+TEST(DicomWebJson, PixelSpacing)
+{
+  // Test related to locales: Make sure that decimal separator is
+  // correctly handled (dot "." vs comma ",")
+  ParsedDicomFile source(false);
+  source.ReplacePlainString(DICOM_TAG_PIXEL_SPACING, "1.5\\1.3");
+
+  DicomWebJsonVisitor visitor;
+  source.Apply(visitor);
+
+  DicomMap target;
+  target.FromDicomWeb(visitor.GetResult());
+
+  ASSERT_EQ("DS", visitor.GetResult() ["00280030"]["vr"].asString());
+  ASSERT_FLOAT_EQ(1.5f, visitor.GetResult() ["00280030"]["Value"][0].asFloat());
+  ASSERT_FLOAT_EQ(1.3f, visitor.GetResult() ["00280030"]["Value"][1].asFloat());
+
+  std::string s;
+  ASSERT_TRUE(target.LookupStringValue(s, DICOM_TAG_PIXEL_SPACING, false));
+  ASSERT_EQ(s, "1.5\\1.3");
 }
