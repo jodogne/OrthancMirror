@@ -96,7 +96,8 @@
   // receive files or to do query/retrieve through the DICOM protocol.
   "DicomServerEnabled" : true,
 
-  // The DICOM Application Entity Title
+  // The DICOM Application Entity Title (cannot be longer than 16
+  // characters)
   "DicomAet" : "ORTHANC",
 
   // Check whether the called AET corresponds to the AET of Orthanc
@@ -175,8 +176,12 @@
     /**
      * Uncommenting the following line would enable Orthanc to
      * connect to an instance of the "storescp" open-source DICOM
-     * store (shipped in the DCMTK distribution) started by the
-     * command line "storescp 2000".
+     * store (shipped in the DCMTK distribution), as started by the
+     * command line "storescp 2000". The first parameter is the
+     * AET of the remote modality (cannot be longer than 16 
+     * characters), the second one is the remote network address,
+     * and the third one is the TCP port number corresponding
+     * to the DICOM protocol on the remote modality (usually 104).
      **/
     // "sample" : [ "STORESCP", "127.0.0.1", 2000 ]
 
