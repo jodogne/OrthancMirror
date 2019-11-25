@@ -1545,7 +1545,7 @@ extern "C"
    * "levelTagElement", and "levelIndex" arrays.
    * @param levelTagGroup The group of the parent DICOM tags in the hierarchy.
    * @param levelTagElement The element of the parent DICOM tags in the hierarchy.
-   * @param levelIndex The index of the node in the parent sequences of the hiearchy.
+   * @param levelIndex The index of the node in the parent sequences of the hierarchy.
    * @param tagGroup The group of the DICOM tag of interest.
    * @param tagElement The element of the DICOM tag of interest.
    * @param vr The value representation of the binary DICOM node.
