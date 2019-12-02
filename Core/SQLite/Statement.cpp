@@ -218,7 +218,7 @@ namespace Orthanc
       CheckOk(sqlite3_bind_text(GetStatement(),
                                 col + 1,
                                 val.data(),
-                                val.size(),
+                                static_cast<int>(val.size()),
                                 SQLITE_TRANSIENT),
               ErrorCode_BadParameterType);
     }
