@@ -32,6 +32,22 @@
 
 
 #include "../PrecompiledHeaders.h"
+
+#ifdef __EMSCRIPTEN__
+/* 
+Avoid this error:
+
+.../boost/math/special_functions/round.hpp:118:12: warning: implicit conversion from 'std::__2::numeric_limits<long long>::type' (aka 'long long') to 'float' changes value from 9223372036854775807 to 9223372036854775808 [-Wimplicit-int-float-conversion]
+.../boost/math/special_functions/round.hpp:125:11: note: in instantiation of function template specialization 'boost::math::llround<float, boost::math::policies::policy<boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy> >' requested here
+.../orthanc/Core/JobsEngine/JobInfo.cpp:69:44: note: in instantiation of function template specialization 'boost::math::llround<float>' requested here
+
+.../boost/math/special_functions/round.hpp:86:12: warning: implicit conversion from 'std::__2::numeric_limits<int>::type' (aka 'int') to 'float' changes value from 2147483647 to 2147483648 [-Wimplicit-int-float-conversion]
+.../boost/math/special_functions/round.hpp:93:11: note: in instantiation of function template specialization 'boost::math::iround<float, boost::math::policies::policy<boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy, boost::math::policies::default_policy> >' requested here
+.../orthanc/Core/JobsEngine/JobInfo.cpp:133:39: note: in instantiation of function template specialization 'boost::math::iround<float>' requested here
+*/
+#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
+#endif 
+
 #include "JobInfo.h"
 
 #include "../OrthancException.h"

@@ -121,7 +121,7 @@ namespace Orthanc
 
     void FunctionContext::SetStringResult(const std::string& str)
     {
-      sqlite3_result_text(context_, str.data(), str.size(), SQLITE_TRANSIENT);
+      sqlite3_result_text(context_, str.data(), static_cast<int>(str.size()), SQLITE_TRANSIENT);
     }
   }
 }
