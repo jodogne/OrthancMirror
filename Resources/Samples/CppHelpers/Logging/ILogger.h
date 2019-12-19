@@ -25,9 +25,9 @@ namespace OrthancHelpers
     virtual void Error(const char* message) = 0;
     virtual void Error(const std::string& message) = 0;
 
-    virtual void EnterContext(const char* message) = 0;
-    virtual void EnterContext(const std::string& message) = 0;
-    virtual void LeaveContext() = 0;
+    virtual void EnterContext(const char* message, bool forceLogContextChange = false) = 0;
+    virtual void EnterContext(const std::string& message, bool forceLogContextChange = false) = 0;
+    virtual void LeaveContext(bool forceLogContextChange = false) = 0;
   };
 
 
@@ -55,12 +55,12 @@ namespace OrthancHelpers
       logContextChanges_ = enable;
     }
 
-    virtual void EnterContext(const char* message)
+    virtual void EnterContext(const char* message, bool forceLogContextChange = false)
     {
-      EnterContext(std::string(message));
+      EnterContext(std::string(message), forceLogContextChange);
     }
 
-    virtual void EnterContext(const std::string& message)
+    virtual void EnterContext(const std::string& message, bool forceLogContextChange = false)
     {
       if (!contexts_.get())
       {
@@ -68,15 +68,15 @@ namespace OrthancHelpers
       }
       contexts_->push_back(message);
 
-      if (logContextChanges_)
+      if (logContextChanges_ || forceLogContextChange)
       {
         Info(".. entering");
       }
     }
 
-    virtual void LeaveContext()
+    virtual void LeaveContext(bool forceLogContextChange = false)
     {
-      if (logContextChanges_)
+      if (logContextChanges_ || forceLogContextChange)
       {
         Info(".. leaving");
       }
@@ -128,22 +128,25 @@ namespace OrthancHelpers
   class LogContext
   {
     ILogger* logger_;
+    bool     forceLogContextChange_;
   public:
-    LogContext(ILogger* logger, const char* context) :
-      logger_(logger)
+    LogContext(ILogger* logger, const char* context, bool forceLogContextChange = false) :
+      logger_(logger),
+      forceLogContextChange_(forceLogContextChange)
     {
-      logger_->EnterContext(context);
+      logger_->EnterContext(context, forceLogContextChange_);
     }
 
-    LogContext(ILogger* logger, const std::string& context) :
-      logger_(logger)
+    LogContext(ILogger* logger, const std::string& context, bool forceLogContextChange = false) :
+      logger_(logger),
+      forceLogContextChange_(forceLogContextChange)
     {
-      logger_->EnterContext(context);
+      logger_->EnterContext(context, forceLogContextChange_);
     }
 
     ~LogContext()
     {
-      logger_->LeaveContext();
+      logger_->LeaveContext(forceLogContextChange_);
     }
 
   };
