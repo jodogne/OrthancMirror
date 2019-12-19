@@ -39,6 +39,17 @@
 #include "PixelTraits.h"
 #include "../OrthancException.h"
 
+#ifdef __EMSCRIPTEN__
+/* 
+Avoid this error:
+-----------------
+.../boost/math/special_functions/round.hpp:118:12: warning: implicit conversion from 'std::__2::numeric_limits<long long>::type' (aka 'long long') to 'float' changes value from 9223372036854775807 to 9223372036854775808 [-Wimplicit-int-float-conversion]
+.../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:333:28: note: in instantiation of function template specialization 'boost::math::llround<float>' requested here
+.../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:1006:9: note: in instantiation of function template specialization 'Orthanc::MultiplyConstantInternal<unsigned char, true>' requested here
+*/
+#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
+#endif 
+
 #include <boost/math/special_functions/round.hpp>
 
 #include <cassert>
@@ -1874,7 +1885,7 @@ namespace Orthanc
       
     for (unsigned int x = 0; x < targetWidth; x++)
     {
-      int sourceX = std::floor((static_cast<float>(x) + 0.5f) * scaleX);
+      int sourceX = static_cast<int>(std::floor((static_cast<float>(x) + 0.5f) * scaleX));
       if (sourceX < 0)
       {
         sourceX = 0;  // Should never happen
@@ -1891,7 +1902,7 @@ namespace Orthanc
       
     for (unsigned int y = 0; y < targetHeight; y++)
     {
-      int sourceY = std::floor((static_cast<float>(y) + 0.5f) * scaleY);
+      int sourceY = static_cast<int>(std::floor((static_cast<float>(y) + 0.5f) * scaleY));
       if (sourceY < 0)
       {
         sourceY = 0;  // Should never happen
@@ -2173,7 +2184,8 @@ namespace Orthanc
         }
 
         // Deal with the right border
-        for (unsigned int x = horizontalAnchor + width - horizontal.size() + 1; x < width; x++)
+        for (unsigned int x = static_cast<unsigned int>(
+          horizontalAnchor + width - horizontal.size() + 1); x < width; x++)
         {
           for (unsigned int c = 0; c < ChannelsCount; c++, p++)
           {
@@ -2205,7 +2217,7 @@ namespace Orthanc
         }
         else
         {
-          rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(y + k - verticalAnchor));
+          rows[k] = reinterpret_cast<const float*>(tmp.GetConstRow(static_cast<unsigned int>(y + k - verticalAnchor)));
         }
       }
 

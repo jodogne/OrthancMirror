@@ -6,7 +6,7 @@ import subprocess
 SOURCE = '/home/jodogne/Downloads/dcmtk-3.6.0/dcmwlm/data/wlistdb/OFFIS/'
 TARGET = os.path.abspath(os.path.dirname(__file__))
 
-for f in os.listdir(SOURCE):
+for f in sorted(os.listdir(SOURCE)):
     ext = os.path.splitext(f)
 
     if ext[1].lower() == '.dump':

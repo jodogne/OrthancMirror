@@ -74,6 +74,8 @@ while i < len(SOURCES):
         # The resource is a directory: Recursively explore its files
         content = {}
         for root, dirs, files in os.walk(pathName):
+            dirs.sort()
+            files.sort()
             base = os.path.relpath(root, pathName)
             for f in files:
                 if f.find('~') == -1:  # Ignore Emacs backup files

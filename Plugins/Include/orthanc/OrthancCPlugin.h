@@ -2886,7 +2886,10 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @param metadata The metadata of interest.
-   * @return The metadata value if success, NULL if error.
+   * @return The metadata value if success, NULL if error. Please note that the 
+   *         returned string belongs to the instance object and must NOT be 
+   *         deallocated. Please make a copy of the string if you wish to access 
+   *         it later.
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
