@@ -44,7 +44,6 @@
 #include <curl/curl.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/thread/mutex.hpp>
-#include <list>
 
 // Default timeout = 60 seconds (in Orthanc <= 1.5.6, it was 10 seconds)
 static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
