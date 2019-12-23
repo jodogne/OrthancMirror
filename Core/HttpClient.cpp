@@ -44,7 +44,7 @@
 #include <curl/curl.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/thread/mutex.hpp>
-
+#include <list>
 
 // Default timeout = 60 seconds (in Orthanc <= 1.5.6, it was 10 seconds)
 static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
@@ -209,7 +209,8 @@ namespace Orthanc
   {
   private:
     HttpClient::IRequestBody*  body_;
-    std::string                buffer_;
+    std::string                sourceBuffer_;
+    size_t                     sourceBufferTransmittedSize_;
 
     size_t CallbackInternal(char* curlBuffer,
                             size_t curlBufferSize)
@@ -225,43 +226,61 @@ namespace Orthanc
       }
 
       // Read chunks from the body stream so as to fill the target buffer
-      std::string chunk;
+      size_t curlBufferFilledSize = 0;
+      size_t sourceRemainingSize = sourceBuffer_.size() - sourceBufferTransmittedSize_;
+      bool hasMore = true;
       
-      while (buffer_.size() < curlBufferSize &&
-             body_->ReadNextChunk(chunk))
+      while (sourceRemainingSize < curlBufferSize && hasMore)
       {
-        buffer_ += chunk;
+        if (sourceRemainingSize > 0)
+        {
+          // transmit the end of current source buffer
+          memcpy(curlBuffer + curlBufferFilledSize, sourceBuffer_.data() + sourceBufferTransmittedSize_, sourceRemainingSize);
+
+          curlBufferFilledSize += sourceRemainingSize;
+        }
+
+        // start filling a new source buffer
+        sourceBufferTransmittedSize_ = 0;
+        sourceBuffer_.clear();
+
+        hasMore = body_->ReadNextChunk(sourceBuffer_);
+
+        sourceRemainingSize = sourceBuffer_.size();
       }
 
-      size_t s = std::min(buffer_.size(), curlBufferSize);
-      
-      if (s != 0)
+      if (sourceRemainingSize > 0 && (curlBufferSize - curlBufferFilledSize) > 0)
       {
-        memcpy(curlBuffer, buffer_.c_str(), s);
+        size_t s = std::min(sourceRemainingSize, curlBufferSize - curlBufferFilledSize);
 
-        // Remove the bytes that were actually sent from the buffer
-        buffer_.erase(0, s);
+        memcpy(curlBuffer + curlBufferFilledSize, sourceBuffer_.data() + sourceBufferTransmittedSize_, s);
+
+        sourceBufferTransmittedSize_ += s;
+        curlBufferFilledSize += s;
       }
 
-      return s;
+      return curlBufferFilledSize;
     }
     
   public:
     CurlRequestBody() :
-      body_(NULL)
+      body_(NULL),
+      sourceBufferTransmittedSize_(0)
     {
     }
 
     void SetBody(HttpClient::IRequestBody& body)
     {
       body_ = &body;
-      buffer_.clear();
+      sourceBufferTransmittedSize_ = 0;
+      sourceBuffer_.clear();
     }
 
     void Clear()
     {
       body_ = NULL;
-      buffer_.clear();
+      sourceBufferTransmittedSize_ = 0;
+      sourceBuffer_.clear();
     }
 
     bool IsValid() const
