@@ -1,9 +1,20 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version has been upgraded to 5
+* added "/peers/{id}/system" route to test the connectivity with a remote peer (and eventually
+  retrieve its version number)
 * "/changes": Allow the "limit" argument to be greater than 100
+
+Maintenance
+-----------
+
 * C-Find SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
+* Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 
 Version 1.5.8 (2019-10-16)
 ==========================
