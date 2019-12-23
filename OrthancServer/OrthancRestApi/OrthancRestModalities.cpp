@@ -1104,6 +1104,37 @@ namespace Orthanc
     }
   }
 
+  static void PeerSystem(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string remote = call.GetUriComponent("id", "");
+
+    OrthancConfiguration::ReaderLock lock;
+
+    WebServiceParameters peer;
+    if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
+    {
+      HttpClient client(peer, "system");
+      std::string answer;
+
+      client.SetMethod(HttpMethod_Get);
+
+      if (!client.Apply(answer))
+      {
+        LOG(ERROR) << "Unable to get the system info from remote Orthanc peer: " << peer.GetUrl();
+        call.GetOutput().SignalError(client.GetLastStatus());
+        return;
+      }
+
+      call.GetOutput().AnswerBuffer(answer, MimeType_Json);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "No peer with symbolic name: " + remote);
+    }
+  }
 
   // DICOM bridge -------------------------------------------------------------
 
@@ -1309,6 +1340,7 @@ namespace Orthanc
     Register("/peers/{id}", UpdatePeer);
     Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
+    Register("/peers/{id}/system", PeerSystem);
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
   }
