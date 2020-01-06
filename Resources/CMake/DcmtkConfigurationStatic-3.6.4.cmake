@@ -171,13 +171,6 @@ list(REMOVE_ITEM DCMTK_SOURCES
   ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
   )
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-  # Multithreading is required here
-  list(REMOVE_ITEM DCMTK_SOURCES 
-    ${DCMTK_SOURCES_DIR}/oflog/libsrc/syncprims.cc
-    )
-endif()
-
 
 # Starting with DCMTK 3.6.2, the Nagle algorithm is not disabled by
 # default since this does not seem to be appropriate (anymore) for
