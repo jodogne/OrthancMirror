@@ -24,6 +24,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   LIST(REMOVE_ITEM DCMTK_SOURCES 
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
     )
 
   if (ENABLE_DCMTK_NETWORKING)
