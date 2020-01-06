@@ -25,16 +25,25 @@ endif()
 DownloadPackage(${DCMTK_MD5} ${DCMTK_URL} "${DCMTK_SOURCES_DIR}")
 
 
-# Apply the patches
-execute_process(
-  COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-  ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.4.patch
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  RESULT_VARIABLE Failure
-  )
+if (FirstRun)
+  # Apply the patches
+  execute_process(
+    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.4.patch
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE Failure
+    )
 
-if (FirstRun AND Failure)
-  message(FATAL_ERROR "Error while patching files")
+  if (Failure)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
+
+  configure_file(
+    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-dcdict_orthanc.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
+    COPYONLY)
+else()
+  message("The patches for DCMTK have already been applied")
 endif()
 
 
@@ -152,22 +161,10 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 endif()
 
 
-if (ORTHANC_SANDBOXED)
-  configure_file(
-    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
-    ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
-    COPYONLY)
-  
-  configure_file(
-    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
-    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
-    COPYONLY)
-endif()
-
-
 list(REMOVE_ITEM DCMTK_SOURCES 
   ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
   ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
+  ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
   )
 
 

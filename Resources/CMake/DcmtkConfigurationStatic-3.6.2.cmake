@@ -31,7 +31,7 @@ if (FirstRun)
   message("Applying patch to detect mathematic primitives in DCMTK 3.6.2 with C++11")
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-cmath.patch
+    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -39,6 +39,11 @@ if (FirstRun)
   if (Failure)
     message(FATAL_ERROR "Error while patching a file")
   endif()
+
+  configure_file(
+    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-dcdict_orthanc.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
+    COPYONLY)
 else()
   message("The patches for DCMTK have already been applied")
 endif()
@@ -72,17 +77,20 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   SET(DCMTK_ENABLE_CHARSET_CONVERSION "iconv" CACHE STRING "")
   SET(HAVE_SYS_GETTID 0 CACHE INTERNAL "")
 
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
+  if (FirstRun)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
 
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
   endif()
 endif()
+
 
 SET(DCMTK_SOURCE_DIR ${DCMTK_SOURCES_DIR})
 include(${DCMTK_SOURCES_DIR}/CMake/CheckFunctionWithHeaderExists.cmake)
@@ -160,19 +168,6 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/unixsock.cc
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/clfsap.cc
     )
-endif()
-
-
-if (ORTHANC_SANDBOXED)
-  configure_file(
-    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.h
-    ${DCMTK_SOURCES_DIR}/dcmdata/include/dcmtk/dcmdata/dcdict.h
-    COPYONLY)
-  
-  configure_file(
-    ${ORTHANC_ROOT}/Resources/WebAssembly/dcdict.cc
-    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict.cc
-    COPYONLY)
 endif()
 
 
