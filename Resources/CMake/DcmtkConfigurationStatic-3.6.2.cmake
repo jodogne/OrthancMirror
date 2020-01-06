@@ -12,7 +12,12 @@ endmacro()
 
 set(DCMTK_BINARY_DIR ${DCMTK_SOURCES_DIR}/)
 set(DCMTK_CMAKE_INCLUDE ${DCMTK_SOURCES_DIR}/)
-set(DCMTK_WITH_THREADS ON)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  set(DCMTK_WITH_THREADS OFF)  # Disable thread support in wasm/asm.js
+else()
+  set(DCMTK_WITH_THREADS ON)
+endif()
 
 add_definitions(-DDCMTK_INSIDE_LOG4CPLUS=1)
 
