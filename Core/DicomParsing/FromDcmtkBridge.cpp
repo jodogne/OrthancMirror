@@ -177,18 +177,18 @@ namespace Orthanc
     };
 
     
-#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter) \
- \
-    struct converter \
-    { \
-      typedef cType CType; \
- \
-      static bool Apply(CType& result, \
-                        DcmElement& element, \
-                        size_t i) \
-      { \
+#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter)   \
+                                                                        \
+    struct converter                                                    \
+    {                                                                   \
+      typedef cType CType;                                              \
+                                                                        \
+      static bool Apply(CType& result,                                  \
+                        DcmElement& element,                            \
+                        size_t i)                                       \
+      {                                                                 \
         return dynamic_cast<dcmtkType&>(element).getter(result, i).good(); \
-      } \
+      }                                                                 \
     };
 
 DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32)
