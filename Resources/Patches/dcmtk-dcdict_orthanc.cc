@@ -2,7 +2,7 @@
 // buffer, which is necessary in sandboxed environments. This is an
 // adapted version of DcmDataDictionary::loadDictionary().
 
-
+#include <string>
 #include <boost/noncopyable.hpp>
 
 struct OrthancLinesIterator;
