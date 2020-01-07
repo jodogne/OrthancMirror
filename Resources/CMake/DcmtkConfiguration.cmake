@@ -49,6 +49,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
 
+      # Solves linking problem in WebAssembly: "wasm-ld: error:
+      # duplicate symbol: jaritab" (modification in Orthanc 1.5.9)
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8/jaricom.c
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12/jaricom.c
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg24/jaricom.c
+
       # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsv1.cc
