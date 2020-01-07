@@ -199,12 +199,15 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # zero (and similar conditions like integer overflows) are
   # encountered: The "clamp" mode avoids throwing errors, as they
   # cannot be properly catched by "try {} catch (...)" constructions.
-  if (EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
-  else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' -s BINARYEN_TRAP_MODE='\"clamp\"'")
+  # Setting this option to "ON" fixes error: "shared:ERROR:
+  # BINARYEN_TRAP_MODE is not supported by the LLVM wasm backend" if
+  # using the "upstream" backend of Emscripten.
+  if (NOT EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"clamp\"'")
   endif()
 
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
+  
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
 
 else()
