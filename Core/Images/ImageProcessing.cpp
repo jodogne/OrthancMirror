@@ -489,89 +489,120 @@ namespace Orthanc
     }
   }
 
+  template <typename TargetType, typename SourceType>
+  static void ApplyWindowingInternal(ImageAccessor& target,
+                                     const ImageAccessor& source,
+                                     float windowCenter,
+                                     float windowWidth,
+                                     float rescaleSlope,
+                                     float rescaleIntercept,
+                                     bool invert)
+  {
+    // WARNING - "::min()" should be replaced by "::lowest()" if
+    // dealing with float or double (which is not the case so far)
+    assert(sizeof(TargetType) <= 2);  // Safeguard to remember about "float/double"
+    const TargetType minTargetValue = std::numeric_limits<TargetType>::min();
+    const TargetType maxTargetValue = std::numeric_limits<TargetType>::max();
+    const float minFloatValue = static_cast<float>(minTargetValue);
+    const float maxFloatValue = static_cast<float>(maxTargetValue);
+
+    const float windowIntercept = windowCenter - windowWidth / 2.0f;
+    const float windowSlope = (maxFloatValue + 1.0f) / windowWidth;
+
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
+      const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < width; x++, t++, s++)
+      {
+        float rescaledValue = *s * rescaleSlope + rescaleIntercept;
+        float v = (rescaledValue - windowIntercept) * windowSlope;
+        if (v <= minFloatValue)
+        {
+          v = minFloatValue;
+        }
+        else if (v >= maxFloatValue)
+        {
+          v = maxFloatValue;
+        }
+
+        TargetType vv = static_cast<TargetType>(v);
+
+        if (invert)
+        {
+          vv = maxTargetValue - vv;
+        }
+
+        *t = static_cast<TargetType>(vv);
+      }
+    }
+  }
 
   void ImageProcessing::ApplyWindowing(ImageAccessor& target,
                                        const ImageAccessor& source,
                                        float windowCenter,
                                        float windowWidth,
-                                       Orthanc::PhotometricInterpretation sourcePhotometricInterpretation)
+                                       float rescaleSlope,
+                                       float rescaleIntercept,
+                                       bool invert)
   {
-    if (source.GetFormat() != Orthanc::PixelFormat_Float32)
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-    if (sourcePhotometricInterpretation != Orthanc::PhotometricInterpretation_Monochrome1
-        && sourcePhotometricInterpretation != Orthanc::PhotometricInterpretation_Monochrome2)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
     if (target.GetWidth() != source.GetWidth() ||
         target.GetHeight() != source.GetHeight())
     {
       throw OrthancException(ErrorCode_IncompatibleImageSize);
     }
 
-    unsigned int targetBytesPerPixels = target.GetBytesPerPixel();
-    unsigned int targetChannelsPerPixels = 0;
-    switch (target.GetFormat())
+    switch (source.GetFormat())
     {
-    case Orthanc::PixelFormat_Grayscale8:
-      targetChannelsPerPixels = 1;
-      break;
-    case Orthanc::PixelFormat_RGBA32:
-    case Orthanc::PixelFormat_BGRA32:
-    case Orthanc::PixelFormat_RGB24:
-      targetChannelsPerPixels = 3;
-      break;
-    default:
-      throw OrthancException(ErrorCode_NotImplemented);
-    }
-
-    const float a = windowCenter - windowWidth / 2.0f;
-    const float slope = 256.0f / windowWidth;
-    bool isInverted = sourcePhotometricInterpretation == Orthanc::PhotometricInterpretation_Monochrome1;
-
-    const unsigned int width = source.GetWidth();
-    const unsigned int height = source.GetHeight();
-
-    assert(sizeof(float) == 4);
-
-    for (unsigned int y = 0; y < height; y++)
-    {
-      const float* p = reinterpret_cast<const float*>(source.GetConstRow(y));
-      uint8_t* q = reinterpret_cast<uint8_t*>(target.GetRow(y));
-
-      for (unsigned int x = 0; x < width; x++)
+      case Orthanc::PixelFormat_Float32:
       {
-        float v = (*p - a) * slope;
-        if (v <= 0)
+        switch (target.GetFormat())
         {
-          v = 0;
+        case Orthanc::PixelFormat_Grayscale8:
+          ApplyWindowingInternal<uint8_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        case Orthanc::PixelFormat_Grayscale16:
+          ApplyWindowingInternal<uint16_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
         }
-        else if (v >= 255)
+      };break;
+      case Orthanc::PixelFormat_Grayscale8:
+      {
+        switch (target.GetFormat())
         {
-          v = 255;
+        case Orthanc::PixelFormat_Grayscale8:
+          ApplyWindowingInternal<uint8_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        case Orthanc::PixelFormat_Grayscale16:
+          ApplyWindowingInternal<uint16_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
         }
-
-        uint8_t vv = static_cast<uint8_t>(v);
-
-        if (isInverted)
+      };break;
+      case Orthanc::PixelFormat_Grayscale16:
+      {
+        switch (target.GetFormat())
         {
-          vv = 255 - vv;
+        case Orthanc::PixelFormat_Grayscale8:
+          ApplyWindowingInternal<uint8_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        case Orthanc::PixelFormat_Grayscale16:
+          ApplyWindowingInternal<uint16_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+          break;
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
         }
-
-        for (unsigned int c = 0; c < targetChannelsPerPixels; c++)
-        {
-          q[c] = vv;
-        }
-
-        p++;
-        q += targetBytesPerPixels;
-      }
+      };break;
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
     }
-
   }
 
 

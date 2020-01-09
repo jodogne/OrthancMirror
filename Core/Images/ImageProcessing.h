@@ -86,7 +86,9 @@ namespace Orthanc
                         const ImageAccessor& source,
                         float windowCenter,
                         float windowWidth,
-                        Orthanc::PhotometricInterpretation sourcePhotometricInterpretation);
+                        float rescaleSlope,
+                        float rescaleIntercept,
+                        bool invert);
 
     void Set(ImageAccessor& image,
              int64_t value);
