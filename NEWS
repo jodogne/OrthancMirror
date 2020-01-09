@@ -15,6 +15,7 @@ Maintenance
 * C-Find SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
+* /instances/{id}/preview route now takes the windowing into account
 
 Version 1.5.8 (2019-10-16)
 ==========================

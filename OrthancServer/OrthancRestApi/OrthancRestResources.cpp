@@ -39,6 +39,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
+#include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Logging.h"
 #include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
@@ -502,6 +503,38 @@ namespace Orthanc
   }
 
 
+  void LookupWindowingTags(const ParsedDicomFile& dicom, float& windowCenter, float& windowWidth, float& rescaleSlope, float& rescaleIntercept, bool& invert)
+  {
+    DicomMap dicomTags;
+    dicom.ExtractDicomSummary(dicomTags);
+
+
+    unsigned int bitsStored = boost::lexical_cast<unsigned int>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_BITS_STORED, "8", false));
+    windowWidth = static_cast<float>(2 << (bitsStored - 1));
+    windowCenter = windowWidth / 2;
+    rescaleSlope = 1.0f;
+    rescaleIntercept = 0.0f;
+    invert = false;
+
+    if (dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) && dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
+    {
+      windowCenter = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_WINDOW_CENTER, "", false));
+      windowWidth = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_WINDOW_WIDTH, "", false));
+    }
+
+    if (dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) && dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
+    {
+      rescaleSlope = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_RESCALE_SLOPE, "", false));
+      rescaleIntercept = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_RESCALE_INTERCEPT, "", false));
+    }
+
+    PhotometricInterpretation photometric;
+    if (dicom.LookupPhotometricInterpretation(photometric))
+    {
+      invert = (photometric == PhotometricInterpretation_Monochrome1);
+    }
+  }
+
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
@@ -520,6 +553,11 @@ namespace Orthanc
     }
 
     bool invert = false;
+    float windowCenter = 128.0f;
+    float windowWidth = 256.0f;
+    float rescaleSlope = 1.0f;
+    float rescaleIntercept = 0.0f;
+
     std::auto_ptr<ImageAccessor> decoded;
 
     try
@@ -549,11 +587,7 @@ namespace Orthanc
           // twice the DICOM file
           ParsedDicomFile parsed(dicomContent);
           
-          PhotometricInterpretation photometric;
-          if (parsed.LookupPhotometricInterpretation(photometric))
-          {
-            invert = (photometric == PhotometricInterpretation_Monochrome1);
-          }
+          LookupWindowingTags(dicomContent, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
         }
       }
 #endif
@@ -564,12 +598,11 @@ namespace Orthanc
         // things on multi-frame images
         ServerContext::DicomCacheLocker locker(context, publicId);        
         decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
+        LookupWindowingTags(locker.GetDicom(), windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
 
-        PhotometricInterpretation photometric;
-        if (mode == ImageExtractionMode_Preview &&
-            locker.GetDicom().LookupPhotometricInterpretation(photometric))
+        if (mode != ImageExtractionMode_Preview)
         {
-          invert = (photometric == PhotometricInterpretation_Monochrome1);
+          invert = false;
         }
       }
     }
@@ -591,6 +624,13 @@ namespace Orthanc
         call.GetOutput().Redirect(root + "app/images/unsupported.png");
       }
       return;
+    }
+
+    if (mode == ImageExtractionMode_Preview
+        && (decoded->GetFormat() == Orthanc::PixelFormat_Grayscale8 || decoded->GetFormat() == Orthanc::PixelFormat_Grayscale16))
+    {
+      ImageProcessing::ApplyWindowing(*decoded, *decoded, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+      invert = false; // don't invert it later on when encoding it, it has been inverted in the ApplyWindowing function
     }
 
     ImageToEncode image(decoded, mode, invert);

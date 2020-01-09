@@ -282,6 +282,25 @@ static bool TestGrayscale8Pixel(const ImageAccessor& image,
   return p == value;
 }
 
+static void SetGrayscale16Pixel(ImageAccessor& image,
+                                unsigned int x,
+                                unsigned int y,
+                                uint8_t value)
+{
+  ImageTraits<PixelFormat_Grayscale16>::SetPixel(image, value, x, y);
+}
+
+static bool TestGrayscale16Pixel(const ImageAccessor& image,
+                                 unsigned int x,
+                                 unsigned int y,
+                                 uint16_t value)
+{
+  PixelTraits<PixelFormat_Grayscale16>::PixelType p;
+  ImageTraits<PixelFormat_Grayscale16>::GetPixel(p, image, x, y);
+  if (p != value) printf("%d %d\n", p, value);
+  return p == value;
+}
+
 static void SetRGB24Pixel(ImageAccessor& image,
                           unsigned int x,
                           unsigned int y,
@@ -772,5 +791,150 @@ TEST(ImageProcessing, SmoothGaussian5x5)
     ASSERT_TRUE(TestRGB24Pixel(image, 2, 4, 2, 2, 4));
     ASSERT_TRUE(TestRGB24Pixel(image, 3, 4, 1, 1, 3));
     ASSERT_TRUE(TestRGB24Pixel(image, 4, 4, 0, 0, 0));
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
+{
+  {
+    Image image(PixelFormat_Float32, 6, 1, false);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, -5.0f, 0, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 0.0f, 1, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 5.0f, 2, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 10.0f, 3, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 1000.0f, 4, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 2.0f, 5, 0);
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 128));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, true);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 127));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255 - 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5000.0f, 10000.0f, 1000.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 128));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5000.0f, 10000.0f, 1000.0f, 0.0f, true);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 127));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255 - 256*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 50.0f, 100.0f, 10.0f, 30.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));  // (-5 * 10) + 30 => pixel value = -20 => 0
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 256*30/100));  // ((0 * 10) + 30 => pixel value = 30 => 30%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 256*80/100)); // ((5 * 10) + 30 => pixel value = 80 => 80%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255)); // ((10 * 10) + 30 => pixel value = 130 => 100%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255)); // ((1000 * 10) + 30 => pixel value = 10030 => 100%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 128)); // ((2 * 10) + 30 => pixel value = 50 => 50%
+    }
+
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingFloatToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Float32, 6, 1, false);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, -5.0f, 0, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 0.0f, 1, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 5.0f, 2, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 10.0f, 3, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 1000.0f, 4, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 2.0f, 5, 0);
+
+    {
+      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 32768));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 5, 0, 65536*2/10));
+    }
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Grayscale8, 6, 1, false);
+    SetGrayscale8Pixel(image, 0, 0, 0);
+    SetGrayscale8Pixel(image, 1, 0, 2);
+    SetGrayscale8Pixel(image, 2, 0, 5);
+    SetGrayscale8Pixel(image, 3, 0, 10);
+    SetGrayscale8Pixel(image, 4, 0, 255);
+
+    {
+      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 65536*5/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+    }
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingGrayScale16ToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Grayscale16, 6, 1, false);
+    SetGrayscale16Pixel(image, 0, 0, 0);
+    SetGrayscale16Pixel(image, 1, 0, 2);
+    SetGrayscale16Pixel(image, 2, 0, 5);
+    SetGrayscale16Pixel(image, 3, 0, 10);
+    SetGrayscale16Pixel(image, 4, 0, 255);
+
+    {
+      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 65536*5/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+    }
   }
 }
