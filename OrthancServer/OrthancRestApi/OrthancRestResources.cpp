@@ -518,14 +518,14 @@ namespace Orthanc
 
     if (dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) && dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
     {
-      windowCenter = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_WINDOW_CENTER, "", false));
-      windowWidth = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_WINDOW_WIDTH, "", false));
+      dicomTags.ParseFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
+      dicomTags.ParseFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
     }
 
     if (dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) && dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
     {
-      rescaleSlope = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_RESCALE_SLOPE, "", false));
-      rescaleIntercept = boost::lexical_cast<float>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_RESCALE_INTERCEPT, "", false));
+      dicomTags.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
+      dicomTags.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
     }
 
     PhotometricInterpretation photometric;
