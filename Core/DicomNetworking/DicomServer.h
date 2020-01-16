@@ -41,6 +41,7 @@
 #include "IMoveRequestHandlerFactory.h"
 #include "IStoreRequestHandlerFactory.h"
 #include "IWorklistRequestHandlerFactory.h"
+#include "IStorageCommitmentRequestHandlerFactory.h"
 #include "IApplicationEntityFilter.h"
 #include "RemoteModalityParameters.h"
 
@@ -82,6 +83,7 @@ namespace Orthanc
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
     IStoreRequestHandlerFactory* storeRequestHandlerFactory_;
     IWorklistRequestHandlerFactory* worklistRequestHandlerFactory_;
+    IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
 
     static void ServerThread(DicomServer* server);
@@ -121,6 +123,10 @@ namespace Orthanc
     void SetWorklistRequestHandlerFactory(IWorklistRequestHandlerFactory& handler);
     bool HasWorklistRequestHandlerFactory() const;
     IWorklistRequestHandlerFactory& GetWorklistRequestHandlerFactory() const;
+
+    void SetStorageCommitmentRequestHandlerFactory(IStorageCommitmentRequestHandlerFactory& handler);
+    bool HasStorageCommitmentRequestHandlerFactory() const;
+    IStorageCommitmentRequestHandlerFactory& GetStorageCommitmentRequestHandlerFactory() const;
 
     void SetApplicationEntityFilter(IApplicationEntityFilter& handler);
     bool HasApplicationEntityFilter() const;
