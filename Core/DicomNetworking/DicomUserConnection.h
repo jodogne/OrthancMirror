@@ -54,6 +54,12 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
+    enum Mode
+    {
+      Mode_Generic,
+      Mode_ReportStorageCommitment
+    };
+    
     // Connection parameters
     std::string preferredTransferSyntax_;
     std::string localAet_;
@@ -67,7 +73,8 @@ namespace Orthanc
 
     void CheckIsOpen() const;
 
-    void SetupPresentationContexts(const std::string& preferredTransferSyntax);
+    void SetupPresentationContexts(Mode mode,
+                                   const std::string& preferredTransferSyntax);
 
     void MoveInternal(const std::string& targetAet,
                       ResourceType level,
@@ -78,6 +85,8 @@ namespace Orthanc
     void CheckStorageSOPClassesInvariant() const;
 
     void DefaultSetup();
+
+    void OpenInternal(Mode mode);
 
   public:
     DicomUserConnection();
@@ -137,7 +146,10 @@ namespace Orthanc
 
     void AddStorageSOPClass(const char* sop);
 
-    void Open();
+    void Open()
+    {
+      OpenInternal(Mode_Generic);
+    }
 
     void Close();
 
@@ -212,5 +224,7 @@ namespace Orthanc
 
     bool IsSameAssociation(const std::string& localAet,
                            const RemoteModalityParameters& remote) const;
+
+    void ReportStorageCommitment();
   };
 }
