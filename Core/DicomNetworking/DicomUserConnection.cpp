@@ -252,7 +252,8 @@ namespace Orthanc
   }
   
     
-  void DicomUserConnection::SetupPresentationContexts(const std::string& preferredTransferSyntax)
+  void DicomUserConnection::SetupPresentationContexts(Mode mode,
+                                                      const std::string& preferredTransferSyntax)
   {
     // Flatten an array with the preferred transfer syntax
     const char* asPreferred[1] = { preferredTransferSyntax.c_str() };
@@ -274,30 +275,57 @@ namespace Orthanc
     }
 
     CheckStorageSOPClassesInvariant();
-    unsigned int presentationContextId = 1;
 
-    for (std::list<std::string>::const_iterator it = reservedStorageSOPClasses_.begin();
-         it != reservedStorageSOPClasses_.end(); ++it)
+    switch (mode)
     {
-      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback, remoteAet_);
-    }
+      case Mode_Generic:
+      {
+        unsigned int presentationContextId = 1;
 
-    for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
-         it != storageSOPClasses_.end(); ++it)
-    {
-      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback, remoteAet_);
-    }
+        for (std::list<std::string>::const_iterator it = reservedStorageSOPClasses_.begin();
+             it != reservedStorageSOPClasses_.end(); ++it)
+        {
+          RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                                  *it, asPreferred, asFallback, remoteAet_);
+        }
 
-    for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
-         it != defaultStorageSOPClasses_.end(); ++it)
-    {
-      RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
-                              *it, asPreferred, asFallback, remoteAet_);
+        for (std::set<std::string>::const_iterator it = storageSOPClasses_.begin();
+             it != storageSOPClasses_.end(); ++it)
+        {
+          RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                                  *it, asPreferred, asFallback, remoteAet_);
+        }
+
+        for (std::set<std::string>::const_iterator it = defaultStorageSOPClasses_.begin();
+             it != defaultStorageSOPClasses_.end(); ++it)
+        {
+          RegisterStorageSOPClass(pimpl_->params_, presentationContextId, 
+                                  *it, asPreferred, asFallback, remoteAet_);
+        }
+
+        break;
+      }
+
+      case Mode_ReportStorageCommitment:
+      {
+        const char* as = UID_StorageCommitmentPushModelSOPClass;
+
+        std::vector<const char*> ts;
+        ts.push_back(UID_LittleEndianExplicitTransferSyntax);
+        ts.push_back(UID_LittleEndianImplicitTransferSyntax);
+
+        Check(ASC_addPresentationContext(pimpl_->params_, 1 /*presentationContextId*/,
+                                         as, &ts[0], ts.size(), ASC_SC_ROLE_SCP),
+              remoteAet_, "initializing");
+              
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
   }
-
+  
 
   static bool IsGenericTransferSyntax(const std::string& syntax)
   {
@@ -994,7 +1022,7 @@ namespace Orthanc
     }
   }
 
-  void DicomUserConnection::Open()
+  void DicomUserConnection::OpenInternal(Mode mode)
   {
     if (IsOpen())
     {
@@ -1034,7 +1062,7 @@ namespace Orthanc
     Check(ASC_setTransportLayerType(pimpl_->params_, /*opt_secureConnection*/ false),
           remoteAet_, "connecting");
 
-    SetupPresentationContexts(preferredTransferSyntax_);
+    SetupPresentationContexts(mode, preferredTransferSyntax_);
 
     // Do the association
     Check(ASC_requestAssociation(pimpl_->net_, pimpl_->params_, &pimpl_->assoc_),
@@ -1338,5 +1366,37 @@ namespace Orthanc
             remoteHost_ == remote.GetHost() &&
             remotePort_ == remote.GetPortNumber() &&
             manufacturer_ == remote.GetManufacturer());
+  }
+
+
+  void DicomUserConnection::ReportStorageCommitment()
+  {
+    if (IsOpen())
+    {
+      Close();
+    }
+
+    try
+    {
+      OpenInternal(Mode_ReportStorageCommitment);
+
+      /**
+       * N-EVENT-REPORT
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-1
+       *
+       * Status code:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.1.1.8
+       **/
+
+      // TODO
+      
+      Close();
+    }
+    catch (OrthancException&)
+    {
+      Close();
+      throw;
+    }
   }
 }
