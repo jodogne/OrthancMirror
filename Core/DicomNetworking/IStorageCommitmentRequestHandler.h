@@ -33,50 +33,22 @@
 
 #pragma once
 
-#include "../DicomServer.h"
-#include "../../MultiThreading/IRunnableBySteps.h"
-
-#include <dcmtk/dcmnet/dimse.h>
+#include "DicomFindAnswers.h"
 
 namespace Orthanc
 {
-  namespace Internals
+  class IStorageCommitmentRequestHandler : public boost::noncopyable
   {
-    OFCondition AssociationCleanup(T_ASC_Association *assoc);
-
-    class CommandDispatcher : public IRunnableBySteps
+  public:
+    virtual ~IStorageCommitmentRequestHandler()
     {
-    private:
-      uint32_t associationTimeout_;
-      uint32_t elapsedTimeSinceLastCommand_;
-      const DicomServer& server_;
-      T_ASC_Association* assoc_;
-      std::string remoteIp_;
-      std::string remoteAet_;
-      std::string calledAet_;
-      IApplicationEntityFilter* filter_;
+    }
 
-      OFCondition NActionScp(T_DIMSE_Message* msg, 
-                             T_ASC_PresentationContextID presID);
-      
-    public:
-      CommandDispatcher(const DicomServer& server,
-                        T_ASC_Association* assoc,
+    virtual void Handle(const std::string& transactionUid,
+                        const std::vector<std::string>& referencedSopClassUids,
+                        const std::vector<std::string>& referencedSopInstanceUids,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet,
-                        IApplicationEntityFilter* filter);
-
-      virtual ~CommandDispatcher();
-
-      virtual bool Step();
-    };
-
-    CommandDispatcher* AcceptAssociation(const DicomServer& server, 
-                                         T_ASC_Network *net);
-
-    OFCondition EchoScp(T_ASC_Association* assoc, 
-                        T_DIMSE_Message* msg, 
-                        T_ASC_PresentationContextID presID);
-  }
+                        const std::string& calledAet) = 0;
+  };
 }

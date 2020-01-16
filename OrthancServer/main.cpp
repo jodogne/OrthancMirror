@@ -91,6 +91,30 @@ public:
 
 
 
+class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestHandler
+{
+private:
+  ServerContext& server_;
+
+public:
+  OrthancStorageCommitmentRequestHandler(ServerContext& context) :
+    server_(context)
+  {
+  }
+
+  virtual void Handle(const std::string& transactionUid,
+                      const std::vector<std::string>& referencedSopClassUids,
+                      const std::vector<std::string>& referencedSopInstanceUids,
+                      const std::string& remoteIp,
+                      const std::string& remoteAet,
+                      const std::string& calledAet)
+  {
+    // TODO - Enqueue a Storage commitment job
+  }
+};
+
+
+
 class ModalitiesFromConfiguration : public DicomServer::IRemoteModalities
 {
 public:
@@ -113,7 +137,8 @@ public:
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
   public IFindRequestHandlerFactory, 
-  public IMoveRequestHandlerFactory
+  public IMoveRequestHandlerFactory, 
+  public IStorageCommitmentRequestHandlerFactory
 {
 private:
   ServerContext& context_;
@@ -164,6 +189,11 @@ public:
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
     return new OrthancMoveRequestHandler(context_);
+  }
+
+  virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler()
+  {
+    return new OrthancStorageCommitmentRequestHandler(context_);
   }
 
   void Done()
@@ -672,6 +702,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
     PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
     PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
+    PrintErrorCode(ErrorCode_NoStorageCommitmentHandler, "No request handler factory for DICOM N-ACTION SCP (storage commitment)");
     PrintErrorCode(ErrorCode_UnsupportedMediaType, "Unsupported media type");
   }
 
@@ -966,6 +997,7 @@ static bool StartDicomServer(ServerContext& context,
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
     dicomServer.SetFindRequestHandlerFactory(serverFactory);
+    dicomServer.SetStorageCommitmentRequestHandlerFactory(serverFactory);
 
     {
       OrthancConfiguration::ReaderLock lock;
