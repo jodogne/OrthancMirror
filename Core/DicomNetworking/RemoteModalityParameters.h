@@ -53,6 +53,7 @@ namespace Orthanc
     bool                  allowFind_;
     bool                  allowMove_;
     bool                  allowGet_;
+    bool                  allowNAction_;
 
     void Clear();
 

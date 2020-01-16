@@ -622,7 +622,8 @@ namespace Orthanc
     DicomRequestType_Find,
     DicomRequestType_Get,
     DicomRequestType_Move,
-    DicomRequestType_Store
+    DicomRequestType_Store,
+    DicomRequestType_NAction
   };
 
   enum TransferSyntax

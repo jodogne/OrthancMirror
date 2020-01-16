@@ -860,6 +860,10 @@ namespace Orthanc
         return "Store";
         break;
 
+      case DicomRequestType_NAction:
+        return "N-Action";
+        break;
+
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
