@@ -1369,8 +1369,39 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::ReportStorageCommitment()
+  static void FillSopSequence(DcmDataset& dataset,
+                              const DcmTagKey& tag,
+                              const std::vector<std::string>& sopClassUids,
+                              const std::vector<std::string>& sopInstanceUids)
   {
+    for (size_t i = 0; i < sopClassUids.size(); i++)
+    {
+      std::auto_ptr<DcmItem> item(new DcmItem);
+      if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
+          !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
+          !dataset.insertSequenceItem(tag, item.release()).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }                              
+
+
+  
+
+  void DicomUserConnection::ReportStorageCommitment(
+    const std::string& transactionUid,
+    const std::vector<std::string>& successSopClassUids,
+    const std::vector<std::string>& successSopInstanceUids,
+    const std::vector<std::string>& failureSopClassUids,
+    const std::vector<std::string>& failureSopInstanceUids)
+  {
+    if (successSopClassUids.size() != successSopInstanceUids.size() ||
+        failureSopClassUids.size() != failureSopInstanceUids.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
     if (IsOpen())
     {
       Close();
@@ -1389,7 +1420,54 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.1.1.8
        **/
 
-      // TODO
+      T_DIMSE_Message response;
+      memset(&response, 0, sizeof(response));
+      response.CommandField = DIMSE_N_EVENT_REPORT_RQ;
+
+      T_DIMSE_N_EventReportRQ& content = response.msg.NEventReportRQ;
+      content.MessageID = pimpl_->assoc_->nextMsgID;
+      strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+      strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+      content.DataSetType = DIMSE_DATASET_PRESENT;
+
+      DcmDataset dataset;
+      if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids, successSopInstanceUids);
+
+      // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+      if (failureSopClassUids.empty())
+      {
+        content.EventTypeID = 1;  // "Storage Commitment Request Successful"
+      }
+      else
+      {
+        content.EventTypeID = 2;  // "Storage Commitment Request Complete - Failures Exist"
+        FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids, failureSopInstanceUids);
+      }
+
+      dataset.writeXML(std::cout);
+      
+      int presID = ASC_findAcceptedPresentationContextID(
+        pimpl_->assoc_, UID_StorageCommitmentPushModelSOPClass);
+      if (presID == 0)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                               "Unable to send N-EVENT-REPORT to AET: " + remoteAet_);
+      }
+
+      if (!DIMSE_sendMessageUsingMemoryData(
+            pimpl_->assoc_, presID, &response, NULL /* status detail */,
+            &dataset, NULL /* callback */, NULL /* callback context */,
+            NULL /* commandSet */).good())
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol);
+      }
+
+      // TODO - Read answer
       
       Close();
     }
