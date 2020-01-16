@@ -225,6 +225,11 @@ namespace Orthanc
     bool IsSameAssociation(const std::string& localAet,
                            const RemoteModalityParameters& remote) const;
 
-    void ReportStorageCommitment();
+    void ReportStorageCommitment(
+      const std::string& transactionUid,
+      const std::vector<std::string>& successSopClassUids,
+      const std::vector<std::string>& successSopInstanceUids,
+      const std::vector<std::string>& failureSopClassUids,
+      const std::vector<std::string>& failureSopInstanceUids);      
   };
 }

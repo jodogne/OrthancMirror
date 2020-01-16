@@ -96,6 +96,24 @@ class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestH
 private:
   ServerContext& server_;
 
+  // TODO - Remove this
+  static void Toto()
+  {
+    printf("Sleeping\n");
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    printf("Connect back\n");
+    
+    RemoteModalityParameters p("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);        
+    DicomUserConnection scu("ORTHANC", p);
+
+    std::vector<std::string> a, b, c, d;
+    a.push_back("a");  b.push_back("b");
+    a.push_back("c");  b.push_back("d");
+    
+    //scu.ReportStorageCommitment("transaction", a, b, c, d);
+    scu.ReportStorageCommitment("transaction", a, b, a, b);
+  }
+  
 public:
   OrthancStorageCommitmentRequestHandler(ServerContext& context) :
     server_(context)
@@ -110,6 +128,8 @@ public:
                       const std::string& calledAet)
   {
     // TODO - Enqueue a Storage commitment job
+
+    boost::thread t(Toto);
   }
 };
 
