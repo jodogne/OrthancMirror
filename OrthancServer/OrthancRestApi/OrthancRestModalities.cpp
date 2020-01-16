@@ -1106,8 +1106,6 @@ namespace Orthanc
 
   static void PeerSystem(RestApiGetCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     std::string remote = call.GetUriComponent("id", "");
 
     OrthancConfiguration::ReaderLock lock;

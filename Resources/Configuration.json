@@ -219,7 +219,8 @@
     //  "AllowEcho" : false,
     //  "AllowFind" : false,
     //  "AllowMove" : false,
-    //  "AllowStore" : true
+    //  "AllowStore" : true,
+    //  "AllowNAction" : false  // Allow storage commitment (new in 1.6.0)
     //}
   },
 

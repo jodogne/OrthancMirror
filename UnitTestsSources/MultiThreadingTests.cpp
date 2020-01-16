@@ -1897,6 +1897,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
   }
 
   s = Json::nullValue;
@@ -1925,6 +1926,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
   }
 
   s["Port"] = "46";
@@ -1944,8 +1946,9 @@ TEST(JobsSerialization, RemoteModalityParameters)
   operations.insert(DicomRequestType_Get);
   operations.insert(DicomRequestType_Move);
   operations.insert(DicomRequestType_Store);
+  operations.insert(DicomRequestType_NAction);
 
-  ASSERT_EQ(5u, operations.size());
+  ASSERT_EQ(6u, operations.size());
 
   for (std::set<DicomRequestType>::const_iterator 
          it = operations.begin(); it != operations.end(); ++it)
