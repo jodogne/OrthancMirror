@@ -1420,55 +1420,99 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.1.1.8
        **/
 
-      T_DIMSE_Message response;
-      memset(&response, 0, sizeof(response));
-      response.CommandField = DIMSE_N_EVENT_REPORT_RQ;
+      /**
+       * Send the "EVENT_REPORT_RQ" request
+       **/
 
-      T_DIMSE_N_EventReportRQ& content = response.msg.NEventReportRQ;
-      content.MessageID = pimpl_->assoc_->nextMsgID;
-      strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
-      strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
-      content.DataSetType = DIMSE_DATASET_PRESENT;
-
-      DcmDataset dataset;
-      if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids, successSopInstanceUids);
-
-      // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
-      if (failureSopClassUids.empty())
-      {
-        content.EventTypeID = 1;  // "Storage Commitment Request Successful"
-      }
-      else
-      {
-        content.EventTypeID = 2;  // "Storage Commitment Request Complete - Failures Exist"
-        FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids, failureSopInstanceUids);
-      }
-
-      dataset.writeXML(std::cout);
+      LOG(INFO) << "Reporting modality \"" << remoteAet_
+                << "\" about storage commitment transaction: " << transactionUid
+                << " (" << successSopClassUids.size() << " successes, " 
+                << failureSopClassUids.size() << " failures)";
+      DIC_US messageId = pimpl_->assoc_->nextMsgID;
       
-      int presID = ASC_findAcceptedPresentationContextID(
-        pimpl_->assoc_, UID_StorageCommitmentPushModelSOPClass);
-      if (presID == 0)
       {
-        throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
-                               "Unable to send N-EVENT-REPORT to AET: " + remoteAet_);
+        T_DIMSE_Message message;
+        memset(&message, 0, sizeof(message));
+        message.CommandField = DIMSE_N_EVENT_REPORT_RQ;
+
+        T_DIMSE_N_EventReportRQ& content = message.msg.NEventReportRQ;
+        content.MessageID = messageId;
+        strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.DataSetType = DIMSE_DATASET_PRESENT;
+
+        DcmDataset dataset;
+        if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids, successSopInstanceUids);
+
+        // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+        if (failureSopClassUids.empty())
+        {
+          content.EventTypeID = 1;  // "Storage Commitment Request Successful"
+        }
+        else
+        {
+          content.EventTypeID = 2;  // "Storage Commitment Request Complete - Failures Exist"
+          FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids, failureSopInstanceUids);
+        }
+
+        int presID = ASC_findAcceptedPresentationContextID(
+          pimpl_->assoc_, UID_StorageCommitmentPushModelSOPClass);
+        if (presID == 0)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to send N-EVENT-REPORT request to AET: " + remoteAet_);
+        }
+
+        if (!DIMSE_sendMessageUsingMemoryData(
+              pimpl_->assoc_, presID, &message, NULL /* status detail */,
+              &dataset, NULL /* callback */, NULL /* callback context */,
+              NULL /* commandSet */).good())
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol);
+        }
       }
 
-      if (!DIMSE_sendMessageUsingMemoryData(
-            pimpl_->assoc_, presID, &response, NULL /* status detail */,
-            &dataset, NULL /* callback */, NULL /* callback context */,
-            NULL /* commandSet */).good())
+      /**
+       * Read the "EVENT_REPORT_RSP" response
+       **/
+
       {
-        throw OrthancException(ErrorCode_NetworkProtocol);
+        T_ASC_PresentationContextID presID = 0;
+        T_DIMSE_Message message;
+        
+        if (!DIMSE_receiveCommand(pimpl_->assoc_, DIMSE_NONBLOCKING, 1, &presID,
+                                  &message, NULL /* no statusDetail */).good() ||
+            message.CommandField != DIMSE_N_EVENT_REPORT_RSP)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to read N-EVENT-REPORT response from AET: " + remoteAet_);
+        }
+
+        const T_DIMSE_N_EventReportRSP& content = message.msg.NEventReportRSP;
+        if (content.MessageIDBeingRespondedTo != messageId ||
+            !(content.opts & O_NEVENTREPORT_AFFECTEDSOPCLASSUID) ||
+            !(content.opts & O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID) ||
+            //(content.opts & O_NEVENTREPORT_EVENTTYPEID) ||  // Pedantic test - The "content.EventTypeID" has no sense here
+            std::string(content.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+            std::string(content.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance ||
+            content.DataSetType != DIMSE_DATASET_NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Badly formatted N-EVENT-REPORT response from AET: " + remoteAet_);
+        }
+
+        if (content.DimseStatus != 0 /* success */)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "The request cannot be handled by remote AET: " + remoteAet_);
+        }
       }
 
-      // TODO - Read answer
-      
       Close();
     }
     catch (OrthancException&)

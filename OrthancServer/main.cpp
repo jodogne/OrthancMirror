@@ -110,8 +110,15 @@ private:
     a.push_back("a");  b.push_back("b");
     a.push_back("c");  b.push_back("d");
     
-    //scu.ReportStorageCommitment("transaction", a, b, c, d);
-    scu.ReportStorageCommitment("transaction", a, b, a, b);
+    scu.ReportStorageCommitment("transaction", a, b, c, d);
+    //scu.ReportStorageCommitment("transaction", a, b, a, b);
+
+    /**
+     * "After the N-EVENT-REPORT has been sent, the Transaction UID is
+     * no longer active and shall not be reused for other
+     * transactions."
+     * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+     **/
   }
   
 public:
