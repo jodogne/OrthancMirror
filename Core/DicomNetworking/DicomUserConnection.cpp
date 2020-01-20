@@ -1559,6 +1559,8 @@ namespace Orthanc
     {
       OpenInternal(Mode_RequestStorageCommitment);
 
+      transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+
       /**
        * N-ACTION
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html
