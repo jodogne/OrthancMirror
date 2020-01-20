@@ -97,8 +97,10 @@ private:
   ServerContext& server_;
 
   // TODO - Remove this
-  static void Toto()
+  static void Toto(std::string* t)
   {
+    std::auto_ptr<std::string> tt(t);
+    
     printf("Sleeping\n");
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     printf("Connect back\n");
@@ -110,7 +112,7 @@ private:
     a.push_back("a");  b.push_back("b");
     a.push_back("c");  b.push_back("d");
     
-    scu.ReportStorageCommitment("transaction", a, b, c, d);
+    scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
     //scu.ReportStorageCommitment("transaction", a, b, a, b);
 
     /**
@@ -136,7 +138,7 @@ public:
   {
     // TODO - Enqueue a Storage commitment job
 
-    boost::thread t(Toto);
+    boost::thread t(Toto, new std::string(transactionUid));
   }
 };
 

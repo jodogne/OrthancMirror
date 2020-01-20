@@ -57,7 +57,8 @@ namespace Orthanc
     enum Mode
     {
       Mode_Generic,
-      Mode_ReportStorageCommitment
+      Mode_ReportStorageCommitment,
+      Mode_RequestStorageCommitment
     };
     
     // Connection parameters
@@ -231,5 +232,10 @@ namespace Orthanc
       const std::vector<std::string>& successSopInstanceUids,
       const std::vector<std::string>& failureSopClassUids,
       const std::vector<std::string>& failureSopInstanceUids);      
+
+    void RequestStorageCommitment(
+      std::string& transactionUid,
+      const std::vector<std::string>& sopClassUids,
+      const std::vector<std::string>& sopInstanceUids);
   };
 }
