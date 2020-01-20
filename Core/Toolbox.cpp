@@ -2073,6 +2073,108 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat, "Invalid UTF-8 string");
     }
   }
+
+
+  std::string Toolbox::LargeHexadecimalToDecimal(const std::string& hex)
+  {
+    /**
+     * NB: Focus of the code below is *not* efficiency, but
+     * readability!
+     **/
+    
+    for (size_t i = 0; i < hex.size(); i++)
+    {
+      const char c = hex[i];
+      if (!((c >= 'A' && c <= 'F') ||
+            (c >= 'a' && c <= 'f') ||
+            (c >= '0' && c <= '9')))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange,
+                                        "Not an hexadecimal number");
+      }
+    }
+    
+    std::vector<uint8_t> decimal;
+    decimal.push_back(0);
+
+    for (size_t i = 0; i < hex.size(); i++)
+    {
+      uint8_t hexDigit = static_cast<uint8_t>(Hex2Dec(hex[i]));
+      assert(hexDigit <= 15);
+
+      for (size_t j = 0; j < decimal.size(); j++)
+      {
+        uint8_t val = static_cast<uint8_t>(decimal[j]) * 16 + hexDigit;  // Maximum: 9 * 16 + 15
+        assert(val <= 159 /* == 9 * 16 + 15 */);
+      
+        decimal[j] = val % 10;
+        hexDigit = val / 10;
+        assert(hexDigit <= 15 /* == 159 / 10 */);
+      }
+
+      while (hexDigit > 0)
+      {
+        decimal.push_back(hexDigit % 10);
+        hexDigit /= 10;
+      }
+    }
+
+    size_t start = 0;
+    while (start < decimal.size() &&
+           decimal[start] == '0')
+    {
+      start++;
+    }
+
+    std::string s;
+    s.reserve(decimal.size() - start);
+
+    for (size_t i = decimal.size(); i > start; i--)
+    {
+      s.push_back(decimal[i - 1] + '0');
+    }
+
+    return s;
+  }
+
+
+  std::string Toolbox::GenerateDicomPrivateUniqueIdentifier()
+  {
+    /**
+     * REFERENCE: "Creating a Privately Defined Unique Identifier
+     * (Informative)" / "UUID Derived UID"
+     * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
+     * https://stackoverflow.com/a/46316162/881731
+     **/
+
+    std::string uuid = GenerateUuid();
+    assert(IsUuid(uuid) && uuid.size() == 36);
+
+    /**
+     * After removing the four dashes ("-") out of the 36-character
+     * UUID, we get a large hexadecimal number with 32 characters,
+     * each of those characters lying in the range [0,16[. The large
+     * number is thus in the [0,16^32[ = [0,256^16[ range. This number
+     * has a maximum of 39 decimal digits, as can be seen in Python:
+     * 
+     * # python -c 'import math; print(math.log(16**32))/math.log(10))'
+     * 38.531839445
+     *
+     * We now to convert the large hexadecimal number to a decimal
+     * number with up to 39 digits, remove the leading zeros, then
+     * prefix it with "2.25."
+     **/
+
+    // Remove the dashes
+    std::string hex = (uuid.substr(0, 8) +
+                       uuid.substr(9, 4) +
+                       uuid.substr(14, 4) +
+                       uuid.substr(19, 4) +
+                       uuid.substr(24, 12));
+    assert(hex.size() == 32);
+
+    return "2.25." + LargeHexadecimalToDecimal(hex);
+  }
 }
 
 
