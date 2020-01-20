@@ -1513,7 +1513,7 @@ namespace Orthanc
         if (content.MessageIDBeingRespondedTo != messageId ||
             !(content.opts & O_NEVENTREPORT_AFFECTEDSOPCLASSUID) ||
             !(content.opts & O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID) ||
-            //(content.opts & O_NEVENTREPORT_EVENTTYPEID) ||  // Pedantic test - The "content.EventTypeID" has no sense here
+            //(content.opts & O_NEVENTREPORT_EVENTTYPEID) ||  // Pedantic test - The "content.EventTypeID" is not used by Orthanc
             std::string(content.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
             std::string(content.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance ||
             content.DataSetType != DIMSE_DATASET_NULL)
@@ -1572,8 +1572,6 @@ namespace Orthanc
        * Send the "N_ACTION_RQ" request
        **/
 
-      printf("ICI\n");
-
       LOG(INFO) << "Request to modality \"" << remoteAet_
                 << "\" about storage commitment for " << sopClassUids.size() << " instances";
       const DIC_US messageId = pimpl_->assoc_->nextMsgID++;
@@ -1603,7 +1601,7 @@ namespace Orthanc
         if (presID == 0)
         {
           throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
-                                 "Unable to send N-EVENT-REPORT request to AET: " + remoteAet_);
+                                 "Unable to send N-ACTION request to AET: " + remoteAet_);
         }
 
         if (!DIMSE_sendMessageUsingMemoryData(
@@ -1619,7 +1617,37 @@ namespace Orthanc
        * Read the "N_ACTION_RSP" response
        **/
 
-      // TODO
+      {
+        T_ASC_PresentationContextID presID = 0;
+        T_DIMSE_Message message;
+        
+        if (!DIMSE_receiveCommand(pimpl_->assoc_, DIMSE_NONBLOCKING, 1, &presID,
+                                  &message, NULL /* no statusDetail */).good() ||
+            message.CommandField != DIMSE_N_ACTION_RSP)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to read N-ACTION response from AET: " + remoteAet_);
+        }
+
+        const T_DIMSE_N_ActionRSP& content = message.msg.NActionRSP;
+        if (content.MessageIDBeingRespondedTo != messageId ||
+            !(content.opts & O_NACTION_AFFECTEDSOPCLASSUID) ||
+            !(content.opts & O_NACTION_AFFECTEDSOPINSTANCEUID) ||
+            //(content.opts & O_NACTION_ACTIONTYPEID) ||  // Pedantic test - The "content.ActionTypeID" is not used by Orthanc
+            std::string(content.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+            std::string(content.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance ||
+            content.DataSetType != DIMSE_DATASET_NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Badly formatted N-ACTION response from AET: " + remoteAet_);
+        }
+
+        if (content.DimseStatus != 0 /* success */)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "The request cannot be handled by remote AET: " + remoteAet_);
+        }
+      }
 
       Close();
     }
