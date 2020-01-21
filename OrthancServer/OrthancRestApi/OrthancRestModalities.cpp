@@ -1273,7 +1273,7 @@ namespace Orthanc
     if (call.ParseJsonRequest(json))
     {
       const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-      RemoteModalityParameters remote =
+      const RemoteModalityParameters remote =
         MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
       std::auto_ptr<ParsedDicomFile> query
@@ -1289,6 +1289,38 @@ namespace Orthanc
 
       Json::Value result;
       answers.ToJson(result, true);
+      call.GetOutput().AnswerJson(result);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
+    }
+  }
+
+
+  static void TestStorageCommitment(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value json;
+    if (call.ParseJsonRequest(json))
+    {
+      const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+      const RemoteModalityParameters remote =
+        MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+      {
+        DicomUserConnection scu(localAet, remote);
+
+        std::vector<std::string> sopClassUids, sopInstanceUids;
+        sopClassUids.push_back("a");
+        sopInstanceUids.push_back("b");
+
+        std::string t = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+        scu.RequestStorageCommitment(t, sopClassUids, sopInstanceUids);
+      }
+
+      Json::Value result;
       call.GetOutput().AnswerJson(result);
     }
     else
@@ -1341,5 +1373,7 @@ namespace Orthanc
     Register("/peers/{id}/system", PeerSystem);
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
+
+    Register("/modalities/{id}/storage-commitment", TestStorageCommitment);
   }
 }
