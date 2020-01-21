@@ -204,13 +204,13 @@
 
     /**
      * By default, the Orthanc SCP accepts all DICOM commands (C-ECHO,
-     * C-STORE, C-FIND, C-MOVE) issued by the registered remote SCU
-     * modalities. Starting with Orthanc 1.5.0, it is possible to
-     * specify which DICOM commands are allowed, separately for each
-     * remote modality, using the syntax below. The "AllowEcho" (resp.
-     * "AllowStore") option only has an effect respectively if global
-     * option "DicomAlwaysAllowEcho" (resp. "DicomAlwaysAllowStore")
-     * is set to false.
+     * C-STORE, C-FIND, C-MOVE, and storage commitment) issued by the
+     * registered remote SCU modalities. Starting with Orthanc 1.5.0,
+     * it is possible to specify which DICOM commands are allowed,
+     * separately for each remote modality, using the syntax
+     * below. The "AllowEcho" (resp.  "AllowStore") option only has an
+     * effect respectively if global option "DicomAlwaysAllowEcho"
+     * (resp. "DicomAlwaysAllowStore") is set to false.
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -220,7 +220,7 @@
     //  "AllowFind" : false,
     //  "AllowMove" : false,
     //  "AllowStore" : true,
-    //  "AllowNAction" : false  // Allow storage commitment (new in 1.6.0)
+    //  "AllowStorageCommitment" : false  // new in 1.6.0
     //}
   },
 

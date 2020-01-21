@@ -1388,13 +1388,17 @@ namespace Orthanc
   static void FillSopSequence(DcmDataset& dataset,
                               const DcmTagKey& tag,
                               const std::vector<std::string>& sopClassUids,
-                              const std::vector<std::string>& sopInstanceUids)
+                              const std::vector<std::string>& sopInstanceUids,
+                              bool hasFailureReason,
+                              Uint16 failureReason)
   {
     for (size_t i = 0; i < sopClassUids.size(); i++)
     {
       std::auto_ptr<DcmItem> item(new DcmItem);
       if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
           !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
+          (hasFailureReason &&
+           !item->putAndInsertUint16(DCM_FailureReason, failureReason).good()) ||
           !dataset.insertSequenceItem(tag, item.release()).good())
       {
         throw OrthancException(ErrorCode_InternalError);
@@ -1463,7 +1467,8 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids, successSopInstanceUids);
+        FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids,
+                        successSopInstanceUids, false, 0);
 
         // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
         if (failureSopClassUids.empty())
@@ -1473,7 +1478,11 @@ namespace Orthanc
         else
         {
           content.EventTypeID = 2;  // "Storage Commitment Request Complete - Failures Exist"
-          FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids, failureSopInstanceUids);
+
+          // Failure reason
+          // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
+          FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids,
+                          failureSopInstanceUids, true, 0x0112 /* No such object instance == 274 */);
         }
 
         int presID = ASC_findAcceptedPresentationContextID(
@@ -1601,7 +1610,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids);
+        FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids, false, 0);
 
         int presID = ASC_findAcceptedPresentationContextID(
           pimpl_->assoc_, UID_StorageCommitmentPushModelSOPClass);

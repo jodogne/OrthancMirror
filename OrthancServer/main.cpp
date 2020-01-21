@@ -129,16 +129,30 @@ public:
   {
   }
 
-  virtual void Handle(const std::string& transactionUid,
-                      const std::vector<std::string>& referencedSopClassUids,
-                      const std::vector<std::string>& referencedSopInstanceUids,
-                      const std::string& remoteIp,
-                      const std::string& remoteAet,
-                      const std::string& calledAet)
+  virtual void HandleRequest(const std::string& transactionUid,
+                             const std::vector<std::string>& referencedSopClassUids,
+                             const std::vector<std::string>& referencedSopInstanceUids,
+                             const std::string& remoteIp,
+                             const std::string& remoteAet,
+                             const std::string& calledAet)
   {
     // TODO - Enqueue a Storage commitment job
 
     boost::thread t(Toto, new std::string(transactionUid));
+
+    printf("HANDLE REQUEST\n");
+  }
+
+  virtual void HandleReport(const std::string& transactionUid,
+                            const std::vector<std::string>& successSopClassUids,
+                            const std::vector<std::string>& successSopInstanceUids,
+                            const std::vector<std::string>& failedSopClassUids,
+                            const std::vector<std::string>& failedSopInstanceUids,
+                            const std::string& remoteIp,
+                            const std::string& remoteAet,
+                            const std::string& calledAet)
+  {
+    printf("HANDLE REPORT\n");
   }
 };
 

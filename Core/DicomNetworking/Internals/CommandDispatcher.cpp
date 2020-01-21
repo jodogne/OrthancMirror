@@ -730,6 +730,11 @@ namespace Orthanc
             supported = true;
             break;
 
+          case DIMSE_N_EVENT_REPORT_RQ:
+            request = DicomRequestType_NEventReport;
+            supported = true;
+            break;
+
           default:
             // we cannot handle this kind of message
             cond = DIMSE_BADCOMMANDTYPE;
@@ -815,6 +820,10 @@ namespace Orthanc
               cond = NActionScp(&msg, presID);
               break;              
 
+            case DicomRequestType_NEventReport:
+              cond = NEventReportScp(&msg, presID);
+              break;              
+
             default:
               // Should never happen
               break;
@@ -869,6 +878,80 @@ namespace Orthanc
       return cond;
     }
 
+
+    static DcmDataset* ReadDataset(T_ASC_Association* assoc,
+                                   const char* errorMessage)
+    {
+      DcmDataset *tmp = NULL;
+      T_ASC_PresentationContextID presIdData;
+    
+      OFCondition cond = DIMSE_receiveDataSetInMemory(
+        assoc, /*opt_blockMode*/ DIMSE_BLOCKING,
+        /*opt_dimse_timeout*/ 0, &presIdData, &tmp, NULL, NULL);
+      if (!cond.good() ||
+          tmp == NULL)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol, errorMessage);
+      }
+
+      return tmp;
+    }
+
+
+    static std::string ReadString(DcmDataset& dataset,
+                                  const DcmTagKey& tag)
+    {
+      const char* s = NULL;
+      if (!dataset.findAndGetString(tag, s).good() ||
+          s == NULL)
+      {
+        char buf[64];
+        sprintf(buf, "Missing mandatory tag in dataset: (%04X,%04X)",
+                tag.getGroup(), tag.getElement());
+        throw OrthancException(ErrorCode_NetworkProtocol, buf);
+      }
+
+      return std::string(s);
+    }
+
+
+    static void ReadSopSequence(std::vector<std::string>& sopClassUids,
+                                std::vector<std::string>& sopInstanceUids,
+                                DcmDataset& dataset,
+                                const DcmTagKey& tag)
+    {
+      DcmSequenceOfItems* sequence = NULL;
+      if (!dataset.findAndGetSequence(tag, sequence).good() ||
+          sequence == NULL)
+      {
+        char buf[64];
+        sprintf(buf, "Missing mandatory sequence in dataset: (%04X,%04X)",
+                tag.getGroup(), tag.getElement());
+        throw OrthancException(ErrorCode_NetworkProtocol, buf);
+      }
+
+      sopClassUids.reserve(sequence->card());
+      sopInstanceUids.reserve(sequence->card());
+
+      for (unsigned long i = 0; i < sequence->card(); i++)
+      {
+        const char* a = NULL;
+        const char* b = NULL;
+        if (!sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPClassUID, a).good() ||
+            !sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPInstanceUID, b).good() ||
+            a == NULL ||
+            b == NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 "Missing Referenced SOP Class/Instance UID "
+                                 "in storage commitment request");
+        }
+
+        sopClassUids.push_back(a);
+        sopInstanceUids.push_back(b);
+      }
+    }
+
     
     OFCondition CommandDispatcher::NActionScp(T_DIMSE_Message* msg,
                                               T_ASC_PresentationContextID presID)
@@ -921,81 +1004,22 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html#table_J.3-1
        **/
       
-      std::auto_ptr<DcmDataset> dataset;
+      std::auto_ptr<DcmDataset> dataset(
+        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP"));
 
+      std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
+
+      std::vector<std::string> sopClassUid, sopInstanceUid;
+      ReadSopSequence(sopClassUid, sopInstanceUid,
+                      *dataset, DCM_ReferencedSOPSequence);
+
+      LOG(INFO) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
+
+      for (size_t i = 0; i < sopClassUid.size(); i++)
       {
-        DcmDataset *tmp = NULL;
-        T_ASC_PresentationContextID presIdData;
-    
-        OFCondition cond = DIMSE_receiveDataSetInMemory(
-          assoc_, /*opt_blockMode*/ DIMSE_BLOCKING,
-          /*opt_dimse_timeout*/ 0, &presIdData, &tmp, NULL, NULL);
-        if (!cond.good())
-        {
-          return cond;
-        }
-
-        if (tmp == NULL)
-        {
-          LOG(ERROR) << "Cannot read the dataset in N-ACTION SCP";
-          return EC_InvalidStream;
-        }
-
-        dataset.reset(tmp);
-      }
-
-      std::string transactionUid;
-      std::vector<std::string> referencedSopClassUid, referencedSopInstanceUid;
-
-      {
-        const char* s = NULL;
-        if (!dataset->findAndGetString(DCM_TransactionUID, s).good() ||
-            s == NULL)
-        {
-          LOG(ERROR) << "Missing Transaction UID in storage commitment request";
-          return EC_InvalidStream;
-        }
-
-        transactionUid.assign(s);
-      }
-
-      {
-        DcmSequenceOfItems* sequence = NULL;
-        if (!dataset->findAndGetSequence(DCM_ReferencedSOPSequence, sequence).good() ||
-            sequence == NULL)
-        {
-          LOG(ERROR) << "Missing Referenced SOP Sequence in storage commitment request";
-          return EC_InvalidStream;
-        }
-
-        referencedSopClassUid.reserve(sequence->card());
-        referencedSopInstanceUid.reserve(sequence->card());
-
-        for (unsigned long i = 0; i < sequence->card(); i++)
-        {
-          const char* a = NULL;
-          const char* b = NULL;
-          if (!sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPClassUID, a).good() ||
-              !sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPInstanceUID, b).good() ||
-              a == NULL ||
-              b == NULL)
-          {
-            LOG(ERROR) << "Missing Referenced SOP Class/Instance UID in storage commitment request";
-            return EC_InvalidStream;
-          }
-
-          referencedSopClassUid.push_back(a);
-          referencedSopInstanceUid.push_back(b);
-        }
-      }
-
-      LOG(INFO) << "Incoming storage commitment transaction, with UID: " << transactionUid;
-
-      for (size_t i = 0; i < referencedSopClassUid.size(); i++)
-      {
-        LOG(INFO) << "  (" << (i + 1) << "/" << referencedSopClassUid.size()
+        LOG(INFO) << "  (" << (i + 1) << "/" << sopClassUid.size()
                   << ") queried SOP Class/Instance UID: "
-                  << referencedSopClassUid[i] << " / " << referencedSopInstanceUid[i];
+                  << sopClassUid[i] << " / " << sopInstanceUid[i];
       }
 
 
@@ -1013,8 +1037,8 @@ namespace Orthanc
           (server_.GetStorageCommitmentRequestHandlerFactory().
            ConstructStorageCommitmentRequestHandler());
 
-        handler->Handle(transactionUid, referencedSopClassUid, referencedSopInstanceUid,
-                        remoteIp_, remoteAet_, calledAet_);
+        handler->HandleRequest(transactionUid, sopClassUid, sopInstanceUid,
+                               remoteIp_, remoteAet_, calledAet_);
         
         dimseStatus = 0;  // Success
       }
@@ -1044,6 +1068,140 @@ namespace Orthanc
         content.ActionTypeID = 0; // Not present, as "O_NACTION_ACTIONTYPEID" not set in "opts"
         content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
         content.opts = O_NACTION_AFFECTEDSOPCLASSUID | O_NACTION_AFFECTEDSOPINSTANCEUID;
+
+        return DIMSE_sendMessageUsingMemoryData(
+          assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
+          NULL /* callback */, NULL /* callback context */, NULL /* commandSet */);
+      }
+    }
+
+
+    OFCondition CommandDispatcher::NEventReportScp(T_DIMSE_Message* msg,
+                                                   T_ASC_PresentationContextID presID)
+    {
+      /**
+       * Starting with Orthanc 1.6.0, handling N-EVENT-REPORT for
+       * storage commitment.
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-1
+       **/
+
+      if (msg->CommandField != DIMSE_N_EVENT_REPORT_RQ /* value == 256 == 0x0100 */ ||
+          !server_.HasStorageCommitmentRequestHandlerFactory())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+
+      /**
+       * Check that the storage commitment report is correctly formatted.
+       **/
+      
+      const T_DIMSE_N_EventReportRQ& report = msg->msg.NEventReportRQ;
+
+      if (report.EventTypeID != 1 /* successful */ &&
+          report.EventTypeID != 2 /* failures exist */)
+      {
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Unknown event for DICOM N-EVENT-REPORT SCP");
+      }
+
+      if (std::string(report.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+          std::string(report.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Unexpected incoming SOP class or instance UID for storage commitment");
+      }
+
+      if (report.DataSetType != DIMSE_DATASET_PRESENT)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Incoming storage commitment report without a dataset");
+      }
+
+
+      /**
+       * Extract the DICOM dataset that is associated with the DIMSE
+       * message. The content of this dataset is documented in "Table
+       * J.3-2. Storage Commitment Result - Event Information":
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html#table_J.3-2
+       **/
+      
+      std::auto_ptr<DcmDataset> dataset(
+        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP"));
+
+      std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
+
+      std::vector<std::string> successSopClassUid, successSopInstanceUid;
+      ReadSopSequence(successSopClassUid, successSopInstanceUid,
+                      *dataset, DCM_ReferencedSOPSequence);
+
+      std::vector<std::string> failedSopClassUid, failedSopInstanceUid;
+      ReadSopSequence(failedSopClassUid, failedSopInstanceUid,
+                      *dataset, DCM_FailedSOPSequence);
+
+      LOG(INFO) << "Incoming storage commitment report, with transaction UID: " << transactionUid;
+
+      for (size_t i = 0; i < successSopClassUid.size(); i++)
+      {
+        LOG(INFO) << "  (success " << (i + 1) << "/" << successSopClassUid.size()
+                  << ") SOP Class/Instance UID: "
+                  << successSopClassUid[i] << " / " << successSopInstanceUid[i];
+      }
+
+      for (size_t i = 0; i < failedSopClassUid.size(); i++)
+      {
+        LOG(INFO) << "  (failure " << (i + 1) << "/" << failedSopClassUid.size()
+                  << ") SOP Class/Instance UID: "
+                  << failedSopClassUid[i] << " / " << failedSopInstanceUid[i];
+      }
+
+      /**
+       * Call the Orthanc handler. The list of available DIMSE status
+       * codes can be found at:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.4.1.10
+       **/
+
+      DIC_US dimseStatus;
+
+      try
+      {
+        std::auto_ptr<IStorageCommitmentRequestHandler> handler
+          (server_.GetStorageCommitmentRequestHandlerFactory().
+           ConstructStorageCommitmentRequestHandler());
+
+        handler->HandleReport(transactionUid, successSopClassUid, successSopInstanceUid,
+                              failedSopClassUid, failedSopInstanceUid,
+                              remoteIp_, remoteAet_, calledAet_);
+        
+        dimseStatus = 0;  // Success
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Error while processing an incoming storage commitment report: " << e.What();
+
+        // Code 0x0110 - "General failure in processing the operation was encountered"
+        dimseStatus = STATUS_N_ProcessingFailure;
+      }
+
+      
+      /**
+       * Send the DIMSE status back to the SCU.
+       **/
+
+      {
+        T_DIMSE_Message response;
+        memset(&response, 0, sizeof(response));
+        response.CommandField = DIMSE_N_EVENT_REPORT_RSP;
+
+        T_DIMSE_N_EventReportRSP& content = response.msg.NEventReportRSP;
+        content.MessageIDBeingRespondedTo = report.MessageID;
+        strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        content.DimseStatus = dimseStatus;
+        strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.EventTypeID = 0; // Not present, as "O_NEVENTREPORT_EVENTTYPEID" not set in "opts"
+        content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
+        content.opts = O_NEVENTREPORT_AFFECTEDSOPCLASSUID | O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID;
 
         return DIMSE_sendMessageUsingMemoryData(
           assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
