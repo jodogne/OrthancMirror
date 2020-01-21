@@ -1541,11 +1541,17 @@ namespace Orthanc
 
   
   void DicomUserConnection::RequestStorageCommitment(
-    std::string& transactionUid,
+    const std::string& transactionUid,
     const std::vector<std::string>& sopClassUids,
     const std::vector<std::string>& sopInstanceUids)
   {
     if (sopClassUids.size() != sopInstanceUids.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (transactionUid.size() < 5 ||
+        transactionUid.substr(0, 5) != "2.25.")
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1558,8 +1564,6 @@ namespace Orthanc
     try
     {
       OpenInternal(Mode_RequestStorageCommitment);
-
-      transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();
 
       /**
        * N-ACTION
@@ -1575,7 +1579,8 @@ namespace Orthanc
        **/
 
       LOG(INFO) << "Request to modality \"" << remoteAet_
-                << "\" about storage commitment for " << sopClassUids.size() << " instances";
+                << "\" about storage commitment for " << sopClassUids.size()
+                << " instances, with transaction UID: " << transactionUid;
       const DIC_US messageId = pimpl_->assoc_->nextMsgID++;
       
       {
