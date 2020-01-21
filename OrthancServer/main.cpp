@@ -97,26 +97,36 @@ private:
   ServerContext& server_;
 
   // TODO - Remove this
-  static void Toto(std::string* t)
+  static void Toto(std::string* t, std::string* remotec)
   {
     try
     {
       std::auto_ptr<std::string> tt(t);
+      std::auto_ptr<std::string> remote(remotec);
     
       printf("Sleeping\n");
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
       printf("Connect back\n");
-    
-      //RemoteModalityParameters p("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);
-      RemoteModalityParameters p("ORTHANC", "localhost", 4242, ModalityManufacturer_Generic);
+
+      RemoteModalityParameters p;
+
+      if (*remote == "ORTHANC")
+      {
+        p = RemoteModalityParameters("ORTHANC", "localhost", 4242, ModalityManufacturer_Generic);
+      }
+      else
+      {
+        p = RemoteModalityParameters("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);
+      }
+        
       DicomUserConnection scu("ORTHANC", p);
 
       std::vector<std::string> a, b, c, d;
       a.push_back("a");  b.push_back("b");
       a.push_back("c");  b.push_back("d");
     
-      //scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
-      scu.ReportStorageCommitment(tt->c_str(), a, b, a, b);
+      scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
+      //scu.ReportStorageCommitment(tt->c_str(), a, b, a, b);
     }
     catch (OrthancException& e)
     {
@@ -146,7 +156,7 @@ public:
   {
     // TODO - Enqueue a Storage commitment job
 
-    boost::thread t(Toto, new std::string(transactionUid));
+    boost::thread t(Toto, new std::string(transactionUid), new std::string(remoteAet));
 
     printf("HANDLE REQUEST\n");
   }
