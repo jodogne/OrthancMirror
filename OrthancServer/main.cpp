@@ -99,21 +99,29 @@ private:
   // TODO - Remove this
   static void Toto(std::string* t)
   {
-    std::auto_ptr<std::string> tt(t);
+    try
+    {
+      std::auto_ptr<std::string> tt(t);
     
-    printf("Sleeping\n");
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    printf("Connect back\n");
+      printf("Sleeping\n");
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+      printf("Connect back\n");
     
-    RemoteModalityParameters p("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);        
-    DicomUserConnection scu("ORTHANC", p);
+      //RemoteModalityParameters p("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);
+      RemoteModalityParameters p("ORTHANC", "localhost", 4242, ModalityManufacturer_Generic);
+      DicomUserConnection scu("ORTHANC", p);
 
-    std::vector<std::string> a, b, c, d;
-    a.push_back("a");  b.push_back("b");
-    a.push_back("c");  b.push_back("d");
+      std::vector<std::string> a, b, c, d;
+      a.push_back("a");  b.push_back("b");
+      a.push_back("c");  b.push_back("d");
     
-    scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
-    //scu.ReportStorageCommitment("transaction", a, b, a, b);
+      //scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
+      scu.ReportStorageCommitment(tt->c_str(), a, b, a, b);
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "EXCEPTION: " << e.What();
+    }
 
     /**
      * "After the N-EVENT-REPORT has been sent, the Transaction UID is

@@ -918,16 +918,27 @@ namespace Orthanc
     static void ReadSopSequence(std::vector<std::string>& sopClassUids,
                                 std::vector<std::string>& sopInstanceUids,
                                 DcmDataset& dataset,
-                                const DcmTagKey& tag)
+                                const DcmTagKey& tag,
+                                bool mandatory)
     {
+      sopClassUids.clear();
+      sopInstanceUids.clear();
+
       DcmSequenceOfItems* sequence = NULL;
       if (!dataset.findAndGetSequence(tag, sequence).good() ||
           sequence == NULL)
       {
-        char buf[64];
-        sprintf(buf, "Missing mandatory sequence in dataset: (%04X,%04X)",
-                tag.getGroup(), tag.getElement());
-        throw OrthancException(ErrorCode_NetworkProtocol, buf);
+        if (mandatory)
+        {        
+          char buf[64];
+          sprintf(buf, "Missing mandatory sequence in dataset: (%04X,%04X)",
+                  tag.getGroup(), tag.getElement());
+          throw OrthancException(ErrorCode_NetworkProtocol, buf);
+        }
+        else
+        {
+          return;
+        }
       }
 
       sopClassUids.reserve(sequence->card());
@@ -1011,7 +1022,7 @@ namespace Orthanc
 
       std::vector<std::string> sopClassUid, sopInstanceUid;
       ReadSopSequence(sopClassUid, sopInstanceUid,
-                      *dataset, DCM_ReferencedSOPSequence);
+                      *dataset, DCM_ReferencedSOPSequence, true /* mandatory */);
 
       LOG(INFO) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
 
@@ -1134,11 +1145,16 @@ namespace Orthanc
 
       std::vector<std::string> successSopClassUid, successSopInstanceUid;
       ReadSopSequence(successSopClassUid, successSopInstanceUid,
-                      *dataset, DCM_ReferencedSOPSequence);
+                      *dataset, DCM_ReferencedSOPSequence,
+                      (report.EventTypeID == 1) /* mandatory in the case of success */);
 
       std::vector<std::string> failedSopClassUid, failedSopInstanceUid;
-      ReadSopSequence(failedSopClassUid, failedSopInstanceUid,
-                      *dataset, DCM_FailedSOPSequence);
+
+      if (report.EventTypeID == 2 /* failures exist */)
+      {
+        ReadSopSequence(failedSopClassUid, failedSopInstanceUid,
+                        *dataset, DCM_FailedSOPSequence, true);
+      }
 
       LOG(INFO) << "Incoming storage commitment report, with transaction UID: " << transactionUid;
 
