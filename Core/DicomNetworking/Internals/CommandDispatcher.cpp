@@ -274,39 +274,6 @@ namespace Orthanc
       OFString sprofile;
       OFString temp_str;
 
-      std::vector<const char*> knownAbstractSyntaxes;
-
-      // For C-STORE
-      if (server.HasStoreRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_VerificationSOPClass);
-      }
-
-      // For C-FIND
-      if (server.HasFindRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
-        knownAbstractSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
-      }
-
-      if (server.HasWorklistRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_FINDModalityWorklistInformationModel);
-      }
-
-      // For C-MOVE
-      if (server.HasMoveRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
-        knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
-      }
-
-      // For Storage Commitment
-      if (server.HasStorageCommitmentRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_StorageCommitmentPushModelSOPClass);
-      }
-
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
@@ -370,132 +337,192 @@ namespace Orthanc
                 << " on IP " << remoteIp;
 
 
-      std::vector<const char*> transferSyntaxes;
-
-      // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
-      transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
-      transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
-      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
-
-      // New transfer syntaxes supported since Orthanc 0.7.2
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
       {
-        transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
-      }
+        /* accept the abstract syntaxes for C-ECHO, C-FIND, C-MOVE,
+           and storage commitment, if presented */
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
-      {
-        transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
-      }
+        std::vector<const char*> genericTransferSyntaxes;
+        genericTransferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+        genericTransferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+        genericTransferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
-      {
-        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
-      }
+        std::vector<const char*> knownAbstractSyntaxes;
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
-      {
-        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
-      }
+        // For C-ECHO (always enabled since Orthanc 1.6.0; in earlier
+        // versions, only enabled if C-STORE was also enabled)
+        knownAbstractSyntaxes.push_back(UID_VerificationSOPClass);
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
-      {
-        transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
-        transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
-      }
+        // For C-FIND
+        if (server.HasFindRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
+          knownAbstractSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
+        }
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
-      {
-        transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
-      }
+        if (server.HasWorklistRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_FINDModalityWorklistInformationModel);
+        }
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
-      {
-        transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
-      }
+        // For C-MOVE
+        if (server.HasMoveRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+          knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
+        }
 
-      /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-        assoc->params,
-        &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(),
-        &transferSyntaxes[0], transferSyntaxes.size());
-      if (cond.bad())
-      {
-        LOG(INFO) << cond.text();
-        AssociationCleanup(assoc);
-        return NULL;
-      }
-
-      /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
-      size_t count = 0;
-      while (dcmAllStorageSOPClassUIDs[count] != NULL)
-      {
-        count++;
-      }
-
-#if DCMTK_VERSION_NUMBER >= 362
-      // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
-      // only published if DCMTK >= 3.6.2:
-      // https://bitbucket.org/sjodogne/orthanc/issues/137
-      assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
-#endif
-      
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-        assoc->params,
-        dcmAllStorageSOPClassUIDs, count,
-        &transferSyntaxes[0], transferSyntaxes.size());
-      if (cond.bad())
-      {
-        LOG(INFO) << cond.text();
-        AssociationCleanup(assoc);
-        return NULL;
-      }
-
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
-      {
-        /*
-         * Promiscous mode is enabled: Accept everything not known not
-         * to be a storage SOP class.
-         **/
-        cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-          assoc->params, &transferSyntaxes[0], transferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
+        cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+          assoc->params,
+          &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(),
+          &genericTransferSyntaxes[0], genericTransferSyntaxes.size());
         if (cond.bad())
         {
           LOG(INFO) << cond.text();
           AssociationCleanup(assoc);
           return NULL;
+        }
+
+      
+        /* storage commitment support, new in Orthanc 1.6.0 */
+        if (server.HasStorageCommitmentRequestHandlerFactory())
+        {
+          /**
+           * "ASC_SC_ROLE_SCUSCP": The "SCU" role is needed to accept
+           * remote storage commitment requests, and the "SCP" role is
+           * needed to receive storage commitments answers.
+           **/        
+          const char* as[1] = { UID_StorageCommitmentPushModelSOPClass }; 
+          cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+            assoc->params, as, 1,
+            &genericTransferSyntaxes[0], genericTransferSyntaxes.size(), ASC_SC_ROLE_SCUSCP);
+          if (cond.bad())
+          {
+            LOG(INFO) << cond.text();
+            AssociationCleanup(assoc);
+            return NULL;
+          }
+        }
+      }
+      
+
+      {
+        /* accept the abstract syntaxes for C-STORE, if presented */
+
+        std::vector<const char*> storageTransferSyntaxes;
+
+        // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+        storageTransferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+        storageTransferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+        storageTransferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
+
+        // New transfer syntaxes supported since Orthanc 0.7.2
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
+        {
+          storageTransferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
+        {
+          storageTransferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
+        {
+          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
+        {
+          storageTransferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+        }
+
+        /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
+        size_t count = 0;
+        while (dcmAllStorageSOPClassUIDs[count] != NULL)
+        {
+          count++;
+        }
+        
+#if DCMTK_VERSION_NUMBER >= 362
+        // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
+        // only published if DCMTK >= 3.6.2:
+        // https://bitbucket.org/sjodogne/orthanc/issues/137
+        assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
+#endif
+      
+        cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+          assoc->params,
+          dcmAllStorageSOPClassUIDs, count,
+          &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
+        if (cond.bad())
+        {
+          LOG(INFO) << cond.text();
+          AssociationCleanup(assoc);
+          return NULL;
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
+        {
+          /*
+           * Promiscous mode is enabled: Accept everything not known not
+           * to be a storage SOP class.
+           **/
+          cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
+            assoc->params, &storageTransferSyntaxes[0], storageTransferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
+          if (cond.bad())
+          {
+            LOG(INFO) << cond.text();
+            AssociationCleanup(assoc);
+            return NULL;
+          }
         }
       }
 
