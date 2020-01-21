@@ -1898,6 +1898,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 
   s = Json::nullValue;
@@ -1927,6 +1928,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 
   s["Port"] = "46";
@@ -1947,8 +1949,9 @@ TEST(JobsSerialization, RemoteModalityParameters)
   operations.insert(DicomRequestType_Move);
   operations.insert(DicomRequestType_Store);
   operations.insert(DicomRequestType_NAction);
+  operations.insert(DicomRequestType_NEventReport);
 
-  ASSERT_EQ(6u, operations.size());
+  ASSERT_EQ(7u, operations.size());
 
   for (std::set<DicomRequestType>::const_iterator 
          it = operations.begin(); it != operations.end(); ++it)
@@ -1976,5 +1979,55 @@ TEST(JobsSerialization, RemoteModalityParameters)
         }
       }
     }
+  }
+
+  {
+    Json::Value s;
+    s["AllowStorageCommitment"] = false;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+  }
+
+  {
+    Json::Value s;
+    s["AllowNAction"] = false;
+    s["AllowNEventReport"] = true;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+  }
+
+  {
+    Json::Value s;
+    s["AllowNAction"] = true;
+    s["AllowNEventReport"] = true;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 }

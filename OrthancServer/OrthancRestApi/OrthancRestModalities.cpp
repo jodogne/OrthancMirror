@@ -1315,6 +1315,8 @@ namespace Orthanc
         std::vector<std::string> sopClassUids, sopInstanceUids;
         sopClassUids.push_back("a");
         sopInstanceUids.push_back("b");
+        sopClassUids.push_back("1.2.840.10008.5.1.4.1.1.6.1");
+        sopInstanceUids.push_back("1.2.840.113543.6.6.4.7.64234348190163144631511103849051737563212");
 
         std::string t = Toolbox::GenerateDicomPrivateUniqueIdentifier();
         scu.RequestStorageCommitment(t, sopClassUids, sopInstanceUids);

@@ -33,7 +33,9 @@
 
 #pragma once
 
-#include "DicomFindAnswers.h"
+#include <boost/noncopyable.hpp>
+#include <string>
+#include <vector>
 
 namespace Orthanc
 {
@@ -44,11 +46,20 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(const std::string& transactionUid,
-                        const std::vector<std::string>& referencedSopClassUids,
-                        const std::vector<std::string>& referencedSopInstanceUids,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+    virtual void HandleRequest(const std::string& transactionUid,
+                               const std::vector<std::string>& sopClassUids,
+                               const std::vector<std::string>& sopInstanceUids,
+                               const std::string& remoteIp,
+                               const std::string& remoteAet,
+                               const std::string& calledAet) = 0;
+
+    virtual void HandleReport(const std::string& transactionUid,
+                              const std::vector<std::string>& successSopClassUids,
+                              const std::vector<std::string>& successSopInstanceUids,
+                              const std::vector<std::string>& failedSopClassUids,
+                              const std::vector<std::string>& failedSopInstanceUids,
+                              const std::string& remoteIp,
+                              const std::string& remoteAet,
+                              const std::string& calledAet) = 0;
   };
 }

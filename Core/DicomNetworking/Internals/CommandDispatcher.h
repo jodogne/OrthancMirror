@@ -58,6 +58,9 @@ namespace Orthanc
 
       OFCondition NActionScp(T_DIMSE_Message* msg, 
                              T_ASC_PresentationContextID presID);
+
+      OFCondition NEventReportScp(T_DIMSE_Message* msg, 
+                                  T_ASC_PresentationContextID presID);
       
     public:
       CommandDispatcher(const DicomServer& server,

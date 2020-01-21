@@ -864,7 +864,11 @@ namespace Orthanc
         break;
 
       case DicomRequestType_NAction:
-        return "N-Action";
+        return "N-ACTION";
+        break;
+
+      case DicomRequestType_NEventReport:
+        return "N-EVENT-REPORT";
         break;
 
       default: 
