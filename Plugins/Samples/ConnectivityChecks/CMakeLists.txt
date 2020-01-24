@@ -58,3 +58,8 @@ set_target_properties(
   VERSION ${PLUGIN_VERSION} 
   SOVERSION ${PLUGIN_VERSION}
   )
+
+install(
+  TARGETS OrthancChecks
+  DESTINATION .
+  )
