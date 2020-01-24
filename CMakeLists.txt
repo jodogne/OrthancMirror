@@ -488,15 +488,12 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
 
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
     -DPLUGIN_VERSION=${ORTHANC_VERSION}
     -DSTATIC_BUILD=${STATIC_BUILD}
     -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
     ${Flags}
-
-    INSTALL_COMMAND ""  # Skip the install step
     )
-
-  ExternalProject_Get_Property(ConnectivityChecksProject binary_dir)
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     if (MSVC)
@@ -506,14 +503,14 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     endif()
 
     install(FILES
-      ${binary_dir}/${Prefix}OrthancChecks.dll
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks.dll
       DESTINATION "lib")
   else()
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${binary_dir}/${Prefix}OrthancChecks${Suffix}
-      ${binary_dir}/${Prefix}OrthancChecks${Suffix}.${ORTHANC_VERSION}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
