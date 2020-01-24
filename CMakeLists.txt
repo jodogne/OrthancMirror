@@ -503,14 +503,14 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     endif()
 
     install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks.dll
+      ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${Prefix}ConnectivityChecks.dll
       DESTINATION "lib")
   else()
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}OrthancChecks${Suffix}.${ORTHANC_VERSION}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
