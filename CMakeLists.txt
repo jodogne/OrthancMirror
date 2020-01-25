@@ -468,7 +468,7 @@ endif()
 if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
   include(ExternalProject)
 
-  unset(Flags)
+  set(Flags)
   
   if (CMAKE_TOOLCHAIN_FILE)
     # Take absolute path to the toolchain
@@ -478,10 +478,12 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
 
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     list(APPEND Flags
-      -DLSB_CC=$ENV{LSB_CC}
-      -DLSB_CXX=$ENV{LSB_CXX}
+      -DLSB_CC=${CMAKE_LSB_CC}
+      -DLSB_CXX=${CMAKE_LSB_CXX}
       )
   endif()
+
+  message(${Flags})
 
   externalproject_add(ConnectivityChecksProject
     SOURCE_DIR "${ORTHANC_ROOT}/Plugins/Samples/ConnectivityChecks"
@@ -491,6 +493,7 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
     -DPLUGIN_VERSION=${ORTHANC_VERSION}
     -DSTATIC_BUILD=${STATIC_BUILD}
+    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
     -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
     ${Flags}
     )
