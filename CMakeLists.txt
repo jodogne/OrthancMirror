@@ -483,8 +483,6 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
       )
   endif()
 
-  message(${Flags})
-
   externalproject_add(ConnectivityChecksProject
     SOURCE_DIR "${ORTHANC_ROOT}/Plugins/Samples/ConnectivityChecks"
 
