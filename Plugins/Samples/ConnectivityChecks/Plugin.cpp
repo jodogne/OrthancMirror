@@ -97,7 +97,7 @@ extern "C"
     }
 
     /* Register the callbacks */
-    OrthancPluginSetDescription(context_, "Utilities to check connectivity to DICOM modalities and Orthanc peers.");
+    OrthancPluginSetDescription(context_, "Utilities to check connectivity to DICOM modalities, DICOMweb servers and Orthanc peers.");
     OrthancPluginSetRootUri(context_, ROOT_URI "/app/index.html");
     OrthancPluginRegisterRestCallback(context_, ROOT_URI "/libs/(.*)", ServeStaticResource<Orthanc::EmbeddedResources::LIBRARIES>);
     OrthancPluginRegisterRestCallback(context_, ROOT_URI "/app/(.*)", ServeStaticResource<Orthanc::EmbeddedResources::WEB_RESOURCES>);
