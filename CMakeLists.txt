@@ -469,7 +469,7 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
   include(ExternalProject)
 
   set(Flags)
-  
+
   if (CMAKE_TOOLCHAIN_FILE)
     # Take absolute path to the toolchain
     get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
@@ -496,6 +496,12 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     ${Flags}
     )
 
+  if (DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(Target ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+  else()
+    set(Target ${CMAKE_CURRENT_BINARY_DIR})
+  endif()
+
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     if (MSVC)
       set(Prefix "")
@@ -504,14 +510,14 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     endif()
 
     install(FILES
-      ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${Prefix}ConnectivityChecks.dll
+      ${Target}/${Prefix}ConnectivityChecks.dll
       DESTINATION "lib")
   else()
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
+      ${Target}/${Prefix}ConnectivityChecks${Suffix}
+      ${Target}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
