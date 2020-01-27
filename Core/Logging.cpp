@@ -553,7 +553,7 @@ namespace Orthanc
       }
     }
 
-    bool IsInfoLevelEnable()
+    bool IsInfoLevelEnabled()
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
       assert(loggingContext_.get() != NULL);
@@ -575,7 +575,7 @@ namespace Orthanc
       }
     }
 
-    bool IsTraceLevelEnable()
+    bool IsTraceLevelEnabled()
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
       assert(loggingContext_.get() != NULL);
