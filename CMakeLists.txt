@@ -496,12 +496,6 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     ${Flags}
     )
 
-  if (DEFINED RUNTIME_OUTPUT_DIRECTORY)
-    set(Target ${RUNTIME_OUTPUT_DIRECTORY})
-  else()
-    set(Target ${CMAKE_CURRENT_BINARY_DIR})
-  endif()
-
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     if (MSVC)
       set(Prefix "")
@@ -510,14 +504,14 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     endif()
 
     install(FILES
-      ${Target}/${Prefix}ConnectivityChecks.dll
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks.dll
       DESTINATION "lib")
   else()
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${Target}/${Prefix}ConnectivityChecks${Suffix}
-      ${Target}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
