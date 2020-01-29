@@ -1387,21 +1387,44 @@ namespace Orthanc
 
   static void FillSopSequence(DcmDataset& dataset,
                               const DcmTagKey& tag,
-                              const std::vector<std::string>& sopClassUids,
-                              const std::vector<std::string>& sopInstanceUids,
+                              const std::list<std::string>& sopClassUids,
+                              const std::list<std::string>& sopInstanceUids,
                               bool hasFailureReason,
                               Uint16 failureReason)
   {
-    for (size_t i = 0; i < sopClassUids.size(); i++)
+    assert(sopClassUids.size() == sopInstanceUids.size());
+
+    if (sopInstanceUids.empty())
     {
-      std::auto_ptr<DcmItem> item(new DcmItem);
-      if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
-          !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
-          (hasFailureReason &&
-           !item->putAndInsertUint16(DCM_FailureReason, failureReason).good()) ||
-          !dataset.insertSequenceItem(tag, item.release()).good())
+      // Add an empty sequence
+      if (!dataset.insertEmptyElement(tag).good())
       {
         throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      std::list<std::string>::const_iterator currentClass = sopClassUids.begin();
+      std::list<std::string>::const_iterator currentInstance = sopInstanceUids.begin();
+
+      while (currentClass != sopClassUids.end())
+      {
+        std::auto_ptr<DcmItem> item(new DcmItem);
+        if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, currentClass->c_str()).good() ||
+            !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, currentInstance->c_str()).good() ||
+            (hasFailureReason &&
+             !item->putAndInsertUint16(DCM_FailureReason, failureReason).good()) ||
+            !dataset.insertSequenceItem(tag, item.release()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        ++currentClass;
+        ++currentInstance;
+      }
+      
+      for (size_t i = 0; i < sopClassUids.size(); i++)
+      {
       }
     }
   }                              
@@ -1411,10 +1434,10 @@ namespace Orthanc
 
   void DicomUserConnection::ReportStorageCommitment(
     const std::string& transactionUid,
-    const std::vector<std::string>& successSopClassUids,
-    const std::vector<std::string>& successSopInstanceUids,
-    const std::vector<std::string>& failureSopClassUids,
-    const std::vector<std::string>& failureSopInstanceUids)
+    const std::list<std::string>& successSopClassUids,
+    const std::list<std::string>& successSopInstanceUids,
+    const std::list<std::string>& failureSopClassUids,
+    const std::list<std::string>& failureSopInstanceUids)
   {
     if (successSopClassUids.size() != successSopInstanceUids.size() ||
         failureSopClassUids.size() != failureSopInstanceUids.size())
@@ -1551,8 +1574,8 @@ namespace Orthanc
   
   void DicomUserConnection::RequestStorageCommitment(
     const std::string& transactionUid,
-    const std::vector<std::string>& sopClassUids,
-    const std::vector<std::string>& sopInstanceUids)
+    const std::list<std::string>& sopClassUids,
+    const std::list<std::string>& sopInstanceUids)
   {
     if (sopClassUids.size() != sopInstanceUids.size())
     {

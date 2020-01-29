@@ -58,11 +58,11 @@ using namespace Orthanc;
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
-  ServerContext& server_;
+  ServerContext& context_;
 
 public:
   OrthancStoreRequestHandler(ServerContext& context) :
-    server_(context)
+    context_(context)
   {
   }
 
@@ -84,66 +84,242 @@ public:
       toStore.SetJson(dicomJson);
 
       std::string id;
-      server_.Store(id, toStore);
+      context_.Store(id, toStore);
     }
   }
 };
 
 
 
-class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestHandler
+namespace Orthanc
 {
-private:
-  ServerContext& server_;
-
-  // TODO - Remove this
-  static void Toto(std::string* t, std::string* remotec)
+  class StorageCommitmentScpJob : public SetOfCommandsJob
   {
-    try
+  private:
+    class LookupCommand : public SetOfCommandsJob::ICommand
     {
-      std::auto_ptr<std::string> tt(t);
-      std::auto_ptr<std::string> remote(remotec);
-    
-      printf("Sleeping\n");
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-      printf("Connect back\n");
+    private:
+      StorageCommitmentScpJob&  that_;
+      std::string               sopClassUid_;
+      std::string               sopInstanceUid_;
 
-      RemoteModalityParameters p;
-
-      if (*remote == "ORTHANC")
+    public:
+      LookupCommand(StorageCommitmentScpJob& that,
+                    const std::string& sopClassUid,
+                    const std::string& sopInstanceUid) :
+        that_(that),
+        sopClassUid_(sopClassUid),
+        sopInstanceUid_(sopInstanceUid)
       {
-        p = RemoteModalityParameters("ORTHANC", "localhost", 4242, ModalityManufacturer_Generic);
+      }
+
+      virtual bool Execute()
+      {
+        that_.LookupInstance(sopClassUid_, sopInstanceUid_);
+        return true;
+      }
+
+      virtual void Serialize(Json::Value& target) const
+      {
+        target = Json::objectValue;
+        target["Type"] = "Lookup";
+        target["SopClassUid"] = sopClassUid_;
+        target["SopInstanceUid"] = sopInstanceUid_;
+      }
+    };
+    
+    class AnswerCommand : public SetOfCommandsJob::ICommand
+    {
+    private:
+      StorageCommitmentScpJob&  that_;
+
+    public:
+      AnswerCommand(StorageCommitmentScpJob& that) :
+        that_(that)
+      {
+      }
+
+      virtual bool Execute()
+      {
+        that_.Answer();
+        return true;
+      }
+
+      virtual void Serialize(Json::Value& target) const
+      {
+        target = Json::objectValue;
+        target["Type"] = "Answer";
+      }
+    };
+    
+    class Unserializer : public SetOfCommandsJob::ICommandUnserializer
+    {
+    private:
+      StorageCommitmentScpJob&   that_;
+
+    public:
+      Unserializer(StorageCommitmentScpJob&  that) :
+        that_(that)
+      {
+      }
+
+      virtual ICommand* Unserialize(const Json::Value& source) const
+      {
+        std::cout << "===================================\n";
+        std::cout << source.toStyledString();
+        
+        /*DicomMap findAnswer;
+        findAnswer.Unserialize(source);
+        return new Command(that_, findAnswer);*/
+
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+    };
+
+    ServerContext&            context_;
+    bool                      ready_;
+    std::string               transactionUid_;
+    RemoteModalityParameters  remoteModality_;
+    std::string               calledAet_;
+    std::list<std::string>    successSopClassUids_;
+    std::list<std::string>    successSopInstanceUids_;
+    std::list<std::string>    failedSopClassUids_;
+    std::list<std::string>    failedSopInstanceUids_;
+
+    void LookupInstance(const std::string& sopClassUid,
+                        const std::string& sopInstanceUid)
+    {
+      bool success = false;
+      
+      try
+      {
+        std::vector<std::string> orthancId;
+        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+
+        if (orthancId.size() == 1)
+        {
+          std::string a, b;
+          
+          ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
+          if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
+              locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
+              a == sopClassUid &&
+              b == sopInstanceUid)
+          {
+            success = true;
+          }
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+
+      LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
+                << " while looking for " << sopClassUid << " / " << sopInstanceUid;
+
+      if (success)
+      {
+        successSopClassUids_.push_back(sopClassUid);
+        successSopInstanceUids_.push_back(sopInstanceUid);
       }
       else
       {
-        p = RemoteModalityParameters("STGCMTSCU", "localhost", 11114, ModalityManufacturer_Generic);
+        failedSopClassUids_.push_back(sopClassUid);
+        failedSopInstanceUids_.push_back(sopInstanceUid);
       }
-        
-      DicomUserConnection scu("ORTHANC", p);
-
-      std::vector<std::string> a, b, c, d;
-      a.push_back("a");  b.push_back("b");
-      a.push_back("c");  b.push_back("d");
-    
-      scu.ReportStorageCommitment(tt->c_str(), a, b, c, d);
-      //scu.ReportStorageCommitment(tt->c_str(), a, b, a, b);
     }
-    catch (OrthancException& e)
+
+    void Answer()
     {
-      LOG(ERROR) << "EXCEPTION: " << e.What();
+      LOG(INFO) << "  Storage commitment SCP job: Sending answer";
+      
+      DicomUserConnection scu(calledAet_, remoteModality_);
+      scu.ReportStorageCommitment(transactionUid_, successSopClassUids_, successSopInstanceUids_,
+                                  failedSopClassUids_, failedSopInstanceUids_);
+
+      /**
+       * "After the N-EVENT-REPORT has been sent, the Transaction UID is
+       * no longer active and shall not be reused for other
+       * transactions."
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+       **/
+    }
+    
+  public:
+    StorageCommitmentScpJob(ServerContext& context,
+                            const std::string& transactionUid,
+                            const std::string& remoteAet,
+                            const std::string& calledAet) :
+      context_(context),
+      ready_(false),
+      transactionUid_(transactionUid),
+      calledAet_(calledAet)
+    {
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remoteModality_, remoteAet))
+        {
+          throw OrthancException(ErrorCode_InexistentItem,
+                                 "Unknown remote modality for storage commitment SCP: " + remoteAet);
+        }
+      }
     }
 
-    /**
-     * "After the N-EVENT-REPORT has been sent, the Transaction UID is
-     * no longer active and shall not be reused for other
-     * transactions."
-     * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
-     **/
-  }
+    void AddInstance(const std::string& sopClassUid,
+                     const std::string& sopInstanceUid)
+    {
+      if (ready_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        AddCommand(new LookupCommand(*this, sopClassUid, sopInstanceUid));        
+      }
+    }
+
+    void MarkAsReady()
+    {
+      if (ready_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        AddCommand(new AnswerCommand(*this));
+        ready_ = true;
+      }
+    }
+
+    virtual void Stop(JobStopReason reason)
+    {
+    }
+
+    virtual void GetJobType(std::string& target)
+    {
+      target = "StorageCommitmentScp";
+    }
+
+    virtual void GetPublicContent(Json::Value& value)
+    {
+      SetOfCommandsJob::GetPublicContent(value);
+      
+      value["LocalAet"] = calledAet_;
+      value["RemoteAet"] = remoteModality_.GetApplicationEntityTitle();
+      value["TransactionUid"] = transactionUid_;
+    }
+  };
+}
+
+
+class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestHandler
+{
+private:
+  ServerContext& context_;
   
 public:
   OrthancStorageCommitmentRequestHandler(ServerContext& context) :
-    server_(context)
+    context_(context)
   {
   }
 
@@ -154,11 +330,22 @@ public:
                              const std::string& remoteAet,
                              const std::string& calledAet)
   {
-    // TODO - Enqueue a Storage commitment job
+    if (referencedSopClassUids.size() != referencedSopInstanceUids.size())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::auto_ptr<StorageCommitmentScpJob> job(
+      new StorageCommitmentScpJob(context_, transactionUid, remoteAet, calledAet));
 
-    boost::thread t(Toto, new std::string(transactionUid), new std::string(remoteAet));
+    for (size_t i = 0; i < referencedSopClassUids.size(); i++)
+    {
+      job->AddInstance(referencedSopClassUids[i], referencedSopInstanceUids[i]);
+    }
 
-    printf("HANDLE REQUEST\n");
+    job->MarkAsReady();
+
+    context_.GetJobsEngine().GetRegistry().Submit(job.release(), 0 /* default priority */);
   }
 
   virtual void HandleReport(const std::string& transactionUid,
