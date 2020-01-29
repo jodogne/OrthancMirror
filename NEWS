@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Plugins
+-------
+
+* New sample plugin: "ConnectivityChecks"
+
 REST API
 --------
 

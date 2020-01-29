@@ -37,6 +37,7 @@ set(HAS_EMBEDDED_RESOURCES ON)
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
+SET(BUILD_CONNECTIVITY_CHECKS ON CACHE BOOL "Whether to build the ConnectivityChecks plugin")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -456,6 +457,63 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
     RUNTIME DESTINATION lib    # Destination for Windows
     LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
     )
+endif()
+
+
+
+#####################################################################
+## Build the "ConnectivityChecks" plugin
+#####################################################################
+
+if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
+  include(ExternalProject)
+
+  set(Flags)
+
+  if (CMAKE_TOOLCHAIN_FILE)
+    # Take absolute path to the toolchain
+    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
+    list(APPEND Flags -DCMAKE_TOOLCHAIN_FILE=${TMP})
+  endif()
+
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    list(APPEND Flags
+      -DLSB_CC=${CMAKE_LSB_CC}
+      -DLSB_CXX=${CMAKE_LSB_CXX}
+      )
+  endif()
+
+  externalproject_add(ConnectivityChecksProject
+    SOURCE_DIR "${ORTHANC_ROOT}/Plugins/Samples/ConnectivityChecks"
+
+    CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
+    -DPLUGIN_VERSION=${ORTHANC_VERSION}
+    -DSTATIC_BUILD=${STATIC_BUILD}
+    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
+    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
+    ${Flags}
+    )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    if (MSVC)
+      set(Prefix "")
+    else()
+      set(Prefix "lib")  # MinGW
+    endif()
+
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks.dll
+      DESTINATION "lib")
+  else()
+    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
+    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
+      DESTINATION "share/orthanc/plugins")
+  endif()
 endif()
 
 

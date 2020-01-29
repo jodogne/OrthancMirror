@@ -7,6 +7,15 @@ if (CMAKE_CROSSCOMPILING OR
   SET(STANDALONE_BUILD ON)
 endif()
 
+
+if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  # Cache the environment variables "LSB_CC" and "LSB_CXX" for further
+  # use by "ExternalProject" in CMake
+  SET(CMAKE_LSB_CC $ENV{LSB_CC} CACHE STRING "")
+  SET(CMAKE_LSB_CXX $ENV{LSB_CXX} CACHE STRING "")
+endif()
+
+
 if (CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-long-long")
 
