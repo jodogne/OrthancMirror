@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class JobsEngine
+  class JobsEngine : public boost::noncopyable
   {
   private:
     enum State
