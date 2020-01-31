@@ -101,6 +101,14 @@ namespace Orthanc
     AnswerCommand(StorageCommitmentScpJob& that) :
       that_(that)
     {
+      if (that_.ready_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        that_.ready_ = true;
+      }
     }
 
     virtual bool Execute()
@@ -126,6 +134,7 @@ namespace Orthanc
     Unserializer(StorageCommitmentScpJob&  that) :
       that_(that)
     {
+      that_.ready_ = false;
     }
 
     virtual ICommand* Unserialize(const Json::Value& source) const
@@ -243,15 +252,7 @@ namespace Orthanc
 
   void StorageCommitmentScpJob::MarkAsReady()
   {
-    if (ready_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      AddCommand(new AnswerCommand(*this));
-      ready_ = true;
-    }
+    AddCommand(new AnswerCommand(*this));
   }
 
 
@@ -269,8 +270,7 @@ namespace Orthanc
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
-    context_(context),
-    ready_(false)
+    context_(context)
   {
     transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);
     remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
@@ -279,8 +279,6 @@ namespace Orthanc
     SerializationToolbox::ReadListOfStrings(successSopInstanceUids_, serialized, SUCCESS_SOP_INSTANCE_UIDS);
     SerializationToolbox::ReadListOfStrings(failedSopClassUids_, serialized, FAILED_SOP_CLASS_UIDS);
     SerializationToolbox::ReadListOfStrings(failedSopInstanceUids_, serialized, FAILED_SOP_INSTANCE_UIDS);
-
-    MarkAsReady();
   }
   
 
