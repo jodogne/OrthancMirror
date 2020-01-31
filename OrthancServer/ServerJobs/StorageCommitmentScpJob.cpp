@@ -37,8 +37,24 @@
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
+
+
+static const char* ANSWER = "Answer";
+static const char* CALLED_AET = "CalledAet";
+static const char* FAILED_SOP_CLASS_UIDS = "FailedSopClassUids";
+static const char* FAILED_SOP_INSTANCE_UIDS = "FailedSopInstanceUids";
+static const char* LOOKUP = "Lookup";
+static const char* REMOTE_MODALITY = "RemoteModality";
+static const char* SOP_CLASS_UID = "SopClassUid";
+static const char* SOP_INSTANCE_UID = "SopInstanceUid";
+static const char* SUCCESS_SOP_CLASS_UIDS = "SuccessSopClassUids";
+static const char* SUCCESS_SOP_INSTANCE_UIDS = "SuccessSopInstanceUids";
+static const char* TRANSACTION_UID = "TransactionUid";
+static const char* TYPE = "Type";
+
 
 
 namespace Orthanc
@@ -69,9 +85,9 @@ namespace Orthanc
     virtual void Serialize(Json::Value& target) const
     {
       target = Json::objectValue;
-      target["Type"] = "Lookup";
-      target["SopClassUid"] = sopClassUid_;
-      target["SopInstanceUid"] = sopInstanceUid_;
+      target[TYPE] = LOOKUP;
+      target[SOP_CLASS_UID] = sopClassUid_;
+      target[SOP_INSTANCE_UID] = sopInstanceUid_;
     }
   };
 
@@ -96,7 +112,7 @@ namespace Orthanc
     virtual void Serialize(Json::Value& target) const
     {
       target = Json::objectValue;
-      target["Type"] = "Answer";
+      target[TYPE] = ANSWER;
     }
   };
     
@@ -114,14 +130,22 @@ namespace Orthanc
 
     virtual ICommand* Unserialize(const Json::Value& source) const
     {
-      std::cout << "===================================\n";
-      std::cout << source.toStyledString();
-        
-      /*DicomMap findAnswer;
-        findAnswer.Unserialize(source);
-        return new Command(that_, findAnswer);*/
+      const std::string type = SerializationToolbox::ReadString(source, TYPE);
 
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (type == LOOKUP)
+      {
+        return new LookupCommand(that_,
+                                 SerializationToolbox::ReadString(source, SOP_CLASS_UID),
+                                 SerializationToolbox::ReadString(source, SOP_INSTANCE_UID));
+      }
+      else if (type == ANSWER)
+      {
+        return new AnswerCommand(that_);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
     }
   };
 
@@ -235,8 +259,47 @@ namespace Orthanc
   {
     SetOfCommandsJob::GetPublicContent(value);
       
-    value["LocalAet"] = calledAet_;
+    value["CalledAet"] = calledAet_;
     value["RemoteAet"] = remoteModality_.GetApplicationEntityTitle();
     value["TransactionUid"] = transactionUid_;
+  }
+
+
+
+  StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
+                                                   const Json::Value& serialized) :
+    SetOfCommandsJob(new Unserializer(*this), serialized),
+    context_(context),
+    ready_(false)
+  {
+    transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);
+    remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
+    calledAet_ = SerializationToolbox::ReadString(serialized, CALLED_AET);
+    SerializationToolbox::ReadListOfStrings(successSopClassUids_, serialized, SUCCESS_SOP_CLASS_UIDS);
+    SerializationToolbox::ReadListOfStrings(successSopInstanceUids_, serialized, SUCCESS_SOP_INSTANCE_UIDS);
+    SerializationToolbox::ReadListOfStrings(failedSopClassUids_, serialized, FAILED_SOP_CLASS_UIDS);
+    SerializationToolbox::ReadListOfStrings(failedSopInstanceUids_, serialized, FAILED_SOP_INSTANCE_UIDS);
+
+    MarkAsReady();
+  }
+  
+
+  bool StorageCommitmentScpJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfCommandsJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[TRANSACTION_UID] = transactionUid_;
+      remoteModality_.Serialize(target[REMOTE_MODALITY], true /* force advanced format */);
+      target[CALLED_AET] = calledAet_;
+      SerializationToolbox::WriteListOfStrings(target, successSopClassUids_, SUCCESS_SOP_CLASS_UIDS);
+      SerializationToolbox::WriteListOfStrings(target, successSopInstanceUids_, SUCCESS_SOP_INSTANCE_UIDS);
+      SerializationToolbox::WriteListOfStrings(target, failedSopClassUids_, FAILED_SOP_CLASS_UIDS);
+      SerializationToolbox::WriteListOfStrings(target, failedSopInstanceUids_, FAILED_SOP_INSTANCE_UIDS);
+      return true;
+    }
   }
 }

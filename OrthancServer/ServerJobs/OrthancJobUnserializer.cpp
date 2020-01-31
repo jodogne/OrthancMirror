@@ -49,10 +49,11 @@
 
 #include "DicomModalityStoreJob.h"
 #include "DicomMoveScuJob.h"
+#include "MergeStudyJob.h"
 #include "OrthancPeerStoreJob.h"
 #include "ResourceModificationJob.h"
-#include "MergeStudyJob.h"
 #include "SplitStudyJob.h"
+#include "StorageCommitmentScpJob.h"
 
 
 namespace Orthanc
@@ -95,6 +96,10 @@ namespace Orthanc
     else if (type == "DicomMoveScu")
     {
       return new DicomMoveScuJob(context_, source);
+    }
+    else if (type == "StorageCommitmentScp")
+    {
+      return new StorageCommitmentScpJob(context_, source);
     }
     else
     {

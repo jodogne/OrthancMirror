@@ -69,20 +69,25 @@ namespace Orthanc
                             const std::string& remoteAet,
                             const std::string& calledAet);
 
+    StorageCommitmentScpJob(ServerContext& context,
+                            const Json::Value& serialized);
+
     void AddInstance(const std::string& sopClassUid,
                      const std::string& sopInstanceUid);
 
     void MarkAsReady();
 
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "StorageCommitmentScp";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }
