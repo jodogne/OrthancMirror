@@ -83,6 +83,10 @@ namespace Orthanc
                              const std::vector<std::string>& values,
                              const std::string& field);
 
+    void WriteListOfStrings(Json::Value& target,
+                            const std::list<std::string>& values,
+                            const std::string& field);
+
     void WriteSetOfStrings(Json::Value& target,
                            const std::set<std::string>& values,
                            const std::string& field);

@@ -320,6 +320,28 @@ namespace Orthanc
     }
 
 
+    void WriteListOfStrings(Json::Value& target,
+                            const std::list<std::string>& values,
+                            const std::string& field)
+    {
+      if (target.type() != Json::objectValue ||
+          target.isMember(field.c_str()))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      Json::Value& value = target[field];
+
+      value = Json::arrayValue;
+
+      for (std::list<std::string>::const_iterator it = values.begin();
+           it != values.end(); ++it)
+      {
+        value.append(*it);
+      }
+    }
+
+
     void WriteSetOfStrings(Json::Value& target,
                            const std::set<std::string>& values,
                            const std::string& field)
