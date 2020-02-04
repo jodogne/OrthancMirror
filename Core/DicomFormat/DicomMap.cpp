@@ -46,6 +46,100 @@
 
 namespace Orthanc
 {
+  namespace
+  {
+    struct MainDicomTag
+    {
+      const DicomTag tag_;
+      const char*    name_;
+    };
+  }
+
+  static const MainDicomTag PATIENT_MAIN_DICOM_TAGS_2[] =
+  {
+    // { DicomTag(0x0010, 0x1010), "PatientAge" },
+    // { DicomTag(0x0010, 0x1040), "PatientAddress" },
+    { DicomTag(0x0010, 0x0010), "PatientName" },
+    { DicomTag(0x0010, 0x0030), "PatientBirthDate" },
+    { DicomTag(0x0010, 0x0040), "PatientSex" },
+    { DicomTag(0x0010, 0x1000), "OtherPatientIDs" },
+    { DICOM_TAG_PATIENT_ID, "PatientID" }
+  };
+    
+  static const MainDicomTag STUDY_MAIN_DICOM_TAGS_2[] =
+  {
+    // { DicomTag(0x0010, 0x1020), "PatientSize" },
+    // { DicomTag(0x0010, 0x1030), "PatientWeight" },
+    { DICOM_TAG_STUDY_DATE, "StudyDate" },
+    { DicomTag(0x0008, 0x0030), "StudyTime" },
+    { DicomTag(0x0020, 0x0010), "StudyID" },
+    { DICOM_TAG_STUDY_DESCRIPTION, "StudyDescription" },
+    { DICOM_TAG_ACCESSION_NUMBER, "AccessionNumber" },
+    { DICOM_TAG_STUDY_INSTANCE_UID, "StudyInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION, "RequestedProcedureDescription" },
+    { DICOM_TAG_INSTITUTION_NAME, "InstitutionName" },
+    { DICOM_TAG_REQUESTING_PHYSICIAN, "RequestingPhysician" },
+    { DICOM_TAG_REFERRING_PHYSICIAN_NAME, "ReferringPhysicianName" }
+  };
+    
+  static const MainDicomTag SERIES_MAIN_DICOM_TAGS_2[] =
+  {
+    // { DicomTag(0x0010, 0x1080), "MilitaryRank" },
+    { DicomTag(0x0008, 0x0021), "SeriesDate" },
+    { DicomTag(0x0008, 0x0031), "SeriesTime" },
+    { DICOM_TAG_MODALITY, "Modality" },
+    { DicomTag(0x0008, 0x0070), "Manufacturer" },
+    { DicomTag(0x0008, 0x1010), "StationName" },
+    { DICOM_TAG_SERIES_DESCRIPTION, "SeriesDescription" },
+    { DicomTag(0x0018, 0x0015), "BodyPartExamined" },
+    { DicomTag(0x0018, 0x0024), "SequenceName" },
+    { DicomTag(0x0018, 0x1030), "ProtocolName" },
+    { DicomTag(0x0020, 0x0011), "SeriesNumber" },
+    { DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES, "CardiacNumberOfImage" },
+    { DICOM_TAG_IMAGES_IN_ACQUISITION, "ImagesInAcquisition" },
+    { DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS, "NumberOfTemporalPositions" },
+    { DICOM_TAG_NUMBER_OF_SLICES, "NumberOfSlices" },
+    { DICOM_TAG_NUMBER_OF_TIME_SLICES, "NumberOfTimeSlices" },
+    { DICOM_TAG_SERIES_INSTANCE_UID, "SeriesInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "ImageOrientationPatientt" },  // TODO - Should have an unit test that fails
+    { DICOM_TAG_SERIES_TYPE, "SeriesType" },
+    { DICOM_TAG_OPERATOR_NAME, "OperatorName" },
+    { DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "PerformedProcedureStepDescription" },
+    { DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION, "AcquisitionDeviceProcessingDescription" },
+    { DICOM_TAG_CONTRAST_BOLUS_AGENT, "ContrastBolusAgen" }
+  };
+    
+  static const MainDicomTag INSTANCE_MAIN_DICOM_TAGS_2[] =
+  {
+    { DicomTag(0x0008, 0x0012), "InstanceCreationDate" },
+    { DicomTag(0x0008, 0x0013), "InstanceCreationTime" },
+    { DicomTag(0x0020, 0x0012), "AcquisitionNumber" },
+    { DICOM_TAG_IMAGE_INDEX, "ImageIndex" },
+    { DICOM_TAG_INSTANCE_NUMBER, "InstanceNumber" },
+    { DICOM_TAG_NUMBER_OF_FRAMES, "NumberOfFrames" },
+    { DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "TemporalPositionIdentifier" },
+    { DICOM_TAG_SOP_INSTANCE_UID, "SOPInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_IMAGE_POSITION_PATIENT, "ImagePositionPatient" },
+    { DICOM_TAG_IMAGE_COMMENTS, "ImageComments" },
+
+    /**
+     * Main DICOM tags that are not part of any release of the
+     * database schema yet, and that will be part of future db v7. In
+     * the meantime, the user must call "/tools/reconstruct" once to
+     * access these tags if the corresponding DICOM files where
+     * indexed in the database by an older version of Orthanc.
+     **/
+    { DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "ImageOrientationPatient" }  // New in Orthanc 1.4.2
+  };
+    
+
+  
   static const DicomTag PATIENT_MAIN_DICOM_TAGS[] =
   {
     //DicomTag(0x0010, 0x1010), // PatientAge
