@@ -124,6 +124,7 @@
   "JpipTransferSyntaxAccepted"         : true,
   "Mpeg2TransferSyntaxAccepted"        : true,
   "RleTransferSyntaxAccepted"          : true,
+  "Mpeg4TransferSyntaxAccepted"        : true,  // New in Orthanc 1.6.0
 
   // Whether Orthanc accepts to act as C-Store SCP for unknown storage
   // SOP classes (aka. "promiscuous mode")

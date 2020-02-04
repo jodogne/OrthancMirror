@@ -888,6 +888,9 @@ namespace Orthanc
       case TransferSyntax_Mpeg2:
         return "MPEG2";
 
+      case TransferSyntax_Mpeg4:
+        return "MPEG4";
+
       case TransferSyntax_Rle:
         return "RLE";
 
