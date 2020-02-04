@@ -633,6 +633,7 @@ namespace Orthanc
     TransferSyntax_JpegLossless,
     TransferSyntax_Jpip,
     TransferSyntax_Mpeg2,
+    TransferSyntax_Mpeg4,  // New in Orthanc 1.6.0
     TransferSyntax_Rle
   };
 
