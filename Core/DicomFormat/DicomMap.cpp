@@ -46,7 +46,7 @@
 
 namespace Orthanc
 {
-  static DicomTag patientTags[] =
+  static const DicomTag PATIENT_MAIN_DICOM_TAGS[] =
   {
     //DicomTag(0x0010, 0x1010), // PatientAge
     //DicomTag(0x0010, 0x1040)  // PatientAddress
@@ -57,7 +57,7 @@ namespace Orthanc
     DICOM_TAG_PATIENT_ID
   };
 
-  static DicomTag studyTags[] =
+  static const DicomTag STUDY_MAIN_DICOM_TAGS[] =
   {
     //DicomTag(0x0010, 0x1020), // PatientSize
     //DicomTag(0x0010, 0x1030)  // PatientWeight
@@ -73,7 +73,7 @@ namespace Orthanc
     DICOM_TAG_REFERRING_PHYSICIAN_NAME           // New in db v6
   };
 
-  static DicomTag seriesTags[] =
+  static const DicomTag SERIES_MAIN_DICOM_TAGS[] =
   {
     //DicomTag(0x0010, 0x1080), // MilitaryRank
     DicomTag(0x0008, 0x0021),   // SeriesDate
@@ -100,7 +100,7 @@ namespace Orthanc
     DICOM_TAG_CONTRAST_BOLUS_AGENT                        // New in db v6
   };
 
-  static DicomTag instanceTags[] =
+  static const DicomTag INSTANCE_MAIN_DICOM_TAGS[] =
   {
     DicomTag(0x0008, 0x0012),   // InstanceCreationDate
     DicomTag(0x0008, 0x0013),   // InstanceCreationTime
@@ -131,23 +131,23 @@ namespace Orthanc
     switch (level)
     {
       case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
+        tags = PATIENT_MAIN_DICOM_TAGS;
+        size = sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
+        tags = STUDY_MAIN_DICOM_TAGS;
+        size = sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
+        tags = SERIES_MAIN_DICOM_TAGS;
+        size = sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
+        tags = INSTANCE_MAIN_DICOM_TAGS;
+        size = sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       default:
@@ -212,22 +212,22 @@ namespace Orthanc
 
   void DicomMap::ExtractPatientInformation(DicomMap& result) const
   {
-    ExtractTags(result, patientTags, sizeof(patientTags) / sizeof(DicomTag));
+    ExtractTags(result, PATIENT_MAIN_DICOM_TAGS, sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag));
   }
 
   void DicomMap::ExtractStudyInformation(DicomMap& result) const
   {
-    ExtractTags(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
+    ExtractTags(result, STUDY_MAIN_DICOM_TAGS, sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag));
   }
 
   void DicomMap::ExtractSeriesInformation(DicomMap& result) const
   {
-    ExtractTags(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
+    ExtractTags(result, SERIES_MAIN_DICOM_TAGS, sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag));
   }
 
   void DicomMap::ExtractInstanceInformation(DicomMap& result) const
   {
-    ExtractTags(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
+    ExtractTags(result, INSTANCE_MAIN_DICOM_TAGS, sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag));
   }
 
 
@@ -311,12 +311,12 @@ namespace Orthanc
 
   void DicomMap::SetupFindPatientTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, patientTags, sizeof(patientTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, PATIENT_MAIN_DICOM_TAGS, sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag));
   }
 
   void DicomMap::SetupFindStudyTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, STUDY_MAIN_DICOM_TAGS, sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
 
@@ -329,7 +329,7 @@ namespace Orthanc
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, SERIES_MAIN_DICOM_TAGS, sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
@@ -351,7 +351,7 @@ namespace Orthanc
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, INSTANCE_MAIN_DICOM_TAGS, sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
@@ -371,29 +371,29 @@ namespace Orthanc
 
   bool DicomMap::IsMainDicomTag(const DicomTag& tag, ResourceType level)
   {
-    DicomTag *tags = NULL;
+    const DicomTag *tags = NULL;
     size_t size;
 
     switch (level)
     {
       case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
+        tags = PATIENT_MAIN_DICOM_TAGS;
+        size = sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
+        tags = STUDY_MAIN_DICOM_TAGS;
+        size = sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
+        tags = SERIES_MAIN_DICOM_TAGS;
+        size = sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
+        tags = INSTANCE_MAIN_DICOM_TAGS;
+        size = sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       default:
@@ -422,29 +422,29 @@ namespace Orthanc
 
   void DicomMap::GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level)
   {
-    DicomTag *tags = NULL;
+    const DicomTag *tags = NULL;
     size_t size;
 
     switch (level)
     {
       case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
+        tags = PATIENT_MAIN_DICOM_TAGS;
+        size = sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
+        tags = STUDY_MAIN_DICOM_TAGS;
+        size = sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
+        tags = SERIES_MAIN_DICOM_TAGS;
+        size = sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
+        tags = INSTANCE_MAIN_DICOM_TAGS;
+        size = sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag);
         break;
 
       default:
