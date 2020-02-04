@@ -341,6 +341,10 @@ public:
         configuration = "Mpeg2TransferSyntaxAccepted";
         break;
 
+      case TransferSyntax_Mpeg4:
+        configuration = "Mpeg4TransferSyntaxAccepted";
+        break;
+
       case TransferSyntax_Rle:
         configuration = "RleTransferSyntaxAccepted";
         break;
