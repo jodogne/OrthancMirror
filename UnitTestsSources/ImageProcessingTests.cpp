@@ -896,7 +896,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale16)
 TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
 {
   {
-    Image image(PixelFormat_Grayscale8, 6, 1, false);
+    Image image(PixelFormat_Grayscale8, 5, 1, false);
     SetGrayscale8Pixel(image, 0, 0, 0);
     SetGrayscale8Pixel(image, 1, 0, 2);
     SetGrayscale8Pixel(image, 2, 0, 5);
@@ -904,7 +904,7 @@ TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
     SetGrayscale8Pixel(image, 4, 0, 255);
 
     {
-      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      Image target(PixelFormat_Grayscale16, 5, 1, false);
       ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
@@ -919,7 +919,7 @@ TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
 TEST(ImageProcessing, ApplyWindowingGrayScale16ToGrayScale16)
 {
   {
-    Image image(PixelFormat_Grayscale16, 6, 1, false);
+    Image image(PixelFormat_Grayscale16, 5, 1, false);
     SetGrayscale16Pixel(image, 0, 0, 0);
     SetGrayscale16Pixel(image, 1, 0, 2);
     SetGrayscale16Pixel(image, 2, 0, 5);
@@ -927,7 +927,7 @@ TEST(ImageProcessing, ApplyWindowingGrayScale16ToGrayScale16)
     SetGrayscale16Pixel(image, 4, 0, 255);
 
     {
-      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      Image target(PixelFormat_Grayscale16, 5, 1, false);
       ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));

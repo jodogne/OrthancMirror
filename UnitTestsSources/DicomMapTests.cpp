@@ -991,3 +991,44 @@ TEST(DicomWebJson, PixelSpacing)
   ASSERT_TRUE(target.LookupStringValue(s, DICOM_TAG_PIXEL_SPACING, false));
   ASSERT_EQ(s, "1.5\\1.3");
 }
+
+
+TEST(DicomMap, MainTagNames)
+{
+  ASSERT_EQ(3, ResourceType_Instance - ResourceType_Patient);
+  
+  for (int i = ResourceType_Patient; i <= ResourceType_Instance; i++)
+  {
+    ResourceType level = static_cast<ResourceType>(i);
+
+    std::set<DicomTag> tags;
+    DicomMap::GetMainDicomTags(tags, level);
+
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      DicomMap a;
+      a.SetValue(*it, "TEST", false);
+
+      Json::Value json;
+      a.DumpMainDicomTags(json, level);
+
+      ASSERT_EQ(Json::objectValue, json.type());
+      ASSERT_EQ(1u, json.getMemberNames().size());
+
+      std::string name = json.getMemberNames() [0];
+      EXPECT_EQ(name, FromDcmtkBridge::GetTagName(*it, ""));
+
+      DicomMap b;
+      b.ParseMainDicomTags(json, level);
+
+      ASSERT_EQ(1u, b.GetSize());
+      ASSERT_EQ("TEST", b.GetStringValue(*it, "", false));
+
+      std::string main = it->GetMainTagsName();
+      if (!main.empty())
+      {
+        ASSERT_EQ(main, name);
+      }
+    }
+  }
+}
