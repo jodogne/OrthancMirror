@@ -188,10 +188,6 @@ namespace Orthanc
 
     void GetTags(std::set<DicomTag>& tags) const;
 
-    static void LoadMainDicomTags(const DicomTag*& tags,
-                                  size_t& size,
-                                  ResourceType level);
-
     static bool ParseDicomMetaInformation(DicomMap& result,
                                           const char* dicom,
                                           size_t size);
@@ -239,6 +235,12 @@ namespace Orthanc
                                bool allowBinary) const;
 
     void RemoveBinaryTags();
+
+    void DumpMainDicomTags(Json::Value& target,
+                           ResourceType level) const;
+
+    void ParseMainDicomTags(Json::Value& target,
+                            ResourceType level);
 
     void Print(FILE* fp) const;  // For debugging only
   };

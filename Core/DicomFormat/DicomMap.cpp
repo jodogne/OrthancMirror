@@ -124,9 +124,9 @@ namespace Orthanc
   };
 
 
-  void DicomMap::LoadMainDicomTags(const DicomTag*& tags,
-                                   size_t& size,
-                                   ResourceType level)
+  static void LoadMainDicomTags(const DicomTag*& tags,
+                                size_t& size,
+                                ResourceType level)
   {
     switch (level)
     {
@@ -1314,6 +1314,21 @@ namespace Orthanc
     }
 
     map_ = kept;
+  }
+
+
+  void DicomMap::DumpMainDicomTags(Json::Value& target,
+                                   ResourceType level) const
+  {
+    target = Json::objectValue;
+
+    
+  }
+  
+
+  void DicomMap::ParseMainDicomTags(Json::Value& target,
+                                    ResourceType level)
+  {
   }
 
 
