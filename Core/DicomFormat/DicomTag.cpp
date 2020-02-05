@@ -187,6 +187,10 @@ namespace Orthanc
     if (*this == DICOM_TAG_IMAGE_ORIENTATION_PATIENT)
       return "ImageOrientationPatient";
 
+    // New in Orthanc 1.6.0, as tagged as "RETIRED_" since DCMTK 3.6.4
+    if (*this == DICOM_TAG_OTHER_PATIENT_IDS)
+      return "OtherPatientIDs";
+
     return "";
   }
 

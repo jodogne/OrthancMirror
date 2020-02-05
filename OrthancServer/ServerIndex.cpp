@@ -356,34 +356,40 @@ namespace Orthanc
       
     void LoadTags(ResourceType level)
     {
-      const DicomTag* tags = NULL;
-      size_t size;
-  
-      ServerToolbox::LoadIdentifiers(tags, size, level);
-  
-      for (size_t i = 0; i < size; i++)
       {
-        if (registry_.find(tags[i]) == registry_.end())
+        const DicomTag* tags = NULL;
+        size_t size;
+  
+        ServerToolbox::LoadIdentifiers(tags, size, level);
+  
+        for (size_t i = 0; i < size; i++)
         {
-          registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
-        }
-        else
-        {
-          // These patient-level tags are copied in the study level
-          assert(level == ResourceType_Study &&
-                 (tags[i] == DICOM_TAG_PATIENT_ID ||
-                  tags[i] == DICOM_TAG_PATIENT_NAME ||
-                  tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+          if (registry_.find(tags[i]) == registry_.end())
+          {
+            registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
+          }
+          else
+          {
+            // These patient-level tags are copied in the study level
+            assert(level == ResourceType_Study &&
+                   (tags[i] == DICOM_TAG_PATIENT_ID ||
+                    tags[i] == DICOM_TAG_PATIENT_NAME ||
+                    tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+          }
         }
       }
-  
-      DicomMap::LoadMainDicomTags(tags, size, level);
-  
-      for (size_t i = 0; i < size; i++)
+
       {
-        if (registry_.find(tags[i]) == registry_.end())
+        std::set<DicomTag> tags;
+        DicomMap::GetMainDicomTags(tags, level);
+
+        for (std::set<DicomTag>::const_iterator
+               tag = tags.begin(); tag != tags.end(); ++tag)
         {
-          registry_[tags[i]] = TagInfo(level, DicomTagType_Main);
+          if (registry_.find(*tag) == registry_.end())
+          {
+            registry_[*tag] = TagInfo(level, DicomTagType_Main);
+          }
         }
       }
     }
