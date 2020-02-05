@@ -192,7 +192,8 @@ namespace Orthanc
                          const std::string& tagName,
                          DicomValue* value)
     {
-      target.SetValue(ParseTag(tagName), value);
+      const DicomTag tag = ParseTag(tagName);
+      target.SetValueInternal(tag.GetGroup(), tag.GetElement(), value);
     }
 
     static void ToJson(Json::Value& result,

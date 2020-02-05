@@ -468,10 +468,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       DcmElement* element = dataset.getElement(i);
       if (element && element->isLeaf())
       {
-        target.SetValue(element->getTag().getGTag(),
-                        element->getTag().getETag(),
-                        ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                           maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
+        target.SetValueInternal(element->getTag().getGTag(),
+                                element->getTag().getETag(),
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default,
+                                                   maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
       }
     }
   }
@@ -1117,8 +1117,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     result.clear();
 
-    for (DicomMap::Map::const_iterator 
-           it = values.map_.begin(); it != values.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = values.content_.begin(); it != values.content_.end(); ++it)
     {
       // TODO Inject PrivateCreator if some is available in the DicomMap?
       const std::string tagName = GetTagName(it->first, "");
