@@ -30,9 +30,20 @@ else()
     message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
 
+  
+  # Patch by xnox to fix issue #166 (CMake find_boost version is now
+  # broken with newer boost/cmake)
+  # https://bitbucket.org/sjodogne/orthanc/issues/166/
+  if (POLICY CMP0093)
+    set(BOOST144 1.44)
+  else()
+    set(BOOST144 104400)
+  endif()
+  
+  
   # Boost releases 1.44 through 1.47 supply both V2 and V3 filesystem
   # http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-  if (${Boost_VERSION} LESS 104400)
+  if (${Boost_VERSION} LESS ${BOOST144})
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
       )
