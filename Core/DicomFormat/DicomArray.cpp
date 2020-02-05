@@ -40,10 +40,10 @@ namespace Orthanc
 {
   DicomArray::DicomArray(const DicomMap& map)
   {
-    elements_.reserve(map.map_.size());
+    elements_.reserve(map.content_.size());
     
-    for (DicomMap::Map::const_iterator it = 
-           map.map_.begin(); it != map.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator it = 
+           map.content_.begin(); it != map.content_.end(); ++it)
     {
       elements_.push_back(new DicomElement(it->first, *it->second));
     }

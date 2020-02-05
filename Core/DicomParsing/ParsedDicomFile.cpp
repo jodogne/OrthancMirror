@@ -1007,8 +1007,8 @@ namespace Orthanc
       }
     }
 
-    for (DicomMap::Map::const_iterator 
-           it = source.map_.begin(); it != source.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = source.content_.begin(); it != source.content_.end(); ++it)
     {
       if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
           !it->second->IsNull())

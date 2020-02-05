@@ -45,28 +45,23 @@ namespace Orthanc
 {
   class DicomMap : public boost::noncopyable
   {
+  public:
+    typedef std::map<DicomTag, DicomValue*>  Content;
+    
   private:
     friend class DicomArray;
     friend class FromDcmtkBridge;
     friend class ParsedDicomFile;
 
-    typedef std::map<DicomTag, DicomValue*>  Map;
-
-    Map map_;
+    Content content_;
 
     // Warning: This takes the ownership of "value"
-    void SetValue(uint16_t group, 
-                  uint16_t element, 
-                  DicomValue* value);
+    void SetValueInternal(uint16_t group, 
+                          uint16_t element, 
+                          DicomValue* value);
 
-    void SetValue(DicomTag tag,
-                  DicomValue* value);
-
-    void ExtractTags(DicomMap& source,
-                     const DicomTag* tags,
-                     size_t count) const;
-   
-    static void GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level);
+    static void GetMainDicomTagsInternal(std::set<DicomTag>& result,
+                                         ResourceType level);
 
     void ExtractMainDicomTagsInternal(const DicomMap& other,
                                       ResourceType level);
@@ -83,7 +78,7 @@ namespace Orthanc
 
     size_t GetSize() const
     {
-      return map_.size();
+      return content_.size();
     }
     
     DicomMap* Clone() const;
@@ -95,32 +90,32 @@ namespace Orthanc
     void SetNullValue(uint16_t group, 
                       uint16_t element)
     {
-      SetValue(group, element, new DicomValue);
+      SetValueInternal(group, element, new DicomValue);
     }
     
     void SetNullValue(const DicomTag& tag)
     {
-      SetValue(tag, new DicomValue);
+      SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue);
     }
     
     void SetValue(uint16_t group, 
                   uint16_t element, 
                   const DicomValue& value)
     {
-      SetValue(group, element, value.Clone());
+      SetValueInternal(group, element, value.Clone());
     }
 
     void SetValue(const DicomTag& tag,
                   const DicomValue& value)
     {
-      SetValue(tag, value.Clone());
+      SetValueInternal(tag.GetGroup(), tag.GetElement(), value.Clone());
     }
 
     void SetValue(const DicomTag& tag,
                   const std::string& str,
                   bool isBinary)
     {
-      SetValue(tag, new DicomValue(str, isBinary));
+      SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(str, isBinary));
     }
 
     void SetValue(uint16_t group, 
@@ -128,7 +123,7 @@ namespace Orthanc
                   const std::string& str,
                   bool isBinary)
     {
-      SetValue(group, element, new DicomValue(str, isBinary));
+      SetValueInternal(group, element, new DicomValue(str, isBinary));
     }
 
     bool HasTag(uint16_t group, uint16_t element) const
@@ -138,7 +133,7 @@ namespace Orthanc
 
     bool HasTag(const DicomTag& tag) const
     {
-      return map_.find(tag) != map_.end();
+      return content_.find(tag) != content_.end();
     }
 
     const DicomValue& GetValue(uint16_t group, uint16_t element) const
@@ -239,7 +234,7 @@ namespace Orthanc
     void DumpMainDicomTags(Json::Value& target,
                            ResourceType level) const;
 
-    void ParseMainDicomTags(Json::Value& target,
+    void ParseMainDicomTags(const Json::Value& source,
                             ResourceType level);
 
     void Print(FILE* fp) const;  // For debugging only
