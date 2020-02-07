@@ -8,6 +8,21 @@
 namespace OrthancHelpers
 {
 
+
+  inline std::string ShortenId(const std::string& orthancUuid)
+  {
+    size_t firstHyphenPos = orthancUuid.find_first_of('-');
+    if (firstHyphenPos == std::string::npos)
+    {
+      return orthancUuid;
+    }
+    else
+    {
+      return orthancUuid.substr(0, firstHyphenPos);
+    }
+  }
+
+
   // Interface for loggers providing the same interface
   // in Orthanc framework or in an Orthanc plugins.
   // Furthermore, compared to the LOG and VLOG macros,
