@@ -1,0 +1,13 @@
+.connected {
+    background-color: darkgreen;
+    color: white;
+}
+
+.disconnected {
+  background-color: darkred;
+    color: white;
+}
+
+.unknown {
+  background-color: gold;
+}

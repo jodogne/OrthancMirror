@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -186,6 +186,10 @@ namespace Orthanc
 
     if (*this == DICOM_TAG_IMAGE_ORIENTATION_PATIENT)
       return "ImageOrientationPatient";
+
+    // New in Orthanc 1.6.0, as tagged as "RETIRED_" since DCMTK 3.6.4
+    if (*this == DICOM_TAG_OTHER_PATIENT_IDS)
+      return "OtherPatientIDs";
 
     return "";
   }

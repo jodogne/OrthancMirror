@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -428,6 +428,17 @@ namespace Orthanc
       {
         transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
         transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+      }
+
+      // New in Orthanc 1.6.0
+      if (!server.HasApplicationEntityFilter() ||
+          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
+      {
+        transferSyntaxes.push_back(UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_1TransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
+        transferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
       }
 
       if (!server.HasApplicationEntityFilter() ||
