@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -468,10 +468,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       DcmElement* element = dataset.getElement(i);
       if (element && element->isLeaf())
       {
-        target.SetValue(element->getTag().getGTag(),
-                        element->getTag().getETag(),
-                        ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                           maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
+        target.SetValueInternal(element->getTag().getGTag(),
+                                element->getTag().getETag(),
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default,
+                                                   maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
       }
     }
   }
@@ -1117,8 +1117,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     result.clear();
 
-    for (DicomMap::Map::const_iterator 
-           it = values.map_.begin(); it != values.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = values.content_.begin(); it != values.content_.end(); ++it)
     {
       // TODO Inject PrivateCreator if some is available in the DicomMap?
       const std::string tagName = GetTagName(it->first, "");

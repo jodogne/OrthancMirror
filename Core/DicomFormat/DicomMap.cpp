@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,72 +46,87 @@
 
 namespace Orthanc
 {
-  static DicomTag patientTags[] =
+  namespace
   {
-    //DicomTag(0x0010, 0x1010), // PatientAge
-    //DicomTag(0x0010, 0x1040)  // PatientAddress
-    DicomTag(0x0010, 0x0010),   // PatientName
-    DicomTag(0x0010, 0x0030),   // PatientBirthDate
-    DicomTag(0x0010, 0x0040),   // PatientSex
-    DicomTag(0x0010, 0x1000),   // OtherPatientIDs
-    DICOM_TAG_PATIENT_ID
-  };
+    struct MainDicomTag
+    {
+      const DicomTag tag_;
+      const char*    name_;
+    };
+  }
 
-  static DicomTag studyTags[] =
+  static const MainDicomTag PATIENT_MAIN_DICOM_TAGS[] =
   {
-    //DicomTag(0x0010, 0x1020), // PatientSize
-    //DicomTag(0x0010, 0x1030)  // PatientWeight
-    DICOM_TAG_STUDY_DATE,
-    DicomTag(0x0008, 0x0030),   // StudyTime
-    DicomTag(0x0020, 0x0010),   // StudyID
-    DICOM_TAG_STUDY_DESCRIPTION,
-    DICOM_TAG_ACCESSION_NUMBER,
-    DICOM_TAG_STUDY_INSTANCE_UID,
-    DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION,   // New in db v6
-    DICOM_TAG_INSTITUTION_NAME,                  // New in db v6
-    DICOM_TAG_REQUESTING_PHYSICIAN,              // New in db v6
-    DICOM_TAG_REFERRING_PHYSICIAN_NAME           // New in db v6
+    // { DicomTag(0x0010, 0x1010), "PatientAge" },
+    // { DicomTag(0x0010, 0x1040), "PatientAddress" },
+    { DicomTag(0x0010, 0x0010), "PatientName" },
+    { DicomTag(0x0010, 0x0030), "PatientBirthDate" },
+    { DicomTag(0x0010, 0x0040), "PatientSex" },
+    { DicomTag(0x0010, 0x1000), "OtherPatientIDs" },
+    { DICOM_TAG_PATIENT_ID, "PatientID" }
   };
-
-  static DicomTag seriesTags[] =
+    
+  static const MainDicomTag STUDY_MAIN_DICOM_TAGS[] =
   {
-    //DicomTag(0x0010, 0x1080), // MilitaryRank
-    DicomTag(0x0008, 0x0021),   // SeriesDate
-    DicomTag(0x0008, 0x0031),   // SeriesTime
-    DICOM_TAG_MODALITY,
-    DicomTag(0x0008, 0x0070),   // Manufacturer
-    DicomTag(0x0008, 0x1010),   // StationName
-    DICOM_TAG_SERIES_DESCRIPTION,
-    DicomTag(0x0018, 0x0015),   // BodyPartExamined
-    DicomTag(0x0018, 0x0024),   // SequenceName
-    DicomTag(0x0018, 0x1030),   // ProtocolName
-    DicomTag(0x0020, 0x0011),   // SeriesNumber
-    DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES,
-    DICOM_TAG_IMAGES_IN_ACQUISITION,
-    DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS,
-    DICOM_TAG_NUMBER_OF_SLICES,
-    DICOM_TAG_NUMBER_OF_TIME_SLICES,
-    DICOM_TAG_SERIES_INSTANCE_UID,
-    DICOM_TAG_IMAGE_ORIENTATION_PATIENT,                  // New in db v6
-    DICOM_TAG_SERIES_TYPE,                                // New in db v6
-    DICOM_TAG_OPERATOR_NAME,                              // New in db v6
-    DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION,       // New in db v6
-    DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION,  // New in db v6
-    DICOM_TAG_CONTRAST_BOLUS_AGENT                        // New in db v6
+    // { DicomTag(0x0010, 0x1020), "PatientSize" },
+    // { DicomTag(0x0010, 0x1030), "PatientWeight" },
+    { DICOM_TAG_STUDY_DATE, "StudyDate" },
+    { DicomTag(0x0008, 0x0030), "StudyTime" },
+    { DicomTag(0x0020, 0x0010), "StudyID" },
+    { DICOM_TAG_STUDY_DESCRIPTION, "StudyDescription" },
+    { DICOM_TAG_ACCESSION_NUMBER, "AccessionNumber" },
+    { DICOM_TAG_STUDY_INSTANCE_UID, "StudyInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION, "RequestedProcedureDescription" },
+    { DICOM_TAG_INSTITUTION_NAME, "InstitutionName" },
+    { DICOM_TAG_REQUESTING_PHYSICIAN, "RequestingPhysician" },
+    { DICOM_TAG_REFERRING_PHYSICIAN_NAME, "ReferringPhysicianName" }
   };
-
-  static DicomTag instanceTags[] =
+    
+  static const MainDicomTag SERIES_MAIN_DICOM_TAGS[] =
   {
-    DicomTag(0x0008, 0x0012),   // InstanceCreationDate
-    DicomTag(0x0008, 0x0013),   // InstanceCreationTime
-    DicomTag(0x0020, 0x0012),   // AcquisitionNumber
-    DICOM_TAG_IMAGE_INDEX,
-    DICOM_TAG_INSTANCE_NUMBER,
-    DICOM_TAG_NUMBER_OF_FRAMES,
-    DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER,
-    DICOM_TAG_SOP_INSTANCE_UID,
-    DICOM_TAG_IMAGE_POSITION_PATIENT,    // New in db v6
-    DICOM_TAG_IMAGE_COMMENTS,            // New in db v6
+    // { DicomTag(0x0010, 0x1080), "MilitaryRank" },
+    { DicomTag(0x0008, 0x0021), "SeriesDate" },
+    { DicomTag(0x0008, 0x0031), "SeriesTime" },
+    { DICOM_TAG_MODALITY, "Modality" },
+    { DicomTag(0x0008, 0x0070), "Manufacturer" },
+    { DicomTag(0x0008, 0x1010), "StationName" },
+    { DICOM_TAG_SERIES_DESCRIPTION, "SeriesDescription" },
+    { DicomTag(0x0018, 0x0015), "BodyPartExamined" },
+    { DicomTag(0x0018, 0x0024), "SequenceName" },
+    { DicomTag(0x0018, 0x1030), "ProtocolName" },
+    { DicomTag(0x0020, 0x0011), "SeriesNumber" },
+    { DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES, "CardiacNumberOfImages" },
+    { DICOM_TAG_IMAGES_IN_ACQUISITION, "ImagesInAcquisition" },
+    { DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS, "NumberOfTemporalPositions" },
+    { DICOM_TAG_NUMBER_OF_SLICES, "NumberOfSlices" },
+    { DICOM_TAG_NUMBER_OF_TIME_SLICES, "NumberOfTimeSlices" },
+    { DICOM_TAG_SERIES_INSTANCE_UID, "SeriesInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "ImageOrientationPatient" },
+    { DICOM_TAG_SERIES_TYPE, "SeriesType" },
+    { DICOM_TAG_OPERATOR_NAME, "OperatorsName" },
+    { DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "PerformedProcedureStepDescription" },
+    { DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION, "AcquisitionDeviceProcessingDescription" },
+    { DICOM_TAG_CONTRAST_BOLUS_AGENT, "ContrastBolusAgent" }
+  };
+    
+  static const MainDicomTag INSTANCE_MAIN_DICOM_TAGS[] =
+  {
+    { DicomTag(0x0008, 0x0012), "InstanceCreationDate" },
+    { DicomTag(0x0008, 0x0013), "InstanceCreationTime" },
+    { DicomTag(0x0020, 0x0012), "AcquisitionNumber" },
+    { DICOM_TAG_IMAGE_INDEX, "ImageIndex" },
+    { DICOM_TAG_INSTANCE_NUMBER, "InstanceNumber" },
+    { DICOM_TAG_NUMBER_OF_FRAMES, "NumberOfFrames" },
+    { DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "TemporalPositionIdentifier" },
+    { DICOM_TAG_SOP_INSTANCE_UID, "SOPInstanceUID" },
+
+    // New in db v6
+    { DICOM_TAG_IMAGE_POSITION_PATIENT, "ImagePositionPatient" },
+    { DICOM_TAG_IMAGE_COMMENTS, "ImageComments" },
 
     /**
      * Main DICOM tags that are not part of any release of the
@@ -120,34 +135,34 @@ namespace Orthanc
      * access these tags if the corresponding DICOM files where
      * indexed in the database by an older version of Orthanc.
      **/
-    DICOM_TAG_IMAGE_ORIENTATION_PATIENT  // New in Orthanc 1.4.2
+    { DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "ImageOrientationPatient" }  // New in Orthanc 1.4.2
   };
 
 
-  void DicomMap::LoadMainDicomTags(const DicomTag*& tags,
-                                   size_t& size,
-                                   ResourceType level)
+  static void LoadMainDicomTags(const MainDicomTag*& tags,
+                                size_t& size,
+                                ResourceType level)
   {
     switch (level)
     {
       case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
+        tags = PATIENT_MAIN_DICOM_TAGS;
+        size = sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(MainDicomTag);
         break;
 
       case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
+        tags = STUDY_MAIN_DICOM_TAGS;
+        size = sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(MainDicomTag);
         break;
 
       case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
+        tags = SERIES_MAIN_DICOM_TAGS;
+        size = sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(MainDicomTag);
         break;
 
       case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
+        tags = INSTANCE_MAIN_DICOM_TAGS;
+        size = sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(MainDicomTag);
         break;
 
       default:
@@ -156,55 +171,106 @@ namespace Orthanc
   }
 
 
-  void DicomMap::SetValue(uint16_t group, 
-                          uint16_t element, 
-                          DicomValue* value)
+  static void LoadMainDicomTags(std::map<DicomTag, std::string>& target,
+                                ResourceType level)
+  {
+    const MainDicomTag* tags = NULL;
+    size_t size;
+    LoadMainDicomTags(tags, size, level);
+
+    assert(tags != NULL &&
+           size != 0);
+
+    for (size_t i = 0; i < size; i++)
+    {
+      assert(target.find(tags[i].tag_) == target.end());
+      
+      target[tags[i].tag_] = tags[i].name_;
+    }
+  }
+
+
+  namespace
+  {
+    class DicomTag2 : public DicomTag
+    {
+    public:
+      DicomTag2() :
+        DicomTag(0, 0)   // To make std::map<> happy
+      {
+      }
+
+      DicomTag2(const DicomTag& tag) :
+        DicomTag(tag)
+      {
+      }
+    };
+  }
+
+
+  static void LoadMainDicomTags(std::map<std::string, DicomTag2>& target,
+                                ResourceType level)
+  {
+    const MainDicomTag* tags = NULL;
+    size_t size;
+    LoadMainDicomTags(tags, size, level);
+
+    assert(tags != NULL &&
+           size != 0);
+
+    for (size_t i = 0; i < size; i++)
+    {
+      assert(target.find(tags[i].name_) == target.end());
+      
+      target[tags[i].name_] = tags[i].tag_;
+    }
+  }
+
+
+  void DicomMap::SetValueInternal(uint16_t group, 
+                                  uint16_t element, 
+                                  DicomValue* value)
   {
     DicomTag tag(group, element);
-    Map::iterator it = map_.find(tag);
+    Content::iterator it = content_.find(tag);
 
-    if (it != map_.end())
+    if (it != content_.end())
     {
       delete it->second;
       it->second = value;
     }
     else
     {
-      map_.insert(std::make_pair(tag, value));
+      content_.insert(std::make_pair(tag, value));
     }
-  }
-
-  void DicomMap::SetValue(DicomTag tag, 
-                          DicomValue* value)
-  {
-    SetValue(tag.GetGroup(), tag.GetElement(), value);
   }
 
 
   void DicomMap::Clear()
   {
-    for (Map::iterator it = map_.begin(); it != map_.end(); ++it)
+    for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
     {
       assert(it->second != NULL);
       delete it->second;
     }
 
-    map_.clear();
+    content_.clear();
   }
 
 
-  void DicomMap::ExtractTags(DicomMap& result,
-                             const DicomTag* tags,
-                             size_t count) const
+  static void ExtractTags(DicomMap& result,
+                          const DicomMap::Content& source,
+                          const MainDicomTag* tags,
+                          size_t count)
   {
     result.Clear();
 
     for (unsigned int i = 0; i < count; i++)
     {
-      Map::const_iterator it = map_.find(tags[i]);
-      if (it != map_.end())
+      DicomMap::Content::const_iterator it = source.find(tags[i].tag_);
+      if (it != source.end())
       {
-        result.SetValue(it->first, it->second->Clone());
+        result.SetValue(it->first, *it->second /* value will be cloned */);
       }
     }
   }
@@ -212,22 +278,22 @@ namespace Orthanc
 
   void DicomMap::ExtractPatientInformation(DicomMap& result) const
   {
-    ExtractTags(result, patientTags, sizeof(patientTags) / sizeof(DicomTag));
+    ExtractTags(result, content_, PATIENT_MAIN_DICOM_TAGS, sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
   }
 
   void DicomMap::ExtractStudyInformation(DicomMap& result) const
   {
-    ExtractTags(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
+    ExtractTags(result, content_, STUDY_MAIN_DICOM_TAGS, sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
   }
 
   void DicomMap::ExtractSeriesInformation(DicomMap& result) const
   {
-    ExtractTags(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
+    ExtractTags(result, content_, SERIES_MAIN_DICOM_TAGS, sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
   }
 
   void DicomMap::ExtractInstanceInformation(DicomMap& result) const
   {
-    ExtractTags(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
+    ExtractTags(result, content_, INSTANCE_MAIN_DICOM_TAGS, sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
   }
 
 
@@ -236,9 +302,9 @@ namespace Orthanc
   {
     std::auto_ptr<DicomMap> result(new DicomMap);
 
-    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
-      result->map_.insert(std::make_pair(it->first, it->second->Clone()));
+      result->content_.insert(std::make_pair(it->first, it->second->Clone()));
     }
 
     return result.release();
@@ -249,9 +315,9 @@ namespace Orthanc
   {
     Clear();
 
-    for (Map::const_iterator it = other.map_.begin(); it != other.map_.end(); ++it)
+    for (Content::const_iterator it = other.content_.begin(); it != other.content_.end(); ++it)
     {
-      map_.insert(std::make_pair(it->first, it->second->Clone()));
+      content_.insert(std::make_pair(it->first, it->second->Clone()));
     }
   }
 
@@ -273,9 +339,9 @@ namespace Orthanc
 
   const DicomValue* DicomMap::TestAndGetValue(const DicomTag& tag) const
   {
-    Map::const_iterator it = map_.find(tag);
+    Content::const_iterator it = content_.find(tag);
 
-    if (it == map_.end())
+    if (it == content_.end())
     {
       return NULL;
     }
@@ -288,35 +354,35 @@ namespace Orthanc
 
   void DicomMap::Remove(const DicomTag& tag) 
   {
-    Map::iterator it = map_.find(tag);
-    if (it != map_.end())
+    Content::iterator it = content_.find(tag);
+    if (it != content_.end())
     {
       delete it->second;
-      map_.erase(it);
+      content_.erase(it);
     }
   }
 
 
   static void SetupFindTemplate(DicomMap& result,
-                                const DicomTag* tags,
+                                const MainDicomTag* tags,
                                 size_t count) 
   {
     result.Clear();
 
     for (size_t i = 0; i < count; i++)
     {
-      result.SetValue(tags[i], "", false);
+      result.SetValue(tags[i].tag_, "", false);
     }
   }
 
   void DicomMap::SetupFindPatientTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, patientTags, sizeof(patientTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, PATIENT_MAIN_DICOM_TAGS, sizeof(PATIENT_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
   }
 
   void DicomMap::SetupFindStudyTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, studyTags, sizeof(studyTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, STUDY_MAIN_DICOM_TAGS, sizeof(STUDY_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
 
@@ -329,7 +395,7 @@ namespace Orthanc
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, seriesTags, sizeof(seriesTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, SERIES_MAIN_DICOM_TAGS, sizeof(SERIES_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
@@ -351,7 +417,7 @@ namespace Orthanc
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
   {
-    SetupFindTemplate(result, instanceTags, sizeof(instanceTags) / sizeof(DicomTag));
+    SetupFindTemplate(result, INSTANCE_MAIN_DICOM_TAGS, sizeof(INSTANCE_MAIN_DICOM_TAGS) / sizeof(MainDicomTag));
     result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
@@ -371,38 +437,13 @@ namespace Orthanc
 
   bool DicomMap::IsMainDicomTag(const DicomTag& tag, ResourceType level)
   {
-    DicomTag *tags = NULL;
+    const MainDicomTag *tags = NULL;
     size_t size;
-
-    switch (level)
-    {
-      case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    LoadMainDicomTags(tags, size, level);
 
     for (size_t i = 0; i < size; i++)
     {
-      if (tags[i] == tag)
+      if (tags[i].tag_ == tag)
       {
         return true;
       }
@@ -422,38 +463,13 @@ namespace Orthanc
 
   void DicomMap::GetMainDicomTagsInternal(std::set<DicomTag>& result, ResourceType level)
   {
-    DicomTag *tags = NULL;
+    const MainDicomTag *tags = NULL;
     size_t size;
-
-    switch (level)
-    {
-      case ResourceType_Patient:
-        tags = patientTags;
-        size = sizeof(patientTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Study:
-        tags = studyTags;
-        size = sizeof(studyTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Series:
-        tags = seriesTags;
-        size = sizeof(seriesTags) / sizeof(DicomTag);
-        break;
-
-      case ResourceType_Instance:
-        tags = instanceTags;
-        size = sizeof(instanceTags) / sizeof(DicomTag);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    LoadMainDicomTags(tags, size, level);
 
     for (size_t i = 0; i < size; i++)
     {
-      result.insert(tags[i]);
+      result.insert(tags[i].tag_);
     }
   }
 
@@ -479,8 +495,8 @@ namespace Orthanc
   {
     tags.clear();
 
-    for (Map::const_iterator it = map_.begin();
-         it != map_.end(); ++it)
+    for (Content::const_iterator it = content_.begin();
+         it != content_.end(); ++it)
     {
       tags.insert(it->first);
     }
@@ -1030,14 +1046,14 @@ namespace Orthanc
 
   void DicomMap::Merge(const DicomMap& other)
   {
-    for (Map::const_iterator it = other.map_.begin();
-         it != other.map_.end(); ++it)
+    for (Content::const_iterator it = other.content_.begin();
+         it != other.content_.end(); ++it)
     {
       assert(it->second != NULL);
 
-      if (map_.find(it->first) == map_.end())
+      if (content_.find(it->first) == content_.end())
       {
-        map_[it->first] = it->second->Clone();
+        content_[it->first] = it->second->Clone();
       }
     }
   }
@@ -1046,7 +1062,7 @@ namespace Orthanc
   void DicomMap::ExtractMainDicomTagsInternal(const DicomMap& other,
                                               ResourceType level)
   {
-    const DicomTag* tags = NULL;
+    const MainDicomTag* tags = NULL;
     size_t size = 0;
 
     LoadMainDicomTags(tags, size, level);
@@ -1054,13 +1070,13 @@ namespace Orthanc
 
     for (size_t i = 0; i < size; i++)
     {
-      Map::const_iterator found = other.map_.find(tags[i]);
+      Content::const_iterator found = other.content_.find(tags[i].tag_);
 
-      if (found != other.map_.end() &&
-          map_.find(tags[i]) == map_.end())
+      if (found != other.content_.end() &&
+          content_.find(tags[i].tag_) == content_.end())
       {
         assert(found->second != NULL);
-        map_[tags[i]] = found->second->Clone();
+        content_[tags[i].tag_] = found->second->Clone();
       }
     }
   }
@@ -1083,7 +1099,7 @@ namespace Orthanc
     std::set<DicomTag> mainDicomTags;
     GetMainDicomTags(mainDicomTags);
 
-    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
       if (mainDicomTags.find(it->first) == mainDicomTags.end())
       {
@@ -1099,7 +1115,7 @@ namespace Orthanc
   {
     target = Json::objectValue;
 
-    for (Map::const_iterator it = map_.begin(); it != map_.end(); ++it)
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
       assert(it->second != NULL);
       
@@ -1129,7 +1145,7 @@ namespace Orthanc
       DicomTag tag(0, 0);
       
       if (!DicomTag::ParseHexadecimal(tag, tags[i].c_str()) ||
-          map_.find(tag) != map_.end())
+          content_.find(tag) != content_.end())
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
@@ -1137,7 +1153,7 @@ namespace Orthanc
       std::auto_ptr<DicomValue> value(new DicomValue);
       value->Unserialize(source[tags[i]]);
 
-      map_[tag] = value.release();
+      content_[tag] = value.release();
     }
   }
 
@@ -1296,9 +1312,9 @@ namespace Orthanc
 
   void DicomMap::RemoveBinaryTags()
   {
-    Map kept;
+    Content kept;
 
-    for (Map::iterator it = map_.begin(); it != map_.end(); ++it)
+    for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
     {
       assert(it->second != NULL);
 
@@ -1313,7 +1329,65 @@ namespace Orthanc
       }
     }
 
-    map_ = kept;
+    content_ = kept;
+  }
+
+
+  void DicomMap::DumpMainDicomTags(Json::Value& target,
+                                   ResourceType level) const
+  {
+    std::map<DicomTag, std::string> mainTags;   // TODO - Create a singleton to hold this map
+    LoadMainDicomTags(mainTags, level);
+    
+    target = Json::objectValue;
+
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      
+      if (!it->second->IsBinary() &&
+          !it->second->IsNull())
+      {
+        std::map<DicomTag, std::string>::const_iterator found = mainTags.find(it->first);
+
+        if (found != mainTags.end())
+        {
+          target[found->second] = it->second->GetContent();
+        }
+      }
+    }    
+  }
+  
+
+  void DicomMap::ParseMainDicomTags(const Json::Value& source,
+                                    ResourceType level)
+  {
+    if (source.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    
+    std::map<std::string, DicomTag2> mainTags;   // TODO - Create a singleton to hold this map
+    LoadMainDicomTags(mainTags, level);
+    
+    Json::Value::Members members = source.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      std::map<std::string, DicomTag2>::const_iterator found = mainTags.find(members[i]);
+
+      if (found != mainTags.end())
+      {
+        const Json::Value& value = source[members[i]];
+        if (value.type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        else
+        {
+          SetValue(found->second, value.asString(), false);
+        }
+      }
+    }
   }
 
 

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -1007,8 +1007,8 @@ namespace Orthanc
       }
     }
 
-    for (DicomMap::Map::const_iterator 
-           it = source.map_.begin(); it != source.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = source.content_.begin(); it != source.content_.end(); ++it)
     {
       if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
           !it->second->IsNull())
