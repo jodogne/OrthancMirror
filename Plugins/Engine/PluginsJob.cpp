@@ -78,7 +78,7 @@ namespace Orthanc
     parameters_.finalize(parameters_.job);
   }
 
-  JobStepResult PluginsJob::Step()
+  JobStepResult PluginsJob::Step(const std::string& jobId)
   {
     OrthancPluginJobStepStatus status = parameters_.step(parameters_.job);
 

@@ -319,7 +319,7 @@ namespace Orthanc
   }
 
 
-  JobStepResult SequenceOfOperationsJob::Step()
+  JobStepResult SequenceOfOperationsJob::Step(const std::string& jobId)
   {
     boost::mutex::scoped_lock lock(mutex_);
 

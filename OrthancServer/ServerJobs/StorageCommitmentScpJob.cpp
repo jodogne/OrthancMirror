@@ -87,7 +87,7 @@ namespace Orthanc
       return false;
     }
     
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       if (hasFailureReason_)
       {
@@ -189,7 +189,7 @@ namespace Orthanc
       return true;
     }
     
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Answer();
       return true;

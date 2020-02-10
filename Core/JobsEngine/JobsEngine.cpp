@@ -71,7 +71,7 @@ namespace Orthanc
 
     try
     {
-      result = running.GetJob().Step();
+      result = running.GetJob().Step(running.GetId());
     }
     catch (OrthancException& e)
     {

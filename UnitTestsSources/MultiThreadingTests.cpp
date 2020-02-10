@@ -101,7 +101,7 @@ namespace
     {
     }
     
-    virtual JobStepResult Step() ORTHANC_OVERRIDE
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE
     {
       if (fails_)
       {
@@ -1045,12 +1045,12 @@ TEST(JobsSerialization, GenericJobs)
     job.AddInstance("nope");
     job.AddInstance("world");
     job.SetPermissive(true);
-    ASSERT_THROW(job.Step(), OrthancException);  // Not started yet
+    ASSERT_THROW(job.Step("jobId"), OrthancException);  // Not started yet
     ASSERT_FALSE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
     job.Start();
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
 
     {
       DummyUnserializer unserializer;
@@ -1101,7 +1101,7 @@ TEST(JobsSerialization, GenericJobs)
       lock.SetTrailingOperationTimeout(300);
     }
 
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
 
     {
       GenericJobUnserializer unserializer;
@@ -1618,8 +1618,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
       job.AddTrailingStep();
       job.Start();
-      ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-      ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+      ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+      ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
 
       study2 = job.GetTargetStudy();
       ASSERT_FALSE(study2.empty());
@@ -1677,8 +1677,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
     job.AddTrailingStep();
     job.Start();
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
 
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
@@ -1746,7 +1746,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1755,7 +1755,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1777,7 +1777,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1786,7 +1786,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(2u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1795,7 +1795,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1818,7 +1818,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
@@ -1827,7 +1827,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1852,7 +1852,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1861,7 +1861,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(2u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
@@ -1870,7 +1870,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 }
 

@@ -935,7 +935,7 @@ namespace Orthanc
   }
     
 
-  JobStepResult ArchiveJob::Step()
+  JobStepResult ArchiveJob::Step(const std::string& jobId)
   {
     assert(writer_.get() != NULL);
 
