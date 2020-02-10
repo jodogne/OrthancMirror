@@ -65,13 +65,16 @@ namespace Orthanc
     std::string               transactionUid_;
     RemoteModalityParameters  remoteModality_;
     std::string               calledAet_;
+    std::vector<std::string>  sopClassUids_;
+    std::vector<std::string>  sopInstanceUids_;
 
     std::auto_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
 
+    void CheckInvariants();
+    
     void Setup(const std::string& jobId);
     
-    StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
-                                          const std::string& sopInstanceUid);
+    StorageCommitmentFailureReason Lookup(size_t index);
     
     void Answer();
     
@@ -84,6 +87,8 @@ namespace Orthanc
     StorageCommitmentScpJob(ServerContext& context,
                             const Json::Value& serialized);
 
+    void Reserve(size_t size);
+    
     void AddInstance(const std::string& sopClassUid,
                      const std::string& sopInstanceUid);
 
