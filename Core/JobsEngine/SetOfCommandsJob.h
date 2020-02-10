@@ -49,7 +49,7 @@ namespace Orthanc
       {
       }
 
-      virtual bool Execute() = 0;
+      virtual bool Execute(const std::string& jobId) = 0;
 
       virtual void Serialize(Json::Value& target) const = 0;
     };
@@ -126,7 +126,7 @@ namespace Orthanc
 
     const ICommand& GetCommand(size_t index) const;
       
-    virtual JobStepResult Step();
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
     
     virtual void GetPublicContent(Json::Value& value);
     

@@ -145,7 +145,7 @@ namespace Orthanc
   }
       
 
-  JobStepResult SetOfCommandsJob::Step()
+  JobStepResult SetOfCommandsJob::Step(const std::string& jobId)
   {
     if (!started_)
     {
@@ -169,7 +169,7 @@ namespace Orthanc
     try
     {
       // Not at the trailing step: Handle the current command
-      if (!commands_[position_]->Execute())
+      if (!commands_[position_]->Execute(jobId))
       {
         // Error
         if (!permissive_)
