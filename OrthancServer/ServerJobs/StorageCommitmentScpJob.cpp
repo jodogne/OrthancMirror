@@ -46,6 +46,7 @@ static const char* ANSWER = "Answer";
 static const char* CALLED_AET = "CalledAet";
 static const char* LOOKUP = "Lookup";
 static const char* REMOTE_MODALITY = "RemoteModality";
+static const char* SETUP = "Setup";
 static const char* SOP_CLASS_UID = "SopClassUid";
 static const char* SOP_INSTANCE_UID = "SopInstanceUid";
 static const char* TRANSACTION_UID = "TransactionUid";
@@ -58,10 +59,39 @@ namespace Orthanc
   class StorageCommitmentScpJob::StorageCommitmentCommand : public SetOfCommandsJob::ICommand
   {
   public:
-    virtual bool IsAnswer() const = 0;
+    virtual CommandType GetType() const = 0;
   };
 
   
+  class StorageCommitmentScpJob::SetupCommand : public StorageCommitmentCommand
+  {
+  private:
+    ServerContext&  context_;
+
+  public:
+    SetupCommand(ServerContext& context) :
+      context_(context)
+    {
+    }
+
+    virtual CommandType GetType() const
+    {
+      return CommandType_Setup;
+    }
+    
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual void Serialize(Json::Value& target) const
+    {
+      target = Json::objectValue;
+      target[TYPE] = SETUP;
+    }
+  };
+
+
   class StorageCommitmentScpJob::LookupCommand : public StorageCommitmentCommand
   {
   private:
@@ -82,9 +112,9 @@ namespace Orthanc
     {
     }
 
-    virtual bool IsAnswer() const
+    virtual CommandType GetType() const
     {
-      return false;
+      return CommandType_Lookup;
     }
     
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
@@ -184,9 +214,9 @@ namespace Orthanc
       }
     }
 
-    virtual bool IsAnswer() const
+    virtual CommandType GetType() const
     {
-      return true;
+      return CommandType_Answer;
     }
     
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
@@ -222,7 +252,11 @@ namespace Orthanc
     {
       const std::string type = SerializationToolbox::ReadString(source, TYPE);
 
-      if (type == LOOKUP)
+      if (type == SETUP)
+      {
+        return new SetupCommand(context_);
+      }
+      else if (type == LOOKUP)
       {
         return new LookupCommand(context_,
                                  SerializationToolbox::ReadString(source, SOP_CLASS_UID),
@@ -246,7 +280,7 @@ namespace Orthanc
 
     const size_t n = GetCommandsCount();
 
-    if (n == 0)
+    if (n <= 1)
     {
       throw OrthancException(ErrorCode_InternalError);
     }
@@ -260,24 +294,18 @@ namespace Orthanc
 
     for (size_t i = 0; i < n; i++)
     {
-      const StorageCommitmentCommand& command = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i));
-
-      if (i == n - 1)
+      const CommandType type = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i)).GetType();
+      
+      if ((i == 0 && type != CommandType_Setup) ||
+          (i >= 1 && i < n - 1 && type != CommandType_Lookup) ||
+          (i == n - 1 && type != CommandType_Answer))
       {
-        if (!command.IsAnswer())
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
+        throw OrthancException(ErrorCode_InternalError);
       }
-      else
-      {      
-        if (command.IsAnswer())
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
 
-        const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(command);
-
+      if (type == CommandType_Lookup)
+      {
+        const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
         sopClassUids.push_back(lookup.GetSopClassUid());
         sopInstanceUids.push_back(lookup.GetSopInstanceUid());
         failureReasons.push_back(lookup.GetFailureReason());
@@ -306,6 +334,8 @@ namespace Orthanc
                                "Unknown remote modality for storage commitment SCP: " + remoteAet);
       }
     }
+
+    AddCommand(new SetupCommand(context));
   }
     
 

@@ -45,7 +45,15 @@ namespace Orthanc
   class StorageCommitmentScpJob : public SetOfCommandsJob
   {
   private:
+    enum CommandType
+    {
+      CommandType_Setup,
+      CommandType_Lookup,
+      CommandType_Answer
+    };
+    
     class StorageCommitmentCommand;
+    class SetupCommand;
     class LookupCommand;
     class AnswerCommand;
     class Unserializer;
