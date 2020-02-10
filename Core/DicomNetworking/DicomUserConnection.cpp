@@ -1387,12 +1387,15 @@ namespace Orthanc
 
   static void FillSopSequence(DcmDataset& dataset,
                               const DcmTagKey& tag,
-                              const std::list<std::string>& sopClassUids,
-                              const std::list<std::string>& sopInstanceUids,
-                              bool hasFailureReason,
-                              Uint16 failureReason)
+                              const std::vector<std::string>& sopClassUids,
+                              const std::vector<std::string>& sopInstanceUids,
+                              const std::vector<StorageCommitmentFailureReason>& failureReasons,
+                              bool hasFailureReasons)
   {
-    assert(sopClassUids.size() == sopInstanceUids.size());
+    assert(sopClassUids.size() == sopInstanceUids.size() &&
+           (hasFailureReasons ?
+            failureReasons.size() == sopClassUids.size() :
+            failureReasons.empty()));
 
     if (sopInstanceUids.empty())
     {
@@ -1404,27 +1407,17 @@ namespace Orthanc
     }
     else
     {
-      std::list<std::string>::const_iterator currentClass = sopClassUids.begin();
-      std::list<std::string>::const_iterator currentInstance = sopInstanceUids.begin();
-
-      while (currentClass != sopClassUids.end())
+      for (size_t i = 0; i < sopClassUids.size(); i++)
       {
         std::auto_ptr<DcmItem> item(new DcmItem);
-        if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, currentClass->c_str()).good() ||
-            !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, currentInstance->c_str()).good() ||
-            (hasFailureReason &&
-             !item->putAndInsertUint16(DCM_FailureReason, failureReason).good()) ||
+        if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
+            !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
+            (hasFailureReasons &&
+             !item->putAndInsertUint16(DCM_FailureReason, failureReasons[i]).good()) ||
             !dataset.insertSequenceItem(tag, item.release()).good())
         {
           throw OrthancException(ErrorCode_InternalError);
         }
-
-        ++currentClass;
-        ++currentInstance;
-      }
-      
-      for (size_t i = 0; i < sopClassUids.size(); i++)
-      {
       }
     }
   }                              
@@ -1434,13 +1427,12 @@ namespace Orthanc
 
   void DicomUserConnection::ReportStorageCommitment(
     const std::string& transactionUid,
-    const std::list<std::string>& successSopClassUids,
-    const std::list<std::string>& successSopInstanceUids,
-    const std::list<std::string>& failureSopClassUids,
-    const std::list<std::string>& failureSopInstanceUids)
+    const std::vector<std::string>& sopClassUids,
+    const std::vector<std::string>& sopInstanceUids,
+    const std::vector<StorageCommitmentFailureReason>& failureReasons)
   {
-    if (successSopClassUids.size() != successSopInstanceUids.size() ||
-        failureSopClassUids.size() != failureSopInstanceUids.size())
+    if (sopClassUids.size() != sopInstanceUids.size() ||
+        sopClassUids.size() != failureReasons.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1450,6 +1442,45 @@ namespace Orthanc
       Close();
     }
 
+    std::vector<std::string> successSopClassUids, successSopInstanceUids, failedSopClassUids, failedSopInstanceUids;
+    std::vector<StorageCommitmentFailureReason> failedReasons;
+
+    successSopClassUids.reserve(sopClassUids.size());
+    successSopInstanceUids.reserve(sopClassUids.size());
+    failedSopClassUids.reserve(sopClassUids.size());
+    failedSopInstanceUids.reserve(sopClassUids.size());
+    failedReasons.reserve(sopClassUids.size());
+
+    for (size_t i = 0; i < sopClassUids.size(); i++)
+    {
+      switch (failureReasons[i])
+      {
+        case StorageCommitmentFailureReason_Success:
+          successSopClassUids.push_back(sopClassUids[i]);
+          successSopInstanceUids.push_back(sopInstanceUids[i]);
+          break;
+
+        case StorageCommitmentFailureReason_ProcessingFailure:
+        case StorageCommitmentFailureReason_NoSuchObjectInstance:
+        case StorageCommitmentFailureReason_ResourceLimitation:
+        case StorageCommitmentFailureReason_ReferencedSOPClassNotSupported:
+        case StorageCommitmentFailureReason_ClassInstanceConflict:
+        case StorageCommitmentFailureReason_DuplicateTransactionUID:
+          failedSopClassUids.push_back(sopClassUids[i]);
+          failedSopInstanceUids.push_back(sopInstanceUids[i]);
+          failedReasons.push_back(failureReasons[i]);
+          break;
+
+        default:
+        {
+          char buf[16];
+          sprintf(buf, "%04xH", failureReasons[i]);
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Unsupported failure reason for storage commitment: " + std::string(buf));
+        }
+      }
+    }
+    
     try
     {
       OpenInternal(Mode_ReportStorageCommitment);
@@ -1470,7 +1501,7 @@ namespace Orthanc
       LOG(INFO) << "Reporting modality \"" << remoteAet_
                 << "\" about storage commitment transaction: " << transactionUid
                 << " (" << successSopClassUids.size() << " successes, " 
-                << failureSopClassUids.size() << " failures)";
+                << failedSopClassUids.size() << " failures)";
       const DIC_US messageId = pimpl_->assoc_->nextMsgID++;
       
       {
@@ -1490,11 +1521,14 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids,
-                        successSopInstanceUids, false, 0);
+        {
+          std::vector<StorageCommitmentFailureReason> empty;
+          FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids,
+                          successSopInstanceUids, empty, false);
+        }
 
         // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
-        if (failureSopClassUids.empty())
+        if (failedSopClassUids.empty())
         {
           content.EventTypeID = 1;  // "Storage Commitment Request Successful"
         }
@@ -1504,8 +1538,8 @@ namespace Orthanc
 
           // Failure reason
           // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
-          FillSopSequence(dataset, DCM_FailedSOPSequence, failureSopClassUids,
-                          failureSopInstanceUids, true, 0x0112 /* No such object instance == 274 */);
+          FillSopSequence(dataset, DCM_FailedSOPSequence, failedSopClassUids,
+                          failedSopInstanceUids, failedReasons, true);
         }
 
         int presID = ASC_findAcceptedPresentationContextID(
@@ -1574,8 +1608,8 @@ namespace Orthanc
   
   void DicomUserConnection::RequestStorageCommitment(
     const std::string& transactionUid,
-    const std::list<std::string>& sopClassUids,
-    const std::list<std::string>& sopInstanceUids)
+    const std::vector<std::string>& sopClassUids,
+    const std::vector<std::string>& sopInstanceUids)
   {
     if (sopClassUids.size() != sopInstanceUids.size())
     {
@@ -1633,8 +1667,11 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids, false, 0);
-
+        {
+          std::vector<StorageCommitmentFailureReason> empty;
+          FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids, empty, false);
+        }
+          
         int presID = ASC_findAcceptedPresentationContextID(
           pimpl_->assoc_, UID_StorageCommitmentPushModelSOPClass);
         if (presID == 0)

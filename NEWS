@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Support of DICOM storage commitment
+
 REST API
 --------
 

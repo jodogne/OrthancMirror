@@ -667,6 +667,36 @@ namespace Orthanc
     JobStopReason_Retry
   };
 
+  
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
+  enum StorageCommitmentFailureReason
+  {
+    StorageCommitmentFailureReason_Success = 0,
+
+    // A general failure in processing the operation was encountered
+    StorageCommitmentFailureReason_ProcessingFailure = 0x0110,
+
+    // One or more of the elements in the Referenced SOP Instance
+    // Sequence was not available
+    StorageCommitmentFailureReason_NoSuchObjectInstance = 0x0112,
+
+    // The SCP does not currently have enough resources to store the
+    // requested SOP Instance(s)
+    StorageCommitmentFailureReason_ResourceLimitation = 0x0213,
+
+    // Storage Commitment has been requested for a SOP Instance with a
+    // SOP Class that is not supported by the SCP
+    StorageCommitmentFailureReason_ReferencedSOPClassNotSupported = 0x0122,
+
+    // The SOP Class of an element in the Referenced SOP Instance
+    // Sequence did not correspond to the SOP class registered for
+    // this SOP Instance at the SCP
+    StorageCommitmentFailureReason_ClassInstanceConflict = 0x0119,
+
+    // The Transaction UID of the Storage Commitment Request is already in use
+    StorageCommitmentFailureReason_DuplicateTransactionUID = 0x0131    
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations

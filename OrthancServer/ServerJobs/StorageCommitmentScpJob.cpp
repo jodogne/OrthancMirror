@@ -44,14 +44,10 @@
 
 static const char* ANSWER = "Answer";
 static const char* CALLED_AET = "CalledAet";
-static const char* FAILED_SOP_CLASS_UIDS = "FailedSopClassUids";
-static const char* FAILED_SOP_INSTANCE_UIDS = "FailedSopInstanceUids";
 static const char* LOOKUP = "Lookup";
 static const char* REMOTE_MODALITY = "RemoteModality";
 static const char* SOP_CLASS_UID = "SopClassUid";
 static const char* SOP_INSTANCE_UID = "SopInstanceUid";
-static const char* SUCCESS_SOP_CLASS_UIDS = "SuccessSopClassUids";
-static const char* SUCCESS_SOP_INSTANCE_UIDS = "SuccessSopInstanceUids";
 static const char* TRANSACTION_UID = "TransactionUid";
 static const char* TYPE = "Type";
 
@@ -59,27 +55,104 @@ static const char* TYPE = "Type";
 
 namespace Orthanc
 {
-  class StorageCommitmentScpJob::LookupCommand : public SetOfCommandsJob::ICommand
+  class StorageCommitmentScpJob::StorageCommitmentCommand : public SetOfCommandsJob::ICommand
+  {
+  public:
+    virtual bool IsAnswer() const = 0;
+  };
+
+  
+  class StorageCommitmentScpJob::LookupCommand : public StorageCommitmentCommand
   {
   private:
-    StorageCommitmentScpJob&  that_;
-    std::string               sopClassUid_;
-    std::string               sopInstanceUid_;
+    ServerContext&  context_;
+    bool            hasFailureReason_;
+    std::string     sopClassUid_;
+    std::string     sopInstanceUid_;
+    StorageCommitmentFailureReason  failureReason_;
 
   public:
-    LookupCommand(StorageCommitmentScpJob& that,
+    LookupCommand(ServerContext& context,
                   const std::string& sopClassUid,
                   const std::string& sopInstanceUid) :
-      that_(that),
+      context_(context),
+      hasFailureReason_(false),
       sopClassUid_(sopClassUid),
       sopInstanceUid_(sopInstanceUid)
     {
     }
 
+    virtual bool IsAnswer() const
+    {
+      return false;
+    }
+    
     virtual bool Execute()
     {
-      that_.LookupInstance(sopClassUid_, sopInstanceUid_);
+      if (hasFailureReason_)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      
+      bool success = false;
+      
+      try
+      {
+        std::vector<std::string> orthancId;
+        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid_);
+
+        if (orthancId.size() == 1)
+        {
+          std::string a, b;
+
+          // Make sure that the DICOM file can be re-read by DCMTK
+          // from the file storage, and that the actual SOP
+          // class/instance UIDs do match
+          ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
+          if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
+              locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
+              a == sopClassUid_ &&
+              b == sopInstanceUid_)
+          {
+            success = true;
+          }
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+
+      LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
+                << " while looking for " << sopClassUid_ << " / " << sopInstanceUid_;
+
+      failureReason_ = (success ?
+                        StorageCommitmentFailureReason_Success : 
+                        StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */);
+      hasFailureReason_ = true;
+      
       return true;
+    }
+
+    const std::string& GetSopClassUid() const
+    {
+      return sopClassUid_;
+    }
+    
+    const std::string& GetSopInstanceUid() const
+    {
+      return sopInstanceUid_;
+    }
+    
+    StorageCommitmentFailureReason GetFailureReason() const
+    {
+      if (hasFailureReason_)
+      {
+        return failureReason_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
     }
 
     virtual void Serialize(Json::Value& target) const
@@ -92,7 +165,7 @@ namespace Orthanc
   };
 
   
-  class StorageCommitmentScpJob::AnswerCommand : public SetOfCommandsJob::ICommand
+  class StorageCommitmentScpJob::AnswerCommand : public StorageCommitmentCommand
   {
   private:
     StorageCommitmentScpJob&  that_;
@@ -111,6 +184,11 @@ namespace Orthanc
       }
     }
 
+    virtual bool IsAnswer() const
+    {
+      return true;
+    }
+    
     virtual bool Execute()
     {
       that_.Answer();
@@ -128,11 +206,14 @@ namespace Orthanc
   class StorageCommitmentScpJob::Unserializer : public SetOfCommandsJob::ICommandUnserializer
   {
   private:
-    StorageCommitmentScpJob&   that_;
+    StorageCommitmentScpJob&  that_;
+    ServerContext&            context_;
 
   public:
-    Unserializer(StorageCommitmentScpJob&  that) :
-      that_(that)
+    Unserializer(StorageCommitmentScpJob&  that,
+                 ServerContext& context) :
+      that_(that),
+      context_(context)
     {
       that_.ready_ = false;
     }
@@ -143,7 +224,7 @@ namespace Orthanc
 
       if (type == LOOKUP)
       {
-        return new LookupCommand(that_,
+        return new LookupCommand(context_,
                                  SerializationToolbox::ReadString(source, SOP_CLASS_UID),
                                  SerializationToolbox::ReadString(source, SOP_INSTANCE_UID));
       }
@@ -159,60 +240,52 @@ namespace Orthanc
   };
 
   
-  void StorageCommitmentScpJob::LookupInstance(const std::string& sopClassUid,
-                                               const std::string& sopInstanceUid)
-  {
-    bool success = false;
-      
-    try
+  void StorageCommitmentScpJob::Answer()
+  {   
+    LOG(INFO) << "  Storage commitment SCP job: Sending answer";
+
+    const size_t n = GetCommandsCount();
+
+    if (n == 0)
     {
-      std::vector<std::string> orthancId;
-      context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::vector<std::string> sopClassUids, sopInstanceUids;
+    std::vector<StorageCommitmentFailureReason> failureReasons;
 
-      if (orthancId.size() == 1)
+    sopClassUids.reserve(n);
+    sopInstanceUids.reserve(n);
+    failureReasons.reserve(n);
+
+    for (size_t i = 0; i < n; i++)
+    {
+      const StorageCommitmentCommand& command = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i));
+
+      if (i == n - 1)
       {
-        std::string a, b;
-
-        // Make sure that the DICOM file can be re-read by DCMTK
-        // from the file storage, and that the actual SOP
-        // class/instance UIDs do match
-        ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
-        if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
-            locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
-            a == sopClassUid &&
-            b == sopInstanceUid)
+        if (!command.IsAnswer())
         {
-          success = true;
+          throw OrthancException(ErrorCode_InternalError);
         }
       }
-    }
-    catch (OrthancException&)
-    {
-    }
+      else
+      {      
+        if (command.IsAnswer())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
 
-    LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
-              << " while looking for " << sopClassUid << " / " << sopInstanceUid;
+        const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(command);
 
-    if (success)
-    {
-      successSopClassUids_.push_back(sopClassUid);
-      successSopInstanceUids_.push_back(sopInstanceUid);
+        sopClassUids.push_back(lookup.GetSopClassUid());
+        sopInstanceUids.push_back(lookup.GetSopInstanceUid());
+        failureReasons.push_back(lookup.GetFailureReason());
+      }
     }
-    else
-    {
-      failedSopClassUids_.push_back(sopClassUid);
-      failedSopInstanceUids_.push_back(sopInstanceUid);
-    }
-  }
-
-    
-  void StorageCommitmentScpJob::Answer()
-  {
-    LOG(INFO) << "  Storage commitment SCP job: Sending answer";
       
     DicomUserConnection scu(calledAet_, remoteModality_);
-    scu.ReportStorageCommitment(transactionUid_, successSopClassUids_, successSopInstanceUids_,
-                                failedSopClassUids_, failedSopInstanceUids_);
+    scu.ReportStorageCommitment(transactionUid_, sopClassUids, sopInstanceUids, failureReasons);
   }
     
 
@@ -245,7 +318,7 @@ namespace Orthanc
     }
     else
     {
-      AddCommand(new LookupCommand(*this, sopClassUid, sopInstanceUid));        
+      AddCommand(new LookupCommand(context_, sopClassUid, sopInstanceUid));        
     }
   }
     
@@ -266,19 +339,14 @@ namespace Orthanc
   }
 
 
-
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    SetOfCommandsJob(new Unserializer(*this), serialized),
+    SetOfCommandsJob(new Unserializer(*this, context), serialized),
     context_(context)
   {
     transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);
     remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
     calledAet_ = SerializationToolbox::ReadString(serialized, CALLED_AET);
-    SerializationToolbox::ReadListOfStrings(successSopClassUids_, serialized, SUCCESS_SOP_CLASS_UIDS);
-    SerializationToolbox::ReadListOfStrings(successSopInstanceUids_, serialized, SUCCESS_SOP_INSTANCE_UIDS);
-    SerializationToolbox::ReadListOfStrings(failedSopClassUids_, serialized, FAILED_SOP_CLASS_UIDS);
-    SerializationToolbox::ReadListOfStrings(failedSopInstanceUids_, serialized, FAILED_SOP_INSTANCE_UIDS);
   }
   
 
@@ -293,10 +361,6 @@ namespace Orthanc
       target[TRANSACTION_UID] = transactionUid_;
       remoteModality_.Serialize(target[REMOTE_MODALITY], true /* force advanced format */);
       target[CALLED_AET] = calledAet_;
-      SerializationToolbox::WriteListOfStrings(target, successSopClassUids_, SUCCESS_SOP_CLASS_UIDS);
-      SerializationToolbox::WriteListOfStrings(target, successSopInstanceUids_, SUCCESS_SOP_INSTANCE_UIDS);
-      SerializationToolbox::WriteListOfStrings(target, failedSopClassUids_, FAILED_SOP_CLASS_UIDS);
-      SerializationToolbox::WriteListOfStrings(target, failedSopInstanceUids_, FAILED_SOP_INSTANCE_UIDS);
       return true;
     }
   }

@@ -36,7 +36,7 @@
 #include "../../Core/DicomNetworking/RemoteModalityParameters.h"
 #include "../../Core/JobsEngine/SetOfCommandsJob.h"
 
-#include <list>
+#include <vector>
 
 namespace Orthanc
 {
@@ -45,7 +45,8 @@ namespace Orthanc
   class StorageCommitmentScpJob : public SetOfCommandsJob
   {
   private:
-    class LookupCommand;    
+    class StorageCommitmentCommand;
+    class LookupCommand;
     class AnswerCommand;
     class Unserializer;
 
@@ -54,13 +55,7 @@ namespace Orthanc
     std::string               transactionUid_;
     RemoteModalityParameters  remoteModality_;
     std::string               calledAet_;
-    std::list<std::string>    successSopClassUids_;
-    std::list<std::string>    successSopInstanceUids_;
-    std::list<std::string>    failedSopClassUids_;
-    std::list<std::string>    failedSopInstanceUids_;
 
-    void LookupInstance(const std::string& sopClassUid,
-                        const std::string& sopInstanceUid);
     void Answer();
     
   public:
