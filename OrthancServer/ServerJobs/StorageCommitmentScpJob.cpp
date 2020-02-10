@@ -66,11 +66,11 @@ namespace Orthanc
   class StorageCommitmentScpJob::SetupCommand : public StorageCommitmentCommand
   {
   private:
-    ServerContext&  context_;
+    StorageCommitmentScpJob&  that_;
 
   public:
-    SetupCommand(ServerContext& context) :
-      context_(context)
+    SetupCommand(StorageCommitmentScpJob& that) :
+      that_(that)
     {
     }
 
@@ -81,6 +81,7 @@ namespace Orthanc
     
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
+      that_.Setup(jobId);
       return true;
     }
 
@@ -95,17 +96,17 @@ namespace Orthanc
   class StorageCommitmentScpJob::LookupCommand : public StorageCommitmentCommand
   {
   private:
-    ServerContext&  context_;
+    StorageCommitmentScpJob&  that_;
     bool            hasFailureReason_;
     std::string     sopClassUid_;
     std::string     sopInstanceUid_;
     StorageCommitmentFailureReason  failureReason_;
 
   public:
-    LookupCommand(ServerContext& context,
+    LookupCommand(StorageCommitmentScpJob&  that,
                   const std::string& sopClassUid,
                   const std::string& sopInstanceUid) :
-      context_(context),
+      that_(that),
       hasFailureReason_(false),
       sopClassUid_(sopClassUid),
       sopInstanceUid_(sopInstanceUid)
@@ -123,44 +124,12 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
-      
-      bool success = false;
-      
-      try
+      else
       {
-        std::vector<std::string> orthancId;
-        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid_);
-
-        if (orthancId.size() == 1)
-        {
-          std::string a, b;
-
-          // Make sure that the DICOM file can be re-read by DCMTK
-          // from the file storage, and that the actual SOP
-          // class/instance UIDs do match
-          ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
-          if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
-              locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
-              a == sopClassUid_ &&
-              b == sopInstanceUid_)
-          {
-            success = true;
-          }
-        }
+        failureReason_ = that_.Lookup(sopClassUid_, sopInstanceUid_);
+        hasFailureReason_ = true;
+        return true;
       }
-      catch (OrthancException&)
-      {
-      }
-
-      LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
-                << " while looking for " << sopClassUid_ << " / " << sopInstanceUid_;
-
-      failureReason_ = (success ?
-                        StorageCommitmentFailureReason_Success : 
-                        StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */);
-      hasFailureReason_ = true;
-      
-      return true;
     }
 
     const std::string& GetSopClassUid() const
@@ -237,13 +206,10 @@ namespace Orthanc
   {
   private:
     StorageCommitmentScpJob&  that_;
-    ServerContext&            context_;
 
   public:
-    Unserializer(StorageCommitmentScpJob&  that,
-                 ServerContext& context) :
-      that_(that),
-      context_(context)
+    Unserializer(StorageCommitmentScpJob& that) :
+      that_(that)
     {
       that_.ready_ = false;
     }
@@ -254,11 +220,11 @@ namespace Orthanc
 
       if (type == SETUP)
       {
-        return new SetupCommand(context_);
+        return new SetupCommand(that_);
       }
       else if (type == LOOKUP)
       {
-        return new LookupCommand(context_,
+        return new LookupCommand(that_,
                                  SerializationToolbox::ReadString(source, SOP_CLASS_UID),
                                  SerializationToolbox::ReadString(source, SOP_INSTANCE_UID));
       }
@@ -273,6 +239,92 @@ namespace Orthanc
     }
   };
 
+
+  void StorageCommitmentScpJob::Setup(const std::string& jobId)
+  {
+    const size_t n = GetCommandsCount();
+
+    if (n <= 1)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::vector<std::string> sopClassUids, sopInstanceUids;
+
+    sopClassUids.reserve(n);
+    sopInstanceUids.reserve(n);
+
+    for (size_t i = 0; i < n; i++)
+    {
+      const CommandType type = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i)).GetType();
+      
+      if ((i == 0 && type != CommandType_Setup) ||
+          (i >= 1 && i < n - 1 && type != CommandType_Lookup) ||
+          (i == n - 1 && type != CommandType_Answer))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (type == CommandType_Lookup)
+      {
+        const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
+        sopClassUids.push_back(lookup.GetSopClassUid());
+        sopInstanceUids.push_back(lookup.GetSopInstanceUid());
+      }
+    }
+      
+    lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids, sopInstanceUids));
+  }
+
+
+  StorageCommitmentFailureReason StorageCommitmentScpJob::Lookup(const std::string& sopClassUid,
+                                                                 const std::string& sopInstanceUid)
+  {
+    if (lookupHandler_.get() != NULL)
+    {
+      return lookupHandler_->Lookup(sopClassUid, sopInstanceUid);
+    }
+    else
+    {
+      // This is the default implementation of Orthanc (if no storage
+      // commitment plugin is installed)
+      bool success = false;
+      
+      try
+      {
+        std::vector<std::string> orthancId;
+        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+
+        if (orthancId.size() == 1)
+        {
+          std::string a, b;
+
+          // Make sure that the DICOM file can be re-read by DCMTK
+          // from the file storage, and that the actual SOP
+          // class/instance UIDs do match
+          ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
+          if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
+              locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
+              a == sopClassUid &&
+              b == sopInstanceUid)
+          {
+            success = true;
+          }
+        }
+      }
+      catch (OrthancException&)
+      {
+      }
+
+      LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
+                << " while looking for " << sopClassUid << " / " << sopInstanceUid;
+
+      return (success ?
+              StorageCommitmentFailureReason_Success : 
+              StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */);
+    }
+  }
+  
   
   void StorageCommitmentScpJob::Answer()
   {   
@@ -335,7 +387,7 @@ namespace Orthanc
       }
     }
 
-    AddCommand(new SetupCommand(context));
+    AddCommand(new SetupCommand(*this));
   }
     
 
@@ -348,7 +400,7 @@ namespace Orthanc
     }
     else
     {
-      AddCommand(new LookupCommand(context_, sopClassUid, sopInstanceUid));        
+      AddCommand(new LookupCommand(*this, sopClassUid, sopInstanceUid));        
     }
   }
     
@@ -371,7 +423,7 @@ namespace Orthanc
 
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    SetOfCommandsJob(new Unserializer(*this, context), serialized),
+    SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context)
   {
     transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);

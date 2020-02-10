@@ -1052,4 +1052,22 @@ namespace Orthanc
     }
 #endif
   }
+
+
+  IStorageCommitmentFactory::ILookupHandler*
+  ServerContext::CreateStorageCommitment(const std::string& jobId,
+                                         const std::string& transactionUid,
+                                         const std::vector<std::string>& sopClassUids,
+                                         const std::vector<std::string>& sopInstanceUids)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      // TODO
+      return NULL;
+    }
+#endif
+
+    return NULL;
+  }
 }

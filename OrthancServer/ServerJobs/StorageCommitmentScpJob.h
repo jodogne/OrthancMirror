@@ -35,7 +35,9 @@
 
 #include "../../Core/DicomNetworking/RemoteModalityParameters.h"
 #include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#include "IStorageCommitmentFactory.h"
 
+#include <memory>
 #include <vector>
 
 namespace Orthanc
@@ -64,6 +66,13 @@ namespace Orthanc
     RemoteModalityParameters  remoteModality_;
     std::string               calledAet_;
 
+    std::auto_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
+
+    void Setup(const std::string& jobId);
+    
+    StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                          const std::string& sopInstanceUid);
+    
     void Answer();
     
   public:
