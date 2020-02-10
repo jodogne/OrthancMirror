@@ -23,6 +23,7 @@ Maintenance
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
+* Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
 
 
 Version 1.5.8 (2019-10-16)
