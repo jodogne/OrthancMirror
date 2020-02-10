@@ -1312,7 +1312,7 @@ namespace Orthanc
       {
         DicomUserConnection scu(localAet, remote);
 
-        std::list<std::string> sopClassUids, sopInstanceUids;
+        std::vector<std::string> sopClassUids, sopInstanceUids;
         sopClassUids.push_back("a");
         sopInstanceUids.push_back("b");
         sopClassUids.push_back("1.2.840.10008.5.1.4.1.1.6.1");
