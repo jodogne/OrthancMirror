@@ -44,11 +44,12 @@
 
 static const char* ANSWER = "Answer";
 static const char* CALLED_AET = "CalledAet";
+static const char* INDEX = "Index";
 static const char* LOOKUP = "Lookup";
 static const char* REMOTE_MODALITY = "RemoteModality";
 static const char* SETUP = "Setup";
-static const char* SOP_CLASS_UID = "SopClassUid";
-static const char* SOP_INSTANCE_UID = "SopInstanceUid";
+static const char* SOP_CLASS_UIDS = "SopClassUids";
+static const char* SOP_INSTANCE_UIDS = "SopInstanceUids";
 static const char* TRANSACTION_UID = "TransactionUid";
 static const char* TYPE = "Type";
 
@@ -96,20 +97,17 @@ namespace Orthanc
   class StorageCommitmentScpJob::LookupCommand : public StorageCommitmentCommand
   {
   private:
-    StorageCommitmentScpJob&  that_;
-    bool            hasFailureReason_;
-    std::string     sopClassUid_;
-    std::string     sopInstanceUid_;
+    StorageCommitmentScpJob&        that_;
+    size_t                          index_;
+    bool                            hasFailureReason_;
     StorageCommitmentFailureReason  failureReason_;
 
   public:
     LookupCommand(StorageCommitmentScpJob&  that,
-                  const std::string& sopClassUid,
-                  const std::string& sopInstanceUid) :
+                  size_t index) :
       that_(that),
-      hasFailureReason_(false),
-      sopClassUid_(sopClassUid),
-      sopInstanceUid_(sopInstanceUid)
+      index_(index),
+      hasFailureReason_(false)
     {
     }
 
@@ -126,22 +124,17 @@ namespace Orthanc
       }
       else
       {
-        failureReason_ = that_.Lookup(sopClassUid_, sopInstanceUid_);
+        failureReason_ = that_.Lookup(index_);
         hasFailureReason_ = true;
         return true;
       }
     }
 
-    const std::string& GetSopClassUid() const
+    size_t GetIndex() const
     {
-      return sopClassUid_;
+      return index_;
     }
-    
-    const std::string& GetSopInstanceUid() const
-    {
-      return sopInstanceUid_;
-    }
-    
+
     StorageCommitmentFailureReason GetFailureReason() const
     {
       if (hasFailureReason_)
@@ -158,8 +151,7 @@ namespace Orthanc
     {
       target = Json::objectValue;
       target[TYPE] = LOOKUP;
-      target[SOP_CLASS_UID] = sopClassUid_;
-      target[SOP_INSTANCE_UID] = sopInstanceUid_;
+      target[INDEX] = static_cast<unsigned int>(index_);
     }
   };
 
@@ -224,9 +216,7 @@ namespace Orthanc
       }
       else if (type == LOOKUP)
       {
-        return new LookupCommand(that_,
-                                 SerializationToolbox::ReadString(source, SOP_CLASS_UID),
-                                 SerializationToolbox::ReadString(source, SOP_INSTANCE_UID));
+        return new LookupCommand(that_, SerializationToolbox::ReadUnsignedInteger(source, INDEX));
       }
       else if (type == ANSWER)
       {
@@ -240,7 +230,7 @@ namespace Orthanc
   };
 
 
-  void StorageCommitmentScpJob::Setup(const std::string& jobId)
+  void StorageCommitmentScpJob::CheckInvariants()
   {
     const size_t n = GetCommandsCount();
 
@@ -249,11 +239,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    std::vector<std::string> sopClassUids, sopInstanceUids;
-
-    sopClassUids.reserve(n);
-    sopInstanceUids.reserve(n);
-
     for (size_t i = 0; i < n; i++)
     {
       const CommandType type = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i)).GetType();
@@ -268,21 +253,36 @@ namespace Orthanc
       if (type == CommandType_Lookup)
       {
         const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
-        sopClassUids.push_back(lookup.GetSopClassUid());
-        sopInstanceUids.push_back(lookup.GetSopInstanceUid());
+        if (lookup.GetIndex() != i - 1)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
       }
     }
-      
-    lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids, sopInstanceUids));
+  }
+    
+
+  void StorageCommitmentScpJob::Setup(const std::string& jobId)
+  {
+    CheckInvariants();
+    lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids_, sopInstanceUids_));
   }
 
 
-  StorageCommitmentFailureReason StorageCommitmentScpJob::Lookup(const std::string& sopClassUid,
-                                                                 const std::string& sopInstanceUid)
+  StorageCommitmentFailureReason StorageCommitmentScpJob::Lookup(size_t index)
   {
+#ifndef NDEBUG
+    CheckInvariants();
+#endif
+
+    if (index >= sopClassUids_.size())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (lookupHandler_.get() != NULL)
     {
-      return lookupHandler_->Lookup(sopClassUid, sopInstanceUid);
+      return lookupHandler_->Lookup(sopClassUids_[index], sopInstanceUids_[index]);
     }
     else
     {
@@ -293,7 +293,7 @@ namespace Orthanc
       try
       {
         std::vector<std::string> orthancId;
-        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+        context_.GetIndex().LookupIdentifierExact(orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUids_[index]);
 
         if (orthancId.size() == 1)
         {
@@ -305,8 +305,8 @@ namespace Orthanc
           ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
           if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
               locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
-              a == sopClassUid &&
-              b == sopInstanceUid)
+              a == sopClassUids_[index] &&
+              b == sopInstanceUids_[index])
           {
             success = true;
           }
@@ -317,7 +317,7 @@ namespace Orthanc
       }
 
       LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
-                << " while looking for " << sopClassUid << " / " << sopInstanceUid;
+                << " while looking for " << sopClassUids_[index] << " / " << sopInstanceUids_[index];
 
       return (success ?
               StorageCommitmentFailureReason_Success : 
@@ -328,44 +328,25 @@ namespace Orthanc
   
   void StorageCommitmentScpJob::Answer()
   {   
+    CheckInvariants();
     LOG(INFO) << "  Storage commitment SCP job: Sending answer";
 
-    const size_t n = GetCommandsCount();
+    std::vector<StorageCommitmentFailureReason> failureReasons;
+    failureReasons.reserve(sopClassUids_.size());
 
-    if (n <= 1)
+    for (size_t i = 1; i < GetCommandsCount() - 1; i++)
+    {
+      const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
+      failureReasons.push_back(lookup.GetFailureReason());
+    }
+
+    if (failureReasons.size() != sopClassUids_.size())
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-    
-    std::vector<std::string> sopClassUids, sopInstanceUids;
-    std::vector<StorageCommitmentFailureReason> failureReasons;
-
-    sopClassUids.reserve(n);
-    sopInstanceUids.reserve(n);
-    failureReasons.reserve(n);
-
-    for (size_t i = 0; i < n; i++)
-    {
-      const CommandType type = dynamic_cast<const StorageCommitmentCommand&>(GetCommand(i)).GetType();
-      
-      if ((i == 0 && type != CommandType_Setup) ||
-          (i >= 1 && i < n - 1 && type != CommandType_Lookup) ||
-          (i == n - 1 && type != CommandType_Answer))
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (type == CommandType_Lookup)
-      {
-        const LookupCommand& lookup = dynamic_cast<const LookupCommand&>(GetCommand(i));
-        sopClassUids.push_back(lookup.GetSopClassUid());
-        sopInstanceUids.push_back(lookup.GetSopInstanceUid());
-        failureReasons.push_back(lookup.GetFailureReason());
-      }
-    }
       
     DicomUserConnection scu(calledAet_, remoteModality_);
-    scu.ReportStorageCommitment(transactionUid_, sopClassUids, sopInstanceUids, failureReasons);
+    scu.ReportStorageCommitment(transactionUid_, sopClassUids_, sopInstanceUids_, failureReasons);
   }
     
 
@@ -391,6 +372,20 @@ namespace Orthanc
   }
     
 
+  void StorageCommitmentScpJob::Reserve(size_t size)
+  {
+    if (ready_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      sopClassUids_.reserve(size);
+      sopInstanceUids_.reserve(size);
+    }
+  }
+    
+
   void StorageCommitmentScpJob::AddInstance(const std::string& sopClassUid,
                                             const std::string& sopInstanceUid)
   {
@@ -400,7 +395,10 @@ namespace Orthanc
     }
     else
     {
-      AddCommand(new LookupCommand(*this, sopClassUid, sopInstanceUid));        
+      assert(sopClassUids_.size() == sopInstanceUids_.size());
+      AddCommand(new LookupCommand(*this, sopClassUids_.size()));
+      sopClassUids_.push_back(sopClassUid);
+      sopInstanceUids_.push_back(sopInstanceUid);
     }
   }
     
@@ -429,6 +427,8 @@ namespace Orthanc
     transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);
     remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
     calledAet_ = SerializationToolbox::ReadString(serialized, CALLED_AET);
+    SerializationToolbox::ReadArrayOfStrings(sopClassUids_, serialized, SOP_CLASS_UIDS);
+    SerializationToolbox::ReadArrayOfStrings(sopInstanceUids_, serialized, SOP_INSTANCE_UIDS);
   }
   
 
@@ -443,6 +443,8 @@ namespace Orthanc
       target[TRANSACTION_UID] = transactionUid_;
       remoteModality_.Serialize(target[REMOTE_MODALITY], true /* force advanced format */);
       target[CALLED_AET] = calledAet_;
+      SerializationToolbox::WriteArrayOfStrings(target, sopClassUids_, SOP_CLASS_UIDS);
+      SerializationToolbox::WriteArrayOfStrings(target, sopInstanceUids_, SOP_INSTANCE_UIDS);
       return true;
     }
   }
