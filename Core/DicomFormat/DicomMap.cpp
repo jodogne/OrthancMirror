@@ -1367,8 +1367,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
     
-    Clear();
-
     std::map<std::string, DicomTag2> mainTags;   // TODO - Create a singleton to hold this map
     LoadMainDicomTags(mainTags, level);
     
