@@ -19,6 +19,7 @@ Plugins
 -------
 
 * New sample plugin: "ConnectivityChecks"
+* New primitives to handle storage commitment SCP by plugins
 
 Maintenance
 -----------

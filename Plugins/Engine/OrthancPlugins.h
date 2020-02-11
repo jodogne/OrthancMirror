@@ -62,6 +62,7 @@ namespace Orthanc
 #include "../../Core/JobsEngine/IJob.h"
 #include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/IServerListener.h"
+#include "../../OrthancServer/ServerJobs/IStorageCommitmentFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
@@ -80,7 +81,8 @@ namespace Orthanc
     public IDicomImageDecoder,
     public IIncomingHttpRequestFilter,
     public IFindRequestHandlerFactory,
-    public IMoveRequestHandlerFactory
+    public IMoveRequestHandlerFactory,
+    public IStorageCommitmentFactory
   {
   private:
     class PImpl;
@@ -123,6 +125,8 @@ namespace Orthanc
     void RegisterIncomingHttpRequestFilter2(const void* parameters);
 
     void RegisterRefreshMetricsCallback(const void* parameters);
+
+    void RegisterStorageCommitmentScpCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -341,6 +345,15 @@ namespace Orthanc
                                             HttpMethod method,
                                             const UriComponents& uri,
                                             const Arguments& headers);
+
+    // New in Orthanc 1.6.0
+    IStorageCommitmentFactory::ILookupHandler* CreateStorageCommitment(
+      const std::string& jobId,
+      const std::string& transactionUid,
+      const std::vector<std::string>& sopClassUids,
+      const std::vector<std::string>& sopInstanceUids,
+      const std::string& remoteAet,
+      const std::string& calledAet) ORTHANC_OVERRIDE;
   };
 }
 

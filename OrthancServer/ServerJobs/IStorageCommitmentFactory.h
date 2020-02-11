@@ -59,6 +59,8 @@ namespace Orthanc
     virtual ILookupHandler* CreateStorageCommitment(const std::string& jobId,
                                                     const std::string& transactionUid,
                                                     const std::vector<std::string>& sopClassUids,
-                                                    const std::vector<std::string>& sopInstanceUids) = 0;
+                                                    const std::vector<std::string>& sopInstanceUids,
+                                                    const std::string& remoteAet,
+                                                    const std::string& calledAet) = 0;
   };
 }

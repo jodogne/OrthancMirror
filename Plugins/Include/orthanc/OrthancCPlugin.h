@@ -26,6 +26,7 @@
  *    - Possibly register a callback to unserialize jobs using OrthancPluginRegisterJobsUnserializer().
  *    - Possibly register a callback to refresh its metrics using OrthancPluginRegisterRefreshMetricsCallback().
  *    - Possibly register a callback to answer chunked HTTP transfers using ::OrthancPluginRegisterChunkedRestCallback().
+ *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -451,6 +452,7 @@ extern "C"
     _OrthancPluginService_RegisterIncomingHttpRequestFilter2 = 1010,
     _OrthancPluginService_RegisterRefreshMetricsCallback = 1011,
     _OrthancPluginService_RegisterChunkedRestCallback = 1012,  /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_RegisterStorageCommitmentScpCallback = 1013,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -910,14 +912,14 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginMetricsType_Default,   /*!< Default metrics */
+    OrthancPluginMetricsType_Default = 0,   /*!< Default metrics */
 
     /**
      * This metrics represents a time duration. Orthanc will keep the
      * maximum value of the metrics over a sliding window of ten
      * seconds, which is useful if the metrics is sampled frequently.
      **/
-    OrthancPluginMetricsType_Timer
+    OrthancPluginMetricsType_Timer = 1
   } OrthancPluginMetricsType;
   
 
@@ -927,10 +929,46 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginDicomWebBinaryMode_Ignore,        /*!< Don't include binary tags */
-    OrthancPluginDicomWebBinaryMode_InlineBinary,  /*!< Inline encoding using Base64 */
-    OrthancPluginDicomWebBinaryMode_BulkDataUri    /*!< Use a bulk data URI field */
+    OrthancPluginDicomWebBinaryMode_Ignore = 0,        /*!< Don't include binary tags */
+    OrthancPluginDicomWebBinaryMode_InlineBinary = 1,  /*!< Inline encoding using Base64 */
+    OrthancPluginDicomWebBinaryMode_BulkDataUri = 2    /*!< Use a bulk data URI field */
   } OrthancPluginDicomWebBinaryMode;
+
+
+  /**
+   * The available values for the Failure Reason (0008,1197) during
+   * storage commitment.
+   * http://dicom.nema.org/medical/dicom/2019e/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
+   **/
+  typedef enum
+  {
+    OrthancPluginStorageCommitmentFailureReason_Success = 0,
+
+    /* 0110H: A general failure in processing the operation was
+     * encountered */
+    OrthancPluginStorageCommitmentFailureReason_ProcessingFailure = 1,
+
+    /* 0112H: One or more of the elements in the Referenced SOP
+       Instance Sequence was not available */
+    OrthancPluginStorageCommitmentFailureReason_NoSuchObjectInstance = 2,
+
+    /* 0213H: The SCP does not currently have enough resources to
+       store the requested SOP Instance(s) */
+    OrthancPluginStorageCommitmentFailureReason_ResourceLimitation = 3,
+
+    /* 0122H: Storage Commitment has been requested for a SOP Instance
+       with a SOP Class that is not supported by the SCP */
+    OrthancPluginStorageCommitmentFailureReason_ReferencedSOPClassNotSupported = 4,
+
+    /* 0119H: The SOP Class of an element in the Referenced SOP
+       Instance Sequence did not correspond to the SOP class
+       registered for this SOP Instance at the SCP */
+    OrthancPluginStorageCommitmentFailureReason_ClassInstanceConflict = 5,
+
+    /* 0131H: The Transaction UID of the Storage Commitment Request is
+       already in use */
+    OrthancPluginStorageCommitmentFailureReason_DuplicateTransactionUID = 6
+  } OrthancPluginStorageCommitmentFailureReason;
 
   
 
@@ -1659,7 +1697,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
-        sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode))
+        sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -7260,6 +7299,44 @@ extern "C"
   }
 
 
+
+  typedef void* (*OrthancPluginStorageCommitmentFactory) (
+    const char*         jobId,
+    const char*         transactionUid,
+    const char* const*  sopClassUids,
+    const char* const*  sopInstancesUids,
+    uint32_t            countInstances,
+    const char*         remoteAet,
+    const char*         calledAet);
+
+  typedef void (*OrthancPluginStorageCommitmentDestructor) (void* handler);
+    
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageCommitmentLookup) (
+    OrthancPluginStorageCommitmentFailureReason* target,
+    void* handler,
+    const char* sopClassUid,
+    const char* sopInstanceUid);
+    
+    
+  typedef struct
+  {
+    OrthancPluginStorageCommitmentFactory     factory;
+    OrthancPluginStorageCommitmentDestructor  destructor;
+    OrthancPluginStorageCommitmentLookup      lookup;
+  } _OrthancPluginRegisterStorageCommitmentScpCallback;
+
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageCommitmentScpCallback(
+    OrthancPluginContext*                     context,
+    OrthancPluginStorageCommitmentFactory     factory,
+    OrthancPluginStorageCommitmentDestructor  destructor,
+    OrthancPluginStorageCommitmentLookup      lookup)
+  {
+    _OrthancPluginRegisterStorageCommitmentScpCallback params;
+    params.factory = factory;
+    params.destructor = destructor;
+    params.lookup = lookup;
+    context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
+  }
   
 #ifdef  __cplusplus
 }
