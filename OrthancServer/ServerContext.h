@@ -432,6 +432,8 @@ namespace Orthanc
     CreateStorageCommitment(const std::string& jobId,
                             const std::string& transactionUid,
                             const std::vector<std::string>& sopClassUids,
-                            const std::vector<std::string>& sopInstanceUids) ORTHANC_OVERRIDE;
+                            const std::vector<std::string>& sopInstanceUids,
+                            const std::string& remoteAet,
+                            const std::string& calledAet) ORTHANC_OVERRIDE;
   };
 }

@@ -682,6 +682,102 @@ namespace Orthanc
     };
 
 
+
+    class StorageCommitmentScp : public IStorageCommitmentFactory
+    {
+    private:
+      class Handler : public IStorageCommitmentFactory::ILookupHandler
+      {
+      private:
+        _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+        void*    handler_;
+
+      public:
+        Handler(_OrthancPluginRegisterStorageCommitmentScpCallback  parameters,
+                void* handler) :
+          parameters_(parameters)
+        {
+          if (handler == NULL)
+          {
+            throw OrthancException(ErrorCode_NullPointer);
+          }
+        }
+
+        virtual ~Handler()
+        {
+          assert(handler_ != NULL);
+          parameters_.destructor(handler_);
+          handler_ = NULL;
+        }
+
+        virtual StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                      const std::string& sopInstanceUid)
+        {
+          assert(handler_ != NULL);
+          OrthancPluginStorageCommitmentFailureReason reason =
+            OrthancPluginStorageCommitmentFailureReason_Success;
+          OrthancPluginErrorCode error = parameters_.lookup(
+            &reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
+          if (error == OrthancPluginErrorCode_Success)
+          {
+            return Plugins::Convert(reason);
+          }
+          else
+          {
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+      };
+      
+      _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+
+    public:
+      StorageCommitmentScp(_OrthancPluginRegisterStorageCommitmentScpCallback parameters) :
+        parameters_(parameters)
+      {
+      }
+
+      virtual ILookupHandler* CreateStorageCommitment(
+        const std::string& jobId,
+        const std::string& transactionUid,
+        const std::vector<std::string>& sopClassUids,
+        const std::vector<std::string>& sopInstanceUids,
+        const std::string& remoteAet,
+        const std::string& calledAet) ORTHANC_OVERRIDE
+      {
+        const size_t n = sopClassUids.size();
+        
+        if (sopInstanceUids.size() != n)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        
+        std::vector<const char*> a, b;
+        a.resize(n);
+        b.resize(n);
+
+        for (size_t i = 0; i < n; i++)
+        {
+          a[i] = sopClassUids[i].c_str();
+          b[i] = sopInstanceUids[i].c_str();
+        }
+
+        void* handler = parameters_.factory(jobId.c_str(), transactionUid.c_str(),
+                                            a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0],
+                                            static_cast<uint32_t>(n),
+                                            remoteAet.c_str(), calledAet.c_str());
+        if (handler == NULL)
+        {
+          return NULL;
+        }
+        else
+        {
+          return new Handler(parameters_, handler);
+        }
+      }
+    };
+
+
     class ServerContextLock
     {
     private:
@@ -724,6 +820,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
+    typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -740,6 +837,7 @@ namespace Orthanc
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
+    StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::auto_ptr<StorageAreaFactory>  storageArea_;
 
     boost::recursive_mutex restCallbackMutex_;
@@ -750,6 +848,7 @@ namespace Orthanc
     boost::mutex decodeImageCallbackMutex_;
     boost::mutex jobsUnserializersMutex_;
     boost::mutex refreshMetricsMutex_;
+    boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
 
     Properties properties_;
@@ -1260,6 +1359,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -1303,6 +1403,13 @@ namespace Orthanc
     {
       delete *it;
     }
+
+    for (PImpl::StorageCommitmentScpCallbacks::iterator
+           it = pimpl_->storageCommitmentScpCallbacks_.begin(); 
+         it != pimpl_->storageCommitmentScpCallbacks_.end(); ++it)
+    {
+      delete *it;
+    } 
   }
 
 
@@ -1860,6 +1967,18 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered a callback to refresh its metrics";
     pimpl_->refreshMetricsCallbacks_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterStorageCommitmentScpCallback(const void* parameters)
+  {
+    const _OrthancPluginRegisterStorageCommitmentScpCallback& p = 
+      *reinterpret_cast<const _OrthancPluginRegisterStorageCommitmentScpCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
+    LOG(INFO) << "Plugin has registered a storage commitment callback";
+
+    pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
   }
 
 
@@ -3882,6 +4001,10 @@ namespace Orthanc
         RegisterRefreshMetricsCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterStorageCommitmentScpCallback:
+        RegisterStorageCommitmentScpCallback(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterStorageArea:
       {
         LOG(INFO) << "Plugin has registered a custom storage area";
@@ -4538,5 +4661,33 @@ namespace Orthanc
         }
       }
     }
+  }
+
+
+  IStorageCommitmentFactory::ILookupHandler* OrthancPlugins::CreateStorageCommitment(
+    const std::string& jobId,
+    const std::string& transactionUid,
+    const std::vector<std::string>& sopClassUids,
+    const std::vector<std::string>& sopInstanceUids,
+    const std::string& remoteAet,
+    const std::string& calledAet)
+  {
+    boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
+
+    for (PImpl::StorageCommitmentScpCallbacks::iterator
+           it = pimpl_->storageCommitmentScpCallbacks_.begin(); 
+         it != pimpl_->storageCommitmentScpCallbacks_.end(); ++it)
+    {
+      assert(*it != NULL);
+      IStorageCommitmentFactory::ILookupHandler* handler = (*it)->CreateStorageCommitment
+        (jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+
+      if (handler != NULL)
+      {
+        return handler;
+      }
+    } 
+    
+    return NULL;
   }
 }

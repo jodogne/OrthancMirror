@@ -265,7 +265,10 @@ namespace Orthanc
   void StorageCommitmentScpJob::Setup(const std::string& jobId)
   {
     CheckInvariants();
-    lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids_, sopInstanceUids_));
+
+    const std::string& remoteAet = remoteModality_.GetApplicationEntityTitle();
+    lookupHandler_.reset(context_.CreateStorageCommitment(jobId, transactionUid_, sopClassUids_,
+                                                          sopInstanceUids_, remoteAet, calledAet_));
   }
 
 
