@@ -3036,4 +3036,41 @@ namespace OrthancPlugins
     }
 #endif
   }
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  OrthancPluginErrorCode IStorageCommitmentScpHandler::Lookup(
+    OrthancPluginStorageCommitmentFailureReason* target,
+    void* rawHandler,
+    const char* sopClassUid,
+    const char* sopInstanceUid)
+  {
+    assert(target != NULL &&
+           rawHandler != NULL);
+      
+    try
+    {
+      IStorageCommitmentScpHandler& handler = *reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+      *target = handler.Lookup(sopClassUid, sopInstanceUid);
+      return OrthancPluginErrorCode_Success;
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  void IStorageCommitmentScpHandler::Destructor(void* rawHandler)
+  {
+    assert(rawHandler != NULL);
+    delete reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+  }
+#endif
 }
