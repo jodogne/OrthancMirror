@@ -313,7 +313,7 @@ namespace Orthanc
 
     /**
      * {summary}{Graylevel, unsigned 64bpp image.}
-     * {description}{The image is graylevel. Each pixel is unsigned and stored in 4 bytes.}
+     * {description}{The image is graylevel. Each pixel is unsigned and stored in 8 bytes.}
      **/
     PixelFormat_Grayscale64 = 10
   };
