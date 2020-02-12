@@ -695,7 +695,8 @@ namespace Orthanc
       public:
         Handler(_OrthancPluginRegisterStorageCommitmentScpCallback  parameters,
                 void* handler) :
-          parameters_(parameters)
+          parameters_(parameters),
+          handler_(handler)
         {
           if (handler == NULL)
           {

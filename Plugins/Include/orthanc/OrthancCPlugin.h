@@ -123,8 +123,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     5
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  7
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     6
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -7304,7 +7304,7 @@ extern "C"
     const char*         jobId,
     const char*         transactionUid,
     const char* const*  sopClassUids,
-    const char* const*  sopInstancesUids,
+    const char* const*  sopInstanceUids,
     uint32_t            countInstances,
     const char*         remoteAet,
     const char*         calledAet);
