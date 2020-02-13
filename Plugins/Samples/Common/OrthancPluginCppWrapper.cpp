@@ -2159,6 +2159,89 @@ namespace OrthancPlugins
     }
   }
 
+
+  void OrthancJob::SubmitFromRestApiPost(OrthancPluginRestOutput* output,
+                                         const Json::Value& body,
+                                         OrthancJob* job)
+  {
+    static const char* KEY_SYNCHRONOUS = "Synchronous";
+    static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+    static const char* KEY_PRIORITY = "Priority";
+
+    std::auto_ptr<OrthancJob> protection(job);
+  
+    if (body.type() != Json::objectValue)
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                      "Expected a JSON object in the body");
+    }
+
+    bool synchronous = true;
+  
+    if (body.isMember(KEY_SYNCHRONOUS))
+    {
+      if (body[KEY_SYNCHRONOUS].type() != Json::booleanValue)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_SYNCHRONOUS) +
+                                        "\" must be Boolean");
+      }
+      else
+      {
+        synchronous = body[KEY_SYNCHRONOUS].asBool();
+      }
+    }
+
+    if (body.isMember(KEY_ASYNCHRONOUS))
+    {
+      if (body[KEY_ASYNCHRONOUS].type() != Json::booleanValue)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_ASYNCHRONOUS) +
+                                        "\" must be Boolean");
+      }
+      else
+      {
+        synchronous = !body[KEY_ASYNCHRONOUS].asBool();
+      }
+    }
+
+    int priority = 0;
+
+    if (body.isMember(KEY_PRIORITY))
+    {
+      if (body[KEY_PRIORITY].type() != Json::booleanValue)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_PRIORITY) +
+                                        "\" must be an integer");
+      }
+      else
+      {
+        priority = !body[KEY_PRIORITY].asInt();
+      }
+    }
+  
+    Json::Value result;
+
+    if (synchronous)
+    {
+      OrthancPlugins::OrthancJob::SubmitAndWait(result, protection.release(), priority);
+    }
+    else
+    {
+      std::string id = OrthancPlugins::OrthancJob::Submit(protection.release(), priority);
+
+      result = Json::objectValue;
+      result["ID"] = id;
+      result["Path"] = "/jobs/" + id;
+    }
+
+    std::string s = result.toStyledString();
+    OrthancPluginAnswerBuffer(OrthancPlugins::GetGlobalContext(), output, s.c_str(),
+                              s.size(), "application/json");
+  }
+
 #endif
 
 
