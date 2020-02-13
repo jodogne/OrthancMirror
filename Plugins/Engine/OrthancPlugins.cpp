@@ -763,12 +763,19 @@ namespace Orthanc
           b[i] = sopInstanceUids[i].c_str();
         }
 
-        void* handler = parameters_.factory(jobId.c_str(), transactionUid.c_str(),
-                                            a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0],
-                                            static_cast<uint32_t>(n),
-                                            remoteAet.c_str(), calledAet.c_str());
-        if (handler == NULL)
+        void* handler = NULL;
+        OrthancPluginErrorCode error = parameters_.factory(
+          &handler, jobId.c_str(), transactionUid.c_str(),
+          a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
+          remoteAet.c_str(), calledAet.c_str());
+
+        if (error != OrthancPluginErrorCode_Success)
         {
+          throw OrthancException(static_cast<ErrorCode>(error));          
+        }
+        else if (handler == NULL)
+        {
+          // This plugin won't handle this storage commitment request
           return NULL;
         }
         else

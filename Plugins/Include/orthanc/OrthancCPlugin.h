@@ -128,11 +128,11 @@
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
-#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision) \
-  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||               \
-   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&             \
-    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||             \
-     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&           \
+#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
+  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
+   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&                    \
+    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||                    \
+     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&                  \
       ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
 #endif
 
@@ -7300,7 +7300,8 @@ extern "C"
 
 
 
-  typedef void* (*OrthancPluginStorageCommitmentFactory) (
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageCommitmentFactory) (
+    void**              handler /* out */,
     const char*         jobId,
     const char*         transactionUid,
     const char* const*  sopClassUids,

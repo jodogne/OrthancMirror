@@ -48,13 +48,14 @@ public:
 };
 
 
-static void* StorageCommitmentScp(const char*         jobId,
-                                  const char*         transactionUid,
-                                  const char* const*  sopClassUids,
-                                  const char* const*  sopInstanceUids,
-                                  uint32_t            countInstances,
-                                  const char*         remoteAet,
-                                  const char*         calledAet)
+static OrthancPluginErrorCode StorageCommitmentScp(void**              handler /* out */,
+                                                   const char*         jobId,
+                                                   const char*         transactionUid,
+                                                   const char* const*  sopClassUids,
+                                                   const char* const*  sopInstanceUids,
+                                                   uint32_t            countInstances,
+                                                   const char*         remoteAet,
+                                                   const char*         calledAet)
 {
   printf("[%s] [%s] [%s] [%s]\n", jobId, transactionUid, remoteAet, calledAet);
 
@@ -62,8 +63,9 @@ static void* StorageCommitmentScp(const char*         jobId,
   {
     printf("++ [%s] [%s]\n", sopClassUids[i], sopInstanceUids[i]);
   }
-  
-  return new StorageCommitmentSample;
+
+  *handler = new StorageCommitmentSample;
+  return OrthancPluginErrorCode_Success;
 }
 
 
@@ -84,9 +86,10 @@ extern "C"
 
     OrthancPluginSetDescription(c, "Sample storage commitment SCP plugin.");
 
-    OrthancPluginRegisterStorageCommitmentScpCallback(c, StorageCommitmentScp,
-                                                      OrthancPlugins::IStorageCommitmentScpHandler::Destructor,
-                                                      OrthancPlugins::IStorageCommitmentScpHandler::Lookup);
+    OrthancPluginRegisterStorageCommitmentScpCallback(
+      c, StorageCommitmentScp,
+      OrthancPlugins::IStorageCommitmentScpHandler::Destructor,
+      OrthancPlugins::IStorageCommitmentScpHandler::Lookup);
     
     return 0;
   }
