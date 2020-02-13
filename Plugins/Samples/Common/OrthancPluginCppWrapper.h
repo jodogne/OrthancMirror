@@ -784,6 +784,13 @@ namespace OrthancPlugins
     static void SubmitAndWait(Json::Value& result,
                               OrthancJob* job /* takes ownership */,
                               int priority);
+
+    // Submit a job from a POST on the REST API with the same
+    // conventions as in the Orthanc core (according to the
+    // "Synchronous" and "Priority" options)
+    static void SubmitFromRestApiPost(OrthancPluginRestOutput* output,
+                                      const Json::Value& body,
+                                      OrthancJob* job);
   };
 #endif
 
