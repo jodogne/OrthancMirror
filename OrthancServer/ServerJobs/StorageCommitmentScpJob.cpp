@@ -275,8 +275,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-
-    if (lookupHandler_.get() != NULL)
+    else if (lookupHandler_.get() != NULL)
     {
       return lookupHandler_->Lookup(sopClassUids_[index], sopInstanceUids_[index]);
     }
@@ -285,6 +284,8 @@ namespace Orthanc
       // This is the default implementation of Orthanc (if no storage
       // commitment plugin is installed)
       bool success = false;
+      StorageCommitmentFailureReason reason =
+        StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */;
       
       try
       {
@@ -301,10 +302,18 @@ namespace Orthanc
           ServerContext::DicomCacheLocker locker(context_, orthancId[0]);
           if (locker.GetDicom().GetTagValue(a, DICOM_TAG_SOP_CLASS_UID) &&
               locker.GetDicom().GetTagValue(b, DICOM_TAG_SOP_INSTANCE_UID) &&
-              a == sopClassUids_[index] &&
               b == sopInstanceUids_[index])
           {
-            success = true;
+            if (a == sopClassUids_[index])
+            {
+              success = true;
+              reason = StorageCommitmentFailureReason_Success;
+            }
+            else
+            {
+              // Mismatch in the SOP class UID
+              reason = StorageCommitmentFailureReason_ClassInstanceConflict /* 0x0119 */;
+            }
           }
         }
       }
@@ -315,9 +324,7 @@ namespace Orthanc
       LOG(INFO) << "  Storage commitment SCP job: " << (success ? "Success" : "Failure")
                 << " while looking for " << sopClassUids_[index] << " / " << sopInstanceUids_[index];
 
-      return (success ?
-              StorageCommitmentFailureReason_Success : 
-              StorageCommitmentFailureReason_NoSuchObjectInstance /* 0x0112 == 274 */);
+      return reason;
     }
   }
   
