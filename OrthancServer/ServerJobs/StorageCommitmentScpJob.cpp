@@ -118,16 +118,9 @@ namespace Orthanc
     
     virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
-      if (hasFailureReason_)
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
-      else
-      {
-        failureReason_ = that_.Lookup(index_);
-        hasFailureReason_ = true;
-        return true;
-      }
+      failureReason_ = that_.Lookup(index_);
+      hasFailureReason_ = true;
+      return true;
     }
 
     size_t GetIndex() const
