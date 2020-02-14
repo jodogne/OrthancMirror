@@ -383,6 +383,20 @@ namespace Orthanc
     }
     
     ORTHANC_FORCE_INLINE
+    static void SetMinValue(PixelType& target)
+    {
+      // std::numeric_limits<float>::lowest is not supported on
+      // all compilers (for instance, Visual Studio 9.0 2008)
+      target = -std::numeric_limits<float>::max();
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetMaxValue(PixelType& target)
+    {
+      target = std::numeric_limits<float>::max();
+    }
+
+    ORTHANC_FORCE_INLINE
     static void FloatToPixel(PixelType& target,
                              float value)
     {
