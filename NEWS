@@ -12,8 +12,9 @@ REST API
 * API version has been upgraded to 5
 * added "/peers/{id}/system" route to test the connectivity with a remote peer (and eventually
   retrieve its version number)
-* "/changes": Allow the "limit" argument to be greater than 100
-* /instances/{id}/preview route now takes the windowing into account
+* /changes: Allow the "limit" argument to be greater than 100
+* /instances/{id}/preview: Now takes the windowing into account
+* /tools/log-level: Possibility to access and change the log level without restarting Orthanc
 
 Plugins
 -------
@@ -27,6 +28,7 @@ Maintenance
 * Support of MPEG4 transfer syntaxes in C-Store SCP
 * C-Find SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
+* Fix issue #65 (Logging improvements)
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
 * Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
