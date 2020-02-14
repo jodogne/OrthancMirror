@@ -61,6 +61,7 @@
 #include <string.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
@@ -968,10 +969,15 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadParameterType,
                                  "Syntax error in some user-supplied data");
         }
+        catch (boost::filesystem::filesystem_error& e)
+        {
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Error while accessing the filesystem: " + e.path1().string());
+        }
         catch (std::runtime_error&)
         {
-          // Presumably an error while parsing the JSON body
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Presumably an error while parsing the JSON body");
         }
         catch (std::bad_alloc&)
         {
