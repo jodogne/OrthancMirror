@@ -2172,8 +2172,13 @@ namespace OrthancPlugins
   
     if (body.type() != Json::objectValue)
     {
+#if HAS_ORTHANC_EXCEPTION == 1
       throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
                                       "Expected a JSON object in the body");
+#else
+      LogError("Expected a JSON object in the body");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
     }
 
     bool synchronous = true;
@@ -2182,9 +2187,14 @@ namespace OrthancPlugins
     {
       if (body[KEY_SYNCHRONOUS].type() != Json::booleanValue)
       {
+#if HAS_ORTHANC_EXCEPTION == 1
         throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
                                         "Option \"" + std::string(KEY_SYNCHRONOUS) +
                                         "\" must be Boolean");
+#else
+        LogError("Option \"" + std::string(KEY_SYNCHRONOUS) + "\" must be Boolean");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
       }
       else
       {
@@ -2196,9 +2206,14 @@ namespace OrthancPlugins
     {
       if (body[KEY_ASYNCHRONOUS].type() != Json::booleanValue)
       {
+#if HAS_ORTHANC_EXCEPTION == 1
         throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
                                         "Option \"" + std::string(KEY_ASYNCHRONOUS) +
                                         "\" must be Boolean");
+#else
+        LogError("Option \"" + std::string(KEY_ASYNCHRONOUS) + "\" must be Boolean");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
       }
       else
       {
@@ -2212,9 +2227,14 @@ namespace OrthancPlugins
     {
       if (body[KEY_PRIORITY].type() != Json::booleanValue)
       {
+#if HAS_ORTHANC_EXCEPTION == 1
         throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
                                         "Option \"" + std::string(KEY_PRIORITY) +
                                         "\" must be an integer");
+#else
+        LogError("Option \"" + std::string(KEY_PRIORITY) + "\" must be an integer");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
       }
       else
       {
