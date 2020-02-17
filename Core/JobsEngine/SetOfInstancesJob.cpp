@@ -73,7 +73,7 @@ namespace Orthanc
       }
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = instance_;
     }

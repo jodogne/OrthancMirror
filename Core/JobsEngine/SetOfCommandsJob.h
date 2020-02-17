@@ -110,14 +110,14 @@ namespace Orthanc
 
     void SetPermissive(bool permissive);
 
-    virtual void Reset();
+    virtual void Reset() ORTHANC_OVERRIDE;
     
-    virtual void Start()
+    virtual void Start() ORTHANC_OVERRIDE
     {
       started_ = true;
     }
     
-    virtual float GetProgress();
+    virtual float GetProgress() ORTHANC_OVERRIDE;
 
     bool IsStarted() const
     {
@@ -128,13 +128,13 @@ namespace Orthanc
       
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
     
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
     
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
-                           const std::string& key)
+                           const std::string& key) ORTHANC_OVERRIDE
     {
       return false;
     }
