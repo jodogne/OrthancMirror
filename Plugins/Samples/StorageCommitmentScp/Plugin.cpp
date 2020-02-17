@@ -57,6 +57,9 @@ static OrthancPluginErrorCode StorageCommitmentScp(void**              handler /
                                                    const char*         remoteAet,
                                                    const char*         calledAet)
 {
+  /*std::string s;
+    OrthancPlugins::RestApiPost(s, "/jobs/" + std::string(jobId) + "/pause", NULL, 0, false);*/
+  
   printf("[%s] [%s] [%s] [%s]\n", jobId, transactionUid, remoteAet, calledAet);
 
   for (uint32_t i = 0; i < countInstances; i++)
