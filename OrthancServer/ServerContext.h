@@ -82,14 +82,6 @@ namespace Orthanc
     
     
   private:
-    enum LookupMode
-    {
-      LookupMode_DatabaseOnly,
-      LookupMode_DiskOnAnswer,
-      LookupMode_DiskOnLookupAndAnswer
-    };
-
-    
     class LuaServerListener : public IServerListener
     {
     private:
@@ -218,6 +210,9 @@ namespace Orthanc
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
+    FindStorageAccessMode findStorageAccessMode_;
+    unsigned int limitFindInstances_;
+    unsigned int limitFindResults_;
 
     std::auto_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;

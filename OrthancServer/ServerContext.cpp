@@ -254,6 +254,11 @@ namespace Orthanc
       jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
       saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
       metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
+
+      // New configuration options in Orthanc 1.5.1
+      findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
+      limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
+      limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -796,44 +801,8 @@ namespace Orthanc
                             size_t since,
                             size_t limit)
   {
-    LookupMode mode;
-    unsigned int databaseLimit;
+    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
       
-    {
-      // New configuration option in 1.5.1
-      OrthancConfiguration::ReaderLock lock;
-
-      std::string value = lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always");
-
-      if (value == "Always")
-      {
-        mode = LookupMode_DiskOnLookupAndAnswer;
-      }
-      else if (value == "Never")
-      {
-        mode = LookupMode_DatabaseOnly;
-      }
-      else if (value == "Answers")
-      {
-        mode = LookupMode_DiskOnAnswer;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange,
-                               "Configuration option \"StorageAccessOnFind\" "
-                               "should be \"Always\", \"Never\" or \"Answers\": " + value);
-      }
-
-      if (queryLevel == ResourceType_Instance)
-      {
-        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
-      }
-      else
-      {
-        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
-      }
-    }      
-
     std::vector<std::string> resources, instances;
 
     {
@@ -863,8 +832,8 @@ namespace Orthanc
       bool hasOnlyMainDicomTags;
       DicomMap dicom;
       
-      if (mode == LookupMode_DatabaseOnly ||
-          mode == LookupMode_DiskOnAnswer ||
+      if (findStorageAccessMode_ == FindStorageAccessMode_DatabaseOnly ||
+          findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer ||
           lookup.HasOnlyMainDicomTags())
       {
         // Case (1): The main DICOM tags, as stored in the database,
@@ -907,8 +876,8 @@ namespace Orthanc
         }
         else
         {
-          if ((mode == LookupMode_DiskOnLookupAndAnswer ||
-               mode == LookupMode_DiskOnAnswer) &&
+          if ((findStorageAccessMode_ == FindStorageAccessMode_DiskOnLookupAndAnswer ||
+               findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer) &&
               dicomAsJson.get() == NULL &&
               isDicomAsJsonNeeded)
           {
