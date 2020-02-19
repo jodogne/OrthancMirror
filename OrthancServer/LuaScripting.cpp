@@ -259,6 +259,114 @@ namespace Orthanc
   };
 
 
+  class LuaScripting::DeleteEvent : public LuaScripting::IEvent
+  {
+  private:
+    ResourceType  level_;
+    std::string   publicId_;
+
+  public:
+    DeleteEvent(ResourceType level,
+                const std::string& publicId) :
+      level_(level),
+      publicId_(publicId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          functionName = "OnDeletedPatient";
+          break;
+
+        case ResourceType_Study:
+          functionName = "OnDeletedStudy";
+          break;
+
+        case ResourceType_Series:
+          functionName = "OnDeletedSeries";
+          break;
+
+        case ResourceType_Instance:
+          functionName = "OnDeletedInstance";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(publicId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
+  class LuaScripting::UpdateEvent : public LuaScripting::IEvent
+  {
+  private:
+    ResourceType  level_;
+    std::string   publicId_;
+
+  public:
+    UpdateEvent(ResourceType level,
+                const std::string& publicId) :
+      level_(level),
+      publicId_(publicId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          functionName = "OnUpdatedPatient";
+          break;
+
+        case ResourceType_Study:
+          functionName = "OnUpdatedStudy";
+          break;
+
+        case ResourceType_Series:
+          functionName = "OnUpdatedSeries";
+          break;
+
+        case ResourceType_Instance:
+          functionName = "OnUpdatedInstance";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(publicId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
   ServerContext* LuaScripting::GetServerContext(lua_State *state)
   {
     const void* value = LuaContext::GetGlobalVariable(state, "_ServerContext");
@@ -737,6 +845,15 @@ namespace Orthanc
         change.GetChangeType() == ChangeType_StableSeries)
     {
       pendingEvents_.Enqueue(new StableResourceEvent(change));
+    }
+    else if (change.GetChangeType() == ChangeType_Deleted)
+    {
+      pendingEvents_.Enqueue(new DeleteEvent(change.GetResourceType(), change.GetPublicId()));
+    }
+    else if (change.GetChangeType() == ChangeType_UpdatedAttachment ||
+             change.GetChangeType() == ChangeType_UpdatedMetadata)
+    {
+      pendingEvents_.Enqueue(new UpdateEvent(change.GetResourceType(), change.GetPublicId()));
     }
   }
 

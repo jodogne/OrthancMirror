@@ -16,6 +16,15 @@ Plugins
 
 * New sample plugin: "ConnectivityChecks"
 
+Lua
+---
+
+* New events:
+  - "OnDeletedPatient", "OnDeletedStudy", "OnDeletedSeries", "OnDeletedInstance":
+    triggered when a resource is deleted
+  - "OnUpdatedPatient", "OnUpdatedStudy", "OnUpdatedSeries", "OnUpdatedInstance":
+    triggered when an attachment or a metadata is updated
+
 Maintenance
 -----------
 
