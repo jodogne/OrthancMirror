@@ -83,6 +83,13 @@ namespace Orthanc
     };
   }
 
+  enum FindStorageAccessMode
+  {
+    FindStorageAccessMode_DatabaseOnly,
+    FindStorageAccessMode_DiskOnAnswer,
+    FindStorageAccessMode_DiskOnLookupAndAnswer
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -177,6 +184,8 @@ namespace Orthanc
                                const std::string& mime);
 
   FileContentType StringToContentType(const std::string& str);
+
+  FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
 
   std::string EnumerationToString(FileContentType type);
 
