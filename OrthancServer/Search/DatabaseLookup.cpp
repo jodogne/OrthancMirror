@@ -198,8 +198,26 @@ namespace Orthanc
 
       AddConstraint(constraint.release());
     }
-    else if (dicomQuery.find('*') != std::string::npos ||
-             dicomQuery.find('?') != std::string::npos)
+    else if (
+      /**
+       * New test in Orthanc 1.6.0: Wild card matching is only allowed
+       * for a subset of value representations: AE, CS, LO, LT, PN,
+       * SH, ST, UC, UR, UT.
+       * http://dicom.nema.org/medical/dicom/2019e/output/chtml/part04/sect_C.2.2.2.4.html
+       **/
+      (vr == ValueRepresentation_ApplicationEntity ||    // AE
+       vr == ValueRepresentation_CodeString ||           // CS
+       vr == ValueRepresentation_LongString ||           // LO
+       vr == ValueRepresentation_LongText ||             // LT
+       vr == ValueRepresentation_PersonName ||           // PN
+       vr == ValueRepresentation_ShortString ||          // SH
+       vr == ValueRepresentation_ShortText ||            // ST
+       vr == ValueRepresentation_UnlimitedCharacters ||  // UC
+       vr == ValueRepresentation_UniversalResource ||    // UR
+       vr == ValueRepresentation_UnlimitedText           // UT
+        ) &&
+      (dicomQuery.find('*') != std::string::npos ||
+       dicomQuery.find('?') != std::string::npos))
     {
       AddConstraint(new DicomTagConstraint
                     (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive, mandatoryTag));

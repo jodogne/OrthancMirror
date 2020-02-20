@@ -192,6 +192,30 @@ namespace Orthanc
     return dictContentType_.Translate(str);
   }
 
+
+  FindStorageAccessMode StringToFindStorageAccessMode(const std::string& value)
+  {
+    if (value == "Always")
+    {
+      return FindStorageAccessMode_DiskOnLookupAndAnswer;
+    }
+    else if (value == "Never")
+    {
+      return FindStorageAccessMode_DatabaseOnly;
+    }
+    else if (value == "Answers")
+    {
+      return FindStorageAccessMode_DiskOnAnswer;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Configuration option \"StorageAccessOnFind\" "
+                             "should be \"Always\", \"Never\" or \"Answers\": " + value);
+    }    
+  }
+  
+
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId)
   {
