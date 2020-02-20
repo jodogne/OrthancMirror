@@ -63,9 +63,6 @@ namespace Orthanc
     static void GetMainDicomTagsInternal(std::set<DicomTag>& result,
                                          ResourceType level);
 
-    void ExtractMainDicomTagsInternal(const DicomMap& other,
-                                      ResourceType level);
-
   public:
     DicomMap()
     {
@@ -214,6 +211,9 @@ namespace Orthanc
     void FromDicomAsJson(const Json::Value& dicomAsJson);
 
     void Merge(const DicomMap& other);
+
+    void MergeMainDicomTags(const DicomMap& other,
+                            ResourceType level);
 
     void ExtractMainDicomTags(const DicomMap& other);
 
