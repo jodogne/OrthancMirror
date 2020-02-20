@@ -1059,8 +1059,8 @@ namespace Orthanc
   }
 
 
-  void DicomMap::ExtractMainDicomTagsInternal(const DicomMap& other,
-                                              ResourceType level)
+  void DicomMap::MergeMainDicomTags(const DicomMap& other,
+                                    ResourceType level)
   {
     const MainDicomTag* tags = NULL;
     size_t size = 0;
@@ -1085,10 +1085,10 @@ namespace Orthanc
   void DicomMap::ExtractMainDicomTags(const DicomMap& other)
   {
     Clear();
-    ExtractMainDicomTagsInternal(other, ResourceType_Patient);
-    ExtractMainDicomTagsInternal(other, ResourceType_Study);
-    ExtractMainDicomTagsInternal(other, ResourceType_Series);
-    ExtractMainDicomTagsInternal(other, ResourceType_Instance);
+    MergeMainDicomTags(other, ResourceType_Patient);
+    MergeMainDicomTags(other, ResourceType_Study);
+    MergeMainDicomTags(other, ResourceType_Series);
+    MergeMainDicomTags(other, ResourceType_Instance);
   }    
 
 

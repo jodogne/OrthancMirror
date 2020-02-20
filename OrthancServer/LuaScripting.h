@@ -59,6 +59,8 @@ namespace Orthanc
     class OnStoredInstanceEvent;
     class StableResourceEvent;
     class JobEvent;
+    class DeleteEvent;
+    class UpdateEvent;
 
     static ServerContext* GetServerContext(lua_State *state);
 

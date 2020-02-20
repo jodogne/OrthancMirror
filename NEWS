@@ -22,12 +22,23 @@ Plugins
 * New sample plugin: "ConnectivityChecks"
 * New primitives to handle storage commitment SCP by plugins
 
+Lua
+---
+
+* New events:
+  - "OnDeletedPatient", "OnDeletedStudy", "OnDeletedSeries", "OnDeletedInstance":
+    triggered when a resource is deleted
+  - "OnUpdatedPatient", "OnUpdatedStudy", "OnUpdatedSeries", "OnUpdatedInstance":
+    triggered when an attachment or a metadata is updated
+
 Maintenance
 -----------
 
 * Support of MPEG4 transfer syntaxes in C-Store SCP
-* C-Find SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
+* C-FIND SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
+* More strict C-FIND SCP wrt. the DICOM standard: Forbid wildcard
+  matching on some VRs, ignore main tags below the queried level
 * Fix issue #65 (Logging improvements)
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
