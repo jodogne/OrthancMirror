@@ -801,7 +801,8 @@ namespace Orthanc
                             size_t since,
                             size_t limit)
   {
-    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
+    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
+                                  limitFindInstances_ : limitFindResults_);
       
     std::vector<std::string> resources, instances;
 
@@ -815,6 +816,11 @@ namespace Orthanc
 
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
+    /**
+     * "resources" contains the Orthanc ID of the resource at level
+     * "queryLevel", "instances" contains one the Orthanc ID of one
+     * sample instance from this resource.
+     **/
     assert(resources.size() == instances.size());
 
     size_t countResults = 0;
@@ -839,12 +845,47 @@ namespace Orthanc
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
 
-        if (!GetIndex().GetAllMainDicomTags(dicom, instances[i]))
+        DicomMap tmp;
+        if (!GetIndex().GetAllMainDicomTags(tmp, instances[i]))
         {
           // The instance has been removed during the execution of the
           // lookup, ignore it
           continue;
         }
+
+#if 1
+        // New in Orthanc 1.6.0: Only keep the main DICOM tags at the
+        // level of interest for the query
+        switch (queryLevel)
+        {
+          // WARNING: Don't reorder cases below, and don't add "break"
+          case ResourceType_Instance:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Instance);
+
+          case ResourceType_Series:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Series);
+
+          case ResourceType_Study:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Study);
+            
+          case ResourceType_Patient:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Patient);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        // Special case of the "Modality" at the study level, in order
+        // to deal with C-FIND on "ModalitiesInStudy" (0008,0061).
+        // Check out integration test "test_rest_modalities_in_study".
+        if (queryLevel == ResourceType_Study)
+        {
+          dicom.CopyTagIfExists(tmp, DICOM_TAG_MODALITY);
+        }
+#else
+        dicom.Assign(tmp);  // This emulates Orthanc <= 1.5.8
+#endif
         
         hasOnlyMainDicomTags = true;
       }
