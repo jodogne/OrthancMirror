@@ -669,16 +669,6 @@ namespace Orthanc
 
     class RenderedFrameHandler : public IDecodedFrameHandler
     {
-    private:
-      static void LookupWindowingTags(const DicomMap& dicom,
-                                      float& windowCenter,
-                                      float& windowWidth,
-                                      float& rescaleSlope,
-                                      float& rescaleIntercept,
-                                      bool& invert)
-      {
-      }
-      
     public:
       virtual void Handle(RestApiGetCall& call,
                           std::auto_ptr<ImageAccessor>& decoded,
@@ -809,45 +799,57 @@ namespace Orthanc
           }
         }        
 
+
+        unsigned int width = decoded->GetWidth();
+        unsigned int height = decoded->GetHeight();
+
+        if (decoded->GetWidth() != 0 &&
+            decoded->GetHeight() != 0)
+        {
+          float ratio = 1;
+
+          if (maxWidth != 0)
+          {
+            ratio = static_cast<float>(maxWidth) / static_cast<float>(decoded->GetWidth());
+          }
+
+          if (maxHeight != 0)
+          {
+            float ratioY = static_cast<float>(maxHeight) / static_cast<float>(decoded->GetHeight());
+            if (ratioY < ratio)
+            {
+              ratio = ratioY;
+            }
+          }
+
+          width = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
+          height = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
+        }
+        
         if (decoded->GetFormat() == PixelFormat_RGB24)
         {
-          if ((maxWidth == 0 &&
-               maxHeight == 0) ||
-              decoded->GetWidth() == 0 ||
-              decoded->GetHeight() == 0)
+          if (width == decoded->GetWidth() &&
+              height == decoded->GetHeight())
           {
             DefaultHandler(call, decoded, ImageExtractionMode_Preview, false);
           }
           else
           {
-            float ratio = 1;
-
-            if (maxWidth != 0)
-            {
-              ratio = static_cast<float>(maxWidth) / static_cast<float>(decoded->GetWidth());
-            }
-
-            if (maxHeight != 0)
-            {
-              float ratioY = static_cast<float>(maxHeight) / static_cast<float>(decoded->GetHeight());
-              if (ratioY < ratio)
-              {
-                ratio = ratioY;
-              }
-            }
-
-            unsigned int width = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
-            unsigned int height = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
-
-            std::auto_ptr<ImageAccessor> rescaled(new Image(PixelFormat_RGB24, width, height, false));
+            std::auto_ptr<ImageAccessor> rescaled(new Image(decoded->GetFormat(), width, height, false));
             if (smooth &&
-                ratio < 1)
+                (width < decoded->GetWidth() ||
+                 height < decoded->GetHeight()))
             {
               ImageProcessing::SmoothGaussian5x5(*decoded);
             }
             ImageProcessing::Resize(*rescaled, *decoded);
             DefaultHandler(call, rescaled, ImageExtractionMode_Preview, false);
           }
+        }
+        else
+        {
+          // TODO : (1) convert to float32, (2) apply windowing, (3) possibly rescale
+          throw OrthancException(ErrorCode_NotImplemented);
         }
       }
 
