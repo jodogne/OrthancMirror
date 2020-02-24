@@ -7,9 +7,11 @@ REST API
 * API version has been upgraded to 5
 * added "/peers/{id}/system" route to test the connectivity with a remote peer (and eventually
   retrieve its version number)
-* /changes: Allow the "limit" argument to be greater than 100
-* /instances/{id}/preview: Now takes the windowing into account
-* /tools/log-level: Possibility to access and change the log level without restarting Orthanc
+* "/changes": Allow the "limit" argument to be greater than 100
+* "/instances/{id}/preview": Now takes the windowing into account
+* "/tools/log-level": Possibility to access and change the log level without restarting Orthanc
+* added "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered" routes
+  to render frames, taking windowing and resizing into account
 
 Plugins
 -------

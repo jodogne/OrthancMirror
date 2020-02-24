@@ -548,13 +548,13 @@ namespace Orthanc
     }
   }
 
-  void ImageProcessing::ApplyWindowing(ImageAccessor& target,
-                                       const ImageAccessor& source,
-                                       float windowCenter,
-                                       float windowWidth,
-                                       float rescaleSlope,
-                                       float rescaleIntercept,
-                                       bool invert)
+  void ImageProcessing::ApplyWindowing_Deprecated(ImageAccessor& target,
+                                                  const ImageAccessor& source,
+                                                  float windowCenter,
+                                                  float windowWidth,
+                                                  float rescaleSlope,
+                                                  float rescaleIntercept,
+                                                  bool invert)
   {
     if (target.GetWidth() != source.GetWidth() ||
         target.GetHeight() != source.GetHeight())

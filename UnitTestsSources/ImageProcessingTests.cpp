@@ -826,7 +826,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
 
     {
       Image target(PixelFormat_Grayscale8, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
@@ -838,7 +838,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
 
     {
       Image target(PixelFormat_Grayscale8, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, true);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, true);
 
       ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
       ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
@@ -850,7 +850,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
 
     {
       Image target(PixelFormat_Grayscale8, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
@@ -862,7 +862,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
 
     {
       Image target(PixelFormat_Grayscale8, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, true);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, true);
 
       ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
       ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
@@ -874,7 +874,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
 
     {
       Image target(PixelFormat_Grayscale8, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 50.0f, 100.1f, 10.0f, 30.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 50.0f, 100.1f, 10.0f, 30.0f, false);
 
       ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));  // (-5 * 10) + 30 => pixel value = -20 => 0
       ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 256*30/100));  // ((0 * 10) + 30 => pixel value = 30 => 30%
@@ -900,7 +900,7 @@ TEST(ImageProcessing, ApplyWindowingFloatToGrayScale16)
 
     {
       Image target(PixelFormat_Grayscale16, 6, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 0));
@@ -924,7 +924,7 @@ TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
 
     {
       Image target(PixelFormat_Grayscale16, 5, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
@@ -947,7 +947,7 @@ TEST(ImageProcessing, ApplyWindowingGrayScale16ToGrayScale16)
 
     {
       Image target(PixelFormat_Grayscale16, 5, 1, false);
-      ImageProcessing::ApplyWindowing(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
 
       ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
