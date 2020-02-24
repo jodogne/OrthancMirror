@@ -1413,14 +1413,14 @@ namespace Orthanc
         return;
 
       case PixelFormat_Float32:
-        // "::min()" must be replaced by "::lowest()" if dealing with float or double
+        // "::min()" must be replaced by "::lowest()" or "-::max()" if dealing with float or double.
         if (useRound)
         {
-          ShiftScaleInternal<float, float, true, false>(image, image, a, b, std::numeric_limits<float>::lowest());
+          ShiftScaleInternal<float, float, true, false>(image, image, a, b, -std::numeric_limits<float>::max());
         }
         else
         {
-          ShiftScaleInternal<float, float, false, false>(image, image, a, b, std::numeric_limits<float>::lowest());
+          ShiftScaleInternal<float, float, false, false>(image, image, a, b, -std::numeric_limits<float>::max());
         }
         return;
 
