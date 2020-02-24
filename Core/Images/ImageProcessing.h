@@ -127,7 +127,7 @@ namespace Orthanc
                           float factor,
                           bool useRound);
 
-    // "useRound" is expensive
+    // Computes "(x + offset) * scaling" inplace. "useRound" is expensive.
     void ShiftScale(ImageAccessor& image,
                     float offset,
                     float scaling,
