@@ -40,6 +40,8 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
+#include "../../Core/Images/Image.h"
+#include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Logging.h"
 #include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
@@ -605,6 +607,30 @@ namespace Orthanc
 
         handler.Handle(call, decoded, dicom);
       }
+
+
+      static void DefaultHandler(RestApiGetCall& call,
+                                 std::auto_ptr<ImageAccessor>& decoded,
+                                 ImageExtractionMode mode,
+                                 bool invert)
+      {
+        ImageToEncode image(decoded, mode, invert);
+
+        HttpContentNegociation negociation;
+        EncodePng png(image);
+        negociation.Register(MIME_PNG, png);
+
+        EncodeJpeg jpeg(image, call);
+        negociation.Register(MIME_JPEG, jpeg);
+
+        EncodePam pam(image);
+        negociation.Register(MIME_PAM, pam);
+
+        if (negociation.Apply(call.GetHttpHeaders()))
+        {
+          image.Answer(call.GetOutput());
+        }
+      }
     };
 
 
@@ -631,22 +657,7 @@ namespace Orthanc
           invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
         }
 
-        ImageToEncode image(decoded, mode_, invert);
-
-        HttpContentNegociation negociation;
-        EncodePng png(image);
-        negociation.Register(MIME_PNG, png);
-
-        EncodeJpeg jpeg(image, call);
-        negociation.Register(MIME_JPEG, jpeg);
-
-        EncodePam pam(image);
-        negociation.Register(MIME_PAM, pam);
-
-        if (negociation.Apply(call.GetHttpHeaders()))
-        {
-          image.Answer(call.GetOutput());
-        }
+        DefaultHandler(call, decoded, mode_, invert);
       }
 
       virtual bool RequiresDicomTags() const ORTHANC_OVERRIDE
@@ -666,20 +677,25 @@ namespace Orthanc
                                       float& rescaleIntercept,
                                       bool& invert)
       {
+      }
+      
+    public:
+      virtual void Handle(RestApiGetCall& call,
+                          std::auto_ptr<ImageAccessor>& decoded,
+                          const DicomMap& dicom) ORTHANC_OVERRIDE
+      {
+        static const char* ARG_WINDOW_CENTER = "window-center";
+        static const char* ARG_WINDOW_WIDTH = "window-width";
+        static const char* ARG_MAX_WIDTH = "max-width";
+        static const char* ARG_MAX_HEIGHT = "max-height";
+        static const char* ARG_SMOOTH = "smooth";
+        
         DicomImageInformation info(dicom);
-    
-        windowWidth = static_cast<float>(1 << info.GetBitsStored());
-        windowCenter = windowWidth / 2.0f;
-        rescaleSlope = 1.0f;
-        rescaleIntercept = 0.0f;
-        invert = false;
 
-        if (dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
-            dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
-        {
-          dicom.ParseFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
-          dicom.ParseFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
-        }
+        const bool invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
+        
+        float rescaleSlope = 1.0f;
+        float rescaleIntercept = 0.0f;
 
         if (dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) &&
             dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
@@ -688,15 +704,151 @@ namespace Orthanc
           dicom.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
         }
 
-        invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
-      }
-      
-    public:
-      virtual void Handle(RestApiGetCall& call,
-                          std::auto_ptr<ImageAccessor>& decoded,
-                          const DicomMap& dicom) ORTHANC_OVERRIDE
-      {
-        // TODO
+        float windowWidth = static_cast<float>(1 << info.GetBitsStored());
+        float windowCenter = windowWidth / 2.0f;
+
+        if (dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
+            dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
+        {
+          dicom.ParseFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
+          dicom.ParseFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
+        }
+
+        if (call.HasArgument(ARG_WINDOW_WIDTH))
+        {
+          try
+          {
+            windowWidth = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_WIDTH, ""));
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_WINDOW_WIDTH));
+          }
+        }
+
+        if (call.HasArgument(ARG_WINDOW_CENTER))
+        {
+          try
+          {
+            windowCenter = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_CENTER, ""));
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_WINDOW_CENTER));
+          }
+        }
+
+        unsigned int maxWidth = 0;
+        unsigned int maxHeight = 0;
+
+        if (call.HasArgument(ARG_MAX_WIDTH))
+        {
+          try
+          {
+            int tmp = boost::lexical_cast<int>(call.GetArgument(ARG_MAX_WIDTH, ""));
+            if (tmp < 0)
+            {
+              throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                     "Argument cannot be negative: " + std::string(ARG_MAX_WIDTH));
+            }
+            else
+            {
+              maxWidth = static_cast<unsigned int>(tmp);
+            }
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_MAX_WIDTH));
+          }
+        }
+
+        if (call.HasArgument(ARG_MAX_HEIGHT))
+        {
+          try
+          {
+            int tmp = boost::lexical_cast<int>(call.GetArgument(ARG_MAX_HEIGHT, ""));
+            if (tmp < 0)
+            {
+              throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                     "Argument cannot be negative: " + std::string(ARG_MAX_HEIGHT));
+            }
+            else
+            {
+              maxHeight = static_cast<unsigned int>(tmp);
+            }
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_MAX_HEIGHT));
+          }
+        }
+
+        bool smooth = true;
+
+        if (call.HasArgument(ARG_SMOOTH))
+        {
+          std::string value = call.GetArgument(ARG_SMOOTH, "");
+          if (value == "0" ||
+              value == "false")
+          {
+            smooth = false;
+          }
+          else if (value == "1" ||
+                   value == "true")
+          {
+            smooth = true;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Argument must be Boolean: " + std::string(ARG_SMOOTH));
+          }
+        }        
+
+        if (decoded->GetFormat() == PixelFormat_RGB24)
+        {
+          if ((maxWidth == 0 &&
+               maxHeight == 0) ||
+              decoded->GetWidth() == 0 ||
+              decoded->GetHeight() == 0)
+          {
+            DefaultHandler(call, decoded, ImageExtractionMode_Preview, false);
+          }
+          else
+          {
+            float ratio = 1;
+
+            if (maxWidth != 0)
+            {
+              ratio = static_cast<float>(maxWidth) / static_cast<float>(decoded->GetWidth());
+            }
+
+            if (maxHeight != 0)
+            {
+              float ratioY = static_cast<float>(maxHeight) / static_cast<float>(decoded->GetHeight());
+              if (ratioY < ratio)
+              {
+                ratio = ratioY;
+              }
+            }
+
+            unsigned int width = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
+            unsigned int height = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
+
+            std::auto_ptr<ImageAccessor> rescaled(new Image(PixelFormat_RGB24, width, height, false));
+            if (smooth &&
+                ratio < 1)
+            {
+              ImageProcessing::SmoothGaussian5x5(*decoded);
+            }
+            ImageProcessing::Resize(*rescaled, *decoded);
+            DefaultHandler(call, rescaled, ImageExtractionMode_Preview, false);
+          }
+        }
       }
 
       virtual bool RequiresDicomTags() const ORTHANC_OVERRIDE
