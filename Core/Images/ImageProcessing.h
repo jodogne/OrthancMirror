@@ -133,6 +133,12 @@ namespace Orthanc
                     float scaling,
                     bool useRound);
 
+    void ShiftScale(ImageAccessor& target,
+                    const ImageAccessor& source,
+                    float offset,
+                    float scaling,
+                    bool useRound);
+
     void Invert(ImageAccessor& image);
 
     void Invert(ImageAccessor& image, int64_t maxValue);

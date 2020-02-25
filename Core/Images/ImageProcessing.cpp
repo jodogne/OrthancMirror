@@ -1430,6 +1430,46 @@ namespace Orthanc
   }
 
 
+  void ImageProcessing::ShiftScale(ImageAccessor& target,
+                                   const ImageAccessor& source,
+                                   float offset,
+                                   float scaling,
+                                   bool useRound)
+  {
+    // Rewrite "(x + offset) * scaling" as "a * x + b"
+
+    const float a = scaling;
+    const float b = offset * scaling;
+    
+    switch (target.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+
+        switch (source.GetFormat())
+        {
+          case PixelFormat_Float32:
+            if (useRound)
+            {
+              ShiftScaleInternal<uint8_t, float, true, false>(
+                target, source, a, b, std::numeric_limits<uint8_t>::min());
+            }
+            else
+            {
+              ShiftScaleInternal<uint8_t, float, false, false>(
+                target, source, a, b, std::numeric_limits<uint8_t>::min());
+            }
+            return;
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+        
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
   void ImageProcessing::Invert(ImageAccessor& image, int64_t maxValue)
   {
     const unsigned int width = image.GetWidth();

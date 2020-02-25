@@ -205,6 +205,9 @@ namespace Orthanc
     bool ParseFloat(float& result,
                     const DicomTag& tag) const;
 
+    bool ParseFirstFloat(float& result,
+                         const DicomTag& tag) const;
+
     bool ParseDouble(double& result,
                      const DicomTag& tag) const;
 
