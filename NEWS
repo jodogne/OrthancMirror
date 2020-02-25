@@ -12,6 +12,7 @@ REST API
 * "/tools/log-level": Possibility to access and change the log level without restarting Orthanc
 * added "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered" routes
   to render frames, taking windowing and resizing into account
+* "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
 
 Plugins
 -------
