@@ -34,10 +34,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Logging.h"
 #include "../../Core/MetricsRegistry.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace Orthanc
 {
@@ -118,13 +121,22 @@ namespace Orthanc
                              "Received an empty DICOM file");
     }
 
-    // TODO Remove unneccessary memcpy
-    std::string postData;
-    call.BodyToString(postData);
+    std::string dicom;
+
+    if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
+    {
+      GzipCompressor compressor;
+      compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
+    }
+    else
+    {
+      // TODO Remove unneccessary memcpy
+      call.BodyToString(dicom);
+    }
 
     DicomInstanceToStore toStore;
     toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-    toStore.SetBuffer(postData);
+    toStore.SetBuffer(dicom);
 
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
