@@ -1388,7 +1388,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
     }
     
-#if DCMTK_VERSION_NUMBER >= 361
+#if DCMTK_VERSION_NUMBER >= 362
     DcmTag key(tag.GetGroup(), tag.GetElement());
     if (tag.IsPrivate())
     {
@@ -1544,7 +1544,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_UL:  // unsigned long
-#if DCMTK_VERSION_NUMBER >= 361
+#if DCMTK_VERSION_NUMBER >= 362
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
         {
