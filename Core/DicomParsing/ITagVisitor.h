@@ -71,7 +71,7 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::vector<int64_t>& values) = 0;
 
-    // FL, FD
+    // FL, FD, OD, OF
     virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
                               const std::vector<size_t>& parentIndexes,
                               const DicomTag& tag,
@@ -84,7 +84,7 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  const std::vector<DicomTag>& values) = 0;
 
-    // OB, OD, OF, OL, OW, UN
+    // OB, OL, OW, UN
     virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
                              const std::vector<size_t>& parentIndexes,
                              const DicomTag& tag,

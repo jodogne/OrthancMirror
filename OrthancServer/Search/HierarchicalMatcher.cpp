@@ -268,7 +268,13 @@ namespace Orthanc
       if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
       {
-        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it));
+        if (it->IsPrivate())
+        {
+          throw OrthancException(ErrorCode_NotImplemented,
+                                 "Not applicable to private tags: " + it->Format());
+        }
+        
+        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, "" /* no private creator */));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }

@@ -86,6 +86,7 @@ namespace Orthanc
     bool updateReferencedRelationships_;
     bool isAnonymization_;
     DicomMap currentSource_;
+    std::string privateCreator_;
 
     IDicomIdentifierGenerator* identifierGenerator_;
 
@@ -185,5 +186,15 @@ namespace Orthanc
     }
 
     void Serialize(Json::Value& value) const;
+
+    void SetPrivateCreator(std::string& privateCreator)
+    {
+      privateCreator_ = privateCreator;
+    }
+
+    const std::string& GetPrivateCreator()
+    {
+      return privateCreator_;
+    }
   };
 }
