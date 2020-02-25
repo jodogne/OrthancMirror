@@ -13,6 +13,7 @@ REST API
 * added "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered" routes
   to render frames, taking windowing and resizing into account
 * "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
+* ".../modify" and "/tools/create-dicom": New option "PrivateCreator" for private tags
 
 Plugins
 -------
@@ -37,6 +38,7 @@ Maintenance
 * More strict C-FIND SCP wrt. the DICOM standard: Forbid wildcard
   matching on some VRs, ignore main tags below the queried level
 * Fix issue #65 (Logging improvements)
+* Fix issue #140 (Modifying private tags with REST API changes VR from LO to UN)
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
 * Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)

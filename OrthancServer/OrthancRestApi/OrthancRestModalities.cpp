@@ -1277,7 +1277,8 @@ namespace Orthanc
         MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
       std::auto_ptr<ParsedDicomFile> query
-        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0)));
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0),
+                                         "" /* no private creator */));
 
       DicomFindAnswers answers(true);
 
