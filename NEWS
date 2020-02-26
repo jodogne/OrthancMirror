@@ -44,7 +44,9 @@ Maintenance
 * More strict C-FIND SCP wrt. the DICOM standard: Forbid wildcard
   matching on some VRs, ignore main tags below the queried level
 * Fix issue #65 (Logging improvements)
+* Fix issue #103 ("queries/.../retrieve" API returns HTTP code 200 even on server errors)
 * Fix issue #140 (Modifying private tags with REST API changes VR from LO to UN)
+* Fix issue #154 (Matching against list of UID-s by C-MOVE)
 * Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
 * Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)

@@ -142,7 +142,8 @@ namespace Orthanc
         position_(0)
       {
         job_->SetDescription("C-MOVE");
-        job_->SetPermissive(true);
+        //job_->SetPermissive(true);  // This was the behavior of Orthanc < 1.6.0
+        job_->SetPermissive(false);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
 
         {
@@ -241,7 +242,24 @@ namespace Orthanc
     else
     {
       const std::string& content = value.GetContent();
-      context_.GetIndex().LookupIdentifierExact(publicIds, level, tag, content);
+
+      /**
+       * This tokenization fixes issue 154 ("Matching against list of
+       * UID-s by C-MOVE").
+       * https://bitbucket.org/sjodogne/orthanc/issues/154/
+       **/
+
+      std::vector<std::string> tokens;
+      Toolbox::TokenizeString(tokens, content, '\\');
+      for (size_t i = 0; i < tokens.size(); i++)
+      {
+        std::vector<std::string> matches;
+        context_.GetIndex().LookupIdentifierExact(matches, level, tag, tokens[i]);
+
+        // Concatenate "publicIds" with "matches"
+        publicIds.insert(publicIds.end(), matches.begin(), matches.end());
+      }
+
       return true;
     }
   }

@@ -466,17 +466,35 @@ namespace Orthanc
     }
 
     // Finally conduct transmission of data
-    T_DIMSE_C_StoreRSP rsp;
+    T_DIMSE_C_StoreRSP response;
     DcmDataset* statusDetail = NULL;
     Check(DIMSE_storeUser(assoc_, presID, &request,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
                           /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
-                          &rsp, &statusDetail, NULL),
+                          &response, &statusDetail, NULL),
           connection.remoteAet_, "C-STORE");
 
     if (statusDetail != NULL) 
     {
       delete statusDetail;
+    }
+    
+    
+    /**
+     * New in Orthanc 1.6.0: Deal with failures during C-STORE.
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_B.2.3.html#table_B.2-1
+     **/
+    
+    if (response.DimseStatus != 0x0000 &&  // Success
+        response.DimseStatus != 0xB000 &&  // Warning - Coercion of Data Elements
+        response.DimseStatus != 0xB007 &&  // Warning - Data Set does not match SOP Class
+        response.DimseStatus != 0xB006)    // Warning - Elements Discarded
+    {
+      char buf[16];
+      sprintf(buf, "%04X", response.DimseStatus);
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "C-STORE SCU to AET \"" + connection.remoteAet_ +
+                             "\" has failed with DIMSE status 0x" + buf);
     }
   }
 
@@ -696,6 +714,24 @@ namespace Orthanc
     }
 
     Check(cond, remoteAet, "C-FIND");
+
+    
+    /**
+     * New in Orthanc 1.6.0: Deal with failures during C-FIND.
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#table_C.4-1
+     **/
+    
+    if (response.DimseStatus != 0x0000 &&  // Success
+        response.DimseStatus != 0xFF00 &&  // Pending - Matches are continuing 
+        response.DimseStatus != 0xFF01)    // Pending - Matches are continuing 
+    {
+      char buf[16];
+      sprintf(buf, "%04X", response.DimseStatus);
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "C-FIND SCU to AET \"" + remoteAet +
+                             "\" has failed with DIMSE status 0x" + buf);
+    }
+
   }
 
 
@@ -882,6 +918,22 @@ namespace Orthanc
     }
 
     Check(cond, remoteAet_, "C-MOVE");
+
+    
+    /**
+     * New in Orthanc 1.6.0: Deal with failures during C-MOVE.
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.2.html#table_C.4-2
+     **/
+    
+    if (response.DimseStatus != 0x0000 &&  // Success
+        response.DimseStatus != 0xFF00)    // Pending - Sub-operations are continuing
+    {
+      char buf[16];
+      sprintf(buf, "%04X", response.DimseStatus);
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "C-MOVE SCU to AET \"" + remoteAet_ +
+                             "\" has failed with DIMSE status 0x" + buf);
+    }
   }
 
 

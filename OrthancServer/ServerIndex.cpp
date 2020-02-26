@@ -500,7 +500,16 @@ namespace Orthanc
       Logging::Flush();
 
       boost::mutex::scoped_lock lock(that->mutex_);
-      that->db_.FlushToDisk();
+
+      try
+      {
+        that->db_.FlushToDisk();
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+      }
+          
       count = 0;
     }
 
