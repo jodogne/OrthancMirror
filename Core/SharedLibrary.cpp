@@ -62,7 +62,19 @@ namespace Orthanc
     }
 
 #elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-    handle_ = ::dlopen(path_.c_str(), RTLD_NOW);
+
+    /**
+     * "RTLD_LOCAL" is the default, and is only present to be
+     * explicit. "RTLD_DEEPBIND" was added in Orthanc 1.6.0, in order
+     * to avoid crashes while loading plugins from the LSB binaries of
+     * the Orthanc core.
+     **/
+#if defined(RTLD_DEEPBIND)  // This is a GNU extension
+    handle_ = ::dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_DEEPBIND);
+#else
+    handle_ = ::dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+#endif
+
     if (handle_ == NULL) 
     {
       std::string explanation;
