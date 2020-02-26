@@ -142,7 +142,8 @@ namespace Orthanc
         position_(0)
       {
         job_->SetDescription("C-MOVE");
-        job_->SetPermissive(true);
+        //job_->SetPermissive(true);  // This was the behavior of Orthanc < 1.6.0
+        job_->SetPermissive(false);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
 
         {
