@@ -931,7 +931,8 @@ namespace Orthanc
           Json::Value target;
           call.ExecuteToJson(target, true);
           
-          filtered_.reset(ParsedDicomFile::CreateFromJson(target, DicomFromJsonFlags_None));
+          filtered_.reset(ParsedDicomFile::CreateFromJson(target, DicomFromJsonFlags_None,
+                                                          "" /* no private creator */));
           currentQuery_ = filtered_.get();
         }
       }
@@ -3049,7 +3050,8 @@ namespace Orthanc
 
     {
       std::auto_ptr<ParsedDicomFile> file
-        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags)));
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags),
+                                         "" /* TODO - private creator */));
 
       if (p.pixelData)
       {

@@ -138,32 +138,27 @@ namespace Orthanc
     void Replace(const DicomTag& tag,
                  const std::string& utf8Value,
                  bool decodeDataUriScheme,
-                 DicomReplaceMode mode);
+                 DicomReplaceMode mode,
+                 const std::string& privateCreator /* used only for private tags */);
 
     void Replace(const DicomTag& tag,
                  const Json::Value& value,  // Assumed to be encoded with UTF-8
                  bool decodeDataUriScheme,
-                 DicomReplaceMode mode);
+                 DicomReplaceMode mode,
+                 const std::string& privateCreator /* used only for private tags */);
 
     void Insert(const DicomTag& tag,
                 const Json::Value& value,   // Assumed to be encoded with UTF-8
-                bool decodeDataUriScheme);
+                bool decodeDataUriScheme,
+                const std::string& privateCreator /* used only for private tags */);
 
+    // Cannot be applied to private tags
     void ReplacePlainString(const DicomTag& tag,
-                            const std::string& utf8Value)
-    {
-      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent);
-    }
+                            const std::string& utf8Value);
 
+    // Cannot be applied to private tags
     void SetIfAbsent(const DicomTag& tag,
-                     const std::string& utf8Value)
-    {
-      std::string currentValue;
-      if (!GetTagValue(currentValue, tag))
-      {
-        ReplacePlainString(tag, utf8Value);
-      }
-    }
+                     const std::string& utf8Value);
 
     void RemovePrivateTags()
     {
@@ -234,7 +229,8 @@ namespace Orthanc
     unsigned int GetFramesCount() const;
 
     static ParsedDicomFile* CreateFromJson(const Json::Value& value,
-                                           DicomFromJsonFlags flags);
+                                           DicomFromJsonFlags flags,
+                                           const std::string& privateCreator);
 
     void ChangeEncoding(Encoding target);
 

@@ -394,7 +394,8 @@ namespace Orthanc
             content.append(item);
           }
 
-          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent);
+          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent,
+                        "" /* no private creator */);
         }
       }
 

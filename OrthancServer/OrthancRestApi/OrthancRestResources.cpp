@@ -35,10 +35,12 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Compression/GzipCompressor.h"
+#include "../../Core/DicomFormat/DicomImageInformation.h"
 #include "../../Core/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../Core/HttpServer/HttpContentNegociation.h"
+#include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Logging.h"
 #include "../DefaultDicomImageDecoder.h"
@@ -49,6 +51,9 @@
 #include "../SliceOrdering.h"
 
 #include "../../Plugins/Engine/OrthancPlugins.h"
+
+// This "include" is mandatory for Release builds using Linux Standard Base
+#include <boost/math/special_functions/round.hpp>
 
 
 namespace Orthanc
@@ -503,152 +508,445 @@ namespace Orthanc
   }
 
 
-  void LookupWindowingTags(const ParsedDicomFile& dicom, float& windowCenter, float& windowWidth, float& rescaleSlope, float& rescaleIntercept, bool& invert)
+  namespace
   {
-    DicomMap dicomTags;
-    dicom.ExtractDicomSummary(dicomTags);
-
-
-    unsigned int bitsStored = boost::lexical_cast<unsigned int>(dicomTags.GetStringValue(Orthanc::DICOM_TAG_BITS_STORED, "8", false));
-    windowWidth = static_cast<float>(2 << (bitsStored - 1));
-    windowCenter = windowWidth / 2;
-    rescaleSlope = 1.0f;
-    rescaleIntercept = 0.0f;
-    invert = false;
-
-    if (dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) && dicomTags.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
+    class IDecodedFrameHandler : public boost::noncopyable
     {
-      dicomTags.ParseFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
-      dicomTags.ParseFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
-    }
+    public:
+      virtual ~IDecodedFrameHandler()
+      {
+      }
 
-    if (dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) && dicomTags.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
-    {
-      dicomTags.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
-      dicomTags.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
-    }
+      virtual void Handle(RestApiGetCall& call,
+                          std::auto_ptr<ImageAccessor>& decoded,
+                          const DicomMap& dicom) = 0;
 
-    PhotometricInterpretation photometric;
-    if (dicom.LookupPhotometricInterpretation(photometric))
+      virtual bool RequiresDicomTags() const = 0;
+
+      static void Apply(RestApiGetCall& call,
+                        IDecodedFrameHandler& handler)
+      {
+        ServerContext& context = OrthancRestApi::GetContext(call);
+
+        std::string frameId = call.GetUriComponent("frame", "0");
+
+        unsigned int frame;
+        try
+        {
+          frame = boost::lexical_cast<unsigned int>(frameId);
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          return;
+        }
+
+        DicomMap dicom;
+        std::auto_ptr<ImageAccessor> decoded;
+
+        try
+        {
+          std::string publicId = call.GetUriComponent("id", "");
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+          if (context.GetPlugins().HasCustomImageDecoder())
+          {
+            // TODO create a cache of file
+            std::string dicomContent;
+            context.ReadDicom(dicomContent, publicId);
+            decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
+
+            /**
+             * Note that we call "DecodeUnsafe()": We do not fallback to
+             * the builtin decoder if no installed decoder plugin is able
+             * to decode the image. This allows us to take advantage of
+             * the cache below.
+             **/
+
+            if (handler.RequiresDicomTags() &&
+                decoded.get() != NULL)
+            {
+              // TODO Optimize this lookup for photometric interpretation:
+              // It should be implemented by the plugin to avoid parsing
+              // twice the DICOM file
+              ParsedDicomFile parsed(dicomContent);
+              parsed.ExtractDicomSummary(dicom);
+            }
+          }
+#endif
+
+          if (decoded.get() == NULL)
+          {
+            // Use Orthanc's built-in decoder, using the cache to speed-up
+            // things on multi-frame images
+            ServerContext::DicomCacheLocker locker(context, publicId);        
+            decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
+
+            if (handler.RequiresDicomTags())
+            {
+              locker.GetDicom().ExtractDicomSummary(dicom);
+            }
+          }
+        }
+        catch (OrthancException& e)
+        {
+          if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange ||
+              e.GetErrorCode() == ErrorCode_UnknownResource)
+          {
+            // The frame number is out of the range for this DICOM
+            // instance, the resource is not existent
+          }
+          else
+          {
+            std::string root = "";
+            for (size_t i = 1; i < call.GetFullUri().size(); i++)
+            {
+              root += "../";
+            }
+
+            call.GetOutput().Redirect(root + "app/images/unsupported.png");
+          }
+          return;
+        }
+
+        handler.Handle(call, decoded, dicom);
+      }
+
+
+      static void DefaultHandler(RestApiGetCall& call,
+                                 std::auto_ptr<ImageAccessor>& decoded,
+                                 ImageExtractionMode mode,
+                                 bool invert)
+      {
+        ImageToEncode image(decoded, mode, invert);
+
+        HttpContentNegociation negociation;
+        EncodePng png(image);
+        negociation.Register(MIME_PNG, png);
+
+        EncodeJpeg jpeg(image, call);
+        negociation.Register(MIME_JPEG, jpeg);
+
+        EncodePam pam(image);
+        negociation.Register(MIME_PAM, pam);
+
+        if (negociation.Apply(call.GetHttpHeaders()))
+        {
+          image.Answer(call.GetOutput());
+        }
+      }
+    };
+
+
+    class GetImageHandler : public IDecodedFrameHandler
     {
-      invert = (photometric == PhotometricInterpretation_Monochrome1);
-    }
+    private:
+      ImageExtractionMode mode_;
+
+    public:
+      GetImageHandler(ImageExtractionMode mode) :
+        mode_(mode)
+      {
+      }
+
+      virtual void Handle(RestApiGetCall& call,
+                          std::auto_ptr<ImageAccessor>& decoded,
+                          const DicomMap& dicom) ORTHANC_OVERRIDE
+      {
+        bool invert = false;
+
+        if (mode_ == ImageExtractionMode_Preview)
+        {
+          DicomImageInformation info(dicom);
+          invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
+        }
+
+        DefaultHandler(call, decoded, mode_, invert);
+      }
+
+      virtual bool RequiresDicomTags() const ORTHANC_OVERRIDE
+      {
+        return mode_ == ImageExtractionMode_Preview;
+      }
+    };
+
+
+    class RenderedFrameHandler : public IDecodedFrameHandler
+    {
+    private:
+      static void GetDicomParameters(bool& invert,
+                                     float& rescaleSlope,
+                                     float& rescaleIntercept,
+                                     float& windowWidth,
+                                     float& windowCenter,
+                                     const DicomMap& dicom)
+      {
+        DicomImageInformation info(dicom);
+
+        invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
+
+        rescaleSlope = 1.0f;
+        rescaleIntercept = 0.0f;
+
+        if (dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) &&
+            dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
+        {
+          dicom.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
+          dicom.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
+        }
+
+        windowWidth = static_cast<float>(1 << info.GetBitsStored());
+        windowCenter = windowWidth / 2.0f;
+
+        if (dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
+            dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
+        {
+          dicom.ParseFirstFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
+          dicom.ParseFirstFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
+        }
+      }
+
+      static void GetUserArguments(float& windowWidth /* inout */,
+                                   float& windowCenter /* inout */,
+                                   unsigned int& argWidth,
+                                   unsigned int& argHeight,
+                                   bool& smooth,
+                                   RestApiGetCall& call)
+      {
+        static const char* ARG_WINDOW_CENTER = "window-center";
+        static const char* ARG_WINDOW_WIDTH = "window-width";
+        static const char* ARG_WIDTH = "width";
+        static const char* ARG_HEIGHT = "height";
+        static const char* ARG_SMOOTH = "smooth";
+
+        if (call.HasArgument(ARG_WINDOW_WIDTH))
+        {
+          try
+          {
+            windowWidth = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_WIDTH, ""));
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_WINDOW_WIDTH));
+          }
+        }
+
+        if (call.HasArgument(ARG_WINDOW_CENTER))
+        {
+          try
+          {
+            windowCenter = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_CENTER, ""));
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_WINDOW_CENTER));
+          }
+        }
+
+        argWidth = 0;
+        argHeight = 0;
+
+        if (call.HasArgument(ARG_WIDTH))
+        {
+          try
+          {
+            int tmp = boost::lexical_cast<int>(call.GetArgument(ARG_WIDTH, ""));
+            if (tmp < 0)
+            {
+              throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                     "Argument cannot be negative: " + std::string(ARG_WIDTH));
+            }
+            else
+            {
+              argWidth = static_cast<unsigned int>(tmp);
+            }
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_WIDTH));
+          }
+        }
+
+        if (call.HasArgument(ARG_HEIGHT))
+        {
+          try
+          {
+            int tmp = boost::lexical_cast<int>(call.GetArgument(ARG_HEIGHT, ""));
+            if (tmp < 0)
+            {
+              throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                     "Argument cannot be negative: " + std::string(ARG_HEIGHT));
+            }
+            else
+            {
+              argHeight = static_cast<unsigned int>(tmp);
+            }
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Bad value for argument: " + std::string(ARG_HEIGHT));
+          }
+        }
+
+        smooth = false;
+
+        if (call.HasArgument(ARG_SMOOTH))
+        {
+          std::string value = call.GetArgument(ARG_SMOOTH, "");
+          if (value == "0" ||
+              value == "false")
+          {
+            smooth = false;
+          }
+          else if (value == "1" ||
+                   value == "true")
+          {
+            smooth = true;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Argument must be Boolean: " + std::string(ARG_SMOOTH));
+          }
+        }        
+      }
+                                
+      
+    public:
+      virtual void Handle(RestApiGetCall& call,
+                          std::auto_ptr<ImageAccessor>& decoded,
+                          const DicomMap& dicom) ORTHANC_OVERRIDE
+      {
+        bool invert;
+        float rescaleSlope, rescaleIntercept, windowWidth, windowCenter;
+        GetDicomParameters(invert, rescaleSlope, rescaleIntercept, windowWidth, windowCenter, dicom);
+
+        unsigned int argWidth, argHeight;
+        bool smooth;
+        GetUserArguments(windowWidth, windowCenter, argWidth, argHeight, smooth, call);
+
+        unsigned int targetWidth = decoded->GetWidth();
+        unsigned int targetHeight = decoded->GetHeight();
+
+        if (decoded->GetWidth() != 0 &&
+            decoded->GetHeight() != 0)
+        {
+          float ratio = 1;
+
+          if (argWidth != 0 &&
+              argHeight != 0)
+          {
+            float ratioX = static_cast<float>(argWidth) / static_cast<float>(decoded->GetWidth());
+            float ratioY = static_cast<float>(argHeight) / static_cast<float>(decoded->GetHeight());
+            ratio = std::min(ratioX, ratioY);
+          }
+          else if (argWidth != 0)
+          {
+            ratio = static_cast<float>(argWidth) / static_cast<float>(decoded->GetWidth());
+          }
+          else if (argHeight != 0)
+          {
+            ratio = static_cast<float>(argHeight) / static_cast<float>(decoded->GetHeight());
+          }
+          
+          targetWidth = boost::math::iround(ratio * static_cast<float>(decoded->GetWidth()));
+          targetHeight = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
+        }
+        
+        if (decoded->GetFormat() == PixelFormat_RGB24)
+        {
+          if (targetWidth == decoded->GetWidth() &&
+              targetHeight == decoded->GetHeight())
+          {
+            DefaultHandler(call, decoded, ImageExtractionMode_Preview, false);
+          }
+          else
+          {
+            std::auto_ptr<ImageAccessor> resized(
+              new Image(decoded->GetFormat(), targetWidth, targetHeight, false));
+            
+            if (smooth &&
+                (targetWidth < decoded->GetWidth() ||
+                 targetHeight < decoded->GetHeight()))
+            {
+              ImageProcessing::SmoothGaussian5x5(*decoded);
+            }
+            
+            ImageProcessing::Resize(*resized, *decoded);
+            DefaultHandler(call, resized, ImageExtractionMode_Preview, false);
+          }
+        }
+        else
+        {
+          // Grayscale image: (1) convert to Float32, (2) apply
+          // windowing to get a Grayscale8, (3) possibly resize
+
+          Image converted(PixelFormat_Float32, decoded->GetWidth(), decoded->GetHeight(), false);
+          ImageProcessing::Convert(converted, *decoded);
+
+          // Avoid divisions by zero
+          if (windowWidth <= 1.0f)
+          {
+            windowWidth = 1;
+          }
+
+          if (std::abs(rescaleSlope) <= 0.1f)
+          {
+            rescaleSlope = 0.1f;
+          }
+
+          const float scaling = 255.0f * rescaleSlope / windowWidth;
+          const float offset = (rescaleIntercept - windowCenter + windowWidth / 2.0f) / rescaleSlope;
+
+          std::auto_ptr<ImageAccessor> rescaled(new Image(PixelFormat_Grayscale8, decoded->GetWidth(), decoded->GetHeight(), false));
+          ImageProcessing::ShiftScale(*rescaled, converted, offset, scaling, false);
+
+          if (targetWidth == decoded->GetWidth() &&
+              targetHeight == decoded->GetHeight())
+          {
+            DefaultHandler(call, rescaled, ImageExtractionMode_UInt8, invert);
+          }
+          else
+          {
+            std::auto_ptr<ImageAccessor> resized(
+              new Image(PixelFormat_Grayscale8, targetWidth, targetHeight, false));
+            
+            if (smooth &&
+                (targetWidth < decoded->GetWidth() ||
+                 targetHeight < decoded->GetHeight()))
+            {
+              ImageProcessing::SmoothGaussian5x5(*rescaled);
+            }
+            
+            ImageProcessing::Resize(*resized, *rescaled);
+            DefaultHandler(call, resized, ImageExtractionMode_UInt8, invert);
+          }
+        }
+      }
+
+      virtual bool RequiresDicomTags() const ORTHANC_OVERRIDE
+      {
+        return true;
+      }
+    };
   }
+
 
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    GetImageHandler handler(mode);
+    IDecodedFrameHandler::Apply(call, handler);
+  }
 
-    std::string frameId = call.GetUriComponent("frame", "0");
 
-    unsigned int frame;
-    try
-    {
-      frame = boost::lexical_cast<unsigned int>(frameId);
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return;
-    }
-
-    bool invert = false;
-    float windowCenter = 128.0f;
-    float windowWidth = 256.0f;
-    float rescaleSlope = 1.0f;
-    float rescaleIntercept = 0.0f;
-
-    std::auto_ptr<ImageAccessor> decoded;
-
-    try
-    {
-      std::string publicId = call.GetUriComponent("id", "");
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-      if (context.GetPlugins().HasCustomImageDecoder())
-      {
-        // TODO create a cache of file
-        std::string dicomContent;
-        context.ReadDicom(dicomContent, publicId);
-        decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
-
-        /**
-         * Note that we call "DecodeUnsafe()": We do not fallback to
-         * the builtin decoder if no installed decoder plugin is able
-         * to decode the image. This allows us to take advantage of
-         * the cache below.
-         **/
-
-        if (mode == ImageExtractionMode_Preview &&
-            decoded.get() != NULL)
-        {
-          // TODO Optimize this lookup for photometric interpretation:
-          // It should be implemented by the plugin to avoid parsing
-          // twice the DICOM file
-          ParsedDicomFile parsed(dicomContent);
-          
-          LookupWindowingTags(dicomContent, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-        }
-      }
-#endif
-
-      if (decoded.get() == NULL)
-      {
-        // Use Orthanc's built-in decoder, using the cache to speed-up
-        // things on multi-frame images
-        ServerContext::DicomCacheLocker locker(context, publicId);        
-        decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
-        LookupWindowingTags(locker.GetDicom(), windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-
-        if (mode != ImageExtractionMode_Preview)
-        {
-          invert = false;
-        }
-      }
-    }
-    catch (OrthancException& e)
-    {
-      if (e.GetErrorCode() == ErrorCode_ParameterOutOfRange || e.GetErrorCode() == ErrorCode_UnknownResource)
-      {
-        // The frame number is out of the range for this DICOM
-        // instance, the resource is not existent
-      }
-      else
-      {
-        std::string root = "";
-        for (size_t i = 1; i < call.GetFullUri().size(); i++)
-        {
-          root += "../";
-        }
-
-        call.GetOutput().Redirect(root + "app/images/unsupported.png");
-      }
-      return;
-    }
-
-    if (mode == ImageExtractionMode_Preview
-        && (decoded->GetFormat() == Orthanc::PixelFormat_Grayscale8 || decoded->GetFormat() == Orthanc::PixelFormat_Grayscale16))
-    {
-      ImageProcessing::ApplyWindowing(*decoded, *decoded, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-      invert = false; // don't invert it later on when encoding it, it has been inverted in the ApplyWindowing function
-    }
-
-    ImageToEncode image(decoded, mode, invert);
-
-    HttpContentNegociation negociation;
-    EncodePng png(image);
-    negociation.Register(MIME_PNG, png);
-
-    EncodeJpeg jpeg(image, call);
-    negociation.Register(MIME_JPEG, jpeg);
-
-    EncodePam pam(image);
-    negociation.Register(MIME_PAM, pam);
-
-    if (negociation.Apply(call.GetHttpHeaders()))
-    {
-      image.Answer(call.GetOutput());
-    }
+  static void GetRenderedFrame(RestApiGetCall& call)
+  {
+    RenderedFrameHandler handler;
+    IDecodedFrameHandler::Apply(call, handler);
   }
 
 
@@ -1802,6 +2100,7 @@ namespace Orthanc
     Register("/instances/{id}/frames", ListFrames);
 
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
+    Register("/instances/{id}/frames/{frame}/rendered", GetRenderedFrame);
     Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/frames/{frame}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/frames/{frame}/image-int16", GetImage<ImageExtractionMode_Int16>);
@@ -1810,6 +2109,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
+    Register("/instances/{id}/rendered", GetRenderedFrame);
     Register("/instances/{id}/image-uint8", GetImage<ImageExtractionMode_UInt8>);
     Register("/instances/{id}/image-uint16", GetImage<ImageExtractionMode_UInt16>);
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);

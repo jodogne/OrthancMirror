@@ -209,10 +209,10 @@ namespace Orthanc
 
     static ValueRepresentation LookupValueRepresentation(const DicomTag& tag);
 
-    static DcmElement* CreateElementForTag(const DicomTag& tag);
+    static DcmElement* CreateElementForTag(const DicomTag& tag,
+                                           const std::string& privateCreator);
     
     static void FillElementWithString(DcmElement& element,
-                                      const DicomTag& tag,
                                       const std::string& utf8alue,  // Encoded using UTF-8
                                       bool decodeDataUriScheme,
                                       Encoding dicomEncoding);
@@ -220,7 +220,8 @@ namespace Orthanc
     static DcmElement* FromJson(const DicomTag& tag,
                                 const Json::Value& element,  // Encoded using UTF-8
                                 bool decodeDataUriScheme,
-                                Encoding dicomEncoding);
+                                Encoding dicomEncoding,
+                                const std::string& privateCreator);
 
     static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset);
 
@@ -230,7 +231,8 @@ namespace Orthanc
     static DcmDataset* FromJson(const Json::Value& json,  // Encoded using UTF-8
                                 bool generateIdentifiers,
                                 bool decodeDataUriScheme,
-                                Encoding defaultEncoding);
+                                Encoding defaultEncoding,
+                                const std::string& privateCreator);
 
     static DcmFileFormat* LoadFromMemoryBuffer(const void* buffer,
                                                size_t size);

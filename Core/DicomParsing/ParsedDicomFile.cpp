@@ -619,7 +619,8 @@ namespace Orthanc
 
   void ParsedDicomFile::Insert(const DicomTag& tag,
                                const Json::Value& value,
-                               bool decodeDataUriScheme)
+                               bool decodeDataUriScheme,
+                               const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -648,8 +649,35 @@ namespace Orthanc
 
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions);
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
+  }
+
+
+  void ParsedDicomFile::ReplacePlainString(const DicomTag& tag,
+                                           const std::string& utf8Value)
+  {
+    if (tag.IsPrivate())
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot apply this function to private tags: " + tag.Format());
+    }
+    else
+    {
+      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent,
+              "" /* not a private tag, so no private creator */);
+    }
+  }
+
+
+  void ParsedDicomFile::SetIfAbsent(const DicomTag& tag,
+                                    const std::string& utf8Value)
+  {
+    std::string currentValue;
+    if (!GetTagValue(currentValue, tag))
+    {
+      ReplacePlainString(tag, utf8Value);
+    }
   }
 
 
@@ -742,7 +770,8 @@ namespace Orthanc
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const std::string& utf8Value,
                                 bool decodeDataUriScheme,
-                                DicomReplaceMode mode)
+                                DicomReplaceMode mode,
+                                const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -769,13 +798,13 @@ namespace Orthanc
         }
       }
 
-      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
 
       if (!utf8Value.empty())
       {
         bool hasCodeExtensions;
         Encoding encoding = DetectEncoding(hasCodeExtensions);
-        FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, decodeDataUriScheme, encoding);
+        FromDcmtkBridge::FillElementWithString(*element, utf8Value, decodeDataUriScheme, encoding);
       }
 
       InsertInternal(dicom, element.release());
@@ -787,7 +816,8 @@ namespace Orthanc
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const Json::Value& value,
                                 bool decodeDataUriScheme,
-                                DicomReplaceMode mode)
+                                DicomReplaceMode mode,
+                                const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -817,7 +847,7 @@ namespace Orthanc
 
       bool hasCodeExtensions;
       Encoding encoding = DetectEncoding(hasCodeExtensions);
-      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
 
       if (tag == DICOM_TAG_SOP_CLASS_UID ||
           tag == DICOM_TAG_SOP_INSTANCE_UID)
@@ -1483,7 +1513,8 @@ namespace Orthanc
 
 
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
-                                                   DicomFromJsonFlags flags)
+                                                   DicomFromJsonFlags flags,
+                                                   const std::string& privateCreator)
   {
     const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
     const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
@@ -1512,7 +1543,7 @@ namespace Orthanc
       }
       else if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        result->Replace(tag, value, decodeDataUriScheme, DicomReplaceMode_InsertIfAbsent);
+        result->Replace(tag, value, decodeDataUriScheme, DicomReplaceMode_InsertIfAbsent, privateCreator);
       }
     }
 

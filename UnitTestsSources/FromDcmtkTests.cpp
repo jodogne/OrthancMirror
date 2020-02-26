@@ -108,7 +108,7 @@ TEST(DicomModification, Anonymization)
 {
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, FromDcmtkBridge::ParseTag("PatientName"));
 
-  const DicomTag privateTag(0x0045, 0x0010);
+  const DicomTag privateTag(0x0045, 0x1010);
   const DicomTag privateTag2(FromDcmtkBridge::ParseTag("0031-1020"));
   ASSERT_TRUE(privateTag.IsPrivate());
   ASSERT_TRUE(privateTag2.IsPrivate());
@@ -119,19 +119,19 @@ TEST(DicomModification, Anonymization)
   ParsedDicomFile o(true);
   o.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "coucou");
   ASSERT_FALSE(o.GetTagValue(s, privateTag));
-  o.Insert(privateTag, "private tag", false);
+  o.Insert(privateTag, "private tag", false, "OrthancCreator");
   ASSERT_TRUE(o.GetTagValue(s, privateTag));
   ASSERT_STREQ("private tag", s.c_str());
 
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  ASSERT_THROW(o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_THROW(o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_ThrowIfAbsent, "OrthancCreator"), OrthancException);
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_IgnoreIfAbsent);
+  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_IgnoreIfAbsent, "OrthancCreator");
   ASSERT_FALSE(o.GetTagValue(s, privateTag2));
-  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_InsertIfAbsent);
+  o.Replace(privateTag2, std::string("hello"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
   ASSERT_TRUE(o.GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello", s.c_str());
-  o.ReplacePlainString(privateTag2, "hello world");
+  o.Replace(privateTag2, std::string("hello world"), false, DicomReplaceMode_InsertIfAbsent, "OrthancCreator");
   ASSERT_TRUE(o.GetTagValue(s, privateTag2));
   ASSERT_STREQ("hello world", s.c_str());
 
@@ -290,7 +290,7 @@ TEST(FromDcmtkBridge, Encodings3)
       f.SetEncoding(testEncodings[i]);
 
       std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
-      f.Insert(DICOM_TAG_PATIENT_NAME, s, false);
+      f.Insert(DICOM_TAG_PATIENT_NAME, s, false, "");
       f.SaveToMemoryBuffer(dicom);
     }
 
@@ -407,7 +407,7 @@ namespace Orthanc
     {
       Json::Value a;
       a = "Hello";
-      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8));
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8, ""));
 
       Json::Value b;
       std::set<DicomTag> ignoreTagLength;
@@ -439,20 +439,20 @@ namespace Orthanc
       Json::Value a;
       a = "Hello";
       // Cannot assign a string to a sequence
-      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8)), OrthancException);
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8, "")), OrthancException);
     }
 
     {
       Json::Value a = Json::arrayValue;
       a.append("Hello");
       // Cannot assign an array to a string
-      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8)), OrthancException);
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8, "")), OrthancException);
     }
 
     {
       Json::Value a;
       a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
-      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8));
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8, ""));
 
       Json::Value b;
       std::set<DicomTag> ignoreTagLength;
@@ -464,7 +464,7 @@ namespace Orthanc
     {
       Json::Value a = Json::arrayValue;
       CreateSampleJson(a);
-      element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8));
+      element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8, ""));
 
       {
         Json::Value b;
@@ -506,8 +506,8 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
 {
   ParsedDicomFile f(true);
 
-  f.Insert(DICOM_TAG_PATIENT_NAME, "World", false);
-  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false), OrthancException);  // Already existing tag
+  f.Insert(DICOM_TAG_PATIENT_NAME, "World", false, "");
+  ASSERT_THROW(f.Insert(DICOM_TAG_PATIENT_ID, "Hello", false, ""), OrthancException);  // Already existing tag
   f.ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
   f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
@@ -515,16 +515,16 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
   ASSERT_FALSE(f.LookupTransferSyntax(s));
 
   ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
-                         false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_IgnoreIfAbsent);
+                         false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_IgnoreIfAbsent, "");
   ASSERT_FALSE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_InsertIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_InsertIfAbsent, "");
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession");
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession2"), false, DicomReplaceMode_IgnoreIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession2"), false, DicomReplaceMode_IgnoreIfAbsent, "");
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession2");
-  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession3"), false, DicomReplaceMode_ThrowIfAbsent);
+  f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession3"), false, DicomReplaceMode_ThrowIfAbsent, "");
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   ASSERT_EQ(s, "Accession3");
 
@@ -552,20 +552,20 @@ TEST(ParsedDicomFile, InsertReplaceJson)
 
   ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
   f.Remove(REFERENCED_STUDY_SEQUENCE);  // No effect
-  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true, "");
   ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
-  ASSERT_THROW(f.Insert(REFERENCED_STUDY_SEQUENCE, a, true), OrthancException);
+  ASSERT_THROW(f.Insert(REFERENCED_STUDY_SEQUENCE, a, true, ""), OrthancException);
   f.Remove(REFERENCED_STUDY_SEQUENCE);
   ASSERT_FALSE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
-  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true);
+  f.Insert(REFERENCED_STUDY_SEQUENCE, a, true, "");
   ASSERT_TRUE(f.HasTag(REFERENCED_STUDY_SEQUENCE));
 
   ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
-  ASSERT_THROW(f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_ThrowIfAbsent), OrthancException);
+  ASSERT_THROW(f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
   ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
-  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_IgnoreIfAbsent);
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_IgnoreIfAbsent, "");
   ASSERT_FALSE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
-  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_InsertIfAbsent);
+  f.Replace(REFERENCED_PATIENT_SEQUENCE, a, false, DicomReplaceMode_InsertIfAbsent, "");
   ASSERT_TRUE(f.HasTag(REFERENCED_PATIENT_SEQUENCE));
 
   {
@@ -580,8 +580,8 @@ TEST(ParsedDicomFile, InsertReplaceJson)
   }
 
   a = "data:application/octet-stream;base64,VGF0YQ==";   // echo -n "Tata" | base64 
-  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false, DicomReplaceMode_InsertIfAbsent);  // (*)
-  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true, DicomReplaceMode_InsertIfAbsent);  // (**)
+  f.Replace(DICOM_TAG_SOP_INSTANCE_UID, a, false, DicomReplaceMode_InsertIfAbsent, "");  // (*)
+  f.Replace(DICOM_TAG_SOP_CLASS_UID, a, true, DicomReplaceMode_InsertIfAbsent, "");  // (**)
 
   std::string s;
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_SOP_INSTANCE_UID));
@@ -614,7 +614,7 @@ TEST(ParsedDicomFile, JsonEncoding)
       }
 
       Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
-      f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent);
+      f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent, "");
 
       Json::Value v;
       f.DatasetToJson(v, DicomToJsonFormat_Human, DicomToJsonFlags_Default, 0);
@@ -626,13 +626,13 @@ TEST(ParsedDicomFile, JsonEncoding)
 
 TEST(ParsedDicomFile, ToJsonFlags1)
 {
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_PersonName, "MyPrivateTag", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7053, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag", 1, 1, "OrthancCreator");
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag", 1, 1, "");
 
   ParsedDicomFile f(true);
-  f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false);  // Even group => public tag
-  f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false);  // Even group => public, unknown tag
-  f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false);  // Odd group => private tag
+  f.Insert(DicomTag(0x7050, 0x1000), "Some public tag", false, "");  // Even group => public tag
+  f.Insert(DicomTag(0x7052, 0x1000), "Some unknown tag", false, "");  // Even group => public, unknown tag
+  f.Insert(DicomTag(0x7053, 0x1000), "Some private tag", false, "OrthancCreator");  // Odd group => private tag
 
   Json::Value v;
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
@@ -644,7 +644,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ(Json::stringValue, v["7050,1000"].type());
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
 
-  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludeBinary | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
@@ -653,7 +653,14 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   ASSERT_EQ(Json::nullValue, v["7053,1000"].type());
 
-  f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags), 0);
+  ASSERT_EQ(Json::objectValue, v.type());
+  ASSERT_EQ(6u, v.getMemberNames().size());
+  ASSERT_FALSE(v.isMember("7052,1000"));
+  ASSERT_TRUE(v.isMember("7050,1000"));
+  ASSERT_FALSE(v.isMember("7053,1000"));
+
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludeBinary), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_FALSE(v.isMember("7052,1000"));
@@ -666,7 +673,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some private tag", content);
 
-  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludeBinary | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -675,7 +682,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("Some public tag", v["7050,1000"].asString());
   ASSERT_EQ(Json::nullValue, v["7052,1000"].type());
 
-  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludeBinary), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(7u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -687,7 +694,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
   ASSERT_EQ("application/octet-stream", mime);
   ASSERT_EQ("Some unknown tag", content);
 
-  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_ConvertBinaryToNull), 0);
+  f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludeUnknownTags | DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludeBinary | DicomToJsonFlags_ConvertBinaryToNull), 0);
   ASSERT_EQ(Json::objectValue, v.type());
   ASSERT_EQ(8u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7050,1000"));
@@ -702,7 +709,7 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 TEST(ParsedDicomFile, ToJsonFlags2)
 {
   ParsedDicomFile f(true);
-  f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false);
+  f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false, "");
 
   Json::Value v;
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
@@ -811,7 +818,7 @@ TEST(ParsedDicomFile, FromJson)
 
   {
     std::auto_ptr<ParsedDicomFile> dicom
-      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
+      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers), ""));
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Human, toJsonFlags, 0);
@@ -827,7 +834,7 @@ TEST(ParsedDicomFile, FromJson)
 
   {
     std::auto_ptr<ParsedDicomFile> dicom
-      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers)));
+      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers), ""));
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Human, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePixelData), 0);
@@ -841,7 +848,7 @@ TEST(ParsedDicomFile, FromJson)
 
   {
     std::auto_ptr<ParsedDicomFile> dicom
-      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_DecodeDataUriScheme)));
+      (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_DecodeDataUriScheme), ""));
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, toJsonFlags, 0);
