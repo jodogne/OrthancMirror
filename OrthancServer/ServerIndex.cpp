@@ -152,7 +152,15 @@ namespace Orthanc
              it = pendingFilesToRemove_.begin();
            it != pendingFilesToRemove_.end(); ++it)
       {
-        context_.RemoveFile(it->GetUuid(), it->GetContentType());
+        try
+        {
+          context_.RemoveFile(it->GetUuid(), it->GetContentType());
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Unable to remove an attachment from the storage area: "
+                     << it->GetUuid() << " (type: " << EnumerationToString(it->GetContentType()) << ")";
+        }
       }
     }
 
