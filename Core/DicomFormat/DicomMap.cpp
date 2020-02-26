@@ -984,6 +984,21 @@ namespace Orthanc
     }
   }
 
+  bool DicomMap::ParseFirstFloat(float& result,
+                                 const DicomTag& tag) const
+  {
+    const DicomValue* value = TestAndGetValue(tag);
+
+    if (value == NULL)
+    {
+      return false;
+    }
+    else
+    {
+      return value->ParseFirstFloat(result);
+    }
+  }
+
   bool DicomMap::ParseDouble(double& result,
                              const DicomTag& tag) const
   {

@@ -231,6 +231,11 @@ namespace Orthanc
     return ParseValue<double, true>(result, *this);
   }
 
+  bool DicomValue::ParseFirstFloat(float& result) const
+  {
+    return ParseFirstValue<float, true>(result, *this);
+  }
+
   bool DicomValue::ParseFirstUnsignedInteger(unsigned int& result) const
   {
     return ParseFirstValue<unsigned int, true>(result, *this);

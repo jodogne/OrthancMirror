@@ -1143,9 +1143,9 @@ TEST(JobsSerialization, DicomModification)
   Json::Value s;
 
   ParsedDicomFile source(true);
-  source.Insert(DICOM_TAG_STUDY_DESCRIPTION, "Test 1", false);
-  source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false);
-  source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false);
+  source.Insert(DICOM_TAG_STUDY_DESCRIPTION, "Test 1", false, "");
+  source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false, "");
+  source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false, "");
 
   std::auto_ptr<ParsedDicomFile> modified(source.Clone(true));
 
@@ -1310,7 +1310,7 @@ namespace
       // Create a sample DICOM file
       ParsedDicomFile dicom(true);
       dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
-                    false, DicomReplaceMode_InsertIfAbsent);
+                    false, DicomReplaceMode_InsertIfAbsent, "");
 
       DicomInstanceToStore toStore;
       toStore.SetParsedDicomFile(dicom);

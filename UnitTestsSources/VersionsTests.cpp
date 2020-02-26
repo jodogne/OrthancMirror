@@ -113,6 +113,14 @@ TEST(Versions, Lua)
 }
 
 
+#if ORTHANC_ENABLE_CIVETWEB == 1
+TEST(Version, CivetwebCompression)
+{
+  ASSERT_TRUE(mg_check_feature(MG_FEATURES_COMPRESSION));
+}
+#endif
+
+
 #if ORTHANC_STATIC == 1
 
 TEST(Versions, ZlibStatic)

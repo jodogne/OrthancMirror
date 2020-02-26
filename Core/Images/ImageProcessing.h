@@ -82,13 +82,13 @@ namespace Orthanc
     void Convert(ImageAccessor& target,
                  const ImageAccessor& source);
 
-    void ApplyWindowing(ImageAccessor& target,
-                        const ImageAccessor& source,
-                        float windowCenter,
-                        float windowWidth,
-                        float rescaleSlope,
-                        float rescaleIntercept,
-                        bool invert);
+    void ApplyWindowing_Deprecated(ImageAccessor& target,
+                                   const ImageAccessor& source,
+                                   float windowCenter,
+                                   float windowWidth,
+                                   float rescaleSlope,
+                                   float rescaleIntercept,
+                                   bool invert);
 
     void Set(ImageAccessor& image,
              int64_t value);
@@ -127,8 +127,14 @@ namespace Orthanc
                           float factor,
                           bool useRound);
 
-    // "useRound" is expensive
+    // Computes "(x + offset) * scaling" inplace. "useRound" is expensive.
     void ShiftScale(ImageAccessor& image,
+                    float offset,
+                    float scaling,
+                    bool useRound);
+
+    void ShiftScale(ImageAccessor& target,
+                    const ImageAccessor& source,
                     float offset,
                     float scaling,
                     bool useRound);

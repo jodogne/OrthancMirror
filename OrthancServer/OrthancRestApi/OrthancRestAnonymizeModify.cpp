@@ -267,7 +267,8 @@ namespace Orthanc
 
   static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags,
-                         bool decodeBinaryTags)
+                         bool decodeBinaryTags,
+                         const std::string& privateCreator)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -305,7 +306,7 @@ namespace Orthanc
         }
         else
         {
-          dicom.Replace(tag, tags[name], decodeBinaryTags, DicomReplaceMode_InsertIfAbsent);
+          dicom.Replace(tag, tags[name], decodeBinaryTags, DicomReplaceMode_InsertIfAbsent, privateCreator);
         }
       }
     }
@@ -315,7 +316,8 @@ namespace Orthanc
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content,
-                           bool decodeBinaryTags)
+                           bool decodeBinaryTags,
+                           const std::string& privateCreator)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -348,7 +350,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags);
+            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags, privateCreator);
           }
         }
 
@@ -538,6 +540,20 @@ namespace Orthanc
       decodeBinaryTags = v.asBool();
     }
 
+
+    // New argument in Orthanc 1.6.0
+    std::string privateCreator;
+    if (request.isMember("PrivateCreator"))
+    {
+      const Json::Value& v = request["PrivateCreator"];
+      if (v.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      privateCreator = v.asString();
+    }
+
     
     // Inject time-related information
     std::string date, time;
@@ -565,7 +581,7 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"], decodeBinaryTags);
+    InjectTags(dicom, request["Tags"], decodeBinaryTags, privateCreator);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -583,7 +599,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, decodeBinaryTags);
+          CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator);
           return;
         }
       }

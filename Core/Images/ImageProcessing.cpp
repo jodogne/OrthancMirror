@@ -41,11 +41,11 @@
 
 #ifdef __EMSCRIPTEN__
 /* 
-Avoid this error:
------------------
-.../boost/math/special_functions/round.hpp:118:12: warning: implicit conversion from 'std::__2::numeric_limits<long long>::type' (aka 'long long') to 'float' changes value from 9223372036854775807 to 9223372036854775808 [-Wimplicit-int-float-conversion]
-.../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:333:28: note: in instantiation of function template specialization 'boost::math::llround<float>' requested here
-.../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:1006:9: note: in instantiation of function template specialization 'Orthanc::MultiplyConstantInternal<unsigned char, true>' requested here
+   Avoid this error:
+   -----------------
+   .../boost/math/special_functions/round.hpp:118:12: warning: implicit conversion from 'std::__2::numeric_limits<long long>::type' (aka 'long long') to 'float' changes value from 9223372036854775807 to 9223372036854775808 [-Wimplicit-int-float-conversion]
+   .../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:333:28: note: in instantiation of function template specialization 'boost::math::llround<float>' requested here
+   .../mnt/c/osi/dev/orthanc/Core/Images/ImageProcessing.cpp:1006:9: note: in instantiation of function template specialization 'Orthanc::MultiplyConstantInternal<unsigned char, true>' requested here
 */
 #pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
 #endif 
@@ -385,28 +385,47 @@ namespace Orthanc
   }
 
 
-  template <typename PixelType,
-            bool UseRound>
-  static void ShiftScaleInternal(ImageAccessor& image,
-                                 float offset,
-                                 float scaling,
-                                 const PixelType LowestValue = std::numeric_limits<PixelType>::min())
+  // Computes "a * x + b" at each pixel => Note that this is not the
+  // same convention as in "ShiftScale()"
+  template <typename TargetType,
+            typename SourceType,
+            bool UseRound,
+            bool Invert>
+  static void ShiftScaleInternal(ImageAccessor& target,
+                                 const ImageAccessor& source,
+                                 float a,
+                                 float b,
+                                 const TargetType LowestValue)
+  // This function can be applied inplace (source == target)
   {
-    const PixelType minPixelValue = LowestValue;
-    const PixelType maxPixelValue = std::numeric_limits<PixelType>::max();
+    if (source.GetWidth() != target.GetWidth() ||
+        source.GetHeight() != target.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
+    }
+
+    if (&source == &target &&
+        source.GetFormat() != target.GetFormat())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+    
+    const TargetType minPixelValue = LowestValue;
+    const TargetType maxPixelValue = std::numeric_limits<TargetType>::max();
     const float minFloatValue = static_cast<float>(LowestValue);
     const float maxFloatValue = static_cast<float>(maxPixelValue);
 
-    const unsigned int height = image.GetHeight();
-    const unsigned int width = image.GetWidth();
+    const unsigned int height = target.GetHeight();
+    const unsigned int width = target.GetWidth();
     
     for (unsigned int y = 0; y < height; y++)
     {
-      PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+      TargetType* p = reinterpret_cast<TargetType*>(target.GetRow(y));
+      const SourceType* q = reinterpret_cast<const SourceType*>(source.GetRow(y));
 
-      for (unsigned int x = 0; x < width; x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++, q++)
       {
-        float v = (static_cast<float>(*p) + offset) * scaling;
+        float v = a * static_cast<float>(*q) + b;
 
         if (v >= maxFloatValue)
         {
@@ -419,11 +438,16 @@ namespace Orthanc
         else if (UseRound)
         {
           // The "round" operation is very costly
-          *p = static_cast<PixelType>(boost::math::iround(v));
+          *p = static_cast<TargetType>(boost::math::iround(v));
         }
         else
         {
-          *p = static_cast<PixelType>(v);
+          *p = static_cast<TargetType>(std::floor(v));
+        }
+
+        if (Invert)
+        {
+          *p = maxPixelValue - *p;
         }
       }
     }
@@ -498,57 +522,39 @@ namespace Orthanc
                                      float rescaleIntercept,
                                      bool invert)
   {
+    assert(sizeof(SourceType) == source.GetBytesPerPixel() &&
+           sizeof(TargetType) == target.GetBytesPerPixel());
+    
     // WARNING - "::min()" should be replaced by "::lowest()" if
     // dealing with float or double (which is not the case so far)
     assert(sizeof(TargetType) <= 2);  // Safeguard to remember about "float/double"
     const TargetType minTargetValue = std::numeric_limits<TargetType>::min();
     const TargetType maxTargetValue = std::numeric_limits<TargetType>::max();
-    const float minFloatValue = static_cast<float>(minTargetValue);
     const float maxFloatValue = static_cast<float>(maxTargetValue);
-
+    
     const float windowIntercept = windowCenter - windowWidth / 2.0f;
     const float windowSlope = (maxFloatValue + 1.0f) / windowWidth;
 
-    const unsigned int width = source.GetWidth();
-    const unsigned int height = source.GetHeight();
+    const float a = rescaleSlope * windowSlope;
+    const float b = (rescaleIntercept - windowIntercept) * windowSlope;
 
-    for (unsigned int y = 0; y < height; y++)
+    if (invert)
     {
-      TargetType* t = reinterpret_cast<TargetType*>(target.GetRow(y));
-      const SourceType* s = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
-
-      for (unsigned int x = 0; x < width; x++, t++, s++)
-      {
-        float rescaledValue = *s * rescaleSlope + rescaleIntercept;
-        float v = (rescaledValue - windowIntercept) * windowSlope;
-        if (v <= minFloatValue)
-        {
-          v = minFloatValue;
-        }
-        else if (v >= maxFloatValue)
-        {
-          v = maxFloatValue;
-        }
-
-        TargetType vv = static_cast<TargetType>(v);
-
-        if (invert)
-        {
-          vv = maxTargetValue - vv;
-        }
-
-        *t = static_cast<TargetType>(vv);
-      }
+      ShiftScaleInternal<TargetType, SourceType, false, true>(target, source, a, b, minTargetValue);
+    }
+    else
+    {
+      ShiftScaleInternal<TargetType, SourceType, false, false>(target, source, a, b, minTargetValue);
     }
   }
 
-  void ImageProcessing::ApplyWindowing(ImageAccessor& target,
-                                       const ImageAccessor& source,
-                                       float windowCenter,
-                                       float windowWidth,
-                                       float rescaleSlope,
-                                       float rescaleIntercept,
-                                       bool invert)
+  void ImageProcessing::ApplyWindowing_Deprecated(ImageAccessor& target,
+                                                  const ImageAccessor& source,
+                                                  float windowCenter,
+                                                  float windowWidth,
+                                                  float rescaleSlope,
+                                                  float rescaleIntercept,
+                                                  bool invert)
   {
     if (target.GetWidth() != source.GetWidth() ||
         target.GetHeight() != source.GetHeight())
@@ -562,42 +568,42 @@ namespace Orthanc
       {
         switch (target.GetFormat())
         {
-        case Orthanc::PixelFormat_Grayscale8:
-          ApplyWindowingInternal<uint8_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        case Orthanc::PixelFormat_Grayscale16:
-          ApplyWindowingInternal<uint16_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          case Orthanc::PixelFormat_Grayscale8:
+            ApplyWindowingInternal<uint8_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          case Orthanc::PixelFormat_Grayscale16:
+            ApplyWindowingInternal<uint16_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
         }
       };break;
       case Orthanc::PixelFormat_Grayscale8:
       {
         switch (target.GetFormat())
         {
-        case Orthanc::PixelFormat_Grayscale8:
-          ApplyWindowingInternal<uint8_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        case Orthanc::PixelFormat_Grayscale16:
-          ApplyWindowingInternal<uint16_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          case Orthanc::PixelFormat_Grayscale8:
+            ApplyWindowingInternal<uint8_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          case Orthanc::PixelFormat_Grayscale16:
+            ApplyWindowingInternal<uint16_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
         }
       };break;
       case Orthanc::PixelFormat_Grayscale16:
       {
         switch (target.GetFormat())
         {
-        case Orthanc::PixelFormat_Grayscale8:
-          ApplyWindowingInternal<uint8_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        case Orthanc::PixelFormat_Grayscale16:
-          ApplyWindowingInternal<uint16_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
-          break;
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          case Orthanc::PixelFormat_Grayscale8:
+            ApplyWindowingInternal<uint8_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          case Orthanc::PixelFormat_Grayscale16:
+            ApplyWindowingInternal<uint16_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
+            break;
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
         }
       };break;
       default:
@@ -1181,7 +1187,7 @@ namespace Orthanc
         ShiftRightInternal<uint16_t>(image, shift);
         break;
       }
-    default:
+      default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
@@ -1210,7 +1216,7 @@ namespace Orthanc
         ShiftLeftInternal<uint16_t>(image, shift);
         break;
       }
-    default:
+      default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
@@ -1366,52 +1372,98 @@ namespace Orthanc
                                    float scaling,
                                    bool useRound)
   {
+    // Rewrite "(x + offset) * scaling" as "a * x + b"
+
+    const float a = scaling;
+    const float b = offset * scaling;
+    
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
         if (useRound)
         {
-          ShiftScaleInternal<uint8_t, true>(image, offset, scaling);
+          ShiftScaleInternal<uint8_t, uint8_t, true, false>(image, image, a, b, std::numeric_limits<uint8_t>::min());
         }
         else
         {
-          ShiftScaleInternal<uint8_t, false>(image, offset, scaling);
+          ShiftScaleInternal<uint8_t, uint8_t, false, false>(image, image, a, b, std::numeric_limits<uint8_t>::min());
         }
         return;
 
       case PixelFormat_Grayscale16:
         if (useRound)
         {
-          ShiftScaleInternal<uint16_t, true>(image, offset, scaling);
+          ShiftScaleInternal<uint16_t, uint16_t, true, false>(image, image, a, b, std::numeric_limits<uint16_t>::min());
         }
         else
         {
-          ShiftScaleInternal<uint16_t, false>(image, offset, scaling);
+          ShiftScaleInternal<uint16_t, uint16_t, false, false>(image, image, a, b, std::numeric_limits<uint16_t>::min());
         }
         return;
 
       case PixelFormat_SignedGrayscale16:
         if (useRound)
         {
-          ShiftScaleInternal<int16_t, true>(image, offset, scaling);
+          ShiftScaleInternal<int16_t, int16_t, true, false>(image, image, a, b, std::numeric_limits<int16_t>::min());
         }
         else
         {
-          ShiftScaleInternal<int16_t, false>(image, offset, scaling);
+          ShiftScaleInternal<int16_t, int16_t, false, false>(image, image, a, b, std::numeric_limits<int16_t>::min());
         }
         return;
 
       case PixelFormat_Float32:
+        // "::min()" must be replaced by "::lowest()" or "-::max()" if dealing with float or double.
         if (useRound)
         {
-          ShiftScaleInternal<float, true>(image, offset, scaling, -std::numeric_limits<float>::max());
+          ShiftScaleInternal<float, float, true, false>(image, image, a, b, -std::numeric_limits<float>::max());
         }
         else
         {
-          ShiftScaleInternal<float, false>(image, offset, scaling, -std::numeric_limits<float>::max());
+          ShiftScaleInternal<float, float, false, false>(image, image, a, b, -std::numeric_limits<float>::max());
         }
         return;
 
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::ShiftScale(ImageAccessor& target,
+                                   const ImageAccessor& source,
+                                   float offset,
+                                   float scaling,
+                                   bool useRound)
+  {
+    // Rewrite "(x + offset) * scaling" as "a * x + b"
+
+    const float a = scaling;
+    const float b = offset * scaling;
+    
+    switch (target.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+
+        switch (source.GetFormat())
+        {
+          case PixelFormat_Float32:
+            if (useRound)
+            {
+              ShiftScaleInternal<uint8_t, float, true, false>(
+                target, source, a, b, std::numeric_limits<uint8_t>::min());
+            }
+            else
+            {
+              ShiftScaleInternal<uint8_t, float, false, false>(
+                target, source, a, b, std::numeric_limits<uint8_t>::min());
+            }
+            return;
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+        
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
@@ -2216,7 +2268,7 @@ namespace Orthanc
 
         // Deal with the right border
         for (unsigned int x = static_cast<unsigned int>(
-          horizontalAnchor + width - horizontal.size() + 1); x < width; x++)
+               horizontalAnchor + width - horizontal.size() + 1); x < width; x++)
         {
           for (unsigned int c = 0; c < ChannelsCount; c++, p++)
           {
