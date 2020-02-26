@@ -507,7 +507,7 @@ namespace Orthanc
       }
       catch (OrthancException&)
       {
-        LOG(ERROR) << "Cannot flush the SQLite database to the disk (is disk full?)";
+        LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
       }
           
       count = 0;

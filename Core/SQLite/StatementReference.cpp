@@ -82,8 +82,12 @@ namespace Orthanc
       if (error != SQLITE_OK)
       {
 #if ORTHANC_SQLITE_STANDALONE != 1
-        LOG(ERROR) << "SQLite: " << sqlite3_errmsg(database)
-                   << " (" << sqlite3_extended_errcode(database) << ")";
+        int extended = sqlite3_extended_errcode(database);
+        LOG(ERROR) << "SQLite: " << sqlite3_errmsg(database) << " (" << extended << ")";
+        if (extended == SQLITE_IOERR_SHMSIZE  /* 4874 */)
+        {
+          LOG(ERROR) << "  This probably indicates that your filesystem is full";
+        }        
 #endif
 
         throw OrthancSQLiteException(ErrorCode_SQLitePrepareStatement);
