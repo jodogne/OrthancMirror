@@ -891,14 +891,15 @@ namespace Orthanc
 
 
     static DcmDataset* ReadDataset(T_ASC_Association* assoc,
-                                   const char* errorMessage)
+                                   const char* errorMessage,
+                                   int timeout)
     {
       DcmDataset *tmp = NULL;
       T_ASC_PresentationContextID presIdData;
     
       OFCondition cond = DIMSE_receiveDataSetInMemory(
-        assoc, /*opt_blockMode*/ DIMSE_BLOCKING,
-        /*opt_dimse_timeout*/ 0, &presIdData, &tmp, NULL, NULL);
+        assoc, (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout,
+        &presIdData, &tmp, NULL, NULL);
       if (!cond.good() ||
           tmp == NULL)
       {
@@ -1027,7 +1028,7 @@ namespace Orthanc
        **/
       
       std::auto_ptr<DcmDataset> dataset(
-        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP"));
+        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", associationTimeout_));
 
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
@@ -1150,7 +1151,7 @@ namespace Orthanc
        **/
       
       std::auto_ptr<DcmDataset> dataset(
-        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP"));
+        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", associationTimeout_));
 
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 

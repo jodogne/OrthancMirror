@@ -1619,9 +1619,11 @@ namespace Orthanc
       {
         T_ASC_PresentationContextID presID = 0;
         T_DIMSE_Message message;
-        
-        if (!DIMSE_receiveCommand(pimpl_->assoc_, DIMSE_NONBLOCKING, 1, &presID,
-                                  &message, NULL /* no statusDetail */).good() ||
+
+        const int timeout = pimpl_->dimseTimeout_;
+        if (!DIMSE_receiveCommand(pimpl_->assoc_,
+                                  (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout,
+                                  &presID, &message, NULL /* no statusDetail */).good() ||
             message.CommandField != DIMSE_N_EVENT_REPORT_RSP)
         {
           throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
@@ -1750,8 +1752,10 @@ namespace Orthanc
         T_ASC_PresentationContextID presID = 0;
         T_DIMSE_Message message;
         
-        if (!DIMSE_receiveCommand(pimpl_->assoc_, DIMSE_NONBLOCKING, 1, &presID,
-                                  &message, NULL /* no statusDetail */).good() ||
+        const int timeout = pimpl_->dimseTimeout_;
+        if (!DIMSE_receiveCommand(pimpl_->assoc_,
+                                  (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout,
+                                  &presID, &message, NULL /* no statusDetail */).good() ||
             message.CommandField != DIMSE_N_ACTION_RSP)
         {
           throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
