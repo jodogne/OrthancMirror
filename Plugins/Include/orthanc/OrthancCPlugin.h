@@ -59,7 +59,7 @@
  * @brief Functions to register and manage callbacks by the plugins.
  *
  * @defgroup DicomCallbacks DicomCallbacks
- * @brief Functions to register and manage DICOM callbacks (worklists, C-Find, C-MOVE).
+ * @brief Functions to register and manage DICOM callbacks (worklists, C-FIND, C-MOVE, storage commitment).
  *
  * @defgroup Orthanc Orthanc
  * @brief Functions to access the content of the Orthanc server.
@@ -943,31 +943,31 @@ extern "C"
   typedef enum
   {
     OrthancPluginStorageCommitmentFailureReason_Success = 0,
+    /*!< Success: The DICOM instance is properly stored in the SCP */
 
-    /* 0110H: A general failure in processing the operation was
-     * encountered */
     OrthancPluginStorageCommitmentFailureReason_ProcessingFailure = 1,
+    /*!< 0110H: A general failure in processing the operation was encountered */
 
-    /* 0112H: One or more of the elements in the Referenced SOP
-       Instance Sequence was not available */
     OrthancPluginStorageCommitmentFailureReason_NoSuchObjectInstance = 2,
+    /*!< 0112H: One or more of the elements in the Referenced SOP
+      Instance Sequence was not available */
 
-    /* 0213H: The SCP does not currently have enough resources to
-       store the requested SOP Instance(s) */
     OrthancPluginStorageCommitmentFailureReason_ResourceLimitation = 3,
+    /*!< 0213H: The SCP does not currently have enough resources to
+      store the requested SOP Instance(s) */
 
-    /* 0122H: Storage Commitment has been requested for a SOP Instance
-       with a SOP Class that is not supported by the SCP */
     OrthancPluginStorageCommitmentFailureReason_ReferencedSOPClassNotSupported = 4,
+    /*!< 0122H: Storage Commitment has been requested for a SOP
+      Instance with a SOP Class that is not supported by the SCP */
 
-    /* 0119H: The SOP Class of an element in the Referenced SOP
-       Instance Sequence did not correspond to the SOP class
-       registered for this SOP Instance at the SCP */
     OrthancPluginStorageCommitmentFailureReason_ClassInstanceConflict = 5,
+    /*!< 0119H: The SOP Class of an element in the Referenced SOP
+      Instance Sequence did not correspond to the SOP class registered
+      for this SOP Instance at the SCP */
 
-    /* 0131H: The Transaction UID of the Storage Commitment Request is
-       already in use */
     OrthancPluginStorageCommitmentFailureReason_DuplicateTransactionUID = 6
+    /*!< 0131H: The Transaction UID of the Storage Commitment Request
+      is already in use */
   } OrthancPluginStorageCommitmentFailureReason;
 
   
@@ -7300,6 +7300,34 @@ extern "C"
 
 
 
+  /**
+   * @brief Callback executed by the storage commitment SCP.
+   *
+   * Signature of a factory function that creates an object to handle
+   * one incoming storage commitment request.
+   *
+   * @remark The factory receives the list of the SOP class/instance
+   * UIDs of interest to the remote storage commitment SCU. This gives
+   * the factory the possibility to start some prefetch process
+   * upfront in the background, before the handler object is actually
+   * queried about the status of these DICOM instances.
+   *
+   * @param handler Output variable where the factory puts the handler object it created.
+   * @param jobId ID of the Orthanc job that is responsible for handling 
+   * the storage commitment request. This job will successively look for the
+   * status of all the individual queried DICOM instances.
+   * @param transactionUid UID of the storage commitment transaction
+   * provided by the storage commitment SCU. It contains the value of the
+   * (0008,1195) DICOM tag.
+   * @param sopClassUids Array of the SOP class UIDs (0008,0016) that are queried by the SCU.
+   * @param sopInstanceUids Array of the SOP instance UIDs (0008,0018) that are queried by the SCU.
+   * @param countInstances Number of DICOM instances that are queried. This is the size
+   * of the `sopClassUids` and `sopInstanceUids` arrays.
+   * @param remoteAet The AET of the storage commitment SCU.
+   * @param calledAet The AET used by the SCU to contact the storage commitment SCP (i.e. Orthanc).
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
   typedef OrthancPluginErrorCode (*OrthancPluginStorageCommitmentFactory) (
     void**              handler /* out */,
     const char*         jobId,
@@ -7310,8 +7338,39 @@ extern "C"
     const char*         remoteAet,
     const char*         calledAet);
 
+  
+  /**
+   * @brief Callback to free one storage commitment SCP handler.
+   * 
+   * Signature of a callback function that releases the resources
+   * allocated by the factory of the storage commitment SCP. The
+   * handler is the return value of a previous call to the
+   * OrthancPluginStorageCommitmentFactory() callback.
+   *
+   * @param handler The handler object to be destructed.
+   * @ingroup DicomCallbacks
+   **/
   typedef void (*OrthancPluginStorageCommitmentDestructor) (void* handler);
-    
+
+
+  /**
+   * @brief Callback to get the status of one DICOM instance in the
+   * storage commitment SCP.
+   *
+   * Signature of a callback function that is successively invoked for
+   * each DICOM instance that is queried by the remote storage
+   * commitment SCU.  The function must be tought of as a method of
+   * the handler object that was created by a previous call to the
+   * OrthancPluginStorageCommitmentFactory() callback. After each call
+   * to this method, the progress of the associated Orthanc job is
+   * updated.
+   * 
+   * @param target Output variable where to put the status for the queried instance.
+   * @param handler The handler object associated with this storage commitment request.
+   * @param sopClassUid The SOP class UID (0008,0016) of interest.
+   * @param sopInstanceUid The SOP instance UID (0008,0018) of interest.
+   * @ingroup DicomCallbacks
+   **/
   typedef OrthancPluginErrorCode (*OrthancPluginStorageCommitmentLookup) (
     OrthancPluginStorageCommitmentFailureReason* target,
     void* handler,
@@ -7326,6 +7385,19 @@ extern "C"
     OrthancPluginStorageCommitmentLookup      lookup;
   } _OrthancPluginRegisterStorageCommitmentScpCallback;
 
+  /**
+   * @brief Register a callback to handle incoming requests to the storage commitment SCP.
+   *
+   * This function registers a callback to handle storage commitment SCP requests.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param factory Factory function that creates the handler object
+   * for incoming storage commitment requests.
+   * @param destructor Destructor function to destroy the handler object.
+   * @param lookup Callback method to get the status of one DICOM instance.
+   * @return 0 if success, other value if error.
+   * @ingroup DicomCallbacks
+   **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageCommitmentScpCallback(
     OrthancPluginContext*                     context,
     OrthancPluginStorageCommitmentFactory     factory,
