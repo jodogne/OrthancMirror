@@ -346,7 +346,8 @@ namespace Orthanc
                                  IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
                                  const std::string& remoteAet,
-                                 const std::string& calledAet)
+                                 const std::string& calledAet,
+                                 int timeout)
   {
     FindScpData data;
     data.modalities_ = &modalities;
@@ -359,8 +360,8 @@ namespace Orthanc
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,
-                                          /*opt_blockMode*/ DIMSE_BLOCKING, 
-                                          /*opt_dimse_timeout*/ 0);
+                                          /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                          /*opt_dimse_timeout*/ timeout);
 
     // if some error occured, dump corresponding information and remove the outfile if necessary
     if (cond.bad())

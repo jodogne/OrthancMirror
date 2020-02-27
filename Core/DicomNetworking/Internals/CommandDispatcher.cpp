@@ -787,7 +787,7 @@ namespace Orthanc
 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_);
+                  cond = Internals::storeScp(assoc_, &msg, presID, *handler, remoteIp_, associationTimeout_);
                 }
               }
               break;
@@ -800,7 +800,7 @@ namespace Orthanc
 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
+                  cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, associationTimeout_);
                 }
               }
               break;
@@ -823,7 +823,7 @@ namespace Orthanc
 
                 cond = Internals::findScp(assoc_, &msg, presID, server_.GetRemoteModalities(),
                                           findHandler.get(), worklistHandler.get(),
-                                          remoteIp_, remoteAet_, calledAet_);
+                                          remoteIp_, remoteAet_, calledAet_, associationTimeout_);
               }
               break;
 

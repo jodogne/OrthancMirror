@@ -49,6 +49,7 @@ namespace Orthanc
                         IWorklistRequestHandler* worklistHandler,   // can be NULL
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet);
+                        const std::string& calledAet,
+                        int timeout);
   }
 }
