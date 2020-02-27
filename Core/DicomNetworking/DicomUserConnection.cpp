@@ -426,7 +426,8 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     Check(DIMSE_storeUser(assoc_, presID, &request,
                           NULL, dcmff.getDataset(), /*progressCallback*/ NULL, NULL,
-                          /*opt_blockMode*/ DIMSE_BLOCKING, /*opt_dimse_timeout*/ dimseTimeout_,
+                          /*opt_blockMode*/ (dimseTimeout_ ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                          /*opt_dimse_timeout*/ dimseTimeout_,
                           &response, &statusDetail, NULL),
           connection.remoteAet_, "C-STORE");
 
@@ -660,7 +661,7 @@ namespace Orthanc
 				      responseCount,
 #endif
                                       FindCallback, &payload,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_blockMode*/ (dimseTimeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                       /*opt_dimse_timeout*/ dimseTimeout,
                                       &response, &statusDetail);
 
@@ -858,7 +859,7 @@ namespace Orthanc
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(pimpl_->assoc_, presID, &request, dataset,
                                       NULL, NULL,
-                                      /*opt_blockMode*/ DIMSE_BLOCKING, 
+                                      /*opt_blockMode*/ (pimpl_->dimseTimeout_ ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                                       /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                                       pimpl_->net_, NULL, NULL,
                                       &response, &statusDetail, &responseIdentifiers);
@@ -1168,7 +1169,7 @@ namespace Orthanc
     CheckIsOpen();
     DIC_US status;
     Check(DIMSE_echoUser(pimpl_->assoc_, pimpl_->assoc_->nextMsgID++, 
-                         /*opt_blockMode*/ DIMSE_BLOCKING, 
+                         /*opt_blockMode*/ (pimpl_->dimseTimeout_ ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                          /*opt_dimse_timeout*/ pimpl_->dimseTimeout_,
                          &status, NULL), remoteAet_, "C-ECHO");
     return status == STATUS_Success;
@@ -1288,7 +1289,7 @@ namespace Orthanc
     {
       dcmConnectionTimeout.set(seconds);
       pimpl_->dimseTimeout_ = seconds;
-      pimpl_->acseTimeout_ = 10;  // Timeout used during association negociation
+      pimpl_->acseTimeout_ = seconds;  // Timeout used during association negociation and ASC_releaseAssociation()
     }
   }
 
@@ -1301,7 +1302,7 @@ namespace Orthanc
      */
     dcmConnectionTimeout.set(-1);
     pimpl_->dimseTimeout_ = 0;
-    pimpl_->acseTimeout_ = 10;  // Timeout used during association negociation
+    pimpl_->acseTimeout_ = 10;  // Timeout used during association negociation and ASC_releaseAssociation()
   }
 
 
