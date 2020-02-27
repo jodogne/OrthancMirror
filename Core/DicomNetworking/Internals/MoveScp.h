@@ -47,6 +47,7 @@ namespace Orthanc
                         IMoveRequestHandler& handler,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
-                        const std::string& calledAet);
+                        const std::string& calledAet,
+                        int timeout);
   }
 }

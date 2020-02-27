@@ -45,6 +45,7 @@ namespace Orthanc
                          T_DIMSE_Message * msg, 
                          T_ASC_PresentationContextID presID,
                          IStoreRequestHandler& handler,
-                         const std::string& remoteIp);
+                         const std::string& remoteIp,
+                         int timeout);
   }
 }
