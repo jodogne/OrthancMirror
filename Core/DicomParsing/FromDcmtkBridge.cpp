@@ -1404,7 +1404,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     if (tag.IsPrivate())
     {
       // https://forum.dcmtk.org/viewtopic.php?t=4527
-      LOG(WARNING) << "You are using DCMTK <= 3.6.0: All the private tags "
+      LOG(WARNING) << "You are using DCMTK <= 3.6.1: All the private tags "
         "are considered as having a binary value representation";
       key.setPrivateCreator(privateCreator.c_str());
       return new DcmOtherByteOtherWord(key);

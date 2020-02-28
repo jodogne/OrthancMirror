@@ -187,7 +187,7 @@ namespace Orthanc
 
     void Serialize(Json::Value& value) const;
 
-    void SetPrivateCreator(std::string& privateCreator)
+    void SetPrivateCreator(const std::string& privateCreator)
     {
       privateCreator_ = privateCreator;
     }

@@ -522,5 +522,10 @@
   // to option "request_timeout_ms" of Mongoose/Civetweb. It will set
   // the socket options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the
   // specified value.
-  "HttpRequestTimeout" : 30
+  "HttpRequestTimeout" : 30,
+
+  // Set the default private creator that is used by Orthanc when it
+  // looks for a private tag in its dictionary (cf. "Dictionary"
+  // option), or when it creates/modifies a DICOM file (new in Orthanc 1.6.0).
+  "DefaultPrivateCreator" : ""
 }
