@@ -865,4 +865,11 @@ namespace Orthanc
       return new TemporaryFile;
     }
   }
+
+
+  std::string OrthancConfiguration::GetDefaultPrivateCreator() const
+  {
+    // New configuration option in Orthanc 1.6.0
+    return GetStringParameter("DefaultPrivateCreator", "");
+  }
 }

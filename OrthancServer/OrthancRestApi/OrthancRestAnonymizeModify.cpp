@@ -37,6 +37,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/MergeStudyJob.h"
 #include "../ServerJobs/ResourceModificationJob.h"
@@ -63,6 +64,11 @@ namespace Orthanc
   {
     // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"},"Priority":9}'
 
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
+    }
+    
     if (call.ParseJsonRequest(request))
     {
       target.ParseModifyRequest(request);
@@ -80,6 +86,11 @@ namespace Orthanc
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
 
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
+    }
+    
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
@@ -552,6 +563,11 @@ namespace Orthanc
       }
 
       privateCreator = v.asString();
+    }
+    else
+    {
+      OrthancConfiguration::ReaderLock lock;
+      privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
     }
 
     
