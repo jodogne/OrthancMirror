@@ -1324,6 +1324,12 @@ namespace Orthanc
 
     patientNameReplaced = (IsReplaced(DICOM_TAG_PATIENT_NAME) &&
                            GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
+
+    // New in Orthanc 1.6.0
+    if (request.isMember("PrivateCreator"))
+    {
+      privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
+    }
   }
 
 

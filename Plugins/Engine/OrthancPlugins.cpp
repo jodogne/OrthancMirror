@@ -2922,9 +2922,18 @@ namespace Orthanc
     std::string dicom;
 
     {
+      // Fix issue 168 (Plugins can't read private tags from the
+      // configuration file)
+      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      std::string privateCreator;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+      }
+      
       std::auto_ptr<ParsedDicomFile> file
         (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags),
-                                         "" /* TODO - private creator */));
+                                         privateCreator));
 
       if (p.pixelData)
       {
@@ -3097,7 +3106,25 @@ namespace Orthanc
     DcmTagKey tag2(tag.GetGroup(), tag.GetElement());
 
     DictionaryReadLocker locker;
-    const DcmDictEntry* entry = locker->findEntry(tag2, NULL);
+    const DcmDictEntry* entry = NULL;
+
+    if (tag.IsPrivate())
+    {
+      // Fix issue 168 (Plugins can't read private tags from the
+      // configuration file)
+      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      std::string privateCreator;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+      }
+
+      entry = locker->findEntry(tag2, privateCreator.c_str());
+    }
+    else
+    {
+      entry = locker->findEntry(tag2, NULL);
+    }
 
     if (entry == NULL)
     {
