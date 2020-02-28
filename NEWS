@@ -45,6 +45,7 @@ Maintenance
 * Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
 * Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
 * Fix issue #167 (Job can't be cancelled - Handling of timeouts after established association)
+* Fix issue #168 (Plugins can't read private tags from the configuration file)
 
 
 Version 1.5.8 (2019-10-16)

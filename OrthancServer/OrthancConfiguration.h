@@ -231,5 +231,7 @@ namespace Orthanc
     void ResetServerIndex();
 
     TemporaryFile* CreateTemporaryFile() const;
+
+    std::string GetDefaultPrivateCreator() const;
   };
 }
