@@ -85,7 +85,7 @@ namespace Orthanc
      * Retrieve the DICOM instance to be modified
      **/
     
-    std::auto_ptr<ParsedDicomFile> modified;
+    std::unique_ptr<ParsedDicomFile> modified;
 
     try
     {

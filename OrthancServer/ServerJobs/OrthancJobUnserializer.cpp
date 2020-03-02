@@ -64,7 +64,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (context_.HasPlugins())
     {
-      std::auto_ptr<IJob> job(context_.GetPlugins().UnserializeJob(type, source));
+      std::unique_ptr<IJob> job(context_.GetPlugins().UnserializeJob(type, source));
       if (job.get() != NULL)
       {
         return job.release();

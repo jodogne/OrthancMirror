@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Compatibility.h"
 #include "../../Enumerations.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
@@ -62,8 +63,8 @@ namespace Orthanc
     class UncompressedIndex;
     class PsmctRle1Index;
 
-    std::auto_ptr<IIndex>  index_;
-    unsigned int           countFrames_;
+    std::unique_ptr<IIndex>  index_;
+    unsigned int             countFrames_;
 
   public:
     DicomFrameIndex(DcmFileFormat& dicom);

@@ -35,6 +35,8 @@
 
 #include "JobsRegistry.h"
 
+#include "../Compatibility.h"
+
 #include <boost/thread.hpp>
 
 namespace Orthanc
@@ -52,7 +54,7 @@ namespace Orthanc
 
     boost::mutex                 stateMutex_;
     State                        state_;
-    std::auto_ptr<JobsRegistry>  registry_;
+    std::unique_ptr<JobsRegistry>  registry_;
     boost::thread                retryHandler_;
     unsigned int                 threadSleep_;
     std::vector<boost::thread*>  workers_;

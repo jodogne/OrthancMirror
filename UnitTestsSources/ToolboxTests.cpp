@@ -33,6 +33,8 @@
 
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
+#include "../Core/Compatibility.h"
+#include "../Core/IDynamicObject.h"
 #include "../Core/OrthancException.h"
 #include "../Core/Toolbox.h"
 
@@ -134,3 +136,13 @@ TEST(Toolbox, Base64_largeString)
   printf("decoding took %zu ms\n", (std::chrono::duration_cast<std::chrono::milliseconds>(afterDecoding - afterEncoding)));
 }
 #endif
+
+
+TEST(Toolbox, UniquePtr)
+{
+  std::unique_ptr<int> i(new int(42));
+  ASSERT_EQ(42, *i);
+
+  std::unique_ptr<SingleValueObject<int> > j(new SingleValueObject<int>(42));
+  ASSERT_EQ(42, j->GetValue());
+}

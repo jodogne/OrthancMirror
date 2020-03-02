@@ -75,7 +75,7 @@ namespace Orthanc
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
+      std::unique_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
         
       if (obj.get() != NULL)
       {
@@ -664,7 +664,7 @@ namespace Orthanc
     lock_(that_.dicomCacheMutex_)
   {
 #if ENABLE_DICOM_CACHE == 0
-    static std::auto_ptr<IDynamicObject> p;
+    static std::unique_ptr<IDynamicObject> p;
     p.reset(provider_.Provide(instancePublicId));
     dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
@@ -833,7 +833,7 @@ namespace Orthanc
       // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
       // the disk if only "main DICOM tags" are to be returned
 
-      std::auto_ptr<Json::Value> dicomAsJson;
+      std::unique_ptr<Json::Value> dicomAsJson;
 
       bool hasOnlyMainDicomTags;
       DicomMap dicom;

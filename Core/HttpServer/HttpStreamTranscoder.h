@@ -35,7 +35,9 @@
 
 #include "BufferHttpSender.h"
 
-#include <memory>  // For std::auto_ptr
+#include "../Compatibility.h"
+
+#include <memory>  // For std::unique_ptr
 
 namespace Orthanc
 {
@@ -49,7 +51,7 @@ namespace Orthanc
     uint64_t           currentChunkOffset_;
     bool               ready_;
 
-    std::auto_ptr<BufferHttpSender>  uncompressed_;
+    std::unique_ptr<BufferHttpSender>  uncompressed_;
 
     void ReadSource(std::string& buffer);
 

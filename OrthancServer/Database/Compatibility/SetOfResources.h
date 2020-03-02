@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../Core/Compatibility.h"
 #include "../IDatabaseWrapper.h"
 #include "ILookupResources.h"
 
@@ -48,9 +49,9 @@ namespace Orthanc
     private:
       typedef std::set<int64_t>  Resources;
 
-      IDatabaseWrapper&         database_;
-      ResourceType              level_;
-      std::auto_ptr<Resources>  resources_;
+      IDatabaseWrapper&           database_;
+      ResourceType                level_;
+      std::unique_ptr<Resources>  resources_;
     
     public:
       SetOfResources(IDatabaseWrapper& database,

@@ -130,7 +130,7 @@ public:
 
   virtual IFindRequestHandler* ConstructFindRequestHandler()
   {
-    std::auto_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
+    std::unique_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -1294,8 +1294,8 @@ static bool ConfigurePlugins(int argc,
                              bool upgradeDatabase,
                              bool loadJobsFromDatabase)
 {
-  std::auto_ptr<IDatabaseWrapper>  databasePtr;
-  std::auto_ptr<IStorageArea>  storage;
+  std::unique_ptr<IDatabaseWrapper>  databasePtr;
+  std::unique_ptr<IStorageArea>  storage;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   OrthancPlugins plugins;

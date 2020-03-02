@@ -117,9 +117,9 @@ namespace Orthanc
       }
 
       std::set<DicomTag> ignoreTagLength;
-      std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                      (*element, DicomToJsonFlags_None, 
-                                       0, encoding, hasCodeExtensions, ignoreTagLength));
+      std::unique_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
+                                        (*element, DicomToJsonFlags_None, 
+                                         0, encoding, hasCodeExtensions, ignoreTagLength));
 
       // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
       if (value.get() == NULL ||
@@ -185,7 +185,7 @@ namespace Orthanc
         fixedTag = DICOM_TAG_MODALITY;
       }
 
-      std::auto_ptr<DicomTagConstraint> constraint
+      std::unique_ptr<DicomTagConstraint> constraint
         (new DicomTagConstraint(fixedTag, ConstraintType_List, caseSensitive, mandatoryTag));
 
       std::vector<std::string> items;

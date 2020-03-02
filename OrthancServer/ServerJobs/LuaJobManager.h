@@ -69,11 +69,11 @@ namespace Orthanc
     class Lock : public boost::noncopyable
     {
     private:
-      LuaJobManager&                                that_;
-      boost::mutex::scoped_lock                     lock_;
-      JobsEngine&                                   engine_;
-      std::auto_ptr<SequenceOfOperationsJob::Lock>  jobLock_;
-      bool                                          isNewJob_;
+      LuaJobManager&                                  that_;
+      boost::mutex::scoped_lock                       lock_;
+      JobsEngine&                                     engine_;
+      std::unique_ptr<SequenceOfOperationsJob::Lock>  jobLock_;
+      bool                                            isNewJob_;
 
     public:
       Lock(LuaJobManager& that,

@@ -33,9 +33,11 @@
 
 #pragma once
 
-#include <memory>
-#include "LeastRecentlyUsedIndex.h"
+#include "../Compatibility.h"
 #include "ICachePageProvider.h"
+#include "LeastRecentlyUsedIndex.h"
+
+#include <memory>
 
 namespace Orthanc
 {
@@ -50,7 +52,7 @@ namespace Orthanc
       struct Page
       {
         std::string id_;
-        std::auto_ptr<IDynamicObject> content_;
+        std::unique_ptr<IDynamicObject> content_;
       };
 
       ICachePageProvider& provider_;

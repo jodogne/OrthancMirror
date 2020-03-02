@@ -853,7 +853,7 @@ namespace Orthanc
 
       if (!isMultipartForm)
       {
-        std::auto_ptr<IHttpHandler::IChunkedRequestReader> stream;
+        std::unique_ptr<IHttpHandler::IChunkedRequestReader> stream;
 
         if (server.HasHandler())
         {

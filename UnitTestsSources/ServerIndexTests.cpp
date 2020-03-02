@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/FileStorage/FilesystemStorage.h"
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/Logging.h"
@@ -95,8 +96,8 @@ namespace
   class DatabaseWrapperTest : public ::testing::Test
   {
   protected:
-    std::auto_ptr<TestDatabaseListener>  listener_;
-    std::auto_ptr<SQLiteDatabaseWrapper> index_;
+    std::unique_ptr<TestDatabaseListener>  listener_;
+    std::unique_ptr<SQLiteDatabaseWrapper> index_;
 
   public:
     DatabaseWrapperTest()

@@ -157,7 +157,7 @@ namespace Orthanc
     MetadataMap                          metadata_;
 
   private:
-    std::auto_ptr<DicomInstanceHasher>  hasher_;
+    std::unique_ptr<DicomInstanceHasher>  hasher_;
 
     void ComputeMissingInformation()
     {

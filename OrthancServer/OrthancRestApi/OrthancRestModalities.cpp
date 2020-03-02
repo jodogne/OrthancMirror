@@ -416,7 +416,7 @@ namespace Orthanc
    ***************************************************************************/
 
   static void AnswerQueryHandler(RestApiPostCall& call,
-                                 std::auto_ptr<QueryRetrieveHandler>& handler)
+                                 std::unique_ptr<QueryRetrieveHandler>& handler)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -466,7 +466,7 @@ namespace Orthanc
     }
     else
     {
-      std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
+      std::unique_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
       
       handler->SetModality(call.GetUriComponent("id", ""));
       handler->SetLevel(StringToResourceType(request[KEY_LEVEL].asCString()));
@@ -618,7 +618,7 @@ namespace Orthanc
       call.BodyToString(targetAet);
     }
     
-    std::auto_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
+    std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
     
     {
       QueryAccessor query(call);
@@ -744,7 +744,7 @@ namespace Orthanc
     
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::auto_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
+    std::unique_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
       
     {
       const QueryAccessor parent(call);
@@ -944,7 +944,7 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::auto_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
+    std::unique_ptr<DicomModalityStoreJob> job(new DicomModalityStoreJob(context));
 
     GetInstancesToExport(request, *job, remote, call);
 
@@ -1084,7 +1084,7 @@ namespace Orthanc
     std::string remote = call.GetUriComponent("id", "");
 
     Json::Value request;
-    std::auto_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
+    std::unique_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
 
     GetInstancesToExport(request, *job, remote, call);
     
@@ -1276,7 +1276,7 @@ namespace Orthanc
       RemoteModalityParameters remote =
         MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-      std::auto_ptr<ParsedDicomFile> query
+      std::unique_ptr<ParsedDicomFile> query
         (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0),
                                          "" /* no private creator */));
 
