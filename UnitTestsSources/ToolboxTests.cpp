@@ -157,3 +157,42 @@ TEST(Toolbox, GenerateDicomPrivateUniqueIdentifier)
   std::string s = Toolbox::GenerateDicomPrivateUniqueIdentifier();
   ASSERT_EQ("2.25.", s.substr(0, 5));
 }
+
+
+
+#include "../Core/IDynamicObject.h"
+
+#if __cplusplus < 201103L
+/**
+ * "std::unique_ptr" was introduced in C++11. We emulate it using
+ * boost. "The smart pointer unique_ptr [is] a drop-in replacement for
+ * std::unique_ptr, usable also from C++03 compilers." This is only
+ * available on Boost >= 1.57.0 (from November 2014).
+ * https://www.boost.org/doc/libs/1_57_0/doc/html/move/reference.html#header.boost.move.unique_ptr_hpp
+ **/
+
+#include <boost/move/unique_ptr.hpp>
+
+namespace std
+{
+  template <typename T>
+  class unique_ptr : public boost::movelib::unique_ptr<T>
+  {
+  public:
+    unique_ptr(T* p) :
+      boost::movelib::unique_ptr<T>(p)
+    {
+    }      
+  };
+}
+
+#endif
+
+TEST(Toolbox, UniquePtr)
+{
+  std::unique_ptr<int> i(new int(42));
+  ASSERT_EQ(42, *i);
+
+  std::unique_ptr<SingleValueObject<int> > j(new SingleValueObject<int>(42));
+  ASSERT_EQ(42, j->GetValue());
+}
