@@ -170,18 +170,22 @@ namespace Orthanc
   }
 
 
-  void HttpContentNegociation::SelectBestMatch(std::auto_ptr<Reference>& best,
+  void HttpContentNegociation::SelectBestMatch(std::unique_ptr<Reference>& best,
                                                const Handler& handler,
                                                const std::string& type,
                                                const std::string& subtype,
                                                float quality)
   {
-    std::auto_ptr<Reference> match(new Reference(handler, type, subtype, quality));
+    std::unique_ptr<Reference> match(new Reference(handler, type, subtype, quality));
 
     if (best.get() == NULL ||
         *best < *match)
     {
-      best = match;
+#if __cplusplus < 201103L
+      best.reset(match.release());
+#else
+      best = std::move(match);
+#endif
     }
   }
 
@@ -227,7 +231,7 @@ namespace Orthanc
     Tokens mediaRanges;
     Toolbox::TokenizeString(mediaRanges, accept, ',');
 
-    std::auto_ptr<Reference> bestMatch;
+    std::unique_ptr<Reference> bestMatch;
 
     for (Tokens::const_iterator it = mediaRanges.begin();
          it != mediaRanges.end(); ++it)

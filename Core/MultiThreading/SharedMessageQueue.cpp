@@ -35,6 +35,8 @@
 #include "SharedMessageQueue.h"
 
 
+#include "../Compatibility.h"
+
 
 /**
  * FIFO (queue):
@@ -137,7 +139,7 @@ namespace Orthanc
       }
     }
 
-    std::auto_ptr<IDynamicObject> message(queue_.front());
+    std::unique_ptr<IDynamicObject> message(queue_.front());
     queue_.pop_front();
 
     if (queue_.empty())
@@ -199,7 +201,7 @@ namespace Orthanc
     {
       while (!queue_.empty())
       {
-        std::auto_ptr<IDynamicObject> message(queue_.front());
+        std::unique_ptr<IDynamicObject> message(queue_.front());
         queue_.pop_front();
       }
 

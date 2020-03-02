@@ -90,6 +90,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FindScp.h"
 #include "StoreScp.h"
 #include "MoveScp.h"
+#include "../../Compatibility.h"
 #include "../../Toolbox.h"
 #include "../../Logging.h"
 #include "../../OrthancException.h"
@@ -782,7 +783,7 @@ namespace Orthanc
             case DicomRequestType_Store:
               if (server_.HasStoreRequestHandlerFactory()) // Should always be true
               {
-                std::auto_ptr<IStoreRequestHandler> handler
+                std::unique_ptr<IStoreRequestHandler> handler
                   (server_.GetStoreRequestHandlerFactory().ConstructStoreRequestHandler());
 
                 if (handler.get() != NULL)
@@ -795,7 +796,7 @@ namespace Orthanc
             case DicomRequestType_Move:
               if (server_.HasMoveRequestHandlerFactory()) // Should always be true
               {
-                std::auto_ptr<IMoveRequestHandler> handler
+                std::unique_ptr<IMoveRequestHandler> handler
                   (server_.GetMoveRequestHandlerFactory().ConstructMoveRequestHandler());
 
                 if (handler.get() != NULL)
@@ -809,13 +810,13 @@ namespace Orthanc
               if (server_.HasFindRequestHandlerFactory() || // Should always be true
                   server_.HasWorklistRequestHandlerFactory())
               {
-                std::auto_ptr<IFindRequestHandler> findHandler;
+                std::unique_ptr<IFindRequestHandler> findHandler;
                 if (server_.HasFindRequestHandlerFactory())
                 {
                   findHandler.reset(server_.GetFindRequestHandlerFactory().ConstructFindRequestHandler());
                 }
 
-                std::auto_ptr<IWorklistRequestHandler> worklistHandler;
+                std::unique_ptr<IWorklistRequestHandler> worklistHandler;
                 if (server_.HasWorklistRequestHandlerFactory())
                 {
                   worklistHandler.reset(server_.GetWorklistRequestHandlerFactory().ConstructWorklistRequestHandler());

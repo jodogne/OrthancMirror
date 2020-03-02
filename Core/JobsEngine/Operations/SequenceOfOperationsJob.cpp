@@ -56,12 +56,12 @@ namespace Orthanc
   class SequenceOfOperationsJob::Operation : public boost::noncopyable
   {
   private:
-    size_t                             index_;
-    std::auto_ptr<IJobOperation>       operation_;
-    std::auto_ptr<JobOperationValues>  originalInputs_;
-    std::auto_ptr<JobOperationValues>  workInputs_;
-    std::list<Operation*>              nextOperations_;
-    size_t                             currentInput_;
+    size_t                               index_;
+    std::unique_ptr<IJobOperation>       operation_;
+    std::unique_ptr<JobOperationValues>  originalInputs_;
+    std::unique_ptr<JobOperationValues>  workInputs_;
+    std::list<Operation*>                nextOperations_;
+    size_t                               currentInput_;
 
   public:
     Operation(size_t index,

@@ -338,7 +338,7 @@ namespace Orthanc
     void RefreshMetrics();
 
     // New in Orthanc 1.5.7
-    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                             RequestOrigin origin,
                                             const char* remoteIp,
                                             const char* username,

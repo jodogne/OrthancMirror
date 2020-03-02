@@ -65,14 +65,14 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    std::auto_ptr<Listener> listener_;
+    std::unique_ptr<Listener> listener_;
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
     bool         overwrite_;
-    std::auto_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
+    std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);

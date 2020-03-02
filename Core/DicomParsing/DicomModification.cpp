@@ -34,13 +34,14 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomModification.h"
 
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ITagVisitor.h"
 
-#include <memory>   // For std::auto_ptr
+#include <memory>   // For std::unique_ptr
 
 
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2008 =
@@ -317,7 +318,7 @@ namespace Orthanc
   void DicomModification::MapDicomTags(ParsedDicomFile& dicom,
                                        ResourceType level)
   {
-    std::auto_ptr<DicomTag> tag;
+    std::unique_ptr<DicomTag> tag;
 
     switch (level)
     {

@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../Toolbox.h"
 #include "HttpOutput.h"
 
@@ -73,7 +74,7 @@ namespace Orthanc
      * This function allows to deal with chunked transfers (new in
      * Orthanc 1.5.7). It is only called if "method" is POST or PUT.
      **/
-    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                             RequestOrigin origin,
                                             const char* remoteIp,
                                             const char* username,

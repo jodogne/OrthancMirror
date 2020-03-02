@@ -58,7 +58,7 @@ namespace Orthanc
     std::string                       id_;
     JobState                          state_;
     std::string                       jobType_;
-    std::auto_ptr<IJob>               job_;
+    std::unique_ptr<IJob>             job_;
     int                               priority_;  // "+inf()" means highest priority
     boost::posix_time::ptime          creationTime_;
     boost::posix_time::ptime          lastStateChangeTime_;
@@ -669,7 +669,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
     
-    std::auto_ptr<JobHandler>  protection(handler);
+    std::unique_ptr<JobHandler>  protection(handler);
 
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -1396,7 +1396,7 @@ namespace Orthanc
     for (Json::Value::Members::const_iterator it = members.begin();
          it != members.end(); ++it)
     {
-      std::auto_ptr<JobHandler> job;
+      std::unique_ptr<JobHandler> job;
 
       try
       {

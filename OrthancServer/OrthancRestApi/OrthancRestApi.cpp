@@ -254,7 +254,7 @@ namespace Orthanc
                                         bool synchronous,
                                         int priority)
   {
-    std::auto_ptr<IJob> raii(job);
+    std::unique_ptr<IJob> raii(job);
     
     if (job == NULL)
     {
@@ -290,7 +290,7 @@ namespace Orthanc
                                         bool isDefaultSynchronous,
                                         const Json::Value& body) const
   {
-    std::auto_ptr<IJob> raii(job);
+    std::unique_ptr<IJob> raii(job);
 
     if (body.type() != Json::objectValue)
     {
@@ -309,7 +309,7 @@ namespace Orthanc
                                          bool isDefaultSynchronous,
                                          const Json::Value& body) const
   {
-    std::auto_ptr<SetOfCommandsJob> raii(job);
+    std::unique_ptr<SetOfCommandsJob> raii(job);
     
     if (body.type() != Json::objectValue)
     {

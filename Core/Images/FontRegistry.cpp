@@ -51,7 +51,7 @@ namespace Orthanc
 
   void FontRegistry::AddFromMemory(const std::string& font)
   {
-    std::auto_ptr<Font> f(new Font);
+    std::unique_ptr<Font> f(new Font);
     f->LoadFromMemory(font);
     fonts_.push_back(f.release());
   }
@@ -60,7 +60,7 @@ namespace Orthanc
 #if ORTHANC_SANDBOXED == 0
   void FontRegistry::AddFromFile(const std::string& path)
   {
-    std::auto_ptr<Font> f(new Font);
+    std::unique_ptr<Font> f(new Font);
     f->LoadFromFile(path);
     fonts_.push_back(f.release());
   }

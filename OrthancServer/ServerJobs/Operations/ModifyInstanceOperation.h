@@ -33,8 +33,9 @@
 
 #pragma once
 
-#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../Core/Compatibility.h"
 #include "../../../Core/DicomParsing/DicomModification.h"
+#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
 
 namespace Orthanc
 {
@@ -43,9 +44,9 @@ namespace Orthanc
   class ModifyInstanceOperation : public IJobOperation
   {
   private:
-    ServerContext&                    context_;
-    RequestOrigin                     origin_;
-    std::auto_ptr<DicomModification>  modification_;
+    ServerContext&                      context_;
+    RequestOrigin                       origin_;
+    std::unique_ptr<DicomModification>  modification_;
     
   public:
     ModifyInstanceOperation(ServerContext& context,

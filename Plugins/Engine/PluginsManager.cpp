@@ -249,7 +249,7 @@ namespace Orthanc
       return;
     }
 
-    std::auto_ptr<Plugin> plugin(new Plugin(*this, path));
+    std::unique_ptr<Plugin> plugin(new Plugin(*this, path));
 
     if (!IsOrthancPlugin(plugin->GetSharedLibrary()))
     {

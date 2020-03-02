@@ -59,7 +59,7 @@ namespace Orthanc
       RemoteModalityParameters remote_;
       std::string originatorAet_;
       uint16_t originatorId_;
-      std::auto_ptr<DicomUserConnection> connection_;
+      std::unique_ptr<DicomUserConnection> connection_;
 
     public:
       SynchronousMove(ServerContext& context,
@@ -126,10 +126,10 @@ namespace Orthanc
     class AsynchronousMove : public IMoveRequestIterator
     {
     private:
-      ServerContext&                        context_;
-      std::auto_ptr<DicomModalityStoreJob>  job_;
-      size_t                                position_;
-      size_t                                countInstances_;
+      ServerContext&                          context_;
+      std::unique_ptr<DicomModalityStoreJob>  job_;
+      size_t                                  position_;
+      size_t                                  countInstances_;
       
     public:
       AsynchronousMove(ServerContext& context,

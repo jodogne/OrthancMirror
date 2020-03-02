@@ -81,7 +81,7 @@ namespace Orthanc
 
     arguments.reserve(arguments.size() + postArguments_.size() + 1);
 
-    std::auto_ptr<TemporaryFile> tmp;
+    std::unique_ptr<TemporaryFile> tmp;
     
     switch (input.GetType())
     {

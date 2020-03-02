@@ -315,6 +315,7 @@ namespace Orthanc
  * behavior from Google Log.
  *********************************************************/
 
+#include "Compatibility.h"
 #include "OrthancException.h"
 #include "Enumerations.h"
 #include "Toolbox.h"
@@ -344,7 +345,7 @@ namespace
     std::ostream* warning_;
     std::ostream* info_;
 
-    std::auto_ptr<std::ofstream> file_;
+    std::unique_ptr<std::ofstream> file_;
 
     LoggingContext() : 
       infoEnabled_(false),
@@ -372,7 +373,7 @@ namespace
 
 
 
-static std::auto_ptr<LoggingContext> loggingContext_;
+static std::unique_ptr<LoggingContext> loggingContext_;
 static boost::mutex  loggingMutex_;
 
 
@@ -424,7 +425,7 @@ namespace Orthanc
     }
 
 
-    static void PrepareLogFolder(std::auto_ptr<std::ofstream>& file,
+    static void PrepareLogFolder(std::unique_ptr<std::ofstream>& file,
                                  const std::string& suffix,
                                  const std::string& directory)
     {
@@ -455,7 +456,7 @@ namespace Orthanc
     void Reset()
     {
       // Recover the old logging context
-      std::auto_ptr<LoggingContext> old;
+      std::unique_ptr<LoggingContext> old;
 
       {
         boost::mutex::scoped_lock lock(loggingMutex_);
@@ -465,7 +466,11 @@ namespace Orthanc
         }
         else
         {
-          old = loggingContext_;
+#if __cplusplus < 201103L
+          old.reset(loggingContext_.release());
+#else
+          old = std::move(loggingContext_);
+#endif
 
           // Create a new logging context, 
           loggingContext_.reset(new LoggingContext);
@@ -512,7 +517,7 @@ namespace Orthanc
       if (!memento->valid_)
         throw std::runtime_error("Memento already used");
       memento->valid_ = false;
-      std::auto_ptr<LoggingMementoImpl> deleter(memento);
+      std::unique_ptr<LoggingMementoImpl> deleter(memento);
       {
         boost::mutex::scoped_lock lock(loggingMutex_);
         loggingContext_.reset(new LoggingContext);
@@ -584,7 +589,7 @@ namespace Orthanc
     }
 
 
-    static void CheckFile(std::auto_ptr<std::ofstream>& f)
+    static void CheckFile(std::unique_ptr<std::ofstream>& f)
     {
       if (loggingContext_->file_.get() == NULL ||
           !loggingContext_->file_->is_open())
@@ -783,7 +788,14 @@ namespace Orthanc
       std::ostream* infoStream)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
-      std::auto_ptr<LoggingContext> old = loggingContext_;
+      std::unique_ptr<LoggingContext> old;
+
+#if __cplusplus < 201103L
+      old.reset(loggingContext_.release());
+#else
+      old = std::move(loggingContext_);
+#endif
+      
       loggingContext_.reset(new LoggingContext);
       loggingContext_->error_ = errorStream;
       loggingContext_->warning_ = warningStream;
@@ -797,15 +809,15 @@ namespace Orthanc
 
     FuncStreamBuf<decltype(emscripten_console_error)> 
       globalEmscriptenErrorStreamBuf(emscripten_console_error);
-    std::auto_ptr<std::ostream> globalEmscriptenErrorStream;
+    std::unique_ptr<std::ostream> globalEmscriptenErrorStream;
 
     FuncStreamBuf<decltype(emscripten_console_warn)>
       globalEmscriptenWarningStreamBuf(emscripten_console_warn);
-    std::auto_ptr<std::ostream> globalEmscriptenWarningStream;
+    std::unique_ptr<std::ostream> globalEmscriptenWarningStream;
 
     FuncStreamBuf<decltype(emscripten_console_log)>
       globalEmscriptenInfoStreamBuf(emscripten_console_log);
-    std::auto_ptr<std::ostream> globalEmscriptenInfoStream;
+    std::unique_ptr<std::ostream> globalEmscriptenInfoStream;
 
     void EnableEmscriptenLogging()
     {

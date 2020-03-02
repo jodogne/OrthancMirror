@@ -249,7 +249,7 @@ namespace Orthanc
   {
   private:
     std::string psmct_;
-    std::auto_ptr<DicomIntegerPixelAccessor> slowAccessor_;
+    std::unique_ptr<DicomIntegerPixelAccessor> slowAccessor_;
 
   public:
     void Setup(DcmDataset& dataset,
@@ -388,7 +388,7 @@ namespace Orthanc
   }
 
 
-  static ImageAccessor* DecodeLookupTable(std::auto_ptr<ImageAccessor>& target,
+  static ImageAccessor* DecodeLookupTable(std::unique_ptr<ImageAccessor>& target,
                                           const DicomImageInformation& info,
                                           DcmDataset& dataset,
                                           const uint8_t* pixelData,
@@ -508,7 +508,7 @@ namespace Orthanc
      * Create the target image.
      **/
 
-    std::auto_ptr<ImageAccessor> target(CreateImage(dataset, false));
+    std::unique_ptr<ImageAccessor> target(CreateImage(dataset, false));
 
     ImageSource source;
     source.Setup(dataset, frame);
@@ -616,7 +616,7 @@ namespace Orthanc
     FromDcmtkBridge::ExtractDicomSummary(m, dataset);
     DicomImageInformation info(m);
 
-    std::auto_ptr<ImageAccessor> target(CreateImage(dataset, true));
+    std::unique_ptr<ImageAccessor> target(CreateImage(dataset, true));
 
     Uint32 startFragment = 0;  // Default 
     OFString decompressedColorModel;  // Out
@@ -692,7 +692,7 @@ namespace Orthanc
       DJLSRepresentationParameter representationParameter(2, OFTrue);
 
       DJLSCodecParameter parameters;
-      std::auto_ptr<DJLSDecoderBase> decoder;
+      std::unique_ptr<DJLSDecoderBase> decoder;
 
       switch (syntax)
       {
@@ -734,7 +734,7 @@ namespace Orthanc
         EUC_default,     // Mode for UID creation, unused for decompression
         EPC_default);    // Automatically determine whether color-by-plane is required from the SOP Class UID and decompressed photometric interpretation
       DJ_RPLossy representationParameter;
-      std::auto_ptr<DJCodecDecoder> decoder;
+      std::unique_ptr<DJCodecDecoder> decoder;
 
       switch (syntax)
       {
@@ -799,7 +799,7 @@ namespace Orthanc
     {
       LOG(INFO) << "Decoding a compressed image by converting its transfer syntax to Little Endian";
 
-      std::auto_ptr<DcmDataset> converted(dynamic_cast<DcmDataset*>(dataset.clone()));
+      std::unique_ptr<DcmDataset> converted(dynamic_cast<DcmDataset*>(dataset.clone()));
       converted->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
 
       if (converted->canWriteXfer(EXS_LittleEndianExplicit))
@@ -820,7 +820,7 @@ namespace Orthanc
   }
 
 
-  bool DicomImageDecoder::TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
+  bool DicomImageDecoder::TruncateDecodedImage(std::unique_ptr<ImageAccessor>& image,
                                                PixelFormat format,
                                                bool allowColorConversion)
   {
@@ -840,17 +840,22 @@ namespace Orthanc
     if (image->GetFormat() != format)
     {
       // A conversion is required
-      std::auto_ptr<ImageAccessor> target
+      std::unique_ptr<ImageAccessor> target
         (new Image(format, image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Convert(*target, *image);
-      image = target;
+
+#if __cplusplus < 201103L
+      image.reset(target.release());
+#else
+      image = std::move(target);
+#endif
     }
 
     return true;
   }
 
 
-  bool DicomImageDecoder::PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image)
+  bool DicomImageDecoder::PreviewDecodedImage(std::unique_ptr<ImageAccessor>& image)
   {
     switch (image->GetFormat())
     {
@@ -862,10 +867,16 @@ namespace Orthanc
 
       case PixelFormat_RGB48:
       {
-        std::auto_ptr<ImageAccessor> target
+        std::unique_ptr<ImageAccessor> target
           (new Image(PixelFormat_RGB24, image->GetWidth(), image->GetHeight(), false));
         ImageProcessing::Convert(*target, *image);
-        image = target;
+
+#if __cplusplus < 201103L
+        image.reset(target.release());
+#else
+        image = std::move(target);
+#endif
+
         return true;
       }
 
@@ -891,10 +902,15 @@ namespace Orthanc
         // If the source image is not grayscale 8bpp, convert it
         if (image->GetFormat() != PixelFormat_Grayscale8)
         {
-          std::auto_ptr<ImageAccessor> target
+          std::unique_ptr<ImageAccessor> target
             (new Image(PixelFormat_Grayscale8, image->GetWidth(), image->GetHeight(), false));
           ImageProcessing::Convert(*target, *image);
-          image = target;
+
+#if __cplusplus < 201103L
+          image.reset(target.release());
+#else
+          image = std::move(target);
+#endif
         }
 
         return true;
@@ -906,7 +922,7 @@ namespace Orthanc
   }
 
 
-  void DicomImageDecoder::ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
+  void DicomImageDecoder::ApplyExtractionMode(std::unique_ptr<ImageAccessor>& image,
                                               ImageExtractionMode mode,
                                               bool invert)
   {
@@ -956,7 +972,7 @@ namespace Orthanc
 
 
   void DicomImageDecoder::ExtractPamImage(std::string& result,
-                                          std::auto_ptr<ImageAccessor>& image,
+                                          std::unique_ptr<ImageAccessor>& image,
                                           ImageExtractionMode mode,
                                           bool invert)
   {
@@ -968,7 +984,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_PNG == 1
   void DicomImageDecoder::ExtractPngImage(std::string& result,
-                                          std::auto_ptr<ImageAccessor>& image,
+                                          std::unique_ptr<ImageAccessor>& image,
                                           ImageExtractionMode mode,
                                           bool invert)
   {
@@ -982,7 +998,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_JPEG == 1
   void DicomImageDecoder::ExtractJpegImage(std::string& result,
-                                           std::auto_ptr<ImageAccessor>& image,
+                                           std::unique_ptr<ImageAccessor>& image,
                                            ImageExtractionMode mode,
                                            bool invert,
                                            uint8_t quality)

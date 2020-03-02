@@ -34,6 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomModalityStoreJob.h"
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"

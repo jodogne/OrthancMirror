@@ -628,7 +628,7 @@ namespace Orthanc
       case ModalityManufacturer_GenericNoWildcardInDates:
       case ModalityManufacturer_GenericNoUniversalWildcard:
       {
-        std::auto_ptr<DicomMap> fix(fields.Clone());
+        std::unique_ptr<DicomMap> fix(fields.Clone());
 
         std::set<DicomTag> tags;
         fix->GetTags(tags);
@@ -743,7 +743,7 @@ namespace Orthanc
   {
     CheckIsOpen();
 
-    std::auto_ptr<ParsedDicomFile> query;
+    std::unique_ptr<ParsedDicomFile> query;
 
     if (normalize)
     {
@@ -856,7 +856,7 @@ namespace Orthanc
   {
     CheckIsOpen();
 
-    std::auto_ptr<ParsedDicomFile> query(ConvertQueryFields(fields, manufacturer_));
+    std::unique_ptr<ParsedDicomFile> query(ConvertQueryFields(fields, manufacturer_));
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
 
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;

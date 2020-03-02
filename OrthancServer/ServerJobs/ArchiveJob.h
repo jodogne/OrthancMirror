@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/IJob.h"
 #include "../../Core/TemporaryFile.h"
 
@@ -55,7 +56,7 @@ namespace Orthanc
     class ZipWriterIterator;
     
     boost::shared_ptr<TemporaryFile>      synchronousTarget_;
-    std::auto_ptr<TemporaryFile>          asynchronousTarget_;
+    std::unique_ptr<TemporaryFile>        asynchronousTarget_;
     ServerContext&                        context_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;

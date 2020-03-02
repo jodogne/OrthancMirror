@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
@@ -43,12 +44,12 @@ namespace Orthanc
   class DicomModalityStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    ServerContext&                        context_;
+    std::string                           localAet_;
+    RemoteModalityParameters              remote_;
+    std::string                           moveOriginatorAet_;
+    uint16_t                              moveOriginatorId_;
+    std::unique_ptr<DicomUserConnection>  connection_;
 
     void OpenConnection();
 

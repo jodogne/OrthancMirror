@@ -46,8 +46,8 @@ namespace Orthanc
   class DicomMoveScuJob::Command : public SetOfCommandsJob::ICommand
   {
   private:
-    DicomMoveScuJob&         that_;
-    std::auto_ptr<DicomMap>  findAnswer_;
+    DicomMoveScuJob&           that_;
+    std::unique_ptr<DicomMap>  findAnswer_;
 
   public:
     Command(DicomMoveScuJob& that,

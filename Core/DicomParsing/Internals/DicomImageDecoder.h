@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Compatibility.h"
 #include "../ParsedDicomFile.h"
 
 #include <memory>
@@ -82,13 +83,13 @@ namespace Orthanc
                                      DcmDataset& dataset,
                                      unsigned int frame);
 
-    static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
+    static bool TruncateDecodedImage(std::unique_ptr<ImageAccessor>& image,
                                      PixelFormat format,
                                      bool allowColorConversion);
 
-    static bool PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image);
+    static bool PreviewDecodedImage(std::unique_ptr<ImageAccessor>& image);
 
-    static void ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
+    static void ApplyExtractionMode(std::unique_ptr<ImageAccessor>& image,
                                     ImageExtractionMode mode,
                                     bool invert);
 
@@ -102,20 +103,20 @@ namespace Orthanc
                                  unsigned int frame);
 
     static void ExtractPamImage(std::string& result,
-                                std::auto_ptr<ImageAccessor>& image,
+                                std::unique_ptr<ImageAccessor>& image,
                                 ImageExtractionMode mode,
                                 bool invert);
 
 #if ORTHANC_ENABLE_PNG == 1
     static void ExtractPngImage(std::string& result,
-                                std::auto_ptr<ImageAccessor>& image,
+                                std::unique_ptr<ImageAccessor>& image,
                                 ImageExtractionMode mode,
                                 bool invert);
 #endif
 
 #if ORTHANC_ENABLE_JPEG == 1
     static void ExtractJpegImage(std::string& result,
-                                 std::auto_ptr<ImageAccessor>& image,
+                                 std::unique_ptr<ImageAccessor>& image,
                                  ImageExtractionMode mode,
                                  bool invert,
                                  uint8_t quality);

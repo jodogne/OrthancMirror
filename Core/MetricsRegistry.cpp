@@ -34,8 +34,9 @@
 #include "PrecompiledHeaders.h"
 #include "MetricsRegistry.h"
 
-#include "OrthancException.h"
 #include "ChunkedBuffer.h"
+#include "Compatibility.h"
+#include "OrthancException.h"
 
 namespace Orthanc
 {
@@ -228,7 +229,7 @@ namespace Orthanc
 
     if (found == content_.end())
     {
-      std::auto_ptr<Item> item(new Item(type));
+      std::unique_ptr<Item> item(new Item(type));
       item->Update(value);
       content_[name] = item.release();
     }

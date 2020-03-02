@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomImageInformation.h"
 #include "../Core/Images/Image.h"
 #include "../Core/Images/ImageProcessing.h"
@@ -92,7 +93,7 @@ namespace
   class TestImageTraits : public ::testing::Test
   {
   private:
-    std::auto_ptr<Image>  image_;
+    std::unique_ptr<Image>  image_;
 
   protected:
     virtual void SetUp() ORTHANC_OVERRIDE
@@ -547,7 +548,7 @@ TEST(ImageProcessing, Convolution)
     SetGrayscale8Pixel(dirac, 4, 0, 100);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -561,7 +562,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -575,7 +576,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -595,7 +596,7 @@ TEST(ImageProcessing, Convolution)
     SetGrayscale8Pixel(dirac, 0, 4, 100);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -609,7 +610,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -623,7 +624,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -643,7 +644,7 @@ TEST(ImageProcessing, Convolution)
     SetRGB24Pixel(dirac, 4, 0, 100, 120, 140);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -657,7 +658,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -671,7 +672,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -691,7 +692,7 @@ TEST(ImageProcessing, Convolution)
     SetRGB24Pixel(dirac, 0, 4, 100, 120, 140);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
@@ -705,7 +706,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
@@ -719,7 +720,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));

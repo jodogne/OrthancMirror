@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/DicomNetworking/DicomFindAnswers.h"
 #include "../Core/DicomParsing/DicomModification.h"
 #include "../Core/DicomParsing/DicomWebJsonVisitor.h"
@@ -95,7 +96,7 @@ TEST(DicomModification, Basic)
   {
     char b[1024];
     sprintf(b, "UnitTestsResults/anon%06d.dcm", i);
-    std::auto_ptr<ParsedDicomFile> f(o.Clone(false));
+    std::unique_ptr<ParsedDicomFile> f(o.Clone(false));
     if (i > 4)
       o.ReplacePlainString(DICOM_TAG_SERIES_INSTANCE_UID, "coucou");
     m.Apply(*f);
@@ -402,7 +403,7 @@ namespace Orthanc
   // https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md#private-class-members
   TEST(FromDcmtkBridge, FromJson)
   {
-    std::auto_ptr<DcmElement> element;
+    std::unique_ptr<DcmElement> element;
 
     {
       Json::Value a;
@@ -817,7 +818,7 @@ TEST(ParsedDicomFile, FromJson)
 
 
   {
-    std::auto_ptr<ParsedDicomFile> dicom
+    std::unique_ptr<ParsedDicomFile> dicom
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers), ""));
 
     Json::Value vv;
@@ -833,7 +834,7 @@ TEST(ParsedDicomFile, FromJson)
 
 
   {
-    std::auto_ptr<ParsedDicomFile> dicom
+    std::unique_ptr<ParsedDicomFile> dicom
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_GenerateIdentifiers), ""));
 
     Json::Value vv;
@@ -847,7 +848,7 @@ TEST(ParsedDicomFile, FromJson)
 
 
   {
-    std::auto_ptr<ParsedDicomFile> dicom
+    std::unique_ptr<ParsedDicomFile> dicom
       (ParsedDicomFile::CreateFromJson(v, static_cast<DicomFromJsonFlags>(DicomFromJsonFlags_DecodeDataUriScheme), ""));
 
     Json::Value vv;
@@ -916,7 +917,7 @@ TEST(TestImages, PatternGrayscale8)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale8, decoded->GetFormat());
@@ -978,7 +979,7 @@ TEST(TestImages, PatternRGB)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
     ASSERT_EQ(384u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_RGB24, decoded->GetFormat());
@@ -1035,7 +1036,7 @@ TEST(TestImages, PatternUint16)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale16, decoded->GetFormat());
@@ -1091,7 +1092,7 @@ TEST(TestImages, PatternInt16)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::auto_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_SignedGrayscale16, decoded->GetFormat());

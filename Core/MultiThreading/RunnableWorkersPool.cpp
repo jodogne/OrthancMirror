@@ -35,6 +35,7 @@
 #include "RunnableWorkersPool.h"
 
 #include "SharedMessageQueue.h"
+#include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
 
@@ -55,7 +56,7 @@ namespace Orthanc
         {
           try
           {
-            std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            std::unique_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
             if (obj.get() != NULL)
             {
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());

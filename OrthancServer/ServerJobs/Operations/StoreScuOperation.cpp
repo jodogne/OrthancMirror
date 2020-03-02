@@ -46,7 +46,7 @@ namespace Orthanc
                                 const JobOperationValue& input,
                                 IDicomConnectionManager& connectionManager)
   {
-    std::auto_ptr<IDicomConnectionManager::IResource> resource
+    std::unique_ptr<IDicomConnectionManager::IResource> resource
       (connectionManager.AcquireConnection(localAet_, modality_));
 
     if (resource.get() == NULL)

@@ -40,7 +40,7 @@
 namespace Orthanc
 {
   bool OrthancHttpHandler::CreateChunkedRequestReader(
-    std::auto_ptr<IHttpHandler::IChunkedRequestReader>& target,
+    std::unique_ptr<IHttpHandler::IChunkedRequestReader>& target,
     RequestOrigin origin,
     const char* remoteIp,
     const char* username,

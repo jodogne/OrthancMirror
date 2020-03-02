@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
 #include "../Core/Logging.h"
@@ -272,7 +273,7 @@ TEST(MultiThreading, SharedMessageQueueBasic)
   q.Enqueue(new DynamicInteger(30, s));
   q.Enqueue(new DynamicInteger(40, s));
 
-  std::auto_ptr<DynamicInteger> i;
+  std::unique_ptr<DynamicInteger> i;
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
@@ -747,7 +748,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
   SequenceOfOperationsJob* job = NULL;
 
   {
-    std::auto_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
+    std::unique_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
     job = a.get();
     engine.GetRegistry().Submit(id, a.release(), 0);
   }
@@ -837,7 +838,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   }
   else
   {
-    std::auto_ptr<IJob> unserialized(unserializer.UnserializeJob(a));
+    std::unique_ptr<IJob> unserialized(unserializer.UnserializeJob(a));
   
     Json::Value b = 43;
     if (unserialized->Serialize(b))
@@ -863,7 +864,7 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
   }
   else
   {
-    std::auto_ptr<SetOfInstancesJob> unserialized
+    std::unique_ptr<SetOfInstancesJob> unserialized
       (dynamic_cast<SetOfInstancesJob*>(unserializer.UnserializeJob(a)));
   
     Json::Value b = 43;
@@ -889,7 +890,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   Json::Value a = 42;
   operation.Serialize(a);
   
-  std::auto_ptr<IJobOperation> unserialized(unserializer.UnserializeOperation(a));
+  std::unique_ptr<IJobOperation> unserialized(unserializer.UnserializeOperation(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -904,7 +905,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   Json::Value a = 42;
   value.Serialize(a);
   
-  std::auto_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
+  std::unique_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -957,7 +958,7 @@ TEST(JobsSerialization, JobOperationValues)
 
   {
     GenericJobUnserializer unserializer;
-    std::auto_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
+    std::unique_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
     ASSERT_EQ(3u, values->GetSize());
     ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
     ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
@@ -984,7 +985,7 @@ TEST(JobsSerialization, GenericValues)
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-  std::auto_ptr<JobOperationValue> value;
+  std::unique_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   
   ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
@@ -1021,7 +1022,7 @@ TEST(JobsSerialization, GenericOperations)
   ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
 
   {
-    std::auto_ptr<IJobOperation> operation;
+    std::unique_ptr<IJobOperation> operation;
     operation.reset(unserializer.UnserializeOperation(s));
 
     // Make sure that we have indeed unserialized a log operation
@@ -1065,7 +1066,7 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
     ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     const DummyInstancesJob& tmp = dynamic_cast<const DummyInstancesJob&>(*job);
@@ -1116,7 +1117,7 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
     ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     std::string tmp;
@@ -1147,7 +1148,7 @@ TEST(JobsSerialization, DicomModification)
   source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false, "");
   source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false, "");
 
-  std::auto_ptr<ParsedDicomFile> modified(source.Clone(true));
+  std::unique_ptr<ParsedDicomFile> modified(source.Clone(true));
 
   {
     DicomModification modification;
@@ -1166,7 +1167,7 @@ TEST(JobsSerialization, DicomModification)
     DicomModification modification(s);
     ASSERT_EQ(ResourceType_Series, modification.GetLevel());
     
-    std::auto_ptr<ParsedDicomFile> second(source.Clone(true));
+    std::unique_ptr<ParsedDicomFile> second(source.Clone(true));
     modification.Apply(*second);
 
     std::string s;
@@ -1282,7 +1283,7 @@ namespace
   private:
     MemoryStorageArea              storage_;
     SQLiteDatabaseWrapper          db_;   // The SQLite DB is in memory
-    std::auto_ptr<ServerContext>   context_;
+    std::unique_ptr<ServerContext>   context_;
     TimeoutDicomConnectionManager  manager_;
 
   public:
@@ -1336,7 +1337,7 @@ TEST_F(OrthancJobsSerialization, Values)
     instance.Serialize(s);
   }
 
-  std::auto_ptr<JobOperationValue> value;
+  std::unique_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
   ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
@@ -1369,7 +1370,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     operation.Serialize(s);
   }
 
-  std::auto_ptr<IJobOperation> operation;
+  std::unique_ptr<IJobOperation> operation;
 
   {
     operation.reset(unserializer.UnserializeOperation(s));
@@ -1456,7 +1457,7 @@ TEST_F(OrthancJobsSerialization, Operations)
   // ModifyInstanceOperation
 
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
     modification->SetupAnonymization(DicomVersion_2008);
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
@@ -1507,7 +1508,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     DicomModalityStoreJob& tmp = dynamic_cast<DicomModalityStoreJob&>(*job);
@@ -1537,7 +1538,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     OrthancPeerStoreJob& tmp = dynamic_cast<OrthancPeerStoreJob&>(*job);
@@ -1550,7 +1551,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   // ResourceModificationJob
 
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
     modification->SetupAnonymization(DicomVersion_2008);    
 
     ResourceModificationJob job(GetContext());
@@ -1562,7 +1563,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
@@ -1629,7 +1630,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     }
 
     {
-      std::auto_ptr<IJob> job;
+      std::unique_ptr<IJob> job;
       job.reset(unserializer.UnserializeJob(s));
 
       SplitStudyJob& tmp = dynamic_cast<SplitStudyJob&>(*job);
@@ -1693,7 +1694,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     MergeStudyJob& tmp = dynamic_cast<MergeStudyJob&>(*job);

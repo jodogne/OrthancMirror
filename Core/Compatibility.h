@@ -33,61 +33,34 @@
 
 #pragma once
 
-#include "JobsRegistry.h"
+#if __cplusplus < 201103L
+/**
+ * "std::unique_ptr" was introduced in C++11, and "std::auto_ptr" was
+ * removed in C++17. We emulate "std::auto_ptr" using boost: "The
+ * smart pointer unique_ptr [is] a drop-in replacement for
+ * std::unique_ptr, usable also from C++03 compilers." This is only
+ * available if Boost >= 1.57.0 (from November 2014).
+ * https://www.boost.org/doc/libs/1_57_0/doc/html/move/reference.html#header.boost.move.unique_ptr_hpp
+ **/
 
-#include "../Compatibility.h"
+#include <boost/move/unique_ptr.hpp>
 
-#include <boost/thread.hpp>
-
-namespace Orthanc
+namespace std
 {
-  class JobsEngine : public boost::noncopyable
+  template <typename T>
+  class unique_ptr : public boost::movelib::unique_ptr<T>
   {
-  private:
-    enum State
-    {
-      State_Setup,
-      State_Running,
-      State_Stopping,
-      State_Done
-    };
-
-    boost::mutex                 stateMutex_;
-    State                        state_;
-    std::unique_ptr<JobsRegistry>  registry_;
-    boost::thread                retryHandler_;
-    unsigned int                 threadSleep_;
-    std::vector<boost::thread*>  workers_;
-
-    bool IsRunning();
-    
-    bool ExecuteStep(JobsRegistry::RunningJob& running,
-                     size_t workerIndex);
-    
-    static void RetryHandler(JobsEngine* engine);
-
-    static void Worker(JobsEngine* engine,
-                       size_t workerIndex);
-
   public:
-    JobsEngine(size_t maxCompletedJobs);
+    unique_ptr() :
+      boost::movelib::unique_ptr<T>()
+    {
+    }      
 
-    ~JobsEngine();
-
-    JobsRegistry& GetRegistry();
-
-    void LoadRegistryFromJson(IJobUnserializer& unserializer,
-                              const Json::Value& serialized);
-
-    void LoadRegistryFromString(IJobUnserializer& unserializer,
-                                const std::string& serialized);
-
-    void SetWorkersCount(size_t count);
-
-    void SetThreadSleep(unsigned int sleep);
-
-    void Start();
-
-    void Stop();
+    unique_ptr(T* p) :
+      boost::movelib::unique_ptr<T>(p)
+    {
+    }      
   };
 }
+
+#endif

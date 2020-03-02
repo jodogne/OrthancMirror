@@ -62,7 +62,7 @@ namespace Orthanc
       }
 
       // Create a new cache page
-      std::auto_ptr<Page> result(new Page);
+      std::unique_ptr<Page> result(new Page);
       result->id_ = id;
       result->content_.reset(provider_.Provide(id));
 
