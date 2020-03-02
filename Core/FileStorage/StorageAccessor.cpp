@@ -34,6 +34,7 @@
 #include "../PrecompiledHeaders.h"
 #include "StorageAccessor.h"
 
+#include "../Compatibility.h"
 #include "../Compression/ZlibCompressor.h"
 #include "../MetricsRegistry.h"
 #include "../OrthancException.h"
@@ -54,7 +55,7 @@ namespace Orthanc
   class StorageAccessor::MetricsTimer : public boost::noncopyable
   {
   private:
-    std::auto_ptr<MetricsRegistry::Timer>  timer_;
+    std::unique_ptr<MetricsRegistry::Timer>  timer_;
 
   public:
     MetricsTimer(StorageAccessor& that,

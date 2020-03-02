@@ -53,7 +53,7 @@ namespace Orthanc
     FilesystemHttpHandler(const std::string& baseUri,
                           const std::string& root);
 
-    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                             RequestOrigin origin,
                                             const char* remoteIp,
                                             const char* username,

@@ -186,7 +186,7 @@ namespace Orthanc
     LuaScripting mainLua_;
     LuaScripting filterLua_;
     LuaServerListener  luaListener_;
-    std::auto_ptr<SharedArchive>  mediaArchive_;
+    std::unique_ptr<SharedArchive>  mediaArchive_;
     
     // The "JobsEngine" must be *after* "LuaScripting", as
     // "LuaScripting" embeds "LuaJobManager" that registers as an
@@ -209,7 +209,7 @@ namespace Orthanc
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
         
-    std::auto_ptr<SharedArchive>  queryRetrieveArchive_;
+    std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
@@ -217,7 +217,7 @@ namespace Orthanc
     unsigned int limitFindInstances_;
     unsigned int limitFindResults_;
 
-    std::auto_ptr<MetricsRegistry>  metricsRegistry_;
+    std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
 

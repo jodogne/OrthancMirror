@@ -53,7 +53,7 @@ namespace Orthanc
   {
     boost::thread  thread_;
     T_ASC_Network *network_;
-    std::auto_ptr<RunnableWorkersPool>  workers_;
+    std::unique_ptr<RunnableWorkersPool>  workers_;
   };
 
 
@@ -65,7 +65,7 @@ namespace Orthanc
     {
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
-      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
+      std::unique_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
 
       try
       {

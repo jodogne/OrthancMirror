@@ -610,7 +610,7 @@ namespace Orthanc
 
     if (operation == "modify")
     {
-      std::auto_ptr<DicomModification> modification(new DicomModification);
+      std::unique_ptr<DicomModification> modification(new DicomModification);
       modification->ParseModifyRequest(parameters);
 
       return lock.AddModifyInstanceOperation(context_, modification.release());
@@ -749,7 +749,7 @@ namespace Orthanc
   {
     for (;;)
     {
-      std::auto_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
+      std::unique_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
 
       if (event.get() == NULL)
       {

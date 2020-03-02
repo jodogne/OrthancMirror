@@ -47,6 +47,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../Toolbox.h"
 #include "../OrthancException.h"
@@ -351,7 +352,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               << name << " (multiplicity: " << minMultiplicity << "-" 
               << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 
-    std::auto_ptr<DcmDictEntry>  entry;
+    std::unique_ptr<DcmDictEntry>  entry;
     if (privateCreator.empty())
     {
       if (tag.GetGroup() % 2 == 1)
@@ -885,7 +886,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     if (element.isLeaf())
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+      std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
                                   (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
@@ -1632,7 +1633,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                         Encoding dicomEncoding,
                                         const std::string& privateCreator)
   {
-    std::auto_ptr<DcmElement> element;
+    std::unique_ptr<DcmElement> element;
 
     switch (value.type())
     {
@@ -1659,7 +1660,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         
         for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
         {
-          std::auto_ptr<DcmItem> item(new DcmItem);
+          std::unique_ptr<DcmItem> item(new DcmItem);
 
           switch (value[i].type())
           {
@@ -1780,7 +1781,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                         Encoding defaultEncoding,
                                         const std::string& privateCreator)
   {
-    std::auto_ptr<DcmDataset> result(new DcmDataset);
+    std::unique_ptr<DcmDataset> result(new DcmDataset);
     Encoding encoding = ExtractEncoding(json, defaultEncoding);
 
     SetString(*result, DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(encoding));
@@ -1816,7 +1817,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
+        std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
         const DcmTagKey& tag = element->getTag();
 
         result->findAndDeleteElement(tag);
@@ -1868,7 +1869,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
     is.setEos();
 
-    std::auto_ptr<DcmFileFormat> result(new DcmFileFormat);
+    std::unique_ptr<DcmFileFormat> result(new DcmFileFormat);
 
     result->transferInit();
     if (!result->read(is).good())

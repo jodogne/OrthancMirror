@@ -34,6 +34,7 @@
 #include "PrecompiledHeaders.h"
 #include "Toolbox.h"
 
+#include "Compatibility.h"
 #include "OrthancException.h"
 #include "Logging.h"
 
@@ -1434,7 +1435,7 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_LOCALE == 1
-  static std::auto_ptr<std::locale>  globalLocale_;
+  static std::unique_ptr<std::locale>  globalLocale_;
 
   static bool SetGlobalLocale(const char* locale)
   {

@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/HttpClient.h"
 
@@ -44,9 +45,9 @@ namespace Orthanc
   class OrthancPeerStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&             context_;
-    WebServiceParameters       peer_;
-    std::auto_ptr<HttpClient>  client_;
+    ServerContext&               context_;
+    WebServiceParameters         peer_;
+    std::unique_ptr<HttpClient>  client_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);

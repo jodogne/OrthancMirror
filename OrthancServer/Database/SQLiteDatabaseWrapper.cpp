@@ -583,9 +583,9 @@ namespace Orthanc
   class SQLiteDatabaseWrapper::Transaction : public IDatabaseWrapper::ITransaction
   {
   private:
-    SQLiteDatabaseWrapper&              that_;
-    std::auto_ptr<SQLite::Transaction>  transaction_;
-    int64_t                             initialDiskSize_;
+    SQLiteDatabaseWrapper&                that_;
+    std::unique_ptr<SQLite::Transaction>  transaction_;
+    int64_t                               initialDiskSize_;
 
   public:
     Transaction(SQLiteDatabaseWrapper& that) :
@@ -1181,7 +1181,7 @@ namespace Orthanc
     resourcesId.clear();
     instancesId.clear();
     
-    std::auto_ptr<SQLite::Statement> statement;
+    std::unique_ptr<SQLite::Statement> statement;
     
     switch (level)
     {

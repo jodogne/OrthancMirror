@@ -39,6 +39,7 @@
 
 #include "DicomImageInformation.h"
 
+#include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include <boost/lexical_cast.hpp>
@@ -223,7 +224,7 @@ namespace Orthanc
 
   DicomImageInformation* DicomImageInformation::Clone() const
   {
-    std::auto_ptr<DicomImageInformation> target(new DicomImageInformation);
+    std::unique_ptr<DicomImageInformation> target(new DicomImageInformation);
     target->width_ = width_;
     target->height_ = height_;
     target->samplesPerPixel_ = samplesPerPixel_;

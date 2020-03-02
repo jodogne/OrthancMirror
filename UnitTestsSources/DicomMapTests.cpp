@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
@@ -121,7 +122,7 @@ TEST(DicomMap, Tags)
   ASSERT_EQ(1u, s.size());
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
-  std::auto_ptr<DicomMap> mm(m.Clone());
+  std::unique_ptr<DicomMap> mm(m.Clone());
   ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());  
 
   m.SetValue(DICOM_TAG_PATIENT_ID, "Hello", false);
@@ -450,10 +451,10 @@ TEST(DicomMap, DicomAsJson)
   dataset.insertEmptyElement(DCM_StudyID, OFFalse);
 
   {
-    std::auto_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
 
     {
-      std::auto_ptr<DcmItem> item(new DcmItem);
+      std::unique_ptr<DcmItem> item(new DcmItem);
       item->putAndInsertString(DCM_ReferencedSOPInstanceUID, "nope", OFFalse);
       ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
     }
@@ -695,7 +696,7 @@ static void SetTagKey(ParsedDicomFile& dicom,
   // "dicom.GetDcmtkObject().getDataset()->putAndInsertTagKey(tag,
   // value)" that was not available in DCMTK 3.6.0
 
-  std::auto_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
+  std::unique_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
 
   DcmTagKey v = ToDcmtkBridge::Convert(value);
   if (!element->putTagVal(v).good())
@@ -938,11 +939,11 @@ TEST(DicomWebJson, Sequence)
   ParsedDicomFile dicom(false);
   
   {
-    std::auto_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
 
     for (unsigned int i = 0; i < 3; i++)
     {
-      std::auto_ptr<DcmItem> item(new DcmItem);
+      std::unique_ptr<DcmItem> item(new DcmItem);
       std::string s = "item" + boost::lexical_cast<std::string>(i);
       item->putAndInsertString(DCM_ReferencedSOPInstanceUID, s.c_str(), OFFalse);
       ASSERT_TRUE(sequence->insert(item.release(), false, false).good());

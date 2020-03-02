@@ -241,7 +241,7 @@ namespace Orthanc
   {
   private:
     ServerIndex& index_;
-    std::auto_ptr<IDatabaseWrapper::ITransaction> transaction_;
+    std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
 
   public:

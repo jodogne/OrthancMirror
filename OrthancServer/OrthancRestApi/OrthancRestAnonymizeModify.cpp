@@ -116,7 +116,7 @@ namespace Orthanc
   {
     std::string id = call.GetUriComponent("id", "");
 
-    std::auto_ptr<ParsedDicomFile> modified;
+    std::unique_ptr<ParsedDicomFile> modified;
 
     {
       ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
@@ -169,7 +169,7 @@ namespace Orthanc
   }
 
 
-  static void SubmitModificationJob(std::auto_ptr<DicomModification>& modification,
+  static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
                                     RestApiPostCall& call,
                                     const Json::Value& body,
@@ -177,7 +177,7 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::auto_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
     
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
@@ -192,7 +192,7 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ModifyResource(RestApiPostCall& call)
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
     ParseModifyRequest(body, *modification, call);
@@ -207,7 +207,7 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void AnonymizeResource(RestApiPostCall& call)
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
     ParseAnonymizationRequest(body, *modification, call);
@@ -343,7 +343,7 @@ namespace Orthanc
     {
       for (Json::ArrayIndex i = 0; i < content.size(); i++)
       {
-        std::auto_ptr<ParsedDicomFile> dicom(base.Clone(false));
+        std::unique_ptr<ParsedDicomFile> dicom(base.Clone(false));
         const Json::Value* payload = NULL;
 
         if (content[i].type() == Json::stringValue)
@@ -668,7 +668,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::auto_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
+    std::unique_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
     job->SetOrigin(call);
 
     std::vector<std::string> series;
@@ -751,7 +751,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::auto_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
+    std::unique_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
     job->SetOrigin(call);
 
     std::vector<std::string> resources;

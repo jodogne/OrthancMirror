@@ -114,7 +114,7 @@ namespace Orthanc
       unsigned int subOperationCount_;
       unsigned int failureCount_;
       unsigned int warningCount_;
-      std::auto_ptr<IMoveRequestIterator> iterator_;
+      std::unique_ptr<IMoveRequestIterator> iterator_;
       const std::string* remoteIp_;
       const std::string* remoteAet_;
       const std::string* calledAet_;

@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <memory>
 
+#include "../Compatibility.h"
 #include "../Endianness.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
@@ -300,7 +301,7 @@ namespace Orthanc
 
   DicomMap* DicomMap::Clone() const
   {
-    std::auto_ptr<DicomMap> result(new DicomMap);
+    std::unique_ptr<DicomMap> result(new DicomMap);
 
     for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
@@ -1165,7 +1166,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFileFormat);
       }
 
-      std::auto_ptr<DicomValue> value(new DicomValue);
+      std::unique_ptr<DicomValue> value(new DicomValue);
       value->Unserialize(source[tags[i]]);
 
       content_[tag] = value.release();

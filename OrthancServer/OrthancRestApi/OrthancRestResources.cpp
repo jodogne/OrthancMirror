@@ -388,14 +388,14 @@ namespace Orthanc
     class ImageToEncode
     {
     private:
-      std::auto_ptr<ImageAccessor>&  image_;
+      std::unique_ptr<ImageAccessor>&  image_;
       ImageExtractionMode            mode_;
       bool                           invert_;
       MimeType                       format_;
       std::string                    answer_;
 
     public:
-      ImageToEncode(std::auto_ptr<ImageAccessor>& image,
+      ImageToEncode(std::unique_ptr<ImageAccessor>& image,
                     ImageExtractionMode mode,
                     bool invert) :
         image_(image),
@@ -518,7 +518,7 @@ namespace Orthanc
       }
 
       virtual void Handle(RestApiGetCall& call,
-                          std::auto_ptr<ImageAccessor>& decoded,
+                          std::unique_ptr<ImageAccessor>& decoded,
                           const DicomMap& dicom) = 0;
 
       virtual bool RequiresDicomTags() const = 0;
@@ -541,7 +541,7 @@ namespace Orthanc
         }
 
         DicomMap dicom;
-        std::auto_ptr<ImageAccessor> decoded;
+        std::unique_ptr<ImageAccessor> decoded;
 
         try
         {
@@ -613,7 +613,7 @@ namespace Orthanc
 
 
       static void DefaultHandler(RestApiGetCall& call,
-                                 std::auto_ptr<ImageAccessor>& decoded,
+                                 std::unique_ptr<ImageAccessor>& decoded,
                                  ImageExtractionMode mode,
                                  bool invert)
       {
@@ -649,7 +649,7 @@ namespace Orthanc
       }
 
       virtual void Handle(RestApiGetCall& call,
-                          std::auto_ptr<ImageAccessor>& decoded,
+                          std::unique_ptr<ImageAccessor>& decoded,
                           const DicomMap& dicom) ORTHANC_OVERRIDE
       {
         bool invert = false;
@@ -817,7 +817,7 @@ namespace Orthanc
       
     public:
       virtual void Handle(RestApiGetCall& call,
-                          std::auto_ptr<ImageAccessor>& decoded,
+                          std::unique_ptr<ImageAccessor>& decoded,
                           const DicomMap& dicom) ORTHANC_OVERRIDE
       {
         bool invert;
@@ -865,7 +865,7 @@ namespace Orthanc
           }
           else
           {
-            std::auto_ptr<ImageAccessor> resized(
+            std::unique_ptr<ImageAccessor> resized(
               new Image(decoded->GetFormat(), targetWidth, targetHeight, false));
             
             if (smooth &&
@@ -901,7 +901,7 @@ namespace Orthanc
           const float scaling = 255.0f * rescaleSlope / windowWidth;
           const float offset = (rescaleIntercept - windowCenter + windowWidth / 2.0f) / rescaleSlope;
 
-          std::auto_ptr<ImageAccessor> rescaled(new Image(PixelFormat_Grayscale8, decoded->GetWidth(), decoded->GetHeight(), false));
+          std::unique_ptr<ImageAccessor> rescaled(new Image(PixelFormat_Grayscale8, decoded->GetWidth(), decoded->GetHeight(), false));
           ImageProcessing::ShiftScale(*rescaled, converted, offset, scaling, false);
 
           if (targetWidth == decoded->GetWidth() &&
@@ -911,7 +911,7 @@ namespace Orthanc
           }
           else
           {
-            std::auto_ptr<ImageAccessor> resized(
+            std::unique_ptr<ImageAccessor> resized(
               new Image(PixelFormat_Grayscale8, targetWidth, targetHeight, false));
             
             if (smooth &&
@@ -976,7 +976,7 @@ namespace Orthanc
     DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
 #endif
 
-    std::auto_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
+    std::unique_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
 
     std::string result;
     decoded->ToMatlabString(result);

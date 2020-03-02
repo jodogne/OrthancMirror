@@ -367,7 +367,7 @@ namespace Orthanc
       
     public:
       DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
-      callback_(parameters.callback)
+        callback_(parameters.callback)
       {
       }
       
@@ -435,7 +435,7 @@ namespace Orthanc
       };
 
       HttpOutput&                 output_;
-      std::auto_ptr<std::string>  errorDetails_;
+      std::unique_ptr<std::string>  errorDetails_;
       bool                        logDetails_;
       MultipartState              multipartState_;
       std::string                 multipartSubType_;
@@ -665,8 +665,8 @@ namespace Orthanc
 
     public:
       ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
-      parameters_(parameters),
-      regex_(parameters.pathRegularExpression)
+        parameters_(parameters),
+        regex_(parameters.pathRegularExpression)
       {
       }
 
@@ -794,8 +794,8 @@ namespace Orthanc
 
     public:
       ServerContextLock(PImpl& that) : 
-      lock_(that.contextMutex_),
-      context_(that.context_)
+        lock_(that.contextMutex_),
+        context_(that.context_)
       {
         if (context_ == NULL)
         {
@@ -846,7 +846,7 @@ namespace Orthanc
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
-    std::auto_ptr<StorageAreaFactory>  storageArea_;
+    std::unique_ptr<StorageAreaFactory>  storageArea_;
 
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
@@ -862,7 +862,7 @@ namespace Orthanc
     Properties properties_;
     int argc_;
     char** argv_;
-    std::auto_ptr<OrthancPluginDatabase>  database_;
+    std::unique_ptr<OrthancPluginDatabase>  database_;
     PluginsErrorDictionary  dictionary_;
 
     PImpl() : 
@@ -882,8 +882,8 @@ namespace Orthanc
   {
   private:
     OrthancPlugins&  that_;
-    std::auto_ptr<HierarchicalMatcher> matcher_;
-    std::auto_ptr<ParsedDicomFile>     filtered_;
+    std::unique_ptr<HierarchicalMatcher> matcher_;
+    std::unique_ptr<ParsedDicomFile>     filtered_;
     ParsedDicomFile* currentQuery_;
 
     void Reset()
@@ -996,7 +996,7 @@ namespace Orthanc
       }
 
       ParsedDicomFile f(dicom, size);
-      std::auto_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
+      std::unique_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
       reinterpret_cast<DicomFindAnswers*>(answers)->Add(*summary);
     }
   };
@@ -1006,7 +1006,7 @@ namespace Orthanc
   {
   private:
     OrthancPlugins&            that_;
-    std::auto_ptr<DicomArray>  currentQuery_;
+    std::unique_ptr<DicomArray>  currentQuery_;
 
     void Reset()
     {
@@ -1466,7 +1466,7 @@ namespace Orthanc
       
     public:
       RestCallbackMatcher(const UriComponents& uri) :
-      flatUri_(Toolbox::FlattenUri(uri))
+        flatUri_(Toolbox::FlattenUri(uri))
       {
       }
 
@@ -2483,7 +2483,7 @@ namespace Orthanc
     std::string result;
 
     {
-      std::auto_ptr<DeflateBaseCompressor> compressor;
+      std::unique_ptr<DeflateBaseCompressor> compressor;
 
       switch (p.compression)
       {
@@ -2533,14 +2533,14 @@ namespace Orthanc
   }
 
 
-  static OrthancPluginImage* ReturnImage(std::auto_ptr<ImageAccessor>& image)
+  static OrthancPluginImage* ReturnImage(std::unique_ptr<ImageAccessor>& image)
   {
     // Images returned to plugins are assumed to be writeable. If the
     // input image is read-only, we return a copy so that it can be modified.
 
     if (image->IsReadOnly())
     {
-      std::auto_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
+      std::unique_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Copy(*copy, *image);
       image.reset(NULL);
       return reinterpret_cast<OrthancPluginImage*>(copy.release());
@@ -2556,7 +2556,7 @@ namespace Orthanc
   {
     const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
 
-    std::auto_ptr<ImageAccessor> image;
+    std::unique_ptr<ImageAccessor> image;
 
     switch (p.format)
     {
@@ -2940,7 +2940,7 @@ namespace Orthanc
     const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
     const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
 
-    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight(), false));
+    std::unique_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Convert(*target, source);
 
     *(p.target) = ReturnImage(target);
@@ -2993,7 +2993,7 @@ namespace Orthanc
     const _OrthancPluginDicomToJson& p =
       *reinterpret_cast<const _OrthancPluginDicomToJson*>(parameters);
 
-    std::auto_ptr<ParsedDicomFile> dicom;
+    std::unique_ptr<ParsedDicomFile> dicom;
 
     if (service == _OrthancPluginService_DicomBufferToJson)
     {
@@ -3058,7 +3058,7 @@ namespace Orthanc
         privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
       }
       
-      std::auto_ptr<ParsedDicomFile> file
+      std::unique_ptr<ParsedDicomFile> file
         (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags),
                                          privateCreator));
 
@@ -3122,7 +3122,7 @@ namespace Orthanc
     const _OrthancPluginCreateImage& p =
       *reinterpret_cast<const _OrthancPluginCreateImage*>(parameters);
 
-    std::auto_ptr<ImageAccessor> result;
+    std::unique_ptr<ImageAccessor> result;
 
     switch (service)
     {
@@ -4612,7 +4612,7 @@ namespace Orthanc
   };
 
 
-  bool OrthancPlugins::CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+  bool OrthancPlugins::CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                                   RequestOrigin origin,
                                                   const char* remoteIp,
                                                   const char* username,

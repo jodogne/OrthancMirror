@@ -123,9 +123,9 @@ namespace Orthanc
         flatTags_.insert(tag);
 
         std::set<DicomTag> ignoreTagLength;
-        std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                        (*element, DicomToJsonFlags_None, 
-                                         0, encoding, hasCodeExtensions, ignoreTagLength));
+        std::unique_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
+                                          (*element, DicomToJsonFlags_None, 
+                                           0, encoding, hasCodeExtensions, ignoreTagLength));
 
         // WARNING: Also modify "DatabaseLookup::IsMatch()" if modifying this code
         if (value.get() == NULL ||
@@ -257,7 +257,7 @@ namespace Orthanc
                                                    Encoding encoding,
                                                    bool hasCodeExtensions) const
   {
-    std::auto_ptr<DcmDataset> target(new DcmDataset);
+    std::unique_ptr<DcmDataset> target(new DcmDataset);
 
     for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
          it != flatTags_.end(); ++it)
@@ -274,7 +274,7 @@ namespace Orthanc
                                  "Not applicable to private tags: " + it->Format());
         }
         
-        std::auto_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, "" /* no private creator */));
+        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, "" /* no private creator */));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }
@@ -289,7 +289,7 @@ namespace Orthanc
       if (source.findAndGetSequence(tag, sequence).good() &&
           sequence != NULL)
       {
-        std::auto_ptr<DcmSequenceOfItems> cloned(new DcmSequenceOfItems(tag));
+        std::unique_ptr<DcmSequenceOfItems> cloned(new DcmSequenceOfItems(tag));
 
         for (unsigned long i = 0; i < sequence->card(); i++)
         {
@@ -303,7 +303,7 @@ namespace Orthanc
             // "DcmItem" object before it can be included in a
             // sequence. Otherwise, "dciodvfy" reports an error "Bad
             // tag in sequence - Expecting Item or Sequence Delimiter."
-            std::auto_ptr<DcmDataset> child(it->second->ExtractInternal(*sequence->getItem(i), encoding, hasCodeExtensions));
+            std::unique_ptr<DcmDataset> child(it->second->ExtractInternal(*sequence->getItem(i), encoding, hasCodeExtensions));
             cloned->append(new DcmItem(*child));
           }
         }
@@ -321,10 +321,10 @@ namespace Orthanc
     bool hasCodeExtensions;
     Encoding encoding = dicom.DetectEncoding(hasCodeExtensions);
     
-    std::auto_ptr<DcmDataset> dataset(ExtractInternal(*dicom.GetDcmtkObject().getDataset(),
-                                                      encoding, hasCodeExtensions));
+    std::unique_ptr<DcmDataset> dataset(ExtractInternal(*dicom.GetDcmtkObject().getDataset(),
+                                                        encoding, hasCodeExtensions));
 
-    std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(*dataset));
+    std::unique_ptr<ParsedDicomFile> result(new ParsedDicomFile(*dataset));
     result->SetEncoding(encoding);
 
     return result.release();

@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "../Compatibility.h"
+
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include <map>
@@ -95,7 +97,7 @@ namespace Orthanc
 
     static float GetQuality(const Tokens& parameters);
 
-    static void SelectBestMatch(std::auto_ptr<Reference>& best,
+    static void SelectBestMatch(std::unique_ptr<Reference>& best,
                                 const Handler& handler,
                                 const std::string& type,
                                 const std::string& subtype,

@@ -34,6 +34,8 @@
 #include "../PrecompiledHeaders.h"
 #include "MemoryObjectCache.h"
 
+#include "../Compatibility.h"
+
 namespace Orthanc
 {
   class MemoryObjectCache::Item : public boost::noncopyable
@@ -142,7 +144,7 @@ namespace Orthanc
   void MemoryObjectCache::Acquire(const std::string& key,
                                   ICacheable* value)
   {
-    std::auto_ptr<Item> item(new Item(value));
+    std::unique_ptr<Item> item(new Item(value));
 
     if (value == NULL)
     {
