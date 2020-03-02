@@ -33,7 +33,23 @@
 
 #pragma once
 
-#if __cplusplus < 201103L
+// __cplusplus cannot be used in Visual C++ versions older than 1914
+#if (defined _MSC_VER) && (_MSC_VER < 1914)
+#  if _MSC_VER < 1900
+#    define ORTHANC_Cxx03_DETECTED 1
+#  else
+#    define ORTHANC_Cxx03_DETECTED 0
+#  endif
+#else
+#  if __cplusplus < 201103L
+#    define ORTHANC_Cxx03_DETECTED 1
+#  else
+#    define ORTHANC_Cxx03_DETECTED 0
+#  endif
+#endif
+
+
+#if ORTHANC_Cxx03_DETECTED == 1
 /**
  * "std::unique_ptr" was introduced in C++11, and "std::auto_ptr" was
  * removed in C++17. We emulate "std::auto_ptr" using boost: "The
