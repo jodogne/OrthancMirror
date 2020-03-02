@@ -63,6 +63,8 @@ namespace Orthanc
 
 #else
 
+#include "../Compatibility.h"
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
@@ -72,9 +74,9 @@ namespace Orthanc
   private:
     class Resource;
 
-    std::auto_ptr<DicomUserConnection>   connection_;
-    boost::posix_time::ptime             lastUse_;
-    boost::posix_time::time_duration     timeout_;
+    std::unique_ptr<DicomUserConnection>  connection_;
+    boost::posix_time::ptime              lastUse_;
+    boost::posix_time::time_duration      timeout_;
 
     void Touch();
 

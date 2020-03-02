@@ -129,7 +129,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    std::auto_ptr<JobOperationValues> result(new JobOperationValues);
+    std::unique_ptr<JobOperationValues> result(new JobOperationValues);
 
     result->Reserve(source.size());
     

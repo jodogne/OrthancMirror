@@ -147,8 +147,8 @@ namespace Orthanc
      * Retrieve the original instance from the DICOM cache.
      **/
     
-    std::auto_ptr<DicomInstanceHasher> originalHasher;
-    std::auto_ptr<ParsedDicomFile> modified;
+    std::unique_ptr<DicomInstanceHasher> originalHasher;
+    std::unique_ptr<ParsedDicomFile> modified;
 
     try
     {

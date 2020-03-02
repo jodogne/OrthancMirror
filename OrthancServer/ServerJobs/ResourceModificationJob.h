@@ -46,11 +46,11 @@ namespace Orthanc
   private:
     class Output;
     
-    ServerContext&                    context_;
-    std::auto_ptr<DicomModification>  modification_;
-    boost::shared_ptr<Output>         output_;
-    bool                              isAnonymization_;
-    DicomInstanceOrigin               origin_;
+    ServerContext&                      context_;
+    std::unique_ptr<DicomModification>  modification_;
+    boost::shared_ptr<Output>           output_;
+    bool                                isAnonymization_;
+    DicomInstanceOrigin                 origin_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);

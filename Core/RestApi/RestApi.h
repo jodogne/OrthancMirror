@@ -34,6 +34,7 @@
 #pragma once
 
 #include "RestApiHierarchy.h"
+#include "../Compatibility.h"
 
 #include <list>
 
@@ -47,7 +48,7 @@ namespace Orthanc
   public:
     static void AutoListChildren(RestApiGetCall& call);
 
-    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                             RequestOrigin origin,
                                             const char* remoteIp,
                                             const char* username,

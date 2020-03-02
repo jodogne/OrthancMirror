@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "Compatibility.h"
 #include "Enumerations.h"
 #include "Logging.h"
 
@@ -53,7 +54,7 @@ namespace Orthanc
     HttpStatus httpStatus_;
 
     // New in Orthanc 1.5.0
-    std::auto_ptr<std::string>  details_;
+    std::unique_ptr<std::string>  details_;
     
   public:
     OrthancException(const OrthancException& other) : 

@@ -273,7 +273,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_UnknownResource);  // The resource was deleted in between
     }
 
-    std::auto_ptr<DicomMap> result(new DicomMap);
+    std::unique_ptr<DicomMap> result(new DicomMap);
 
     switch (level)
     {
@@ -537,7 +537,7 @@ namespace Orthanc
                        const DicomMap& mainDicomTags,
                        const Json::Value* dicomAsJson) 
     {
-      std::auto_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
+      std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 
       AddAnswer(answers_, mainDicomTags, dicomAsJson,
                 queryAsArray_, sequencesToReturn_, counters.get());

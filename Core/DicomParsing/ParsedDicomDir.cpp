@@ -34,6 +34,7 @@
 #include "../PrecompiledHeaders.h"
 #include "ParsedDicomDir.h"
 
+#include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "ParsedDicomFile.h"
 #include "FromDcmtkBridge.h"
@@ -119,7 +120,7 @@ namespace Orthanc
       nextOffsets_[i] = next;
       lowerOffsets_[i] = lower;
 
-      std::auto_ptr<DicomMap> entry(new DicomMap);
+      std::unique_ptr<DicomMap> entry(new DicomMap);
       FromDcmtkBridge::ExtractDicomSummary(*entry, *item);
 
       if (next != 0)

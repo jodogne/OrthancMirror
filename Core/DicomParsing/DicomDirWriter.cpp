@@ -104,6 +104,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
 
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
@@ -132,7 +133,7 @@ namespace Orthanc
     std::string                fileSetId_;
     bool                       extendedSopClass_;
     TemporaryFile              file_;
-    std::auto_ptr<DcmDicomDir> dir_;
+    std::unique_ptr<DcmDicomDir> dir_;
 
     typedef std::pair<ResourceType, std::string>  IndexKey;
     typedef std::map<IndexKey, DcmDirectoryRecord* >  Index;
@@ -466,7 +467,7 @@ namespace Orthanc
         return false; // Already existing
       }
 
-      std::auto_ptr<DcmDirectoryRecord> record(new DcmDirectoryRecord(type, NULL, filename));
+      std::unique_ptr<DcmDirectoryRecord> record(new DcmDirectoryRecord(type, NULL, filename));
 
       switch (level)
       {

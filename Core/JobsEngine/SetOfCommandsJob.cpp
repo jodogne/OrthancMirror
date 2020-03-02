@@ -250,7 +250,7 @@ namespace Orthanc
                                      const Json::Value& source) :
     started_(false)
   {
-    std::auto_ptr<ICommandUnserializer> raii(unserializer);
+    std::unique_ptr<ICommandUnserializer> raii(unserializer);
 
     permissive_ = SerializationToolbox::ReadBoolean(source, KEY_PERMISSIVE);
     position_ = SerializationToolbox::ReadUnsignedInteger(source, KEY_POSITION);

@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfCommandsJob.h"
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
@@ -48,12 +49,12 @@ namespace Orthanc
     class Command;
     class Unserializer;
     
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    std::string                         targetAet_;
-    RemoteModalityParameters            remote_;
-    std::auto_ptr<DicomUserConnection>  connection_;
-    Json::Value                         query_;
+    ServerContext&                        context_;
+    std::string                           localAet_;
+    std::string                           targetAet_;
+    RemoteModalityParameters              remote_;
+    std::unique_ptr<DicomUserConnection>  connection_;
+    Json::Value                           query_;
 
     void Retrieve(const DicomMap& findAnswer);
     

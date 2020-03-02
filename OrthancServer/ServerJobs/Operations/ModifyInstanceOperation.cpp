@@ -94,7 +94,7 @@ namespace Orthanc
 
     LOG(INFO) << "Lua: Modifying instance " << instance.GetId();
 
-    std::auto_ptr<ParsedDicomFile> modified;
+    std::unique_ptr<ParsedDicomFile> modified;
     
     {
       ServerContext::DicomCacheLocker lock(context_, instance.GetId());

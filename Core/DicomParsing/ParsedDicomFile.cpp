@@ -156,8 +156,8 @@ namespace Orthanc
 {
   struct ParsedDicomFile::PImpl
   {
-    std::auto_ptr<DcmFileFormat> file_;
-    std::auto_ptr<DicomFrameIndex>  frameIndex_;
+    std::unique_ptr<DcmFileFormat> file_;
+    std::unique_ptr<DicomFrameIndex>  frameIndex_;
   };
 
 
@@ -649,7 +649,7 @@ namespace Orthanc
 
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions);
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
+    std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
   }
 
@@ -798,7 +798,7 @@ namespace Orthanc
         }
       }
 
-      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
+      std::unique_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
 
       if (!utf8Value.empty())
       {
@@ -921,9 +921,9 @@ namespace Orthanc
       Encoding encoding = DetectEncoding(hasCodeExtensions);
       
       std::set<DicomTag> tmp;
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                  (*element, DicomToJsonFlags_Default, 
-                                   0, encoding, hasCodeExtensions, tmp));
+      std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+                                    (*element, DicomToJsonFlags_Default, 
+                                     0, encoding, hasCodeExtensions, tmp));
       
       if (v.get() == NULL ||
           v->IsNull())
@@ -1309,7 +1309,7 @@ namespace Orthanc
     DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
                DICOM_TAG_PIXEL_DATA.GetElement());
 
-    std::auto_ptr<DcmPixelData> pixels(new DcmPixelData(key));
+    std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
 
     unsigned int pitch = accessor.GetWidth() * bytesPerPixel;
     Uint8* target = NULL;
@@ -1444,7 +1444,7 @@ namespace Orthanc
     ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
     //ReplacePlainString(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
-    std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
+    std::unique_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
     size_t s = pdf.size();
     if (s & 1)
@@ -1519,7 +1519,7 @@ namespace Orthanc
     const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
     const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
 
-    std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
+    std::unique_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
     result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, GetDefaultDicomEncoding()));
 
     const Json::Value::Members tags = json.getMemberNames();

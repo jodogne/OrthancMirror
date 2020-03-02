@@ -33,6 +33,7 @@
 
 #include "Image.h"
 
+#include "../Compatibility.h"
 #include "ImageProcessing.h"
 
 #include <memory>
@@ -54,7 +55,7 @@ namespace Orthanc
 
   Image* Image::Clone(const ImageAccessor& source)
   {
-    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight(), false));
+    std::unique_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Copy(*target, source);
     return target.release();
   }

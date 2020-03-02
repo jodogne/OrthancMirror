@@ -46,7 +46,7 @@ namespace Orthanc
 {
   void DicomFindAnswers::AddAnswerInternal(ParsedDicomFile* answer)
   {
-    std::auto_ptr<ParsedDicomFile> protection(answer);
+    std::unique_ptr<ParsedDicomFile> protection(answer);
 
     if (isWorklist_)
     {
@@ -166,7 +166,7 @@ namespace Orthanc
 
     DcmDataset& source = *GetAnswer(index).GetDcmtkObject().getDataset();
 
-    std::auto_ptr<DcmDataset> target(new DcmDataset);
+    std::unique_ptr<DcmDataset> target(new DcmDataset);
 
     for (unsigned long i = 0; i < source.card(); i++)
     {

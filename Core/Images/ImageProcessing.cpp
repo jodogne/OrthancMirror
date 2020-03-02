@@ -2058,8 +2058,8 @@ namespace Orthanc
   ImageAccessor* ImageProcessing::Halve(const ImageAccessor& source,
                                         bool forceMinimalPitch)
   {
-    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth() / 2,
-                                          source.GetHeight() / 2, forceMinimalPitch));
+    std::unique_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth() / 2,
+                                            source.GetHeight() / 2, forceMinimalPitch));
     Resize(*target, source);
     return target.release();
   }
@@ -2459,7 +2459,7 @@ namespace Orthanc
                                           unsigned int width,
                                           unsigned int height)
   {
-    std::auto_ptr<ImageAccessor> target(new Image(source.GetFormat(), width, height, false));
+    std::unique_ptr<ImageAccessor> target(new Image(source.GetFormat(), width, height, false));
     FitSize(*target, source);
     return target.release();
   }

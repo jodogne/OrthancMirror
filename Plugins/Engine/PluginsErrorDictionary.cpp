@@ -69,7 +69,7 @@ namespace Orthanc
                                                           uint16_t httpStatus,
                                                           const char* message)
   {
-    std::auto_ptr<Error> error(new Error);
+    std::unique_ptr<Error> error(new Error);
 
     error->pluginName_ = PluginsManager::GetPluginName(library);
     error->pluginCode_ = pluginCode;
