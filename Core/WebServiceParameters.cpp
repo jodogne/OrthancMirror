@@ -304,7 +304,8 @@ namespace Orthanc
             break;
 
           default:
-            throw OrthancException(ErrorCode_BadFileFormat);
+            throw OrthancException(ErrorCode_BadFileFormat,
+                                   "User-defined properties associated with a Web service must be strings: " + *it);
         }
       }
     }

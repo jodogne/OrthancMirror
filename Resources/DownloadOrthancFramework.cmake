@@ -112,6 +112,17 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         set(ORTHANC_FRAMEWORK_MD5 "e1b76f01116d9b5d4ac8cc39980560e3")
       elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.5.8")
         set(ORTHANC_FRAMEWORK_MD5 "82323e8c49a667f658a3639ea4dbc336")
+
+      # Below this point are development snapshots that were used to
+      # release some plugin, before an official release of the Orthanc
+      # framework was available. Here is the command to be used to
+      # generate a proper archive:
+      #
+      #   $ hg archive /tmp/Orthanc-`hg id -i | sed 's/\+//'`.tar.gz
+      #
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "ae0e3fd609df")
+        # DICOMweb 1.1 (framework pre-1.6.0)
+        set(ORTHANC_FRAMEWORK_MD5 "7e09e9b530a2f527854f0b782d7e0645")
       endif()
     endif()
   endif()
