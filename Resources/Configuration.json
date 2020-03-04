@@ -217,6 +217,7 @@
     //  "AET" : "ORTHANC",
     //  "Port" : 104,
     //  "Host" : "127.0.0.1",
+    //  "Manufacturer" : "Generic",
     //  "AllowEcho" : false,
     //  "AllowFind" : false,
     //  "AllowMove" : false,
