@@ -21,6 +21,13 @@ unsigned long OpenSSL_version_num(void)
   file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/bn_conf.h "")
   file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/dso_conf.h "")
 
+  # Enabling deprecated API is needed for civetweb
+  # file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h "
+  # #define DEPRECATEDIN_1_2_0(f) f;
+  # #define DEPRECATEDIN_1_1_0(f) f;
+  # #define DEPRECATEDIN_0_9_8(f) f;
+  # ")
+
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
@@ -66,6 +73,7 @@ add_definitions(
   -DOPENSSL_NO_RIPEMD
 
   -DOPENSSLDIR="/usr/local/ssl"
+  -DOPENSSL_NO_ERR
   )
 
 
@@ -204,13 +212,16 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
   )
 
-# Check out "${OPENSSL_SOURCES_DIR}/Configurations/README": "this is
-# default if no option is specified, it works on any supported system"
-set(OPENSSL_DEFINITIONS "THIRTY_TWO_BIT")
+# Check out "${OPENSSL_SOURCES_DIR}/Configurations/README": "This is
+# default if no option is specified, it works on any supported
+# system." It is mandatory to define it as a macro, as it is used by
+# all the source files that include OpenSSL (e.g. "Core/Toolbox.cpp"
+# or curl)
+add_definitions(-DTHIRTY_TWO_BIT)
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(OPENSSL_DEFINITIONS
-    "${OPENSSL_DEFINITIONS};OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN")
+    "${OPENSSL_DEFINITIONS};OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN;NO_WINDOWS_BRAINDEATH")
   
   if (ENABLE_OPENSSL_ENGINES)
     link_libraries(crypt32)
@@ -220,5 +231,5 @@ endif()
 set_source_files_properties(
   ${OPENSSL_SOURCES}
     PROPERTIES COMPILE_DEFINITIONS
-    "${OPENSSL_DEFINITIONS};DSO_NONE;NO_WINDOWS_BRAINDEATH"
+    "${OPENSSL_DEFINITIONS};DSO_NONE"
     )
