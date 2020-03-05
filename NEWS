@@ -49,6 +49,7 @@ Maintenance
 * Upgraded dependencies for static builds (notably on Windows):
   - dcmtk 3.6.5
   - openssl 1.1.1d
+  - jsoncpp 0.10.7 for pre-C++11 compilers
 
 
 Version 1.5.8 (2019-10-16)

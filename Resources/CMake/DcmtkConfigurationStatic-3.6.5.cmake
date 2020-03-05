@@ -183,3 +183,11 @@ list(REMOVE_ITEM DCMTK_SOURCES
 add_definitions(
   -DDISABLE_NAGLE_ALGORITHM=1
   )
+
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND
+    CMAKE_COMPILER_IS_GNUCXX)
+  add_definitions(
+    -DDCMTK_LOG4CPLUS_AVOID_WIN32_FLS
+    )
+endif()
