@@ -187,7 +187,9 @@ add_definitions(
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND
     CMAKE_COMPILER_IS_GNUCXX)
+  # This is MinGW
   add_definitions(
     -DDCMTK_LOG4CPLUS_AVOID_WIN32_FLS
+    -DDCMTK_LOG4CPLUS_SINGLE_THREADED
     )
 endif()
