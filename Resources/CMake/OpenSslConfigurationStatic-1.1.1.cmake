@@ -21,12 +21,10 @@ unsigned long OpenSSL_version_num(void)
   file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/bn_conf.h "")
   file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/dso_conf.h "")
 
-  # Enabling deprecated API is needed for civetweb
-  # file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h "
-  # #define DEPRECATEDIN_1_2_0(f) f;
-  # #define DEPRECATEDIN_1_1_0(f) f;
-  # #define DEPRECATEDIN_0_9_8(f) f;
-  # ")
+  configure_file(
+    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1d-conf.h.in
+    ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h
+    )
 
   # Apply the patches
   execute_process(
@@ -73,14 +71,7 @@ add_definitions(
   -DOPENSSL_NO_RIPEMD
 
   -DOPENSSLDIR="/usr/local/ssl"
-  -DOPENSSL_NO_ERR
   )
-
-
-if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-  # In order for "crypto/mem_sec.c" to compile on LSB
-  add_definitions(-DOPENSSL_NO_SECURE_MEMORY)
-endif()
 
 
 include_directories(
@@ -210,6 +201,8 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
   ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c  # Cannot be compiled with MinGW
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Cannot be compiled with MinGW
   )
 
 # Check out "${OPENSSL_SOURCES_DIR}/Configurations/README": "This is
@@ -223,10 +216,28 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(OPENSSL_DEFINITIONS
     "${OPENSSL_DEFINITIONS};OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN;NO_WINDOWS_BRAINDEATH")
   
-  if (ENABLE_OPENSSL_ENGINES)
-    link_libraries(crypt32)
+  #if (ENABLE_OPENSSL_ENGINES)
+  #  link_libraries(crypt32)
+  #endif()
+
+  add_definitions(
+    -DOPENSSL_RAND_SEED_OS  # ${OPENSSL_SOURCES_DIR}/crypto/rand/rand_win.c
+    )
+
+  if (CMAKE_COMPILER_IS_GNUCXX)  # MinGW
+    add_definitions(
+      -DOPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
+      )
   endif()
+  
+elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  # In order for "crypto/mem_sec.c" to compile on LSB
+  add_definitions(
+    -DOPENSSL_NO_SECURE_MEMORY
+    -DOPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
+    )
 endif()
+
 
 set_source_files_properties(
   ${OPENSSL_SOURCES}
