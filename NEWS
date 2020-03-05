@@ -48,6 +48,7 @@ Maintenance
 * Fix issue #168 (Plugins can't read private tags from the configuration file)
 * Upgraded dependencies for static builds (notably on Windows):
   - dcmtk 3.6.5
+  - openssl 1.1.1d
 
 
 Version 1.5.8 (2019-10-16)

@@ -73,6 +73,7 @@ set(USE_LEGACY_JSONCPP OFF CACHE BOOL "Use the old branch 0.x.y of JsonCpp, that
 set(USE_LEGACY_LIBICU OFF CACHE BOOL "Use icu icu4c-58_2, latest version not requiring a C++11 compiler (for LSB and old versions of Visual Studio)")
 set(MSVC_MULTIPLE_PROCESSES OFF CACHE BOOL "Add the /MP option to build with multiple processes if using Visual Studio")
 set(EMSCRIPTEN_SET_LLVM_WASM_BACKEND OFF CACHE BOOL "Sets the compiler flags required to use the LLVM Web Assembly backend in emscripten")
+set(OPENSSL_STATIC_VERSION "1.1.1" CACHE STRING "Version of OpenSSL to be used in static builds (can be \"1.0.2\", or \"1.1.1\")")
 
 mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
