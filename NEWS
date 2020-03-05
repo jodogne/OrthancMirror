@@ -46,6 +46,8 @@ Maintenance
 * Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
 * Fix issue #167 (Job can't be cancelled - Handling of timeouts after established association)
 * Fix issue #168 (Plugins can't read private tags from the configuration file)
+* Upgraded dependencies for static builds (notably on Windows):
+  - dcmtk 3.6.5
 
 
 Version 1.5.8 (2019-10-16)
