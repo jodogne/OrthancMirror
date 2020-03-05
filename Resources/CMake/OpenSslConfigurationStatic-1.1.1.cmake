@@ -46,6 +46,7 @@ add_definitions(
   -DOPENSSL_IA32_SSE2
   -DOPENSSL_NO_ASM
   -DOPENSSL_NO_DYNAMIC_ENGINE
+  -DOPENSSL_NO_DEVCRYPTOENG
 
   -DOPENSSL_NO_BF 
   -DOPENSSL_NO_CAMELLIA
@@ -69,6 +70,7 @@ add_definitions(
   -DOPENSSL_NO_SEED
   -DOPENSSL_NO_WHIRLPOOL
   -DOPENSSL_NO_RIPEMD
+  -DOPENSSL_NO_AFALGENG
 
   -DOPENSSLDIR="/usr/local/ssl"
   )
@@ -148,19 +150,15 @@ set(OPENSSL_SOURCES_SUBDIRS
   )
 
 if (ENABLE_OPENSSL_ENGINES)
-  # Engines support is not done yet, as Orthanc only needs it for
-  # OpenSSL < 1.1.0
-  
-  #add_definitions(
-  #  -DENGINESDIR="/usr/local/lib/engines-1.1"
-  #  )
+  add_definitions(
+    #-DENGINESDIR="/usr/local/lib/engines-1.1"  # On GNU/Linux
+    -DENGINESDIR="."
+    )
 
-  #list(APPEND OPENSSL_SOURCES_SUBDIRS
-  #  ${OPENSSL_SOURCES_DIR}/engines
-  #  ${OPENSSL_SOURCES_DIR}/crypto/engine
-  #  )
-
-  add_definitions(-DOPENSSL_NO_ENGINE)
+  list(APPEND OPENSSL_SOURCES_SUBDIRS
+    ${OPENSSL_SOURCES_DIR}/engines
+    ${OPENSSL_SOURCES_DIR}/crypto/engine
+    )
 else()
   add_definitions(-DOPENSSL_NO_ENGINE)
 endif()
@@ -198,11 +196,12 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistz256_table.c
   ${OPENSSL_SOURCES_DIR}/crypto/engine/eng_devcrypto.c
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c  # Cannot be compiled with MinGW
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Cannot be compiled with MinGW
   ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
   ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
-  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c  # Cannot be compiled with MinGW
-  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Cannot be compiled with MinGW
+  ${OPENSSL_SOURCES_DIR}/engines/e_afalg.c  # Cannot be compiled with MinGW
   )
 
 # Check out "${OPENSSL_SOURCES_DIR}/Configurations/README": "This is
@@ -216,9 +215,9 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(OPENSSL_DEFINITIONS
     "${OPENSSL_DEFINITIONS};OPENSSL_SYSNAME_WIN32;SO_WIN32;WIN32_LEAN_AND_MEAN;L_ENDIAN;NO_WINDOWS_BRAINDEATH")
   
-  #if (ENABLE_OPENSSL_ENGINES)
-  #  link_libraries(crypt32)
-  #endif()
+  if (ENABLE_OPENSSL_ENGINES)
+    link_libraries(crypt32)
+  endif()
 
   add_definitions(
     -DOPENSSL_RAND_SEED_OS  # ${OPENSSL_SOURCES_DIR}/crypto/rand/rand_win.c
