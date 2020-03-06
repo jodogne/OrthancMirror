@@ -221,14 +221,9 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
   add_definitions(
     -DOPENSSL_RAND_SEED_OS  # ${OPENSSL_SOURCES_DIR}/crypto/rand/rand_win.c
+    -DOPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
     )
-
-  if (CMAKE_COMPILER_IS_GNUCXX)  # MinGW
-    add_definitions(
-      -DOPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
-      )
-  endif()
-  
+ 
 elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # In order for "crypto/mem_sec.c" to compile on LSB
   add_definitions(
