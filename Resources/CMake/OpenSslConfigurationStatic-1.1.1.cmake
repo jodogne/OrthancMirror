@@ -208,8 +208,10 @@ add_definitions(-DTHIRTY_TWO_BIT)
 
 
 if (NOT CMAKE_COMPILER_IS_GNUCXX OR
+    "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" OR
     "${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-  # This uses a gcc extension
+  # Disable the use of a gcc extension, that is neither available on
+  # MinGW, nor on LSB
   add_definitions(
     -DOPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
     )
