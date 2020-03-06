@@ -1912,3 +1912,123 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
   ASSERT_TRUE(lines[3].empty());
 }
 
+
+
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+
+#include <dcmtk/dcmdata/dcostrmb.h>
+
+static bool Transcode(std::string& buffer,
+                      DcmDataset& dataSet,
+                      E_TransferSyntax xfer)
+{
+  // Determine the transfer syntax which shall be used to write the
+  // information to the file. We always switch to the Little Endian
+  // syntax, with explicit length.
+
+  // http://support.dcmtk.org/docs/dcxfer_8h-source.html
+
+
+  /**
+   * Note that up to Orthanc 0.7.1 (inclusive), the
+   * "EXS_LittleEndianExplicit" was always used to save the DICOM
+   * dataset into memory. We now keep the original transfer syntax
+   * (if available).
+   **/
+  //E_TransferSyntax xfer = dataSet.getOriginalXfer();
+  if (xfer == EXS_Unknown)
+  {
+    // No information about the original transfer syntax: This is
+    // most probably a DICOM dataset that was read from memory.
+    xfer = EXS_LittleEndianExplicit;
+  }
+
+  E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
+
+  // Create the meta-header information
+  DcmFileFormat ff(&dataSet);
+  ff.validateMetaInfo(xfer);
+  ff.removeInvalidGroups();
+
+  // Create a memory buffer with the proper size
+  {
+    const uint32_t estimatedSize = ff.calcElementLength(xfer, encodingType);  // (*)
+    buffer.resize(estimatedSize);
+  }
+
+  DcmOutputBufferStream ob(&buffer[0], buffer.size());
+
+  // Fill the memory buffer with the meta-header and the dataset
+  ff.transferInit();
+  OFCondition c = ff.write(ob, xfer, encodingType, NULL,
+                           /*opt_groupLength*/ EGL_recalcGL,
+                           /*opt_paddingType*/ EPD_withoutPadding);
+  ff.transferEnd();
+
+  if (c.good())
+  {
+    // The DICOM file is successfully written, truncate the target
+    // buffer if its size was overestimated by (*)
+    ob.flush();
+
+    size_t effectiveSize = static_cast<size_t>(ob.tell());
+    if (effectiveSize < buffer.size())
+    {
+      buffer.resize(effectiveSize);
+    }
+
+    return true;
+  }
+  else
+  {
+    // Error
+    buffer.clear();
+    return false;
+  }
+}
+
+#include "dcmtk/dcmjpeg/djrploss.h"  /* for DJ_RPLossy */
+#include "dcmtk/dcmjpeg/djrplol.h"   /* for DJ_RPLossless */
+
+TEST(Toto, Transcode)
+{
+  OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
+  std::string s;
+  //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.4.50.dcm");
+  //SystemToolbox::ReadFile(s, "/home/jodogne/DICOM/Alain.dcm");
+  SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0002.dcm");
+
+  std::auto_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(s.c_str(), s.size()));
+
+  // less /home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/include/dcmtk/dcmdata/dcxfer.h
+  printf(">> %d\n", dicom->getDataset()->getOriginalXfer());  // => 4 == EXS_JPEGProcess1
+
+  const DcmRepresentationParameter *p;
+
+#if 0
+  E_TransferSyntax target = EXS_LittleEndianExplicit;
+  p = NULL;
+#elif 1
+  E_TransferSyntax target = EXS_JPEGProcess14SV1;  
+  DJ_RPLossless rp_lossless(6, 0);
+  p = &rp_lossless;
+#else
+  E_TransferSyntax target = EXS_JPEGProcess1;
+  DJ_RPLossy rp_lossy(90);  // quality
+  p = &rp_lossy;
+#endif 
+  
+  //E_TransferSyntax target = EXS_LittleEndianImplicit;
+  
+  ASSERT_TRUE(dicom->getDataset()->chooseRepresentation(target, p).good());
+  ASSERT_TRUE(dicom->getDataset()->canWriteXfer(target));
+
+  std::string t;
+  ASSERT_TRUE(Transcode(t, *dicom->getDataset(), target));
+
+  SystemToolbox::WriteFile(s, "source.dcm");
+  SystemToolbox::WriteFile(t, "target.dcm");
+}
+
+#endif
