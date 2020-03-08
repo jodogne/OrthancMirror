@@ -33,14 +33,27 @@
 
 #pragma once
 
-// __cplusplus cannot be used in Visual C++ versions older than 1914
-#if (defined _MSC_VER) && (_MSC_VER < 1914)
-#  if _MSC_VER < 1900
-#    define ORTHANC_Cxx03_DETECTED 1
-#  else
+//#define Orthanc_Compatibility_h_STR2(x) #x
+//#define Orthanc_Compatibility_h_STR1(x) Orthanc_Compatibility_h_STR2(x)
+
+//#pragma message("__cplusplus = " Orthanc_Compatibility_h_STR1(__cplusplus))
+
+#if (defined _MSC_VER)
+//#  pragma message("_MSC_VER = " Orthanc_Compatibility_h_STR1(_MSC_VER))
+// The __cplusplus macro cannot be used in Visual C++ < 1914 (VC++ 15.7)
+// However, even in recent versions, __cplusplus will only be correct (that is,
+// correctly defines the supported C++ version) if a special flag is passed to
+// the compiler ("/Zc:__cplusplus")
+// To make this header more robust, we use the _MSVC_LANG equivalent macro.
+#  if (defined _MSVC_LANG) && (_MSVC_LANG >= 201103L)
 #    define ORTHANC_Cxx03_DETECTED 0
+#  else
+#    define ORTHANC_Cxx03_DETECTED 1
 #  endif
 #else
+// of _MSC_VER is not defined, we assume __cplusplus is correctly defined
+// if __cplusplus is not defined (very old compilers??), then the following
+// test will compare 0 < 201103L and will be true --> safe.
 #  if __cplusplus < 201103L
 #    define ORTHANC_Cxx03_DETECTED 1
 #  else
@@ -48,8 +61,9 @@
 #  endif
 #endif
 
-
 #if ORTHANC_Cxx03_DETECTED == 1
+//#pragma message("C++ 11 support is not present.")
+
 /**
  * "std::unique_ptr" was introduced in C++11, and "std::auto_ptr" was
  * removed in C++17. We emulate "std::auto_ptr" using boost: "The
@@ -78,5 +92,7 @@ namespace std
     }      
   };
 }
-
+#else
+//# pragma message("C++ 11 support is present.")
+# include <memory>
 #endif
