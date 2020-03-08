@@ -60,7 +60,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       )
   endif()
 
-  if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/curl_config.h")
+  if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h")
     #file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
 
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
