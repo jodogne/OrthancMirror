@@ -270,5 +270,8 @@ namespace Orthanc
     static void Apply(DcmItem& dataset,
                       ITagVisitor& visitor,
                       Encoding defaultEncoding);
+
+    static bool GetDcmtkTransferSyntax(E_TransferSyntax& target,
+                                       DicomTransferSyntax syntax);
   };
 }
