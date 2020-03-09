@@ -35,6 +35,7 @@ import json
 import os
 import re
 import sys
+import pystache
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -65,43 +66,19 @@ with open(path, 'w') as f:
     f.write(a)
 
 
-    
+
 ##
-## Generate the "GetTransferSyntaxUid()" function in
-## "Enumerations.cpp"
-##
-
-path = os.path.join(BASE, 'Core', 'Enumerations.cpp')
-with open(path, 'r') as f:
-    a = f.read()
-
-s = '\n\n'.join(map(lambda x: '      case DicomTransferSyntax_%s:\n        return "%s";' % (x['Value'], x['UID']), SYNTAXES))
-a = re.sub('(GetTransferSyntaxUid\(DicomTransferSyntax.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
-           r'\1\n%s\2' % s, a, re.DOTALL)
-
-with open(path, 'w') as f:
-    f.write(a)
-
-    
-##
-## Generate the "GetDcmtkTransferSyntax()" function in
-## "FromDcmtkBridge.cpp"
+## Generate the implementations
 ##
 
-path = os.path.join(BASE, 'Core', 'DicomParsing', 'FromDcmtkBridge.cpp')
-with open(path, 'r') as f:
-    a = f.read()
+with open(os.path.join(BASE, 'Core', 'Enumerations_TransferSyntaxes.impl.h'), 'w') as b:
+    with open(os.path.join(BASE, 'Resources', 'GenerateTransferSyntaxesEnumerations.mustache'), 'r') as a:
+        b.write(pystache.render(a.read(), {
+            'Syntaxes' : SYNTAXES
+        }))
 
-def Format(x):
-    t = '      case DicomTransferSyntax_%s:\n        target = %s;\n        return true;' % (x['Value'], x['DCMTK'])
-    if 'SinceDCMTK' in x:
-        return '#if DCMTK_VERSION_NUMBER >= %s\n%s\n#endif' % (x['SinceDCMTK'], t)
-    else:
-        return t
-    
-s = '\n\n'.join(map(Format, filter(lambda x: 'DCMTK' in x, SYNTAXES)))
-a = re.sub('(GetDcmtkTransferSyntax\(E_TransferSyntax.*?\s*DicomTransferSyntax.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
-           r'\1\n%s\2' % s, a, re.DOTALL)
-
-with open(path, 'w') as f:
-    f.write(a)
+with open(os.path.join(BASE, 'Core', 'DicomParsing', 'FromDcmtkBridge_TransferSyntaxes.impl.h'), 'w') as b:
+    with open(os.path.join(BASE, 'Resources', 'GenerateTransferSyntaxesDcmtk.mustache'), 'r') as a:
+        b.write(pystache.render(a.read(), {
+            'Syntaxes' : SYNTAXES
+        }))

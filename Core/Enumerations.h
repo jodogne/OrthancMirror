@@ -848,4 +848,9 @@ namespace Orthanc
   void SetDefaultDicomEncoding(Encoding encoding);
 
   const char* GetTransferSyntaxUid(DicomTransferSyntax syntax);
+
+  bool IsRetiredTransferSyntax(DicomTransferSyntax syntax);
+
+  bool LookupTransferSyntax(DicomTransferSyntax& target,
+                            const std::string& uid);
 }
