@@ -2255,5 +2255,7 @@ namespace Orthanc
 
     LOG(INFO) << "Default encoding for DICOM was changed to: " << name;
   }
-
 }
+
+
+#include "./Enumerations_TransferSyntaxes.impl.h"
