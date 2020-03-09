@@ -107,10 +107,16 @@
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
 #  include <dcmtk/dcmjpeg/djdecode.h>
+#  if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#    include <dcmtk/dcmjpeg/djencode.h>
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpls/djdecode.h>
+#  if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#    include <dcmtk/dcmjpls/djencode.h>
+#  endif
 #endif
 
 
@@ -2045,12 +2051,18 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   {
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     LOG(INFO) << "Registering JPEG Lossless codecs in DCMTK";
-    DJLSDecoderRegistration::registerCodecs();    
+    DJLSDecoderRegistration::registerCodecs();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJLSEncoderRegistration::registerCodecs();
+# endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     LOG(INFO) << "Registering JPEG codecs in DCMTK";
     DJDecoderRegistration::registerCodecs(); 
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJEncoderRegistration::registerCodecs();
+# endif
 #endif
   }
 
@@ -2060,11 +2072,17 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     // Unregister JPEG-LS codecs
     DJLSDecoderRegistration::cleanup();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJLSEncoderRegistration::cleanup();
+# endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJDecoderRegistration::cleanup();
+# endif
 #endif
   }
 
@@ -2552,3 +2570,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
   }
 }
+
+
+#include "./FromDcmtkBridge_TransferSyntaxes.impl.h"

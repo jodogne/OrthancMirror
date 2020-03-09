@@ -1700,7 +1700,11 @@ namespace Orthanc
 #ifdef FIPS_mode_set
     FIPS_mode_set(0);
 #endif
+
+#if !defined(OPENSSL_NO_ENGINE)
     ENGINE_cleanup();
+#endif
+    
     CONF_modules_unload(1);
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
