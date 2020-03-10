@@ -158,33 +158,45 @@ namespace Orthanc
 
     bool Echo();
 
-    void Store(const char* buffer, 
+    void Store(std::string& sopClassUid /* out */,
+               std::string& sopInstanceUid /* out */,
+               const char* buffer, 
                size_t size,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
-    void Store(const char* buffer, 
+    void Store(std::string& sopClassUid /* out */,
+               std::string& sopInstanceUid /* out */,
+               const char* buffer, 
                size_t size)
     {
-      Store(buffer, size, "", 0);  // Not a C-Move
+      Store(sopClassUid, sopInstanceUid, buffer, size, "", 0);  // Not a C-Move
     }
 
-    void Store(const std::string& buffer,
+    void Store(std::string& sopClassUid /* out */,
+               std::string& sopInstanceUid /* out */,
+               const std::string& buffer,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
-    void Store(const std::string& buffer)
+    void Store(std::string& sopClassUid /* out */,
+               std::string& sopInstanceUid /* out */,
+               const std::string& buffer)
     {
-      Store(buffer, "", 0);  // Not a C-Move
+      Store(sopClassUid, sopInstanceUid, buffer, "", 0);  // Not a C-Move
     }
 
-    void StoreFile(const std::string& path,
+    void StoreFile(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   const std::string& path,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
 
-    void StoreFile(const std::string& path)
+    void StoreFile(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   const std::string& path)
     {
-      StoreFile(path, "", 0);  // Not a C-Move
+      StoreFile(sopClassUid, sopInstanceUid, path, "", 0);  // Not a C-Move
     }
 
     void Find(DicomFindAnswers& result,

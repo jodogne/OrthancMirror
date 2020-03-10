@@ -158,7 +158,9 @@ namespace Orthanc
 
     void CheckIsOpen() const;
 
-    void Store(DcmInputStream& is, 
+    void Store(std::string& sopClassUidOut  /* out */,
+               std::string& sopInstanceUidOut  /* out */,
+               DcmInputStream& is, 
                DicomUserConnection& connection,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
@@ -351,7 +353,9 @@ namespace Orthanc
   }
 
 
-  void DicomUserConnection::PImpl::Store(DcmInputStream& is, 
+  void DicomUserConnection::PImpl::Store(std::string& sopClassUidOut,
+                                         std::string& sopInstanceUidOut,
+                                         DcmInputStream& is, 
                                          DicomUserConnection& connection,
                                          const std::string& moveOriginatorAET,
                                          uint16_t moveOriginatorID)
@@ -433,6 +437,9 @@ namespace Orthanc
                              "Unable to determine the SOP class/instance for C-STORE with AET " +
                              connection.remoteAet_);
     }
+
+    sopClassUidOut.assign(sopClass);
+    sopInstanceUidOut.assign(sopInstance);
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(assoc_, sopClass);
@@ -1175,7 +1182,9 @@ namespace Orthanc
     return pimpl_->IsOpen();
   }
 
-  void DicomUserConnection::Store(const char* buffer, 
+  void DicomUserConnection::Store(std::string& sopClassUid /* out */,
+                                  std::string& sopInstanceUid /* out */,
+                                  const char* buffer, 
                                   size_t size,
                                   const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
@@ -1186,26 +1195,31 @@ namespace Orthanc
       is.setBuffer(buffer, size);
     is.setEos();
       
-    pimpl_->Store(is, *this, moveOriginatorAET, moveOriginatorID);
+    pimpl_->Store(sopClassUid, sopInstanceUid, is, *this, moveOriginatorAET, moveOriginatorID);
   }
 
-  void DicomUserConnection::Store(const std::string& buffer,
+  void DicomUserConnection::Store(std::string& sopClassUid /* out */,
+                                  std::string& sopInstanceUid /* out */,
+                                  const std::string& buffer,
                                   const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
   {
     if (buffer.size() > 0)
-      Store(&buffer[0], buffer.size(), moveOriginatorAET, moveOriginatorID);
+      Store(sopClassUid, sopInstanceUid, &buffer[0], buffer.size(),
+            moveOriginatorAET, moveOriginatorID);
     else
-      Store(NULL, 0, moveOriginatorAET, moveOriginatorID);
+      Store(sopClassUid, sopInstanceUid, NULL, 0, moveOriginatorAET, moveOriginatorID);
   }
 
-  void DicomUserConnection::StoreFile(const std::string& path,
+  void DicomUserConnection::StoreFile(std::string& sopClassUid /* out */,
+                                      std::string& sopInstanceUid /* out */,
+                                      const std::string& path,
                                       const std::string& moveOriginatorAET,
                                       uint16_t moveOriginatorID)
   {
     // Prepare an input stream for the file
     DcmInputFileStream is(path.c_str());
-    pimpl_->Store(is, *this, moveOriginatorAET, moveOriginatorID);
+    pimpl_->Store(sopClassUid, sopInstanceUid, is, *this, moveOriginatorAET, moveOriginatorID);
   }
 
   bool DicomUserConnection::Echo()
