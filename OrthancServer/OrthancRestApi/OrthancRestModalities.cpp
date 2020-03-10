@@ -46,6 +46,7 @@
 #include "../ServerJobs/DicomMoveScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
+#include "../StorageCommitmentReports.h"
 
 
 namespace Orthanc
@@ -1305,7 +1306,9 @@ namespace Orthanc
   }
 
 
-  static void StorageCommitment(RestApiPostCall& call)
+  // Storage commitment SCU ---------------------------------------------------
+
+  static void StorageCommitmentScu(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -1364,20 +1367,27 @@ namespace Orthanc
         }
       }
 
-      const std::string transaction = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+      const std::string transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();
 
       {
-        const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
         const RemoteModalityParameters remote =
           MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
+        const std::string& remoteAet = remote.GetApplicationEntityTitle();
+        const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+        
+        // Create a "pending" storage commitment report BEFORE the
+        // actual SCU call in order to avoid race conditions
+        context.GetStorageCommitmentReports().Store(
+          transactionUid, new StorageCommitmentReports::Report(remoteAet));
+
         DicomUserConnection scu(localAet, remote);
-        scu.RequestStorageCommitment(transaction, sopClassUids, sopInstanceUids);
+        scu.RequestStorageCommitment(transactionUid, sopClassUids, sopInstanceUids);
       }
 
       Json::Value result = Json::objectValue;
-      result["ID"] = transaction;
-      result["Path"] = "/storage-commitment/" + transaction;
+      result["ID"] = transactionUid;
+      result["Path"] = "/storage-commitment/" + transactionUid;
       call.GetOutput().AnswerJson(result);
     }
     else
@@ -1387,6 +1397,31 @@ namespace Orthanc
     }
   }
 
+
+  static void GetStorageCommitmentReport(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    const std::string& transactionUid = call.GetUriComponent("id", "");
+
+    {
+      StorageCommitmentReports::Accessor accessor(
+        context.GetStorageCommitmentReports(), transactionUid);
+
+      if (accessor.IsValid())
+      {
+        Json::Value json;
+        accessor.GetReport().Format(json);
+        call.GetOutput().AnswerJson(json);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "No storage commitment transaction with UID: " + transactionUid);
+      }
+    }
+  }
+  
 
   void OrthancRestApi::RegisterModalities()
   {
@@ -1432,6 +1467,7 @@ namespace Orthanc
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
 
-    Register("/modalities/{id}/storage-commitment", StorageCommitment);
+    Register("/modalities/{id}/storage-commitment", StorageCommitmentScu);
+    Register("/storage-commitment/{id}", GetStorageCommitmentReport);
   }
 }

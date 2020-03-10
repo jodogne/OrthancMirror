@@ -38,6 +38,7 @@
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
+#include "../StorageCommitmentReports.h"
 
 
 namespace Orthanc
@@ -96,9 +97,15 @@ namespace Orthanc
       }
       
       if (sopClassUids_.size() == GetInstancesCount())
-      {      
-        LOG(INFO) << "Sending storage commitment request to modality: "
-                  << remote_.GetApplicationEntityTitle();
+      {
+        const std::string& remoteAet = remote_.GetApplicationEntityTitle();
+        
+        LOG(INFO) << "Sending storage commitment request to modality: " << remoteAet;
+
+        // Create a "pending" storage commitment report BEFORE the
+        // actual SCU call in order to avoid race conditions
+        context_.GetStorageCommitmentReports().Store(
+          transactionUid_, new StorageCommitmentReports::Report(remoteAet));
         
         assert(IsStarted());
         OpenConnection();

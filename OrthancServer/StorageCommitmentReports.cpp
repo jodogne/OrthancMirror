@@ -62,7 +62,7 @@ namespace Orthanc
       Success success;
       success.sopClassUid_ = sopClassUid;
       success.sopInstanceUid_ = sopInstanceUid;
-      successes_.push_back(success);
+      success_.push_back(success);
     }
   }
 
@@ -98,6 +98,71 @@ namespace Orthanc
     else
     {
       return Status_Failure;
+    }
+  }
+
+
+  void StorageCommitmentReports::Report::Format(Json::Value& json) const
+  {
+    static const char* const FIELD_STATUS = "Status";
+    static const char* const FIELD_SOP_CLASS_UID = "SOPClassUID";
+    static const char* const FIELD_SOP_INSTANCE_UID = "SOPInstanceUID";
+    static const char* const FIELD_FAILURE_REASON = "FailureReason";
+    static const char* const FIELD_DESCRIPTION = "Description";
+    static const char* const FIELD_REMOTE_AET = "RemoteAET";
+    static const char* const FIELD_SUCCESS = "Success";
+    static const char* const FIELD_FAILURES = "Failures";
+
+    
+    json = Json::objectValue;
+    json[FIELD_REMOTE_AET] = remoteAet_;
+    
+    switch (GetStatus())
+    {
+      case Status_Pending:
+        json[FIELD_STATUS] = "Pending";
+        break;
+
+      case Status_Success:
+        json[FIELD_STATUS] = "Success";
+        break;
+
+      case Status_Failure:
+        json[FIELD_STATUS] = "Failure";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    {
+      Json::Value success = Json::arrayValue;
+      for (std::list<Success>::const_iterator
+             it = success_.begin(); it != success_.end(); ++it)
+      {
+        Json::Value item = Json::objectValue;
+        item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
+        item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
+        success.append(item);
+      }
+
+      json[FIELD_SUCCESS] = success;
+    }
+
+    {
+      Json::Value failures = Json::arrayValue;
+      for (std::list<Failure>::const_iterator
+             it = failures_.begin(); it != failures_.end(); ++it)
+      {
+        Json::Value item = Json::objectValue;
+        item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
+        item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
+        item[FIELD_FAILURE_REASON] = it->reason_;
+        item[FIELD_DESCRIPTION] = EnumerationToString(it->reason_);
+        failures.append(item);
+      }
+
+      json[FIELD_FAILURES] = failures;
     }
   }
 
