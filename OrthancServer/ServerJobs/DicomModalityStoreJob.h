@@ -50,8 +50,16 @@ namespace Orthanc
     std::string                           moveOriginatorAet_;
     uint16_t                              moveOriginatorId_;
     std::unique_ptr<DicomUserConnection>  connection_;
+    bool                                  storageCommitment_;
+
+    // For storage commitment
+    std::string               transactionUid_;
+    std::vector<std::string>  sopInstanceUids_;
+    std::vector<std::string>  sopClassUids_;
 
     void OpenConnection();
+
+    void ResetStorageCommitment();
 
   protected:
     virtual bool HandleInstance(const std::string& instance);
@@ -90,7 +98,7 @@ namespace Orthanc
     void SetMoveOriginator(const std::string& aet,
                            int id);
 
-    virtual void Stop(JobStopReason reason);
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual void GetJobType(std::string& target)
     {
@@ -100,5 +108,11 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value);
 
     virtual bool Serialize(Json::Value& target);
+
+    virtual void Start() ORTHANC_OVERRIDE;
+
+    virtual void Reset() ORTHANC_OVERRIDE;
+
+    void EnableStorageCommitment(bool enabled);
   };
 }

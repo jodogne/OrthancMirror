@@ -137,14 +137,8 @@ public:
                             const std::string& remoteAet,
                             const std::string& calledAet)
   {
+    // TODO
     printf("HANDLE REPORT\n");
-
-    /**
-     * "After the N-EVENT-REPORT has been sent, the Transaction UID is
-     * no longer active and shall not be reused for other
-     * transactions."
-     * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
-     **/
   }
 };
 

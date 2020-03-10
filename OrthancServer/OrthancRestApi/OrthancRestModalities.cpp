@@ -963,6 +963,12 @@ namespace Orthanc
       job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
     }
 
+    // New in Orthanc 1.6.0
+    if (Toolbox::GetJsonBooleanField(request, "StorageCommitment", false))
+    {
+      job->EnableStorageCommitment(true);
+    }
+
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
   }
@@ -1299,36 +1305,85 @@ namespace Orthanc
   }
 
 
-  static void TestStorageCommitment(RestApiPostCall& call)
+  static void StorageCommitment(RestApiPostCall& call)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
-    if (call.ParseJsonRequest(json))
+    if (call.ParseJsonRequest(json) ||
+        json.type() != Json::arrayValue)
     {
-      const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-      const RemoteModalityParameters remote =
-        MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+      std::vector<std::string> sopClassUids, sopInstanceUids;
+      sopClassUids.resize(json.size());
+      sopInstanceUids.resize(json.size());
 
+      for (Json::Value::ArrayIndex i = 0; i < json.size(); i++)
       {
-        DicomUserConnection scu(localAet, remote);
+        if (json[i].type() == Json::arrayValue)
+        {
+          if (json[i].size() != 2 ||
+              json[i][0].type() != Json::stringValue ||
+              json[i][1].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat,
+                                   "An instance entry must provide an array with 2 strings: "
+                                   "SOP Class UID and SOP Instance UID");
+          }
+          else
+          {
+            sopClassUids[i] = json[i][0].asString();
+            sopInstanceUids[i] = json[i][1].asString();
+          }
+        }
+        else if (json[i].type() == Json::objectValue)
+        {
+          static const char* const SOP_CLASS_UID = "SOPClassUID";
+          static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
 
-        std::vector<std::string> sopClassUids, sopInstanceUids;
-        sopClassUids.push_back("a");
-        sopInstanceUids.push_back("b");
-        sopClassUids.push_back("1.2.840.10008.5.1.4.1.1.6.1");
-        sopInstanceUids.push_back("1.2.840.113543.6.6.4.7.64234348190163144631511103849051737563212");
-
-        std::string t = Toolbox::GenerateDicomPrivateUniqueIdentifier();
-        scu.RequestStorageCommitment(t, sopClassUids, sopInstanceUids);
+          if (!json[i].isMember(SOP_CLASS_UID) ||
+              !json[i].isMember(SOP_INSTANCE_UID) ||
+              json[i][SOP_CLASS_UID].type() != Json::stringValue ||
+              json[i][SOP_INSTANCE_UID].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat,
+                                   "An instance entry must provide an object with 2 string fiels: "
+                                   "\"" + std::string(SOP_CLASS_UID) + "\" and \"" +
+                                   std::string(SOP_INSTANCE_UID));
+          }
+          else
+          {
+            sopClassUids[i] = json[i][SOP_CLASS_UID].asString();
+            sopInstanceUids[i] = json[i][SOP_INSTANCE_UID].asString();
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "JSON array or object is expected to specify one "
+                                 "instance to be queried, found: " + json[i].toStyledString());
+        }
       }
 
-      Json::Value result;
+      const std::string transaction = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+
+      {
+        const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+        const RemoteModalityParameters remote =
+          MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+        DicomUserConnection scu(localAet, remote);
+        scu.RequestStorageCommitment(transaction, sopClassUids, sopInstanceUids);
+      }
+
+      Json::Value result = Json::objectValue;
+      result["ID"] = transaction;
+      result["Path"] = "/storage-commitment/" + transaction;
       call.GetOutput().AnswerJson(result);
     }
     else
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Must provide a JSON array with a list of instances");
     }
   }
 
@@ -1377,6 +1432,6 @@ namespace Orthanc
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
 
-    Register("/modalities/{id}/storage-commitment", TestStorageCommitment);
+    Register("/modalities/{id}/storage-commitment", StorageCommitment);
   }
 }
