@@ -65,7 +65,7 @@ namespace Orthanc
       };
       
       bool                isComplete_;
-      std::list<Success>  successes_;
+      std::list<Success>  success_;
       std::list<Failure>  failures_;
       std::string         remoteAet_;
 
@@ -91,6 +91,8 @@ namespace Orthanc
                       StorageCommitmentFailureReason reason);
 
       Status GetStatus() const;
+
+      void Format(Json::Value& json) const;
     };
 
   private:

@@ -742,7 +742,7 @@ namespace Orthanc
     StorageCommitmentFailureReason_ClassInstanceConflict = 0x0119,
 
     // The Transaction UID of the Storage Commitment Request is already in use
-    StorageCommitmentFailureReason_DuplicateTransactionUID = 0x0131    
+    StorageCommitmentFailureReason_DuplicateTransactionUID = 0x0131
   };
 
 
@@ -830,6 +830,8 @@ namespace Orthanc
   const char* EnumerationToString(MimeType mime);
 
   const char* EnumerationToString(Endianness endianness);
+
+  const char* EnumerationToString(StorageCommitmentFailureReason reason);
 
   Encoding StringToEncoding(const char* encoding);
 
