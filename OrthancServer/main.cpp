@@ -52,6 +52,7 @@
 #include "ServerContext.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
+#include "StorageCommitmentReports.h"
 
 using namespace Orthanc;
 
@@ -133,12 +134,34 @@ public:
                             const std::vector<std::string>& successSopInstanceUids,
                             const std::vector<std::string>& failedSopClassUids,
                             const std::vector<std::string>& failedSopInstanceUids,
+                            const std::vector<StorageCommitmentFailureReason>& failureReasons,
                             const std::string& remoteIp,
                             const std::string& remoteAet,
                             const std::string& calledAet)
   {
-    // TODO
-    printf("HANDLE REPORT\n");
+    if (successSopClassUids.size() != successSopInstanceUids.size() ||
+        failedSopClassUids.size() != failedSopInstanceUids.size() ||
+        failedSopClassUids.size() != failureReasons.size())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::unique_ptr<StorageCommitmentReports::Report> report(
+      new StorageCommitmentReports::Report(remoteAet));
+
+    for (size_t i = 0; i < successSopClassUids.size(); i++)
+    {
+      report->AddSuccess(successSopClassUids[i], successSopInstanceUids[i]);
+    }
+
+    for (size_t i = 0; i < failedSopClassUids.size(); i++)
+    {
+      report->AddFailure(failedSopClassUids[i], failedSopInstanceUids[i], failureReasons[i]);
+    }
+
+    report->MarkAsComplete();
+
+    context_.GetStorageCommitmentReports().Store(transactionUid, report.release());
   }
 };
 

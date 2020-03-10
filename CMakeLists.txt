@@ -106,6 +106,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerJobs/StorageCommitmentScpJob.cpp
   OrthancServer/ServerToolbox.cpp
   OrthancServer/SliceOrdering.cpp
+  OrthancServer/StorageCommitmentReports.cpp
   )
 
 

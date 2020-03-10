@@ -928,14 +928,21 @@ namespace Orthanc
     }
 
 
-    static void ReadSopSequence(std::vector<std::string>& sopClassUids,
-                                std::vector<std::string>& sopInstanceUids,
-                                DcmDataset& dataset,
-                                const DcmTagKey& tag,
-                                bool mandatory)
+    static void ReadSopSequence(
+      std::vector<std::string>& sopClassUids,
+      std::vector<std::string>& sopInstanceUids,
+      std::vector<StorageCommitmentFailureReason>* failureReasons, // Can be NULL
+      DcmDataset& dataset,
+      const DcmTagKey& tag,
+      bool mandatory)
     {
       sopClassUids.clear();
       sopInstanceUids.clear();
+
+      if (failureReasons)
+      {
+        failureReasons->clear();
+      }
 
       DcmSequenceOfItems* sequence = NULL;
       if (!dataset.findAndGetSequence(tag, sequence).good() ||
@@ -957,6 +964,11 @@ namespace Orthanc
       sopClassUids.reserve(sequence->card());
       sopInstanceUids.reserve(sequence->card());
 
+      if (failureReasons)
+      {
+        failureReasons->reserve(sequence->card());
+      }
+
       for (unsigned long i = 0; i < sequence->card(); i++)
       {
         const char* a = NULL;
@@ -968,11 +980,24 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_NetworkProtocol,
                                  "Missing Referenced SOP Class/Instance UID "
-                                 "in storage commitment request");
+                                 "in storage commitment dataset");
         }
 
         sopClassUids.push_back(a);
         sopInstanceUids.push_back(b);
+
+        if (failureReasons != NULL)
+        {
+          Uint16 reason;
+          if (!sequence->getItem(i)->findAndGetUint16(DCM_FailureReason, reason).good())
+          {
+            throw OrthancException(ErrorCode_NetworkProtocol,
+                                   "Missing Failure Reason (0008,1197) "
+                                   "in storage commitment dataset");
+          }
+
+          failureReasons->push_back(static_cast<StorageCommitmentFailureReason>(reason));
+        }
       }
     }
 
@@ -1034,7 +1059,7 @@ namespace Orthanc
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> sopClassUid, sopInstanceUid;
-      ReadSopSequence(sopClassUid, sopInstanceUid,
+      ReadSopSequence(sopClassUid, sopInstanceUid, NULL,
                       *dataset, DCM_ReferencedSOPSequence, true /* mandatory */);
 
       LOG(INFO) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
@@ -1157,15 +1182,16 @@ namespace Orthanc
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> successSopClassUid, successSopInstanceUid;
-      ReadSopSequence(successSopClassUid, successSopInstanceUid,
+      ReadSopSequence(successSopClassUid, successSopInstanceUid, NULL,
                       *dataset, DCM_ReferencedSOPSequence,
                       (report.EventTypeID == 1) /* mandatory in the case of success */);
 
       std::vector<std::string> failedSopClassUid, failedSopInstanceUid;
+      std::vector<StorageCommitmentFailureReason> failureReasons;
 
       if (report.EventTypeID == 2 /* failures exist */)
       {
-        ReadSopSequence(failedSopClassUid, failedSopInstanceUid,
+        ReadSopSequence(failedSopClassUid, failedSopInstanceUid, &failureReasons,
                         *dataset, DCM_FailedSOPSequence, true);
       }
 
@@ -1200,7 +1226,7 @@ namespace Orthanc
            ConstructStorageCommitmentRequestHandler());
 
         handler->HandleReport(transactionUid, successSopClassUid, successSopInstanceUid,
-                              failedSopClassUid, failedSopInstanceUid,
+                              failedSopClassUid, failedSopInstanceUid, failureReasons,
                               remoteIp_, remoteAet_, calledAet_);
         
         dimseStatus = 0;  // Success

@@ -40,6 +40,7 @@ Lua
 Maintenance
 -----------
 
+* New configuration options: "DefaultPrivateCreator" and "StorageCommitmentReportsSize"
 * Support of MPEG4 transfer syntaxes in C-Store SCP
 * C-FIND SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
