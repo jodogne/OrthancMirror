@@ -102,8 +102,10 @@ namespace Orthanc
         
         assert(IsStarted());
         OpenConnection();
-        
-        connection_->RequestStorageCommitment(transactionUid_, sopClassUids_, sopInstanceUids_);
+
+        std::vector<std::string> a(sopClassUids_.begin(), sopClassUids_.end());
+        std::vector<std::string> b(sopInstanceUids_.begin(), sopInstanceUids_.end());
+        connection_->RequestStorageCommitment(transactionUid_, a, b);
       }
     }
 
@@ -125,6 +127,7 @@ namespace Orthanc
     moveOriginatorId_(0),      // By default, not a C-MOVE
     storageCommitment_(false)  // By default, no storage commitment
   {
+    ResetStorageCommitment();
   }
 
 
@@ -210,18 +213,11 @@ namespace Orthanc
     if (storageCommitment_)
     {
       transactionUid_ = Toolbox::GenerateDicomPrivateUniqueIdentifier();
-      sopClassUids_.reserve(GetInstancesCount());
-      sopInstanceUids_.reserve(GetInstancesCount());
+      sopClassUids_.clear();
+      sopInstanceUids_.clear();
     }
   }
   
-
-  void DicomModalityStoreJob::Start()
-  {
-    SetOfInstancesJob::Start();
-    ResetStorageCommitment();
-  }
-
 
   void DicomModalityStoreJob::Reset()
   {
@@ -240,6 +236,7 @@ namespace Orthanc
   void DicomModalityStoreJob::EnableStorageCommitment(bool enabled)
   {
     storageCommitment_ = enabled;
+    ResetStorageCommitment();
   }
   
 
