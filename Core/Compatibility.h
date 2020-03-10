@@ -40,16 +40,23 @@
 
 #if (defined _MSC_VER)
 //#  pragma message("_MSC_VER = " Orthanc_Compatibility_h_STR1(_MSC_VER))
+//#  pragma message("_MSVC_LANG = " Orthanc_Compatibility_h_STR1(_MSVC_LANG))
 // The __cplusplus macro cannot be used in Visual C++ < 1914 (VC++ 15.7)
 // However, even in recent versions, __cplusplus will only be correct (that is,
 // correctly defines the supported C++ version) if a special flag is passed to
 // the compiler ("/Zc:__cplusplus")
 // To make this header more robust, we use the _MSVC_LANG equivalent macro.
-#  if (defined _MSVC_LANG) && (_MSVC_LANG >= 201103L)
+
+// please note that not all C++11 features are supported when _MSC_VER == 1600
+// (or higher). This header file can be made for fine-grained, if required, 
+// based on specific _MSC_VER values
+
+#  if _MSC_VER >= 1600
 #    define ORTHANC_Cxx03_DETECTED 0
 #  else
 #    define ORTHANC_Cxx03_DETECTED 1
 #  endif
+
 #else
 // of _MSC_VER is not defined, we assume __cplusplus is correctly defined
 // if __cplusplus is not defined (very old compilers??), then the following
