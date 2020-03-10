@@ -167,6 +167,20 @@ namespace Orthanc
   }
 
 
+  void StorageCommitmentReports::Report::GetSuccessSopInstanceUids(
+    std::vector<std::string>& target) const
+  {
+    target.clear();
+    target.reserve(success_.size());
+
+    for (std::list<Success>::const_iterator
+           it = success_.begin(); it != success_.end(); ++it)
+    {
+      target.push_back(it->sopInstanceUid_);
+    }
+  }
+
+
   StorageCommitmentReports::~StorageCommitmentReports()
   {
     while (!content_.IsEmpty())

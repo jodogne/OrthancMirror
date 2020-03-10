@@ -1423,6 +1423,54 @@ namespace Orthanc
   }
   
 
+  static void RemoveAfterStorageCommitment(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    const std::string& transactionUid = call.GetUriComponent("id", "");
+
+    {
+      StorageCommitmentReports::Accessor accessor(
+        context.GetStorageCommitmentReports(), transactionUid);
+
+      if (!accessor.IsValid())
+      {
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "No storage commitment transaction with UID: " + transactionUid);
+      }
+      else if (accessor.GetReport().GetStatus() != StorageCommitmentReports::Report::Status_Success)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "Cannot remove DICOM instances after failure "
+                               "in storage commitment transaction: " + transactionUid);
+      }
+      else
+      {
+        std::vector<std::string> sopInstanceUids;
+        accessor.GetReport().GetSuccessSopInstanceUids(sopInstanceUids);
+
+        for (size_t i = 0; i < sopInstanceUids.size(); i++)
+        {
+          std::vector<std::string> orthancId;
+          context.GetIndex().LookupIdentifierExact(
+            orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUids[i]);
+
+          for (size_t j = 0; j < orthancId.size(); j++)
+          {
+            LOG(INFO) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
+                      << sopInstanceUids[i] << " / " << orthancId[j];
+
+            Json::Value tmp;
+            context.GetIndex().DeleteResource(tmp, orthancId[j], ResourceType_Instance);
+          }
+        }
+          
+        call.GetOutput().AnswerBuffer("{}", MimeType_Json);
+      }
+    }
+  }
+  
+
   void OrthancRestApi::RegisterModalities()
   {
     Register("/modalities", ListModalities);
@@ -1467,7 +1515,9 @@ namespace Orthanc
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
 
+    // Storage commitment
     Register("/modalities/{id}/storage-commitment", StorageCommitmentScu);
     Register("/storage-commitment/{id}", GetStorageCommitmentReport);
+    Register("/storage-commitment/{id}/remove", RemoveAfterStorageCommitment);
   }
 }

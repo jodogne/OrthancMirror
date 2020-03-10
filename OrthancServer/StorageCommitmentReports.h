@@ -93,6 +93,8 @@ namespace Orthanc
       Status GetStatus() const;
 
       void Format(Json::Value& json) const;
+
+      void GetSuccessSopInstanceUids(std::vector<std::string>& target) const;
     };
 
   private:
