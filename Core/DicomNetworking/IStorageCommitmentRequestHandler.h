@@ -58,6 +58,7 @@ namespace Orthanc
                               const std::vector<std::string>& successSopInstanceUids,
                               const std::vector<std::string>& failedSopClassUids,
                               const std::vector<std::string>& failedSopInstanceUids,
+                              const std::vector<StorageCommitmentFailureReason>& failureReasons,
                               const std::string& remoteIp,
                               const std::string& remoteAet,
                               const std::string& calledAet) = 0;

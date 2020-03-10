@@ -528,5 +528,9 @@
   // Set the default private creator that is used by Orthanc when it
   // looks for a private tag in its dictionary (cf. "Dictionary"
   // option), or when it creates/modifies a DICOM file (new in Orthanc 1.6.0).
-  "DefaultPrivateCreator" : ""
+  "DefaultPrivateCreator" : "",
+
+  // Maximum number of storage commitment reports (i.e. received from
+  // remote modalities) to be kept in memory (new in Orthanc 1.6.0).
+  "StorageCommitmentReportsSize" : 100
 }

@@ -54,6 +54,7 @@ namespace Orthanc
   class SetOfInstancesJob;
   class SharedArchive;
   class SharedMessageQueue;
+  class StorageCommitmentReports;
   
   
   /**
@@ -220,6 +221,8 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
+
+    std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -430,5 +433,10 @@ namespace Orthanc
                             const std::vector<std::string>& sopInstanceUids,
                             const std::string& remoteAet,
                             const std::string& calledAet) ORTHANC_OVERRIDE;
+
+    StorageCommitmentReports& GetStorageCommitmentReports()
+    {
+      return *storageCommitmentReports_;
+    }
   };
 }
