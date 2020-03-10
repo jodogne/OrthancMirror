@@ -53,9 +53,9 @@ namespace Orthanc
     bool                                  storageCommitment_;
 
     // For storage commitment
-    std::string               transactionUid_;
-    std::vector<std::string>  sopInstanceUids_;
-    std::vector<std::string>  sopClassUids_;
+    std::string             transactionUid_;
+    std::list<std::string>  sopInstanceUids_;
+    std::list<std::string>  sopClassUids_;
 
     void OpenConnection();
 
@@ -108,8 +108,6 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value);
 
     virtual bool Serialize(Json::Value& target);
-
-    virtual void Start() ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
 
