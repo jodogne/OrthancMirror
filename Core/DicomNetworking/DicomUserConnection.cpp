@@ -1685,6 +1685,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+    for (size_t i = 0; i < sopClassUids.size(); i++)
+    {
+      if (sopClassUids[i].empty() ||
+          sopInstanceUids[i].empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "The SOP class/instance UIDs cannot be empty, found: \"" +
+                               sopClassUids[i] + "\" / \"" + sopInstanceUids[i] + "\"");
+      }
+    }
+
     if (transactionUid.size() < 5 ||
         transactionUid.substr(0, 5) != "2.25.")
     {
