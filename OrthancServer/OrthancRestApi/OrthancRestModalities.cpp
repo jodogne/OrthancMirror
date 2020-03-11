@@ -1310,64 +1310,146 @@ namespace Orthanc
 
   static void StorageCommitmentScu(RestApiPostCall& call)
   {
+    static const char* const ORTHANC_RESOURCES = "Resources";
+    static const char* const DICOM_INSTANCES = "DicomInstances";
+    static const char* const SOP_CLASS_UID = "SOPClassUID";
+    static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
-    if (call.ParseJsonRequest(json) ||
-        json.type() != Json::arrayValue)
+    if (!call.ParseJsonRequest(json) ||
+        json.type() != Json::objectValue)
     {
-      std::vector<std::string> sopClassUids, sopInstanceUids;
-      sopClassUids.resize(json.size());
-      sopInstanceUids.resize(json.size());
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Must provide a JSON object with a list of resources");
+    }
+    else if (!json.isMember(ORTHANC_RESOURCES) &&
+             !json.isMember(DICOM_INSTANCES))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Empty storage commitment request, one of these fields is mandatory: \"" +
+                             std::string(ORTHANC_RESOURCES) + "\" or \"" + std::string(DICOM_INSTANCES) + "\"");
+    }
+    else
+    {
+      std::list<std::string> sopClassUids, sopInstanceUids;
 
-      for (Json::Value::ArrayIndex i = 0; i < json.size(); i++)
+      if (json.isMember(ORTHANC_RESOURCES))
       {
-        if (json[i].type() == Json::arrayValue)
+        const Json::Value& resources = json[ORTHANC_RESOURCES];
+          
+        if (resources.type() != Json::arrayValue)
         {
-          if (json[i].size() != 2 ||
-              json[i][0].type() != Json::stringValue ||
-              json[i][1].type() != Json::stringValue)
-          {
-            throw OrthancException(ErrorCode_BadFileFormat,
-                                   "An instance entry must provide an array with 2 strings: "
-                                   "SOP Class UID and SOP Instance UID");
-          }
-          else
-          {
-            sopClassUids[i] = json[i][0].asString();
-            sopInstanceUids[i] = json[i][1].asString();
-          }
-        }
-        else if (json[i].type() == Json::objectValue)
-        {
-          static const char* const SOP_CLASS_UID = "SOPClassUID";
-          static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
-
-          if (!json[i].isMember(SOP_CLASS_UID) ||
-              !json[i].isMember(SOP_INSTANCE_UID) ||
-              json[i][SOP_CLASS_UID].type() != Json::stringValue ||
-              json[i][SOP_INSTANCE_UID].type() != Json::stringValue)
-          {
-            throw OrthancException(ErrorCode_BadFileFormat,
-                                   "An instance entry must provide an object with 2 string fiels: "
-                                   "\"" + std::string(SOP_CLASS_UID) + "\" and \"" +
-                                   std::string(SOP_INSTANCE_UID));
-          }
-          else
-          {
-            sopClassUids[i] = json[i][SOP_CLASS_UID].asString();
-            sopInstanceUids[i] = json[i][SOP_INSTANCE_UID].asString();
-          }
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "The \"" + std::string(ORTHANC_RESOURCES) +
+                                 "\" field must provide an array of Orthanc resources");
         }
         else
         {
-          throw OrthancException(ErrorCode_BadFileFormat,
-                                 "JSON array or object is expected to specify one "
-                                 "instance to be queried, found: " + json[i].toStyledString());
+          for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+          {
+            if (resources[i].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat,
+                                     "The \"" + std::string(ORTHANC_RESOURCES) +
+                                     "\" field must provide an array of strings, found: " + resources[i].toStyledString());
+            }
+
+            std::list<std::string> instances;
+            context.GetIndex().GetChildInstances(instances, resources[i].asString());
+            
+            for (std::list<std::string>::const_iterator
+                   it = instances.begin(); it != instances.end(); ++it)
+            {
+              std::string sopClassUid, sopInstanceUid;
+              DicomMap tags;
+              if (context.LookupOrReconstructMetadata(sopClassUid, *it, MetadataType_Instance_SopClassUid) &&
+                  context.GetIndex().GetAllMainDicomTags(tags, *it) &&
+                  tags.LookupStringValue(sopInstanceUid, DICOM_TAG_SOP_INSTANCE_UID, false))
+              {
+                sopClassUids.push_back(sopClassUid);
+                sopInstanceUids.push_back(sopInstanceUid);
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_InternalError,
+                                       "Cannot retrieve SOP Class/Instance UID of Orthanc instance: " + *it);
+              }
+            }
+          }
         }
       }
 
+      if (json.isMember(DICOM_INSTANCES))
+      {
+        const Json::Value& instances = json[DICOM_INSTANCES];
+          
+        if (instances.type() != Json::arrayValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "The \"" + std::string(DICOM_INSTANCES) +
+                                 "\" field must provide an array of DICOM instances");
+        }
+        else
+        {
+          for (Json::Value::ArrayIndex i = 0; i < instances.size(); i++)
+          {
+            if (instances[i].type() == Json::arrayValue)
+            {
+              if (instances[i].size() != 2 ||
+                  instances[i][0].type() != Json::stringValue ||
+                  instances[i][1].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadFileFormat,
+                                       "An instance entry must provide an array with 2 strings: "
+                                       "SOP Class UID and SOP Instance UID");
+              }
+              else
+              {
+                sopClassUids.push_back(instances[i][0].asString());
+                sopInstanceUids.push_back(instances[i][1].asString());
+              }
+            }
+            else if (instances[i].type() == Json::objectValue)
+            {
+              if (!instances[i].isMember(SOP_CLASS_UID) ||
+                  !instances[i].isMember(SOP_INSTANCE_UID) ||
+                  instances[i][SOP_CLASS_UID].type() != Json::stringValue ||
+                  instances[i][SOP_INSTANCE_UID].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadFileFormat,
+                                       "An instance entry must provide an object with 2 string fiels: "
+                                       "\"" + std::string(SOP_CLASS_UID) + "\" and \"" +
+                                       std::string(SOP_INSTANCE_UID));
+              }
+              else
+              {
+                sopClassUids.push_back(instances[i][SOP_CLASS_UID].asString());
+                sopInstanceUids.push_back(instances[i][SOP_INSTANCE_UID].asString());
+              }
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadFileFormat,
+                                     "JSON array or object is expected to specify one "
+                                     "instance to be queried, found: " + instances[i].toStyledString());
+            }
+          }
+        }
+      }
+
+      if (sopClassUids.size() != sopInstanceUids.size())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
       const std::string transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+
+      if (sopClassUids.empty())
+      {
+        LOG(WARNING) << "Issuing an outgoing storage commitment request that is empty: " << transactionUid;
+      }
 
       {
         const RemoteModalityParameters remote =
@@ -1382,18 +1464,16 @@ namespace Orthanc
           transactionUid, new StorageCommitmentReports::Report(remoteAet));
 
         DicomUserConnection scu(localAet, remote);
-        scu.RequestStorageCommitment(transactionUid, sopClassUids, sopInstanceUids);
+
+        std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
+        std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
+        scu.RequestStorageCommitment(transactionUid, a, b);
       }
 
       Json::Value result = Json::objectValue;
       result["ID"] = transactionUid;
       result["Path"] = "/storage-commitment/" + transactionUid;
       call.GetOutput().AnswerJson(result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadFileFormat,
-                             "Must provide a JSON array with a list of instances");
     }
   }
 
