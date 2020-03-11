@@ -116,53 +116,61 @@ namespace Orthanc
     
     json = Json::objectValue;
     json[FIELD_REMOTE_AET] = remoteAet_;
+
+    bool pending;
     
     switch (GetStatus())
     {
       case Status_Pending:
         json[FIELD_STATUS] = "Pending";
+        pending = true;
         break;
 
       case Status_Success:
         json[FIELD_STATUS] = "Success";
+        pending = false;
         break;
 
       case Status_Failure:
         json[FIELD_STATUS] = "Failure";
+        pending = false;
         break;
 
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
 
+    if (!pending)
     {
-      Json::Value success = Json::arrayValue;
-      for (std::list<Success>::const_iterator
-             it = success_.begin(); it != success_.end(); ++it)
       {
-        Json::Value item = Json::objectValue;
-        item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
-        item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
-        success.append(item);
+        Json::Value success = Json::arrayValue;
+        for (std::list<Success>::const_iterator
+               it = success_.begin(); it != success_.end(); ++it)
+        {
+          Json::Value item = Json::objectValue;
+          item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
+          item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
+          success.append(item);
+        }
+
+        json[FIELD_SUCCESS] = success;
       }
 
-      json[FIELD_SUCCESS] = success;
-    }
-
-    {
-      Json::Value failures = Json::arrayValue;
-      for (std::list<Failure>::const_iterator
-             it = failures_.begin(); it != failures_.end(); ++it)
       {
-        Json::Value item = Json::objectValue;
-        item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
-        item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
-        item[FIELD_FAILURE_REASON] = it->reason_;
-        item[FIELD_DESCRIPTION] = EnumerationToString(it->reason_);
-        failures.append(item);
-      }
+        Json::Value failures = Json::arrayValue;
+        for (std::list<Failure>::const_iterator
+               it = failures_.begin(); it != failures_.end(); ++it)
+        {
+          Json::Value item = Json::objectValue;
+          item[FIELD_SOP_CLASS_UID] = it->sopClassUid_;
+          item[FIELD_SOP_INSTANCE_UID] = it->sopInstanceUid_;
+          item[FIELD_FAILURE_REASON] = it->reason_;
+          item[FIELD_DESCRIPTION] = EnumerationToString(it->reason_);
+          failures.append(item);
+        }
 
-      json[FIELD_FAILURES] = failures;
+        json[FIELD_FAILURES] = failures;
+      }
     }
   }
 
