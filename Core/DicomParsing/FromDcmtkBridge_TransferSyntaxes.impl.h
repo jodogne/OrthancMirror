@@ -34,10 +34,10 @@
 
 namespace Orthanc
 {
-  bool GetDcmtkTransferSyntax(E_TransferSyntax& target,
-                              DicomTransferSyntax syntax)
+  bool FromDcmtkBridge::LookupDcmtkTransferSyntax(E_TransferSyntax& target,
+                                                  DicomTransferSyntax source)
   {
-    switch (syntax)
+    switch (source)
     {
       case DicomTransferSyntax_LittleEndianImplicit:
         target = EXS_LittleEndianImplicit;
@@ -201,6 +201,181 @@ namespace Orthanc
 
       case DicomTransferSyntax_RLELossless:
         target = EXS_RLELossless;
+        return true;
+
+      default:
+        return false;
+    }
+  }
+  
+
+  bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                                    E_TransferSyntax source)
+  {
+    switch (source)
+    {
+      case EXS_LittleEndianImplicit:
+        target = DicomTransferSyntax_LittleEndianImplicit;
+        return true;
+
+      case EXS_LittleEndianExplicit:
+        target = DicomTransferSyntax_LittleEndianExplicit;
+        return true;
+
+      case EXS_DeflatedLittleEndianExplicit:
+        target = DicomTransferSyntax_DeflatedLittleEndianExplicit;
+        return true;
+
+      case EXS_BigEndianExplicit:
+        target = DicomTransferSyntax_BigEndianExplicit;
+        return true;
+
+      case EXS_JPEGProcess1:
+        target = DicomTransferSyntax_JPEGProcess1;
+        return true;
+
+      case EXS_JPEGProcess2_4:
+        target = DicomTransferSyntax_JPEGProcess2_4;
+        return true;
+
+      case EXS_JPEGProcess3_5:
+        target = DicomTransferSyntax_JPEGProcess3_5;
+        return true;
+
+      case EXS_JPEGProcess6_8:
+        target = DicomTransferSyntax_JPEGProcess6_8;
+        return true;
+
+      case EXS_JPEGProcess7_9:
+        target = DicomTransferSyntax_JPEGProcess7_9;
+        return true;
+
+      case EXS_JPEGProcess10_12:
+        target = DicomTransferSyntax_JPEGProcess10_12;
+        return true;
+
+      case EXS_JPEGProcess11_13:
+        target = DicomTransferSyntax_JPEGProcess11_13;
+        return true;
+
+      case EXS_JPEGProcess14:
+        target = DicomTransferSyntax_JPEGProcess14;
+        return true;
+
+      case EXS_JPEGProcess15:
+        target = DicomTransferSyntax_JPEGProcess15;
+        return true;
+
+      case EXS_JPEGProcess16_18:
+        target = DicomTransferSyntax_JPEGProcess16_18;
+        return true;
+
+      case EXS_JPEGProcess17_19:
+        target = DicomTransferSyntax_JPEGProcess17_19;
+        return true;
+
+      case EXS_JPEGProcess20_22:
+        target = DicomTransferSyntax_JPEGProcess20_22;
+        return true;
+
+      case EXS_JPEGProcess21_23:
+        target = DicomTransferSyntax_JPEGProcess21_23;
+        return true;
+
+      case EXS_JPEGProcess24_26:
+        target = DicomTransferSyntax_JPEGProcess24_26;
+        return true;
+
+      case EXS_JPEGProcess25_27:
+        target = DicomTransferSyntax_JPEGProcess25_27;
+        return true;
+
+      case EXS_JPEGProcess28:
+        target = DicomTransferSyntax_JPEGProcess28;
+        return true;
+
+      case EXS_JPEGProcess29:
+        target = DicomTransferSyntax_JPEGProcess29;
+        return true;
+
+      case EXS_JPEGProcess14SV1:
+        target = DicomTransferSyntax_JPEGProcess14SV1;
+        return true;
+
+      case EXS_JPEGLSLossless:
+        target = DicomTransferSyntax_JPEGLSLossless;
+        return true;
+
+      case EXS_JPEGLSLossy:
+        target = DicomTransferSyntax_JPEGLSLossy;
+        return true;
+
+      case EXS_JPEG2000LosslessOnly:
+        target = DicomTransferSyntax_JPEG2000LosslessOnly;
+        return true;
+
+      case EXS_JPEG2000:
+        target = DicomTransferSyntax_JPEG2000;
+        return true;
+
+      case EXS_JPEG2000MulticomponentLosslessOnly:
+        target = DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly;
+        return true;
+
+      case EXS_JPEG2000Multicomponent:
+        target = DicomTransferSyntax_JPEG2000Multicomponent;
+        return true;
+
+      case EXS_JPIPReferenced:
+        target = DicomTransferSyntax_JPIPReferenced;
+        return true;
+
+      case EXS_JPIPReferencedDeflate:
+        target = DicomTransferSyntax_JPIPReferencedDeflate;
+        return true;
+
+      case EXS_MPEG2MainProfileAtMainLevel:
+        target = DicomTransferSyntax_MPEG2MainProfileAtMainLevel;
+        return true;
+
+      case EXS_MPEG2MainProfileAtHighLevel:
+        target = DicomTransferSyntax_MPEG2MainProfileAtHighLevel;
+        return true;
+
+      case EXS_MPEG4HighProfileLevel4_1:
+        target = DicomTransferSyntax_MPEG4HighProfileLevel4_1;
+        return true;
+
+      case EXS_MPEG4BDcompatibleHighProfileLevel4_1:
+        target = DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1;
+        return true;
+
+      case EXS_MPEG4HighProfileLevel4_2_For2DVideo:
+        target = DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo;
+        return true;
+
+      case EXS_MPEG4HighProfileLevel4_2_For3DVideo:
+        target = DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo;
+        return true;
+
+      case EXS_MPEG4StereoHighProfileLevel4_2:
+        target = DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2;
+        return true;
+
+#if DCMTK_VERSION_NUMBER >= 362
+      case EXS_HEVCMainProfileLevel5_1:
+        target = DicomTransferSyntax_HEVCMainProfileLevel5_1;
+        return true;
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 362
+      case EXS_HEVCMain10ProfileLevel5_1:
+        target = DicomTransferSyntax_HEVCMain10ProfileLevel5_1;
+        return true;
+#endif
+
+      case EXS_RLELossless:
+        target = DicomTransferSyntax_RLELossless;
         return true;
 
       default:
