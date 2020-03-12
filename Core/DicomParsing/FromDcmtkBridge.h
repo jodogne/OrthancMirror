@@ -271,7 +271,10 @@ namespace Orthanc
                       ITagVisitor& visitor,
                       Encoding defaultEncoding);
 
-    static bool GetDcmtkTransferSyntax(E_TransferSyntax& target,
-                                       DicomTransferSyntax syntax);
+    static bool LookupDcmtkTransferSyntax(E_TransferSyntax& target,
+                                          DicomTransferSyntax source);
+
+    static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                            E_TransferSyntax source);
   };
 }
