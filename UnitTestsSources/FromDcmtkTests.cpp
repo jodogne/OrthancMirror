@@ -1917,7 +1917,7 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
 
-#include "../Core/DicomFormat/DicomImageInformation.h"
+#include "../Core/DicomParsing/Internals/DicomFrameIndex.h"
 
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
@@ -1954,12 +1954,11 @@ namespace Orthanc
   class DcmtkTranscoder : public IDicomTranscoder
   {
   private:
-    std::unique_ptr<DcmFileFormat>          dicom_;
-    DicomTransferSyntax                     transferSyntax_;
-    std::string                             sopClassUid_;
-    std::string                             sopInstanceUid_;
-    DicomMap                                tags_;
-    std::unique_ptr<DicomImageInformation>  info_;
+    std::unique_ptr<DcmFileFormat>    dicom_;
+    std::unique_ptr<DicomFrameIndex>  index_;
+    DicomTransferSyntax               transferSyntax_;
+    std::string                       sopClassUid_;
+    std::string                       sopInstanceUid_;
 
     void Setup(DcmFileFormat* dicom)
     {
@@ -1972,12 +1971,8 @@ namespace Orthanc
       }
 
       DcmDataset& dataset = *dicom_->getDataset();
+      index_.reset(new DicomFrameIndex(dataset));
 
-      tags_.Clear();
-      FromDcmtkBridge::ExtractDicomSummary(tags_, dataset);
-
-      info_.reset(new DicomImageInformation(tags_));
-      
       E_TransferSyntax xfer = dataset.getOriginalXfer();
       if (xfer == EXS_Unknown)
       {
@@ -1997,12 +1992,20 @@ namespace Orthanc
           "Unsupported transfer syntax: " + boost::lexical_cast<std::string>(xfer));
       }
 
-      if (!tags_.LookupStringValue(sopClassUid_, Orthanc::DICOM_TAG_SOP_CLASS_UID, false) ||
-          !tags_.LookupStringValue(sopInstanceUid_, Orthanc::DICOM_TAG_SOP_INSTANCE_UID, false))
+      const char* a = NULL;
+      const char* b = NULL;
+
+      if (!dataset.findAndGetString(DCM_SOPClassUID, a).good() ||
+          !dataset.findAndGetString(DCM_SOPInstanceUID, b).good() ||
+          a == NULL ||
+          b == NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat,
                                "Missing SOP class/instance UID in DICOM instance");
       }
+
+      sopClassUid_.assign(a);
+      sopInstanceUid_.assign(b);
     }
     
   public:
@@ -2034,7 +2037,7 @@ namespace Orthanc
 
     virtual unsigned int GetFramesCount() ORTHANC_OVERRIDE
     {
-      return info_->GetNumberOfFrames();
+      return index_->GetFramesCount();
     }
 
     virtual ImageAccessor* DecodeFrame(unsigned int frame) ORTHANC_OVERRIDE
@@ -2046,55 +2049,27 @@ namespace Orthanc
     virtual void GetCompressedFrame(std::string& target,
                                     unsigned int frame) ORTHANC_OVERRIDE
     {
+#if 1
+      index_->GetRawFrame(target, frame);
+      printf("%d: %d\n", frame, target.size());
+#endif
+
+#if 1
       assert(dicom_->getDataset() != NULL);
       DcmDataset& dataset = *dicom_->getDataset();
       
       DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
 
-      if (pixelSequence == NULL)
-      {
-        // This is an uncompressed frame
-
-        DcmElement* element = NULL;
-        if (dataset.findAndGetElement(DCM_PixelData, element).good() &&
-            element != NULL)
-        {
-          Uint8* pixelData = NULL;
-        
-          if (element->getUint8Array(pixelData).good() &&
-              pixelData != NULL)
-          {    
-            // TODO => use "pixelData"
-            printf("RAW %d\n", element->getLength());
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_BadFileFormat,
-                                   "Cannot access uncompressed pixel data");
-          }
-        }
-        else
-        {
-          std::string decoded;
-          if (DicomImageDecoder::DecodePsmctRle1(decoded, dataset))
-          {
-            // TODO => use "decoded"
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_BadFileFormat,
-                                   "Cannot access uncompressed pixel data");
-          }
-        }
-      }
-      else
+      if (pixelSequence != NULL &&
+          frame == 0 &&
+          pixelSequence->card() != GetFramesCount() + 1)
       {
         printf("COMPRESSED\n");
-
+        
         // Check out "djcodecd.cc"
-
+        
         printf("%d fragments\n", pixelSequence->card());
-
+        
         // Skip the first fragment, that is the offset table
         for (unsigned long i = 1; ;i++)
         {
@@ -2109,6 +2084,7 @@ namespace Orthanc
           }
         }
       }
+#endif
     }
 
     virtual IDicomTranscoder* Transcode(std::set<DicomTransferSyntax> syntaxes,
@@ -2210,8 +2186,20 @@ static void TestFile(const std::string& path)
          transcoder.GetSopClassUid().c_str(), transcoder.GetSopInstanceUid().c_str(),
          transcoder.GetFramesCount());
 
-  std::string f;
-  transcoder.GetCompressedFrame(f, 0);
+  for (size_t i = 0; i < transcoder.GetFramesCount(); i++)
+  {
+    std::string f;
+    transcoder.GetCompressedFrame(f, i);
+
+    if (i == 0)
+    {
+      static unsigned int i = 0;
+      char buf[1024];
+      sprintf(buf, "/tmp/frame-%06d.dcm", i++);
+      printf(">> %s\n", buf);
+      Orthanc::SystemToolbox::WriteFile(f, buf);
+    }
+  }
 
   printf("\n");
 }
@@ -2271,6 +2259,7 @@ TEST(Toto, Transcode)
     }
 
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Multiframe.dcm");
+    TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Issue44/Monochrome1-Jpeg.dcm");
   }
 }
 
