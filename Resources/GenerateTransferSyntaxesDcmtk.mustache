@@ -34,10 +34,10 @@
 
 namespace Orthanc
 {
-  bool GetDcmtkTransferSyntax(E_TransferSyntax& target,
-                              DicomTransferSyntax syntax)
+  bool FromDcmtkBridge::LookupDcmtkTransferSyntax(E_TransferSyntax& target,
+                                                  DicomTransferSyntax source)
   {
-    switch (syntax)
+    switch (source)
     {
       {{#Syntaxes}}
       {{#DCMTK}}
@@ -46,6 +46,31 @@ namespace Orthanc
       {{/SinceDCMTK}}
       case DicomTransferSyntax_{{Value}}:
         target = {{DCMTK}};
+        return true;
+      {{#SinceDCMTK}}
+#endif
+      {{/SinceDCMTK}}
+
+      {{/DCMTK}}
+      {{/Syntaxes}}
+      default:
+        return false;
+    }
+  }
+  
+
+  bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                                    E_TransferSyntax source)
+  {
+    switch (source)
+    {
+      {{#Syntaxes}}
+      {{#DCMTK}}
+      {{#SinceDCMTK}}
+#if DCMTK_VERSION_NUMBER >= {{SinceDCMTK}}
+      {{/SinceDCMTK}}
+      case {{DCMTK}}:
+        target = DicomTransferSyntax_{{Value}};
         return true;
       {{#SinceDCMTK}}
 #endif

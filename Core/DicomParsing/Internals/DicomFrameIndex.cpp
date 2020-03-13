@@ -68,7 +68,10 @@ namespace Orthanc
       uint32_t length = item->getLength();
       if (length == 0)
       {
-        table.clear();
+        // Degenerate case: Empty offset table means only one frame
+        // that overlaps all the fragments
+        table.resize(1);
+        table[0] = 0;
         return;
       }
 
@@ -145,7 +148,6 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
-
 
       // Loop over the fragments (ignoring the offset table). This is
       // an alternative, faster implementation to DCMTK's
@@ -318,46 +320,10 @@ namespace Orthanc
   };
 
 
-
-  bool DicomFrameIndex::IsVideo(DcmFileFormat& dicom)
+  unsigned int DicomFrameIndex::GetFramesCount(DcmDataset& dicom)
   {
-    // Retrieve the transfer syntax from the DICOM header
-    const char* value = NULL;
-    if (!dicom.getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() ||
-        value == NULL)
-    {
-      return false;
-    }
-
-    const std::string transferSyntax(value);
-
-    // Video standards supported in DICOM 2016a
-    // http://dicom.nema.org/medical/dicom/2016a/output/html/part05.html
-    if (transferSyntax == "1.2.840.10008.1.2.4.100" ||  // MPEG2 MP@ML option of ISO/IEC MPEG2
-        transferSyntax == "1.2.840.10008.1.2.4.101" ||  // MPEG2 MP@HL option of ISO/IEC MPEG2
-        transferSyntax == "1.2.840.10008.1.2.4.102" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.1 of ITU-T H.264
-        transferSyntax == "1.2.840.10008.1.2.4.103" ||  // MPEG-4 AVC/H.264 BD-compat High Profile / Level 4.1 of ITU-T H.264
-        transferSyntax == "1.2.840.10008.1.2.4.104" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.2 of ITU-T H.264
-        transferSyntax == "1.2.840.10008.1.2.4.105" ||  // MPEG-4 AVC/H.264 High Profile / Level 4.2 of ITU-T H.264
-        transferSyntax == "1.2.840.10008.1.2.4.106")    // MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2 of the ITU-T H.264
-    {
-      return true;
-    }
-
-    return false;
-  }
-
-
-  unsigned int DicomFrameIndex::GetFramesCount(DcmFileFormat& dicom)
-  {
-    // Assume 1 frame for video transfer syntaxes
-    if (IsVideo(dicom))
-    {
-      return 1;
-    }        
-
     const char* tmp = NULL;
-    if (!dicom.getDataset()->findAndGetString(DCM_NumberOfFrames, tmp).good() ||
+    if (!dicom.findAndGetString(DCM_NumberOfFrames, tmp).good() ||
         tmp == NULL)
     {
       return 1;
@@ -378,12 +344,12 @@ namespace Orthanc
     }
     else
     {
-      return count;
+      return static_cast<unsigned int>(count);
     }
   }
 
 
-  DicomFrameIndex::DicomFrameIndex(DcmFileFormat& dicom)
+  DicomFrameIndex::DicomFrameIndex(DcmDataset& dicom)
   {
     countFrames_ = GetFramesCount(dicom);
     if (countFrames_ == 0)
@@ -392,10 +358,8 @@ namespace Orthanc
       return;
     }
 
-    DcmDataset& dataset = *dicom.getDataset();
-
     // Test whether this image is composed of a sequence of fragments
-    DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
+    DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dicom);
     if (pixelSequence != NULL)
     {
       index_.reset(new FragmentIndex(pixelSequence, countFrames_));
@@ -404,18 +368,18 @@ namespace Orthanc
 
     // Extract information about the image structure
     DicomMap tags;
-    FromDcmtkBridge::ExtractDicomSummary(tags, dataset);
+    FromDcmtkBridge::ExtractDicomSummary(tags, dicom);
 
     DicomImageInformation information(tags);
 
     // Access to the raw pixel data
-    if (DicomImageDecoder::IsPsmctRle1(dataset))
+    if (DicomImageDecoder::IsPsmctRle1(dicom))
     {
-      index_.reset(new PsmctRle1Index(dataset, countFrames_, information.GetFrameSize()));
+      index_.reset(new PsmctRle1Index(dicom, countFrames_, information.GetFrameSize()));
     }
     else
     {
-      index_.reset(new UncompressedIndex(dataset, countFrames_, information.GetFrameSize()));
+      index_.reset(new UncompressedIndex(dicom, countFrames_, information.GetFrameSize()));
     }
   }
 
