@@ -1946,8 +1946,11 @@ namespace Orthanc
     virtual void GetCompressedFrame(std::string& target,
                                     unsigned int frame) = 0;
 
-    virtual IDicomTranscoder* Transcode(std::set<DicomTransferSyntax> syntaxes,
-                                        bool allowNewSopInstanceUid) = 0;
+    virtual bool Transcode(std::string& target,
+                           std::set<DicomTransferSyntax> syntaxes,
+                           bool allowNewSopInstanceUid) = 0;
+
+    virtual void WriteToMemoryBuffer(std::string& target) = 0;
   };
 
 
@@ -2040,6 +2043,15 @@ namespace Orthanc
       return index_->GetFramesCount();
     }
 
+    virtual void WriteToMemoryBuffer(std::string& target) ORTHANC_OVERRIDE
+    {
+      if (!FromDcmtkBridge::SaveToMemoryBuffer(target, *dicom_))
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot write the DICOM instance to a memory buffer");
+      }
+    }
+
     virtual ImageAccessor* DecodeFrame(unsigned int frame) ORTHANC_OVERRIDE
     {
       assert(dicom_->getDataset() != NULL);
@@ -2049,48 +2061,32 @@ namespace Orthanc
     virtual void GetCompressedFrame(std::string& target,
                                     unsigned int frame) ORTHANC_OVERRIDE
     {
-#if 1
       index_->GetRawFrame(target, frame);
-      printf("%d: %d\n", frame, target.size());
-#endif
-
-#if 1
-      assert(dicom_->getDataset() != NULL);
-      DcmDataset& dataset = *dicom_->getDataset();
-      
-      DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
-
-      if (pixelSequence != NULL &&
-          frame == 0 &&
-          pixelSequence->card() != GetFramesCount() + 1)
-      {
-        printf("COMPRESSED\n");
-        
-        // Check out "djcodecd.cc"
-        
-        printf("%d fragments\n", pixelSequence->card());
-        
-        // Skip the first fragment, that is the offset table
-        for (unsigned long i = 1; ;i++)
-        {
-          DcmPixelItem *fragment = NULL;
-          if (pixelSequence->getItem(fragment, i).good())
-          {
-            printf("fragment %d %d\n", i, fragment->getLength());
-          }
-          else
-          {
-            break;
-          }
-        }
-      }
-#endif
     }
 
-    virtual IDicomTranscoder* Transcode(std::set<DicomTransferSyntax> syntaxes,
-                                        bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    virtual bool Transcode(std::string& target,
+                           std::set<DicomTransferSyntax> syntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != syntaxes.end() &&
+          FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianImplicit, NULL))
+      {
+        return true;
+      }
+      else if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != syntaxes.end() &&
+               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianExplicit, NULL))
+      {
+        return true;
+      }
+      else if (syntaxes.find(DicomTransferSyntax_BigEndianExplicit) != syntaxes.end() &&
+               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_BigEndianExplicit, NULL))
+      {
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
   };
 }
@@ -2182,9 +2178,9 @@ static void TestFile(const std::string& path)
 
   Orthanc::DcmtkTranscoder transcoder(s.c_str(), s.size());
 
-  printf("[%s] [%s] [%s] %d\n", GetTransferSyntaxUid(transcoder.GetTransferSyntax()),
+  printf("[%s] [%s] [%s] %d %d\n", GetTransferSyntaxUid(transcoder.GetTransferSyntax()),
          transcoder.GetSopClassUid().c_str(), transcoder.GetSopInstanceUid().c_str(),
-         transcoder.GetFramesCount());
+         transcoder.GetFramesCount(), transcoder.GetTransferSyntax());
 
   for (size_t i = 0; i < transcoder.GetFramesCount(); i++)
   {
@@ -2201,6 +2197,29 @@ static void TestFile(const std::string& path)
     }
   }
 
+  {
+    std::string t;
+    transcoder.WriteToMemoryBuffer(t);
+
+    Orthanc::DcmtkTranscoder transcoder2(t.c_str(), t.size());
+    printf(">> %d %d ; %d bytes\n", transcoder.GetTransferSyntax(), transcoder2.GetTransferSyntax(), t.size());
+  }
+
+  {
+    std::set<DicomTransferSyntax> syntaxes;
+    syntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+    std::string t;
+    bool ok = transcoder.Transcode(t, syntaxes, false);
+    printf("Transcoding: %d\n", ok);
+
+    if (ok)
+    {
+      Orthanc::DcmtkTranscoder transcoder2(t.c_str(), t.size());
+      printf("  => transcoded transfer syntax %d ; %d bytes\n", transcoder2.GetTransferSyntax(), t.size());
+    }
+  }
+  
   printf("\n");
 }
 
