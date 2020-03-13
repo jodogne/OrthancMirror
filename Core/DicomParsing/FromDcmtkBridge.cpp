@@ -2081,7 +2081,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    DJDecoderRegistration::cleanup();
+    DJEncoderRegistration::cleanup();
 # endif
 #endif
   }

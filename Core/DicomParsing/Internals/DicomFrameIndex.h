@@ -67,7 +67,7 @@ namespace Orthanc
     unsigned int             countFrames_;
 
   public:
-    DicomFrameIndex(DcmFileFormat& dicom);
+    DicomFrameIndex(DcmDataset& dicom);
 
     unsigned int GetFramesCount() const
     {
@@ -77,8 +77,6 @@ namespace Orthanc
     void GetRawFrame(std::string& frame,
                      unsigned int index) const;
 
-    static bool IsVideo(DcmFileFormat& dicom);
-
-    static unsigned int GetFramesCount(DcmFileFormat& dicom);
+    static unsigned int GetFramesCount(DcmDataset& dicom);
   };
 }
