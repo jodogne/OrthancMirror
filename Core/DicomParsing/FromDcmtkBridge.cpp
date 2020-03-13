@@ -120,6 +120,12 @@
 #endif
 
 
+#include <dcmtk/dcmdata/dcrledrg.h>
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#  include <dcmtk/dcmdata/dcrleerg.h>
+#endif
+
+
 namespace Orthanc
 {
   static bool IsBinaryTag(const DcmTag& key)
@@ -1197,6 +1203,52 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
   }
 
+
+
+  static bool SaveToMemoryBufferInternal(std::string& buffer,
+                                         DcmFileFormat& dicom,
+                                         E_TransferSyntax xfer)
+  {
+    E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
+
+    // Create a memory buffer with the proper size
+    {
+      const uint32_t estimatedSize = dicom.calcElementLength(xfer, encodingType);  // (*)
+      buffer.resize(estimatedSize);
+    }
+
+    DcmOutputBufferStream ob(&buffer[0], buffer.size());
+
+    // Fill the memory buffer with the meta-header and the dataset
+    dicom.transferInit();
+    OFCondition c = dicom.write(ob, xfer, encodingType, NULL,
+                                /*opt_groupLength*/ EGL_recalcGL,
+                                /*opt_paddingType*/ EPD_withoutPadding);
+    dicom.transferEnd();
+
+    if (c.good())
+    {
+      // The DICOM file is successfully written, truncate the target
+      // buffer if its size was overestimated by (*)
+      ob.flush();
+
+      size_t effectiveSize = static_cast<size_t>(ob.tell());
+      if (effectiveSize < buffer.size())
+      {
+        buffer.resize(effectiveSize);
+      }
+
+      return true;
+    }
+    else
+    {
+      // Error
+      buffer.clear();
+      return false;
+    }
+  }
+  
+
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
   {
@@ -1221,47 +1273,51 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       xfer = EXS_LittleEndianExplicit;
     }
 
-    E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
-
     // Create the meta-header information
     DcmFileFormat ff(&dataSet);
     ff.validateMetaInfo(xfer);
     ff.removeInvalidGroups();
 
-    // Create a memory buffer with the proper size
+    return SaveToMemoryBufferInternal(buffer, ff, xfer);
+  }
+
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmFileFormat& dicom)
+  {
+    E_TransferSyntax xfer = dicom.getDataset()->getOriginalXfer();
+    if (xfer == EXS_Unknown)
     {
-      const uint32_t estimatedSize = ff.calcElementLength(xfer, encodingType);  // (*)
-      buffer.resize(estimatedSize);
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot write a DICOM instance with unknown transfer syntax");
     }
-
-    DcmOutputBufferStream ob(&buffer[0], buffer.size());
-
-    // Fill the memory buffer with the meta-header and the dataset
-    ff.transferInit();
-    OFCondition c = ff.write(ob, xfer, encodingType, NULL,
-                             /*opt_groupLength*/ EGL_recalcGL,
-                             /*opt_paddingType*/ EPD_withoutPadding);
-    ff.transferEnd();
-
-    if (c.good())
+    else if (!dicom.validateMetaInfo(xfer).good())
     {
-      // The DICOM file is successfully written, truncate the target
-      // buffer if its size was overestimated by (*)
-      ob.flush();
-
-      size_t effectiveSize = static_cast<size_t>(ob.tell());
-      if (effectiveSize < buffer.size())
-      {
-        buffer.resize(effectiveSize);
-      }
-
-      return true;
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot setup the transfer syntax to write a DICOM instance");
     }
     else
     {
-      // Error
-      buffer.clear();
-      return false;
+      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+    }
+  }
+
+
+  bool FromDcmtkBridge::Transcode(std::string& buffer,
+                                  DcmFileFormat& dicom,
+                                  DicomTransferSyntax syntax,
+                                  const DcmRepresentationParameter* representation)
+  {
+    E_TransferSyntax xfer;
+    if (!LookupDcmtkTransferSyntax(xfer, syntax))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      return (dicom.getDataset()->chooseRepresentation(xfer, representation).good() &&
+              dicom.getDataset()->canWriteXfer(xfer) &&
+              SaveToMemoryBufferInternal(buffer, dicom, xfer));
     }
   }
 
@@ -2064,6 +2120,12 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     DJEncoderRegistration::registerCodecs();
 # endif
 #endif
+
+    LOG(INFO) << "Registering RLE codecs in DCMTK";
+    DcmRLEDecoderRegistration::registerCodecs(); 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DcmRLEEncoderRegistration::registerCodecs();
+#endif
   }
 
 
@@ -2083,6 +2145,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::cleanup();
 # endif
+#endif
+
+    DcmRLEDecoderRegistration::cleanup(); 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DcmRLEEncoderRegistration::cleanup();
 #endif
   }
 
