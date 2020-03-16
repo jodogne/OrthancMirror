@@ -57,7 +57,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Retrieve(*findAnswer_);
       return true;

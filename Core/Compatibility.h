@@ -88,7 +88,7 @@ namespace std
   class unique_ptr : public boost::movelib::unique_ptr<T>
   {
   public:
-    unique_ptr() :
+    explicit unique_ptr() :
       boost::movelib::unique_ptr<T>()
     {
     }      

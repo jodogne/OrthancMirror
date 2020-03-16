@@ -56,6 +56,12 @@ namespace Orthanc
       std::string calledAet_;
       IApplicationEntityFilter* filter_;
 
+      OFCondition NActionScp(T_DIMSE_Message* msg, 
+                             T_ASC_PresentationContextID presID);
+
+      OFCondition NEventReportScp(T_DIMSE_Message* msg, 
+                                  T_ASC_PresentationContextID presID);
+      
     public:
       CommandDispatcher(const DicomServer& server,
                         T_ASC_Association* assoc,
@@ -69,11 +75,11 @@ namespace Orthanc
       virtual bool Step();
     };
 
-    OFCondition EchoScp(T_ASC_Association * assoc, 
-                        T_DIMSE_Message * msg, 
-                        T_ASC_PresentationContextID presID);
-
     CommandDispatcher* AcceptAssociation(const DicomServer& server, 
                                          T_ASC_Network *net);
+
+    OFCondition EchoScp(T_ASC_Association* assoc, 
+                        T_DIMSE_Message* msg, 
+                        T_ASC_PresentationContextID presID);
   }
 }

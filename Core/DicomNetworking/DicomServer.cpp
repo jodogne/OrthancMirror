@@ -94,6 +94,7 @@ namespace Orthanc
     moveRequestHandlerFactory_ = NULL;
     storeRequestHandlerFactory_ = NULL;
     worklistRequestHandlerFactory_ = NULL;
+    storageCommitmentFactory_ = NULL;
     applicationEntityFilter_ = NULL;
     checkCalledAet_ = true;
     associationTimeout_ = 30;
@@ -289,6 +290,29 @@ namespace Orthanc
     }
   }
 
+  void DicomServer::SetStorageCommitmentRequestHandlerFactory(IStorageCommitmentRequestHandlerFactory& factory)
+  {
+    Stop();
+    storageCommitmentFactory_ = &factory;
+  }
+
+  bool DicomServer::HasStorageCommitmentRequestHandlerFactory() const
+  {
+    return (storageCommitmentFactory_ != NULL);
+  }
+
+  IStorageCommitmentRequestHandlerFactory& DicomServer::GetStorageCommitmentRequestHandlerFactory() const
+  {
+    if (HasStorageCommitmentRequestHandlerFactory())
+    {
+      return *storageCommitmentFactory_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NoStorageCommitmentHandler);
+    }
+  }
+
   void DicomServer::SetApplicationEntityFilter(IApplicationEntityFilter& factory)
   {
     Stop();
@@ -378,5 +402,4 @@ namespace Orthanc
       return modalities_->IsSameAETitle(aet, GetApplicationEntityTitle());
     }
   }
-
 }
