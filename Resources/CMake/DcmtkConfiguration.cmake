@@ -36,6 +36,10 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
   endif()
 
+  if (ENABLE_DCMTK_TRANSCODING)
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmimgle/libsrc DCMTK_SOURCES)
+  endif()
+  
   if (ENABLE_DCMTK_JPEG)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8 DCMTK_SOURCES)
@@ -56,17 +60,21 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8/jaricom.c
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12/jaricom.c
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg24/jaricom.c
-
-      # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsv1.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencbas.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencpro.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djenclol.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencode.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencext.cc
-      ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsps.cc
       )
+
+    if (NOT ENABLE_DCMTK_TRANSCODING)
+      list(REMOVE_ITEM DCMTK_SOURCES 
+        # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsv1.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencbas.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencpro.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djenclol.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencode.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencext.cc
+        ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djencsps.cc
+        )
+    endif()
   endif()
 
 
@@ -78,15 +86,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpls/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
       )
-    list(REMOVE_ITEM DCMTK_SOURCES 
-      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
-
-      # Disable support for encoding JPEG-LS (modification in Orthanc 1.0.1)
-      ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djencode.cc
-      )
     list(APPEND DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djrplol.cc
       )
+
+    if (NOT ENABLE_DCMTK_TRANSCODING)
+      list(REMOVE_ITEM DCMTK_SOURCES 
+        ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djcodece.cc
+
+        # Disable support for encoding JPEG-LS (modification in Orthanc 1.0.1)
+        ${DCMTK_SOURCES_DIR}/dcmjpls/libsrc/djencode.cc
+        )
+    endif()
   endif()
 
   

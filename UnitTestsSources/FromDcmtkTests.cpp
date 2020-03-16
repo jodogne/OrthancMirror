@@ -2223,7 +2223,7 @@ static void TestFile(const std::string& path)
   printf("\n");
 }
 
-TEST(Toto, Transcode)
+TEST(Toto, DISABLED_Transcode)
 {
   if (0)
   {
