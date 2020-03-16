@@ -60,7 +60,7 @@ namespace Orthanc
       return instance_;
     }
       
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       if (!that_.HandleInstance(instance_))
       {
@@ -73,7 +73,7 @@ namespace Orthanc
       }
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = instance_;
     }
@@ -91,12 +91,12 @@ namespace Orthanc
     {
     }       
       
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       return that_.HandleTrailingStep();
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::nullValue;
     }

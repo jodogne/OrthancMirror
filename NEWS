@@ -1,24 +1,35 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Support of DICOM storage commitment
+
 REST API
 --------
 
 * API version has been upgraded to 5
-* added "/peers/{id}/system" route to test the connectivity with a remote peer (and eventually
-  retrieve its version number)
-* "/changes": Allow the "limit" argument to be greater than 100
-* "/instances/{id}/preview": Now takes the windowing into account
-* "/tools/log-level": Possibility to access and change the log level without restarting Orthanc
-* added "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered" routes
-  to render frames, taking windowing and resizing into account
-* "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
-* ".../modify" and "/tools/create-dicom": New option "PrivateCreator" for private tags
+* Added:
+  - "/peers/{id}/system": Test the connectivity with a remote peer
+    (and also retrieve its version number)
+  - "/tools/log-level": Access and/or change the log level without restarting Orthanc
+  - "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered":
+    Render frames, taking windowing and resizing into account
+  - "/modalities/{...}/storage-commitment": Trigger storage commitment SCU
+  - "/storage-commitment/{...}": Access storage commitment reports
+  - "/storage-commitment/{...}/remove": Remove instances from storage commitment reports
+* Improved:
+  - "/changes": Allow the "limit" argument to be greater than 100
+  - "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
+  - ".../modify" and "/tools/create-dicom": New option "PrivateCreator" for private tags
+  - "/modalities/{...}/store": New Boolean argument "StorageCommitment"
 
 Plugins
 -------
 
 * New sample plugin: "ConnectivityChecks"
+* New primitives to handle storage commitment SCP by plugins
 
 Lua
 ---
@@ -32,6 +43,7 @@ Lua
 Maintenance
 -----------
 
+* New configuration options: "DefaultPrivateCreator" and "StorageCommitmentReportsSize"
 * Support of MPEG4 transfer syntaxes in C-Store SCP
 * C-FIND SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
   Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
