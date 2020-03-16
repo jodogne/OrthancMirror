@@ -33,8 +33,9 @@
 
 #include "OrthancPluginCppWrapper.h"
 
-#include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/move/unique_ptr.hpp>
+#include <boost/thread.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
 
@@ -2168,7 +2169,7 @@ namespace OrthancPlugins
     static const char* KEY_ASYNCHRONOUS = "Asynchronous";
     static const char* KEY_PRIORITY = "Priority";
 
-    std::auto_ptr<OrthancJob> protection(job);
+    boost::movelib::unique_ptr<OrthancJob> protection(job);
   
     if (body.type() != Json::objectValue)
     {
@@ -3059,7 +3060,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
@@ -3092,7 +3093,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
