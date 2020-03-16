@@ -75,7 +75,7 @@ namespace Orthanc
     {
     }
 
-    virtual CommandType GetType() const
+    virtual CommandType GetType() const ORTHANC_OVERRIDE
     {
       return CommandType_Setup;
     }
@@ -86,7 +86,7 @@ namespace Orthanc
       return true;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target[TYPE] = SETUP;
@@ -111,7 +111,7 @@ namespace Orthanc
     {
     }
 
-    virtual CommandType GetType() const
+    virtual CommandType GetType() const ORTHANC_OVERRIDE
     {
       return CommandType_Lookup;
     }
@@ -140,7 +140,7 @@ namespace Orthanc
       }
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target[TYPE] = LOOKUP;
@@ -168,7 +168,7 @@ namespace Orthanc
       }
     }
 
-    virtual CommandType GetType() const
+    virtual CommandType GetType() const ORTHANC_OVERRIDE
     {
       return CommandType_Answer;
     }
@@ -179,7 +179,7 @@ namespace Orthanc
       return true;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target[TYPE] = ANSWER;
