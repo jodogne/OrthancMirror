@@ -123,6 +123,7 @@
 #include <dcmtk/dcmdata/dcrledrg.h>
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
 #  include <dcmtk/dcmdata/dcrleerg.h>
+#  include <dcmtk/dcmimage/diregist.h>  // include to support color images
 #endif
 
 
@@ -1223,7 +1224,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     dicom.transferInit();
     OFCondition c = dicom.write(ob, xfer, encodingType, NULL,
                                 /*opt_groupLength*/ EGL_recalcGL,
-                                /*opt_paddingType*/ EPD_withoutPadding);
+                                /*opt_paddingType*/ EPD_noChange,
+                                /*padlen*/ 0, /*subPadlen*/ 0, /*instanceLength*/ 0,
+                                EWM_updateMeta /* creates new SOP instance UID on lossy */);
     dicom.transferEnd();
 
     if (c.good())
