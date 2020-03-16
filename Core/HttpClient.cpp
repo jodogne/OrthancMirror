@@ -234,7 +234,8 @@ namespace Orthanc
         if (sourceRemainingSize > 0)
         {
           // transmit the end of current source buffer
-          memcpy(curlBuffer + curlBufferFilledSize, sourceBuffer_.data() + sourceBufferTransmittedSize_, sourceRemainingSize);
+          memcpy(curlBuffer + curlBufferFilledSize,
+                 sourceBuffer_.data() + sourceBufferTransmittedSize_, sourceRemainingSize);
 
           curlBufferFilledSize += sourceRemainingSize;
         }
@@ -248,11 +249,13 @@ namespace Orthanc
         sourceRemainingSize = sourceBuffer_.size();
       }
 
-      if (sourceRemainingSize > 0 && (curlBufferSize - curlBufferFilledSize) > 0)
+      if (sourceRemainingSize > 0 &&
+          curlBufferSize > curlBufferFilledSize)
       {
         size_t s = std::min(sourceRemainingSize, curlBufferSize - curlBufferFilledSize);
 
-        memcpy(curlBuffer + curlBufferFilledSize, sourceBuffer_.data() + sourceBufferTransmittedSize_, s);
+        memcpy(curlBuffer + curlBufferFilledSize,
+               sourceBuffer_.data() + sourceBufferTransmittedSize_, s);
 
         sourceBufferTransmittedSize_ += s;
         curlBufferFilledSize += s;

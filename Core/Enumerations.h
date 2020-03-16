@@ -239,6 +239,7 @@ namespace Orthanc
     ErrorCode_CannotOrderSlices = 2040    /*!< Unable to order the slices of the series */,
     ErrorCode_NoWorklistHandler = 2041    /*!< No request handler factory for DICOM C-Find Modality SCP */,
     ErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
+    ErrorCode_NoStorageCommitmentHandler = 2043    /*!< No request handler factory for DICOM N-ACTION SCP (storage commitment) */,
     ErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
     ErrorCode_START_PLUGINS = 1000000
   };
@@ -670,7 +671,9 @@ namespace Orthanc
     DicomRequestType_Find,
     DicomRequestType_Get,
     DicomRequestType_Move,
-    DicomRequestType_Store
+    DicomRequestType_Store,
+    DicomRequestType_NAction,
+    DicomRequestType_NEventReport
   };
 
   enum TransferSyntax
@@ -710,6 +713,36 @@ namespace Orthanc
     JobStopReason_Success,
     JobStopReason_Failure,
     JobStopReason_Retry
+  };
+
+  
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
+  enum StorageCommitmentFailureReason
+  {
+    StorageCommitmentFailureReason_Success = 0,
+
+    // A general failure in processing the operation was encountered
+    StorageCommitmentFailureReason_ProcessingFailure = 0x0110,
+
+    // One or more of the elements in the Referenced SOP Instance
+    // Sequence was not available
+    StorageCommitmentFailureReason_NoSuchObjectInstance = 0x0112,
+
+    // The SCP does not currently have enough resources to store the
+    // requested SOP Instance(s)
+    StorageCommitmentFailureReason_ResourceLimitation = 0x0213,
+
+    // Storage Commitment has been requested for a SOP Instance with a
+    // SOP Class that is not supported by the SCP
+    StorageCommitmentFailureReason_ReferencedSOPClassNotSupported = 0x0122,
+
+    // The SOP Class of an element in the Referenced SOP Instance
+    // Sequence did not correspond to the SOP class registered for
+    // this SOP Instance at the SCP
+    StorageCommitmentFailureReason_ClassInstanceConflict = 0x0119,
+
+    // The Transaction UID of the Storage Commitment Request is already in use
+    StorageCommitmentFailureReason_DuplicateTransactionUID = 0x0131
   };
 
 
@@ -797,6 +830,8 @@ namespace Orthanc
   const char* EnumerationToString(MimeType mime);
 
   const char* EnumerationToString(Endianness endianness);
+
+  const char* EnumerationToString(StorageCommitmentFailureReason reason);
 
   Encoding StringToEncoding(const char* encoding);
 

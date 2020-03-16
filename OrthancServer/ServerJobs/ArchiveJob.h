@@ -93,7 +93,7 @@ namespace Orthanc
 
     virtual void Start();
 
-    virtual JobStepResult Step();
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
     virtual void Stop(JobStopReason reason)
     {

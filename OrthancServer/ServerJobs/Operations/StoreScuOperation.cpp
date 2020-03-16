@@ -70,7 +70,9 @@ namespace Orthanc
     {
       std::string dicom;
       instance.ReadDicom(dicom);
-      resource->GetConnection().Store(dicom);
+
+      std::string sopClassUid, sopInstanceUid;  // Unused
+      resource->GetConnection().Store(sopClassUid, sopInstanceUid, dicom);
     }
     catch (OrthancException& e)
     {

@@ -103,6 +103,12 @@
 #  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 0)
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  1
+#else
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  0
+#endif
+
 
 
 namespace OrthancPlugins
@@ -1100,4 +1106,26 @@ namespace OrthancPlugins
 #endif
     }
   };
+
+  
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  class IStorageCommitmentScpHandler : public boost::noncopyable
+  {
+  public:
+    virtual ~IStorageCommitmentScpHandler()
+    {
+    }
+    
+    virtual OrthancPluginStorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                               const std::string& sopInstanceUid) = 0;
+    
+    static OrthancPluginErrorCode Lookup(OrthancPluginStorageCommitmentFailureReason* target,
+                                         void* rawHandler,
+                                         const char* sopClassUid,
+                                         const char* sopInstanceUid);
+
+    static void Destructor(void* rawHandler);
+  };
+#endif
 }

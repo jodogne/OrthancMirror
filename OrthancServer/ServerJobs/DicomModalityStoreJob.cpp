@@ -38,6 +38,7 @@
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
+#include "../StorageCommitmentReports.h"
 
 
 namespace Orthanc
@@ -72,14 +73,47 @@ namespace Orthanc
       LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
       return false;
     }
+    
+    std::string sopClassUid, sopInstanceUid;
 
     if (HasMoveOriginator())
     {
-      connection_->Store(dicom, moveOriginatorAet_, moveOriginatorId_);
+      connection_->Store(sopClassUid, sopInstanceUid, dicom, moveOriginatorAet_, moveOriginatorId_);
     }
     else
     {
-      connection_->Store(dicom);
+      connection_->Store(sopClassUid, sopInstanceUid, dicom);
+    }
+
+    if (storageCommitment_)
+    {
+      sopClassUids_.push_back(sopClassUid);
+      sopInstanceUids_.push_back(sopInstanceUid);
+
+      if (sopClassUids_.size() != sopInstanceUids_.size() ||
+          sopClassUids_.size() > GetInstancesCount())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      
+      if (sopClassUids_.size() == GetInstancesCount())
+      {
+        const std::string& remoteAet = remote_.GetApplicationEntityTitle();
+        
+        LOG(INFO) << "Sending storage commitment request to modality: " << remoteAet;
+
+        // Create a "pending" storage commitment report BEFORE the
+        // actual SCU call in order to avoid race conditions
+        context_.GetStorageCommitmentReports().Store(
+          transactionUid_, new StorageCommitmentReports::Report(remoteAet));
+        
+        assert(IsStarted());
+        OpenConnection();
+
+        std::vector<std::string> a(sopClassUids_.begin(), sopClassUids_.end());
+        std::vector<std::string> b(sopInstanceUids_.begin(), sopInstanceUids_.end());
+        connection_->RequestStorageCommitment(transactionUid_, a, b);
+      }
     }
 
     //boost::this_thread::sleep(boost::posix_time::milliseconds(500));
@@ -97,8 +131,10 @@ namespace Orthanc
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context) :
     context_(context),
     localAet_("ORTHANC"),
-    moveOriginatorId_(0)  // By default, not a C-MOVE
+    moveOriginatorId_(0),      // By default, not a C-MOVE
+    storageCommitment_(false)  // By default, no storage commitment
   {
+    ResetStorageCommitment();
   }
 
 
@@ -179,6 +215,38 @@ namespace Orthanc
   }
 
 
+  void DicomModalityStoreJob::ResetStorageCommitment()
+  {
+    if (storageCommitment_)
+    {
+      transactionUid_ = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+      sopClassUids_.clear();
+      sopInstanceUids_.clear();
+    }
+  }
+  
+
+  void DicomModalityStoreJob::Reset()
+  {
+    SetOfInstancesJob::Reset();
+
+    /**
+     * "After the N-EVENT-REPORT has been sent, the Transaction UID is
+     * no longer active and shall not be reused for other
+     * transactions." => Need to reset the transaction UID here
+     * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+     **/
+    ResetStorageCommitment();
+  }
+  
+
+  void DicomModalityStoreJob::EnableStorageCommitment(bool enabled)
+  {
+    storageCommitment_ = enabled;
+    ResetStorageCommitment();
+  }
+  
+
   void DicomModalityStoreJob::GetPublicContent(Json::Value& value)
   {
     SetOfInstancesJob::GetPublicContent(value);
@@ -191,6 +259,11 @@ namespace Orthanc
       value["MoveOriginatorAET"] = GetMoveOriginatorAet();
       value["MoveOriginatorID"] = GetMoveOriginatorId();
     }
+
+    if (storageCommitment_)
+    {
+      value["StorageCommitmentTransactionUID"] = transactionUid_;
+    }
   }
 
 
@@ -198,6 +271,7 @@ namespace Orthanc
   static const char* REMOTE = "Remote";
   static const char* MOVE_ORIGINATOR_AET = "MoveOriginatorAet";
   static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorId";
+  static const char* STORAGE_COMMITMENT = "StorageCommitment";
   
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context,
@@ -210,6 +284,7 @@ namespace Orthanc
     moveOriginatorAet_ = SerializationToolbox::ReadString(serialized, MOVE_ORIGINATOR_AET);
     moveOriginatorId_ = static_cast<uint16_t>
       (SerializationToolbox::ReadUnsignedInteger(serialized, MOVE_ORIGINATOR_ID));
+    EnableStorageCommitment(SerializationToolbox::ReadBoolean(serialized, STORAGE_COMMITMENT));
   }
 
 
@@ -225,6 +300,7 @@ namespace Orthanc
       remote_.Serialize(target[REMOTE], true /* force advanced format */);
       target[MOVE_ORIGINATOR_AET] = moveOriginatorAet_;
       target[MOVE_ORIGINATOR_ID] = moveOriginatorId_;
+      target[STORAGE_COMMITMENT] = storageCommitment_;
       return true;
     }
   }  
