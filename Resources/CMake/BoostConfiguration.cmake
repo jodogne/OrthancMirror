@@ -12,7 +12,7 @@ else()
   endif()
 
   list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread system date_time regex)
-  find_package(Boost COMPONENTS "${ORTHANC_BOOST_COMPONENTS}")
+  find_package(Boost COMPONENTS ${ORTHANC_BOOST_COMPONENTS})
 
   if (NOT Boost_FOUND)
     foreach (item ${ORTHANC_BOOST_COMPONENTS})
