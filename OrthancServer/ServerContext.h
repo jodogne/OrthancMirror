@@ -168,11 +168,11 @@ namespace Orthanc
 
     void SaveJobsEngine();
 
-    virtual void SignalJobSubmitted(const std::string& jobId);
+    virtual void SignalJobSubmitted(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void SignalJobSuccess(const std::string& jobId);
+    virtual void SignalJobSuccess(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void SignalJobFailure(const std::string& jobId);
+    virtual void SignalJobFailure(const std::string& jobId) ORTHANC_OVERRIDE;
 
     ServerIndex index_;
     IStorageArea& area_;
