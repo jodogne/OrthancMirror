@@ -33,61 +33,34 @@
 
 #pragma once
 
-#include "JobsRegistry.h"
-
-#include "../Compatibility.h"
-
-#include <boost/thread.hpp>
+#include <boost/noncopyable.hpp>
+#include <string>
+#include <vector>
 
 namespace Orthanc
 {
-  class JobsEngine : public boost::noncopyable
+  class IStorageCommitmentRequestHandler : public boost::noncopyable
   {
-  private:
-    enum State
-    {
-      State_Setup,
-      State_Running,
-      State_Stopping,
-      State_Done
-    };
-
-    boost::mutex                 stateMutex_;
-    State                        state_;
-    std::unique_ptr<JobsRegistry>  registry_;
-    boost::thread                retryHandler_;
-    unsigned int                 threadSleep_;
-    std::vector<boost::thread*>  workers_;
-
-    bool IsRunning();
-    
-    bool ExecuteStep(JobsRegistry::RunningJob& running,
-                     size_t workerIndex);
-    
-    static void RetryHandler(JobsEngine* engine);
-
-    static void Worker(JobsEngine* engine,
-                       size_t workerIndex);
-
   public:
-    JobsEngine(size_t maxCompletedJobs);
+    virtual ~IStorageCommitmentRequestHandler()
+    {
+    }
 
-    ~JobsEngine();
+    virtual void HandleRequest(const std::string& transactionUid,
+                               const std::vector<std::string>& sopClassUids,
+                               const std::vector<std::string>& sopInstanceUids,
+                               const std::string& remoteIp,
+                               const std::string& remoteAet,
+                               const std::string& calledAet) = 0;
 
-    JobsRegistry& GetRegistry();
-
-    void LoadRegistryFromJson(IJobUnserializer& unserializer,
-                              const Json::Value& serialized);
-
-    void LoadRegistryFromString(IJobUnserializer& unserializer,
-                                const std::string& serialized);
-
-    void SetWorkersCount(size_t count);
-
-    void SetThreadSleep(unsigned int sleep);
-
-    void Start();
-
-    void Stop();
+    virtual void HandleReport(const std::string& transactionUid,
+                              const std::vector<std::string>& successSopClassUids,
+                              const std::vector<std::string>& successSopInstanceUids,
+                              const std::vector<std::string>& failedSopClassUids,
+                              const std::vector<std::string>& failedSopInstanceUids,
+                              const std::vector<StorageCommitmentFailureReason>& failureReasons,
+                              const std::string& remoteIp,
+                              const std::string& remoteAet,
+                              const std::string& calledAet) = 0;
   };
 }

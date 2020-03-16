@@ -79,6 +79,8 @@ namespace Orthanc
     OrthancPluginJobStepStatus Convert(JobStepCode step);
 
     JobStepCode Convert(OrthancPluginJobStepStatus step);
+
+    StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason);
   }
 }
 

@@ -48,6 +48,9 @@ static const char* KEY_ALLOW_FIND = "AllowFind";
 static const char* KEY_ALLOW_GET = "AllowGet";
 static const char* KEY_ALLOW_MOVE = "AllowMove";
 static const char* KEY_ALLOW_STORE = "AllowStore";
+static const char* KEY_ALLOW_N_ACTION = "AllowNAction";
+static const char* KEY_ALLOW_N_EVENT_REPORT = "AllowEventReport";
+static const char* KEY_ALLOW_STORAGE_COMMITMENT = "AllowStorageCommitment";
 static const char* KEY_HOST = "Host";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
@@ -66,6 +69,8 @@ namespace Orthanc
     allowFind_ = true;
     allowMove_ = true;
     allowGet_ = true;
+    allowNAction_ = true;  // For storage commitment
+    allowNEventReport_ = true;  // For storage commitment
   }
 
 
@@ -211,6 +216,23 @@ namespace Orthanc
     {
       allowMove_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_MOVE);
     }
+
+    if (serialized.isMember(KEY_ALLOW_N_ACTION))
+    {
+      allowNAction_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_N_ACTION);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_N_EVENT_REPORT))
+    {
+      allowNEventReport_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_N_EVENT_REPORT);
+    }
+
+    if (serialized.isMember(KEY_ALLOW_STORAGE_COMMITMENT))
+    {
+      bool allow = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_STORAGE_COMMITMENT);
+      allowNAction_ = allow;
+      allowNEventReport_ = allow;
+    }
   }
 
 
@@ -232,6 +254,12 @@ namespace Orthanc
 
       case DicomRequestType_Store:
         return allowStore_;
+
+      case DicomRequestType_NAction:
+        return allowNAction_;
+
+      case DicomRequestType_NEventReport:
+        return allowNEventReport_;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -264,6 +292,14 @@ namespace Orthanc
         allowStore_ = allowed;
         break;
 
+      case DicomRequestType_NAction:
+        allowNAction_ = allowed;
+        break;
+
+      case DicomRequestType_NEventReport:
+        allowNEventReport_ = allowed;
+        break;
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -276,7 +312,9 @@ namespace Orthanc
             !allowStore_ ||
             !allowFind_ ||
             !allowGet_ ||
-            !allowMove_);
+            !allowMove_ ||
+            !allowNAction_ ||
+            !allowNEventReport_);
   }
 
   
@@ -296,6 +334,8 @@ namespace Orthanc
       target[KEY_ALLOW_FIND] = allowFind_;
       target[KEY_ALLOW_GET] = allowGet_;
       target[KEY_ALLOW_MOVE] = allowMove_;
+      target[KEY_ALLOW_N_ACTION] = allowNAction_;
+      target[KEY_ALLOW_N_EVENT_REPORT] = allowNEventReport_;
     }
     else
     {

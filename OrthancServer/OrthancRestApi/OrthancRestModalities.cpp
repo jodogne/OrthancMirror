@@ -46,6 +46,7 @@
 #include "../ServerJobs/DicomMoveScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
+#include "../StorageCommitmentReports.h"
 
 
 namespace Orthanc
@@ -963,6 +964,12 @@ namespace Orthanc
       job->SetMoveOriginator(moveOriginatorAET, moveOriginatorID);
     }
 
+    // New in Orthanc 1.6.0
+    if (Toolbox::GetJsonBooleanField(request, "StorageCommitment", false))
+    {
+      job->EnableStorageCommitment(true);
+    }
+
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
   }
@@ -1273,7 +1280,7 @@ namespace Orthanc
     if (call.ParseJsonRequest(json))
     {
       const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-      RemoteModalityParameters remote =
+      const RemoteModalityParameters remote =
         MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
       std::unique_ptr<ParsedDicomFile> query
@@ -1298,6 +1305,251 @@ namespace Orthanc
     }
   }
 
+
+  // Storage commitment SCU ---------------------------------------------------
+
+  static void StorageCommitmentScu(RestApiPostCall& call)
+  {
+    static const char* const ORTHANC_RESOURCES = "Resources";
+    static const char* const DICOM_INSTANCES = "DicomInstances";
+    static const char* const SOP_CLASS_UID = "SOPClassUID";
+    static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value json;
+    if (!call.ParseJsonRequest(json) ||
+        json.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Must provide a JSON object with a list of resources");
+    }
+    else if (!json.isMember(ORTHANC_RESOURCES) &&
+             !json.isMember(DICOM_INSTANCES))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Empty storage commitment request, one of these fields is mandatory: \"" +
+                             std::string(ORTHANC_RESOURCES) + "\" or \"" + std::string(DICOM_INSTANCES) + "\"");
+    }
+    else
+    {
+      std::list<std::string> sopClassUids, sopInstanceUids;
+
+      if (json.isMember(ORTHANC_RESOURCES))
+      {
+        const Json::Value& resources = json[ORTHANC_RESOURCES];
+          
+        if (resources.type() != Json::arrayValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "The \"" + std::string(ORTHANC_RESOURCES) +
+                                 "\" field must provide an array of Orthanc resources");
+        }
+        else
+        {
+          for (Json::Value::ArrayIndex i = 0; i < resources.size(); i++)
+          {
+            if (resources[i].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat,
+                                     "The \"" + std::string(ORTHANC_RESOURCES) +
+                                     "\" field must provide an array of strings, found: " + resources[i].toStyledString());
+            }
+
+            std::list<std::string> instances;
+            context.GetIndex().GetChildInstances(instances, resources[i].asString());
+            
+            for (std::list<std::string>::const_iterator
+                   it = instances.begin(); it != instances.end(); ++it)
+            {
+              std::string sopClassUid, sopInstanceUid;
+              DicomMap tags;
+              if (context.LookupOrReconstructMetadata(sopClassUid, *it, MetadataType_Instance_SopClassUid) &&
+                  context.GetIndex().GetAllMainDicomTags(tags, *it) &&
+                  tags.LookupStringValue(sopInstanceUid, DICOM_TAG_SOP_INSTANCE_UID, false))
+              {
+                sopClassUids.push_back(sopClassUid);
+                sopInstanceUids.push_back(sopInstanceUid);
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_InternalError,
+                                       "Cannot retrieve SOP Class/Instance UID of Orthanc instance: " + *it);
+              }
+            }
+          }
+        }
+      }
+
+      if (json.isMember(DICOM_INSTANCES))
+      {
+        const Json::Value& instances = json[DICOM_INSTANCES];
+          
+        if (instances.type() != Json::arrayValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "The \"" + std::string(DICOM_INSTANCES) +
+                                 "\" field must provide an array of DICOM instances");
+        }
+        else
+        {
+          for (Json::Value::ArrayIndex i = 0; i < instances.size(); i++)
+          {
+            if (instances[i].type() == Json::arrayValue)
+            {
+              if (instances[i].size() != 2 ||
+                  instances[i][0].type() != Json::stringValue ||
+                  instances[i][1].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadFileFormat,
+                                       "An instance entry must provide an array with 2 strings: "
+                                       "SOP Class UID and SOP Instance UID");
+              }
+              else
+              {
+                sopClassUids.push_back(instances[i][0].asString());
+                sopInstanceUids.push_back(instances[i][1].asString());
+              }
+            }
+            else if (instances[i].type() == Json::objectValue)
+            {
+              if (!instances[i].isMember(SOP_CLASS_UID) ||
+                  !instances[i].isMember(SOP_INSTANCE_UID) ||
+                  instances[i][SOP_CLASS_UID].type() != Json::stringValue ||
+                  instances[i][SOP_INSTANCE_UID].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadFileFormat,
+                                       "An instance entry must provide an object with 2 string fiels: "
+                                       "\"" + std::string(SOP_CLASS_UID) + "\" and \"" +
+                                       std::string(SOP_INSTANCE_UID));
+              }
+              else
+              {
+                sopClassUids.push_back(instances[i][SOP_CLASS_UID].asString());
+                sopInstanceUids.push_back(instances[i][SOP_INSTANCE_UID].asString());
+              }
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadFileFormat,
+                                     "JSON array or object is expected to specify one "
+                                     "instance to be queried, found: " + instances[i].toStyledString());
+            }
+          }
+        }
+      }
+
+      if (sopClassUids.size() != sopInstanceUids.size())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      const std::string transactionUid = Toolbox::GenerateDicomPrivateUniqueIdentifier();
+
+      if (sopClassUids.empty())
+      {
+        LOG(WARNING) << "Issuing an outgoing storage commitment request that is empty: " << transactionUid;
+      }
+
+      {
+        const RemoteModalityParameters remote =
+          MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+        const std::string& remoteAet = remote.GetApplicationEntityTitle();
+        const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+        
+        // Create a "pending" storage commitment report BEFORE the
+        // actual SCU call in order to avoid race conditions
+        context.GetStorageCommitmentReports().Store(
+          transactionUid, new StorageCommitmentReports::Report(remoteAet));
+
+        DicomUserConnection scu(localAet, remote);
+
+        std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
+        std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
+        scu.RequestStorageCommitment(transactionUid, a, b);
+      }
+
+      Json::Value result = Json::objectValue;
+      result["ID"] = transactionUid;
+      result["Path"] = "/storage-commitment/" + transactionUid;
+      call.GetOutput().AnswerJson(result);
+    }
+  }
+
+
+  static void GetStorageCommitmentReport(RestApiGetCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    const std::string& transactionUid = call.GetUriComponent("id", "");
+
+    {
+      StorageCommitmentReports::Accessor accessor(
+        context.GetStorageCommitmentReports(), transactionUid);
+
+      if (accessor.IsValid())
+      {
+        Json::Value json;
+        accessor.GetReport().Format(json);
+        call.GetOutput().AnswerJson(json);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "No storage commitment transaction with UID: " + transactionUid);
+      }
+    }
+  }
+  
+
+  static void RemoveAfterStorageCommitment(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    const std::string& transactionUid = call.GetUriComponent("id", "");
+
+    {
+      StorageCommitmentReports::Accessor accessor(
+        context.GetStorageCommitmentReports(), transactionUid);
+
+      if (!accessor.IsValid())
+      {
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "No storage commitment transaction with UID: " + transactionUid);
+      }
+      else if (accessor.GetReport().GetStatus() != StorageCommitmentReports::Report::Status_Success)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "Cannot remove DICOM instances after failure "
+                               "in storage commitment transaction: " + transactionUid);
+      }
+      else
+      {
+        std::vector<std::string> sopInstanceUids;
+        accessor.GetReport().GetSuccessSopInstanceUids(sopInstanceUids);
+
+        for (size_t i = 0; i < sopInstanceUids.size(); i++)
+        {
+          std::vector<std::string> orthancId;
+          context.GetIndex().LookupIdentifierExact(
+            orthancId, ResourceType_Instance, DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUids[i]);
+
+          for (size_t j = 0; j < orthancId.size(); j++)
+          {
+            LOG(INFO) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
+                      << sopInstanceUids[i] << " / " << orthancId[j];
+
+            Json::Value tmp;
+            context.GetIndex().DeleteResource(tmp, orthancId[j], ResourceType_Instance);
+          }
+        }
+          
+        call.GetOutput().AnswerBuffer("{}", MimeType_Json);
+      }
+    }
+  }
+  
 
   void OrthancRestApi::RegisterModalities()
   {
@@ -1342,5 +1594,10 @@ namespace Orthanc
     Register("/peers/{id}/system", PeerSystem);
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
+
+    // Storage commitment
+    Register("/modalities/{id}/storage-commitment", StorageCommitmentScu);
+    Register("/storage-commitment/{id}", GetStorageCommitmentReport);
+    Register("/storage-commitment/{id}/remove", RemoveAfterStorageCommitment);
   }
 }

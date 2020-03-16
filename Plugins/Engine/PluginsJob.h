@@ -55,7 +55,7 @@ namespace Orthanc
     {
     }
     
-    virtual JobStepResult Step();
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
     virtual void Reset();
 

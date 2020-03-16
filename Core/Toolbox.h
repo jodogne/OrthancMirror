@@ -257,6 +257,11 @@ namespace Orthanc
                                 size_t& utf8Length,
                                 const std::string& utf8,
                                 size_t position);
+
+    std::string LargeHexadecimalToDecimal(const std::string& hex);
+
+    // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
+    std::string GenerateDicomPrivateUniqueIdentifier();
   }
 }
 
