@@ -1922,6 +1922,8 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmjpeg/djrploss.h>   // for DJ_RPLossy
+#include <dcmtk/dcmjpeg/djrplol.h>    // for DJ_RPLossless
 
 
 namespace Orthanc
@@ -1962,9 +1964,13 @@ namespace Orthanc
     DicomTransferSyntax               transferSyntax_;
     std::string                       sopClassUid_;
     std::string                       sopInstanceUid_;
+    uint16_t                          bitsStored_;
+    unsigned int                      lossyQuality_;
 
     void Setup(DcmFileFormat* dicom)
     {
+      lossyQuality_ = 90;
+      
       dicom_.reset(dicom);
       
       if (dicom == NULL ||
@@ -1995,6 +2001,12 @@ namespace Orthanc
           "Unsupported transfer syntax: " + boost::lexical_cast<std::string>(xfer));
       }
 
+      if (!dataset.findAndGetUint16(DCM_BitsStored, bitsStored_).good())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Missing \"Bits Stored\" tag in DICOM instance");
+      }      
+
       const char* a = NULL;
       const char* b = NULL;
 
@@ -2021,6 +2033,29 @@ namespace Orthanc
                     size_t size)
     {
       Setup(FromDcmtkBridge::LoadFromMemoryBuffer(dicom, size));
+    }
+
+    void SetLossyQuality(unsigned int quality)
+    {
+      if (quality <= 0 ||
+          quality > 100)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        lossyQuality_ = quality;
+      }
+    }
+
+    unsigned int GetLossyQuality() const
+    {
+      return lossyQuality_;
+    }
+
+    unsigned int GetBitsStored() const
+    {
+      return bitsStored_;
     }
 
     virtual DicomTransferSyntax GetTransferSyntax() ORTHANC_OVERRIDE
@@ -2068,6 +2103,19 @@ namespace Orthanc
                            std::set<DicomTransferSyntax> syntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
+      if (syntaxes.find(GetTransferSyntax()) != syntaxes.end())
+      {
+        printf("NO TRANSCODING\n");
+        
+        // No change in the transfer syntax => simply serialize the current dataset
+        WriteToMemoryBuffer(target);
+        return true;
+      }
+      
+      printf(">> %d\n", bitsStored_);
+
+      DJ_RPLossy rpLossy(lossyQuality_);
+
       if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != syntaxes.end() &&
           FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianImplicit, NULL))
       {
@@ -2080,6 +2128,11 @@ namespace Orthanc
       }
       else if (syntaxes.find(DicomTransferSyntax_BigEndianExplicit) != syntaxes.end() &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_BigEndianExplicit, NULL))
+      {
+        return true;
+      }
+      else if (syntaxes.find(DicomTransferSyntax_JPEGProcess1) != syntaxes.end() &&
+               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
       {
         return true;
       }
@@ -2163,20 +2216,32 @@ static bool Transcode(std::string& buffer,
   }
 }
 
-#include "dcmtk/dcmjpeg/djrploss.h"  /* for DJ_RPLossy */
-#include "dcmtk/dcmjpeg/djrplol.h"   /* for DJ_RPLossless */
 
 #include <boost/filesystem.hpp>
 
 
 static void TestFile(const std::string& path)
 {
+  static unsigned int count = 0;
+  count++;
+  
+
   printf("** %s\n", path.c_str());
 
   std::string s;
   SystemToolbox::ReadFile(s, path);
 
   Orthanc::DcmtkTranscoder transcoder(s.c_str(), s.size());
+
+  if (transcoder.GetBitsStored() != 8)  // TODO
+    return; 
+
+  {
+    char buf[1024];
+    sprintf(buf, "/tmp/source-%06d.dcm", count);
+    printf(">> %s\n", buf);
+    Orthanc::SystemToolbox::WriteFile(s, buf);
+  }
 
   printf("[%s] [%s] [%s] %d %d\n", GetTransferSyntaxUid(transcoder.GetTransferSyntax()),
          transcoder.GetSopClassUid().c_str(), transcoder.GetSopInstanceUid().c_str(),
@@ -2189,9 +2254,8 @@ static void TestFile(const std::string& path)
 
     if (i == 0)
     {
-      static unsigned int i = 0;
       char buf[1024];
-      sprintf(buf, "/tmp/frame-%06d.dcm", i++);
+      sprintf(buf, "/tmp/frame-%06d.raw", count);
       printf(">> %s\n", buf);
       Orthanc::SystemToolbox::WriteFile(f, buf);
     }
@@ -2202,12 +2266,12 @@ static void TestFile(const std::string& path)
     transcoder.WriteToMemoryBuffer(t);
 
     Orthanc::DcmtkTranscoder transcoder2(t.c_str(), t.size());
-    printf(">> %d %d ; %d bytes\n", transcoder.GetTransferSyntax(), transcoder2.GetTransferSyntax(), t.size());
+    printf(">> %d %d ; %lu bytes\n", transcoder.GetTransferSyntax(), transcoder2.GetTransferSyntax(), t.size());
   }
 
   {
     std::set<DicomTransferSyntax> syntaxes;
-    syntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+    syntaxes.insert(DicomTransferSyntax_JPEGProcess1);
 
     std::string t;
     bool ok = transcoder.Transcode(t, syntaxes, false);
@@ -2215,8 +2279,15 @@ static void TestFile(const std::string& path)
 
     if (ok)
     {
+      {
+        char buf[1024];
+        sprintf(buf, "/tmp/transcoded-%06d.dcm", count);
+        printf(">> %s\n", buf);
+        Orthanc::SystemToolbox::WriteFile(t, buf);
+      }
+
       Orthanc::DcmtkTranscoder transcoder2(t.c_str(), t.size());
-      printf("  => transcoded transfer syntax %d ; %d bytes\n", transcoder2.GetTransferSyntax(), t.size());
+      printf("  => transcoded transfer syntax %d ; %lu bytes\n", transcoder2.GetTransferSyntax(), t.size());
     }
   }
   
@@ -2225,10 +2296,10 @@ static void TestFile(const std::string& path)
 
 TEST(Toto, DISABLED_Transcode)
 {
+  //OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
+
   if (0)
   {
-    OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
-
     std::string s;
     //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.4.50.dcm");
     //SystemToolbox::ReadFile(s, "/home/jodogne/DICOM/Alain.dcm");
@@ -2276,9 +2347,17 @@ TEST(Toto, DISABLED_Transcode)
         TestFile(it->path().string());
       }
     }
+  }
 
+  if (0)
+  {
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Multiframe.dcm");
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Issue44/Monochrome1-Jpeg.dcm");
+  }
+
+  if (0)
+  {
+    TestFile("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.1.dcm");
   }
 }
 
