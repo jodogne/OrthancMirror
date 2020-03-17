@@ -40,6 +40,7 @@
     "Retired" : false,
     "Note" : "Default Transfer Syntax for Lossy JPEG 8-bit Image Compression",
     "DCMTK" : "EXS_JPEGProcess1",
+    "DCMTK360" : "EXS_JPEGProcess1TransferSyntax",
     "GDCM" : "gdcm::TransferSyntax::JPEGBaselineProcess1"
   },
   
@@ -50,6 +51,7 @@
     "Retired" : false,
     "Note" : "Default Transfer Syntax for Lossy JPEG (lossy, 8/12 bit), 12-bit Image Compression (Process 4 only)",
     "DCMTK" : "EXS_JPEGProcess2_4",
+    "DCMTK360" : "EXS_JPEGProcess2_4TransferSyntax",
     "GDCM" : "gdcm::TransferSyntax::JPEGExtendedProcess2_4"
   },
 
@@ -58,7 +60,8 @@
     "Name" : "JPEG Extended Sequential (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess3_5",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess3_5"
+    "DCMTK" : "EXS_JPEGProcess3_5",
+    "DCMTK360" : "EXS_JPEGProcess3_5TransferSyntax"
   },
 
   {
@@ -66,7 +69,8 @@
     "Name" : "JPEG Spectral Selection, Nonhierarchical (lossy, 8/12 bit)",
     "Value" : "JPEGProcess6_8",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess6_8"
+    "DCMTK" : "EXS_JPEGProcess6_8",
+    "DCMTK360" : "EXS_JPEGProcess6_8TransferSyntax"
   },
 
   {
@@ -74,7 +78,8 @@
     "Name" : "JPEG Spectral Selection, Nonhierarchical (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess7_9",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess7_9"
+    "DCMTK" : "EXS_JPEGProcess7_9",
+    "DCMTK360" : "EXS_JPEGProcess7_9TransferSyntax"
   },
 
   {
@@ -82,7 +87,8 @@
     "Name" : "JPEG Full Progression, Nonhierarchical (lossy, 8/12 bit)",
     "Value" : "JPEGProcess10_12",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess10_12"
+    "DCMTK" : "EXS_JPEGProcess10_12",
+    "DCMTK360" : "EXS_JPEGProcess10_12TransferSyntax"
   },
 
   {
@@ -90,7 +96,8 @@
     "Name" : "JPEG Full Progression, Nonhierarchical (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess11_13",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess11_13"
+    "DCMTK" : "EXS_JPEGProcess11_13",
+    "DCMTK360" : "EXS_JPEGProcess11_13TransferSyntax"
   },
 
   {
@@ -99,6 +106,7 @@
     "Value" : "JPEGProcess14",
     "Retired" : false,
     "DCMTK" : "EXS_JPEGProcess14",
+    "DCMTK360" : "EXS_JPEGProcess14TransferSyntax",
     "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14"
   },
 
@@ -107,7 +115,8 @@
     "Name" : "JPEG Lossless with any selection value, arithmetic coding",
     "Value" : "JPEGProcess15",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess15"
+    "DCMTK" : "EXS_JPEGProcess15",
+    "DCMTK360" : "EXS_JPEGProcess15TransferSyntax"
   },
   
   {
@@ -115,7 +124,8 @@
     "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit)",
     "Value" : "JPEGProcess16_18",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess16_18"
+    "DCMTK" : "EXS_JPEGProcess16_18",
+    "DCMTK360" : "EXS_JPEGProcess16_18TransferSyntax"
   },
   
   {
@@ -123,7 +133,8 @@
     "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess17_19",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess17_19"
+    "DCMTK" : "EXS_JPEGProcess17_19",
+    "DCMTK360" : "EXS_JPEGProcess17_19TransferSyntax"
   },
   
   {
@@ -131,7 +142,8 @@
     "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit)",
     "Value" : "JPEGProcess20_22",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess20_22"
+    "DCMTK" : "EXS_JPEGProcess20_22",
+    "DCMTK360" : "EXS_JPEGProcess20_22TransferSyntax"
   },
   
   {
@@ -139,7 +151,8 @@
     "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess21_23",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess21_23"
+    "DCMTK" : "EXS_JPEGProcess21_23",
+    "DCMTK360" : "EXS_JPEGProcess21_23TransferSyntax"
   },
   
   {
@@ -147,7 +160,8 @@
     "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit)",
     "Value" : "JPEGProcess24_26",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess24_26"
+    "DCMTK" : "EXS_JPEGProcess24_26",
+    "DCMTK360" : "EXS_JPEGProcess24_26TransferSyntax"
   },
   
   {
@@ -155,7 +169,8 @@
     "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit), arithmetic coding",
     "Value" : "JPEGProcess25_27",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess25_27"
+    "DCMTK" : "EXS_JPEGProcess25_27",
+    "DCMTK360" : "EXS_JPEGProcess25_27TransferSyntax"
   },
   
   {
@@ -163,7 +178,8 @@
     "Name" : "JPEG Lossless, Hierarchical",
     "Value" : "JPEGProcess28",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess28"
+    "DCMTK" : "EXS_JPEGProcess28",
+    "DCMTK360" : "EXS_JPEGProcess28TransferSyntax"
   },
   
   {
@@ -171,7 +187,8 @@
     "Name" : "JPEG Lossless, Hierarchical, arithmetic coding",
     "Value" : "JPEGProcess29",
     "Retired" : true,
-    "DCMTK" : "EXS_JPEGProcess29"
+    "DCMTK" : "EXS_JPEGProcess29",
+    "DCMTK360" : "EXS_JPEGProcess29TransferSyntax"
   },
 
   {
@@ -181,6 +198,7 @@
     "Retired" : false,
     "Note" : "Default Transfer Syntax for Lossless JPEG Image Compression",
     "DCMTK" : "EXS_JPEGProcess14SV1",
+    "DCMTK360" : "EXS_JPEGProcess14SV1TransferSyntax",
     "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14_1"
   },
 
@@ -275,7 +293,8 @@
     "Name" : "MPEG4 High Profile / Level 4.1",
     "Value" : "MPEG4HighProfileLevel4_1",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG4HighProfileLevel4_1"
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_1",
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -283,7 +302,8 @@
     "Name" : "MPEG4 BD-compatible High Profile / Level 4.1",
     "Value" : "MPEG4BDcompatibleHighProfileLevel4_1",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG4BDcompatibleHighProfileLevel4_1"
+    "DCMTK" : "EXS_MPEG4BDcompatibleHighProfileLevel4_1",
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -291,7 +311,8 @@
     "Name" : "MPEG4 High Profile / Level 4.2 For 2D Video",
     "Value" : "MPEG4HighProfileLevel4_2_For2DVideo",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For2DVideo"
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For2DVideo",
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -299,7 +320,8 @@
     "Name" : "MPEG4 High Profile / Level 4.2 For 3D Video",
     "Value" : "MPEG4HighProfileLevel4_2_For3DVideo",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For3DVideo"
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For3DVideo",
+    "SinceDCMTK" : "361"
   },
 
   {
@@ -307,7 +329,8 @@
     "Name" : "1.2.840.10008.1.2.4.106",
     "Value" : "MPEG4StereoHighProfileLevel4_2",
     "Retired" : false,
-    "DCMTK" : "EXS_MPEG4StereoHighProfileLevel4_2"
+    "DCMTK" : "EXS_MPEG4StereoHighProfileLevel4_2",
+    "SinceDCMTK" : "361"
   },
 
   {

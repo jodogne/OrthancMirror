@@ -478,6 +478,7 @@ namespace Orthanc
           storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
         }
 
+#if DCMTK_VERSION_NUMBER >= 361
         // New in Orthanc 1.6.0
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
@@ -488,6 +489,7 @@ namespace Orthanc
           storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
           storageTransferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
         }
+#endif
 
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
