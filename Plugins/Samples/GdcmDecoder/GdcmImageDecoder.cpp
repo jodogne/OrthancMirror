@@ -21,6 +21,7 @@
 
 #include "GdcmImageDecoder.h"
 
+#include "../../../Core/Compatibility.h"
 #include "OrthancImageWrapper.h"
 
 #include <gdcmImageReader.h>
@@ -40,9 +41,9 @@ namespace OrthancPlugins
     size_t                size_;
 
     gdcm::ImageReader reader_;
-    std::auto_ptr<gdcm::ImageApplyLookupTable> lut_;
-    std::auto_ptr<gdcm::ImageChangePhotometricInterpretation> photometric_;
-    std::auto_ptr<gdcm::ImageChangePlanarConfiguration> interleaved_;
+    std::unique_ptr<gdcm::ImageApplyLookupTable> lut_;
+    std::unique_ptr<gdcm::ImageChangePhotometricInterpretation> photometric_;
+    std::unique_ptr<gdcm::ImageChangePlanarConfiguration> interleaved_;
     std::string decoded_;
 
     PImpl(const void* dicom,

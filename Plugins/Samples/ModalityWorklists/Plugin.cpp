@@ -19,6 +19,7 @@
  **/
 
 
+#include "../../../Core/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
@@ -142,7 +143,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
   try
   {
     // Construct an object to match the worklists in the database against the C-Find query
-    std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
+    std::unique_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
 
     // Loop over the regular files in the database folder
     namespace fs = boost::filesystem;
