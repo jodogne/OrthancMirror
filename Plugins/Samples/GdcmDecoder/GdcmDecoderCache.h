@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "../../../Core/Compatibility.h"
 #include "GdcmImageDecoder.h"
 #include "OrthancImageWrapper.h"
 
@@ -33,7 +34,7 @@ namespace OrthancPlugins
   {
   private:
     boost::mutex   mutex_;
-    std::auto_ptr<OrthancPlugins::GdcmImageDecoder>  decoder_;
+    std::unique_ptr<OrthancPlugins::GdcmImageDecoder>  decoder_;
     size_t       size_;
     std::string  md5_;
 
