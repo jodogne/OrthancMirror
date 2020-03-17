@@ -93,7 +93,7 @@ namespace std
     {
     }      
 
-    unique_ptr(T* p) :
+    explicit unique_ptr(T* p) :
       boost::movelib::unique_ptr<T>(p)
     {
     }      

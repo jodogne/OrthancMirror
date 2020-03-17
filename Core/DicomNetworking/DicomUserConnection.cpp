@@ -86,6 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  error The macro DCMTK_VERSION_NUMBER must be defined
 #endif
 
+#include "../Compatibility.h"
 #include "../DicomFormat/DicomArray.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
@@ -1476,7 +1477,7 @@ namespace Orthanc
     {
       for (size_t i = 0; i < sopClassUids.size(); i++)
       {
-        std::auto_ptr<DcmItem> item(new DcmItem);
+        std::unique_ptr<DcmItem> item(new DcmItem);
         if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
             !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
             (hasFailureReasons &&

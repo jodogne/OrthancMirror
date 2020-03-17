@@ -36,6 +36,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/DicomNetworking/DicomServer.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
@@ -116,7 +117,7 @@ public:
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    std::auto_ptr<StorageCommitmentScpJob> job(
+    std::unique_ptr<StorageCommitmentScpJob> job(
       new StorageCommitmentScpJob(context_, transactionUid, remoteAet, calledAet));
 
     for (size_t i = 0; i < referencedSopClassUids.size(); i++)

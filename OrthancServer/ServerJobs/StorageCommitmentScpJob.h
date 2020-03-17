@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/DicomNetworking/RemoteModalityParameters.h"
 #include "../../Core/JobsEngine/SetOfCommandsJob.h"
 #include "IStorageCommitmentFactory.h"
@@ -68,7 +69,7 @@ namespace Orthanc
     std::vector<std::string>  sopClassUids_;
     std::vector<std::string>  sopInstanceUids_;
 
-    std::auto_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
+    std::unique_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
 
     void CheckInvariants();
     
