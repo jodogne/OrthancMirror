@@ -478,6 +478,7 @@ namespace Orthanc
           storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
         }
 
+#if DCMTK_VERSION_NUMBER >= 361
         // New in Orthanc 1.6.0
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
@@ -488,6 +489,7 @@ namespace Orthanc
           storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
           storageTransferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
         }
+#endif
 
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
@@ -1053,7 +1055,7 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html#table_J.3-1
        **/
       
-      std::auto_ptr<DcmDataset> dataset(
+      std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", associationTimeout_));
 
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
@@ -1082,7 +1084,7 @@ namespace Orthanc
   
       try
       {
-        std::auto_ptr<IStorageCommitmentRequestHandler> handler
+        std::unique_ptr<IStorageCommitmentRequestHandler> handler
           (server_.GetStorageCommitmentRequestHandlerFactory().
            ConstructStorageCommitmentRequestHandler());
 
@@ -1176,7 +1178,7 @@ namespace Orthanc
        * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html#table_J.3-2
        **/
       
-      std::auto_ptr<DcmDataset> dataset(
+      std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", associationTimeout_));
 
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
@@ -1221,7 +1223,7 @@ namespace Orthanc
 
       try
       {
-        std::auto_ptr<IStorageCommitmentRequestHandler> handler
+        std::unique_ptr<IStorageCommitmentRequestHandler> handler
           (server_.GetStorageCommitmentRequestHandlerFactory().
            ConstructStorageCommitmentRequestHandler());
 

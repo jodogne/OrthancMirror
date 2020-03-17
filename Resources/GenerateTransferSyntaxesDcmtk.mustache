@@ -45,7 +45,16 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= {{SinceDCMTK}}
       {{/SinceDCMTK}}
       case DicomTransferSyntax_{{Value}}:
+        {{#DCMTK360}}
+#  if DCMTK_VERSION_NUMBER <= 360
+        target = {{DCMTK360}};
+#  else
         target = {{DCMTK}};
+#  endif
+        {{/DCMTK360}}
+        {{^DCMTK360}}
+        target = {{DCMTK}};
+        {{/DCMTK360}}
         return true;
       {{#SinceDCMTK}}
 #endif
@@ -69,7 +78,16 @@ namespace Orthanc
       {{#SinceDCMTK}}
 #if DCMTK_VERSION_NUMBER >= {{SinceDCMTK}}
       {{/SinceDCMTK}}
+      {{#DCMTK360}}
+#  if DCMTK_VERSION_NUMBER <= 360
+      case {{DCMTK360}}:
+#  else
       case {{DCMTK}}:
+#  endif
+      {{/DCMTK360}}
+      {{^DCMTK360}}
+      case {{DCMTK}}:
+      {{/DCMTK360}}
         target = DicomTransferSyntax_{{Value}};
         return true;
       {{#SinceDCMTK}}

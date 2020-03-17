@@ -63,7 +63,7 @@ namespace Orthanc
       return true;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       findAnswer_->Serialize(target);
     }
