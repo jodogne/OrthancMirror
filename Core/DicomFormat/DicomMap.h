@@ -180,6 +180,9 @@ namespace Orthanc
 
     void GetTags(std::set<DicomTag>& tags) const;
 
+    static bool IsDicomFile(const char* dicom,
+                            size_t size);
+    
     static bool ParseDicomMetaInformation(DicomMap& result,
                                           const char* dicom,
                                           size_t size);
