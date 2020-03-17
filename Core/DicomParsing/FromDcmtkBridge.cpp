@@ -1317,7 +1317,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       throw OrthancException(ErrorCode_InternalError);
     }
     else
-    {
+    {     
       return (dicom.getDataset()->chooseRepresentation(xfer, representation).good() &&
               dicom.getDataset()->canWriteXfer(xfer) &&
               SaveToMemoryBufferInternal(buffer, dicom, xfer));

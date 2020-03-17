@@ -2132,6 +2132,7 @@ namespace Orthanc
         return true;
       }
       else if (syntaxes.find(DicomTransferSyntax_JPEGProcess1) != syntaxes.end() &&
+               allowNewSopInstanceUid &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
       {
         return true;
@@ -2303,7 +2304,8 @@ TEST(Toto, DISABLED_Transcode)
     std::string s;
     //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.4.50.dcm");
     //SystemToolbox::ReadFile(s, "/home/jodogne/DICOM/Alain.dcm");
-    SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0002.dcm");
+    //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0002.dcm");
+    SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.1.dcm");
 
     std::auto_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(s.c_str(), s.size()));
 
@@ -2315,7 +2317,7 @@ TEST(Toto, DISABLED_Transcode)
 #if 0
     E_TransferSyntax target = EXS_LittleEndianExplicit;
     p = NULL;
-#elif 1
+#elif 0
     E_TransferSyntax target = EXS_JPEGProcess14SV1;  
     DJ_RPLossless rp_lossless(6, 0);
     p = &rp_lossless;
@@ -2335,7 +2337,7 @@ TEST(Toto, DISABLED_Transcode)
     SystemToolbox::WriteFile(t, "target.dcm");
   }
 
-  if (1)
+  if (0)
   {
     const char* const PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes";
     
@@ -2355,7 +2357,7 @@ TEST(Toto, DISABLED_Transcode)
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Issue44/Monochrome1-Jpeg.dcm");
   }
 
-  if (0)
+  if (1)
   {
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.1.dcm");
   }
