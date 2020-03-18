@@ -185,11 +185,18 @@ add_definitions(
   )
 
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND
-    CMAKE_COMPILER_IS_GNUCXX)
-  # This is MinGW
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  # For compatibility with Windows XP, avoid using fiber-local-storage
+  # in log4cplus, but use thread-local-storage instead. Otherwise,
+  # Windows XP complains about missing "FlsGetValue()" in KERNEL32.dll
   add_definitions(
     -DDCMTK_LOG4CPLUS_AVOID_WIN32_FLS
-    -DDCMTK_LOG4CPLUS_SINGLE_THREADED
     )
+
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    # This is MinGW
+    add_definitions(
+      -DDCMTK_LOG4CPLUS_SINGLE_THREADED
+      )
+  endif()
 endif()
