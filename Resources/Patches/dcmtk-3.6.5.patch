@@ -92,7 +92,7 @@ diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog
   *
   */
  
-+#ifdef __MINGW32__
++#if defined(_WIN32)
 +#  include <winsock.h>
 +#endif
 +
