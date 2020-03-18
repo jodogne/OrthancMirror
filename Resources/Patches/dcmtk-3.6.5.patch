@@ -1,6 +1,6 @@
 diff -urEb dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h
---- dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-05 19:43:37.678302817 +0100
-+++ dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-05 19:43:41.198312828 +0100
+--- dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-18 10:22:41.555166774 +0100
++++ dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-18 10:22:53.395131056 +0100
 @@ -152,6 +152,12 @@
      /// returns an iterator to the end of the repeating tag dictionary
      DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
@@ -15,8 +15,8 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.5/d
  
      /** private undefined assignment operator
 diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc
---- dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc	2020-03-05 19:43:37.682302828 +0100
-+++ dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc	2020-03-05 19:43:41.198312828 +0100
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc	2020-03-18 10:22:41.559166762 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc	2020-03-18 10:22:53.395131056 +0100
 @@ -900,3 +900,6 @@
    wrlock().clear();
    wrunlock();
@@ -25,8 +25,8 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.5/dcmdata/libsrc/
 +
 +#include "dcdict_orthanc.cc"
 diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc
---- dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc	2020-03-05 19:43:37.682302828 +0100
-+++ dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc	2020-03-05 19:43:41.198312828 +0100
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc	2020-03-18 10:22:41.559166762 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc	2020-03-18 10:22:53.395131056 +0100
 @@ -36,6 +36,9 @@
  #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
  #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
@@ -38,8 +38,8 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.5/dcmdata/libsr
  // ********************************
  
 diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h
---- dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-05 19:43:37.686302839 +0100
-+++ dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-05 19:43:41.198312828 +0100
+--- dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-18 10:22:41.543166810 +0100
++++ dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-18 10:22:53.395131056 +0100
 @@ -63,7 +63,7 @@
  
  DCMTK_LOG4CPLUS_INLINE_EXPORT
@@ -86,13 +86,14 @@ diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6
  
  
 diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog.cc
---- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-03-05 19:43:37.690302851 +0100
-+++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-03-05 19:43:54.622350144 +0100
-@@ -19,6 +19,10 @@
+--- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-03-18 10:22:41.547166798 +0100
++++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-03-18 10:23:09.347082846 +0100
+@@ -19,6 +19,11 @@
   *
   */
  
 +#if defined(_WIN32)
++#  define _WINSOCKAPI_   /* Prevent inclusion of winsock.h in windows.h */
 +#  include <winsock.h>
 +#endif
 +
@@ -100,8 +101,8 @@ diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog
  #include "dcmtk/oflog/oflog.h"
  
 diff -urEb dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h
---- dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h	2020-03-05 19:43:37.714302919 +0100
-+++ dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h	2020-03-05 19:43:41.198312828 +0100
+--- dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h	2020-03-18 10:22:41.587166677 +0100
++++ dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h	2020-03-18 10:22:53.395131056 +0100
 @@ -575,7 +575,7 @@
     */
    void setlinebuf()
