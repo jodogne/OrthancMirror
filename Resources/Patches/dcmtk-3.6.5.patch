@@ -93,8 +93,8 @@ diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog
   */
  
 +#if defined(_WIN32)
-+#  define _WINSOCKAPI_   /* Prevent inclusion of winsock.h in windows.h */
 +#  include <winsock.h>
++#  define _WINSOCKAPI_   /* Prevent inclusion of winsock.h in windows.h */
 +#endif
 +
  #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
