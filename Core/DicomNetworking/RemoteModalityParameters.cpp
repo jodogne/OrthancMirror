@@ -38,6 +38,8 @@
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
 
+#include <dcmtk/dcmdata/dcuid.h>
+
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>
 
@@ -49,6 +51,7 @@ static const char* KEY_ALLOW_GET = "AllowGet";
 static const char* KEY_ALLOW_MOVE = "AllowMove";
 static const char* KEY_ALLOW_STORE = "AllowStore";
 static const char* KEY_HOST = "Host";
+static const char* KEY_PREFERRED_TRANSFER_SYNTAX = "PreferredTransferSyntax";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
 
@@ -59,6 +62,7 @@ namespace Orthanc
   {
     aet_ = "ORTHANC";
     host_ = "127.0.0.1";
+    preferredTransferSyntax_ = UID_LittleEndianImplicitTransferSyntax;
     port_ = 104;
     manufacturer_ = ModalityManufacturer_Generic;
     allowEcho_ = true;
@@ -167,6 +171,7 @@ namespace Orthanc
 
     aet_ = SerializationToolbox::ReadString(serialized, KEY_AET);
     host_ = SerializationToolbox::ReadString(serialized, KEY_HOST);
+    preferredTransferSyntax_ = SerializationToolbox::ReadString(serialized, KEY_PREFERRED_TRANSFER_SYNTAX);
 
     if (serialized.isMember(KEY_PORT))
     {
@@ -289,6 +294,7 @@ namespace Orthanc
       target = Json::objectValue;
       target[KEY_AET] = aet_;
       target[KEY_HOST] = host_;
+      target[KEY_PREFERRED_TRANSFER_SYNTAX] = preferredTransferSyntax_;
       target[KEY_PORT] = port_;
       target[KEY_MANUFACTURER] = EnumerationToString(manufacturer_);
       target[KEY_ALLOW_ECHO] = allowEcho_;

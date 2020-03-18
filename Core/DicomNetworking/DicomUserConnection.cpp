@@ -126,7 +126,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-static const char* DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
+static const std::string DEFAULT_PREFERRED_TRANSFER_SYNTAX = UID_LittleEndianImplicitTransferSyntax;
 
 /**
  * "If we have more than 64 storage SOP classes, tools such as
@@ -900,6 +900,7 @@ namespace Orthanc
   void DicomUserConnection::DefaultSetup()
   {
     preferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
+    modalityPreferredTransferSyntax_ = DEFAULT_PREFERRED_TRANSFER_SYNTAX;
     localAet_ = "STORESCU";
     remoteAet_ = "ANY-SCP";
     remoteHost_ = "127.0.0.1";
@@ -951,6 +952,8 @@ namespace Orthanc
     SetRemoteHost(parameters.GetHost());
     SetRemotePort(parameters.GetPortNumber());
     SetRemoteManufacturer(parameters.GetManufacturer());
+    SetPreferredTransferSyntax(parameters.GetPreferredTransferSyntax());
+    modalityPreferredTransferSyntax_ = parameters.GetPreferredTransferSyntax();
   }
 
 
@@ -983,7 +986,7 @@ namespace Orthanc
 
   void DicomUserConnection::ResetPreferredTransferSyntax()
   {
-    SetPreferredTransferSyntax(DEFAULT_PREFERRED_TRANSFER_SYNTAX);
+    SetPreferredTransferSyntax(modalityPreferredTransferSyntax_);
   }
 
   void DicomUserConnection::SetPreferredTransferSyntax(const std::string& preferredTransferSyntax)

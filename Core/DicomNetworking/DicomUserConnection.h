@@ -56,6 +56,7 @@ namespace Orthanc
 
     // Connection parameters
     std::string preferredTransferSyntax_;
+    std::string modalityPreferredTransferSyntax_;
     std::string localAet_;
     std::string remoteAet_;
     std::string remoteHost_;

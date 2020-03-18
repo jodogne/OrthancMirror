@@ -1411,6 +1411,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     modality.SetHost("192.168.1.1");
     modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
 
     StoreScuOperation operation("TEST", modality);
 
@@ -1496,6 +1497,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     modality.SetHost("192.168.1.1");
     modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
 
     DicomModalityStoreJob job(GetContext());
     job.SetLocalAet("LOCAL");
@@ -1910,6 +1912,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     modality.SetHost("world");
     modality.SetPortNumber(45);
     modality.SetManufacturer(ModalityManufacturer_Dcm4Chee);
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
   }

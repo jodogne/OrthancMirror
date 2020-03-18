@@ -46,6 +46,7 @@ namespace Orthanc
   private:
     std::string           aet_;
     std::string           host_;
+    std::string           preferredTransferSyntax_;
     uint16_t              port_;
     ModalityManufacturer  manufacturer_;
     bool                  allowEcho_;
@@ -53,7 +54,6 @@ namespace Orthanc
     bool                  allowFind_;
     bool                  allowMove_;
     bool                  allowGet_;
-
     void Clear();
 
     void UnserializeArray(const Json::Value& serialized);
@@ -94,6 +94,16 @@ namespace Orthanc
     void SetHost(const std::string& host)
     {
       host_ = host;
+    }
+    
+    const std::string& GetPreferredTransferSyntax() const
+    {
+      return preferredTransferSyntax_;
+    }
+
+    void SetPreferredTransferSyntax(const std::string& preferredTransferSyntax)
+    {
+      preferredTransferSyntax_ = preferredTransferSyntax;
     }
     
     uint16_t GetPortNumber() const
