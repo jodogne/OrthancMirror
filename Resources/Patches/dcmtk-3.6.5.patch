@@ -87,14 +87,13 @@ diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6
  
 diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog.cc
 --- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-03-18 10:22:41.547166798 +0100
-+++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-03-18 10:23:09.347082846 +0100
-@@ -19,6 +19,11 @@
++++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-03-18 11:55:50.116856932 +0100
+@@ -19,6 +19,10 @@
   *
   */
  
 +#if defined(_WIN32)
-+#  include <winsock.h>
-+#  define _WINSOCKAPI_   /* Prevent inclusion of winsock.h in windows.h */
++#  include <winsock2.h>
 +#endif
 +
  #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
