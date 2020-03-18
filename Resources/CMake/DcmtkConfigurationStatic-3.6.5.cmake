@@ -185,11 +185,26 @@ add_definitions(
   )
 
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND
-    CMAKE_COMPILER_IS_GNUCXX)
-  # This is MinGW
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  # For compatibility with Windows XP, avoid using fiber-local-storage
+  # in log4cplus, but use thread-local-storage instead. Otherwise,
+  # Windows XP complains about missing "FlsGetValue()" in KERNEL32.dll
   add_definitions(
     -DDCMTK_LOG4CPLUS_AVOID_WIN32_FLS
-    -DDCMTK_LOG4CPLUS_SINGLE_THREADED
     )
+
+  if (CMAKE_COMPILER_IS_GNUCXX OR             # MinGW
+      "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")  # MSVC for 32bit (*)
+
+    # (*) With multithreaded logging enabled, Visual Studio 2008 fails
+    # with error: ".\dcmtk-3.6.5\oflog\libsrc\globinit.cc(422) : error
+    # C2664: 'dcmtk::log4cplus::thread::impl::tls_init' : cannot
+    # convert parameter 1 from 'void (__stdcall *)(void *)' to
+    # 'dcmtk::log4cplus::thread::impl::tls_init_cleanup_func_type'"
+    #   None of the functions with this name in scope match the target type
+
+    add_definitions(
+      -DDCMTK_LOG4CPLUS_SINGLE_THREADED
+      )
+  endif()
 endif()
