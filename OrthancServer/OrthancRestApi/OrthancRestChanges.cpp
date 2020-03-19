@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -45,7 +45,7 @@ namespace Orthanc
                                bool& last,
                                const RestApiGetCall& call)
   {
-    static const unsigned int MAX_RESULTS = 100;
+    static const unsigned int DEFAULT_LIMIT = 100;
     
     if (call.HasArgument("last"))
     {
@@ -58,16 +58,13 @@ namespace Orthanc
     try
     {
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
-      limit = boost::lexical_cast<unsigned int>(call.GetArgument("limit", "0"));
+      limit = boost::lexical_cast<unsigned int>(call.GetArgument("limit", boost::lexical_cast<std::string>(DEFAULT_LIMIT)));
     }
     catch (boost::bad_lexical_cast&)
     {
+      since = 0;
+      limit = DEFAULT_LIMIT;
       return;
-    }
-
-    if (limit == 0 || limit > MAX_RESULTS)
-    {
-      limit = MAX_RESULTS;
     }
   }
 

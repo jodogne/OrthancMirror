@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,11 +35,13 @@
 
 #include "JobsRegistry.h"
 
+#include "../Compatibility.h"
+
 #include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  class JobsEngine
+  class JobsEngine : public boost::noncopyable
   {
   private:
     enum State
@@ -52,7 +54,7 @@ namespace Orthanc
 
     boost::mutex                 stateMutex_;
     State                        state_;
-    std::auto_ptr<JobsRegistry>  registry_;
+    std::unique_ptr<JobsRegistry>  registry_;
     boost::thread                retryHandler_;
     unsigned int                 threadSleep_;
     std::vector<boost::thread*>  workers_;

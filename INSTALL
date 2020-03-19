@@ -123,7 +123,21 @@ Instructions to include support for Asian encodings:
 The option "-T host=x64" is necessary to prevent error "C1060:
 compiler is out of heap space" when compiling Orthanc with ICU.
 
+Native 64-bit Windows build with Microsoft Visual Studio 2017 (msbuild)
+-----------------------------------------------------------------------
+# cd [...]\OrthancBuild
+# cmake -G "Visual Studio 15 2017 Win64" -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
 
+Instructions to include support for Asian encodings:
+# cmake -G "Visual Studio 15 2017 Win64" -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+
+Native 64-bit Windows build with Microsoft Visual Studio 2019 (msbuild)
+-----------------------------------------------------------------------
+# cd [...]\OrthancBuild
+# cmake -G "Visual Studio 16 2019" -A x64 -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+
+Instructions to include support for Asian encodings:
+# cmake -G "Visual Studio 16 2019" -A x64 -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
 
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------

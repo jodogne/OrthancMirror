@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -103,7 +103,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadFont);
       }
 
-      std::auto_ptr<Character> c(new Character);
+      std::unique_ptr<Character> c(new Character);
       
       c->advance_ = info["Advance"].asUInt();
       c->height_ = info["Height"].asUInt();
@@ -407,7 +407,7 @@ namespace Orthanc
     unsigned int width, height;
     ComputeTextExtent(width, height, utf8);
     
-    std::auto_ptr<ImageAccessor>  target(new Image(format, width, height, false));
+    std::unique_ptr<ImageAccessor>  target(new Image(format, width, height, false));
     ImageProcessing::Set(*target, 0, 0, 0, 255);
     Draw(*target, utf8, 0, 0, r, g, b);
 
@@ -420,7 +420,7 @@ namespace Orthanc
     unsigned int width, height;
     ComputeTextExtent(width, height, utf8);
 
-    std::auto_ptr<ImageAccessor>  target(new Image(PixelFormat_Grayscale8, width, height, false));
+    std::unique_ptr<ImageAccessor>  target(new Image(PixelFormat_Grayscale8, width, height, false));
     ImageProcessing::Set(*target, 0);
     Draw(*target, utf8, 0, 0, 255);
 

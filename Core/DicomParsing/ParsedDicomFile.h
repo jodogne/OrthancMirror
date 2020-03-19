@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,6 +51,14 @@
 
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK)
+#  error The macro ORTHANC_ENABLE_DCMTK must be defined
+#endif
+
+#if ORTHANC_ENABLE_DCMTK != 1
+#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1 to use this file
 #endif
 
 #include "ITagVisitor.h"
@@ -130,32 +138,27 @@ namespace Orthanc
     void Replace(const DicomTag& tag,
                  const std::string& utf8Value,
                  bool decodeDataUriScheme,
-                 DicomReplaceMode mode);
+                 DicomReplaceMode mode,
+                 const std::string& privateCreator /* used only for private tags */);
 
     void Replace(const DicomTag& tag,
                  const Json::Value& value,  // Assumed to be encoded with UTF-8
                  bool decodeDataUriScheme,
-                 DicomReplaceMode mode);
+                 DicomReplaceMode mode,
+                 const std::string& privateCreator /* used only for private tags */);
 
     void Insert(const DicomTag& tag,
                 const Json::Value& value,   // Assumed to be encoded with UTF-8
-                bool decodeDataUriScheme);
+                bool decodeDataUriScheme,
+                const std::string& privateCreator /* used only for private tags */);
 
+    // Cannot be applied to private tags
     void ReplacePlainString(const DicomTag& tag,
-                            const std::string& utf8Value)
-    {
-      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent);
-    }
+                            const std::string& utf8Value);
 
+    // Cannot be applied to private tags
     void SetIfAbsent(const DicomTag& tag,
-                     const std::string& utf8Value)
-    {
-      std::string currentValue;
-      if (!GetTagValue(currentValue, tag))
-      {
-        ReplacePlainString(tag, utf8Value);
-      }
-    }
+                     const std::string& utf8Value);
 
     void RemovePrivateTags()
     {
@@ -226,11 +229,15 @@ namespace Orthanc
     unsigned int GetFramesCount() const;
 
     static ParsedDicomFile* CreateFromJson(const Json::Value& value,
-                                           DicomFromJsonFlags flags);
+                                           DicomFromJsonFlags flags,
+                                           const std::string& privateCreator);
 
     void ChangeEncoding(Encoding target);
 
     void ExtractDicomSummary(DicomMap& target) const;
+
+    void ExtractDicomSummary(DicomMap& target,
+                             const std::set<DicomTag>& ignoreTagLength) const;
 
     bool LookupTransferSyntax(std::string& result);
 

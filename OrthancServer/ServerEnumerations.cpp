@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -191,6 +191,30 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictContentType_.Translate(str);
   }
+
+
+  FindStorageAccessMode StringToFindStorageAccessMode(const std::string& value)
+  {
+    if (value == "Always")
+    {
+      return FindStorageAccessMode_DiskOnLookupAndAnswer;
+    }
+    else if (value == "Never")
+    {
+      return FindStorageAccessMode_DatabaseOnly;
+    }
+    else if (value == "Answers")
+    {
+      return FindStorageAccessMode_DiskOnAnswer;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Configuration option \"StorageAccessOnFind\" "
+                             "should be \"Always\", \"Never\" or \"Answers\": " + value);
+    }    
+  }
+  
 
   std::string GetBasePath(ResourceType type,
                           const std::string& publicId)

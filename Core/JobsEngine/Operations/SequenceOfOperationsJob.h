@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -126,30 +126,30 @@ namespace Orthanc
                    size_t output);
     };
 
-    virtual void Start()
+    virtual void Start() ORTHANC_OVERRIDE
     {
     }
 
-    virtual JobStepResult Step();
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void Reset();
+    virtual void Reset() ORTHANC_OVERRIDE;
 
-    virtual void Stop(JobStopReason reason);
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual float GetProgress();
+    virtual float GetProgress() ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "SequenceOfOperations";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& value);
+    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
-                           const std::string& key)
+                           const std::string& key) ORTHANC_OVERRIDE
     {
       return false;
     }

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,10 +49,11 @@
 
 #include "DicomModalityStoreJob.h"
 #include "DicomMoveScuJob.h"
+#include "MergeStudyJob.h"
 #include "OrthancPeerStoreJob.h"
 #include "ResourceModificationJob.h"
-#include "MergeStudyJob.h"
 #include "SplitStudyJob.h"
+#include "StorageCommitmentScpJob.h"
 
 
 namespace Orthanc
@@ -64,7 +65,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (context_.HasPlugins())
     {
-      std::auto_ptr<IJob> job(context_.GetPlugins().UnserializeJob(type, source));
+      std::unique_ptr<IJob> job(context_.GetPlugins().UnserializeJob(type, source));
       if (job.get() != NULL)
       {
         return job.release();
@@ -95,6 +96,10 @@ namespace Orthanc
     else if (type == "DicomMoveScu")
     {
       return new DicomMoveScuJob(context_, source);
+    }
+    else if (type == "StorageCommitmentScp")
+    {
+      return new StorageCommitmentScpJob(context_, source);
     }
     else
     {

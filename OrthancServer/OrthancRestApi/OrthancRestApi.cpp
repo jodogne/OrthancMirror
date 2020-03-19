@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,10 +34,13 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
+#include "../../Core/Compression/GzipCompressor.h"
 #include "../../Core/Logging.h"
 #include "../../Core/MetricsRegistry.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace Orthanc
 {
@@ -118,13 +121,22 @@ namespace Orthanc
                              "Received an empty DICOM file");
     }
 
-    // TODO Remove unneccessary memcpy
-    std::string postData;
-    call.BodyToString(postData);
+    std::string dicom;
+
+    if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
+    {
+      GzipCompressor compressor;
+      compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
+    }
+    else
+    {
+      // TODO Remove unneccessary memcpy
+      call.BodyToString(dicom);
+    }
 
     DicomInstanceToStore toStore;
     toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-    toStore.SetBuffer(postData);
+    toStore.SetBuffer(dicom);
 
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);
@@ -242,7 +254,7 @@ namespace Orthanc
                                         bool synchronous,
                                         int priority)
   {
-    std::auto_ptr<IJob> raii(job);
+    std::unique_ptr<IJob> raii(job);
     
     if (job == NULL)
     {
@@ -278,7 +290,7 @@ namespace Orthanc
                                         bool isDefaultSynchronous,
                                         const Json::Value& body) const
   {
-    std::auto_ptr<IJob> raii(job);
+    std::unique_ptr<IJob> raii(job);
 
     if (body.type() != Json::objectValue)
     {
@@ -297,7 +309,7 @@ namespace Orthanc
                                          bool isDefaultSynchronous,
                                          const Json::Value& body) const
   {
-    std::auto_ptr<SetOfCommandsJob> raii(job);
+    std::unique_ptr<SetOfCommandsJob> raii(job);
     
     if (body.type() != Json::objectValue)
     {

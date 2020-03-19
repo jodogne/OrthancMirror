@@ -7,6 +7,15 @@ if (CMAKE_CROSSCOMPILING OR
   SET(STANDALONE_BUILD ON)
 endif()
 
+
+if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  # Cache the environment variables "LSB_CC" and "LSB_CXX" for further
+  # use by "ExternalProject" in CMake
+  SET(CMAKE_LSB_CC $ENV{LSB_CC} CACHE STRING "")
+  SET(CMAKE_LSB_CXX $ENV{LSB_CXX} CACHE STRING "")
+endif()
+
+
 if (CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-long-long")
 
@@ -163,15 +172,21 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MINGW_NO_WARNINGS} -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MINGW_NO_WARNINGS}")
 
-    # This is a patch for MinGW64
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+    if (DYNAMIC_MINGW_STDLIB)
+    else()
+      # This is a patch for MinGW64
+      SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+      SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition -static-libgcc -static-libstdc++")
+    endif()
 
     CHECK_LIBRARY_EXISTS(winpthread pthread_create "" HAVE_WIN_PTHREAD)
     if (HAVE_WIN_PTHREAD)
-      # This line is necessary to compile with recent versions of MinGW,
-      # otherwise "libwinpthread-1.dll" is not statically linked.
-      SET(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic")
+      if (DYNAMIC_MINGW_STDLIB)
+      else()
+        # This line is necessary to compile with recent versions of MinGW,
+        # otherwise "libwinpthread-1.dll" is not statically linked.
+        SET(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic")
+      endif()
       add_definitions(-DHAVE_WIN_PTHREAD=1)
     else()
       add_definitions(-DHAVE_WIN_PTHREAD=0)
@@ -193,12 +208,15 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # zero (and similar conditions like integer overflows) are
   # encountered: The "clamp" mode avoids throwing errors, as they
   # cannot be properly catched by "try {} catch (...)" constructions.
-  if (EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
-  else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]' -s BINARYEN_TRAP_MODE='\"clamp\"'")
+  # Setting this option to "ON" fixes error: "shared:ERROR:
+  # BINARYEN_TRAP_MODE is not supported by the LLVM wasm backend" if
+  # using the "upstream" backend of Emscripten.
+  if (NOT EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"clamp\"'")
   endif()
 
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
+  
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
 
 else()

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,7 +46,7 @@ namespace Orthanc
                                 const JobOperationValue& input,
                                 IDicomConnectionManager& connectionManager)
   {
-    std::auto_ptr<IDicomConnectionManager::IResource> resource
+    std::unique_ptr<IDicomConnectionManager::IResource> resource
       (connectionManager.AcquireConnection(localAet_, modality_));
 
     if (resource.get() == NULL)
@@ -70,7 +70,9 @@ namespace Orthanc
     {
       std::string dicom;
       instance.ReadDicom(dicom);
-      resource->GetConnection().Store(dicom);
+
+      std::string sopClassUid, sopInstanceUid;  // Unused
+      resource->GetConnection().Store(sopClassUid, sopInstanceUid, dicom);
     }
     catch (OrthancException& e)
     {

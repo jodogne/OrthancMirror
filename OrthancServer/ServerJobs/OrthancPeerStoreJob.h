@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/HttpClient.h"
 
@@ -44,9 +45,9 @@ namespace Orthanc
   class OrthancPeerStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&             context_;
-    WebServiceParameters       peer_;
-    std::auto_ptr<HttpClient>  client_;
+    ServerContext&               context_;
+    WebServiceParameters         peer_;
+    std::unique_ptr<HttpClient>  client_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);

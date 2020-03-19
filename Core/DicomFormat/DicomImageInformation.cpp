@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,6 +39,7 @@
 
 #include "DicomImageInformation.h"
 
+#include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include <boost/lexical_cast.hpp>
@@ -223,7 +224,7 @@ namespace Orthanc
 
   DicomImageInformation* DicomImageInformation::Clone() const
   {
-    std::auto_ptr<DicomImageInformation> target(new DicomImageInformation);
+    std::unique_ptr<DicomImageInformation> target(new DicomImageInformation);
     target->width_ = width_;
     target->height_ = height_;
     target->samplesPerPixel_ = samplesPerPixel_;

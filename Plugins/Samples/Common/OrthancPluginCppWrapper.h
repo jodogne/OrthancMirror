@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -101,6 +101,12 @@
 #  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER  1
 #else
 #  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER  0
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 0)
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  1
+#else
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  0
 #endif
 
 
@@ -778,6 +784,13 @@ namespace OrthancPlugins
     static void SubmitAndWait(Json::Value& result,
                               OrthancJob* job /* takes ownership */,
                               int priority);
+
+    // Submit a job from a POST on the REST API with the same
+    // conventions as in the Orthanc core (according to the
+    // "Synchronous" and "Priority" options)
+    static void SubmitFromRestApiPost(OrthancPluginRestOutput* output,
+                                      const Json::Value& body,
+                                      OrthancJob* job);
   };
 #endif
 
@@ -1093,4 +1106,26 @@ namespace OrthancPlugins
 #endif
     }
   };
+
+  
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  class IStorageCommitmentScpHandler : public boost::noncopyable
+  {
+  public:
+    virtual ~IStorageCommitmentScpHandler()
+    {
+    }
+    
+    virtual OrthancPluginStorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                               const std::string& sopInstanceUid) = 0;
+    
+    static OrthancPluginErrorCode Lookup(OrthancPluginStorageCommitmentFailureReason* target,
+                                         void* rawHandler,
+                                         const char* sopClassUid,
+                                         const char* sopInstanceUid);
+
+    static void Destructor(void* rawHandler);
+  };
+#endif
 }

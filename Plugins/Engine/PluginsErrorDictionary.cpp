@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -69,7 +69,7 @@ namespace Orthanc
                                                           uint16_t httpStatus,
                                                           const char* message)
   {
-    std::auto_ptr<Error> error(new Error);
+    std::unique_ptr<Error> error(new Error);
 
     error->pluginName_ = PluginsManager::GetPluginName(library);
     error->pluginCode_ = pluginCode;

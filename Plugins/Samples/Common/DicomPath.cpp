@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,8 @@
 #include "DicomPath.h"
 
 #include "OrthancPluginException.h"
+
+#include <boost/lexical_cast.hpp>
 
 namespace OrthancPlugins
 {
@@ -96,5 +98,19 @@ namespace OrthancPlugins
     AddToPrefix(sequence1, index1);
     AddToPrefix(sequence2, index2);
     AddToPrefix(sequence3, index3);
+  }
+
+
+  std::string DicomPath::Format() const
+  {
+    std::string s;
+      
+    for (size_t i = 0; i < GetPrefixLength(); i++)
+    {
+      s += (GetPrefixTag(i).FormatHexadecimal() + " / " +
+            boost::lexical_cast<std::string>(i) + " / ");
+    }
+
+    return s + GetFinalTag().FormatHexadecimal();
   }
 }

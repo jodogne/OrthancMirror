@@ -9,6 +9,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.2.cmake)
   elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.4")
     include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.4.cmake)
+  elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.5")
+    include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.5.cmake)
   else()
     message(FATAL_ERROR "Unsupported version of DCMTK: ${DCMTK_STATIC_VERSION}")
   endif()
@@ -24,6 +26,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   LIST(REMOVE_ITEM DCMTK_SOURCES 
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
+    ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
     )
 
   if (ENABLE_DCMTK_NETWORKING)
@@ -47,6 +50,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
+
+      # Solves linking problem in WebAssembly: "wasm-ld: error:
+      # duplicate symbol: jaritab" (modification in Orthanc 1.5.9)
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8/jaricom.c
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12/jaricom.c
+      ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg24/jaricom.c
 
       # Disable support for encoding JPEG (modification in Orthanc 1.0.1)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/djcodece.cc

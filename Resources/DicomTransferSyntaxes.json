@@ -1,0 +1,376 @@
+[
+  {
+    "UID" : "1.2.840.10008.1.2",
+    "Name" : "Implicit VR Little Endian",
+    "Value" : "LittleEndianImplicit",
+    "Retired" : false,
+    "DCMTK" : "EXS_LittleEndianImplicit",
+    "GDCM" : "gdcm::TransferSyntax::ImplicitVRLittleEndian"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.1",
+    "Name" : "Explicit VR Little Endian",
+    "Value" : "LittleEndianExplicit",
+    "Retired" : false,
+    "DCMTK" : "EXS_LittleEndianExplicit",
+    "GDCM" : "gdcm::TransferSyntax::ExplicitVRLittleEndian"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.1.99",
+    "Name" : "Deflated Explicit VR Little Endian",
+    "Value" : "DeflatedLittleEndianExplicit",
+    "Retired" : false,
+    "DCMTK" : "EXS_DeflatedLittleEndianExplicit"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.2",
+    "Name" : "Explicit VR Big Endian",
+    "Value" : "BigEndianExplicit",
+    "Retired" : false,
+    "DCMTK" : "EXS_BigEndianExplicit"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.50",
+    "Name" : "JPEG Baseline (process 1, lossy)",
+    "Value" : "JPEGProcess1",
+    "Retired" : false,
+    "Note" : "Default Transfer Syntax for Lossy JPEG 8-bit Image Compression",
+    "DCMTK" : "EXS_JPEGProcess1",
+    "DCMTK360" : "EXS_JPEGProcess1TransferSyntax",
+    "GDCM" : "gdcm::TransferSyntax::JPEGBaselineProcess1"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.51",
+    "Name" : "JPEG Extended Sequential (processes 2 & 4)",
+    "Value" : "JPEGProcess2_4",
+    "Retired" : false,
+    "Note" : "Default Transfer Syntax for Lossy JPEG (lossy, 8/12 bit), 12-bit Image Compression (Process 4 only)",
+    "DCMTK" : "EXS_JPEGProcess2_4",
+    "DCMTK360" : "EXS_JPEGProcess2_4TransferSyntax",
+    "GDCM" : "gdcm::TransferSyntax::JPEGExtendedProcess2_4"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.52",
+    "Name" : "JPEG Extended Sequential (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess3_5",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess3_5",
+    "DCMTK360" : "EXS_JPEGProcess3_5TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.53",
+    "Name" : "JPEG Spectral Selection, Nonhierarchical (lossy, 8/12 bit)",
+    "Value" : "JPEGProcess6_8",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess6_8",
+    "DCMTK360" : "EXS_JPEGProcess6_8TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.54",
+    "Name" : "JPEG Spectral Selection, Nonhierarchical (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess7_9",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess7_9",
+    "DCMTK360" : "EXS_JPEGProcess7_9TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.55",
+    "Name" : "JPEG Full Progression, Nonhierarchical (lossy, 8/12 bit)",
+    "Value" : "JPEGProcess10_12",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess10_12",
+    "DCMTK360" : "EXS_JPEGProcess10_12TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.56",
+    "Name" : "JPEG Full Progression, Nonhierarchical (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess11_13",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess11_13",
+    "DCMTK360" : "EXS_JPEGProcess11_13TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.57",
+    "Name" : "JPEG Lossless, Nonhierarchical with any selection value (process 14)",
+    "Value" : "JPEGProcess14",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEGProcess14",
+    "DCMTK360" : "EXS_JPEGProcess14TransferSyntax",
+    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.58",
+    "Name" : "JPEG Lossless with any selection value, arithmetic coding",
+    "Value" : "JPEGProcess15",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess15",
+    "DCMTK360" : "EXS_JPEGProcess15TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.59",
+    "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit)",
+    "Value" : "JPEGProcess16_18",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess16_18",
+    "DCMTK360" : "EXS_JPEGProcess16_18TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.60",
+    "Name" : "JPEG Extended Sequential, Hierarchical (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess17_19",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess17_19",
+    "DCMTK360" : "EXS_JPEGProcess17_19TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.61",
+    "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit)",
+    "Value" : "JPEGProcess20_22",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess20_22",
+    "DCMTK360" : "EXS_JPEGProcess20_22TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.62",
+    "Name" : "JPEG Spectral Selection, Hierarchical (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess21_23",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess21_23",
+    "DCMTK360" : "EXS_JPEGProcess21_23TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.63",
+    "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit)",
+    "Value" : "JPEGProcess24_26",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess24_26",
+    "DCMTK360" : "EXS_JPEGProcess24_26TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.64",
+    "Name" : "JPEG Full Progression, Hierarchical (lossy, 8/12 bit), arithmetic coding",
+    "Value" : "JPEGProcess25_27",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess25_27",
+    "DCMTK360" : "EXS_JPEGProcess25_27TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.65",
+    "Name" : "JPEG Lossless, Hierarchical",
+    "Value" : "JPEGProcess28",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess28",
+    "DCMTK360" : "EXS_JPEGProcess28TransferSyntax"
+  },
+  
+  {
+    "UID" : "1.2.840.10008.1.2.4.66",
+    "Name" : "JPEG Lossless, Hierarchical, arithmetic coding",
+    "Value" : "JPEGProcess29",
+    "Retired" : true,
+    "DCMTK" : "EXS_JPEGProcess29",
+    "DCMTK360" : "EXS_JPEGProcess29TransferSyntax"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.70",
+    "Name" : "JPEG Lossless, Nonhierarchical, First-Order Prediction (Processes 14 [Selection Value 1])",
+    "Value" : "JPEGProcess14SV1",
+    "Retired" : false,
+    "Note" : "Default Transfer Syntax for Lossless JPEG Image Compression",
+    "DCMTK" : "EXS_JPEGProcess14SV1",
+    "DCMTK360" : "EXS_JPEGProcess14SV1TransferSyntax",
+    "GDCM" : "gdcm::TransferSyntax::JPEGLosslessProcess14_1"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.80",
+    "Name" : "JPEG-LS (lossless)",
+    "Value" : "JPEGLSLossless",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEGLSLossless",
+    "GDCM" : "gdcm::TransferSyntax::JPEGLSLossless"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.81",
+    "Name" : "JPEG-LS (lossy or near-lossless)",
+    "Value" : "JPEGLSLossy",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEGLSLossy",
+    "GDCM" : "gdcm::TransferSyntax::JPEGLSNearLossless"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.90",
+    "Name" : "JPEG 2000 (lossless)",
+    "Value" : "JPEG2000LosslessOnly",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEG2000LosslessOnly",
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Lossless"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.91",
+    "Name" : "JPEG 2000 (lossless or lossy)",
+    "Value" : "JPEG2000",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEG2000",
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.92",
+    "Name" : "JPEG 2000 part 2 multicomponent extensions (lossless)",
+    "Value" : "JPEG2000MulticomponentLosslessOnly",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEG2000MulticomponentLosslessOnly",
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2Lossless"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.93",
+    "Name" : "JPEG 2000 part 2 multicomponent extensions (lossless or lossy)",
+    "Value" : "JPEG2000Multicomponent",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPEG2000Multicomponent",
+    "GDCM" : "gdcm::TransferSyntax::JPEG2000Part2"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.94",
+    "Name" : "JPIP Referenced",
+    "Value" : "JPIPReferenced",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPIPReferenced"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.95",
+    "Name" : "JPIP Referenced Deflate",
+    "Value" : "JPIPReferencedDeflate",
+    "Retired" : false,
+    "DCMTK" : "EXS_JPIPReferencedDeflate"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.100",
+    "Name" : "MPEG2 Main Profile at Main Level",
+    "Value" : "MPEG2MainProfileAtMainLevel",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG2MainProfileAtMainLevel"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.101",
+    "Name" : "MPEG2 Main Profile at High Level",
+    "Value" : "MPEG2MainProfileAtHighLevel",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG2MainProfileAtHighLevel"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.102",
+    "Name" : "MPEG4 High Profile / Level 4.1",
+    "Value" : "MPEG4HighProfileLevel4_1",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_1",
+    "SinceDCMTK" : "361"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.103",
+    "Name" : "MPEG4 BD-compatible High Profile / Level 4.1",
+    "Value" : "MPEG4BDcompatibleHighProfileLevel4_1",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG4BDcompatibleHighProfileLevel4_1",
+    "SinceDCMTK" : "361"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.104",
+    "Name" : "MPEG4 High Profile / Level 4.2 For 2D Video",
+    "Value" : "MPEG4HighProfileLevel4_2_For2DVideo",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For2DVideo",
+    "SinceDCMTK" : "361"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.105",
+    "Name" : "MPEG4 High Profile / Level 4.2 For 3D Video",
+    "Value" : "MPEG4HighProfileLevel4_2_For3DVideo",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For3DVideo",
+    "SinceDCMTK" : "361"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.106",
+    "Name" : "1.2.840.10008.1.2.4.106",
+    "Value" : "MPEG4StereoHighProfileLevel4_2",
+    "Retired" : false,
+    "DCMTK" : "EXS_MPEG4StereoHighProfileLevel4_2",
+    "SinceDCMTK" : "361"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.107",
+    "Name" : "HEVC/H.265 Main Profile / Level 5.1",
+    "Value" : "HEVCMainProfileLevel5_1",
+    "Retired" : false,
+    "DCMTK" : "EXS_HEVCMainProfileLevel5_1",
+    "SinceDCMTK" : "362"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.4.108",
+    "Name" : "HEVC/H.265 Main 10 Profile / Level 5.1",
+    "Value" : "HEVCMain10ProfileLevel5_1",
+    "Retired" : false,
+    "DCMTK" : "EXS_HEVCMain10ProfileLevel5_1",
+    "SinceDCMTK" : "362"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.5",
+    "Name" : "RLE - Run Length Encoding (lossless)",
+    "Value" : "RLELossless",
+    "Retired" : false,
+    "DCMTK" : "EXS_RLELossless",
+    "GDCM" : "gdcm::TransferSyntax::RLELossless"
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.6.1",
+    "Name" : "RFC 2557 MIME Encapsulation",
+    "Value" : "RFC2557MimeEncapsulation",
+    "Retired" : true
+  },
+
+  {
+    "UID" : "1.2.840.10008.1.2.6.2",
+    "Name" : "XML Encoding",
+    "Value" : "XML",
+    "Retired" : true
+  }
+]

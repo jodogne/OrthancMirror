@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -117,9 +117,9 @@ namespace Orthanc
       }
 
       std::set<DicomTag> ignoreTagLength;
-      std::auto_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                      (*element, DicomToJsonFlags_None, 
-                                       0, encoding, hasCodeExtensions, ignoreTagLength));
+      std::unique_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
+                                        (*element, DicomToJsonFlags_None, 
+                                         0, encoding, hasCodeExtensions, ignoreTagLength));
 
       // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
       if (value.get() == NULL ||
@@ -185,7 +185,7 @@ namespace Orthanc
         fixedTag = DICOM_TAG_MODALITY;
       }
 
-      std::auto_ptr<DicomTagConstraint> constraint
+      std::unique_ptr<DicomTagConstraint> constraint
         (new DicomTagConstraint(fixedTag, ConstraintType_List, caseSensitive, mandatoryTag));
 
       std::vector<std::string> items;
@@ -198,8 +198,26 @@ namespace Orthanc
 
       AddConstraint(constraint.release());
     }
-    else if (dicomQuery.find('*') != std::string::npos ||
-             dicomQuery.find('?') != std::string::npos)
+    else if (
+      /**
+       * New test in Orthanc 1.6.0: Wild card matching is only allowed
+       * for a subset of value representations: AE, CS, LO, LT, PN,
+       * SH, ST, UC, UR, UT.
+       * http://dicom.nema.org/medical/dicom/2019e/output/chtml/part04/sect_C.2.2.2.4.html
+       **/
+      (vr == ValueRepresentation_ApplicationEntity ||    // AE
+       vr == ValueRepresentation_CodeString ||           // CS
+       vr == ValueRepresentation_LongString ||           // LO
+       vr == ValueRepresentation_LongText ||             // LT
+       vr == ValueRepresentation_PersonName ||           // PN
+       vr == ValueRepresentation_ShortString ||          // SH
+       vr == ValueRepresentation_ShortText ||            // ST
+       vr == ValueRepresentation_UnlimitedCharacters ||  // UC
+       vr == ValueRepresentation_UniversalResource ||    // UR
+       vr == ValueRepresentation_UnlimitedText           // UT
+        ) &&
+      (dicomQuery.find('*') != std::string::npos ||
+       dicomQuery.find('?') != std::string::npos))
     {
       AddConstraint(new DicomTagConstraint
                     (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive, mandatoryTag));

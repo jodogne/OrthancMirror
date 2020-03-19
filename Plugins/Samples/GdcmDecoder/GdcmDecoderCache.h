@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "../../../Core/Compatibility.h"
 #include "GdcmImageDecoder.h"
 #include "OrthancImageWrapper.h"
 
@@ -33,7 +34,7 @@ namespace OrthancPlugins
   {
   private:
     boost::mutex   mutex_;
-    std::auto_ptr<OrthancPlugins::GdcmImageDecoder>  decoder_;
+    std::unique_ptr<OrthancPlugins::GdcmImageDecoder>  decoder_;
     size_t       size_;
     std::string  md5_;
 

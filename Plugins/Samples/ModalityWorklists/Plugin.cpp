@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
  **/
 
 
+#include "../../../Core/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
@@ -142,7 +143,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
   try
   {
     // Construct an object to match the worklists in the database against the C-Find query
-    std::auto_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
+    std::unique_ptr<OrthancPlugins::FindMatcher> matcher(CreateMatcher(query, issuerAet));
 
     // Loop over the regular files in the database folder
     namespace fs = boost::filesystem;

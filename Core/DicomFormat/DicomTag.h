@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -149,6 +149,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PHOTOMETRIC_INTERPRETATION(0x0028, 0x0004);
   static const DicomTag DICOM_TAG_IMAGE_ORIENTATION_PATIENT(0x0020, 0x0037);
   static const DicomTag DICOM_TAG_IMAGE_POSITION_PATIENT(0x0020, 0x0032);
+  static const DicomTag DICOM_TAG_LARGEST_IMAGE_PIXEL_VALUE(0x0028, 0x0107);
+  static const DicomTag DICOM_TAG_SMALLEST_IMAGE_PIXEL_VALUE(0x0028, 0x0106);
 
   // Tags related to date and time
   static const DicomTag DICOM_TAG_ACQUISITION_DATE(0x0008, 0x0022);
@@ -189,6 +191,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PATIENT_COMMENTS(0x0010, 0x4000);
   static const DicomTag DICOM_TAG_PATIENT_SPECIES_DESCRIPTION(0x0010, 0x2201);
   static const DicomTag DICOM_TAG_STUDY_COMMENTS(0x0032, 0x4000);
+  static const DicomTag DICOM_TAG_OTHER_PATIENT_IDS(0x0010, 0x1000);
 
   // Tags used within the Stone of Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
@@ -206,6 +209,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_RED_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1101);
   static const DicomTag DICOM_TAG_GREEN_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1102);
   static const DicomTag DICOM_TAG_BLUE_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1103);
+  static const DicomTag DICOM_TAG_CONTOUR_DATA(0x3006, 0x0050);
                              
   // Counting patients, studies and series
   // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
@@ -229,4 +233,11 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE(0x3006, 0x0010);
   static const DicomTag DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE(0x3006, 0x0012);
   static const DicomTag DICOM_TAG_RT_REFERENCED_SERIES_SEQUENCE(0x3006, 0x0014);
+
+  // Tags for DICOMDIR
+  static const DicomTag DICOM_TAG_DIRECTORY_RECORD_TYPE(0x0004, 0x1430);
+  static const DicomTag DICOM_TAG_OFFSET_OF_THE_NEXT_DIRECTORY_RECORD(0x0004, 0x1400);
+  static const DicomTag DICOM_TAG_OFFSET_OF_REFERENCED_LOWER_LEVEL_DIRECTORY_ENTITY(0x0004, 0x1420);
+  static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID_IN_FILE(0x0004, 0x1511);
+  static const DicomTag DICOM_TAG_REFERENCED_FILE_ID(0x0004, 0x1500);
 }

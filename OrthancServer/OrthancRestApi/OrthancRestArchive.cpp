@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -123,7 +123,7 @@ namespace Orthanc
 
   static void SubmitJob(RestApiOutput& output,
                         ServerContext& context,
-                        std::auto_ptr<ArchiveJob>& job,
+                        std::unique_ptr<ArchiveJob>& job,
                         int priority,
                         bool synchronous,
                         const std::string& filename)
@@ -179,7 +179,7 @@ namespace Orthanc
       int priority;
       GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
       
-      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       AddResourcesOfInterest(*job, body);
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, "Archive.zip");
     }
@@ -209,7 +209,7 @@ namespace Orthanc
       extended = false;
     }
     
-    std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
     job->AddResource(id);
 
     SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
@@ -232,7 +232,7 @@ namespace Orthanc
       int priority;
       GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
       
-      std::auto_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       job->AddResource(id);
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, id + ".zip");
     }

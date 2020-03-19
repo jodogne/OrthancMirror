@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -65,14 +65,14 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    std::auto_ptr<Listener> listener_;
+    std::unique_ptr<Listener> listener_;
     IDatabaseWrapper& db_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
     bool         overwrite_;
-    std::auto_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
+    std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../Core/Compatibility.h"
 #include "../IDatabaseWrapper.h"
 #include "ILookupResources.h"
 
@@ -48,9 +49,9 @@ namespace Orthanc
     private:
       typedef std::set<int64_t>  Resources;
 
-      IDatabaseWrapper&         database_;
-      ResourceType              level_;
-      std::auto_ptr<Resources>  resources_;
+      IDatabaseWrapper&           database_;
+      ResourceType                level_;
+      std::unique_ptr<Resources>  resources_;
     
     public:
       SetOfResources(IDatabaseWrapper& database,

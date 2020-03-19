@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -346,7 +346,8 @@ namespace Orthanc
                                  IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
                                  const std::string& remoteAet,
-                                 const std::string& calledAet)
+                                 const std::string& calledAet,
+                                 int timeout)
   {
     FindScpData data;
     data.modalities_ = &modalities;
@@ -359,8 +360,8 @@ namespace Orthanc
 
     OFCondition cond = DIMSE_findProvider(assoc, presID, &msg->msg.CFindRQ, 
                                           FindScpCallback, &data,
-                                          /*opt_blockMode*/ DIMSE_BLOCKING, 
-                                          /*opt_dimse_timeout*/ 0);
+                                          /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                          /*opt_dimse_timeout*/ timeout);
 
     // if some error occured, dump corresponding information and remove the outfile if necessary
     if (cond.bad())

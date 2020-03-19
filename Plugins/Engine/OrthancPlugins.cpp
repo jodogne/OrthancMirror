@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -367,7 +367,7 @@ namespace Orthanc
       
     public:
       DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
-      callback_(parameters.callback)
+        callback_(parameters.callback)
       {
       }
       
@@ -435,7 +435,7 @@ namespace Orthanc
       };
 
       HttpOutput&                 output_;
-      std::auto_ptr<std::string>  errorDetails_;
+      std::unique_ptr<std::string>  errorDetails_;
       bool                        logDetails_;
       MultipartState              multipartState_;
       std::string                 multipartSubType_;
@@ -665,8 +665,8 @@ namespace Orthanc
 
     public:
       ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
-      parameters_(parameters),
-      regex_(parameters.pathRegularExpression)
+        parameters_(parameters),
+        regex_(parameters.pathRegularExpression)
       {
       }
 
@@ -682,6 +682,110 @@ namespace Orthanc
     };
 
 
+
+    class StorageCommitmentScp : public IStorageCommitmentFactory
+    {
+    private:
+      class Handler : public IStorageCommitmentFactory::ILookupHandler
+      {
+      private:
+        _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+        void*    handler_;
+
+      public:
+        Handler(_OrthancPluginRegisterStorageCommitmentScpCallback  parameters,
+                void* handler) :
+          parameters_(parameters),
+          handler_(handler)
+        {
+          if (handler == NULL)
+          {
+            throw OrthancException(ErrorCode_NullPointer);
+          }
+        }
+
+        virtual ~Handler()
+        {
+          assert(handler_ != NULL);
+          parameters_.destructor(handler_);
+          handler_ = NULL;
+        }
+
+        virtual StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                      const std::string& sopInstanceUid)
+        {
+          assert(handler_ != NULL);
+          OrthancPluginStorageCommitmentFailureReason reason =
+            OrthancPluginStorageCommitmentFailureReason_Success;
+          OrthancPluginErrorCode error = parameters_.lookup(
+            &reason, handler_, sopClassUid.c_str(), sopInstanceUid.c_str());
+          if (error == OrthancPluginErrorCode_Success)
+          {
+            return Plugins::Convert(reason);
+          }
+          else
+          {
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
+        }
+      };
+      
+      _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
+
+    public:
+      StorageCommitmentScp(_OrthancPluginRegisterStorageCommitmentScpCallback parameters) :
+        parameters_(parameters)
+      {
+      }
+
+      virtual ILookupHandler* CreateStorageCommitment(
+        const std::string& jobId,
+        const std::string& transactionUid,
+        const std::vector<std::string>& sopClassUids,
+        const std::vector<std::string>& sopInstanceUids,
+        const std::string& remoteAet,
+        const std::string& calledAet) ORTHANC_OVERRIDE
+      {
+        const size_t n = sopClassUids.size();
+        
+        if (sopInstanceUids.size() != n)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        
+        std::vector<const char*> a, b;
+        a.resize(n);
+        b.resize(n);
+
+        for (size_t i = 0; i < n; i++)
+        {
+          a[i] = sopClassUids[i].c_str();
+          b[i] = sopInstanceUids[i].c_str();
+        }
+
+        void* handler = NULL;
+        OrthancPluginErrorCode error = parameters_.factory(
+          &handler, jobId.c_str(), transactionUid.c_str(),
+          a.empty() ? NULL : &a[0], b.empty() ? NULL : &b[0], static_cast<uint32_t>(n),
+          remoteAet.c_str(), calledAet.c_str());
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(static_cast<ErrorCode>(error));          
+        }
+        else if (handler == NULL)
+        {
+          // This plugin won't handle this storage commitment request
+          return NULL;
+        }
+        else
+        {
+          return new Handler(parameters_, handler);
+        }
+      }
+    };
+
+
     class ServerContextLock
     {
     private:
@@ -690,8 +794,8 @@ namespace Orthanc
 
     public:
       ServerContextLock(PImpl& that) : 
-      lock_(that.contextMutex_),
-      context_(that.context_)
+        lock_(that.contextMutex_),
+        context_(that.context_)
       {
         if (context_ == NULL)
         {
@@ -724,6 +828,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
+    typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
     typedef std::map<Property, std::string>  Properties;
 
     PluginsManager manager_;
@@ -740,7 +845,8 @@ namespace Orthanc
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
-    std::auto_ptr<StorageAreaFactory>  storageArea_;
+    StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
+    std::unique_ptr<StorageAreaFactory>  storageArea_;
 
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
@@ -750,12 +856,13 @@ namespace Orthanc
     boost::mutex decodeImageCallbackMutex_;
     boost::mutex jobsUnserializersMutex_;
     boost::mutex refreshMetricsMutex_;
+    boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
 
     Properties properties_;
     int argc_;
     char** argv_;
-    std::auto_ptr<OrthancPluginDatabase>  database_;
+    std::unique_ptr<OrthancPluginDatabase>  database_;
     PluginsErrorDictionary  dictionary_;
 
     PImpl() : 
@@ -775,8 +882,8 @@ namespace Orthanc
   {
   private:
     OrthancPlugins&  that_;
-    std::auto_ptr<HierarchicalMatcher> matcher_;
-    std::auto_ptr<ParsedDicomFile>     filtered_;
+    std::unique_ptr<HierarchicalMatcher> matcher_;
+    std::unique_ptr<ParsedDicomFile>     filtered_;
     ParsedDicomFile* currentQuery_;
 
     void Reset()
@@ -824,7 +931,8 @@ namespace Orthanc
           Json::Value target;
           call.ExecuteToJson(target, true);
           
-          filtered_.reset(ParsedDicomFile::CreateFromJson(target, DicomFromJsonFlags_None));
+          filtered_.reset(ParsedDicomFile::CreateFromJson(target, DicomFromJsonFlags_None,
+                                                          "" /* no private creator */));
           currentQuery_ = filtered_.get();
         }
       }
@@ -888,7 +996,7 @@ namespace Orthanc
       }
 
       ParsedDicomFile f(dicom, size);
-      std::auto_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
+      std::unique_ptr<ParsedDicomFile> summary(matcher_->Extract(f));
       reinterpret_cast<DicomFindAnswers*>(answers)->Add(*summary);
     }
   };
@@ -898,7 +1006,7 @@ namespace Orthanc
   {
   private:
     OrthancPlugins&            that_;
-    std::auto_ptr<DicomArray>  currentQuery_;
+    std::unique_ptr<DicomArray>  currentQuery_;
 
     void Reset()
     {
@@ -1260,6 +1368,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -1303,6 +1412,13 @@ namespace Orthanc
     {
       delete *it;
     }
+
+    for (PImpl::StorageCommitmentScpCallbacks::iterator
+           it = pimpl_->storageCommitmentScpCallbacks_.begin(); 
+         it != pimpl_->storageCommitmentScpCallbacks_.end(); ++it)
+    {
+      delete *it;
+    } 
   }
 
 
@@ -1350,7 +1466,7 @@ namespace Orthanc
       
     public:
       RestCallbackMatcher(const UriComponents& uri) :
-      flatUri_(Toolbox::FlattenUri(uri))
+        flatUri_(Toolbox::FlattenUri(uri))
       {
       }
 
@@ -1863,6 +1979,18 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RegisterStorageCommitmentScpCallback(const void* parameters)
+  {
+    const _OrthancPluginRegisterStorageCommitmentScpCallback& p = 
+      *reinterpret_cast<const _OrthancPluginRegisterStorageCommitmentScpCallback*>(parameters);
+
+    boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
+    LOG(INFO) << "Plugin has registered a storage commitment callback";
+
+    pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
+  }
+
+
   void OrthancPlugins::AnswerBuffer(const void* parameters)
   {
     const _OrthancPluginAnswerBuffer& p = 
@@ -2355,7 +2483,7 @@ namespace Orthanc
     std::string result;
 
     {
-      std::auto_ptr<DeflateBaseCompressor> compressor;
+      std::unique_ptr<DeflateBaseCompressor> compressor;
 
       switch (p.compression)
       {
@@ -2405,14 +2533,14 @@ namespace Orthanc
   }
 
 
-  static OrthancPluginImage* ReturnImage(std::auto_ptr<ImageAccessor>& image)
+  static OrthancPluginImage* ReturnImage(std::unique_ptr<ImageAccessor>& image)
   {
     // Images returned to plugins are assumed to be writeable. If the
     // input image is read-only, we return a copy so that it can be modified.
 
     if (image->IsReadOnly())
     {
-      std::auto_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
+      std::unique_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
       ImageProcessing::Copy(*copy, *image);
       image.reset(NULL);
       return reinterpret_cast<OrthancPluginImage*>(copy.release());
@@ -2428,7 +2556,7 @@ namespace Orthanc
   {
     const _OrthancPluginUncompressImage& p = *reinterpret_cast<const _OrthancPluginUncompressImage*>(parameters);
 
-    std::auto_ptr<ImageAccessor> image;
+    std::unique_ptr<ImageAccessor> image;
 
     switch (p.format)
     {
@@ -2812,7 +2940,7 @@ namespace Orthanc
     const _OrthancPluginConvertPixelFormat& p = *reinterpret_cast<const _OrthancPluginConvertPixelFormat*>(parameters);
     const ImageAccessor& source = *reinterpret_cast<const ImageAccessor*>(p.source);
 
-    std::auto_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight(), false));
+    std::unique_ptr<ImageAccessor> target(new Image(Plugins::Convert(p.targetFormat), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Convert(*target, source);
 
     *(p.target) = ReturnImage(target);
@@ -2865,7 +2993,7 @@ namespace Orthanc
     const _OrthancPluginDicomToJson& p =
       *reinterpret_cast<const _OrthancPluginDicomToJson*>(parameters);
 
-    std::auto_ptr<ParsedDicomFile> dicom;
+    std::unique_ptr<ParsedDicomFile> dicom;
 
     if (service == _OrthancPluginService_DicomBufferToJson)
     {
@@ -2921,8 +3049,18 @@ namespace Orthanc
     std::string dicom;
 
     {
-      std::auto_ptr<ParsedDicomFile> file
-        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags)));
+      // Fix issue 168 (Plugins can't read private tags from the
+      // configuration file)
+      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      std::string privateCreator;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+      }
+      
+      std::unique_ptr<ParsedDicomFile> file
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags),
+                                         privateCreator));
 
       if (p.pixelData)
       {
@@ -2984,7 +3122,7 @@ namespace Orthanc
     const _OrthancPluginCreateImage& p =
       *reinterpret_cast<const _OrthancPluginCreateImage*>(parameters);
 
-    std::auto_ptr<ImageAccessor> result;
+    std::unique_ptr<ImageAccessor> result;
 
     switch (service)
     {
@@ -3095,7 +3233,25 @@ namespace Orthanc
     DcmTagKey tag2(tag.GetGroup(), tag.GetElement());
 
     DictionaryReadLocker locker;
-    const DcmDictEntry* entry = locker->findEntry(tag2, NULL);
+    const DcmDictEntry* entry = NULL;
+
+    if (tag.IsPrivate())
+    {
+      // Fix issue 168 (Plugins can't read private tags from the
+      // configuration file)
+      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      std::string privateCreator;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+      }
+
+      entry = locker->findEntry(tag2, privateCreator.c_str());
+    }
+    else
+    {
+      entry = locker->findEntry(tag2, NULL);
+    }
 
     if (entry == NULL)
     {
@@ -3882,6 +4038,10 @@ namespace Orthanc
         RegisterRefreshMetricsCallback(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterStorageCommitmentScpCallback:
+        RegisterStorageCommitmentScpCallback(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterStorageArea:
       {
         LOG(INFO) << "Plugin has registered a custom storage area";
@@ -4452,7 +4612,7 @@ namespace Orthanc
   };
 
 
-  bool OrthancPlugins::CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+  bool OrthancPlugins::CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                                   RequestOrigin origin,
                                                   const char* remoteIp,
                                                   const char* username,
@@ -4538,5 +4698,33 @@ namespace Orthanc
         }
       }
     }
+  }
+
+
+  IStorageCommitmentFactory::ILookupHandler* OrthancPlugins::CreateStorageCommitment(
+    const std::string& jobId,
+    const std::string& transactionUid,
+    const std::vector<std::string>& sopClassUids,
+    const std::vector<std::string>& sopInstanceUids,
+    const std::string& remoteAet,
+    const std::string& calledAet)
+  {
+    boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
+
+    for (PImpl::StorageCommitmentScpCallbacks::iterator
+           it = pimpl_->storageCommitmentScpCallbacks_.begin(); 
+         it != pimpl_->storageCommitmentScpCallbacks_.end(); ++it)
+    {
+      assert(*it != NULL);
+      IStorageCommitmentFactory::ILookupHandler* handler = (*it)->CreateStorageCommitment
+        (jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+
+      if (handler != NULL)
+      {
+        return handler;
+      }
+    } 
+    
+    return NULL;
   }
 }

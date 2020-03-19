@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,7 +35,9 @@
 
 #include "BufferHttpSender.h"
 
-#include <memory>  // For std::auto_ptr
+#include "../Compatibility.h"
+
+#include <memory>  // For std::unique_ptr
 
 namespace Orthanc
 {
@@ -49,7 +51,7 @@ namespace Orthanc
     uint64_t           currentChunkOffset_;
     bool               ready_;
 
-    std::auto_ptr<BufferHttpSender>  uncompressed_;
+    std::unique_ptr<BufferHttpSender>  uncompressed_;
 
     void ReadSource(std::string& buffer);
 

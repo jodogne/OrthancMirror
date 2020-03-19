@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,38 +33,43 @@
 
 #pragma once
 
-#include <memory>
-#include "LeastRecentlyUsedIndex.h"
+#include "../Compatibility.h"
 #include "ICachePageProvider.h"
+#include "LeastRecentlyUsedIndex.h"
+
+#include <memory>
 
 namespace Orthanc
 {
-  /**
-   * WARNING: This class is NOT thread-safe.
-   **/
-  class MemoryCache
+  namespace Deprecated
   {
-  private:
-    struct Page
+    /**
+     * WARNING: This class is NOT thread-safe.
+     **/
+    class MemoryCache
     {
-      std::string id_;
-      std::auto_ptr<IDynamicObject> content_;
+    private:
+      struct Page
+      {
+        std::string id_;
+        std::unique_ptr<IDynamicObject> content_;
+      };
+
+      ICachePageProvider& provider_;
+      size_t cacheSize_;
+      LeastRecentlyUsedIndex<std::string, Page*>  index_;
+
+      Page& Load(const std::string& id);
+
+    public:
+      MemoryCache(ICachePageProvider& provider,
+                  size_t cacheSize);
+
+      ~MemoryCache();
+
+      IDynamicObject& Access(const std::string& id);
+
+      void Invalidate(const std::string& id);
     };
-
-    ICachePageProvider& provider_;
-    size_t cacheSize_;
-    LeastRecentlyUsedIndex<std::string, Page*>  index_;
-
-    Page& Load(const std::string& id);
-
-  public:
-    MemoryCache(ICachePageProvider& provider,
-                size_t cacheSize);
-
-    ~MemoryCache();
-
-    IDynamicObject& Access(const std::string& id);
-
-    void Invalidate(const std::string& id);
-  };
+  }
 }

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -463,6 +463,21 @@ namespace Orthanc
     }
 
     boundary = Toolbox::GenerateUuid() + "-" + Toolbox::GenerateUuid();
+
+    /**
+     * Fix for issue #165: "Encapsulation boundaries must not appear
+     * within the encapsulations, and must be no longer than 70
+     * characters, not counting the two leading hyphens."
+     * https://tools.ietf.org/html/rfc1521
+     * https://bitbucket.org/sjodogne/orthanc/issues/165/
+     **/
+    if (boundary.size() != 36 + 1 + 36)  // one UUID contains 36 characters
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    boundary = boundary.substr(0, 70);
+    
     contentTypeHeader = ("multipart/" + subType + "; type=" + tmp + "; boundary=" + boundary);
   }
 

@@ -4,6 +4,7 @@ Generate some patch
 diff -urEb dcmtk-3.6.0.orig/ dcmtk-3.6.0
 diff -urEb dcmtk-3.6.2.orig/ dcmtk-3.6.2
 diff -urEb dcmtk-3.6.4.orig/ dcmtk-3.6.4
+diff -urEb dcmtk-3.6.5.orig/ dcmtk-3.6.5
 
 For "dcmtk-3.6.2-private.dic"
 =============================

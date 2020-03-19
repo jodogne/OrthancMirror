@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,9 +40,11 @@
 #include <boost/lexical_cast.hpp>
 
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/Cache/MemoryStringCache.h"
 #include "../Core/Cache/SharedArchive.h"
 #include "../Core/IDynamicObject.h"
 #include "../Core/Logging.h"
+#include "../OrthancServer/StorageCommitmentReports.h"
 
 
 TEST(LRU, Basic)
@@ -212,7 +214,7 @@ namespace
     }
   };
 
-  class IntegerProvider : public Orthanc::ICachePageProvider
+  class IntegerProvider : public Orthanc::Deprecated::ICachePageProvider
   {
   public:
     std::string log_;
@@ -231,7 +233,7 @@ TEST(MemoryCache, Basic)
   IntegerProvider provider;
 
   {
-    Orthanc::MemoryCache cache(provider, 3);
+    Orthanc::Deprecated::MemoryCache cache(provider, 3);
     cache.Access("42");  // 42 -> exit
     cache.Access("43");  // 43, 42 -> exit
     cache.Access("45");  // 45, 43, 42 -> exit
@@ -316,4 +318,143 @@ TEST(LRU, SharedArchive)
   }
 
   ASSERT_EQ(2u, count);
+}
+
+
+TEST(MemoryStringCache, Basic)
+{
+  Orthanc::MemoryStringCache c;
+  ASSERT_THROW(c.SetMaximumSize(0), Orthanc::OrthancException);
+  
+  c.SetMaximumSize(2);
+
+  std::string v;
+  ASSERT_FALSE(c.Fetch(v, "hello"));
+
+  c.Add("hello", "a");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_FALSE(c.Fetch(v, "hello2"));
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+
+  c.Add("hello2", "b");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+
+  c.Add("hello3", "too large value");
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_FALSE(c.Fetch(v, "hello3"));
+  
+  c.Add("hello3", "c");
+  ASSERT_FALSE(c.Fetch(v, "hello"));  // Recycled
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_TRUE(c.Fetch(v, "hello3"));  ASSERT_EQ("c", v);
+}
+
+
+TEST(MemoryStringCache, Invalidate)
+{
+  Orthanc::MemoryStringCache c;
+  c.Add("hello", "a");
+  c.Add("hello2", "b");
+
+  std::string v;
+  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+
+  c.Invalidate("hello");
+  ASSERT_FALSE(c.Fetch(v, "hello"));
+  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+}
+
+
+TEST(StorageCommitmentReports, Basic)
+{
+  Orthanc::StorageCommitmentReports reports(2);
+  ASSERT_EQ(2u, reports.GetMaxSize());
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "nope");
+    ASSERT_EQ("nope", accessor.GetTransactionUid());
+    ASSERT_FALSE(accessor.IsValid());
+    ASSERT_THROW(accessor.GetReport(), Orthanc::OrthancException);
+  }
+
+  reports.Store("a", new Orthanc::StorageCommitmentReports::Report("aet_a"));
+  reports.Store("b", new Orthanc::StorageCommitmentReports::Report("aet_b"));
+  reports.Store("c", new Orthanc::StorageCommitmentReports::Report("aet_c"));
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet_b", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Pending,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_EQ("aet_c", accessor.GetReport().GetRemoteAet());
+    ASSERT_TRUE(accessor.IsValid());
+  }
+
+  {
+    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
+      (new Orthanc::StorageCommitmentReports::Report("aet"));
+    report->AddSuccess("class1", "instance1");
+    report->AddFailure("class2", "instance2",
+                       Orthanc::StorageCommitmentFailureReason_ReferencedSOPClassNotSupported);
+    report->MarkAsComplete();
+    reports.Store("a", report.release());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Failure,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_TRUE(accessor.IsValid());
+  }
+
+  {
+    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
+      (new Orthanc::StorageCommitmentReports::Report("aet"));
+    report->AddSuccess("class1", "instance1");
+    report->MarkAsComplete();
+    reports.Store("a", report.release());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Success,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_TRUE(accessor.IsValid());
+  }
 }

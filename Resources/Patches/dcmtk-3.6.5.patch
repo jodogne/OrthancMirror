@@ -1,0 +1,113 @@
+diff -urEb dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h
+--- dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-18 10:22:41.555166774 +0100
++++ dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-03-18 10:22:53.395131056 +0100
+@@ -152,6 +152,12 @@
+     /// returns an iterator to the end of the repeating tag dictionary
+     DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
+ 
++    // Function by the Orthanc project to load a dictionary from a
++    // memory buffer, which is necessary in sandboxed
++    // environments. This is an adapted version of
++    // DcmDataDictionary::loadDictionary().
++    OFBool loadFromMemory(const std::string& content, OFBool errorIfAbsent = OFTrue);
++
+ private:
+ 
+     /** private undefined assignment operator
+diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc	2020-03-18 10:22:41.559166762 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc	2020-03-18 10:22:53.395131056 +0100
+@@ -900,3 +900,6 @@
+   wrlock().clear();
+   wrunlock();
+ }
++
++
++#include "dcdict_orthanc.cc"
+diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc	2020-03-18 10:22:41.559166762 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc	2020-03-18 10:22:53.395131056 +0100
+@@ -36,6 +36,9 @@
+ #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
+ #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
+ 
++#undef max
++#include "dcmtk/ofstd/oflimits.h"
++
+ 
+ // ********************************
+ 
+diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h
+--- dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-18 10:22:41.543166810 +0100
++++ dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-03-18 10:22:53.395131056 +0100
+@@ -63,7 +63,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Mutex::Mutex (Mutex::Type t)
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)) + 0)
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)))
+ { }
+ 
+ 
+@@ -106,7 +106,7 @@
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Semaphore::Semaphore (unsigned DCMTK_LOG4CPLUS_THREADED (max),
+     unsigned DCMTK_LOG4CPLUS_THREADED (initial))
+-    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)) + 0)
++    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)))
+ { }
+ 
+ 
+@@ -148,7 +148,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ FairMutex::FairMutex ()
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::FairMutex) + 0)
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::FairMutex))
+ { }
+ 
+ 
+@@ -190,7 +190,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ ManualResetEvent::ManualResetEvent (bool DCMTK_LOG4CPLUS_THREADED (sig))
+-    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)) + 0)
++    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)))
+ { }
+ 
+ 
+@@ -252,7 +252,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ SharedMutex::SharedMutex ()
+-    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex) + 0)
++    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex))
+ { }
+ 
+ 
+diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog.cc
+--- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-03-18 10:22:41.547166798 +0100
++++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-03-18 11:55:50.116856932 +0100
+@@ -19,6 +19,10 @@
+  *
+  */
+ 
++#if defined(_WIN32)
++#  include <winsock2.h>
++#endif
++
+ #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
+ #include "dcmtk/oflog/oflog.h"
+ 
+diff -urEb dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h	2020-03-18 10:22:41.587166677 +0100
++++ dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h	2020-03-18 10:22:53.395131056 +0100
+@@ -575,7 +575,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);

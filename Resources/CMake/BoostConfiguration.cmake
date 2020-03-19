@@ -12,7 +12,7 @@ else()
   endif()
 
   list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread system date_time regex)
-  find_package(Boost COMPONENTS "${ORTHANC_BOOST_COMPONENTS}")
+  find_package(Boost COMPONENTS ${ORTHANC_BOOST_COMPONENTS})
 
   if (NOT Boost_FOUND)
     foreach (item ${ORTHANC_BOOST_COMPONENTS})
@@ -30,9 +30,20 @@ else()
     message(FATAL_ERROR "Unable to locate Boost on this system")
   endif()
 
+  
+  # Patch by xnox to fix issue #166 (CMake find_boost version is now
+  # broken with newer boost/cmake)
+  # https://bitbucket.org/sjodogne/orthanc/issues/166/
+  if (POLICY CMP0093)
+    set(BOOST144 1.44)
+  else()
+    set(BOOST144 104400)
+  endif()
+  
+  
   # Boost releases 1.44 through 1.47 supply both V2 and V3 filesystem
   # http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-  if (${Boost_VERSION} LESS 104400)
+  if (${Boost_VERSION} LESS ${BOOST144})
     add_definitions(
       -DBOOST_HAS_FILESYSTEM_V3=0
       )
@@ -107,6 +118,13 @@ if (BOOST_STATIC)
     -DBOOST_REGEX_NO_LIB
     -DBOOST_SYSTEM_NO_LIB
     -DBOOST_LOCALE_NO_LIB
+
+    # In static builds, explicitly prevent Boost from using the system
+    # locale in lexical casts. This is notably important if
+    # "boost::lexical_cast<double>()" is applied to strings containing
+    # "," instead of "." as decimal separators. Check out function
+    # "OrthancStone::LinearAlgebra::ParseVector()".
+    -DBOOST_LEXICAL_CAST_ASSUME_C_LOCALE
     )
 
   set(BOOST_SOURCES

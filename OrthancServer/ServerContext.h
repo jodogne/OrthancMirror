@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@
 #include "LuaScripting.h"
 #include "OrthancHttpHandler.h"
 #include "ServerIndex.h"
+#include "ServerJobs/IStorageCommitmentFactory.h"
 
 #include "../Core/Cache/MemoryCache.h"
 
@@ -53,6 +54,7 @@ namespace Orthanc
   class SetOfInstancesJob;
   class SharedArchive;
   class SharedMessageQueue;
+  class StorageCommitmentReports;
   
   
   /**
@@ -60,7 +62,9 @@ namespace Orthanc
    * filesystem (including compression), as well as the index of the
    * DICOM store. It implements the required locking mechanisms.
    **/
-  class ServerContext : private JobsRegistry::IObserver
+  class ServerContext :
+    public IStorageCommitmentFactory,
+    private JobsRegistry::IObserver
   {
   public:
     class ILookupVisitor : public boost::noncopyable
@@ -82,14 +86,6 @@ namespace Orthanc
     
     
   private:
-    enum LookupMode
-    {
-      LookupMode_DatabaseOnly,
-      LookupMode_DiskOnAnswer,
-      LookupMode_DiskOnLookupAndAnswer
-    };
-
-    
     class LuaServerListener : public IServerListener
     {
     private:
@@ -120,7 +116,7 @@ namespace Orthanc
       }
     };
     
-    class DicomCacheProvider : public ICachePageProvider
+    class DicomCacheProvider : public Deprecated::ICachePageProvider  // TODO
     {
     private:
       ServerContext& context_;
@@ -172,11 +168,11 @@ namespace Orthanc
 
     void SaveJobsEngine();
 
-    virtual void SignalJobSubmitted(const std::string& jobId);
+    virtual void SignalJobSubmitted(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void SignalJobSuccess(const std::string& jobId);
+    virtual void SignalJobSuccess(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void SignalJobFailure(const std::string& jobId);
+    virtual void SignalJobFailure(const std::string& jobId) ORTHANC_OVERRIDE;
 
     ServerIndex index_;
     IStorageArea& area_;
@@ -186,12 +182,12 @@ namespace Orthanc
     
     DicomCacheProvider provider_;
     boost::mutex dicomCacheMutex_;
-    MemoryCache dicomCache_;
+    Deprecated::MemoryCache dicomCache_;  // TODO
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;
     LuaServerListener  luaListener_;
-    std::auto_ptr<SharedArchive>  mediaArchive_;
+    std::unique_ptr<SharedArchive>  mediaArchive_;
     
     // The "JobsEngine" must be *after* "LuaScripting", as
     // "LuaScripting" embeds "LuaJobManager" that registers as an
@@ -214,14 +210,19 @@ namespace Orthanc
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
         
-    std::auto_ptr<SharedArchive>  queryRetrieveArchive_;
+    std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
+    FindStorageAccessMode findStorageAccessMode_;
+    unsigned int limitFindInstances_;
+    unsigned int limitFindResults_;
 
-    std::auto_ptr<MetricsRegistry>  metricsRegistry_;
+    std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
+
+    std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -423,6 +424,19 @@ namespace Orthanc
     bool IsExecuteLuaEnabled() const
     {
       return isExecuteLuaEnabled_;
+    }
+
+    virtual IStorageCommitmentFactory::ILookupHandler*
+    CreateStorageCommitment(const std::string& jobId,
+                            const std::string& transactionUid,
+                            const std::vector<std::string>& sopClassUids,
+                            const std::vector<std::string>& sopInstanceUids,
+                            const std::string& remoteAet,
+                            const std::string& calledAet) ORTHANC_OVERRIDE;
+
+    StorageCommitmentReports& GetStorageCommitmentReports()
+    {
+      return *storageCommitmentReports_;
     }
   };
 }

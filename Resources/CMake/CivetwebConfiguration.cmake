@@ -30,6 +30,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
     ${CIVETWEB_SOURCES_DIR}/src/civetweb.c
     )
 
+  # New in Orthanc 1.6.0: Enable support of compression in civetweb
+  set_source_files_properties(
+    ${CIVETWEB_SOURCES}
+    PROPERTIES COMPILE_DEFINITIONS
+    "USE_ZLIB=1")
+  
   if (ENABLE_SSL)
     add_definitions(
       -DNO_SSL_DL=1

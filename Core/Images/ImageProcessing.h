@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -72,6 +72,8 @@ namespace Orthanc
       }
 
       double GetDistanceTo(const ImagePoint& other) const;
+
+      double GetDistanceToLine(double a, double b, double c) const; // where ax + by + c = 0 is the equation of the line
     };
 
     void Copy(ImageAccessor& target,
@@ -79,6 +81,14 @@ namespace Orthanc
 
     void Convert(ImageAccessor& target,
                  const ImageAccessor& source);
+
+    void ApplyWindowing_Deprecated(ImageAccessor& target,
+                                   const ImageAccessor& source,
+                                   float windowCenter,
+                                   float windowWidth,
+                                   float rescaleSlope,
+                                   float rescaleIntercept,
+                                   bool invert);
 
     void Set(ImageAccessor& image,
              int64_t value);
@@ -89,8 +99,17 @@ namespace Orthanc
              uint8_t blue,
              uint8_t alpha);
 
+    void Set(ImageAccessor& image,
+             uint8_t red,
+             uint8_t green,
+             uint8_t blue,
+             ImageAccessor& alpha);
+
     void ShiftRight(ImageAccessor& target,
                     unsigned int shift);
+
+    void ShiftLeft(ImageAccessor& target,
+                   unsigned int shift);
 
     void GetMinMaxIntegerValue(int64_t& minValue,
                                int64_t& maxValue,
@@ -108,8 +127,14 @@ namespace Orthanc
                           float factor,
                           bool useRound);
 
-    // "useRound" is expensive
+    // Computes "(x + offset) * scaling" inplace. "useRound" is expensive.
     void ShiftScale(ImageAccessor& image,
+                    float offset,
+                    float scaling,
+                    bool useRound);
+
+    void ShiftScale(ImageAccessor& target,
+                    const ImageAccessor& source,
                     float offset,
                     float scaling,
                     bool useRound);
@@ -156,5 +181,12 @@ namespace Orthanc
                               size_t verticalAnchor);
 
     void SmoothGaussian5x5(ImageAccessor& image);
+
+    void FitSize(ImageAccessor& target,
+                 const ImageAccessor& source);
+    
+    ImageAccessor* FitSize(const ImageAccessor& source,
+                           unsigned int width,
+                           unsigned int height);
   }
 }

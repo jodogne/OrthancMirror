@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -84,7 +84,8 @@ namespace Orthanc
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset,
                                     unsigned int maxStringLength,
-                                    Encoding defaultEncoding);
+                                    Encoding defaultEncoding,
+                                    const std::set<DicomTag>& ignoreTagLength);
 
     static void DatasetToJson(Json::Value& parent,
                               DcmItem& item,
@@ -191,7 +192,8 @@ namespace Orthanc
                          const std::string& tagName,
                          DicomValue* value)
     {
-      target.SetValue(ParseTag(tagName), value);
+      const DicomTag tag = ParseTag(tagName);
+      target.SetValueInternal(tag.GetGroup(), tag.GetElement(), value);
     }
 
     static void ToJson(Json::Value& result,
@@ -207,10 +209,10 @@ namespace Orthanc
 
     static ValueRepresentation LookupValueRepresentation(const DicomTag& tag);
 
-    static DcmElement* CreateElementForTag(const DicomTag& tag);
+    static DcmElement* CreateElementForTag(const DicomTag& tag,
+                                           const std::string& privateCreator);
     
     static void FillElementWithString(DcmElement& element,
-                                      const DicomTag& tag,
                                       const std::string& utf8alue,  // Encoded using UTF-8
                                       bool decodeDataUriScheme,
                                       Encoding dicomEncoding);
@@ -218,7 +220,8 @@ namespace Orthanc
     static DcmElement* FromJson(const DicomTag& tag,
                                 const Json::Value& element,  // Encoded using UTF-8
                                 bool decodeDataUriScheme,
-                                Encoding dicomEncoding);
+                                Encoding dicomEncoding,
+                                const std::string& privateCreator);
 
     static DcmPixelSequence* GetPixelSequence(DcmDataset& dataset);
 
@@ -228,7 +231,8 @@ namespace Orthanc
     static DcmDataset* FromJson(const Json::Value& json,  // Encoded using UTF-8
                                 bool generateIdentifiers,
                                 bool decodeDataUriScheme,
-                                Encoding defaultEncoding);
+                                Encoding defaultEncoding,
+                                const std::string& privateCreator);
 
     static DcmFileFormat* LoadFromMemoryBuffer(const void* buffer,
                                                size_t size);
@@ -245,7 +249,15 @@ namespace Orthanc
 #endif
 
     static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset);
+                                    DcmItem& dataset,
+                                    const std::set<DicomTag>& ignoreTagLength);
+
+    static void ExtractDicomSummary(DicomMap& target, 
+                                    DcmItem& dataset)
+    {
+      std::set<DicomTag> none;
+      ExtractDicomSummary(target, dataset, none);
+    }
 
     static void ExtractDicomAsJson(Json::Value& target, 
                                    DcmDataset& dataset,
@@ -258,5 +270,11 @@ namespace Orthanc
     static void Apply(DcmItem& dataset,
                       ITagVisitor& visitor,
                       Encoding defaultEncoding);
+
+    static bool LookupDcmtkTransferSyntax(E_TransferSyntax& target,
+                                          DicomTransferSyntax source);
+
+    static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                            E_TransferSyntax source);
   };
 }

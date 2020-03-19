@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,11 +46,11 @@ namespace Orthanc
   private:
     class Output;
     
-    ServerContext&                    context_;
-    std::auto_ptr<DicomModification>  modification_;
-    boost::shared_ptr<Output>         output_;
-    bool                              isAnonymization_;
-    DicomInstanceOrigin               origin_;
+    ServerContext&                      context_;
+    std::unique_ptr<DicomModification>  modification_;
+    boost::shared_ptr<Output>           output_;
+    bool                                isAnonymization_;
+    DicomInstanceOrigin                 origin_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);

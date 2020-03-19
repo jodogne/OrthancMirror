@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Compatibility.h"
 #include "../../Enumerations.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
@@ -62,11 +63,11 @@ namespace Orthanc
     class UncompressedIndex;
     class PsmctRle1Index;
 
-    std::auto_ptr<IIndex>  index_;
-    unsigned int           countFrames_;
+    std::unique_ptr<IIndex>  index_;
+    unsigned int             countFrames_;
 
   public:
-    DicomFrameIndex(DcmFileFormat& dicom);
+    DicomFrameIndex(DcmDataset& dicom);
 
     unsigned int GetFramesCount() const
     {
@@ -76,8 +77,6 @@ namespace Orthanc
     void GetRawFrame(std::string& frame,
                      unsigned int index) const;
 
-    static bool IsVideo(DcmFileFormat& dicom);
-
-    static unsigned int GetFramesCount(DcmFileFormat& dicom);
+    static unsigned int GetFramesCount(DcmDataset& dicom);
   };
 }

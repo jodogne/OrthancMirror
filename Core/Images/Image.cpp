@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #include "Image.h"
 
+#include "../Compatibility.h"
 #include "ImageProcessing.h"
 
 #include <memory>
@@ -54,7 +55,7 @@ namespace Orthanc
 
   Image* Image::Clone(const ImageAccessor& source)
   {
-    std::auto_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight(), false));
+    std::unique_ptr<Image> target(new Image(source.GetFormat(), source.GetWidth(), source.GetHeight(), false));
     ImageProcessing::Copy(*target, source);
     return target.release();
   }

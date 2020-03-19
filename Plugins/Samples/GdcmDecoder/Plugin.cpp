@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
  **/
 
 
+#include "../../../Core/Compatibility.h"
 #include "GdcmDecoderCache.h"
 #include "OrthancImageWrapper.h"
 
@@ -35,7 +36,7 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 {
   try
   {
-    std::auto_ptr<OrthancPlugins::OrthancImageWrapper> image;
+    std::unique_ptr<OrthancPlugins::OrthancImageWrapper> image;
 
 #if 0
     // Do not use the cache

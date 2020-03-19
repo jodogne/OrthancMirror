@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,13 +34,14 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomModification.h"
 
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ITagVisitor.h"
 
-#include <memory>   // For std::auto_ptr
+#include <memory>   // For std::unique_ptr
 
 
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2008 =
@@ -317,7 +318,7 @@ namespace Orthanc
   void DicomModification::MapDicomTags(ParsedDicomFile& dicom,
                                        ResourceType level)
   {
-    std::auto_ptr<DicomTag> tag;
+    std::unique_ptr<DicomTag> tag;
 
     switch (level)
     {
@@ -347,7 +348,7 @@ namespace Orthanc
 
     dicom.Replace(*tag, mapped, 
                   false /* don't try and decode data URI scheme for UIDs */, 
-                  DicomReplaceMode_InsertIfAbsent);
+                  DicomReplaceMode_InsertIfAbsent, privateCreator_);
   }
 
   
@@ -359,6 +360,7 @@ namespace Orthanc
     keepSeriesInstanceUid_(false),
     updateReferencedRelationships_(true),
     isAnonymization_(false),
+    //privateCreator_("PrivateCreator"),
     identifierGenerator_(NULL)
   {
   }
@@ -1067,7 +1069,8 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
-      toModify.Replace(it->first, *it->second, true /* decode data URI scheme */, DicomReplaceMode_InsertIfAbsent);
+      toModify.Replace(it->first, *it->second, true /* decode data URI scheme */,
+                       DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
     // (6) Update the DICOM identifiers
@@ -1262,6 +1265,12 @@ namespace Orthanc
     {
       ParseListOfTags(*this, request["Keep"], TagOperation_Keep, force);
     }
+
+    // New in Orthanc 1.6.0
+    if (request.isMember("PrivateCreator"))
+    {
+      privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
+    }
   }
 
 
@@ -1316,6 +1325,12 @@ namespace Orthanc
 
     patientNameReplaced = (IsReplaced(DICOM_TAG_PATIENT_NAME) &&
                            GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
+
+    // New in Orthanc 1.6.0
+    if (request.isMember("PrivateCreator"))
+    {
+      privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
+    }
   }
 
 
@@ -1336,6 +1351,7 @@ namespace Orthanc
   static const char* MAP_STUDIES = "MapStudies";
   static const char* MAP_SERIES = "MapSeries";
   static const char* MAP_INSTANCES = "MapInstances";
+  static const char* PRIVATE_CREATOR = "PrivateCreator";  // New in Orthanc 1.6.0
   
   void DicomModification::Serialize(Json::Value& value) const
   {
@@ -1353,6 +1369,7 @@ namespace Orthanc
     value[KEEP_SERIES_INSTANCE_UID] = keepSeriesInstanceUid_;
     value[UPDATE_REFERENCED_RELATIONSHIPS] = updateReferencedRelationships_;
     value[IS_ANONYMIZATION] = isAnonymization_;
+    value[PRIVATE_CREATOR] = privateCreator_;
 
     SerializationToolbox::WriteSetOfTags(value, removals_, REMOVALS);
     SerializationToolbox::WriteSetOfTags(value, clearings_, CLEARINGS);
@@ -1450,6 +1467,11 @@ namespace Orthanc
     updateReferencedRelationships_ = SerializationToolbox::ReadBoolean
       (serialized, UPDATE_REFERENCED_RELATIONSHIPS);
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
+
+    if (serialized.isMember(PRIVATE_CREATOR))
+    {
+      privateCreator_ = SerializationToolbox::ReadString(serialized, PRIVATE_CREATOR);
+    }
 
     SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
     SerializationToolbox::ReadSetOfTags(clearings_, serialized, CLEARINGS);

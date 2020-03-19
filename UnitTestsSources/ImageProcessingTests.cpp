@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomImageInformation.h"
 #include "../Core/Images/Image.h"
 #include "../Core/Images/ImageProcessing.h"
@@ -92,7 +93,7 @@ namespace
   class TestImageTraits : public ::testing::Test
   {
   private:
-    std::auto_ptr<Image>  image_;
+    std::unique_ptr<Image>  image_;
 
   protected:
     virtual void SetUp() ORTHANC_OVERRIDE
@@ -278,6 +279,44 @@ static bool TestGrayscale8Pixel(const ImageAccessor& image,
 {
   PixelTraits<PixelFormat_Grayscale8>::PixelType p;
   ImageTraits<PixelFormat_Grayscale8>::GetPixel(p, image, x, y);
+  if (p != value) printf("%d %d\n", p, value);
+  return p == value;
+}
+
+static void SetGrayscale16Pixel(ImageAccessor& image,
+                                unsigned int x,
+                                unsigned int y,
+                                uint16_t value)
+{
+  ImageTraits<PixelFormat_Grayscale16>::SetPixel(image, value, x, y);
+}
+
+static bool TestGrayscale16Pixel(const ImageAccessor& image,
+                                 unsigned int x,
+                                 unsigned int y,
+                                 uint16_t value)
+{
+  PixelTraits<PixelFormat_Grayscale16>::PixelType p;
+  ImageTraits<PixelFormat_Grayscale16>::GetPixel(p, image, x, y);
+  if (p != value) printf("%d %d\n", p, value);
+  return p == value;
+}
+
+static void SetSignedGrayscale16Pixel(ImageAccessor& image,
+                                unsigned int x,
+                                unsigned int y,
+                                int16_t value)
+{
+  ImageTraits<PixelFormat_SignedGrayscale16>::SetPixel(image, value, x, y);
+}
+
+static bool TestSignedGrayscale16Pixel(const ImageAccessor& image,
+                                       unsigned int x,
+                                       unsigned int y,
+                                       int16_t value)
+{
+  PixelTraits<PixelFormat_SignedGrayscale16>::PixelType p;
+  ImageTraits<PixelFormat_SignedGrayscale16>::GetPixel(p, image, x, y);
   if (p != value) printf("%d %d\n", p, value);
   return p == value;
 }
@@ -509,7 +548,7 @@ TEST(ImageProcessing, Convolution)
     SetGrayscale8Pixel(dirac, 4, 0, 100);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -523,7 +562,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -537,7 +576,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 1, 0, 0));
@@ -557,7 +596,7 @@ TEST(ImageProcessing, Convolution)
     SetGrayscale8Pixel(dirac, 0, 4, 100);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -571,7 +610,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -585,7 +624,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 0, 0));
       ASSERT_TRUE(TestGrayscale8Pixel(*image, 0, 1, 0));
@@ -605,7 +644,7 @@ TEST(ImageProcessing, Convolution)
     SetRGB24Pixel(dirac, 4, 0, 100, 120, 140);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -619,7 +658,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -633,7 +672,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 1, 0, 0, 0, 0));
@@ -653,7 +692,7 @@ TEST(ImageProcessing, Convolution)
     SetRGB24Pixel(dirac, 0, 4, 100, 120, 140);
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k1, 2);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
@@ -667,7 +706,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k1, 2, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
@@ -681,7 +720,7 @@ TEST(ImageProcessing, Convolution)
     }
 
     {
-      std::auto_ptr<ImageAccessor> image(Image::Clone(dirac));
+      std::unique_ptr<ImageAccessor> image(Image::Clone(dirac));
       ImageProcessing::SeparableConvolution(*image, k2, 0, k2, 0);
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 0, 0, 0, 0));
       ASSERT_TRUE(TestRGB24Pixel(*image, 0, 1, 0, 0, 0));
@@ -773,4 +812,203 @@ TEST(ImageProcessing, SmoothGaussian5x5)
     ASSERT_TRUE(TestRGB24Pixel(image, 3, 4, 1, 1, 3));
     ASSERT_TRUE(TestRGB24Pixel(image, 4, 4, 0, 0, 0));
   }
+}
+
+TEST(ImageProcessing, ApplyWindowingFloatToGrayScale8)
+{
+  {
+    Image image(PixelFormat_Float32, 6, 1, false);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, -5.0f, 0, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 0.0f, 1, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 5.0f, 2, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 10.0f, 3, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 1000.0f, 4, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 2.0f, 5, 0);
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 128));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, true);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 127));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255 - 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 128));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5000.0f, 10000.01f, 1000.0f, 0.0f, true);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 255));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 127));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 0));
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 255 - 256*2/10));
+    }
+
+    {
+      Image target(PixelFormat_Grayscale8, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 50.0f, 100.1f, 10.0f, 30.0f, false);
+
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 0, 0, 0));  // (-5 * 10) + 30 => pixel value = -20 => 0
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 1, 0, 256*30/100));  // ((0 * 10) + 30 => pixel value = 30 => 30%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 2, 0, 256*80/100)); // ((5 * 10) + 30 => pixel value = 80 => 80%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 3, 0, 255)); // ((10 * 10) + 30 => pixel value = 130 => 100%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 4, 0, 255)); // ((1000 * 10) + 30 => pixel value = 10030 => 100%
+      ASSERT_TRUE(TestGrayscale8Pixel(target, 5, 0, 128)); // ((2 * 10) + 30 => pixel value = 50 => 50%
+    }
+
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingFloatToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Float32, 6, 1, false);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, -5.0f, 0, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 0.0f, 1, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 5.0f, 2, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 10.0f, 3, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 1000.0f, 4, 0);
+    ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 2.0f, 5, 0);
+
+    {
+      Image target(PixelFormat_Grayscale16, 6, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 32768));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 5, 0, 65536*2/10));
+    }
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingGrayScale8ToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Grayscale8, 5, 1, false);
+    SetGrayscale8Pixel(image, 0, 0, 0);
+    SetGrayscale8Pixel(image, 1, 0, 2);
+    SetGrayscale8Pixel(image, 2, 0, 5);
+    SetGrayscale8Pixel(image, 3, 0, 10);
+    SetGrayscale8Pixel(image, 4, 0, 255);
+
+    {
+      Image target(PixelFormat_Grayscale16, 5, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 65536*5/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+    }
+  }
+}
+
+TEST(ImageProcessing, ApplyWindowingGrayScale16ToGrayScale16)
+{
+  {
+    Image image(PixelFormat_Grayscale16, 5, 1, false);
+    SetGrayscale16Pixel(image, 0, 0, 0);
+    SetGrayscale16Pixel(image, 1, 0, 2);
+    SetGrayscale16Pixel(image, 2, 0, 5);
+    SetGrayscale16Pixel(image, 3, 0, 10);
+    SetGrayscale16Pixel(image, 4, 0, 255);
+
+    {
+      Image target(PixelFormat_Grayscale16, 5, 1, false);
+      ImageProcessing::ApplyWindowing_Deprecated(target, image, 5.0f, 10.0f, 1.0f, 0.0f, false);
+
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 0, 0, 0));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 1, 0, 65536*2/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 2, 0, 65536*5/10));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 3, 0, 65535));
+      ASSERT_TRUE(TestGrayscale16Pixel(target, 4, 0, 65535));
+    }
+  }
+}
+
+
+TEST(ImageProcessing, ShiftScaleGrayscale8)
+{
+  Image image(PixelFormat_Grayscale8, 5, 1, false);
+  SetGrayscale8Pixel(image, 0, 0, 0);
+  SetGrayscale8Pixel(image, 1, 0, 2);
+  SetGrayscale8Pixel(image, 2, 0, 5);
+  SetGrayscale8Pixel(image, 3, 0, 10);
+  SetGrayscale8Pixel(image, 4, 0, 255);
+
+  ImageProcessing::ShiftScale(image, -1.1, 1.5, true);
+  ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 0));
+  ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 0, 1));
+  ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 0, 6));
+  ASSERT_TRUE(TestGrayscale8Pixel(image, 3, 0, 13));
+  ASSERT_TRUE(TestGrayscale8Pixel(image, 4, 0, 255));
+}
+
+
+TEST(ImageProcessing, ShiftScaleGrayscale16)
+{
+  Image image(PixelFormat_Grayscale16, 5, 1, false);
+  SetGrayscale16Pixel(image, 0, 0, 0);
+  SetGrayscale16Pixel(image, 1, 0, 2);
+  SetGrayscale16Pixel(image, 2, 0, 5);
+  SetGrayscale16Pixel(image, 3, 0, 10);
+  SetGrayscale16Pixel(image, 4, 0, 255);
+
+  ImageProcessing::ShiftScale(image, -1.1, 1.5, true);
+  ASSERT_TRUE(TestGrayscale16Pixel(image, 0, 0, 0));
+  ASSERT_TRUE(TestGrayscale16Pixel(image, 1, 0, 1));
+  ASSERT_TRUE(TestGrayscale16Pixel(image, 2, 0, 6));
+  ASSERT_TRUE(TestGrayscale16Pixel(image, 3, 0, 13));
+  ASSERT_TRUE(TestGrayscale16Pixel(image, 4, 0, 381));
+}
+
+
+TEST(ImageProcessing, ShiftScaleSignedGrayscale16)
+{
+  Image image(PixelFormat_SignedGrayscale16, 5, 1, false);
+  SetSignedGrayscale16Pixel(image, 0, 0, 0);
+  SetSignedGrayscale16Pixel(image, 1, 0, 2);
+  SetSignedGrayscale16Pixel(image, 2, 0, 5);
+  SetSignedGrayscale16Pixel(image, 3, 0, 10);
+  SetSignedGrayscale16Pixel(image, 4, 0, 255);
+
+  ImageProcessing::ShiftScale(image, -17.1, 11.5, true);
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 0, 0, -197));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 1, 0, -174));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 2, 0, -139));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 3, 0, -82));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 4, 0, 2736));
 }

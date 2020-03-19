@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -156,8 +156,8 @@ namespace Orthanc
 {
   struct ParsedDicomFile::PImpl
   {
-    std::auto_ptr<DcmFileFormat> file_;
-    std::auto_ptr<DicomFrameIndex>  frameIndex_;
+    std::unique_ptr<DcmFileFormat> file_;
+    std::unique_ptr<DicomFrameIndex>  frameIndex_;
   };
 
 
@@ -619,7 +619,8 @@ namespace Orthanc
 
   void ParsedDicomFile::Insert(const DicomTag& tag,
                                const Json::Value& value,
-                               bool decodeDataUriScheme)
+                               bool decodeDataUriScheme,
+                               const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -648,8 +649,35 @@ namespace Orthanc
 
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions);
-    std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+    std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
     InsertInternal(*pimpl_->file_->getDataset(), element.release());
+  }
+
+
+  void ParsedDicomFile::ReplacePlainString(const DicomTag& tag,
+                                           const std::string& utf8Value)
+  {
+    if (tag.IsPrivate())
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot apply this function to private tags: " + tag.Format());
+    }
+    else
+    {
+      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent,
+              "" /* not a private tag, so no private creator */);
+    }
+  }
+
+
+  void ParsedDicomFile::SetIfAbsent(const DicomTag& tag,
+                                    const std::string& utf8Value)
+  {
+    std::string currentValue;
+    if (!GetTagValue(currentValue, tag))
+    {
+      ReplacePlainString(tag, utf8Value);
+    }
   }
 
 
@@ -742,7 +770,8 @@ namespace Orthanc
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const std::string& utf8Value,
                                 bool decodeDataUriScheme,
-                                DicomReplaceMode mode)
+                                DicomReplaceMode mode,
+                                const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -769,13 +798,13 @@ namespace Orthanc
         }
       }
 
-      std::auto_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag));
+      std::unique_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
 
       if (!utf8Value.empty())
       {
         bool hasCodeExtensions;
         Encoding encoding = DetectEncoding(hasCodeExtensions);
-        FromDcmtkBridge::FillElementWithString(*element, tag, utf8Value, decodeDataUriScheme, encoding);
+        FromDcmtkBridge::FillElementWithString(*element, utf8Value, decodeDataUriScheme, encoding);
       }
 
       InsertInternal(dicom, element.release());
@@ -787,7 +816,8 @@ namespace Orthanc
   void ParsedDicomFile::Replace(const DicomTag& tag,
                                 const Json::Value& value,
                                 bool decodeDataUriScheme,
-                                DicomReplaceMode mode)
+                                DicomReplaceMode mode,
+                                const std::string& privateCreator)
   {
     if (tag.GetElement() == 0x0000)
     {
@@ -817,7 +847,7 @@ namespace Orthanc
 
       bool hasCodeExtensions;
       Encoding encoding = DetectEncoding(hasCodeExtensions);
-      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
 
       if (tag == DICOM_TAG_SOP_CLASS_UID ||
           tag == DICOM_TAG_SOP_INSTANCE_UID)
@@ -891,9 +921,9 @@ namespace Orthanc
       Encoding encoding = DetectEncoding(hasCodeExtensions);
       
       std::set<DicomTag> tmp;
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                  (*element, DicomToJsonFlags_Default, 
-                                   0, encoding, hasCodeExtensions, tmp));
+      std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+                                    (*element, DicomToJsonFlags_Default, 
+                                     0, encoding, hasCodeExtensions, tmp));
       
       if (v.get() == NULL ||
           v->IsNull())
@@ -1007,8 +1037,8 @@ namespace Orthanc
       }
     }
 
-    for (DicomMap::Map::const_iterator 
-           it = source.map_.begin(); it != source.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = source.content_.begin(); it != source.content_.end(); ++it)
     {
       if (it->first != DICOM_TAG_SPECIFIC_CHARACTER_SET &&
           !it->second->IsNull())
@@ -1279,7 +1309,7 @@ namespace Orthanc
     DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
                DICOM_TAG_PIXEL_DATA.GetElement());
 
-    std::auto_ptr<DcmPixelData> pixels(new DcmPixelData(key));
+    std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
 
     unsigned int pitch = accessor.GetWidth() * bytesPerPixel;
     Uint8* target = NULL;
@@ -1414,7 +1444,7 @@ namespace Orthanc
     ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
     //ReplacePlainString(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
-    std::auto_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
+    std::unique_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
     size_t s = pdf.size();
     if (s & 1)
@@ -1483,12 +1513,13 @@ namespace Orthanc
 
 
   ParsedDicomFile* ParsedDicomFile::CreateFromJson(const Json::Value& json,
-                                                   DicomFromJsonFlags flags)
+                                                   DicomFromJsonFlags flags,
+                                                   const std::string& privateCreator)
   {
     const bool generateIdentifiers = (flags & DicomFromJsonFlags_GenerateIdentifiers) ? true : false;
     const bool decodeDataUriScheme = (flags & DicomFromJsonFlags_DecodeDataUriScheme) ? true : false;
 
-    std::auto_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
+    std::unique_ptr<ParsedDicomFile> result(new ParsedDicomFile(generateIdentifiers));
     result->SetEncoding(FromDcmtkBridge::ExtractEncoding(json, GetDefaultDicomEncoding()));
 
     const Json::Value::Members tags = json.getMemberNames();
@@ -1512,7 +1543,7 @@ namespace Orthanc
       }
       else if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        result->Replace(tag, value, decodeDataUriScheme, DicomReplaceMode_InsertIfAbsent);
+        result->Replace(tag, value, decodeDataUriScheme, DicomReplaceMode_InsertIfAbsent, privateCreator);
       }
     }
 
@@ -1526,7 +1557,9 @@ namespace Orthanc
   {
     if (pimpl_->frameIndex_.get() == NULL)
     {
-      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_));
+      assert(pimpl_->file_ != NULL &&
+             pimpl_->file_->getDataset() != NULL);
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_->getDataset()));
     }
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
@@ -1558,7 +1591,9 @@ namespace Orthanc
 
   unsigned int ParsedDicomFile::GetFramesCount() const
   {
-    return DicomFrameIndex::GetFramesCount(*pimpl_->file_);
+    assert(pimpl_->file_ != NULL &&
+           pimpl_->file_->getDataset() != NULL);
+    return DicomFrameIndex::GetFramesCount(*pimpl_->file_->getDataset());
   }
 
 
@@ -1578,6 +1613,13 @@ namespace Orthanc
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
   {
     FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
+  }
+
+
+  void ParsedDicomFile::ExtractDicomSummary(DicomMap& target,
+                                            const std::set<DicomTag>& ignoreTagLength) const
+  {
+    FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset(), ignoreTagLength);
   }
 
 

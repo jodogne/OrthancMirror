@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,6 +49,7 @@
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
+#include "StorageCommitmentReports.h"
 
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -75,7 +76,7 @@ namespace Orthanc
   {
     while (!that->done_)
     {
-      std::auto_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
+      std::unique_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
         
       if (obj.get() != NULL)
       {
@@ -254,6 +255,14 @@ namespace Orthanc
       jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
       saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
       metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
+
+      // New configuration options in Orthanc 1.5.1
+      findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
+      limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
+      limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+
+      // New configuration option in Orthanc 1.6.0
+      storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -659,7 +668,7 @@ namespace Orthanc
     lock_(that_.dicomCacheMutex_)
   {
 #if ENABLE_DICOM_CACHE == 0
-    static std::auto_ptr<IDynamicObject> p;
+    static std::unique_ptr<IDynamicObject> p;
     p.reset(provider_.Provide(instancePublicId));
     dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
@@ -796,44 +805,9 @@ namespace Orthanc
                             size_t since,
                             size_t limit)
   {
-    LookupMode mode;
-    unsigned int databaseLimit;
+    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
+                                  limitFindInstances_ : limitFindResults_);
       
-    {
-      // New configuration option in 1.5.1
-      OrthancConfiguration::ReaderLock lock;
-
-      std::string value = lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always");
-
-      if (value == "Always")
-      {
-        mode = LookupMode_DiskOnLookupAndAnswer;
-      }
-      else if (value == "Never")
-      {
-        mode = LookupMode_DatabaseOnly;
-      }
-      else if (value == "Answers")
-      {
-        mode = LookupMode_DiskOnAnswer;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange,
-                               "Configuration option \"StorageAccessOnFind\" "
-                               "should be \"Always\", \"Never\" or \"Answers\": " + value);
-      }
-
-      if (queryLevel == ResourceType_Instance)
-      {
-        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
-      }
-      else
-      {
-        databaseLimit = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
-      }
-    }      
-
     std::vector<std::string> resources, instances;
 
     {
@@ -846,6 +820,11 @@ namespace Orthanc
 
     LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
 
+    /**
+     * "resources" contains the Orthanc ID of the resource at level
+     * "queryLevel", "instances" contains one the Orthanc ID of one
+     * sample instance from this resource.
+     **/
     assert(resources.size() == instances.size());
 
     size_t countResults = 0;
@@ -858,24 +837,59 @@ namespace Orthanc
       // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
       // the disk if only "main DICOM tags" are to be returned
 
-      std::auto_ptr<Json::Value> dicomAsJson;
+      std::unique_ptr<Json::Value> dicomAsJson;
 
       bool hasOnlyMainDicomTags;
       DicomMap dicom;
       
-      if (mode == LookupMode_DatabaseOnly ||
-          mode == LookupMode_DiskOnAnswer ||
+      if (findStorageAccessMode_ == FindStorageAccessMode_DatabaseOnly ||
+          findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer ||
           lookup.HasOnlyMainDicomTags())
       {
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
 
-        if (!GetIndex().GetAllMainDicomTags(dicom, instances[i]))
+        DicomMap tmp;
+        if (!GetIndex().GetAllMainDicomTags(tmp, instances[i]))
         {
           // The instance has been removed during the execution of the
           // lookup, ignore it
           continue;
         }
+
+#if 1
+        // New in Orthanc 1.6.0: Only keep the main DICOM tags at the
+        // level of interest for the query
+        switch (queryLevel)
+        {
+          // WARNING: Don't reorder cases below, and don't add "break"
+          case ResourceType_Instance:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Instance);
+
+          case ResourceType_Series:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Series);
+
+          case ResourceType_Study:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Study);
+            
+          case ResourceType_Patient:
+            dicom.MergeMainDicomTags(tmp, ResourceType_Patient);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        // Special case of the "Modality" at the study level, in order
+        // to deal with C-FIND on "ModalitiesInStudy" (0008,0061).
+        // Check out integration test "test_rest_modalities_in_study".
+        if (queryLevel == ResourceType_Study)
+        {
+          dicom.CopyTagIfExists(tmp, DICOM_TAG_MODALITY);
+        }
+#else
+        dicom.Assign(tmp);  // This emulates Orthanc <= 1.5.8
+#endif
         
         hasOnlyMainDicomTags = true;
       }
@@ -907,8 +921,8 @@ namespace Orthanc
         }
         else
         {
-          if ((mode == LookupMode_DiskOnLookupAndAnswer ||
-               mode == LookupMode_DiskOnAnswer) &&
+          if ((findStorageAccessMode_ == FindStorageAccessMode_DiskOnLookupAndAnswer ||
+               findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer) &&
               dicomAsJson.get() == NULL &&
               isDicomAsJsonNeeded)
           {
@@ -1051,5 +1065,25 @@ namespace Orthanc
       GetPlugins().SignalUpdatedPeers();
     }
 #endif
+  }
+
+
+  IStorageCommitmentFactory::ILookupHandler*
+  ServerContext::CreateStorageCommitment(const std::string& jobId,
+                                         const std::string& transactionUid,
+                                         const std::vector<std::string>& sopClassUids,
+                                         const std::vector<std::string>& sopInstanceUids,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      return GetPlugins().CreateStorageCommitment(
+        jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+    }
+#endif
+
+    return NULL;
   }
 }

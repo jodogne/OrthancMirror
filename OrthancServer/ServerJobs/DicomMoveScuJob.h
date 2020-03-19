@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfCommandsJob.h"
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
@@ -48,12 +49,12 @@ namespace Orthanc
     class Command;
     class Unserializer;
     
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    std::string                         targetAet_;
-    RemoteModalityParameters            remote_;
-    std::auto_ptr<DicomUserConnection>  connection_;
-    Json::Value                         query_;
+    ServerContext&                        context_;
+    std::string                           localAet_;
+    std::string                           targetAet_;
+    RemoteModalityParameters              remote_;
+    std::unique_ptr<DicomUserConnection>  connection_;
+    Json::Value                           query_;
 
     void Retrieve(const DicomMap& findAnswer);
     

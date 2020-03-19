@@ -96,7 +96,8 @@
   // receive files or to do query/retrieve through the DICOM protocol.
   "DicomServerEnabled" : true,
 
-  // The DICOM Application Entity Title
+  // The DICOM Application Entity Title (cannot be longer than 16
+  // characters)
   "DicomAet" : "ORTHANC",
 
   // Check whether the called AET corresponds to the AET of Orthanc
@@ -123,6 +124,7 @@
   "JpipTransferSyntaxAccepted"         : true,
   "Mpeg2TransferSyntaxAccepted"        : true,
   "RleTransferSyntaxAccepted"          : true,
+  "Mpeg4TransferSyntaxAccepted"        : true,  // New in Orthanc 1.6.0
 
   // Whether Orthanc accepts to act as C-Store SCP for unknown storage
   // SOP classes (aka. "promiscuous mode")
@@ -175,8 +177,12 @@
     /**
      * Uncommenting the following line would enable Orthanc to
      * connect to an instance of the "storescp" open-source DICOM
-     * store (shipped in the DCMTK distribution) started by the
-     * command line "storescp 2000".
+     * store (shipped in the DCMTK distribution), as started by the
+     * command line "storescp 2000". The first parameter is the
+     * AET of the remote modality (cannot be longer than 16 
+     * characters), the second one is the remote network address,
+     * and the third one is the TCP port number corresponding
+     * to the DICOM protocol on the remote modality (usually 104).
      **/
     // "sample" : [ "STORESCP", "127.0.0.1", 2000 ]
 
@@ -189,34 +195,34 @@
      * - "GenericNoUniversalWildcard" (to replace "*" by "" in all fields
      *   in outgoing C-Find SCU requests originating from Orthanc),
      * - "StoreScp" (storescp tool from DCMTK),
-     * - "ClearCanvas",
-     * - "Dcm4Chee",
      * - "Vitrea",
      * - "GE" (Enterprise Archive, MRI consoles and Advantage Workstation
      *   from GE Healthcare).
      *
      * This parameter is case-sensitive.
      **/
-    // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
+    // "vitrea" : [ "VITREA", "192.168.1.1", 104, "Vitrea" ]
 
     /**
      * By default, the Orthanc SCP accepts all DICOM commands (C-ECHO,
-     * C-STORE, C-FIND, C-MOVE) issued by the registered remote SCU
-     * modalities. Starting with Orthanc 1.5.0, it is possible to
-     * specify which DICOM commands are allowed, separately for each
-     * remote modality, using the syntax below. The "AllowEcho" (resp.
-     * "AllowStore") option only has an effect respectively if global
-     * option "DicomAlwaysAllowEcho" (resp. "DicomAlwaysAllowStore")
-     * is set to false.
+     * C-STORE, C-FIND, C-MOVE, and storage commitment) issued by the
+     * registered remote SCU modalities. Starting with Orthanc 1.5.0,
+     * it is possible to specify which DICOM commands are allowed,
+     * separately for each remote modality, using the syntax
+     * below. The "AllowEcho" (resp.  "AllowStore") option only has an
+     * effect respectively if global option "DicomAlwaysAllowEcho"
+     * (resp. "DicomAlwaysAllowStore") is set to false.
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
     //  "Port" : 104,
     //  "Host" : "127.0.0.1",
+    //  "Manufacturer" : "Generic",
     //  "AllowEcho" : false,
     //  "AllowFind" : false,
     //  "AllowMove" : false,
-    //  "AllowStore" : true
+    //  "AllowStore" : true,
+    //  "AllowStorageCommitment" : false  // new in 1.6.0
     //}
   },
 
@@ -517,5 +523,14 @@
   // to option "request_timeout_ms" of Mongoose/Civetweb. It will set
   // the socket options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the
   // specified value.
-  "HttpRequestTimeout" : 30
+  "HttpRequestTimeout" : 30,
+
+  // Set the default private creator that is used by Orthanc when it
+  // looks for a private tag in its dictionary (cf. "Dictionary"
+  // option), or when it creates/modifies a DICOM file (new in Orthanc 1.6.0).
+  "DefaultPrivateCreator" : "",
+
+  // Maximum number of storage commitment reports (i.e. received from
+  // remote modalities) to be kept in memory (new in Orthanc 1.6.0).
+  "StorageCommitmentReportsSize" : 100
 }

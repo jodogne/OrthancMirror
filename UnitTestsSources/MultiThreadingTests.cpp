@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/FileStorage/MemoryStorageArea.h"
 #include "../Core/JobsEngine/JobsEngine.h"
 #include "../Core/Logging.h"
@@ -101,7 +102,7 @@ namespace
     {
     }
     
-    virtual JobStepResult Step() ORTHANC_OVERRIDE
+    virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE
     {
       if (fails_)
       {
@@ -272,7 +273,7 @@ TEST(MultiThreading, SharedMessageQueueBasic)
   q.Enqueue(new DynamicInteger(30, s));
   q.Enqueue(new DynamicInteger(40, s));
 
-  std::auto_ptr<DynamicInteger> i;
+  std::unique_ptr<DynamicInteger> i;
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(10, i->GetValue());
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(20, i->GetValue());
   i.reset(dynamic_cast<DynamicInteger*>(q.Dequeue(1))); ASSERT_EQ(30, i->GetValue());
@@ -747,7 +748,7 @@ TEST(JobsEngine, DISABLED_SequenceOfOperationsJob)
   SequenceOfOperationsJob* job = NULL;
 
   {
-    std::auto_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
+    std::unique_ptr<SequenceOfOperationsJob> a(new SequenceOfOperationsJob);
     job = a.get();
     engine.GetRegistry().Submit(id, a.release(), 0);
   }
@@ -837,7 +838,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   }
   else
   {
-    std::auto_ptr<IJob> unserialized(unserializer.UnserializeJob(a));
+    std::unique_ptr<IJob> unserialized(unserializer.UnserializeJob(a));
   
     Json::Value b = 43;
     if (unserialized->Serialize(b))
@@ -863,7 +864,7 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
   }
   else
   {
-    std::auto_ptr<SetOfInstancesJob> unserialized
+    std::unique_ptr<SetOfInstancesJob> unserialized
       (dynamic_cast<SetOfInstancesJob*>(unserializer.UnserializeJob(a)));
   
     Json::Value b = 43;
@@ -889,7 +890,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   Json::Value a = 42;
   operation.Serialize(a);
   
-  std::auto_ptr<IJobOperation> unserialized(unserializer.UnserializeOperation(a));
+  std::unique_ptr<IJobOperation> unserialized(unserializer.UnserializeOperation(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -904,7 +905,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
   Json::Value a = 42;
   value.Serialize(a);
   
-  std::auto_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
+  std::unique_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -957,7 +958,7 @@ TEST(JobsSerialization, JobOperationValues)
 
   {
     GenericJobUnserializer unserializer;
-    std::auto_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
+    std::unique_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
     ASSERT_EQ(3u, values->GetSize());
     ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
     ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
@@ -984,7 +985,7 @@ TEST(JobsSerialization, GenericValues)
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-  std::auto_ptr<JobOperationValue> value;
+  std::unique_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   
   ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
@@ -1021,7 +1022,7 @@ TEST(JobsSerialization, GenericOperations)
   ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
 
   {
-    std::auto_ptr<IJobOperation> operation;
+    std::unique_ptr<IJobOperation> operation;
     operation.reset(unserializer.UnserializeOperation(s));
 
     // Make sure that we have indeed unserialized a log operation
@@ -1045,12 +1046,12 @@ TEST(JobsSerialization, GenericJobs)
     job.AddInstance("nope");
     job.AddInstance("world");
     job.SetPermissive(true);
-    ASSERT_THROW(job.Step(), OrthancException);  // Not started yet
+    ASSERT_THROW(job.Step("jobId"), OrthancException);  // Not started yet
     ASSERT_FALSE(job.HasTrailingStep());
     ASSERT_FALSE(job.IsTrailingStepDone());
     job.Start();
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
 
     {
       DummyUnserializer unserializer;
@@ -1065,7 +1066,7 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
     ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     const DummyInstancesJob& tmp = dynamic_cast<const DummyInstancesJob&>(*job);
@@ -1101,7 +1102,7 @@ TEST(JobsSerialization, GenericJobs)
       lock.SetTrailingOperationTimeout(300);
     }
 
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
 
     {
       GenericJobUnserializer unserializer;
@@ -1116,7 +1117,7 @@ TEST(JobsSerialization, GenericJobs)
     ASSERT_THROW(unserializer.UnserializeValue(s), OrthancException);
     ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     std::string tmp;
@@ -1143,11 +1144,11 @@ TEST(JobsSerialization, DicomModification)
   Json::Value s;
 
   ParsedDicomFile source(true);
-  source.Insert(DICOM_TAG_STUDY_DESCRIPTION, "Test 1", false);
-  source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false);
-  source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false);
+  source.Insert(DICOM_TAG_STUDY_DESCRIPTION, "Test 1", false, "");
+  source.Insert(DICOM_TAG_SERIES_DESCRIPTION, "Test 2", false, "");
+  source.Insert(DICOM_TAG_PATIENT_NAME, "Test 3", false, "");
 
-  std::auto_ptr<ParsedDicomFile> modified(source.Clone(true));
+  std::unique_ptr<ParsedDicomFile> modified(source.Clone(true));
 
   {
     DicomModification modification;
@@ -1166,7 +1167,7 @@ TEST(JobsSerialization, DicomModification)
     DicomModification modification(s);
     ASSERT_EQ(ResourceType_Series, modification.GetLevel());
     
-    std::auto_ptr<ParsedDicomFile> second(source.Clone(true));
+    std::unique_ptr<ParsedDicomFile> second(source.Clone(true));
     modification.Apply(*second);
 
     std::string s;
@@ -1282,7 +1283,7 @@ namespace
   private:
     MemoryStorageArea              storage_;
     SQLiteDatabaseWrapper          db_;   // The SQLite DB is in memory
-    std::auto_ptr<ServerContext>   context_;
+    std::unique_ptr<ServerContext>   context_;
     TimeoutDicomConnectionManager  manager_;
 
   public:
@@ -1310,7 +1311,7 @@ namespace
       // Create a sample DICOM file
       ParsedDicomFile dicom(true);
       dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
-                    false, DicomReplaceMode_InsertIfAbsent);
+                    false, DicomReplaceMode_InsertIfAbsent, "");
 
       DicomInstanceToStore toStore;
       toStore.SetParsedDicomFile(dicom);
@@ -1336,7 +1337,7 @@ TEST_F(OrthancJobsSerialization, Values)
     instance.Serialize(s);
   }
 
-  std::auto_ptr<JobOperationValue> value;
+  std::unique_ptr<JobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
   ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
@@ -1369,7 +1370,7 @@ TEST_F(OrthancJobsSerialization, Operations)
     operation.Serialize(s);
   }
 
-  std::auto_ptr<IJobOperation> operation;
+  std::unique_ptr<IJobOperation> operation;
 
   {
     operation.reset(unserializer.UnserializeOperation(s));
@@ -1411,7 +1412,9 @@ TEST_F(OrthancJobsSerialization, Operations)
     modality.SetHost("192.168.1.1");
     modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
-    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
+    ASSERT_EQ("1.2.840.10008.1.2", modality.GetPreferredTransferSyntax());
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2.1");
+    ASSERT_EQ("1.2.840.10008.1.2.1", modality.GetPreferredTransferSyntax());
 
     StoreScuOperation operation("TEST", modality);
 
@@ -1457,7 +1460,7 @@ TEST_F(OrthancJobsSerialization, Operations)
   // ModifyInstanceOperation
 
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
     modification->SetupAnonymization(DicomVersion_2008);
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
@@ -1497,7 +1500,9 @@ TEST_F(OrthancJobsSerialization, Jobs)
     modality.SetHost("192.168.1.1");
     modality.SetPortNumber(1000);
     modality.SetManufacturer(ModalityManufacturer_StoreScp);
-    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
+    ASSERT_EQ("1.2.840.10008.1.2", modality.GetPreferredTransferSyntax());
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2.1");
+    ASSERT_EQ("1.2.840.10008.1.2.1", modality.GetPreferredTransferSyntax());
 
     DicomModalityStoreJob job(GetContext());
     job.SetLocalAet("LOCAL");
@@ -1509,7 +1514,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     DicomModalityStoreJob& tmp = dynamic_cast<DicomModalityStoreJob&>(*job);
@@ -1539,7 +1544,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     OrthancPeerStoreJob& tmp = dynamic_cast<OrthancPeerStoreJob&>(*job);
@@ -1552,7 +1557,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   // ResourceModificationJob
 
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
     modification->SetupAnonymization(DicomVersion_2008);    
 
     ResourceModificationJob job(GetContext());
@@ -1564,7 +1569,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
@@ -1620,8 +1625,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
       job.AddTrailingStep();
       job.Start();
-      ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-      ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+      ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+      ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
 
       study2 = job.GetTargetStudy();
       ASSERT_FALSE(study2.empty());
@@ -1631,7 +1636,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     }
 
     {
-      std::auto_ptr<IJob> job;
+      std::unique_ptr<IJob> job;
       job.reset(unserializer.UnserializeJob(s));
 
       SplitStudyJob& tmp = dynamic_cast<SplitStudyJob&>(*job);
@@ -1679,8 +1684,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
     job.AddTrailingStep();
     job.Start();
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
 
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
@@ -1695,7 +1700,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    std::auto_ptr<IJob> job;
+    std::unique_ptr<IJob> job;
     job.reset(unserializer.UnserializeJob(s));
 
     MergeStudyJob& tmp = dynamic_cast<MergeStudyJob&>(*job);
@@ -1748,7 +1753,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1757,7 +1762,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1779,7 +1784,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1788,7 +1793,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(2u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1797,7 +1802,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1820,7 +1825,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
@@ -1829,7 +1834,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 
   {
@@ -1854,7 +1859,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
     
-    ASSERT_EQ(JobStepCode_Continue, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Continue, job.Step("jobId").GetCode());
     ASSERT_EQ(1u, job.GetPosition());
     ASSERT_FALSE(job.IsTrailingStepDone());
     
@@ -1863,7 +1868,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_EQ(JobStepCode_Success, job.Step().GetCode());
+    ASSERT_EQ(JobStepCode_Success, job.Step("jobId").GetCode());
     ASSERT_EQ(2u, job.GetPosition());
     ASSERT_TRUE(job.IsTrailingStepDone());
     
@@ -1872,7 +1877,7 @@ TEST(JobsSerialization, TrailingStep)
       ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     }
 
-    ASSERT_THROW(job.Step(), OrthancException);
+    ASSERT_THROW(job.Step("jobId"), OrthancException);
   }
 }
 
@@ -1899,6 +1904,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 
   s = Json::nullValue;
@@ -1911,8 +1918,10 @@ TEST(JobsSerialization, RemoteModalityParameters)
     modality.SetApplicationEntityTitle("HELLO");
     modality.SetHost("world");
     modality.SetPortNumber(45);
-    modality.SetManufacturer(ModalityManufacturer_Dcm4Chee);
-    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2");
+    modality.SetManufacturer(ModalityManufacturer_GenericNoWildcardInDates);
+    ASSERT_EQ("1.2.840.10008.1.2", modality.GetPreferredTransferSyntax());
+    modality.SetPreferredTransferSyntax("1.2.840.10008.1.2.1");
+    ASSERT_EQ("1.2.840.10008.1.2.1", modality.GetPreferredTransferSyntax());
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
   }
@@ -1922,12 +1931,14 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ("HELLO", modality.GetApplicationEntityTitle());
     ASSERT_EQ("world", modality.GetHost());
     ASSERT_EQ(45u, modality.GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_Dcm4Chee, modality.GetManufacturer());
+    ASSERT_EQ(ModalityManufacturer_GenericNoWildcardInDates, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 
   s["Port"] = "46";
@@ -1947,8 +1958,10 @@ TEST(JobsSerialization, RemoteModalityParameters)
   operations.insert(DicomRequestType_Get);
   operations.insert(DicomRequestType_Move);
   operations.insert(DicomRequestType_Store);
+  operations.insert(DicomRequestType_NAction);
+  operations.insert(DicomRequestType_NEventReport);
 
-  ASSERT_EQ(5u, operations.size());
+  ASSERT_EQ(7u, operations.size());
 
   for (std::set<DicomRequestType>::const_iterator 
          it = operations.begin(); it != operations.end(); ++it)
@@ -1976,5 +1989,55 @@ TEST(JobsSerialization, RemoteModalityParameters)
         }
       }
     }
+  }
+
+  {
+    Json::Value s;
+    s["AllowStorageCommitment"] = false;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+  }
+
+  {
+    Json::Value s;
+    s["AllowNAction"] = false;
+    s["AllowNEventReport"] = true;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+  }
+
+  {
+    Json::Value s;
+    s["AllowNAction"] = true;
+    s["AllowNEventReport"] = true;
+    s["AET"] = "AET";
+    s["Host"] = "host";
+    s["Port"] = "104";
+    
+    RemoteModalityParameters modality(s);
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
+    ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
+    ASSERT_EQ("host", modality.GetHost());
+    ASSERT_EQ(104u, modality.GetPortNumber());
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
   }
 }

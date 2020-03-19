@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,8 @@
 #include "../PrecompiledHeaders.h"
 #include "SharedMessageQueue.h"
 
+
+#include "../Compatibility.h"
 
 
 /**
@@ -137,7 +139,7 @@ namespace Orthanc
       }
     }
 
-    std::auto_ptr<IDynamicObject> message(queue_.front());
+    std::unique_ptr<IDynamicObject> message(queue_.front());
     queue_.pop_front();
 
     if (queue_.empty())
@@ -199,7 +201,7 @@ namespace Orthanc
     {
       while (!queue_.empty())
       {
-        std::auto_ptr<IDynamicObject> message(queue_.front());
+        std::unique_ptr<IDynamicObject> message(queue_.front());
         queue_.pop_front();
       }
 

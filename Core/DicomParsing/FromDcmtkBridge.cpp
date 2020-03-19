@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -47,6 +47,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../Toolbox.h"
 #include "../OrthancException.h"
@@ -67,10 +68,11 @@
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcuid.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmdata/dcxfer.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -106,15 +108,31 @@
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
 #  include <dcmtk/dcmjpeg/djdecode.h>
+#  if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#    include <dcmtk/dcmjpeg/djencode.h>
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpls/djdecode.h>
+#  if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#    include <dcmtk/dcmjpls/djencode.h>
+#  endif
 #endif
 
 
 namespace Orthanc
 {
+  static bool IsBinaryTag(const DcmTag& key)
+  {
+    return (key.isUnknownVR() ||
+            key.getEVR() == EVR_OB ||
+            key.getEVR() == EVR_OW ||
+            key.getEVR() == EVR_UN ||
+            key.getEVR() == EVR_ox);
+  }
+
+
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
                                      EmbeddedResources::FileResourceId resource)
@@ -177,18 +195,18 @@ namespace Orthanc
     };
 
     
-#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter) \
- \
-    struct converter \
-    { \
-      typedef cType CType; \
- \
-      static bool Apply(CType& result, \
-                        DcmElement& element, \
-                        size_t i) \
-      { \
+#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter)   \
+                                                                        \
+    struct converter                                                    \
+    {                                                                   \
+      typedef cType CType;                                              \
+                                                                        \
+      static bool Apply(CType& result,                                  \
+                        DcmElement& element,                            \
+                        size_t i)                                       \
+      {                                                                 \
         return dynamic_cast<dcmtkType&>(element).getter(result, i).good(); \
-      } \
+      }                                                                 \
     };
 
 DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32)
@@ -341,7 +359,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               << name << " (multiplicity: " << minMultiplicity << "-" 
               << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 
-    std::auto_ptr<DcmDictEntry>  entry;
+    std::unique_ptr<DcmDictEntry>  entry;
     if (privateCreator.empty())
     {
       if (tag.GetGroup() % 2 == 1)
@@ -456,10 +474,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
                                             DcmItem& dataset,
                                             unsigned int maxStringLength,
-                                            Encoding defaultEncoding)
+                                            Encoding defaultEncoding,
+                                            const std::set<DicomTag>& ignoreTagLength)
   {
-    std::set<DicomTag> ignoreTagLength;
-
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
@@ -469,10 +486,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       DcmElement* element = dataset.getElement(i);
       if (element && element->isLeaf())
       {
-        target.SetValue(element->getTag().getGTag(),
-                        element->getTag().getETag(),
-                        ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                           maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
+        target.SetValueInternal(element->getTag().getGTag(),
+                                element->getTag().getETag(),
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default,
+                                                   maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
       }
     }
   }
@@ -876,7 +893,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     if (element.isLeaf())
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
-      std::auto_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
+      std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
                                   (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
@@ -939,18 +956,13 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       if (!(flags & DicomToJsonFlags_IncludeUnknownTags))
       {
         DictionaryLocker locker;
-        if (locker->findEntry(element->getTag(), NULL) == NULL)
+        if (locker->findEntry(element->getTag(), element->getTag().getPrivateCreator()) == NULL)
         {
           continue;
         }
       }
 
-      DcmEVR evr = element->getTag().getEVR();
-      if (evr == EVR_OB ||
-          evr == EVR_OF ||
-          evr == EVR_OW ||
-          evr == EVR_UN ||
-          evr == EVR_ox)
+      if (IsBinaryTag(element->getTag()))
       {
         // This is a binary tag
         if ((tag == DICOM_TAG_PIXEL_DATA && !(flags & DicomToJsonFlags_IncludePixelData)) ||
@@ -1118,8 +1130,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     result.clear();
 
-    for (DicomMap::Map::const_iterator 
-           it = values.map_.begin(); it != values.map_.end(); ++it)
+    for (DicomMap::Content::const_iterator 
+           it = values.content_.begin(); it != values.content_.end(); ++it)
     {
       // TODO Inject PrivateCreator if some is available in the DicomMap?
       const std::string tagName = GetTagName(it->first, "");
@@ -1372,189 +1384,49 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  static bool IsBinaryTag(const DcmTag& key)
+  DcmElement* FromDcmtkBridge::CreateElementForTag(const DicomTag& tag,
+                                                   const std::string& privateCreator)
   {
-    return (key.isUnknownVR() ||
-#if DCMTK_VERSION_NUMBER >= 361
-            key.getEVR() == EVR_OD ||
-#endif
-            
-#if DCMTK_VERSION_NUMBER >= 362
-            key.getEVR() == EVR_OL ||
-#endif            
-            key.getEVR() == EVR_OB ||
-            key.getEVR() == EVR_OF ||
-            key.getEVR() == EVR_OW ||
-            key.getEVR() == EVR_UN ||
-            key.getEVR() == EVR_ox);
-  }
-
-
-  DcmElement* FromDcmtkBridge::CreateElementForTag(const DicomTag& tag)
-  {
-    DcmTag key(tag.GetGroup(), tag.GetElement());
-
-    if (tag.IsPrivate() ||
-        IsBinaryTag(key))
+    if (tag.IsPrivate() &&
+        privateCreator.empty())
     {
+      // This solves issue 140 (Modifying private tags with REST API
+      // changes VR from LO to UN)
+      // https://bitbucket.org/sjodogne/orthanc/issues/140
+      LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
+    }
+    
+#if DCMTK_VERSION_NUMBER >= 362
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+    if (tag.IsPrivate())
+    {
+      return DcmItem::newDicomElement(key, privateCreator.c_str());
+    }
+    else
+    {
+      return DcmItem::newDicomElement(key, NULL);
+    }
+    
+#else
+    DcmTag key(tag.GetGroup(), tag.GetElement());
+    if (tag.IsPrivate())
+    {
+      // https://forum.dcmtk.org/viewtopic.php?t=4527
+      LOG(WARNING) << "You are using DCMTK <= 3.6.1: All the private tags "
+        "are considered as having a binary value representation";
+      key.setPrivateCreator(privateCreator.c_str());
       return new DcmOtherByteOtherWord(key);
     }
-
-    switch (key.getEVR())
+    else
     {
-      // http://support.dcmtk.org/docs/dcvr_8h-source.html
-
-      /**
-       * Binary types, handled above
-       **/
-    
-#if DCMTK_VERSION_NUMBER >= 361
-      case EVR_OD:
-#endif            
-
-#if DCMTK_VERSION_NUMBER >= 362
-      case EVR_OL:
-#endif            
-
-      case EVR_OB:  // other byte
-      case EVR_OF:  // other float
-      case EVR_OW:  // other word
-      case EVR_UN:  // unknown value representation
-      case EVR_ox:  // OB or OW depending on context
-        throw OrthancException(ErrorCode_InternalError);
-
-
-      /**
-       * String types.
-       * http://support.dcmtk.org/docs/classDcmByteString.html
-       **/
-      
-      case EVR_AS:  // age string
-        return new DcmAgeString(key);
-
-      case EVR_AE:  // application entity title
-        return new DcmApplicationEntity(key);
-
-      case EVR_CS:  // code string
-        return new DcmCodeString(key);        
-
-      case EVR_DA:  // date string
-        return new DcmDate(key);
-        
-      case EVR_DT:  // date time string
-        return new DcmDateTime(key);
-
-      case EVR_DS:  // decimal string
-        return new DcmDecimalString(key);
-
-      case EVR_IS:  // integer string
-        return new DcmIntegerString(key);
-
-      case EVR_TM:  // time string
-        return new DcmTime(key);
-
-      case EVR_UI:  // unique identifier
-        return new DcmUniqueIdentifier(key);
-
-      case EVR_ST:  // short text
-        return new DcmShortText(key);
-
-      case EVR_LO:  // long string
-        return new DcmLongString(key);
-
-      case EVR_LT:  // long text
-        return new DcmLongText(key);
-
-      case EVR_UT:  // unlimited text
-        return new DcmUnlimitedText(key);
-
-      case EVR_SH:  // short string
-        return new DcmShortString(key);
-
-      case EVR_PN:  // person name
-        return new DcmPersonName(key);
-
-#if DCMTK_VERSION_NUMBER >= 361
-      case EVR_UC:  // unlimited characters
-        return new DcmUnlimitedCharacters(key);
-#endif
-
-#if DCMTK_VERSION_NUMBER >= 361
-      case EVR_UR:  // URI/URL
-        return new DcmUniversalResourceIdentifierOrLocator(key);
-#endif
-          
-        
-      /**
-       * Numerical types
-       **/ 
-      
-      case EVR_SL:  // signed long
-        return new DcmSignedLong(key);
-
-      case EVR_SS:  // signed short
-        return new DcmSignedShort(key);
-
-      case EVR_UL:  // unsigned long
-        return new DcmUnsignedLong(key);
-
-      case EVR_US:  // unsigned short
-        return new DcmUnsignedShort(key);
-
-      case EVR_FL:  // float single-precision
-        return new DcmFloatingPointSingle(key);
-
-      case EVR_FD:  // float double-precision
-        return new DcmFloatingPointDouble(key);
-
-
-      /**
-       * Sequence types, should never occur at this point.
-       **/
-
-      case EVR_SQ:  // sequence of items
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-
-
-      /**
-       * TODO
-       **/
-
-      case EVR_AT:  // attribute tag
-        throw OrthancException(ErrorCode_NotImplemented);
-
-
-      /**
-       * Internal to DCMTK.
-       **/ 
-
-      case EVR_xs:  // SS or US depending on context
-      case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
-      case EVR_na:  // na="not applicable", for data which has no VR
-      case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
-      case EVR_item:  // used internally for items
-      case EVR_metainfo:  // used internally for meta info datasets
-      case EVR_dataset:  // used internally for datasets
-      case EVR_fileFormat:  // used internally for DICOM files
-      case EVR_dicomDir:  // used internally for DICOMDIR objects
-      case EVR_dirRecord:  // used internally for DICOMDIR records
-      case EVR_pixelSQ:  // used internally for pixel sequences in a compressed image
-      case EVR_pixelItem:  // used internally for pixel items in a compressed image
-      case EVR_UNKNOWN: // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
-      case EVR_PixelData:  // used internally for uncompressed pixeld data
-      case EVR_OverlayData:  // used internally for overlay data
-      case EVR_UNKNOWN2B:  // used internally for elements with unknown VR with 2-byte length field in explicit VR
-      default:
-        break;
+      return newDicomElement(key);
     }
-
-    throw OrthancException(ErrorCode_InternalError);          
+#endif      
   }
 
 
 
   void FromDcmtkBridge::FillElementWithString(DcmElement& element,
-                                              const DicomTag& tag,
                                               const std::string& utf8Value,
                                               bool decodeDataUriScheme,
                                               Encoding dicomEncoding)
@@ -1579,14 +1451,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       decoded = &binary;
     }
 
-    DcmTag key(tag.GetGroup(), tag.GetElement());
-
-    if (tag.IsPrivate() ||
-        IsBinaryTag(key))
+    if (IsBinaryTag(element.getTag()))
     {
       bool ok;
 
-      switch (key.getEVR())
+      switch (element.getTag().getEVR())
       {
         case EVR_OW:
           if (decoded->size() % sizeof(Uint16) != 0)
@@ -1620,7 +1489,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     
     try
     {
-      switch (key.getEVR())
+      switch (element.getTag().getEVR())
       {
         // http://support.dcmtk.org/docs/dcvr_8h-source.html
 
@@ -1629,7 +1498,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
          **/
 
         case EVR_OB:  // other byte
-        case EVR_OF:  // other float
         case EVR_OW:  // other word
         case EVR_AT:  // attribute tag
           throw OrthancException(ErrorCode_NotImplemented);
@@ -1684,6 +1552,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_UL:  // unsigned long
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OL:  // other long (requires byte-swapping)
+#endif
         {
           ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
           break;
@@ -1696,12 +1567,16 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_FL:  // float single-precision
+        case EVR_OF:  // other float (requires byte swapping)
         {
           ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
           break;
         }
 
         case EVR_FD:  // float double-precision
+#if DCMTK_VERSION_NUMBER >= 361
+        case EVR_OD:  // other double (requires byte-swapping)
+#endif
         {
           ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
           break;
@@ -1751,6 +1626,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     if (!ok)
     {
+      DicomTag tag(element.getTag().getGroup(), element.getTag().getElement());
       throw OrthancException(ErrorCode_BadFileFormat,
                              "While creating a DICOM instance, tag (" + tag.Format() +
                              ") has out-of-range value: \"" + (*decoded) + "\"");
@@ -1761,20 +1637,21 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   DcmElement* FromDcmtkBridge::FromJson(const DicomTag& tag,
                                         const Json::Value& value,
                                         bool decodeDataUriScheme,
-                                        Encoding dicomEncoding)
+                                        Encoding dicomEncoding,
+                                        const std::string& privateCreator)
   {
-    std::auto_ptr<DcmElement> element;
+    std::unique_ptr<DcmElement> element;
 
     switch (value.type())
     {
       case Json::stringValue:
-        element.reset(CreateElementForTag(tag));
-        FillElementWithString(*element, tag, value.asString(), decodeDataUriScheme, dicomEncoding);
+        element.reset(CreateElementForTag(tag, privateCreator));
+        FillElementWithString(*element, value.asString(), decodeDataUriScheme, dicomEncoding);
         break;
 
       case Json::nullValue:
-        element.reset(CreateElementForTag(tag));
-        FillElementWithString(*element, tag, "", decodeDataUriScheme, dicomEncoding);
+        element.reset(CreateElementForTag(tag, privateCreator));
+        FillElementWithString(*element, "", decodeDataUriScheme, dicomEncoding);
         break;
 
       case Json::arrayValue:
@@ -1790,7 +1667,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         
         for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
         {
-          std::auto_ptr<DcmItem> item(new DcmItem);
+          std::unique_ptr<DcmItem> item(new DcmItem);
 
           switch (value[i].type())
           {
@@ -1799,7 +1676,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
               Json::Value::Members members = value[i].getMemberNames();
               for (Json::Value::ArrayIndex j = 0; j < members.size(); j++)
               {
-                item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding));
+                item->insert(FromJson(ParseTag(members[j]), value[i][members[j]], decodeDataUriScheme, dicomEncoding, privateCreator));
               }
               break;
             }
@@ -1908,9 +1785,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   DcmDataset* FromDcmtkBridge::FromJson(const Json::Value& json,  // Encoded using UTF-8
                                         bool generateIdentifiers,
                                         bool decodeDataUriScheme,
-                                        Encoding defaultEncoding)
+                                        Encoding defaultEncoding,
+                                        const std::string& privateCreator)
   {
-    std::auto_ptr<DcmDataset> result(new DcmDataset);
+    std::unique_ptr<DcmDataset> result(new DcmDataset);
     Encoding encoding = ExtractEncoding(json, defaultEncoding);
 
     SetString(*result, DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(encoding));
@@ -1946,7 +1824,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        std::auto_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding));
+        std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
         const DcmTagKey& tag = element->getTag();
 
         result->findAndDeleteElement(tag);
@@ -1998,10 +1876,18 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
     is.setEos();
 
-    std::auto_ptr<DcmFileFormat> result(new DcmFileFormat);
+    std::unique_ptr<DcmFileFormat> result(new DcmFileFormat);
 
     result->transferInit();
-    if (!result->read(is).good())
+
+    /**
+     * New in Orthanc 1.6.0: The "size" is given as an argument to the
+     * "read()" method. This can avoid huge memory consumption if
+     * parsing an invalid DICOM file, which can notably been observed
+     * by executing the integration test "test_upload_compressed" on
+     * valgrind running Orthanc.
+     **/
+    if (!result->read(is, EXS_Unknown, EGL_noChange, size).good())
     {
       throw OrthancException(ErrorCode_BadFileFormat,
                              "Cannot parse an invalid DICOM file (size: " +
@@ -2148,11 +2034,12 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
 
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
-                                            DcmItem& dataset)
+                                            DcmItem& dataset,
+                                            const std::set<DicomTag>& ignoreTagLength)
   {
     ExtractDicomSummary(target, dataset,
                         ORTHANC_MAXIMUM_TAG_LENGTH,
-                        GetDefaultDicomEncoding());
+                        GetDefaultDicomEncoding(), ignoreTagLength);
   }
 
   
@@ -2173,12 +2060,18 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   {
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     LOG(INFO) << "Registering JPEG Lossless codecs in DCMTK";
-    DJLSDecoderRegistration::registerCodecs();    
+    DJLSDecoderRegistration::registerCodecs();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJLSEncoderRegistration::registerCodecs();
+# endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     LOG(INFO) << "Registering JPEG codecs in DCMTK";
     DJDecoderRegistration::registerCodecs(); 
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJEncoderRegistration::registerCodecs();
+# endif
 #endif
   }
 
@@ -2188,11 +2081,17 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
     // Unregister JPEG-LS codecs
     DJLSDecoderRegistration::cleanup();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJLSEncoderRegistration::cleanup();
+# endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
+# if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    DJEncoderRegistration::cleanup();
+# endif
 #endif
   }
 
@@ -2268,13 +2167,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
      **/
 
     if (evr == EVR_OB ||  // other byte
-        evr == EVR_OF ||  // other float
-#if DCMTK_VERSION_NUMBER >= 361
-        evr == EVR_OD ||  // other double
-#endif
-#if DCMTK_VERSION_NUMBER >= 362
-        evr == EVR_OL ||  // other long
-#endif
         evr == EVR_OW ||  // other word
         evr == EVR_UN)    // unknown value representation
     {
@@ -2464,6 +2356,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_UL:  // unsigned long
+#if DCMTK_VERSION_NUMBER >= 362
+        case EVR_OL:
+#endif
         {
           DcmUnsignedLong& content = dynamic_cast<DcmUnsignedLong&>(element);
 
@@ -2504,6 +2399,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_FL:  // float single-precision
+        case EVR_OF:
         {
           DcmFloatingPointSingle& content = dynamic_cast<DcmFloatingPointSingle&>(element);
 
@@ -2524,6 +2420,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
 
         case EVR_FD:  // float double-precision
+#if DCMTK_VERSION_NUMBER >= 361
+        case EVR_OD:
+#endif
         {
           DcmFloatingPointDouble& content = dynamic_cast<DcmFloatingPointDouble&>(element);
 
@@ -2680,3 +2579,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
   }
 }
+
+
+#include "./FromDcmtkBridge_TransferSyntaxes.impl.h"

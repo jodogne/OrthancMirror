@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -257,6 +257,11 @@ namespace Orthanc
                                 size_t& utf8Length,
                                 const std::string& utf8,
                                 size_t position);
+
+    std::string LargeHexadecimalToDecimal(const std::string& hex);
+
+    // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
+    std::string GenerateDicomPrivateUniqueIdentifier();
   }
 }
 

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,6 +40,11 @@
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
+
+
+static const char* LOG_LEVEL_DEFAULT = "default";
+static const char* LOG_LEVEL_VERBOSE = "verbose";
+static const char* LOG_LEVEL_TRACE = "trace";
 
 
 namespace Orthanc
@@ -490,6 +495,62 @@ namespace Orthanc
   }
 
 
+  static void GetLogLevel(RestApiGetCall& call)
+  {
+    std::string s;
+    
+    if (Logging::IsTraceLevelEnabled())
+    {
+      s = LOG_LEVEL_TRACE;
+    }
+    else if (Logging::IsInfoLevelEnabled())
+    {
+      s = LOG_LEVEL_VERBOSE;
+    }
+    else
+    {
+      s = LOG_LEVEL_DEFAULT;
+    }
+    
+    call.GetOutput().AnswerBuffer(s, MimeType_PlainText);
+  }
+
+
+  static void PutLogLevel(RestApiPutCall& call)
+  {
+    std::string body;
+    call.BodyToString(body);
+
+    if (body == LOG_LEVEL_DEFAULT)
+    {
+      Logging::EnableInfoLevel(false);
+      Logging::EnableTraceLevel(false);
+    }
+    else if (body == LOG_LEVEL_VERBOSE)
+    {
+      Logging::EnableInfoLevel(true);
+      Logging::EnableTraceLevel(false);
+    }
+    else if (body == LOG_LEVEL_TRACE)
+    {
+      Logging::EnableInfoLevel(true);
+      Logging::EnableTraceLevel(true);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "The log level must be one of the following values: \"" +
+                             std::string(LOG_LEVEL_DEFAULT) + "\", \"" +
+                             std::string(LOG_LEVEL_VERBOSE) + "\", of \"" +
+                             std::string(LOG_LEVEL_TRACE) + "\"");
+    }
+
+    // Success
+    LOG(WARNING) << "REST API call has switched the log level to: " << body;
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -505,6 +566,8 @@ namespace Orthanc
     Register("/tools/metrics", GetMetricsEnabled);
     Register("/tools/metrics", PutMetricsEnabled);
     Register("/tools/metrics-prometheus", GetMetricsPrometheus);
+    Register("/tools/log-level", GetLogLevel);
+    Register("/tools/log-level", PutLogLevel);
 
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);

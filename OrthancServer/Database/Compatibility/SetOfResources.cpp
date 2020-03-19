@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -55,7 +55,7 @@ namespace Orthanc
       }
       else
       {
-        std::auto_ptr<Resources> filtered(new Resources);
+        std::unique_ptr<Resources> filtered(new Resources);
 
         for (std::list<int64_t>::const_iterator
                it = resources.begin(); it != resources.end(); ++it)
@@ -66,7 +66,11 @@ namespace Orthanc
           }
         }
 
-        resources_ = filtered;
+#if __cplusplus < 201103L
+        resources_.reset(filtered.release());
+#else
+        resources_ = std::move(filtered);
+#endif
       }
     }
 
@@ -80,7 +84,7 @@ namespace Orthanc
 
       if (resources_.get() != NULL)
       {
-        std::auto_ptr<Resources> children(new Resources);
+        std::unique_ptr<Resources> children(new Resources);
 
         for (Resources::const_iterator it = resources_->begin(); 
              it != resources_->end(); ++it)
@@ -95,7 +99,11 @@ namespace Orthanc
           }
         }
 
-        resources_ = children;
+#if __cplusplus < 201103L
+        resources_.reset(children.release());
+#else
+        resources_ = std::move(children);
+#endif
       }
 
       switch (level_)

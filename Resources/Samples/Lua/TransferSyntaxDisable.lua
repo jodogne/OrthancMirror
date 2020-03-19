@@ -22,6 +22,10 @@ function IsMpeg2TransferSyntaxAccepted(aet, ip)
    return false
 end
 
+function IsMpeg4TransferSyntaxAccepted(aet, ip)
+   return false
+end
+
 function IsRleTransferSyntaxAccepted(aet, ip)
    return false
 end

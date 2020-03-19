@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -78,7 +78,7 @@ namespace Orthanc
     parameters_.finalize(parameters_.job);
   }
 
-  JobStepResult PluginsJob::Step()
+  JobStepResult PluginsJob::Step(const std::string& jobId)
   {
     OrthancPluginJobStepStatus status = parameters_.step(parameters_.job);
 

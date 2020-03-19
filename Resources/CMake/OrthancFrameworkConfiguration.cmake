@@ -107,6 +107,7 @@ if (NOT ENABLE_DCMTK)
   add_definitions(
     -DORTHANC_ENABLE_DCMTK=0
     -DORTHANC_ENABLE_DCMTK_NETWORKING=0
+    -DORTHANC_ENABLE_DCMTK_TRANSCODING=0
     )
   unset(DCMTK_DICTIONARY_DIR CACHE)
   unset(DCMTK_VERSION CACHE)
@@ -123,6 +124,8 @@ endif()
 
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
+  ${ORTHANC_ROOT}/Core/Cache/MemoryObjectCache.cpp
+  ${ORTHANC_ROOT}/Core/Cache/MemoryStringCache.cpp
   ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
   ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
   ${ORTHANC_ROOT}/Core/EnumerationDictionary.h
@@ -461,6 +464,7 @@ if (ENABLE_DCMTK)
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomModification.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/DicomWebJsonVisitor.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/FromDcmtkBridge.cpp
+    ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomDir.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomFile.cpp
     ${ORTHANC_ROOT}/Core/DicomParsing/ToDcmtkBridge.cpp
 
@@ -489,6 +493,13 @@ if (ENABLE_DCMTK)
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
+  endif()
+
+  # New in Orthanc 1.6.0
+  if (ENABLE_DCMTK_TRANSCODING)
+    add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
+  else()
+    add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
   endif()
 
   if (STANDALONE_BUILD AND NOT HAS_EMBEDDED_RESOURCES)

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -59,7 +59,7 @@ namespace Orthanc
       RemoteModalityParameters remote_;
       std::string originatorAet_;
       uint16_t originatorId_;
-      std::auto_ptr<DicomUserConnection> connection_;
+      std::unique_ptr<DicomUserConnection> connection_;
 
     public:
       SynchronousMove(ServerContext& context,
@@ -116,7 +116,8 @@ namespace Orthanc
           connection_.reset(new DicomUserConnection(localAet_, remote_));
         }
 
-        connection_->Store(dicom, originatorAet_, originatorId_);
+        std::string sopClassUid, sopInstanceUid;  // Unused
+        connection_->Store(sopClassUid, sopInstanceUid, dicom, originatorAet_, originatorId_);
 
         return Status_Success;
       }
@@ -126,10 +127,10 @@ namespace Orthanc
     class AsynchronousMove : public IMoveRequestIterator
     {
     private:
-      ServerContext&                        context_;
-      std::auto_ptr<DicomModalityStoreJob>  job_;
-      size_t                                position_;
-      size_t                                countInstances_;
+      ServerContext&                          context_;
+      std::unique_ptr<DicomModalityStoreJob>  job_;
+      size_t                                  position_;
+      size_t                                  countInstances_;
       
     public:
       AsynchronousMove(ServerContext& context,
@@ -142,7 +143,8 @@ namespace Orthanc
         position_(0)
       {
         job_->SetDescription("C-MOVE");
-        job_->SetPermissive(true);
+        //job_->SetPermissive(true);  // This was the behavior of Orthanc < 1.6.0
+        job_->SetPermissive(false);
         job_->SetLocalAet(context.GetDefaultLocalApplicationEntityTitle());
 
         {
@@ -241,7 +243,24 @@ namespace Orthanc
     else
     {
       const std::string& content = value.GetContent();
-      context_.GetIndex().LookupIdentifierExact(publicIds, level, tag, content);
+
+      /**
+       * This tokenization fixes issue 154 ("Matching against list of
+       * UID-s by C-MOVE").
+       * https://bitbucket.org/sjodogne/orthanc/issues/154/
+       **/
+
+      std::vector<std::string> tokens;
+      Toolbox::TokenizeString(tokens, content, '\\');
+      for (size_t i = 0; i < tokens.size(); i++)
+      {
+        std::vector<std::string> matches;
+        context_.GetIndex().LookupIdentifierExact(matches, level, tag, tokens[i]);
+
+        // Concatenate "publicIds" with "matches"
+        publicIds.insert(publicIds.end(), matches.begin(), matches.end());
+      }
+
       return true;
     }
   }

@@ -2,6 +2,72 @@ Pending changes in the mainline
 ===============================
 
 
+Version 1.6.0 (2020-03-18)
+==========================
+
+General
+-------
+
+* Support of DICOM storage commitment
+
+REST API
+--------
+
+* API version has been upgraded to 5
+* Added:
+  - "/peers/{id}/system": Test the connectivity with a remote peer
+    (and also retrieve its version number)
+  - "/tools/log-level": Access and/or change the log level without restarting Orthanc
+  - "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered":
+    Render frames, taking windowing and resizing into account
+  - "/modalities/{...}/storage-commitment": Trigger storage commitment SCU
+  - "/storage-commitment/{...}": Access storage commitment reports
+  - "/storage-commitment/{...}/remove": Remove instances from storage commitment reports
+* Improved:
+  - "/changes": Allow the "limit" argument to be greater than 100
+  - "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
+  - ".../modify" and "/tools/create-dicom": New option "PrivateCreator" for private tags
+  - "/modalities/{...}/store": New Boolean argument "StorageCommitment"
+
+Plugins
+-------
+
+* New sample plugin: "ConnectivityChecks"
+* New primitives to handle storage commitment SCP by plugins
+
+Lua
+---
+
+* New events:
+  - "OnDeletedPatient", "OnDeletedStudy", "OnDeletedSeries", "OnDeletedInstance":
+    triggered when a resource is deleted
+  - "OnUpdatedPatient", "OnUpdatedStudy", "OnUpdatedSeries", "OnUpdatedInstance":
+    triggered when an attachment or a metadata is updated
+
+Maintenance
+-----------
+
+* New configuration options: "DefaultPrivateCreator" and "StorageCommitmentReportsSize"
+* Support of MPEG4 transfer syntaxes in C-Store SCP
+* C-FIND SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
+  Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
+* More strict C-FIND SCP wrt. the DICOM standard: Forbid wildcard
+  matching on some VRs, ignore main tags below the queried level
+* Fix issue #65 (Logging improvements)
+* Fix issue #103 ("queries/.../retrieve" API returns HTTP code 200 even on server errors)
+* Fix issue #140 (Modifying private tags with REST API changes VR from LO to UN)
+* Fix issue #154 (Matching against list of UID-s by C-MOVE)
+* Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
+* Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
+* Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
+* Fix issue #167 (Job can't be cancelled - Handling of timeouts after established association)
+* Fix issue #168 (Plugins can't read private tags from the configuration file)
+* Upgraded dependencies for static builds (notably on Windows):
+  - dcmtk 3.6.5
+  - openssl 1.1.1d
+  - jsoncpp 0.10.7 for pre-C++11 compilers
+
+
 Version 1.5.8 (2019-10-16)
 ==========================
 

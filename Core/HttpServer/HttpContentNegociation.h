@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,6 +31,8 @@
  **/
 
 #pragma once
+
+#include "../Compatibility.h"
 
 #include <memory>
 #include <boost/noncopyable.hpp>
@@ -95,7 +97,7 @@ namespace Orthanc
 
     static float GetQuality(const Tokens& parameters);
 
-    static void SelectBestMatch(std::auto_ptr<Reference>& best,
+    static void SelectBestMatch(std::unique_ptr<Reference>& best,
                                 const Handler& handler,
                                 const std::string& type,
                                 const std::string& subtype,

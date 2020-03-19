@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -630,13 +630,13 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("GenericNoWildcardInDates")));
   ASSERT_STREQ("GenericNoUniversalWildcard", EnumerationToString(StringToModalityManufacturer("GenericNoUniversalWildcard")));
   ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
-  ASSERT_STREQ("ClearCanvas", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
-  ASSERT_STREQ("Dcm4Chee", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
   ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
   ASSERT_STREQ("GE", EnumerationToString(StringToModalityManufacturer("GE")));
   // backward compatibility tests (to remove once we make these manufacturer really obsolete)
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("MedInria")));
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("EFilm2")));
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("ClearCanvas")));
+  ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
 }
@@ -1414,6 +1414,7 @@ TEST(MetricsRegistry, Basic)
 int main(int argc, char **argv)
 {
   Logging::Initialize();
+  Toolbox::InitializeGlobalLocale(NULL);
   Logging::EnableInfoLevel(true);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");

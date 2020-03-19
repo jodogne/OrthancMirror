@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,8 +34,9 @@
 #include "PrecompiledHeaders.h"
 #include "MetricsRegistry.h"
 
-#include "OrthancException.h"
 #include "ChunkedBuffer.h"
+#include "Compatibility.h"
+#include "OrthancException.h"
 
 namespace Orthanc
 {
@@ -228,7 +229,7 @@ namespace Orthanc
 
     if (found == content_.end())
     {
-      std::auto_ptr<Item> item(new Item(type));
+      std::unique_ptr<Item> item(new Item(type));
       item->Update(value);
       content_[name] = item.release();
     }

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,6 +35,7 @@
 #include "RunnableWorkersPool.h"
 
 #include "SharedMessageQueue.h"
+#include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
 
@@ -55,7 +56,7 @@ namespace Orthanc
         {
           try
           {
-            std::auto_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            std::unique_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
             if (obj.get() != NULL)
             {
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());

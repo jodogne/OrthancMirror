@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -545,6 +545,37 @@ namespace Orthanc
         case OrthancPluginJobStepStatus_Continue:
           return JobStepCode_Continue;
         
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason)
+    {
+      switch (reason)
+      {
+        case OrthancPluginStorageCommitmentFailureReason_Success:
+          return StorageCommitmentFailureReason_Success;
+          
+        case OrthancPluginStorageCommitmentFailureReason_ProcessingFailure:
+          return StorageCommitmentFailureReason_ProcessingFailure;
+
+        case OrthancPluginStorageCommitmentFailureReason_NoSuchObjectInstance:
+          return StorageCommitmentFailureReason_NoSuchObjectInstance;
+
+        case OrthancPluginStorageCommitmentFailureReason_ResourceLimitation:
+          return StorageCommitmentFailureReason_ResourceLimitation;
+
+        case OrthancPluginStorageCommitmentFailureReason_ReferencedSOPClassNotSupported:
+          return StorageCommitmentFailureReason_ReferencedSOPClassNotSupported;
+
+        case OrthancPluginStorageCommitmentFailureReason_ClassInstanceConflict:
+          return StorageCommitmentFailureReason_ClassInstanceConflict;
+
+        case OrthancPluginStorageCommitmentFailureReason_DuplicateTransactionUID:
+          return StorageCommitmentFailureReason_DuplicateTransactionUID;
+             
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }

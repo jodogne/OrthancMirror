@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -365,6 +365,9 @@ namespace Orthanc
 
       case ErrorCode_AlreadyExistingTag:
         return "Cannot override the value of a tag that already exists";
+
+      case ErrorCode_NoStorageCommitmentHandler:
+        return "No request handler factory for DICOM N-ACTION SCP (storage commitment)";
 
       case ErrorCode_UnsupportedMediaType:
         return "Unsupported media type";
@@ -824,12 +827,6 @@ namespace Orthanc
       case ModalityManufacturer_StoreScp:
         return "StoreScp";
       
-      case ModalityManufacturer_ClearCanvas:
-        return "ClearCanvas";
-      
-      case ModalityManufacturer_Dcm4Chee:
-        return "Dcm4Chee";
-      
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
       
@@ -866,6 +863,14 @@ namespace Orthanc
         return "Store";
         break;
 
+      case DicomRequestType_NAction:
+        return "N-ACTION";
+        break;
+
+      case DicomRequestType_NEventReport:
+        return "N-EVENT-REPORT";
+        break;
+
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -893,6 +898,9 @@ namespace Orthanc
 
       case TransferSyntax_Mpeg2:
         return "MPEG2";
+
+      case TransferSyntax_Mpeg4:
+        return "MPEG4";
 
       case TransferSyntax_Rle:
         return "RLE";
@@ -1156,6 +1164,41 @@ namespace Orthanc
                 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  const char* EnumerationToString(StorageCommitmentFailureReason reason)
+  {
+    switch (reason)
+    {
+      case StorageCommitmentFailureReason_Success:
+        return "Success";
+
+      case StorageCommitmentFailureReason_ProcessingFailure:
+        return "A general failure in processing the operation was encountered";
+
+      case StorageCommitmentFailureReason_NoSuchObjectInstance:
+        return "One or more of the elements in the Referenced SOP "
+          "Instance Sequence was not available";
+        
+      case StorageCommitmentFailureReason_ResourceLimitation:
+        return "The SCP does not currently have enough resources to "
+          "store the requested SOP Instance(s)";
+
+      case StorageCommitmentFailureReason_ReferencedSOPClassNotSupported:
+        return "Storage Commitment has been requested for a SOP Instance "
+          "with a SOP Class that is not supported by the SCP";
+
+      case StorageCommitmentFailureReason_ClassInstanceConflict:
+        return "The SOP Class of an element in the Referenced SOP Instance Sequence "
+          "did not correspond to the SOP class registered for this SOP Instance at the SCP";
+
+      case StorageCommitmentFailureReason_DuplicateTransactionUID:
+        return "The Transaction UID of the Storage Commitment Request is already in use";
+
+      default:
+        return "Unknown failure reason";
     }
   }
 
@@ -1560,17 +1603,9 @@ namespace Orthanc
     {
       return ModalityManufacturer_GenericNoUniversalWildcard;
     }
-    else if (manufacturer == "ClearCanvas")
-    {
-      return ModalityManufacturer_ClearCanvas;
-    }
     else if (manufacturer == "StoreScp")
     {
       return ModalityManufacturer_StoreScp;
-    }
-    else if (manufacturer == "Dcm4Chee")
-    {
-      return ModalityManufacturer_Dcm4Chee;
     }
     else if (manufacturer == "Vitrea")
     {
@@ -1587,7 +1622,10 @@ namespace Orthanc
       obsolete = true;
     }
     else if (manufacturer == "EFilm2" ||
-             manufacturer == "MedInria")
+             manufacturer == "MedInria" ||
+             manufacturer == "ClearCanvas" ||
+             manufacturer == "Dcm4Chee"
+             )
     {
       result = ModalityManufacturer_Generic;
       obsolete = true;
@@ -1600,8 +1638,8 @@ namespace Orthanc
 
     if (obsolete)
     {
-      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is obsolete since "
-                   << "Orthanc 1.3.0. To guarantee compatibility with future Orthanc "
+      LOG(WARNING) << "The \"" << manufacturer << "\" manufacturer is now obsolete. "
+                   << "To guarantee compatibility with future Orthanc "
                    << "releases, you should replace it by \""
                    << EnumerationToString(result)
                    << "\" in your configuration file.";
@@ -2252,5 +2290,7 @@ namespace Orthanc
 
     LOG(INFO) << "Default encoding for DICOM was changed to: " << name;
   }
-
 }
+
+
+#include "./Enumerations_TransferSyntaxes.impl.h"

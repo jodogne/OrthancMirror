@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -82,6 +82,10 @@ namespace Orthanc
     void WriteArrayOfStrings(Json::Value& target,
                              const std::vector<std::string>& values,
                              const std::string& field);
+
+    void WriteListOfStrings(Json::Value& target,
+                            const std::list<std::string>& values,
+                            const std::string& field);
 
     void WriteSetOfStrings(Json::Value& target,
                            const std::set<std::string>& values,

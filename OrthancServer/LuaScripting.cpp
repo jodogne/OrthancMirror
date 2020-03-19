@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -259,6 +259,114 @@ namespace Orthanc
   };
 
 
+  class LuaScripting::DeleteEvent : public LuaScripting::IEvent
+  {
+  private:
+    ResourceType  level_;
+    std::string   publicId_;
+
+  public:
+    DeleteEvent(ResourceType level,
+                const std::string& publicId) :
+      level_(level),
+      publicId_(publicId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          functionName = "OnDeletedPatient";
+          break;
+
+        case ResourceType_Study:
+          functionName = "OnDeletedStudy";
+          break;
+
+        case ResourceType_Series:
+          functionName = "OnDeletedSeries";
+          break;
+
+        case ResourceType_Instance:
+          functionName = "OnDeletedInstance";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(publicId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
+  class LuaScripting::UpdateEvent : public LuaScripting::IEvent
+  {
+  private:
+    ResourceType  level_;
+    std::string   publicId_;
+
+  public:
+    UpdateEvent(ResourceType level,
+                const std::string& publicId) :
+      level_(level),
+      publicId_(publicId)
+    {
+    }
+
+    virtual void Apply(LuaScripting& that)
+    {
+      std::string functionName;
+      
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          functionName = "OnUpdatedPatient";
+          break;
+
+        case ResourceType_Study:
+          functionName = "OnUpdatedStudy";
+          break;
+
+        case ResourceType_Series:
+          functionName = "OnUpdatedSeries";
+          break;
+
+        case ResourceType_Instance:
+          functionName = "OnUpdatedInstance";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      {
+        LuaScripting::Lock lock(that);
+
+        if (lock.GetLua().IsExistingFunction(functionName.c_str()))
+        {
+          LuaFunctionCall call(lock.GetLua(), functionName.c_str());
+          call.PushString(publicId_);
+          call.Execute();
+        }
+      }
+    }
+  };
+
+
   ServerContext* LuaScripting::GetServerContext(lua_State *state)
   {
     const void* value = LuaContext::GetGlobalVariable(state, "_ServerContext");
@@ -502,7 +610,7 @@ namespace Orthanc
 
     if (operation == "modify")
     {
-      std::auto_ptr<DicomModification> modification(new DicomModification);
+      std::unique_ptr<DicomModification> modification(new DicomModification);
       modification->ParseModifyRequest(parameters);
 
       return lock.AddModifyInstanceOperation(context_, modification.release());
@@ -641,7 +749,7 @@ namespace Orthanc
   {
     for (;;)
     {
-      std::auto_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
+      std::unique_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
 
       if (event.get() == NULL)
       {
@@ -737,6 +845,15 @@ namespace Orthanc
         change.GetChangeType() == ChangeType_StableSeries)
     {
       pendingEvents_.Enqueue(new StableResourceEvent(change));
+    }
+    else if (change.GetChangeType() == ChangeType_Deleted)
+    {
+      pendingEvents_.Enqueue(new DeleteEvent(change.GetResourceType(), change.GetPublicId()));
+    }
+    else if (change.GetChangeType() == ChangeType_UpdatedAttachment ||
+             change.GetChangeType() == ChangeType_UpdatedMetadata)
+    {
+      pendingEvents_.Enqueue(new UpdateEvent(change.GetResourceType(), change.GetPublicId()));
     }
   }
 

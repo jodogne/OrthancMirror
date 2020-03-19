@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomNetworking/DicomUserConnection.h"
 
@@ -43,19 +44,27 @@ namespace Orthanc
   class DicomModalityStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&                      context_;
-    std::string                         localAet_;
-    RemoteModalityParameters            remote_;
-    std::string                         moveOriginatorAet_;
-    uint16_t                            moveOriginatorId_;
-    std::auto_ptr<DicomUserConnection>  connection_;
+    ServerContext&                        context_;
+    std::string                           localAet_;
+    RemoteModalityParameters              remote_;
+    std::string                           moveOriginatorAet_;
+    uint16_t                              moveOriginatorId_;
+    std::unique_ptr<DicomUserConnection>  connection_;
+    bool                                  storageCommitment_;
+
+    // For storage commitment
+    std::string             transactionUid_;
+    std::list<std::string>  sopInstanceUids_;
+    std::list<std::string>  sopClassUids_;
 
     void OpenConnection();
 
+    void ResetStorageCommitment();
+
   protected:
-    virtual bool HandleInstance(const std::string& instance);
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
     
-    virtual bool HandleTrailingStep();
+    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
   public:
     DicomModalityStoreJob(ServerContext& context);
@@ -89,15 +98,19 @@ namespace Orthanc
     void SetMoveOriginator(const std::string& aet,
                            int id);
 
-    virtual void Stop(JobStopReason reason);
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "DicomModalityStore";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+
+    virtual void Reset() ORTHANC_OVERRIDE;
+
+    void EnableStorageCommitment(bool enabled);
   };
 }

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,8 +46,8 @@ namespace Orthanc
   class DicomMoveScuJob::Command : public SetOfCommandsJob::ICommand
   {
   private:
-    DicomMoveScuJob&         that_;
-    std::auto_ptr<DicomMap>  findAnswer_;
+    DicomMoveScuJob&           that_;
+    std::unique_ptr<DicomMap>  findAnswer_;
 
   public:
     Command(DicomMoveScuJob& that,
@@ -57,13 +57,13 @@ namespace Orthanc
     {
     }
 
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Retrieve(*findAnswer_);
       return true;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       findAnswer_->Serialize(target);
     }

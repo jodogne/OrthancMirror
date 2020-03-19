@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -213,10 +213,11 @@ namespace Orthanc
           !ENGINE_set_load_privkey_function(engine, EngineLoadPrivateKey) ||
 
           !ENGINE_set_RSA(engine, PKCS11_get_rsa_method()) ||
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L // OpenSSL 1.0.2
           !ENGINE_set_ECDSA(engine, PKCS11_get_ecdsa_method()) ||
           !ENGINE_set_ECDH(engine, PKCS11_get_ecdh_method()) ||
-
-#if OPENSSL_VERSION_NUMBER  >= 0x10100002L
+#else
           !ENGINE_set_EC(engine, PKCS11_get_ec_key_method()) ||
 #endif
 

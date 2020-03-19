@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../Toolbox.h"
 #include "HttpOutput.h"
 
@@ -73,7 +74,7 @@ namespace Orthanc
      * This function allows to deal with chunked transfers (new in
      * Orthanc 1.5.7). It is only called if "method" is POST or PUT.
      **/
-    virtual bool CreateChunkedRequestReader(std::auto_ptr<IChunkedRequestReader>& target,
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
                                             RequestOrigin origin,
                                             const char* remoteIp,
                                             const char* username,

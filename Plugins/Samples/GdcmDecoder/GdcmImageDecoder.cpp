@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,6 +21,7 @@
 
 #include "GdcmImageDecoder.h"
 
+#include "../../../Core/Compatibility.h"
 #include "OrthancImageWrapper.h"
 
 #include <gdcmImageReader.h>
@@ -40,9 +41,9 @@ namespace OrthancPlugins
     size_t                size_;
 
     gdcm::ImageReader reader_;
-    std::auto_ptr<gdcm::ImageApplyLookupTable> lut_;
-    std::auto_ptr<gdcm::ImageChangePhotometricInterpretation> photometric_;
-    std::auto_ptr<gdcm::ImageChangePlanarConfiguration> interleaved_;
+    std::unique_ptr<gdcm::ImageApplyLookupTable> lut_;
+    std::unique_ptr<gdcm::ImageChangePhotometricInterpretation> photometric_;
+    std::unique_ptr<gdcm::ImageChangePlanarConfiguration> interleaved_;
     std::string decoded_;
 
     PImpl(const void* dicom,

@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -41,6 +41,7 @@
 #include "IMoveRequestHandlerFactory.h"
 #include "IStoreRequestHandlerFactory.h"
 #include "IWorklistRequestHandlerFactory.h"
+#include "IStorageCommitmentRequestHandlerFactory.h"
 #include "IApplicationEntityFilter.h"
 #include "RemoteModalityParameters.h"
 
@@ -82,6 +83,7 @@ namespace Orthanc
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
     IStoreRequestHandlerFactory* storeRequestHandlerFactory_;
     IWorklistRequestHandlerFactory* worklistRequestHandlerFactory_;
+    IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
 
     static void ServerThread(DicomServer* server);
@@ -121,6 +123,10 @@ namespace Orthanc
     void SetWorklistRequestHandlerFactory(IWorklistRequestHandlerFactory& handler);
     bool HasWorklistRequestHandlerFactory() const;
     IWorklistRequestHandlerFactory& GetWorklistRequestHandlerFactory() const;
+
+    void SetStorageCommitmentRequestHandlerFactory(IStorageCommitmentRequestHandlerFactory& handler);
+    bool HasStorageCommitmentRequestHandlerFactory() const;
+    IStorageCommitmentRequestHandlerFactory& GetStorageCommitmentRequestHandlerFactory() const;
 
     void SetApplicationEntityFilter(IApplicationEntityFilter& handler);
     bool HasApplicationEntityFilter() const;

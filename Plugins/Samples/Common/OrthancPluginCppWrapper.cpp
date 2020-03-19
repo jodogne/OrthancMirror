@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,9 @@
 
 #include "OrthancPluginCppWrapper.h"
 
-#include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/move/unique_ptr.hpp>
+#include <boost/thread.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
 
@@ -2159,6 +2160,109 @@ namespace OrthancPlugins
     }
   }
 
+
+  void OrthancJob::SubmitFromRestApiPost(OrthancPluginRestOutput* output,
+                                         const Json::Value& body,
+                                         OrthancJob* job)
+  {
+    static const char* KEY_SYNCHRONOUS = "Synchronous";
+    static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+    static const char* KEY_PRIORITY = "Priority";
+
+    boost::movelib::unique_ptr<OrthancJob> protection(job);
+  
+    if (body.type() != Json::objectValue)
+    {
+#if HAS_ORTHANC_EXCEPTION == 1
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                      "Expected a JSON object in the body");
+#else
+      LogError("Expected a JSON object in the body");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
+    }
+
+    bool synchronous = true;
+  
+    if (body.isMember(KEY_SYNCHRONOUS))
+    {
+      if (body[KEY_SYNCHRONOUS].type() != Json::booleanValue)
+      {
+#if HAS_ORTHANC_EXCEPTION == 1
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_SYNCHRONOUS) +
+                                        "\" must be Boolean");
+#else
+        LogError("Option \"" + std::string(KEY_SYNCHRONOUS) + "\" must be Boolean");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
+      }
+      else
+      {
+        synchronous = body[KEY_SYNCHRONOUS].asBool();
+      }
+    }
+
+    if (body.isMember(KEY_ASYNCHRONOUS))
+    {
+      if (body[KEY_ASYNCHRONOUS].type() != Json::booleanValue)
+      {
+#if HAS_ORTHANC_EXCEPTION == 1
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_ASYNCHRONOUS) +
+                                        "\" must be Boolean");
+#else
+        LogError("Option \"" + std::string(KEY_ASYNCHRONOUS) + "\" must be Boolean");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
+      }
+      else
+      {
+        synchronous = !body[KEY_ASYNCHRONOUS].asBool();
+      }
+    }
+
+    int priority = 0;
+
+    if (body.isMember(KEY_PRIORITY))
+    {
+      if (body[KEY_PRIORITY].type() != Json::booleanValue)
+      {
+#if HAS_ORTHANC_EXCEPTION == 1
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                        "Option \"" + std::string(KEY_PRIORITY) +
+                                        "\" must be an integer");
+#else
+        LogError("Option \"" + std::string(KEY_PRIORITY) + "\" must be an integer");
+        ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+#endif
+      }
+      else
+      {
+        priority = !body[KEY_PRIORITY].asInt();
+      }
+    }
+  
+    Json::Value result;
+
+    if (synchronous)
+    {
+      OrthancPlugins::OrthancJob::SubmitAndWait(result, protection.release(), priority);
+    }
+    else
+    {
+      std::string id = OrthancPlugins::OrthancJob::Submit(protection.release(), priority);
+
+      result = Json::objectValue;
+      result["ID"] = id;
+      result["Path"] = "/jobs/" + id;
+    }
+
+    std::string s = result.toStyledString();
+    OrthancPluginAnswerBuffer(OrthancPlugins::GetGlobalContext(), output, s.c_str(),
+                              s.size(), "application/json");
+  }
+
 #endif
 
 
@@ -2956,7 +3060,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
@@ -2989,7 +3093,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
@@ -3036,4 +3140,41 @@ namespace OrthancPlugins
     }
 #endif
   }
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  OrthancPluginErrorCode IStorageCommitmentScpHandler::Lookup(
+    OrthancPluginStorageCommitmentFailureReason* target,
+    void* rawHandler,
+    const char* sopClassUid,
+    const char* sopInstanceUid)
+  {
+    assert(target != NULL &&
+           rawHandler != NULL);
+      
+    try
+    {
+      IStorageCommitmentScpHandler& handler = *reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+      *target = handler.Lookup(sopClassUid, sopInstanceUid);
+      return OrthancPluginErrorCode_Success;
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  void IStorageCommitmentScpHandler::Destructor(void* rawHandler)
+  {
+    assert(rawHandler != NULL);
+    delete reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+  }
+#endif
 }

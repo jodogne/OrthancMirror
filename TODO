@@ -114,7 +114,7 @@ SDK
 * Image transcoding API
 * Add plugins for normalized operations (notably so as to support
   Print SCU/SCP):
-  https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+  https://web.archive.org/web/20170923150432/https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
 * Provide access to the Orthanc::DicomUserConnection class in plugins:
   https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
@@ -193,3 +193,31 @@ External applications
 
 * Create REST bindings with Slicer
 * Create REST bindings with Horos/OsiriX
+
+
+====
+Misc
+====
+
+-------
+Logging
+-------
+
+This is a wish expressed in issue #65 on BitBucket:
+
+"Different levels for various modules (nice to have)
+
+We often need to debug DICOM interactions and logs are 'polluted' by
+logs from the Rest API, i.e: since I have a process calling the
+/changes route every 5 second, I'm lost in 17000 /changes record in my
+logs everyday while I just want to check what kind of C-Find requests
+are issued by a modality. If we go for it, logs could be configured
+via the configuration file: i.e.:
+
+{
+  "Web": "info",
+  "Dicom": "debug",
+  "Db": "warning",
+  "WebViewer": "warning", // here WebViewer is a plugin
+  "Generic": "warning", // for all stuffs we could not port to the new logging API or old plugins ....
+}"

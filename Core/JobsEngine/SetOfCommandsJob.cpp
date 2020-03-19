@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -145,7 +145,7 @@ namespace Orthanc
   }
       
 
-  JobStepResult SetOfCommandsJob::Step()
+  JobStepResult SetOfCommandsJob::Step(const std::string& jobId)
   {
     if (!started_)
     {
@@ -169,7 +169,7 @@ namespace Orthanc
     try
     {
       // Not at the trailing step: Handle the current command
-      if (!commands_[position_]->Execute())
+      if (!commands_[position_]->Execute(jobId))
       {
         // Error
         if (!permissive_)
@@ -250,7 +250,7 @@ namespace Orthanc
                                      const Json::Value& source) :
     started_(false)
   {
-    std::auto_ptr<ICommandUnserializer> raii(unserializer);
+    std::unique_ptr<ICommandUnserializer> raii(unserializer);
 
     permissive_ = SerializationToolbox::ReadBoolean(source, KEY_PERMISSIVE);
     position_ = SerializationToolbox::ReadUnsignedInteger(source, KEY_POSITION);

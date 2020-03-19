@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -382,6 +382,20 @@ namespace Orthanc
       return tmp <= std::numeric_limits<float>::epsilon();
     }
     
+    ORTHANC_FORCE_INLINE
+    static void SetMinValue(PixelType& target)
+    {
+      // std::numeric_limits<float>::lowest is not supported on
+      // all compilers (for instance, Visual Studio 9.0 2008)
+      target = -std::numeric_limits<float>::max();
+    }
+
+    ORTHANC_FORCE_INLINE
+    static void SetMaxValue(PixelType& target)
+    {
+      target = std::numeric_limits<float>::max();
+    }
+
     ORTHANC_FORCE_INLINE
     static void FloatToPixel(PixelType& target,
                              float value)

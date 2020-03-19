@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,7 +46,7 @@ namespace Orthanc
 {
   void DicomFindAnswers::AddAnswerInternal(ParsedDicomFile* answer)
   {
-    std::auto_ptr<ParsedDicomFile> protection(answer);
+    std::unique_ptr<ParsedDicomFile> protection(answer);
 
     if (isWorklist_)
     {
@@ -166,7 +166,7 @@ namespace Orthanc
 
     DcmDataset& source = *GetAnswer(index).GetDcmtkObject().getDataset();
 
-    std::auto_ptr<DcmDataset> target(new DcmDataset);
+    std::unique_ptr<DcmDataset> target(new DcmDataset);
 
     for (unsigned long i = 0; i < source.card(); i++)
     {

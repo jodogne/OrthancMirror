@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -276,7 +276,7 @@ namespace Orthanc
       else if (previous == resources_.end())
       {
         // This is the first time we meet this resource
-        std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
+        std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
         child->Add(index, resource);
         resources_[id] = child.release();
       }
@@ -308,7 +308,7 @@ namespace Orthanc
           std::list<std::string> children;
           index.GetChildren(children, it->first);
 
-          std::auto_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
+          std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
 
           for (std::list<std::string>::const_iterator 
                  it2 = children.begin(); it2 != children.end(); ++it2)
@@ -695,12 +695,12 @@ namespace Orthanc
   class ArchiveJob::ZipWriterIterator : public boost::noncopyable
   {
   private:
-    TemporaryFile&                        target_;
-    ServerContext&                        context_;
-    ZipCommands                           commands_;
-    std::auto_ptr<HierarchicalZipWriter>  zip_;
-    std::auto_ptr<DicomDirWriter>         dicomDir_;
-    bool                                  isMedia_;
+    TemporaryFile&                          target_;
+    ServerContext&                          context_;
+    ZipCommands                             commands_;
+    std::unique_ptr<HierarchicalZipWriter>  zip_;
+    std::unique_ptr<DicomDirWriter>         dicomDir_;
+    bool                                    isMedia_;
 
   public:
     ZipWriterIterator(TemporaryFile& target,
@@ -902,7 +902,7 @@ namespace Orthanc
     class DynamicTemporaryFile : public IDynamicObject
     {
     private:
-      std::auto_ptr<TemporaryFile>   file_;
+      std::unique_ptr<TemporaryFile>   file_;
 
     public:
       DynamicTemporaryFile(TemporaryFile* f) : file_(f)
@@ -935,7 +935,7 @@ namespace Orthanc
   }
     
 
-  JobStepResult ArchiveJob::Step()
+  JobStepResult ArchiveJob::Step(const std::string& jobId)
   {
     assert(writer_.get() != NULL);
 

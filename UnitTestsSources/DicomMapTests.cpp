@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
+#include "../Core/Compatibility.h"
 #include "../Core/OrthancException.h"
 #include "../Core/DicomFormat/DicomMap.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
@@ -121,7 +122,7 @@ TEST(DicomMap, Tags)
   ASSERT_EQ(1u, s.size());
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, *s.begin());
 
-  std::auto_ptr<DicomMap> mm(m.Clone());
+  std::unique_ptr<DicomMap> mm(m.Clone());
   ASSERT_EQ("PatientName", mm->GetValue(DICOM_TAG_PATIENT_NAME).GetContent());  
 
   m.SetValue(DICOM_TAG_PATIENT_ID, "Hello", false);
@@ -450,10 +451,10 @@ TEST(DicomMap, DicomAsJson)
   dataset.insertEmptyElement(DCM_StudyID, OFFalse);
 
   {
-    std::auto_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
 
     {
-      std::auto_ptr<DcmItem> item(new DcmItem);
+      std::unique_ptr<DcmItem> item(new DcmItem);
       item->putAndInsertString(DCM_ReferencedSOPInstanceUID, "nope", OFFalse);
       ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
     }
@@ -566,6 +567,24 @@ TEST(DicomMap, ExtractMainDicomTags)
 }
 
 
+TEST(DicomMap, RemoveBinary)
+{
+  DicomMap b;
+  b.SetValue(DICOM_TAG_PATIENT_NAME, "A", false);
+  b.SetValue(DICOM_TAG_PATIENT_ID, "B", true);
+  b.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, DicomValue());  // NULL
+  b.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, DicomValue("C", false));
+  b.SetValue(DICOM_TAG_SOP_INSTANCE_UID, DicomValue("D", true));
+
+  b.RemoveBinaryTags();
+
+  std::string s;
+  ASSERT_EQ(2u, b.GetSize());
+  ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false)); ASSERT_EQ("A", s);
+  ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_SERIES_INSTANCE_UID, false)); ASSERT_EQ("C", s);
+}
+
+
 
 TEST(DicomWebJson, Multiplicity)
 {
@@ -576,7 +595,7 @@ TEST(DicomWebJson, Multiplicity)
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -615,7 +634,7 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
-    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    Toolbox::TokenizeString(v, s, '\\');
     ASSERT_FLOAT_EQ(1.0f, boost::lexical_cast<float>(v[0]));
     ASSERT_FLOAT_EQ(2.3f, boost::lexical_cast<float>(v[1]));
     ASSERT_FLOAT_EQ(4.0f, boost::lexical_cast<float>(v[2]));
@@ -630,7 +649,7 @@ TEST(DicomWebJson, NullValue)
   ParsedDicomFile dicom(false);
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1.5\\\\\\2.5");
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   {
@@ -660,7 +679,7 @@ TEST(DicomWebJson, NullValue)
     ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, false));
 
     std::vector<std::string> v;
-    Orthanc::Toolbox::TokenizeString(v, s, '\\');
+    Toolbox::TokenizeString(v, s, '\\');
     ASSERT_FLOAT_EQ(1.5f, boost::lexical_cast<float>(v[0]));
     ASSERT_TRUE(v[1].empty());
     ASSERT_TRUE(v[2].empty());
@@ -677,7 +696,7 @@ static void SetTagKey(ParsedDicomFile& dicom,
   // "dicom.GetDcmtkObject().getDataset()->putAndInsertTagKey(tag,
   // value)" that was not available in DCMTK 3.6.0
 
-  std::auto_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
+  std::unique_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
 
   DcmTagKey v = ToDcmtkBridge::Convert(value);
   if (!element->putTagVal(v).good())
@@ -707,9 +726,9 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0070), "LO");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x4000), "LT");
   dicom.ReplacePlainString(DicomTag(0x0028, 0x2000), "OB");
-  dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "OD");
-  dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "OF");
-  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");
+  dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "3.14159");  // OD (other double)
+  dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "2.71828");  // OF (other float)
+  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");  // OL (other long)
   ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
   dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
   dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
@@ -726,7 +745,7 @@ TEST(DicomWebJson, ValueRepresentation)
   dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
   dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   std::string s;
@@ -766,16 +785,17 @@ TEST(DicomWebJson, ValueRepresentation)
 
 #if DCMTK_VERSION_NUMBER >= 361
   ASSERT_EQ("OD", visitor.GetResult() ["7FE00009"]["vr"].asString());
+  ASSERT_FLOAT_EQ(3.14159f, boost::lexical_cast<float>(visitor.GetResult() ["7FE00009"]["Value"][0].asString()));
 #else
   ASSERT_EQ("UN", visitor.GetResult() ["7FE00009"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["7FE00009"]["InlineBinary"].asString());
+  ASSERT_EQ(8u, s.size()); // Because of padding
+  ASSERT_EQ(0, s[7]);
+  ASSERT_EQ("3.14159", s.substr(0, 7));
 #endif
 
-  Toolbox::DecodeBase64(s, visitor.GetResult() ["7FE00009"]["InlineBinary"].asString());
-  ASSERT_EQ("OD", s);
-
   ASSERT_EQ("OF", visitor.GetResult() ["00640009"]["vr"].asString());
-  Toolbox::DecodeBase64(s, visitor.GetResult() ["00640009"]["InlineBinary"].asString());
-  ASSERT_EQ("OF", s);
+  ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(visitor.GetResult() ["00640009"]["Value"][0].asString()));
 
 #if DCMTK_VERSION_NUMBER < 361
   ASSERT_EQ("UN", visitor.GetResult() ["00660040"]["vr"].asString());
@@ -784,10 +804,9 @@ TEST(DicomWebJson, ValueRepresentation)
 #elif DCMTK_VERSION_NUMBER == 361
   ASSERT_EQ("UL", visitor.GetResult() ["00660040"]["vr"].asString());
   ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
-#elif DCMTK_VERSION_NUMBER > 361
+#else
   ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
-  Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
-  ASSERT_EQ("46", s);
+  ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
 #endif
 
   ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
@@ -875,8 +894,18 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0070), false));  ASSERT_EQ("LO", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x4000), false));  ASSERT_EQ("LT", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7fe0, 0x0009), true));   ASSERT_EQ("OD", s);
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));   ASSERT_EQ("OF", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7fe0, 0x0009), true));
+
+#if DCMTK_VERSION_NUMBER >= 361
+    ASSERT_FLOAT_EQ(3.14159f, boost::lexical_cast<float>(s));
+#else
+    ASSERT_EQ(8u, s.size()); // Because of padding
+    ASSERT_EQ(0, s[7]);
+    ASSERT_EQ("3.14159", s.substr(0, 7));
+#endif
+
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));
+    ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(s));
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
@@ -884,20 +913,23 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x9219), false));  ASSERT_EQ("-16", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0081), false));  ASSERT_EQ("ST", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0013), false));  ASSERT_EQ("TM", s);
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0016), false));  ASSERT_EQ("UI", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1161), false));  ASSERT_EQ("128", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x4342, 0x1234), true));   ASSERT_EQ("UN", s);
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
 
-#if DCMTK_VERSION_NUMBER == 361
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), false));
+#if DCMTK_VERSION_NUMBER >= 361
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), false));  ASSERT_EQ("46", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
 #else
-    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), true));
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), true));  ASSERT_EQ("46", s);  // OL
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), true));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
 #endif
-    ASSERT_EQ("46", s);
+    
   }
 }
 
@@ -907,11 +939,11 @@ TEST(DicomWebJson, Sequence)
   ParsedDicomFile dicom(false);
   
   {
-    std::auto_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
 
     for (unsigned int i = 0; i < 3; i++)
     {
-      std::auto_ptr<DcmItem> item(new DcmItem);
+      std::unique_ptr<DcmItem> item(new DcmItem);
       std::string s = "item" + boost::lexical_cast<std::string>(i);
       item->putAndInsertString(DCM_ReferencedSOPInstanceUID, s.c_str(), OFFalse);
       ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
@@ -920,7 +952,7 @@ TEST(DicomWebJson, Sequence)
     ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
   }
 
-  Orthanc::DicomWebJsonVisitor visitor;
+  DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
 
   ASSERT_EQ("SQ", visitor.GetResult() ["00081115"]["vr"].asString());
@@ -947,6 +979,70 @@ TEST(DicomWebJson, Sequence)
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
-    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by Orthanc::DicomMap
+    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by DicomMap
+  }
+}
+
+
+TEST(DicomWebJson, PixelSpacing)
+{
+  // Test related to locales: Make sure that decimal separator is
+  // correctly handled (dot "." vs comma ",")
+  ParsedDicomFile source(false);
+  source.ReplacePlainString(DICOM_TAG_PIXEL_SPACING, "1.5\\1.3");
+
+  DicomWebJsonVisitor visitor;
+  source.Apply(visitor);
+
+  DicomMap target;
+  target.FromDicomWeb(visitor.GetResult());
+
+  ASSERT_EQ("DS", visitor.GetResult() ["00280030"]["vr"].asString());
+  ASSERT_FLOAT_EQ(1.5f, visitor.GetResult() ["00280030"]["Value"][0].asFloat());
+  ASSERT_FLOAT_EQ(1.3f, visitor.GetResult() ["00280030"]["Value"][1].asFloat());
+
+  std::string s;
+  ASSERT_TRUE(target.LookupStringValue(s, DICOM_TAG_PIXEL_SPACING, false));
+  ASSERT_EQ(s, "1.5\\1.3");
+}
+
+
+TEST(DicomMap, MainTagNames)
+{
+  ASSERT_EQ(3, ResourceType_Instance - ResourceType_Patient);
+  
+  for (int i = ResourceType_Patient; i <= ResourceType_Instance; i++)
+  {
+    ResourceType level = static_cast<ResourceType>(i);
+
+    std::set<DicomTag> tags;
+    DicomMap::GetMainDicomTags(tags, level);
+
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      DicomMap a;
+      a.SetValue(*it, "TEST", false);
+
+      Json::Value json;
+      a.DumpMainDicomTags(json, level);
+
+      ASSERT_EQ(Json::objectValue, json.type());
+      ASSERT_EQ(1u, json.getMemberNames().size());
+
+      std::string name = json.getMemberNames() [0];
+      EXPECT_EQ(name, FromDcmtkBridge::GetTagName(*it, ""));
+
+      DicomMap b;
+      b.ParseMainDicomTags(json, level);
+
+      ASSERT_EQ(1u, b.GetSize());
+      ASSERT_EQ("TEST", b.GetStringValue(*it, "", false));
+
+      std::string main = it->GetMainTagsName();
+      if (!main.empty())
+      {
+        ASSERT_EQ(main, name);
+      }
+    }
   }
 }

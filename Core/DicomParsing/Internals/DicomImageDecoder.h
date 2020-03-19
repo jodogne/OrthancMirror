@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,7 +33,8 @@
 
 #pragma once
 
-#include "../ParsedDicomFile.h"
+#include "../../Compatibility.h"
+#include "../../Images/ImageAccessor.h"
 
 #include <memory>
 
@@ -61,6 +62,8 @@ class DcmRepresentationParameter;
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
+  
   class DicomImageDecoder : public boost::noncopyable
   {
   private:
@@ -82,13 +85,13 @@ namespace Orthanc
                                      DcmDataset& dataset,
                                      unsigned int frame);
 
-    static bool TruncateDecodedImage(std::auto_ptr<ImageAccessor>& image,
+    static bool TruncateDecodedImage(std::unique_ptr<ImageAccessor>& image,
                                      PixelFormat format,
                                      bool allowColorConversion);
 
-    static bool PreviewDecodedImage(std::auto_ptr<ImageAccessor>& image);
+    static bool PreviewDecodedImage(std::unique_ptr<ImageAccessor>& image);
 
-    static void ApplyExtractionMode(std::auto_ptr<ImageAccessor>& image,
+    static void ApplyExtractionMode(std::unique_ptr<ImageAccessor>& image,
                                     ImageExtractionMode mode,
                                     bool invert);
 
@@ -101,21 +104,24 @@ namespace Orthanc
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
                                  unsigned int frame);
 
+    static ImageAccessor *Decode(DcmDataset& dataset,
+                                 unsigned int frame);
+
     static void ExtractPamImage(std::string& result,
-                                std::auto_ptr<ImageAccessor>& image,
+                                std::unique_ptr<ImageAccessor>& image,
                                 ImageExtractionMode mode,
                                 bool invert);
 
 #if ORTHANC_ENABLE_PNG == 1
     static void ExtractPngImage(std::string& result,
-                                std::auto_ptr<ImageAccessor>& image,
+                                std::unique_ptr<ImageAccessor>& image,
                                 ImageExtractionMode mode,
                                 bool invert);
 #endif
 
 #if ORTHANC_ENABLE_JPEG == 1
     static void ExtractJpegImage(std::string& result,
-                                 std::auto_ptr<ImageAccessor>& image,
+                                 std::unique_ptr<ImageAccessor>& image,
                                  ImageExtractionMode mode,
                                  bool invert,
                                  uint8_t quality);

@@ -1,4 +1,4 @@
-# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_LIBICU=ON -DBOOST_LOCALE_BACKEND=icu
+# LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../Resources/LinuxStandardBaseToolchain.cmake -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_LIBICU=ON -DBOOST_LOCALE_BACKEND=icu -G Ninja
 
 INCLUDE(CMakeForceCompiler)
 
@@ -31,7 +31,12 @@ SET(CMAKE_SYSTEM_PROCESSOR ${LSB_TARGET_PROCESSOR})
 
 # which compilers to use for C and C++
 SET(CMAKE_C_COMPILER ${LSB_PATH}/bin/lsbcc)
-CMAKE_FORCE_CXX_COMPILER(${LSB_PATH}/bin/lsbc++ GNU)
+
+if (${CMAKE_VERSION} VERSION_LESS "3.6.0") 
+  CMAKE_FORCE_CXX_COMPILER(${LSB_PATH}/bin/lsbc++ GNU)
+else()
+  SET(CMAKE_CXX_COMPILER ${LSB_PATH}/bin/lsbc++)
+endif()
 
 # here is the target environment located
 SET(CMAKE_FIND_ROOT_PATH ${LSB_PATH})

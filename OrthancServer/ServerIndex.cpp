@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -152,7 +152,15 @@ namespace Orthanc
              it = pendingFilesToRemove_.begin();
            it != pendingFilesToRemove_.end(); ++it)
       {
-        context_.RemoveFile(it->GetUuid(), it->GetContentType());
+        try
+        {
+          context_.RemoveFile(it->GetUuid(), it->GetContentType());
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Unable to remove an attachment from the storage area: "
+                     << it->GetUuid() << " (type: " << EnumerationToString(it->GetContentType()) << ")";
+        }
       }
     }
 
@@ -233,7 +241,7 @@ namespace Orthanc
   {
   private:
     ServerIndex& index_;
-    std::auto_ptr<IDatabaseWrapper::ITransaction> transaction_;
+    std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
 
   public:
@@ -356,34 +364,40 @@ namespace Orthanc
       
     void LoadTags(ResourceType level)
     {
-      const DicomTag* tags = NULL;
-      size_t size;
-  
-      ServerToolbox::LoadIdentifiers(tags, size, level);
-  
-      for (size_t i = 0; i < size; i++)
       {
-        if (registry_.find(tags[i]) == registry_.end())
+        const DicomTag* tags = NULL;
+        size_t size;
+  
+        ServerToolbox::LoadIdentifiers(tags, size, level);
+  
+        for (size_t i = 0; i < size; i++)
         {
-          registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
-        }
-        else
-        {
-          // These patient-level tags are copied in the study level
-          assert(level == ResourceType_Study &&
-                 (tags[i] == DICOM_TAG_PATIENT_ID ||
-                  tags[i] == DICOM_TAG_PATIENT_NAME ||
-                  tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+          if (registry_.find(tags[i]) == registry_.end())
+          {
+            registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
+          }
+          else
+          {
+            // These patient-level tags are copied in the study level
+            assert(level == ResourceType_Study &&
+                   (tags[i] == DICOM_TAG_PATIENT_ID ||
+                    tags[i] == DICOM_TAG_PATIENT_NAME ||
+                    tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
+          }
         }
       }
-  
-      DicomMap::LoadMainDicomTags(tags, size, level);
-  
-      for (size_t i = 0; i < size; i++)
+
       {
-        if (registry_.find(tags[i]) == registry_.end())
+        std::set<DicomTag> tags;
+        DicomMap::GetMainDicomTags(tags, level);
+
+        for (std::set<DicomTag>::const_iterator
+               tag = tags.begin(); tag != tags.end(); ++tag)
         {
-          registry_[tags[i]] = TagInfo(level, DicomTagType_Main);
+          if (registry_.find(*tag) == registry_.end())
+          {
+            registry_[*tag] = TagInfo(level, DicomTagType_Main);
+          }
         }
       }
     }
@@ -494,7 +508,16 @@ namespace Orthanc
       Logging::Flush();
 
       boost::mutex::scoped_lock lock(that->mutex_);
-      that->db_.FlushToDisk();
+
+      try
+      {
+        that->db_.FlushToDisk();
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+      }
+          
       count = 0;
     }
 

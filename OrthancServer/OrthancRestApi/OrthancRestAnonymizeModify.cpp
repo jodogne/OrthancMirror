@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/MergeStudyJob.h"
 #include "../ServerJobs/ResourceModificationJob.h"
@@ -63,6 +64,11 @@ namespace Orthanc
   {
     // curl http://localhost:8042/series/95a6e2bf-9296e2cc-bf614e2f-22b391ee-16e010e0/modify -X POST -d '{"Replace":{"InstitutionName":"My own clinic"},"Priority":9}'
 
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
+    }
+    
     if (call.ParseJsonRequest(request))
     {
       target.ParseModifyRequest(request);
@@ -80,6 +86,11 @@ namespace Orthanc
   {
     // curl http://localhost:8042/instances/6e67da51-d119d6ae-c5667437-87b9a8a5-0f07c49f/anonymize -X POST -d '{"Replace":{"PatientName":"hello","0010-0020":"world"},"Keep":["StudyDescription", "SeriesDescription"],"KeepPrivateTags": true,"Remove":["Modality"]}' > Anonymized.dcm
 
+    {
+      OrthancConfiguration::ReaderLock lock;
+      target.SetPrivateCreator(lock.GetConfiguration().GetDefaultPrivateCreator());
+    }
+    
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
@@ -105,7 +116,7 @@ namespace Orthanc
   {
     std::string id = call.GetUriComponent("id", "");
 
-    std::auto_ptr<ParsedDicomFile> modified;
+    std::unique_ptr<ParsedDicomFile> modified;
 
     {
       ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
@@ -158,7 +169,7 @@ namespace Orthanc
   }
 
 
-  static void SubmitModificationJob(std::auto_ptr<DicomModification>& modification,
+  static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
                                     RestApiPostCall& call,
                                     const Json::Value& body,
@@ -166,7 +177,7 @@ namespace Orthanc
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::auto_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
     
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
@@ -181,7 +192,7 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ModifyResource(RestApiPostCall& call)
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
     ParseModifyRequest(body, *modification, call);
@@ -196,7 +207,7 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void AnonymizeResource(RestApiPostCall& call)
   {
-    std::auto_ptr<DicomModification> modification(new DicomModification);
+    std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
     ParseAnonymizationRequest(body, *modification, call);
@@ -267,7 +278,8 @@ namespace Orthanc
 
   static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags,
-                         bool decodeBinaryTags)
+                         bool decodeBinaryTags,
+                         const std::string& privateCreator)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -305,7 +317,7 @@ namespace Orthanc
         }
         else
         {
-          dicom.Replace(tag, tags[name], decodeBinaryTags, DicomReplaceMode_InsertIfAbsent);
+          dicom.Replace(tag, tags[name], decodeBinaryTags, DicomReplaceMode_InsertIfAbsent, privateCreator);
         }
       }
     }
@@ -315,7 +327,8 @@ namespace Orthanc
   static void CreateSeries(RestApiPostCall& call,
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content,
-                           bool decodeBinaryTags)
+                           bool decodeBinaryTags,
+                           const std::string& privateCreator)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -330,7 +343,7 @@ namespace Orthanc
     {
       for (Json::ArrayIndex i = 0; i < content.size(); i++)
       {
-        std::auto_ptr<ParsedDicomFile> dicom(base.Clone(false));
+        std::unique_ptr<ParsedDicomFile> dicom(base.Clone(false));
         const Json::Value* payload = NULL;
 
         if (content[i].type() == Json::stringValue)
@@ -348,7 +361,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags);
+            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags, privateCreator);
           }
         }
 
@@ -538,6 +551,25 @@ namespace Orthanc
       decodeBinaryTags = v.asBool();
     }
 
+
+    // New argument in Orthanc 1.6.0
+    std::string privateCreator;
+    if (request.isMember("PrivateCreator"))
+    {
+      const Json::Value& v = request["PrivateCreator"];
+      if (v.type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      privateCreator = v.asString();
+    }
+    else
+    {
+      OrthancConfiguration::ReaderLock lock;
+      privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+    }
+
     
     // Inject time-related information
     std::string date, time;
@@ -565,7 +597,7 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"], decodeBinaryTags);
+    InjectTags(dicom, request["Tags"], decodeBinaryTags, privateCreator);
 
 
     // Inject the content (either an image, or a PDF file)
@@ -583,7 +615,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, decodeBinaryTags);
+          CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator);
           return;
         }
       }
@@ -636,7 +668,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::auto_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
+    std::unique_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
     job->SetOrigin(call);
 
     std::vector<std::string> series;
@@ -719,7 +751,7 @@ namespace Orthanc
 
     const std::string study = call.GetUriComponent("id", "");
 
-    std::auto_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
+    std::unique_ptr<MergeStudyJob> job(new MergeStudyJob(context, study));    
     job->SetOrigin(call);
 
     std::vector<std::string> resources;

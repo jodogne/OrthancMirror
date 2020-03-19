@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -61,6 +61,7 @@
 #include <string.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
@@ -852,7 +853,7 @@ namespace Orthanc
 
       if (!isMultipartForm)
       {
-        std::auto_ptr<IHttpHandler::IChunkedRequestReader> stream;
+        std::unique_ptr<IHttpHandler::IChunkedRequestReader> stream;
 
         if (server.HasHandler())
         {
@@ -968,10 +969,15 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadParameterType,
                                  "Syntax error in some user-supplied data");
         }
+        catch (boost::filesystem::filesystem_error& e)
+        {
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Error while accessing the filesystem: " + e.path1().string());
+        }
         catch (std::runtime_error&)
         {
-          // Presumably an error while parsing the JSON body
-          throw OrthancException(ErrorCode_BadRequest);
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Presumably an error while parsing the JSON body");
         }
         catch (std::bad_alloc&)
         {

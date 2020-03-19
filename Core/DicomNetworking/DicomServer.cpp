@@ -2,7 +2,7 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2019 Osimis S.A., Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -53,7 +53,7 @@ namespace Orthanc
   {
     boost::thread  thread_;
     T_ASC_Network *network_;
-    std::auto_ptr<RunnableWorkersPool>  workers_;
+    std::unique_ptr<RunnableWorkersPool>  workers_;
   };
 
 
@@ -65,7 +65,7 @@ namespace Orthanc
     {
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
-      std::auto_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
+      std::unique_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
 
       try
       {
@@ -94,6 +94,7 @@ namespace Orthanc
     moveRequestHandlerFactory_ = NULL;
     storeRequestHandlerFactory_ = NULL;
     worklistRequestHandlerFactory_ = NULL;
+    storageCommitmentFactory_ = NULL;
     applicationEntityFilter_ = NULL;
     checkCalledAet_ = true;
     associationTimeout_ = 30;
@@ -289,6 +290,29 @@ namespace Orthanc
     }
   }
 
+  void DicomServer::SetStorageCommitmentRequestHandlerFactory(IStorageCommitmentRequestHandlerFactory& factory)
+  {
+    Stop();
+    storageCommitmentFactory_ = &factory;
+  }
+
+  bool DicomServer::HasStorageCommitmentRequestHandlerFactory() const
+  {
+    return (storageCommitmentFactory_ != NULL);
+  }
+
+  IStorageCommitmentRequestHandlerFactory& DicomServer::GetStorageCommitmentRequestHandlerFactory() const
+  {
+    if (HasStorageCommitmentRequestHandlerFactory())
+    {
+      return *storageCommitmentFactory_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NoStorageCommitmentHandler);
+    }
+  }
+
   void DicomServer::SetApplicationEntityFilter(IApplicationEntityFilter& factory)
   {
     Stop();
@@ -378,5 +402,4 @@ namespace Orthanc
       return modalities_->IsSameAETitle(aet, GetApplicationEntityTitle());
     }
   }
-
 }
