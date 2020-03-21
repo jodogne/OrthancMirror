@@ -1062,7 +1062,7 @@ extern "C"
    * @brief Opaque structure to an object that can be used to check whether a DICOM instance matches a C-Find query.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindMatcher;
+  typedef struct _OrthancPluginFindMatcher_t OrthancPluginFindMatcher;
 
 
   
