@@ -2778,7 +2778,7 @@ extern "C"
    * @return The pointer to the DICOM data, NULL in case of error.
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceData(
+  ORTHANC_PLUGIN_INLINE const void* OrthancPluginGetInstanceData(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
   {
