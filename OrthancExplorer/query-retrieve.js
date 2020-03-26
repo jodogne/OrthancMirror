@@ -38,7 +38,7 @@ $('#query-retrieve').live('pagebeforeshow', function() {
 
   targetDate = $('#qr-date');
   $('option', targetDate).remove();
-  targetDate.append($('<option>').attr('value', '*').text('Any date'));
+  targetDate.append($('<option>').attr('value', '').text('Any date'));
   targetDate.append($('<option>').attr('value', GenerateDicomDate(0)).text('Today'));
   targetDate.append($('<option>').attr('value', GenerateDicomDate(-1)).text('Yesterday'));
   targetDate.append($('<option>').attr('value', GenerateDicomDate(-7) + '-').text('Last 7 days'));
@@ -90,7 +90,7 @@ $('#qr-submit').live('click', function() {
       'PatientName' : '',
       'PatientSex' : '',
       'StudyDate' : $('#qr-date').val(),
-      'StudyDescription' : '*'
+      'StudyDescription' : ''
     }
   };
 
@@ -204,10 +204,10 @@ $('#query-retrieve-3').live('pagebeforeshow', function() {
     query = {
       'Level' : 'Series',
       'Query' : {
-        'Modality' : '*',
-        'ProtocolName' : '*',
-        'SeriesDescription' : '*',
-        'SeriesInstanceUID' : '*',
+        'Modality' : '',
+        'ProtocolName' : '',
+        'SeriesDescription' : '',
+        'SeriesInstanceUID' : '',
         'StudyInstanceUID' : pageData.uuid
       }
     };
