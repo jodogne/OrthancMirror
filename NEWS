@@ -2,6 +2,12 @@ Pending changes in the mainline
 ===============================
 
 
+Maintenance
+-----------
+
+* Fix lookup form in Orthanc Explorer (wildcards not allowed in StudyDate)
+
+
 Version 1.6.0 (2020-03-18)
 ==========================
 
