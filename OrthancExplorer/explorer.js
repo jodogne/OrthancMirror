@@ -431,7 +431,7 @@ $('#lookup').live('pagebeforeshow', function() {
   // NB: "GenerateDicomDate()" is defined in "query-retrieve.js"
   var target = $('#lookup-study-date');
   $('option', target).remove();
-  target.append($('<option>').attr('value', '*').text('Any date'));
+  target.append($('<option>').attr('value', '').text('Any date'));
   target.append($('<option>').attr('value', GenerateDicomDate(0)).text('Today'));
   target.append($('<option>').attr('value', GenerateDicomDate(-1)).text('Yesterday'));
   target.append($('<option>').attr('value', GenerateDicomDate(-7) + '-').text('Last 7 days'));

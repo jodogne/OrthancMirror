@@ -105,7 +105,8 @@ namespace Orthanc
         (value.find('*') != std::string::npos ||
          value.find('?') != std::string::npos))
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Wildcards are not allowed on tag " + tag_.Format());
     }
 
     if (constraintType_ == ConstraintType_Equal ||
