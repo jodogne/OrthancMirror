@@ -39,6 +39,7 @@
 
 #include "IFindRequestHandlerFactory.h"
 #include "IMoveRequestHandlerFactory.h"
+#include "IGetRequestHandlerFactory.h"
 #include "IStoreRequestHandlerFactory.h"
 #include "IWorklistRequestHandlerFactory.h"
 #include "IStorageCommitmentRequestHandlerFactory.h"
@@ -81,6 +82,7 @@ namespace Orthanc
     IRemoteModalities* modalities_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
+    IGetRequestHandlerFactory* getRequestHandlerFactory_;
     IStoreRequestHandlerFactory* storeRequestHandlerFactory_;
     IWorklistRequestHandlerFactory* worklistRequestHandlerFactory_;
     IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
@@ -115,6 +117,10 @@ namespace Orthanc
     void SetMoveRequestHandlerFactory(IMoveRequestHandlerFactory& handler);
     bool HasMoveRequestHandlerFactory() const;
     IMoveRequestHandlerFactory& GetMoveRequestHandlerFactory() const;
+
+    void SetGetRequestHandlerFactory(IGetRequestHandlerFactory& handler);
+    bool HasGetRequestHandlerFactory() const;
+    IGetRequestHandlerFactory& GetGetRequestHandlerFactory() const;
 
     void SetStoreRequestHandlerFactory(IStoreRequestHandlerFactory& handler);
     bool HasStoreRequestHandlerFactory() const;

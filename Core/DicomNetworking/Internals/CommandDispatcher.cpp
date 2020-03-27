@@ -90,6 +90,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FindScp.h"
 #include "StoreScp.h"
 #include "MoveScp.h"
+#include "GetScp.h"
 #include "../../Compatibility.h"
 #include "../../Toolbox.h"
 #include "../../Logging.h"
@@ -275,6 +276,8 @@ namespace Orthanc
       OFString sprofile;
       OFString temp_str;
 
+      
+
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
@@ -371,6 +374,14 @@ namespace Orthanc
           knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
           knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
         }
+        
+        // For C-GET
+        if (server.HasGetRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_GETStudyRootQueryRetrieveInformationModel);
+          knownAbstractSyntaxes.push_back(UID_GETPatientRootQueryRetrieveInformationModel);
+        }
+
 
         cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
           assoc->params,
@@ -511,6 +522,8 @@ namespace Orthanc
         assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
+      if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
+      {
         cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
           assoc->params,
           dcmAllStorageSOPClassUIDs, count,
@@ -521,6 +534,55 @@ namespace Orthanc
           AssociationCleanup(assoc);
           return NULL;
         }
+      }
+      else                                         // see dcmqrsrv.cc lines 839 - 876
+      {
+        /* accept storage syntaxes with proposed role */
+        T_ASC_PresentationContext pc;
+        T_ASC_SC_ROLE role;
+        int npc = ASC_countPresentationContexts(assoc->params);
+        for (int i = 0; i < npc; i++)
+        {
+          ASC_getPresentationContext(assoc->params, i, &pc);
+          if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
+          {
+            /*
+             ** We are prepared to accept whatever role the caller proposes.
+             ** Normally we can be the SCP of the Storage Service Class.
+             ** When processing the C-GET operation we can be the SCU of the Storage Service Class.
+             */
+            role = pc.proposedRole;
+            
+            /*
+             ** Accept in the order "least wanted" to "most wanted" transfer
+             ** syntax.  Accepting a transfer syntax will override previously
+             ** accepted transfer syntaxes.
+             */
+            for (int k = (int) storageTransferSyntaxes.size() - 1; k >= 0; k--)
+            {
+              for (int j = 0; j < (int)pc.transferSyntaxCount; j++)
+              {
+                /* if the transfer syntax was proposed then we can accept it
+                 * appears in our supported list of transfer syntaxes
+                 */
+                if (strcmp(pc.proposedTransferSyntaxes[j], storageTransferSyntaxes[k]) == 0)
+                {
+                  cond = ASC_acceptPresentationContext(
+                                                       assoc->params, pc.presentationContextID, storageTransferSyntaxes[k], role);
+                  if (cond.bad())
+                  {
+                    LOG(INFO) << cond.text();
+                    AssociationCleanup(assoc);
+                    return NULL;
+                  }
+                }
+              }
+            }
+          }
+        } /* for */
+        
+      }
+      
 
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
@@ -733,6 +795,11 @@ namespace Orthanc
             request = DicomRequestType_Move;
             supported = true;
             break;
+            
+          case DIMSE_C_GET_RQ:
+            request = DicomRequestType_Get;
+            supported = true;
+            break;
 
           case DIMSE_C_FIND_RQ:
             request = DicomRequestType_Find;
@@ -804,6 +871,19 @@ namespace Orthanc
                 if (handler.get() != NULL)
                 {
                   cond = Internals::moveScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, associationTimeout_);
+                }
+              }
+              break;
+              
+            case DicomRequestType_Get:
+              if (server_.HasGetRequestHandlerFactory()) // Should always be true
+              {
+                std::auto_ptr<IGetRequestHandler> handler
+                  (server_.GetGetRequestHandlerFactory().ConstructGetRequestHandler());
+                
+                if (handler.get() != NULL)
+                {
+                  cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
                 }
               }
               break;
