@@ -92,6 +92,7 @@ namespace Orthanc
     modalities_ = NULL;
     findRequestHandlerFactory_ = NULL;
     moveRequestHandlerFactory_ = NULL;
+    getRequestHandlerFactory_ = NULL;
     storeRequestHandlerFactory_ = NULL;
     worklistRequestHandlerFactory_ = NULL;
     storageCommitmentFactory_ = NULL;
@@ -241,6 +242,29 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_NoCMoveHandler);
+    }
+  }
+
+  void DicomServer::SetGetRequestHandlerFactory(IGetRequestHandlerFactory& factory)
+  {
+    Stop();
+    getRequestHandlerFactory_ = &factory;
+  }
+
+  bool DicomServer::HasGetRequestHandlerFactory() const
+  {
+    return (getRequestHandlerFactory_ != NULL);
+  }
+
+  IGetRequestHandlerFactory& DicomServer::GetGetRequestHandlerFactory() const
+  {
+    if (HasGetRequestHandlerFactory())
+    {
+      return *getRequestHandlerFactory_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NoCGetHandler);
     }
   }
 

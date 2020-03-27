@@ -50,6 +50,7 @@
 #include "OrthancFindRequestHandler.h"
 #include "OrthancInitialization.h"
 #include "OrthancMoveRequestHandler.h"
+#include "OrthancGetRequestHandler.h"
 #include "ServerContext.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
@@ -190,7 +191,8 @@ public:
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
   public IFindRequestHandlerFactory, 
-  public IMoveRequestHandlerFactory, 
+  public IMoveRequestHandlerFactory,
+  public IGetRequestHandlerFactory,
   public IStorageCommitmentRequestHandlerFactory
 {
 private:
@@ -243,11 +245,17 @@ public:
   {
     return new OrthancMoveRequestHandler(context_);
   }
-
+  
+  virtual IGetRequestHandler* ConstructGetRequestHandler()
+  {
+    return new OrthancGetRequestHandler(context_);
+  }
+  
   virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler()
   {
     return new OrthancStorageCommitmentRequestHandler(context_);
   }
+  
 
   void Done()
   {
@@ -760,6 +768,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
     PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
     PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
+    PrintErrorCode(ErrorCode_NoCGetHandler, "No request handler factory for DICOM C-GET SCP");
     PrintErrorCode(ErrorCode_NoStorageCommitmentHandler, "No request handler factory for DICOM N-ACTION SCP (storage commitment)");
     PrintErrorCode(ErrorCode_UnsupportedMediaType, "Unsupported media type");
   }
@@ -1032,10 +1041,12 @@ static bool StartDicomServer(ServerContext& context,
                              OrthancPlugins* plugins)
 {
   bool dicomServerEnabled;
+  bool dicomCGetEnabled;
 
   {
     OrthancConfiguration::ReaderLock lock;
     dicomServerEnabled = lock.GetConfiguration().GetBooleanParameter("DicomServerEnabled", true);
+    dicomCGetEnabled = lock.GetConfiguration().GetBooleanParameter("DicomEnableCGet", false);
   }
 
   if (!dicomServerEnabled)
@@ -1054,6 +1065,10 @@ static bool StartDicomServer(ServerContext& context,
     dicomServer.SetRemoteModalities(modalities);
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
+    if (dicomCGetEnabled)
+    {
+      dicomServer.SetGetRequestHandlerFactory(serverFactory);
+    }
     dicomServer.SetFindRequestHandlerFactory(serverFactory);
     dicomServer.SetStorageCommitmentRequestHandlerFactory(serverFactory);
 
@@ -1138,7 +1153,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
     context.GetHttpHandler().Register(*plugins, false);
   }
 #endif
-
+  
   // Secondly, apply the "static resources" layer
 #if ORTHANC_STANDALONE == 1
   EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
