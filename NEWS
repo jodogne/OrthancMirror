@@ -5,6 +5,7 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* Source code repository moved from BitBucket to self-hosted server
 * Fix lookup form in Orthanc Explorer (wildcards not allowed in StudyDate)
 
 
