@@ -887,9 +887,22 @@ namespace Orthanc
     {
       char buf[16];
       sprintf(buf, "%04X", response.DimseStatus);
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "C-MOVE SCU to AET \"" + remoteAet_ +
-                             "\" has failed with DIMSE status 0x" + buf);
+
+      if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               HttpStatus_422_UnprocessableEntity,
+                               "C-MOVE SCU to AET \"" + remoteAet_ +
+                               "\" has failed with DIMSE status 0x" + buf +
+                               " (unable to process - resource not found ?)"
+                               );
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "C-MOVE SCU to AET \"" + remoteAet_ +
+                               "\" has failed with DIMSE status 0x" + buf);
+      }
     }
   }
 
