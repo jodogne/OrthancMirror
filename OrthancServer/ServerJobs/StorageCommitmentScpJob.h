@@ -34,83 +34,78 @@
 #pragma once
 
 #include "../../Core/Compatibility.h"
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#include "IStorageCommitmentFactory.h"
+
+#include <memory>
+#include <vector>
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class DicomModalityStoreJob : public SetOfInstancesJob
+  class StorageCommitmentScpJob : public SetOfCommandsJob
   {
   private:
-    ServerContext&                        context_;
-    std::string                           localAet_;
-    RemoteModalityParameters              remote_;
-    std::string                           moveOriginatorAet_;
-    uint16_t                              moveOriginatorId_;
-    std::unique_ptr<DicomUserConnection>  connection_;
-    bool                                  storageCommitment_;
-
-    // For storage commitment
-    std::string             transactionUid_;
-    std::list<std::string>  sopInstanceUids_;
-    std::list<std::string>  sopClassUids_;
-
-    void OpenConnection();
-
-    void ResetStorageCommitment();
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
+    enum CommandType
+    {
+      CommandType_Setup,
+      CommandType_Lookup,
+      CommandType_Answer
+    };
     
-    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
+    class StorageCommitmentCommand;
+    class SetupCommand;
+    class LookupCommand;
+    class AnswerCommand;
+    class Unserializer;
 
+    ServerContext&            context_;
+    bool                      ready_;
+    std::string               transactionUid_;
+    RemoteModalityParameters  remoteModality_;
+    std::string               calledAet_;
+    std::vector<std::string>  sopClassUids_;
+    std::vector<std::string>  sopInstanceUids_;
+
+    std::unique_ptr<IStorageCommitmentFactory::ILookupHandler>  lookupHandler_;
+
+    void CheckInvariants();
+    
+    void Setup(const std::string& jobId);
+    
+    StorageCommitmentFailureReason Lookup(size_t index);
+    
+    void Answer();
+    
   public:
-    DicomModalityStoreJob(ServerContext& context);
+    StorageCommitmentScpJob(ServerContext& context,
+                            const std::string& transactionUid,
+                            const std::string& remoteAet,
+                            const std::string& calledAet);
 
-    DicomModalityStoreJob(ServerContext& context,
-                          const Json::Value& serialized);
+    StorageCommitmentScpJob(ServerContext& context,
+                            const Json::Value& serialized);
 
-    const std::string& GetLocalAet() const
-    {
-      return localAet_;
-    }
-
-    void SetLocalAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    bool HasMoveOriginator() const
-    {
-      return moveOriginatorId_ != 0;
-    }
+    void Reserve(size_t size);
     
-    const std::string& GetMoveOriginatorAet() const;
-    
-    uint16_t GetMoveOriginatorId() const;
+    void AddInstance(const std::string& sopClassUid,
+                     const std::string& sopInstanceUid);
 
-    void SetMoveOriginator(const std::string& aet,
-                           int id);
+    void MarkAsReady();
 
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
+    {
+    }
 
     virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
-      target = "DicomModalityStore";
+      target = "StorageCommitmentScp";
     }
 
     virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
     virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
-
-    virtual void Reset() ORTHANC_OVERRIDE;
-
-    void EnableStorageCommitment(bool enabled);
   };
 }

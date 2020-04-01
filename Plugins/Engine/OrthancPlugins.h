@@ -62,6 +62,7 @@ namespace Orthanc
 #include "../../Core/JobsEngine/IJob.h"
 #include "../../OrthancServer/IDicomImageDecoder.h"
 #include "../../OrthancServer/IServerListener.h"
+#include "../../OrthancServer/ServerJobs/IStorageCommitmentFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
@@ -80,7 +81,8 @@ namespace Orthanc
     public IDicomImageDecoder,
     public IIncomingHttpRequestFilter,
     public IFindRequestHandlerFactory,
-    public IMoveRequestHandlerFactory
+    public IMoveRequestHandlerFactory,
+    public IStorageCommitmentFactory
   {
   private:
     class PImpl;
@@ -123,6 +125,8 @@ namespace Orthanc
     void RegisterIncomingHttpRequestFilter2(const void* parameters);
 
     void RegisterRefreshMetricsCallback(const void* parameters);
+
+    void RegisterStorageCommitmentScpCallback(const void* parameters);
 
     void AnswerBuffer(const void* parameters);
 
@@ -235,20 +239,20 @@ namespace Orthanc
                         const Arguments& headers,
                         const GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize);
+                        size_t bodySize) ORTHANC_OVERRIDE;
 
     virtual bool InvokeService(SharedLibrary& plugin,
                                _OrthancPluginService service,
-                               const void* parameters);
+                               const void* parameters) ORTHANC_OVERRIDE;
 
-    virtual void SignalChange(const ServerIndexChange& change);
-
+    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE;
+    
     virtual void SignalStoredInstance(const std::string& instanceId,
                                       DicomInstanceToStore& instance,
-                                      const Json::Value& simplifiedTags);
+                                      const Json::Value& simplifiedTags) ORTHANC_OVERRIDE;
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
-                                        const Json::Value& simplified)
+                                        const Json::Value& simplified) ORTHANC_OVERRIDE
     {
       return true; // TODO Enable filtering of instances from plugins
     }
@@ -298,7 +302,7 @@ namespace Orthanc
 
     bool HasWorklistHandler();
 
-    virtual IWorklistRequestHandler* ConstructWorklistRequestHandler();
+    virtual IWorklistRequestHandler* ConstructWorklistRequestHandler() ORTHANC_OVERRIDE;
 
     bool HasCustomImageDecoder();
 
@@ -311,22 +315,22 @@ namespace Orthanc
 
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,
-                                  unsigned int frame);
+                                  unsigned int frame) ORTHANC_OVERRIDE;
 
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,
                            const char* username,
                            const IHttpHandler::Arguments& httpHeaders,
-                           const IHttpHandler::GetArguments& getArguments);
+                           const IHttpHandler::GetArguments& getArguments) ORTHANC_OVERRIDE;
 
     bool HasFindHandler();
 
-    virtual IFindRequestHandler* ConstructFindRequestHandler();
+    virtual IFindRequestHandler* ConstructFindRequestHandler() ORTHANC_OVERRIDE;
 
     bool HasMoveHandler();
 
-    virtual IMoveRequestHandler* ConstructMoveRequestHandler();
+    virtual IMoveRequestHandler* ConstructMoveRequestHandler() ORTHANC_OVERRIDE;
 
     IJob* UnserializeJob(const std::string& type,
                          const Json::Value& value);
@@ -340,7 +344,16 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers);
+                                            const Arguments& headers) ORTHANC_OVERRIDE;
+
+    // New in Orthanc 1.6.0
+    IStorageCommitmentFactory::ILookupHandler* CreateStorageCommitment(
+      const std::string& jobId,
+      const std::string& transactionUid,
+      const std::vector<std::string>& sopClassUids,
+      const std::vector<std::string>& sopInstanceUids,
+      const std::string& remoteAet,
+      const std::string& calledAet) ORTHANC_OVERRIDE;
   };
 }
 

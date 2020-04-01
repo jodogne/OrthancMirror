@@ -21,6 +21,7 @@
 
 #include "GdcmDecoderCache.h"
 
+#include "../../../Core/Compatibility.h"
 #include "OrthancImageWrapper.h"
 
 namespace OrthancPlugins
@@ -83,13 +84,13 @@ namespace OrthancPlugins
     }
 
     // This is not the same image
-    std::auto_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
-    std::auto_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, decoder->Decode(context, frameIndex)));
+    std::unique_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
+    std::unique_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, decoder->Decode(context, frameIndex)));
 
     {
       // Cache the newly created decoder for further use
       boost::mutex::scoped_lock lock(mutex_);
-      decoder_ = decoder;
+      decoder_.reset(decoder.release());
       size_ = size;
       md5_ = md5;
     }

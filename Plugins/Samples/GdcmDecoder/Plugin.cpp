@@ -19,6 +19,7 @@
  **/
 
 
+#include "../../../Core/Compatibility.h"
 #include "GdcmDecoderCache.h"
 #include "OrthancImageWrapper.h"
 
@@ -35,7 +36,7 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 {
   try
   {
-    std::auto_ptr<OrthancPlugins::OrthancImageWrapper> image;
+    std::unique_ptr<OrthancPlugins::OrthancImageWrapper> image;
 
 #if 0
     // Do not use the cache

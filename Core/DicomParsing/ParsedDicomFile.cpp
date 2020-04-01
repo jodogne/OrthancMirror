@@ -1557,7 +1557,9 @@ namespace Orthanc
   {
     if (pimpl_->frameIndex_.get() == NULL)
     {
-      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_));
+      assert(pimpl_->file_ != NULL &&
+             pimpl_->file_->getDataset() != NULL);
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_->getDataset()));
     }
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
@@ -1589,7 +1591,9 @@ namespace Orthanc
 
   unsigned int ParsedDicomFile::GetFramesCount() const
   {
-    return DicomFrameIndex::GetFramesCount(*pimpl_->file_);
+    assert(pimpl_->file_ != NULL &&
+           pimpl_->file_->getDataset() != NULL);
+    return DicomFrameIndex::GetFramesCount(*pimpl_->file_->getDataset());
   }
 
 

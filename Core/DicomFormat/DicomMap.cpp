@@ -745,9 +745,8 @@ namespace Orthanc
   }
 
 
-  bool DicomMap::ParseDicomMetaInformation(DicomMap& result,
-                                           const char* dicom,
-                                           size_t size)
+  bool DicomMap::IsDicomFile(const char* dicom,
+                             size_t size)
   {
     /**
      * http://dicom.nema.org/medical/dicom/current/output/chtml/part10/chapter_7.html
@@ -756,11 +755,19 @@ namespace Orthanc
      * account to determine whether the file is or is not a DICOM file.
      **/
 
-    if (size < 132 ||
-        dicom[128] != 'D' ||
-        dicom[129] != 'I' ||
-        dicom[130] != 'C' ||
-        dicom[131] != 'M')
+    return (size >= 132 &&
+            dicom[128] == 'D' &&
+            dicom[129] == 'I' &&
+            dicom[130] == 'C' &&
+            dicom[131] == 'M');
+  }
+    
+
+  bool DicomMap::ParseDicomMetaInformation(DicomMap& result,
+                                           const char* dicom,
+                                           size_t size)
+  {
+    if (!IsDicomFile(dicom, size))
     {
       return false;
     }

@@ -68,10 +68,11 @@
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcuid.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmdata/dcxfer.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -1878,7 +1879,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     std::unique_ptr<DcmFileFormat> result(new DcmFileFormat);
 
     result->transferInit();
-    if (!result->read(is).good())
+
+    /**
+     * New in Orthanc 1.6.0: The "size" is given as an argument to the
+     * "read()" method. This can avoid huge memory consumption if
+     * parsing an invalid DICOM file, which can notably been observed
+     * by executing the integration test "test_upload_compressed" on
+     * valgrind running Orthanc.
+     **/
+    if (!result->read(is, EXS_Unknown, EGL_noChange, size).good())
     {
       throw OrthancException(ErrorCode_BadFileFormat,
                              "Cannot parse an invalid DICOM file (size: " +
@@ -2081,7 +2090,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     // Unregister JPEG codecs
     DJDecoderRegistration::cleanup();
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    DJDecoderRegistration::cleanup();
+    DJEncoderRegistration::cleanup();
 # endif
 #endif
   }

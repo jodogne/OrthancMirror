@@ -34,7 +34,7 @@
 #pragma once
 
 #include "../../Compatibility.h"
-#include "../ParsedDicomFile.h"
+#include "../../Images/ImageAccessor.h"
 
 #include <memory>
 
@@ -62,6 +62,8 @@ class DcmRepresentationParameter;
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
+  
   class DicomImageDecoder : public boost::noncopyable
   {
   private:
@@ -100,6 +102,9 @@ namespace Orthanc
                                 DcmDataset& dataset);
 
     static ImageAccessor *Decode(ParsedDicomFile& dicom,
+                                 unsigned int frame);
+
+    static ImageAccessor *Decode(DcmDataset& dataset,
                                  unsigned int frame);
 
     static void ExtractPamImage(std::string& result,

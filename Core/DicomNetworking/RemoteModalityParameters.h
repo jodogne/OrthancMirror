@@ -53,7 +53,9 @@ namespace Orthanc
     bool                  allowFind_;
     bool                  allowMove_;
     bool                  allowGet_;
-
+    bool                  allowNAction_;
+    bool                  allowNEventReport_;
+    
     void Clear();
 
     void UnserializeArray(const Json::Value& serialized);

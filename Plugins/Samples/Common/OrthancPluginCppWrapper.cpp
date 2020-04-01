@@ -33,8 +33,9 @@
 
 #include "OrthancPluginCppWrapper.h"
 
-#include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/move/unique_ptr.hpp>
+#include <boost/thread.hpp>
 #include <json/reader.h>
 #include <json/writer.h>
 
@@ -2168,7 +2169,7 @@ namespace OrthancPlugins
     static const char* KEY_ASYNCHRONOUS = "Asynchronous";
     static const char* KEY_PRIORITY = "Priority";
 
-    std::auto_ptr<OrthancJob> protection(job);
+    boost::movelib::unique_ptr<OrthancJob> protection(job);
   
     if (body.type() != Json::objectValue)
     {
@@ -3059,7 +3060,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PostHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
@@ -3092,7 +3093,7 @@ namespace OrthancPlugins
             }
             else
             {
-              std::auto_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
+              boost::movelib::unique_ptr<IChunkedRequestReader> reader(PutHandler(url, request));
               if (reader.get() == NULL)
               {
                 ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
@@ -3139,4 +3140,41 @@ namespace OrthancPlugins
     }
 #endif
   }
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  OrthancPluginErrorCode IStorageCommitmentScpHandler::Lookup(
+    OrthancPluginStorageCommitmentFailureReason* target,
+    void* rawHandler,
+    const char* sopClassUid,
+    const char* sopInstanceUid)
+  {
+    assert(target != NULL &&
+           rawHandler != NULL);
+      
+    try
+    {
+      IStorageCommitmentScpHandler& handler = *reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+      *target = handler.Lookup(sopClassUid, sopInstanceUid);
+      return OrthancPluginErrorCode_Success;
+    }
+    catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
+    {
+      return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+    }
+    catch (...)
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  void IStorageCommitmentScpHandler::Destructor(void* rawHandler)
+  {
+    assert(rawHandler != NULL);
+    delete reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+  }
+#endif
 }

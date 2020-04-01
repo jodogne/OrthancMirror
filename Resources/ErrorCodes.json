@@ -547,6 +547,11 @@
     "Name": "AlreadyExistingTag",
     "Description": "Cannot override the value of a tag that already exists"
   },
+  {
+    "Code": 2043, 
+    "Name": "NoStorageCommitmentHandler", 
+    "Description": "No request handler factory for DICOM N-ACTION SCP (storage commitment)"
+  },
 
 
 
