@@ -7398,7 +7398,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup DicomCallbacks
    **/
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageCommitmentScpCallback(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterStorageCommitmentScpCallback(
     OrthancPluginContext*                     context,
     OrthancPluginStorageCommitmentFactory     factory,
     OrthancPluginStorageCommitmentDestructor  destructor,
@@ -7408,7 +7408,7 @@ extern "C"
     params.factory = factory;
     params.destructor = destructor;
     params.lookup = lookup;
-    context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
+    return context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
   }
   
 #ifdef  __cplusplus
