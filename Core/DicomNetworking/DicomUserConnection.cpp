@@ -736,9 +736,22 @@ namespace Orthanc
     {
       char buf[16];
       sprintf(buf, "%04X", response.DimseStatus);
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "C-FIND SCU to AET \"" + remoteAet +
-                             "\" has failed with DIMSE status 0x" + buf);
+
+      if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               HttpStatus_422_UnprocessableEntity,
+                               "C-FIND SCU to AET \"" + remoteAet +
+                               "\" has failed with DIMSE status 0x" + buf +
+                               " (unable to process - invalid query ?)"
+                               );
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "C-FIND SCU to AET \"" + remoteAet +
+                               "\" has failed with DIMSE status 0x" + buf);
+      }
     }
 
   }
