@@ -93,9 +93,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Compatibility.h"
 #include "../../Toolbox.h"
 #include "../../Logging.h"
+#include "../../OrthancException.h"
 
-#include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
+#include <dcmtk/dcmdata/dcdeftag.h>     /* for storage commitment */
+#include <dcmtk/dcmdata/dcsequen.h>     /* for class DcmSequenceOfItems */
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
+#include <dcmtk/dcmnet/dcasccfg.h>      /* for class DcmAssociationConfiguration */
 
 #include <boost/lexical_cast.hpp>
 
@@ -272,33 +275,6 @@ namespace Orthanc
       OFString sprofile;
       OFString temp_str;
 
-      std::vector<const char*> knownAbstractSyntaxes;
-
-      // For C-STORE
-      if (server.HasStoreRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_VerificationSOPClass);
-      }
-
-      // For C-FIND
-      if (server.HasFindRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
-        knownAbstractSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
-      }
-
-      if (server.HasWorklistRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_FINDModalityWorklistInformationModel);
-      }
-
-      // For C-MOVE
-      if (server.HasMoveRequestHandlerFactory())
-      {
-        knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
-        knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
-      }
-
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
@@ -362,145 +338,205 @@ namespace Orthanc
                 << " on IP " << remoteIp;
 
 
-      std::vector<const char*> transferSyntaxes;
-
-      // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
-      transferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
-      transferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
-      transferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
-
-      // New transfer syntaxes supported since Orthanc 0.7.2
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
       {
-        transferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
-      }
+        /* accept the abstract syntaxes for C-ECHO, C-FIND, C-MOVE,
+           and storage commitment, if presented */
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
-      {
-        transferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
-      }
+        std::vector<const char*> genericTransferSyntaxes;
+        genericTransferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+        genericTransferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+        genericTransferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
-      {
-        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
-      }
+        std::vector<const char*> knownAbstractSyntaxes;
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
-      {
-        transferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-        transferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
-      }
+        // For C-ECHO (always enabled since Orthanc 1.6.0; in earlier
+        // versions, only enabled if C-STORE was also enabled)
+        knownAbstractSyntaxes.push_back(UID_VerificationSOPClass);
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
-      {
-        transferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
-        transferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
-      }
+        // For C-FIND
+        if (server.HasFindRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_FINDPatientRootQueryRetrieveInformationModel);
+          knownAbstractSyntaxes.push_back(UID_FINDStudyRootQueryRetrieveInformationModel);
+        }
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
-      {
-        transferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
-      }
+        if (server.HasWorklistRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_FINDModalityWorklistInformationModel);
+        }
 
-#if DCMTK_VERSION_NUMBER >= 361
-      // New in Orthanc 1.6.0
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
-      {
-        transferSyntaxes.push_back(UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_1TransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
-        transferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
-      }
-#endif
+        // For C-MOVE
+        if (server.HasMoveRequestHandlerFactory())
+        {
+          knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
+          knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
+        }
 
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
-      {
-        transferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
-      }
-
-      /* accept the Verification SOP Class if presented */
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-        assoc->params,
-        &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(),
-        &transferSyntaxes[0], transferSyntaxes.size());
-      if (cond.bad())
-      {
-        LOG(INFO) << cond.text();
-        AssociationCleanup(assoc);
-        return NULL;
-      }
-
-      /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
-      size_t count = 0;
-      while (dcmAllStorageSOPClassUIDs[count] != NULL)
-      {
-        count++;
-      }
-
-#if DCMTK_VERSION_NUMBER >= 362
-      // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
-      // only published if DCMTK >= 3.6.2:
-      // https://bitbucket.org/sjodogne/orthanc/issues/137
-      assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
-#endif
-      
-      cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-        assoc->params,
-        dcmAllStorageSOPClassUIDs, count,
-        &transferSyntaxes[0], transferSyntaxes.size());
-      if (cond.bad())
-      {
-        LOG(INFO) << cond.text();
-        AssociationCleanup(assoc);
-        return NULL;
-      }
-
-      if (!server.HasApplicationEntityFilter() ||
-          server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
-      {
-        /*
-         * Promiscous mode is enabled: Accept everything not known not
-         * to be a storage SOP class.
-         **/
-        cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-          assoc->params, &transferSyntaxes[0], transferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
+        cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+          assoc->params,
+          &knownAbstractSyntaxes[0], knownAbstractSyntaxes.size(),
+          &genericTransferSyntaxes[0], genericTransferSyntaxes.size());
         if (cond.bad())
         {
           LOG(INFO) << cond.text();
           AssociationCleanup(assoc);
           return NULL;
+        }
+
+      
+        /* storage commitment support, new in Orthanc 1.6.0 */
+        if (server.HasStorageCommitmentRequestHandlerFactory())
+        {
+          /**
+           * "ASC_SC_ROLE_SCUSCP": The "SCU" role is needed to accept
+           * remote storage commitment requests, and the "SCP" role is
+           * needed to receive storage commitments answers.
+           **/        
+          const char* as[1] = { UID_StorageCommitmentPushModelSOPClass }; 
+          cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+            assoc->params, as, 1,
+            &genericTransferSyntaxes[0], genericTransferSyntaxes.size(), ASC_SC_ROLE_SCUSCP);
+          if (cond.bad())
+          {
+            LOG(INFO) << cond.text();
+            AssociationCleanup(assoc);
+            return NULL;
+          }
+        }
+      }
+      
+
+      {
+        /* accept the abstract syntaxes for C-STORE, if presented */
+
+        std::vector<const char*> storageTransferSyntaxes;
+
+        // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+        storageTransferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
+        storageTransferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
+        storageTransferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
+
+        // New transfer syntaxes supported since Orthanc 0.7.2
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
+        {
+          storageTransferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
+        {
+          storageTransferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
+        {
+          storageTransferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
+        {
+          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
+        }
+
+#if DCMTK_VERSION_NUMBER >= 361
+        // New in Orthanc 1.6.0
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
+        {
+          storageTransferSyntaxes.push_back(UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_1TransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
+          storageTransferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
+        }
+#endif
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
+        {
+          storageTransferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
+        }
+
+        /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
+        size_t count = 0;
+        while (dcmAllStorageSOPClassUIDs[count] != NULL)
+        {
+          count++;
+        }
+        
+#if DCMTK_VERSION_NUMBER >= 362
+        // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
+        // only published if DCMTK >= 3.6.2:
+        // https://bitbucket.org/sjodogne/orthanc/issues/137
+        assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
+#endif
+      
+        cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+          assoc->params,
+          dcmAllStorageSOPClassUIDs, count,
+          &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
+        if (cond.bad())
+        {
+          LOG(INFO) << cond.text();
+          AssociationCleanup(assoc);
+          return NULL;
+        }
+
+        if (!server.HasApplicationEntityFilter() ||
+            server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
+        {
+          /*
+           * Promiscous mode is enabled: Accept everything not known not
+           * to be a storage SOP class.
+           **/
+          cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
+            assoc->params, &storageTransferSyntaxes[0], storageTransferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
+          if (cond.bad())
+          {
+            LOG(INFO) << cond.text();
+            AssociationCleanup(assoc);
+            return NULL;
+          }
         }
       }
 
@@ -703,6 +739,16 @@ namespace Orthanc
             supported = true;
             break;
 
+          case DIMSE_N_ACTION_RQ:
+            request = DicomRequestType_NAction;
+            supported = true;
+            break;
+
+          case DIMSE_N_EVENT_REPORT_RQ:
+            request = DicomRequestType_NEventReport;
+            supported = true;
+            break;
+
           default:
             // we cannot handle this kind of message
             cond = DIMSE_BADCOMMANDTYPE;
@@ -784,6 +830,14 @@ namespace Orthanc
               }
               break;
 
+            case DicomRequestType_NAction:
+              cond = NActionScp(&msg, presID);
+              break;              
+
+            case DicomRequestType_NEventReport:
+              cond = NEventReportScp(&msg, presID);
+              break;              
+
             default:
               // Should never happen
               break;
@@ -836,6 +890,380 @@ namespace Orthanc
         LOG(ERROR) << "Echo SCP Failed: " << cond.text();
       }
       return cond;
+    }
+
+
+    static DcmDataset* ReadDataset(T_ASC_Association* assoc,
+                                   const char* errorMessage,
+                                   int timeout)
+    {
+      DcmDataset *tmp = NULL;
+      T_ASC_PresentationContextID presIdData;
+    
+      OFCondition cond = DIMSE_receiveDataSetInMemory(
+        assoc, (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout,
+        &presIdData, &tmp, NULL, NULL);
+      if (!cond.good() ||
+          tmp == NULL)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol, errorMessage);
+      }
+
+      return tmp;
+    }
+
+
+    static std::string ReadString(DcmDataset& dataset,
+                                  const DcmTagKey& tag)
+    {
+      const char* s = NULL;
+      if (!dataset.findAndGetString(tag, s).good() ||
+          s == NULL)
+      {
+        char buf[64];
+        sprintf(buf, "Missing mandatory tag in dataset: (%04X,%04X)",
+                tag.getGroup(), tag.getElement());
+        throw OrthancException(ErrorCode_NetworkProtocol, buf);
+      }
+
+      return std::string(s);
+    }
+
+
+    static void ReadSopSequence(
+      std::vector<std::string>& sopClassUids,
+      std::vector<std::string>& sopInstanceUids,
+      std::vector<StorageCommitmentFailureReason>* failureReasons, // Can be NULL
+      DcmDataset& dataset,
+      const DcmTagKey& tag,
+      bool mandatory)
+    {
+      sopClassUids.clear();
+      sopInstanceUids.clear();
+
+      if (failureReasons)
+      {
+        failureReasons->clear();
+      }
+
+      DcmSequenceOfItems* sequence = NULL;
+      if (!dataset.findAndGetSequence(tag, sequence).good() ||
+          sequence == NULL)
+      {
+        if (mandatory)
+        {        
+          char buf[64];
+          sprintf(buf, "Missing mandatory sequence in dataset: (%04X,%04X)",
+                  tag.getGroup(), tag.getElement());
+          throw OrthancException(ErrorCode_NetworkProtocol, buf);
+        }
+        else
+        {
+          return;
+        }
+      }
+
+      sopClassUids.reserve(sequence->card());
+      sopInstanceUids.reserve(sequence->card());
+
+      if (failureReasons)
+      {
+        failureReasons->reserve(sequence->card());
+      }
+
+      for (unsigned long i = 0; i < sequence->card(); i++)
+      {
+        const char* a = NULL;
+        const char* b = NULL;
+        if (!sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPClassUID, a).good() ||
+            !sequence->getItem(i)->findAndGetString(DCM_ReferencedSOPInstanceUID, b).good() ||
+            a == NULL ||
+            b == NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 "Missing Referenced SOP Class/Instance UID "
+                                 "in storage commitment dataset");
+        }
+
+        sopClassUids.push_back(a);
+        sopInstanceUids.push_back(b);
+
+        if (failureReasons != NULL)
+        {
+          Uint16 reason;
+          if (!sequence->getItem(i)->findAndGetUint16(DCM_FailureReason, reason).good())
+          {
+            throw OrthancException(ErrorCode_NetworkProtocol,
+                                   "Missing Failure Reason (0008,1197) "
+                                   "in storage commitment dataset");
+          }
+
+          failureReasons->push_back(static_cast<StorageCommitmentFailureReason>(reason));
+        }
+      }
+    }
+
+    
+    OFCondition CommandDispatcher::NActionScp(T_DIMSE_Message* msg,
+                                              T_ASC_PresentationContextID presID)
+    {
+      /**
+       * Starting with Orthanc 1.6.0, only storage commitment is
+       * supported with DICOM N-ACTION. This corresponds to the case
+       * where "Action Type ID" equals "1".
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-4
+       **/
+      
+      if (msg->CommandField != DIMSE_N_ACTION_RQ /* value == 304 == 0x0130 */ ||
+          !server_.HasStorageCommitmentRequestHandlerFactory())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+
+      /**
+       * Check that the storage commitment request is correctly formatted.
+       **/
+      
+      const T_DIMSE_N_ActionRQ& request = msg->msg.NActionRQ;
+
+      if (request.ActionTypeID != 1)
+      {
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Only storage commitment is implemented for DICOM N-ACTION SCP");
+      }
+
+      if (std::string(request.RequestedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+          std::string(request.RequestedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Unexpected incoming SOP class or instance UID for storage commitment");
+      }
+
+      if (request.DataSetType != DIMSE_DATASET_PRESENT)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Incoming storage commitment request without a dataset");
+      }
+
+
+      /**
+       * Extract the DICOM dataset that is associated with the DIMSE
+       * message. The content of this dataset is documented in "Table
+       * J.3-1. Storage Commitment Request - Action Information":
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html#table_J.3-1
+       **/
+      
+      std::unique_ptr<DcmDataset> dataset(
+        ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", associationTimeout_));
+
+      std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
+
+      std::vector<std::string> sopClassUid, sopInstanceUid;
+      ReadSopSequence(sopClassUid, sopInstanceUid, NULL,
+                      *dataset, DCM_ReferencedSOPSequence, true /* mandatory */);
+
+      LOG(INFO) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
+
+      for (size_t i = 0; i < sopClassUid.size(); i++)
+      {
+        LOG(INFO) << "  (" << (i + 1) << "/" << sopClassUid.size()
+                  << ") queried SOP Class/Instance UID: "
+                  << sopClassUid[i] << " / " << sopInstanceUid[i];
+      }
+
+
+      /**
+       * Call the Orthanc handler. The list of available DIMSE status
+       * codes can be found at:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.4.1.10
+       **/
+
+      DIC_US dimseStatus;
+  
+      try
+      {
+        std::unique_ptr<IStorageCommitmentRequestHandler> handler
+          (server_.GetStorageCommitmentRequestHandlerFactory().
+           ConstructStorageCommitmentRequestHandler());
+
+        handler->HandleRequest(transactionUid, sopClassUid, sopInstanceUid,
+                               remoteIp_, remoteAet_, calledAet_);
+        
+        dimseStatus = 0;  // Success
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Error while processing an incoming storage commitment request: " << e.What();
+
+        // Code 0x0110 - "General failure in processing the operation was encountered"
+        dimseStatus = STATUS_N_ProcessingFailure;
+      }
+
+
+      /**
+       * Send the DIMSE status back to the SCU.
+       **/
+
+      {
+        T_DIMSE_Message response;
+        memset(&response, 0, sizeof(response));
+        response.CommandField = DIMSE_N_ACTION_RSP;
+
+        T_DIMSE_N_ActionRSP& content = response.msg.NActionRSP;
+        content.MessageIDBeingRespondedTo = request.MessageID;
+        strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        content.DimseStatus = dimseStatus;
+        strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.ActionTypeID = 0; // Not present, as "O_NACTION_ACTIONTYPEID" not set in "opts"
+        content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
+        content.opts = O_NACTION_AFFECTEDSOPCLASSUID | O_NACTION_AFFECTEDSOPINSTANCEUID;
+
+        return DIMSE_sendMessageUsingMemoryData(
+          assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
+          NULL /* callback */, NULL /* callback context */, NULL /* commandSet */);
+      }
+    }
+
+
+    OFCondition CommandDispatcher::NEventReportScp(T_DIMSE_Message* msg,
+                                                   T_ASC_PresentationContextID presID)
+    {
+      /**
+       * Starting with Orthanc 1.6.0, handling N-EVENT-REPORT for
+       * storage commitment.
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-1
+       **/
+
+      if (msg->CommandField != DIMSE_N_EVENT_REPORT_RQ /* value == 256 == 0x0100 */ ||
+          !server_.HasStorageCommitmentRequestHandlerFactory())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+
+      /**
+       * Check that the storage commitment report is correctly formatted.
+       **/
+      
+      const T_DIMSE_N_EventReportRQ& report = msg->msg.NEventReportRQ;
+
+      if (report.EventTypeID != 1 /* successful */ &&
+          report.EventTypeID != 2 /* failures exist */)
+      {
+        throw OrthancException(ErrorCode_NotImplemented,
+                               "Unknown event for DICOM N-EVENT-REPORT SCP");
+      }
+
+      if (std::string(report.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+          std::string(report.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Unexpected incoming SOP class or instance UID for storage commitment");
+      }
+
+      if (report.DataSetType != DIMSE_DATASET_PRESENT)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "Incoming storage commitment report without a dataset");
+      }
+
+
+      /**
+       * Extract the DICOM dataset that is associated with the DIMSE
+       * message. The content of this dataset is documented in "Table
+       * J.3-2. Storage Commitment Result - Event Information":
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html#table_J.3-2
+       **/
+      
+      std::unique_ptr<DcmDataset> dataset(
+        ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", associationTimeout_));
+
+      std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
+
+      std::vector<std::string> successSopClassUid, successSopInstanceUid;
+      ReadSopSequence(successSopClassUid, successSopInstanceUid, NULL,
+                      *dataset, DCM_ReferencedSOPSequence,
+                      (report.EventTypeID == 1) /* mandatory in the case of success */);
+
+      std::vector<std::string> failedSopClassUid, failedSopInstanceUid;
+      std::vector<StorageCommitmentFailureReason> failureReasons;
+
+      if (report.EventTypeID == 2 /* failures exist */)
+      {
+        ReadSopSequence(failedSopClassUid, failedSopInstanceUid, &failureReasons,
+                        *dataset, DCM_FailedSOPSequence, true);
+      }
+
+      LOG(INFO) << "Incoming storage commitment report, with transaction UID: " << transactionUid;
+
+      for (size_t i = 0; i < successSopClassUid.size(); i++)
+      {
+        LOG(INFO) << "  (success " << (i + 1) << "/" << successSopClassUid.size()
+                  << ") SOP Class/Instance UID: "
+                  << successSopClassUid[i] << " / " << successSopInstanceUid[i];
+      }
+
+      for (size_t i = 0; i < failedSopClassUid.size(); i++)
+      {
+        LOG(INFO) << "  (failure " << (i + 1) << "/" << failedSopClassUid.size()
+                  << ") SOP Class/Instance UID: "
+                  << failedSopClassUid[i] << " / " << failedSopInstanceUid[i];
+      }
+
+      /**
+       * Call the Orthanc handler. The list of available DIMSE status
+       * codes can be found at:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.4.1.10
+       **/
+
+      DIC_US dimseStatus;
+
+      try
+      {
+        std::unique_ptr<IStorageCommitmentRequestHandler> handler
+          (server_.GetStorageCommitmentRequestHandlerFactory().
+           ConstructStorageCommitmentRequestHandler());
+
+        handler->HandleReport(transactionUid, successSopClassUid, successSopInstanceUid,
+                              failedSopClassUid, failedSopInstanceUid, failureReasons,
+                              remoteIp_, remoteAet_, calledAet_);
+        
+        dimseStatus = 0;  // Success
+      }
+      catch (OrthancException& e)
+      {
+        LOG(ERROR) << "Error while processing an incoming storage commitment report: " << e.What();
+
+        // Code 0x0110 - "General failure in processing the operation was encountered"
+        dimseStatus = STATUS_N_ProcessingFailure;
+      }
+
+      
+      /**
+       * Send the DIMSE status back to the SCU.
+       **/
+
+      {
+        T_DIMSE_Message response;
+        memset(&response, 0, sizeof(response));
+        response.CommandField = DIMSE_N_EVENT_REPORT_RSP;
+
+        T_DIMSE_N_EventReportRSP& content = response.msg.NEventReportRSP;
+        content.MessageIDBeingRespondedTo = report.MessageID;
+        strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        content.DimseStatus = dimseStatus;
+        strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.EventTypeID = 0; // Not present, as "O_NEVENTREPORT_EVENTTYPEID" not set in "opts"
+        content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
+        content.opts = O_NEVENTREPORT_AFFECTEDSOPCLASSUID | O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID;
+
+        return DIMSE_sendMessageUsingMemoryData(
+          assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
+          NULL /* callback */, NULL /* callback context */, NULL /* commandSet */);
+      }
     }
   }
 }

@@ -1917,7 +1917,186 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
 
+#include "../Core/DicomParsing/Internals/DicomFrameIndex.h"
+
 #include <dcmtk/dcmdata/dcostrmb.h>
+#include <dcmtk/dcmdata/dcpixel.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
+
+
+namespace Orthanc
+{
+  class IDicomTranscoder : public boost::noncopyable
+  {
+  public:
+    virtual ~IDicomTranscoder()
+    {
+    }
+
+    virtual DicomTransferSyntax GetTransferSyntax() = 0;
+
+    virtual std::string GetSopClassUid() = 0;
+
+    virtual std::string GetSopInstanceUid() = 0;
+
+    virtual unsigned int GetFramesCount() = 0;
+
+    virtual ImageAccessor* DecodeFrame(unsigned int frame) = 0;
+
+    virtual void GetCompressedFrame(std::string& target,
+                                    unsigned int frame) = 0;
+
+    virtual IDicomTranscoder* Transcode(std::set<DicomTransferSyntax> syntaxes,
+                                        bool allowNewSopInstanceUid) = 0;
+  };
+
+
+  class DcmtkTranscoder : public IDicomTranscoder
+  {
+  private:
+    std::unique_ptr<DcmFileFormat>    dicom_;
+    std::unique_ptr<DicomFrameIndex>  index_;
+    DicomTransferSyntax               transferSyntax_;
+    std::string                       sopClassUid_;
+    std::string                       sopInstanceUid_;
+
+    void Setup(DcmFileFormat* dicom)
+    {
+      dicom_.reset(dicom);
+      
+      if (dicom == NULL ||
+          dicom_->getDataset() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+
+      DcmDataset& dataset = *dicom_->getDataset();
+      index_.reset(new DicomFrameIndex(dataset));
+
+      E_TransferSyntax xfer = dataset.getOriginalXfer();
+      if (xfer == EXS_Unknown)
+      {
+        dataset.updateOriginalXfer();
+        xfer = dataset.getOriginalXfer();
+        if (xfer == EXS_Unknown)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Cannot determine the transfer syntax of the DICOM instance");
+        }
+      }
+
+      if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax_, xfer))
+      {
+        throw OrthancException(
+          ErrorCode_BadFileFormat,
+          "Unsupported transfer syntax: " + boost::lexical_cast<std::string>(xfer));
+      }
+
+      const char* a = NULL;
+      const char* b = NULL;
+
+      if (!dataset.findAndGetString(DCM_SOPClassUID, a).good() ||
+          !dataset.findAndGetString(DCM_SOPInstanceUID, b).good() ||
+          a == NULL ||
+          b == NULL)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Missing SOP class/instance UID in DICOM instance");
+      }
+
+      sopClassUid_.assign(a);
+      sopInstanceUid_.assign(b);
+    }
+    
+  public:
+    DcmtkTranscoder(DcmFileFormat* dicom)  // Takes ownership
+    {
+      Setup(dicom);
+    }
+
+    DcmtkTranscoder(const void* dicom,
+                    size_t size)
+    {
+      Setup(FromDcmtkBridge::LoadFromMemoryBuffer(dicom, size));
+    }
+
+    virtual DicomTransferSyntax GetTransferSyntax() ORTHANC_OVERRIDE
+    {
+      return transferSyntax_;
+    }
+
+    virtual std::string GetSopClassUid() ORTHANC_OVERRIDE
+    {
+      return sopClassUid_;
+    }
+    
+    virtual std::string GetSopInstanceUid() ORTHANC_OVERRIDE
+    {
+      return sopInstanceUid_;
+    }
+
+    virtual unsigned int GetFramesCount() ORTHANC_OVERRIDE
+    {
+      return index_->GetFramesCount();
+    }
+
+    virtual ImageAccessor* DecodeFrame(unsigned int frame) ORTHANC_OVERRIDE
+    {
+      assert(dicom_->getDataset() != NULL);
+      return DicomImageDecoder::Decode(*dicom_->getDataset(), frame);
+    }
+
+    virtual void GetCompressedFrame(std::string& target,
+                                    unsigned int frame) ORTHANC_OVERRIDE
+    {
+#if 1
+      index_->GetRawFrame(target, frame);
+      printf("%d: %d\n", frame, target.size());
+#endif
+
+#if 1
+      assert(dicom_->getDataset() != NULL);
+      DcmDataset& dataset = *dicom_->getDataset();
+      
+      DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dataset);
+
+      if (pixelSequence != NULL &&
+          frame == 0 &&
+          pixelSequence->card() != GetFramesCount() + 1)
+      {
+        printf("COMPRESSED\n");
+        
+        // Check out "djcodecd.cc"
+        
+        printf("%d fragments\n", pixelSequence->card());
+        
+        // Skip the first fragment, that is the offset table
+        for (unsigned long i = 1; ;i++)
+        {
+          DcmPixelItem *fragment = NULL;
+          if (pixelSequence->getItem(fragment, i).good())
+          {
+            printf("fragment %d %d\n", i, fragment->getLength());
+          }
+          else
+          {
+            break;
+          }
+        }
+      }
+#endif
+    }
+
+    virtual IDicomTranscoder* Transcode(std::set<DicomTransferSyntax> syntaxes,
+                                        bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  };
+}
+
+
+
 
 static bool Transcode(std::string& buffer,
                       DcmDataset& dataSet,
@@ -1991,44 +2170,97 @@ static bool Transcode(std::string& buffer,
 #include "dcmtk/dcmjpeg/djrploss.h"  /* for DJ_RPLossy */
 #include "dcmtk/dcmjpeg/djrplol.h"   /* for DJ_RPLossless */
 
+#include <boost/filesystem.hpp>
+
+
+static void TestFile(const std::string& path)
+{
+  printf("** %s\n", path.c_str());
+
+  std::string s;
+  SystemToolbox::ReadFile(s, path);
+
+  Orthanc::DcmtkTranscoder transcoder(s.c_str(), s.size());
+
+  printf("[%s] [%s] [%s] %d\n", GetTransferSyntaxUid(transcoder.GetTransferSyntax()),
+         transcoder.GetSopClassUid().c_str(), transcoder.GetSopInstanceUid().c_str(),
+         transcoder.GetFramesCount());
+
+  for (size_t i = 0; i < transcoder.GetFramesCount(); i++)
+  {
+    std::string f;
+    transcoder.GetCompressedFrame(f, i);
+
+    if (i == 0)
+    {
+      static unsigned int i = 0;
+      char buf[1024];
+      sprintf(buf, "/tmp/frame-%06d.dcm", i++);
+      printf(">> %s\n", buf);
+      Orthanc::SystemToolbox::WriteFile(f, buf);
+    }
+  }
+
+  printf("\n");
+}
+
 TEST(Toto, Transcode)
 {
-  OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
-  std::string s;
-  //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.4.50.dcm");
-  //SystemToolbox::ReadFile(s, "/home/jodogne/DICOM/Alain.dcm");
-  SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0002.dcm");
+  if (0)
+  {
+    OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
 
-  std::auto_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(s.c_str(), s.size()));
+    std::string s;
+    //SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.4.50.dcm");
+    //SystemToolbox::ReadFile(s, "/home/jodogne/DICOM/Alain.dcm");
+    SystemToolbox::ReadFile(s, "/home/jodogne/Subversion/orthanc-tests/Database/Brainix/Epi/IM-0001-0002.dcm");
 
-  // less /home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/include/dcmtk/dcmdata/dcxfer.h
-  printf(">> %d\n", dicom->getDataset()->getOriginalXfer());  // => 4 == EXS_JPEGProcess1
+    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(s.c_str(), s.size()));
 
-  const DcmRepresentationParameter *p;
+    // less /home/jodogne/Downloads/dcmtk-3.6.4/dcmdata/include/dcmtk/dcmdata/dcxfer.h
+    printf(">> %d\n", dicom->getDataset()->getOriginalXfer());  // => 4 == EXS_JPEGProcess1
+
+    const DcmRepresentationParameter *p;
 
 #if 0
-  E_TransferSyntax target = EXS_LittleEndianExplicit;
-  p = NULL;
+    E_TransferSyntax target = EXS_LittleEndianExplicit;
+    p = NULL;
 #elif 1
-  E_TransferSyntax target = EXS_JPEGProcess14SV1;  
-  DJ_RPLossless rp_lossless(6, 0);
-  p = &rp_lossless;
+    E_TransferSyntax target = EXS_JPEGProcess14SV1;  
+    DJ_RPLossless rp_lossless(6, 0);
+    p = &rp_lossless;
 #else
-  E_TransferSyntax target = EXS_JPEGProcess1;
-  DJ_RPLossy rp_lossy(90);  // quality
-  p = &rp_lossy;
+    E_TransferSyntax target = EXS_JPEGProcess1;
+    DJ_RPLossy rp_lossy(90);  // quality
+    p = &rp_lossy;
 #endif 
   
-  //E_TransferSyntax target = EXS_LittleEndianImplicit;
-  
-  ASSERT_TRUE(dicom->getDataset()->chooseRepresentation(target, p).good());
-  ASSERT_TRUE(dicom->getDataset()->canWriteXfer(target));
+    ASSERT_TRUE(dicom->getDataset()->chooseRepresentation(target, p).good());
+    ASSERT_TRUE(dicom->getDataset()->canWriteXfer(target));
 
-  std::string t;
-  ASSERT_TRUE(Transcode(t, *dicom->getDataset(), target));
+    std::string t;
+    ASSERT_TRUE(Transcode(t, *dicom->getDataset(), target));
 
-  SystemToolbox::WriteFile(s, "source.dcm");
-  SystemToolbox::WriteFile(t, "target.dcm");
+    SystemToolbox::WriteFile(s, "source.dcm");
+    SystemToolbox::WriteFile(t, "target.dcm");
+  }
+
+  if (1)
+  {
+    const char* const PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes";
+    
+    for (boost::filesystem::directory_iterator it(PATH);
+         it != boost::filesystem::directory_iterator(); ++it)
+    {
+      if (boost::filesystem::is_regular_file(it->status()))
+      {
+        TestFile(it->path().string());
+      }
+    }
+
+    TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Multiframe.dcm");
+    TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Issue44/Monochrome1-Jpeg.dcm");
+  }
 }
 
 #endif

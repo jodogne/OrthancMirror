@@ -50,7 +50,7 @@ namespace Orthanc
     // Method called once the job enters the jobs engine
     virtual void Start() = 0;
     
-    virtual JobStepResult Step() = 0;
+    virtual JobStepResult Step(const std::string& jobId) = 0;
 
     // Method called once the job is resubmitted after a failure
     virtual void Reset() = 0;

@@ -33,61 +33,34 @@
 
 #pragma once
 
-#include "JobsRegistry.h"
-
-#include "../Compatibility.h"
-
-#include <boost/thread.hpp>
+#include <string>
+#include <vector>
 
 namespace Orthanc
 {
-  class JobsEngine : public boost::noncopyable
+  class IStorageCommitmentFactory : public boost::noncopyable
   {
-  private:
-    enum State
+  public:
+    class ILookupHandler : public boost::noncopyable
     {
-      State_Setup,
-      State_Running,
-      State_Stopping,
-      State_Done
+    public:
+      virtual ~ILookupHandler()
+      {
+      }
+
+      virtual StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                    const std::string& sopInstanceUid) = 0;
     };
 
-    boost::mutex                 stateMutex_;
-    State                        state_;
-    std::unique_ptr<JobsRegistry>  registry_;
-    boost::thread                retryHandler_;
-    unsigned int                 threadSleep_;
-    std::vector<boost::thread*>  workers_;
+    virtual ~IStorageCommitmentFactory()
+    {
+    }
 
-    bool IsRunning();
-    
-    bool ExecuteStep(JobsRegistry::RunningJob& running,
-                     size_t workerIndex);
-    
-    static void RetryHandler(JobsEngine* engine);
-
-    static void Worker(JobsEngine* engine,
-                       size_t workerIndex);
-
-  public:
-    JobsEngine(size_t maxCompletedJobs);
-
-    ~JobsEngine();
-
-    JobsRegistry& GetRegistry();
-
-    void LoadRegistryFromJson(IJobUnserializer& unserializer,
-                              const Json::Value& serialized);
-
-    void LoadRegistryFromString(IJobUnserializer& unserializer,
-                                const std::string& serialized);
-
-    void SetWorkersCount(size_t count);
-
-    void SetThreadSleep(unsigned int sleep);
-
-    void Start();
-
-    void Stop();
+    virtual ILookupHandler* CreateStorageCommitment(const std::string& jobId,
+                                                    const std::string& transactionUid,
+                                                    const std::vector<std::string>& sopClassUids,
+                                                    const std::vector<std::string>& sopInstanceUids,
+                                                    const std::string& remoteAet,
+                                                    const std::string& calledAet) = 0;
   };
 }

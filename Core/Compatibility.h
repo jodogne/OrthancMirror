@@ -47,17 +47,16 @@
 // the compiler ("/Zc:__cplusplus")
 // To make this header more robust, we use the _MSVC_LANG equivalent macro.
 
-#  if _MSC_VER > 1900
-#    if (defined _MSVC_LANG) && (_MSVC_LANG >= 201103L)
-#      define ORTHANC_Cxx03_DETECTED 0
-#    else
-#      define ORTHANC_Cxx03_DETECTED 1
-#    endif
-#  elif _MSC_VER > 1800
+// please note that not all C++11 features are supported when _MSC_VER == 1600
+// (or higher). This header file can be made for fine-grained, if required, 
+// based on specific _MSC_VER values
+
+#  if _MSC_VER >= 1600
 #    define ORTHANC_Cxx03_DETECTED 0
 #  else
 #    define ORTHANC_Cxx03_DETECTED 1
 #  endif
+
 #else
 // of _MSC_VER is not defined, we assume __cplusplus is correctly defined
 // if __cplusplus is not defined (very old compilers??), then the following
@@ -89,12 +88,12 @@ namespace std
   class unique_ptr : public boost::movelib::unique_ptr<T>
   {
   public:
-    unique_ptr() :
+    explicit unique_ptr() :
       boost::movelib::unique_ptr<T>()
     {
     }      
 
-    unique_ptr(T* p) :
+    explicit unique_ptr(T* p) :
       boost::movelib::unique_ptr<T>(p)
     {
     }      

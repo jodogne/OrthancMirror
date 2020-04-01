@@ -49,6 +49,7 @@
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
+#include "StorageCommitmentReports.h"
 
 #include <EmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -259,6 +260,9 @@ namespace Orthanc
       findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
       limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
       limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+
+      // New configuration option in Orthanc 1.6.0
+      storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1061,5 +1065,25 @@ namespace Orthanc
       GetPlugins().SignalUpdatedPeers();
     }
 #endif
+  }
+
+
+  IStorageCommitmentFactory::ILookupHandler*
+  ServerContext::CreateStorageCommitment(const std::string& jobId,
+                                         const std::string& transactionUid,
+                                         const std::vector<std::string>& sopClassUids,
+                                         const std::vector<std::string>& sopInstanceUids,
+                                         const std::string& remoteAet,
+                                         const std::string& calledAet)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      return GetPlugins().CreateStorageCommitment(
+        jobId, transactionUid, sopClassUids, sopInstanceUids, remoteAet, calledAet);
+    }
+#endif
+
+    return NULL;
   }
 }

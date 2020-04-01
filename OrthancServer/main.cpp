@@ -36,6 +36,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/DicomNetworking/DicomServer.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
@@ -50,7 +51,9 @@
 #include "OrthancInitialization.h"
 #include "OrthancMoveRequestHandler.h"
 #include "ServerContext.h"
+#include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
+#include "StorageCommitmentReports.h"
 
 using namespace Orthanc;
 
@@ -58,11 +61,11 @@ using namespace Orthanc;
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
-  ServerContext& server_;
+  ServerContext& context_;
 
 public:
   OrthancStoreRequestHandler(ServerContext& context) :
-    server_(context)
+    context_(context)
   {
   }
 
@@ -84,8 +87,82 @@ public:
       toStore.SetJson(dicomJson);
 
       std::string id;
-      server_.Store(id, toStore);
+      context_.Store(id, toStore);
     }
+  }
+};
+
+
+
+class OrthancStorageCommitmentRequestHandler : public IStorageCommitmentRequestHandler
+{
+private:
+  ServerContext& context_;
+  
+public:
+  OrthancStorageCommitmentRequestHandler(ServerContext& context) :
+    context_(context)
+  {
+  }
+
+  virtual void HandleRequest(const std::string& transactionUid,
+                             const std::vector<std::string>& referencedSopClassUids,
+                             const std::vector<std::string>& referencedSopInstanceUids,
+                             const std::string& remoteIp,
+                             const std::string& remoteAet,
+                             const std::string& calledAet)
+  {
+    if (referencedSopClassUids.size() != referencedSopInstanceUids.size())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::unique_ptr<StorageCommitmentScpJob> job(
+      new StorageCommitmentScpJob(context_, transactionUid, remoteAet, calledAet));
+
+    for (size_t i = 0; i < referencedSopClassUids.size(); i++)
+    {
+      job->AddInstance(referencedSopClassUids[i], referencedSopInstanceUids[i]);
+    }
+
+    job->MarkAsReady();
+
+    context_.GetJobsEngine().GetRegistry().Submit(job.release(), 0 /* default priority */);
+  }
+
+  virtual void HandleReport(const std::string& transactionUid,
+                            const std::vector<std::string>& successSopClassUids,
+                            const std::vector<std::string>& successSopInstanceUids,
+                            const std::vector<std::string>& failedSopClassUids,
+                            const std::vector<std::string>& failedSopInstanceUids,
+                            const std::vector<StorageCommitmentFailureReason>& failureReasons,
+                            const std::string& remoteIp,
+                            const std::string& remoteAet,
+                            const std::string& calledAet)
+  {
+    if (successSopClassUids.size() != successSopInstanceUids.size() ||
+        failedSopClassUids.size() != failedSopInstanceUids.size() ||
+        failedSopClassUids.size() != failureReasons.size())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    std::unique_ptr<StorageCommitmentReports::Report> report(
+      new StorageCommitmentReports::Report(remoteAet));
+
+    for (size_t i = 0; i < successSopClassUids.size(); i++)
+    {
+      report->AddSuccess(successSopClassUids[i], successSopInstanceUids[i]);
+    }
+
+    for (size_t i = 0; i < failedSopClassUids.size(); i++)
+    {
+      report->AddFailure(failedSopClassUids[i], failedSopInstanceUids[i], failureReasons[i]);
+    }
+
+    report->MarkAsComplete();
+
+    context_.GetStorageCommitmentReports().Store(transactionUid, report.release());
   }
 };
 
@@ -113,7 +190,8 @@ public:
 class MyDicomServerFactory : 
   public IStoreRequestHandlerFactory,
   public IFindRequestHandlerFactory, 
-  public IMoveRequestHandlerFactory
+  public IMoveRequestHandlerFactory, 
+  public IStorageCommitmentRequestHandlerFactory
 {
 private:
   ServerContext& context_;
@@ -164,6 +242,11 @@ public:
   virtual IMoveRequestHandler* ConstructMoveRequestHandler()
   {
     return new OrthancMoveRequestHandler(context_);
+  }
+
+  virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler()
+  {
+    return new OrthancStorageCommitmentRequestHandler(context_);
   }
 
   void Done()
@@ -676,6 +759,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_CannotOrderSlices, "Unable to order the slices of the series");
     PrintErrorCode(ErrorCode_NoWorklistHandler, "No request handler factory for DICOM C-Find Modality SCP");
     PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
+    PrintErrorCode(ErrorCode_NoStorageCommitmentHandler, "No request handler factory for DICOM N-ACTION SCP (storage commitment)");
     PrintErrorCode(ErrorCode_UnsupportedMediaType, "Unsupported media type");
   }
 
@@ -970,6 +1054,7 @@ static bool StartDicomServer(ServerContext& context,
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
     dicomServer.SetFindRequestHandlerFactory(serverFactory);
+    dicomServer.SetStorageCommitmentRequestHandlerFactory(serverFactory);
 
     {
       OrthancConfiguration::ReaderLock lock;

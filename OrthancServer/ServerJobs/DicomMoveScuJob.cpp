@@ -57,13 +57,13 @@ namespace Orthanc
     {
     }
 
-    virtual bool Execute()
+    virtual bool Execute(const std::string& jobId) ORTHANC_OVERRIDE
     {
       that_.Retrieve(*findAnswer_);
       return true;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       findAnswer_->Serialize(target);
     }

@@ -549,5 +549,36 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason)
+    {
+      switch (reason)
+      {
+        case OrthancPluginStorageCommitmentFailureReason_Success:
+          return StorageCommitmentFailureReason_Success;
+          
+        case OrthancPluginStorageCommitmentFailureReason_ProcessingFailure:
+          return StorageCommitmentFailureReason_ProcessingFailure;
+
+        case OrthancPluginStorageCommitmentFailureReason_NoSuchObjectInstance:
+          return StorageCommitmentFailureReason_NoSuchObjectInstance;
+
+        case OrthancPluginStorageCommitmentFailureReason_ResourceLimitation:
+          return StorageCommitmentFailureReason_ResourceLimitation;
+
+        case OrthancPluginStorageCommitmentFailureReason_ReferencedSOPClassNotSupported:
+          return StorageCommitmentFailureReason_ReferencedSOPClassNotSupported;
+
+        case OrthancPluginStorageCommitmentFailureReason_ClassInstanceConflict:
+          return StorageCommitmentFailureReason_ClassInstanceConflict;
+
+        case OrthancPluginStorageCommitmentFailureReason_DuplicateTransactionUID:
+          return StorageCommitmentFailureReason_DuplicateTransactionUID;
+             
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
   }
 }

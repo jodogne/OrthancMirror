@@ -116,7 +116,8 @@ namespace Orthanc
           connection_.reset(new DicomUserConnection(localAet_, remote_));
         }
 
-        connection_->Store(dicom, originatorAet_, originatorId_);
+        std::string sopClassUid, sopInstanceUid;  // Unused
+        connection_->Store(sopClassUid, sopInstanceUid, dicom, originatorAet_, originatorId_);
 
         return Status_Success;
       }

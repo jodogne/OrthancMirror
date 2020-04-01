@@ -34,6 +34,8 @@
 #include "../../PrecompiledHeaders.h"
 #include "DicomImageDecoder.h"
 
+#include "../ParsedDicomFile.h"
+
 
 /*=========================================================================
 
@@ -84,7 +86,6 @@
 #include "../../DicomFormat/DicomIntegerPixelAccessor.h"
 #include "../ToDcmtkBridge.h"
 #include "../FromDcmtkBridge.h"
-#include "../ParsedDicomFile.h"
 
 #if ORTHANC_ENABLE_PNG == 1
 #  include "../../Images/PngWriter.h"
@@ -98,7 +99,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcrleccd.h>
 #include <dcmtk/dcmdata/dcrlecp.h>
 #include <dcmtk/dcmdata/dcrlerp.h>
@@ -662,7 +662,20 @@ namespace Orthanc
   ImageAccessor* DicomImageDecoder::Decode(ParsedDicomFile& dicom,
                                            unsigned int frame)
   {
-    DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+    if (dicom.GetDcmtkObject().getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      return Decode(*dicom.GetDcmtkObject().getDataset(), frame);
+    }
+  }
+
+
+  ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
+                                           unsigned int frame)
+  {
     E_TransferSyntax syntax = dataset.getOriginalXfer();
 
     /**

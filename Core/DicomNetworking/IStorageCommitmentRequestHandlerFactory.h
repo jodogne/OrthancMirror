@@ -33,61 +33,17 @@
 
 #pragma once
 
-#include "JobsRegistry.h"
-
-#include "../Compatibility.h"
-
-#include <boost/thread.hpp>
+#include "IStorageCommitmentRequestHandler.h"
 
 namespace Orthanc
 {
-  class JobsEngine : public boost::noncopyable
+  class IStorageCommitmentRequestHandlerFactory : public boost::noncopyable
   {
-  private:
-    enum State
-    {
-      State_Setup,
-      State_Running,
-      State_Stopping,
-      State_Done
-    };
-
-    boost::mutex                 stateMutex_;
-    State                        state_;
-    std::unique_ptr<JobsRegistry>  registry_;
-    boost::thread                retryHandler_;
-    unsigned int                 threadSleep_;
-    std::vector<boost::thread*>  workers_;
-
-    bool IsRunning();
-    
-    bool ExecuteStep(JobsRegistry::RunningJob& running,
-                     size_t workerIndex);
-    
-    static void RetryHandler(JobsEngine* engine);
-
-    static void Worker(JobsEngine* engine,
-                       size_t workerIndex);
-
   public:
-    JobsEngine(size_t maxCompletedJobs);
+    virtual ~IStorageCommitmentRequestHandlerFactory()
+    {
+    }
 
-    ~JobsEngine();
-
-    JobsRegistry& GetRegistry();
-
-    void LoadRegistryFromJson(IJobUnserializer& unserializer,
-                              const Json::Value& serialized);
-
-    void LoadRegistryFromString(IJobUnserializer& unserializer,
-                                const std::string& serialized);
-
-    void SetWorkersCount(size_t count);
-
-    void SetThreadSleep(unsigned int sleep);
-
-    void Start();
-
-    void Stop();
+    virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler() = 0;
   };
 }

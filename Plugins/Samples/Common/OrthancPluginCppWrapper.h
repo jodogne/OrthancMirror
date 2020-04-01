@@ -103,6 +103,12 @@
 #  define HAS_ORTHANC_PLUGIN_CHUNKED_HTTP_SERVER  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 0)
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  1
+#else
+#  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  0
+#endif
+
 
 
 namespace OrthancPlugins
@@ -297,7 +303,7 @@ namespace OrthancPlugins
   public:
     OrthancConfiguration();
 
-    OrthancConfiguration(bool load);
+    explicit OrthancConfiguration(bool load);
 
     const Json::Value& GetJson() const
     {
@@ -363,7 +369,7 @@ namespace OrthancPlugins
   public:
     OrthancImage();
 
-    OrthancImage(OrthancPluginImage*    image);
+    explicit OrthancImage(OrthancPluginImage* image);
 
     OrthancImage(OrthancPluginPixelFormat  format,
                  uint32_t                  width,
@@ -429,15 +435,15 @@ namespace OrthancPlugins
                     uint32_t               size);
 
   public:
-    FindMatcher(const OrthancPluginWorklistQuery*  worklist);
+    explicit FindMatcher(const OrthancPluginWorklistQuery*  worklist);
 
-    FindMatcher(const void*            query,
-                uint32_t               size)
+    FindMatcher(const void*  query,
+                uint32_t     size)
     {
       SetupDicom(query, size);
     }
 
-    FindMatcher(const MemoryBuffer&    dicom)
+    explicit FindMatcher(const MemoryBuffer&  dicom)
     {
       SetupDicom(dicom.GetData(), dicom.GetSize());
     }
@@ -804,7 +810,7 @@ namespace OrthancPlugins
     boost::posix_time::ptime  start_;
 
   public:
-    MetricsTimer(const char* name);
+    explicit MetricsTimer(const char* name);
 
     ~MetricsTimer();
   };
@@ -1100,4 +1106,26 @@ namespace OrthancPlugins
 #endif
     }
   };
+
+  
+
+#if HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP == 1
+  class IStorageCommitmentScpHandler : public boost::noncopyable
+  {
+  public:
+    virtual ~IStorageCommitmentScpHandler()
+    {
+    }
+    
+    virtual OrthancPluginStorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
+                                                               const std::string& sopInstanceUid) = 0;
+    
+    static OrthancPluginErrorCode Lookup(OrthancPluginStorageCommitmentFailureReason* target,
+                                         void* rawHandler,
+                                         const char* sopClassUid,
+                                         const char* sopInstanceUid);
+
+    static void Destructor(void* rawHandler);
+  };
+#endif
 }
