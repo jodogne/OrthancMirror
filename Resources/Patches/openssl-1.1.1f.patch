@@ -1,0 +1,12 @@
+diff -urEb openssl-1.1.1f.orig/crypto/rand/rand_unix.c openssl-1.1.1f/crypto/rand/rand_unix.c
+--- openssl-1.1.1f.orig/crypto/rand/rand_unix.c	2020-04-02 13:14:23.195439492 +0200
++++ openssl-1.1.1f/crypto/rand/rand_unix.c	2020-04-02 13:15:18.079473769 +0200
+@@ -387,7 +387,7 @@
+ #  endif
+ 
+     /* Linux supports this since version 3.17 */
+-#  if defined(__linux) && defined(__NR_getrandom)
++#  if defined(__linux) && defined(__NR_getrandom) && !defined(__LSB_VERSION__)
+     return syscall(__NR_getrandom, buf, buflen, 0);
+ #  elif (defined(__FreeBSD__) || defined(__NetBSD__)) && defined(KERN_ARND)
+     return sysctl_random(buf, buflen);
