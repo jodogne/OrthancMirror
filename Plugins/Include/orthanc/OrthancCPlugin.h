@@ -243,6 +243,7 @@ extern "C"
     OrthancPluginErrorCode_DatabaseUnavailable = 36    /*!< The database is currently not available (probably a transient situation) */,
     OrthancPluginErrorCode_CanceledJob = 37    /*!< This job was canceled */,
     OrthancPluginErrorCode_BadGeometry = 38    /*!< Geometry error encountered in Stone */,
+    OrthancPluginErrorCode_SslInitialization = 39    /*!< Cannot initialize SSL encryption, check out your certificates */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
