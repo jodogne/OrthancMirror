@@ -1,6 +1,6 @@
-SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1d)
-SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1d.tar.gz")
-SET(OPENSSL_MD5 "3be209000dbc7e1b95bcdf47980a3baa")
+SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1f)
+SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1f.tar.gz")
+SET(OPENSSL_MD5 "3f486f2f4435ef14b81814dbbc7b48bb")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
   set(FirstRun OFF)
@@ -16,18 +16,18 @@ if (FirstRun)
 #define PLATFORM \"\"
 #define compiler_flags \"\"
 ")
-  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/bn_conf.h "")
-  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/dso_conf.h "")
+  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/bn_conf.h "")
+  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/dso_conf.h "")
 
   configure_file(
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1d-conf.h.in
+    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1-conf.h.in
     ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h
     )
 
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1d.patch
+    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1f.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
