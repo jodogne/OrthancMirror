@@ -189,6 +189,9 @@ namespace Orthanc
       case ErrorCode_BadGeometry:
         return "Geometry error encountered in Stone";
 
+      case ErrorCode_SslInitialization:
+        return "Cannot initialize SSL encryption, check out your certificates";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 

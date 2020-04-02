@@ -1,0 +1,30 @@
+diff -urEb civetweb-1.12.orig/include/civetweb.h civetweb-1.12/include/civetweb.h
+--- civetweb-1.12.orig/include/civetweb.h	2020-04-02 10:56:55.681988632 +0200
++++ civetweb-1.12/include/civetweb.h	2020-04-02 10:57:36.413858039 +0200
+@@ -1614,6 +1614,9 @@
+                                   struct mg_error_data *error);
+ #endif
+ 
++// Added by SJ
++CIVETWEB_API void mg_disable_keep_alive(struct mg_connection *conn);
++
+ #ifdef __cplusplus
+ }
+ #endif /* __cplusplus */
+diff -urEb civetweb-1.12.orig/src/civetweb.c civetweb-1.12/src/civetweb.c
+--- civetweb-1.12.orig/src/civetweb.c	2020-04-02 10:56:55.685988619 +0200
++++ civetweb-1.12/src/civetweb.c	2020-04-02 11:00:31.345304121 +0200
+@@ -20705,4 +20705,13 @@
+ }
+ 
+ 
++// Added by SJ
++void mg_disable_keep_alive(struct mg_connection *conn)
++{
++  if (conn != NULL) {
++    conn->must_close = 1;
++  }
++}
++
++
+ /* End of civetweb.c */

@@ -217,6 +217,11 @@
     "Name": "BadGeometry", 
     "Description": "Geometry error encountered in Stone"
   }, 
+  {
+    "Code": 39, 
+    "Name": "SslInitialization", 
+    "Description": "Cannot initialize SSL encryption, check out your certificates"
+  }, 
 
 
 
