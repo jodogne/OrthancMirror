@@ -231,10 +231,14 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     )
  
 elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-  # In order for "crypto/mem_sec.c" to compile on LSB
   add_definitions(
+    # In order for "crypto/mem_sec.c" to compile on LSB
     -DOPENSSL_NO_SECURE_MEMORY
-    -DOPENSSL_RAND_SEED_OS
+
+    # The "OPENSSL_RAND_SEED_OS" value implies a syscall() to
+    # "__NR_getrandom" (i.e. system call "getentropy(2)") in
+    # "rand_unix.c", which is not available in LSB.
+    -DOPENSSL_RAND_SEED_DEVRANDOM
     )
 
 else()

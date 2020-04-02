@@ -6,6 +6,7 @@ Maintenance
 -----------
 
 * Source code repository moved from BitBucket to self-hosted server
+* Fix OpenSSL initialization on Linux Standard Base
 * Fix lookup form in Orthanc Explorer (wildcards not allowed in StudyDate)
 * Fix signature of "OrthancPluginRegisterStorageCommitmentScpCallback()" in plugins SDK
 * Error reporting on failure while initializing SSL
