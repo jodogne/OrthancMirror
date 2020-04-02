@@ -234,6 +234,15 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # In order for "crypto/mem_sec.c" to compile on LSB
   add_definitions(
     -DOPENSSL_NO_SECURE_MEMORY
+    -DOPENSSL_RAND_SEED_OS
+    )
+
+else()
+  # Fixes error "OpenSSL error: error:2406C06E:random number
+  # generator:RAND_DRBG_instantiate:error retrieving entropy" that was
+  # present in Orthanc 1.6.0, if statically linking on Ubuntu 18.04
+  add_definitions(
+    -DOPENSSL_RAND_SEED_OS
     )
 endif()
 
