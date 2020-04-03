@@ -2,6 +2,15 @@ Pending changes in the mainline
 ===============================
 
 
+REST API
+--------
+
+* API version has been upgraded to 6
+* Added:
+  - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
+    body to another modality (alternative to command-line tools such as "storescu")
+
+
 Maintenance
 -----------
 
