@@ -295,19 +295,36 @@ namespace Orthanc
 
   int64_t SQLiteDatabaseWrapper::GetTableRecordCount(const std::string& table)
   {
-    char buf[128];
-    sprintf(buf, "SELECT COUNT(*) FROM %s", table.c_str());
-    SQLite::Statement s(db_, buf);
+    /**
+     * "Generally one cannot use SQL parameters/placeholders for
+     * database identifiers (tables, columns, views, schemas, etc.) or
+     * database functions (e.g., CURRENT_DATE), but instead only for
+     * binding literal values." => To avoid any SQL injection, we
+     * check that the "table" parameter has only alphabetic
+     * characters.
+     * https://stackoverflow.com/a/1274764/881731
+     **/
+    for (size_t i = 0; i < table.size(); i++)
+    {
+      if (!isalpha(table[i]))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
 
-    if (!s.Step())
+    // Don't use "SQLITE_FROM_HERE", otherwise "table" would be cached
+    SQLite::Statement s(db_, "SELECT COUNT(*) FROM " + table);
+
+    if (s.Step())
+    {
+      int64_t c = s.ColumnInt(0);
+      assert(!s.Step());
+      return c;
+    }
+    else
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-
-    int64_t c = s.ColumnInt(0);
-    assert(!s.Step());
-
-    return c;
   }
 
     
