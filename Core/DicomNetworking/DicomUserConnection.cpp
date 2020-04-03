@@ -1211,7 +1211,7 @@ namespace Orthanc
 
   void DicomUserConnection::Store(std::string& sopClassUid /* out */,
                                   std::string& sopInstanceUid /* out */,
-                                  const char* buffer, 
+                                  const void* buffer, 
                                   size_t size,
                                   const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
