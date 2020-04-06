@@ -736,9 +736,22 @@ namespace Orthanc
     {
       char buf[16];
       sprintf(buf, "%04X", response.DimseStatus);
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "C-FIND SCU to AET \"" + remoteAet +
-                             "\" has failed with DIMSE status 0x" + buf);
+
+      if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               HttpStatus_422_UnprocessableEntity,
+                               "C-FIND SCU to AET \"" + remoteAet +
+                               "\" has failed with DIMSE status 0x" + buf +
+                               " (unable to process - invalid query ?)"
+                               );
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "C-FIND SCU to AET \"" + remoteAet +
+                               "\" has failed with DIMSE status 0x" + buf);
+      }
     }
 
   }
@@ -939,9 +952,22 @@ namespace Orthanc
     {
       char buf[16];
       sprintf(buf, "%04X", response.DimseStatus);
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "C-MOVE SCU to AET \"" + remoteAet_ +
-                             "\" has failed with DIMSE status 0x" + buf);
+
+      if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               HttpStatus_422_UnprocessableEntity,
+                               "C-MOVE SCU to AET \"" + remoteAet_ +
+                               "\" has failed with DIMSE status 0x" + buf +
+                               " (unable to process - resource not found ?)"
+                               );
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "C-MOVE SCU to AET \"" + remoteAet_ +
+                               "\" has failed with DIMSE status 0x" + buf);
+      }
     }
   }
 
@@ -1185,7 +1211,7 @@ namespace Orthanc
 
   void DicomUserConnection::Store(std::string& sopClassUid /* out */,
                                   std::string& sopInstanceUid /* out */,
-                                  const char* buffer, 
+                                  const void* buffer, 
                                   size_t size,
                                   const std::string& moveOriginatorAET,
                                   uint16_t moveOriginatorID)
