@@ -1680,21 +1680,36 @@ namespace Orthanc
 #endif
 
 
+
+#if ORTHANC_ENABLE_SSL == 0
+  /**
+   * OpenSSL is disabled
+   **/
   void Toolbox::InitializeOpenSsl()
   {
-#if ORTHANC_ENABLE_SSL == 1
+  }
+  
+  void Toolbox::FinalizeOpenSsl()
+  {
+  }  
+
+
+#elif (ORTHANC_ENABLE_SSL == 1 &&               \
+       OPENSSL_VERSION_NUMBER < 0x10100000L) 
+  /**
+   * OpenSSL < 1.1.0
+   **/
+  void Toolbox::InitializeOpenSsl()
+  {
     // https://wiki.openssl.org/index.php/Library_Initialization
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
-#endif
   }
-
 
   void Toolbox::FinalizeOpenSsl()
   {
-#if ORTHANC_ENABLE_SSL == 1
     // Finalize OpenSSL
     // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
 #ifdef FIPS_mode_set
@@ -1710,8 +1725,28 @@ namespace Orthanc
     CRYPTO_cleanup_all_ex_data();
     ERR_remove_state(0);
     ERR_free_strings();
-#endif
   }
+
+  
+#elif (ORTHANC_ENABLE_SSL == 1 &&               \
+       OPENSSL_VERSION_NUMBER >= 0x10100000L) 
+  /**
+   * OpenSSL >= 1.1.0. In this case, the initialization is
+   * automatically done by the functions of OpenSSL.
+   * https://wiki.openssl.org/index.php/Library_Initialization
+   **/
+  void Toolbox::InitializeOpenSsl()
+  {
+  }
+
+  void Toolbox::FinalizeOpenSsl()
+  {
+  }
+
+#else
+#  error "Support your platform here"
+#endif
+  
 
 
   std::string Toolbox::GenerateUuid()

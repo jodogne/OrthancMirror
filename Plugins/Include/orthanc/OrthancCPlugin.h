@@ -243,6 +243,7 @@ extern "C"
     OrthancPluginErrorCode_DatabaseUnavailable = 36    /*!< The database is currently not available (probably a transient situation) */,
     OrthancPluginErrorCode_CanceledJob = 37    /*!< This job was canceled */,
     OrthancPluginErrorCode_BadGeometry = 38    /*!< Geometry error encountered in Stone */,
+    OrthancPluginErrorCode_SslInitialization = 39    /*!< Cannot initialize SSL encryption, check out your certificates */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -1062,7 +1063,7 @@ extern "C"
    * @brief Opaque structure to an object that can be used to check whether a DICOM instance matches a C-Find query.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindMatcher;
+  typedef struct _OrthancPluginFindMatcher_t OrthancPluginFindMatcher;
 
 
   
@@ -2778,7 +2779,7 @@ extern "C"
    * @return The pointer to the DICOM data, NULL in case of error.
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceData(
+  ORTHANC_PLUGIN_INLINE const void* OrthancPluginGetInstanceData(
     OrthancPluginContext*        context,
     OrthancPluginDicomInstance*  instance)
   {
@@ -7398,7 +7399,7 @@ extern "C"
    * @return 0 if success, other value if error.
    * @ingroup DicomCallbacks
    **/
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageCommitmentScpCallback(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterStorageCommitmentScpCallback(
     OrthancPluginContext*                     context,
     OrthancPluginStorageCommitmentFactory     factory,
     OrthancPluginStorageCommitmentDestructor  destructor,
@@ -7408,7 +7409,7 @@ extern "C"
     params.factory = factory;
     params.destructor = destructor;
     params.lookup = lookup;
-    context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
+    return context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
   }
   
 #ifdef  __cplusplus

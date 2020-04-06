@@ -2,6 +2,28 @@ Pending changes in the mainline
 ===============================
 
 
+REST API
+--------
+
+* API version has been upgraded to 6
+* Added:
+  - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
+    body to another modality (alternative to command-line tools such as "storescu")
+
+
+Maintenance
+-----------
+
+* Source code repository moved from BitBucket to self-hosted server
+* Fix OpenSSL initialization on Linux Standard Base
+* Fix lookup form in Orthanc Explorer (wildcards not allowed in StudyDate)
+* Fix signature of "OrthancPluginRegisterStorageCommitmentScpCallback()" in plugins SDK
+* Error reporting on failure while initializing SSL
+* Upgraded dependencies for static builds (notably on Windows):
+  - civetweb 1.12
+  - openssl 1.1.1f
+
+
 Version 1.6.0 (2020-03-18)
 ==========================
 

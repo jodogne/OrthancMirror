@@ -185,7 +185,7 @@ TEST(Version, LibIconvStatic)
 TEST(Version, OpenSslStatic)
 {
   ASSERT_TRUE(OPENSSL_VERSION_NUMBER == 0x1000210fL /* openssl-1.0.2p */ ||
-              OPENSSL_VERSION_NUMBER == 0x1010104fL /* openssl-1.1.1d */);
+              OPENSSL_VERSION_NUMBER == 0x1010106fL /* openssl-1.1.1f */);
 }
 #endif
 
@@ -208,7 +208,7 @@ TEST(Version, JsonCpp)
 TEST(Version, Civetweb)
 {
   ASSERT_EQ(1, CIVETWEB_VERSION_MAJOR);
-  ASSERT_EQ(11, CIVETWEB_VERSION_MINOR);
+  ASSERT_EQ(12, CIVETWEB_VERSION_MINOR);
   ASSERT_EQ(0, CIVETWEB_VERSION_PATCH);
 }
 #endif
