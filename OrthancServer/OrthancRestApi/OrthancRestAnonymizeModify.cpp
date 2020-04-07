@@ -227,7 +227,7 @@ namespace Orthanc
     toStore.SetParsedDicomFile(dicom);
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    StoreStatus status = context.Store(id, toStore);
+    StoreStatus status = context.Store(id, toStore, StoreInstanceMode_Default);
 
     if (status == StoreStatus_Failure)
     {

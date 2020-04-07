@@ -820,7 +820,7 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ(id, toStore.GetHasher().HashInstance());
 
       std::string id2;
-      ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore));
+      ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore, StoreInstanceMode_Default));
       ASSERT_EQ(id, id2);
     }
 
@@ -855,7 +855,8 @@ TEST(ServerIndex, Overwrite)
       toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       std::string id2;
-      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored, context.Store(id2, toStore));
+      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored,
+                context.Store(id2, toStore, StoreInstanceMode_Default));
       ASSERT_EQ(id, id2);
     }
 
