@@ -726,7 +726,8 @@ TEST(ServerIndex, AttachmentRecycling)
     std::map<MetadataType, std::string> instanceMetadata;
     DicomInstanceToStore toStore;
     toStore.SetSummary(instance);
-    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments));
+    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments,
+                                               false /* don't overwrite */));
     ASSERT_EQ(5u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
@@ -803,7 +804,7 @@ TEST(ServerIndex, Overwrite)
 
     DicomInstanceHasher hasher(instance);
     std::string id = hasher.HashInstance();
-    context.GetIndex().SetOverwriteInstances(overwrite);
+    context.SetOverwriteInstances(overwrite);
 
     uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 

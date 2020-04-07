@@ -1307,7 +1307,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
     // New option in Orthanc 1.4.2
-    context.GetIndex().SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+    context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
 
     try
     {
