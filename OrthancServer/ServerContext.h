@@ -276,7 +276,8 @@ namespace Orthanc
                        size_t size);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DicomInstanceToStore& dicom);
+                      DicomInstanceToStore& dicom,
+                      StoreInstanceMode mode);
 
     void AnswerAttachment(RestApiOutput& output,
                           const std::string& resourceId,

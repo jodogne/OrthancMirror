@@ -87,7 +87,7 @@ public:
       toStore.SetJson(dicomJson);
 
       std::string id;
-      context_.Store(id, toStore);
+      context_.Store(id, toStore, StoreInstanceMode_Default);
     }
   }
 };

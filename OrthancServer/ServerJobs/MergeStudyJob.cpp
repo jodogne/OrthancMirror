@@ -145,7 +145,8 @@ namespace Orthanc
     toStore.SetParsedDicomFile(*modified);
 
     std::string modifiedInstance;
-    if (context_.Store(modifiedInstance, toStore) != StoreStatus_Success)
+    if (context_.Store(modifiedInstance, toStore,
+                       StoreInstanceMode_Default) != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;
       return false;

@@ -114,7 +114,7 @@ namespace Orthanc
       toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, instance.GetId());
 
       std::string modifiedId;
-      context_.Store(modifiedId, toStore);
+      context_.Store(modifiedId, toStore, StoreInstanceMode_Default);
 
       // Only chain with other commands if this command succeeds
       outputs.Append(new DicomInstanceOperationValue(instance.GetServerContext(), modifiedId));
