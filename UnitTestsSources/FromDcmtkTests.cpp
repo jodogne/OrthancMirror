@@ -2133,7 +2133,15 @@ namespace Orthanc
       }
       else if (syntaxes.find(DicomTransferSyntax_JPEGProcess1) != syntaxes.end() &&
                allowNewSopInstanceUid &&
+               GetBitsStored() == 8 &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
+      {
+        return true;
+      }
+      else if (syntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != syntaxes.end() &&
+               allowNewSopInstanceUid &&
+               GetBitsStored() <= 12 &&
+               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
       {
         return true;
       }
@@ -2234,8 +2242,8 @@ static void TestFile(const std::string& path)
 
   Orthanc::DcmtkTranscoder transcoder(s.c_str(), s.size());
 
-  if (transcoder.GetBitsStored() != 8)  // TODO
-    return; 
+  /*if (transcoder.GetBitsStored() != 8)  // TODO
+    return; */
 
   {
     char buf[1024];
@@ -2272,10 +2280,11 @@ static void TestFile(const std::string& path)
 
   {
     std::set<DicomTransferSyntax> syntaxes;
-    syntaxes.insert(DicomTransferSyntax_JPEGProcess1);
+    syntaxes.insert(DicomTransferSyntax_JPEGProcess2_4);
+    //syntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
 
     std::string t;
-    bool ok = transcoder.Transcode(t, syntaxes, false);
+    bool ok = transcoder.Transcode(t, syntaxes, true);
     printf("Transcoding: %d\n", ok);
 
     if (ok)
@@ -2337,7 +2346,7 @@ TEST(Toto, DISABLED_Transcode)
     SystemToolbox::WriteFile(t, "target.dcm");
   }
 
-  if (0)
+  if (1)
   {
     const char* const PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes";
     
@@ -2357,7 +2366,7 @@ TEST(Toto, DISABLED_Transcode)
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/Issue44/Monochrome1-Jpeg.dcm");
   }
 
-  if (1)
+  if (0)
   {
     TestFile("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/1.2.840.10008.1.2.1.dcm");
   }
