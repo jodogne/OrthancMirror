@@ -1257,8 +1257,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                            DcmDataset& dataSet)
   {
     // Determine the transfer syntax which shall be used to write the
-    // information to the file. We always switch to the Little Endian
-    // syntax, with explicit length.
+    // information to the file. If not possible, switch to the Little
+    // Endian syntax, with explicit length.
 
     // http://support.dcmtk.org/docs/dcxfer_8h-source.html
 
@@ -1318,10 +1318,17 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       throw OrthancException(ErrorCode_InternalError);
     }
     else
-    {     
-      return (dicom.getDataset()->chooseRepresentation(xfer, representation).good() &&
-              dicom.getDataset()->canWriteXfer(xfer) &&
-              SaveToMemoryBufferInternal(buffer, dicom, xfer));
+    {
+      if (!dicom.getDataset()->chooseRepresentation(xfer, representation).good() ||
+          !dicom.getDataset()->canWriteXfer(xfer) ||
+          !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
+      {
+        return false;
+      }
+
+      dicom.removeInvalidGroups();
+      
+      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
     }
   }
 
