@@ -242,7 +242,8 @@ namespace Orthanc
     isJobsEngineUnserialized_(false),
     metricsRegistry_(new MetricsRegistry),
     isHttpServerSecure_(true),
-    isExecuteLuaEnabled_(false)
+    isExecuteLuaEnabled_(false),
+    overwriteInstances_(false)
   {
     {
       OrthancConfiguration::ReaderLock lock;
@@ -404,7 +405,8 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(instanceMetadata, dicom, attachments);
+      StoreStatus status = index_.Store(
+        instanceMetadata, dicom, attachments, overwriteInstances_);
 
       // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
