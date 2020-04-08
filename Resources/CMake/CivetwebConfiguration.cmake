@@ -1,7 +1,20 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
-  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.11)
-  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.11.tar.gz")
-  set(CIVETWEB_MD5 "b6d2175650a27924bccb747cbe084cd4")
+
+  ## WARNING: "civetweb-1.12.tar.gz" comes with a subfolder
+  ## "civetweb-1.12/test/nonlatin" that cannot be removed by "hg purge
+  ## --all" on Windows hosts. We thus created a custom
+  ## "civetweb-1.12-fixed.tar.gz" as follows:
+  ##
+  ##  $ cd /tmp
+  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.12.tar.gz
+  ##  $ tar xvf civetweb-1.12.tar.gz
+  ##  $ rm -rf civetweb-1.12/src/third_party/ civetweb-1.12/test/
+  ##  $ tar cvfz civetweb-1.12-fixed.tar.gz civetweb-1.12
+  ##
+  
+  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.12)
+  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.12-fixed.tar.gz")
+  set(CIVETWEB_MD5 "016ed7cd26cbc46b5941f0cbfb2e4ac8")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -13,7 +26,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/civetweb-1.11.patch
+    ${ORTHANC_ROOT}/Resources/Patches/civetweb-1.12.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

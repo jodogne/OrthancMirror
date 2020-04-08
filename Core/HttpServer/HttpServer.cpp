@@ -72,7 +72,8 @@
 #endif
 
 #if ORTHANC_ENABLE_SSL == 1
-#include <openssl/opensslv.h>
+#  include <openssl/opensslv.h>
+#  include <openssl/err.h>
 #endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
@@ -1182,8 +1183,35 @@ namespace Orthanc
 
       if (!pimpl_->context_)
       {
-        throw OrthancException(ErrorCode_HttpPortInUse,
-                               " (port = " + boost::lexical_cast<std::string>(port_) + ")");
+        bool isSslError = false;
+
+#if ORTHANC_ENABLE_SSL == 1
+        for (;;)
+        {
+          unsigned long code = ERR_get_error();
+          if (code == 0)
+          {
+            break;
+          }
+          else
+          {
+            isSslError = true;
+            char message[1024];
+            ERR_error_string_n(code, message, sizeof(message) - 1);
+            LOG(ERROR) << "OpenSSL error: " << message;
+          }
+        }        
+#endif
+
+        if (isSslError)
+        {
+          throw OrthancException(ErrorCode_SslInitialization);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_HttpPortInUse,
+                                 " (port = " + boost::lexical_cast<std::string>(port_) + ")");
+        }
       }
 
       LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()

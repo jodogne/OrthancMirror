@@ -700,6 +700,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabaseUnavailable, "The database is currently not available (probably a transient situation)");
     PrintErrorCode(ErrorCode_CanceledJob, "This job was canceled");
     PrintErrorCode(ErrorCode_BadGeometry, "Geometry error encountered in Stone");
+    PrintErrorCode(ErrorCode_SslInitialization, "Cannot initialize SSL encryption, check out your certificates");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");

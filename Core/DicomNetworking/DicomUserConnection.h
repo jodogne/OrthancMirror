@@ -160,14 +160,14 @@ namespace Orthanc
 
     void Store(std::string& sopClassUid /* out */,
                std::string& sopInstanceUid /* out */,
-               const char* buffer, 
+               const void* buffer, 
                size_t size,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
     void Store(std::string& sopClassUid /* out */,
                std::string& sopInstanceUid /* out */,
-               const char* buffer, 
+               const void* buffer, 
                size_t size)
     {
       Store(sopClassUid, sopInstanceUid, buffer, size, "", 0);  // Not a C-Move

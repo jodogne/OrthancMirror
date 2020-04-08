@@ -55,6 +55,8 @@ namespace Orthanc
   static const char* const KEY_QUERY = "Query";
   static const char* const KEY_NORMALIZE = "Normalize";
   static const char* const KEY_RESOURCES = "Resources";
+  static const char* const SOP_CLASS_UID = "SOPClassUID";
+  static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
 
   
   static RemoteModalityParameters MyGetModalityUsingSymbolicName(const std::string& name)
@@ -975,6 +977,29 @@ namespace Orthanc
   }
 
 
+  static void DicomStoreStraight(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
+    RemoteModalityParameters remote =
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    DicomUserConnection connection(localAet, remote);
+    connection.Open();
+
+    std::string sopClassUid, sopInstanceUid;
+    connection.Store(sopClassUid, sopInstanceUid,
+                     call.GetBodyData(), call.GetBodySize());
+
+    Json::Value answer = Json::objectValue;
+    answer[SOP_CLASS_UID] = sopClassUid;
+    answer[SOP_INSTANCE_UID] = sopInstanceUid;
+    
+    call.GetOutput().AnswerJson(answer);
+  }
+
+
   /***************************************************************************
    * DICOM C-Move SCU
    ***************************************************************************/
@@ -1312,8 +1337,6 @@ namespace Orthanc
   {
     static const char* const ORTHANC_RESOURCES = "Resources";
     static const char* const DICOM_INSTANCES = "DicomInstances";
-    static const char* const SOP_CLASS_UID = "SOPClassUID";
-    static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -1564,6 +1587,7 @@ namespace Orthanc
     Register("/modalities/{id}/find-instance", DicomFindInstance);
     Register("/modalities/{id}/find", DicomFind);
     Register("/modalities/{id}/store", DicomStore);
+    Register("/modalities/{id}/store-straight", DicomStoreStraight);  // New in 1.6.1
     Register("/modalities/{id}/move", DicomMove);
 
     // For Query/Retrieve
