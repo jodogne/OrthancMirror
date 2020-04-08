@@ -240,6 +240,10 @@ namespace Orthanc
                                       std::vector<const char*>& asFallback,
                                       const std::string& aet)
   {
+    // Presentation context IDs must be odd numbers, hence the
+    // increments by 2:
+    // http://dicom.nema.org/medical/dicom/2019e/output/chtml/part08/sect_9.3.2.2.html
+    
     Check(ASC_addPresentationContext(params, presentationContextId, 
                                      sopClass.c_str(), asPreferred, 1),
           aet, "initializing");
@@ -1177,6 +1181,28 @@ namespace Orthanc
                              "Unable to negotiate a presentation context with AET " +
                              remoteAet_);
     }
+
+#if 0
+    // Manual loop over the accepted transfer syntaxes
+    LST_HEAD **l = &pimpl_->params_->DULparams.acceptedPresentationContext;
+    if (*l != NULL)
+    {
+      DUL_PRESENTATIONCONTEXT* pc = (DUL_PRESENTATIONCONTEXT*) LST_Head(l);
+      LST_Position(l, (LST_NODE*)pc);
+      while (pc)
+      {
+        if (pc->result == ASC_P_ACCEPTANCE)
+        {
+          printf("Accepted: %d [%s] [%s]\n", pc->presentationContextID, pc->abstractSyntax, pc->acceptedTransferSyntax);
+        }
+        else
+        {
+          printf("Rejected: %d [%s]\n", pc->presentationContextID, pc->abstractSyntax);
+        }
+        pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
+      }
+    }
+#endif
   }
 
   void DicomUserConnection::Close()
