@@ -1935,6 +1935,8 @@ namespace Orthanc
     {
     }
 
+    virtual DcmFileFormat& GetDicom() = 0;
+
     virtual DicomTransferSyntax GetTransferSyntax() = 0;
 
     virtual std::string GetSopClassUid() = 0;
@@ -1948,6 +1950,8 @@ namespace Orthanc
     virtual void GetCompressedFrame(std::string& target,
                                     unsigned int frame) = 0;
 
+    // NB: Transcoding can change the value of "GetSopInstanceUid()"
+    // and "GetTransferSyntax()" if lossy compression is applied
     virtual bool Transcode(std::string& target,
                            std::set<DicomTransferSyntax> syntaxes,
                            bool allowNewSopInstanceUid) = 0;
@@ -1966,6 +1970,23 @@ namespace Orthanc
     std::string                       sopInstanceUid_;
     uint16_t                          bitsStored_;
     unsigned int                      lossyQuality_;
+
+    static std::string GetStringTag(DcmDataset& dataset,
+                                    const DcmTagKey& tag)
+    {
+      const char* value = NULL;
+
+      if (!dataset.findAndGetString(tag, value).good() ||
+          value == NULL)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Missing SOP class/instance UID in DICOM instance");
+      }
+      else
+      {
+        return std::string(value);
+      }
+    }
 
     void Setup(DcmFileFormat* dicom)
     {
@@ -2007,20 +2028,8 @@ namespace Orthanc
                                "Missing \"Bits Stored\" tag in DICOM instance");
       }      
 
-      const char* a = NULL;
-      const char* b = NULL;
-
-      if (!dataset.findAndGetString(DCM_SOPClassUID, a).good() ||
-          !dataset.findAndGetString(DCM_SOPInstanceUID, b).good() ||
-          a == NULL ||
-          b == NULL)
-      {
-        throw OrthancException(ErrorCode_BadFileFormat,
-                               "Missing SOP class/instance UID in DICOM instance");
-      }
-
-      sopClassUid_.assign(a);
-      sopInstanceUid_.assign(b);
+      sopClassUid_ = GetStringTag(dataset, DCM_SOPClassUID);
+      sopInstanceUid_ = GetStringTag(dataset, DCM_SOPInstanceUID);
     }
     
   public:
@@ -2056,6 +2065,12 @@ namespace Orthanc
     unsigned int GetBitsStored() const
     {
       return bitsStored_;
+    }
+
+    virtual DcmFileFormat& GetDicom()
+    {
+      assert(dicom_ != NULL);
+      return *dicom_;
     }
 
     virtual DicomTransferSyntax GetTransferSyntax() ORTHANC_OVERRIDE
@@ -2103,6 +2118,9 @@ namespace Orthanc
                            std::set<DicomTransferSyntax> syntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
+      assert(dicom_ != NULL &&
+             dicom_->getDataset() != NULL);
+      
       if (syntaxes.find(GetTransferSyntax()) != syntaxes.end())
       {
         printf("NO TRANSCODING\n");
@@ -2119,16 +2137,19 @@ namespace Orthanc
       if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != syntaxes.end() &&
           FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianImplicit, NULL))
       {
+        transferSyntax_ = DicomTransferSyntax_LittleEndianImplicit;
         return true;
       }
       else if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != syntaxes.end() &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianExplicit, NULL))
       {
+        transferSyntax_ = DicomTransferSyntax_LittleEndianExplicit;
         return true;
       }
       else if (syntaxes.find(DicomTransferSyntax_BigEndianExplicit) != syntaxes.end() &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_BigEndianExplicit, NULL))
       {
+        transferSyntax_ = DicomTransferSyntax_BigEndianExplicit;
         return true;
       }
       else if (syntaxes.find(DicomTransferSyntax_JPEGProcess1) != syntaxes.end() &&
@@ -2136,6 +2157,8 @@ namespace Orthanc
                GetBitsStored() == 8 &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
       {
+        transferSyntax_ = DicomTransferSyntax_JPEGProcess1;
+        sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
         return true;
       }
       else if (syntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != syntaxes.end() &&
@@ -2143,6 +2166,8 @@ namespace Orthanc
                GetBitsStored() <= 12 &&
                FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
       {
+        transferSyntax_ = DicomTransferSyntax_JPEGProcess2_4;
+        sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
         return true;
       }
       else
@@ -2279,6 +2304,9 @@ static void TestFile(const std::string& path)
   }
 
   {
+    std::string a = transcoder.GetSopInstanceUid();
+    DicomTransferSyntax b = transcoder.GetTransferSyntax();
+    
     std::set<DicomTransferSyntax> syntaxes;
     syntaxes.insert(DicomTransferSyntax_JPEGProcess2_4);
     //syntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
@@ -2289,6 +2317,10 @@ static void TestFile(const std::string& path)
 
     if (ok)
     {
+      printf("[%s] => [%s]\n", a.c_str(), transcoder.GetSopInstanceUid().c_str());
+      printf("[%s] => [%s]\n", GetTransferSyntaxUid(b),
+             GetTransferSyntaxUid(transcoder.GetTransferSyntax()));
+      
       {
         char buf[1024];
         sprintf(buf, "/tmp/transcoded-%06d.dcm", count);
