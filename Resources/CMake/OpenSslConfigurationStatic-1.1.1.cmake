@@ -1,6 +1,6 @@
-SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1d)
-SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1d.tar.gz")
-SET(OPENSSL_MD5 "3be209000dbc7e1b95bcdf47980a3baa")
+SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1f)
+SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1f.tar.gz")
+SET(OPENSSL_MD5 "3f486f2f4435ef14b81814dbbc7b48bb")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
   set(FirstRun OFF)
@@ -16,18 +16,18 @@ if (FirstRun)
 #define PLATFORM \"\"
 #define compiler_flags \"\"
 ")
-  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/bn_conf.h "")
-  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/include/internal/dso_conf.h "")
+  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/bn_conf.h "")
+  file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/dso_conf.h "")
 
   configure_file(
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1d-conf.h.in
+    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1-conf.h.in
     ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h
     )
 
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1d.patch
+    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1f.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -231,9 +231,22 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     )
  
 elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-  # In order for "crypto/mem_sec.c" to compile on LSB
   add_definitions(
+    # In order for "crypto/mem_sec.c" to compile on LSB
     -DOPENSSL_NO_SECURE_MEMORY
+
+    # The "OPENSSL_RAND_SEED_OS" value implies a syscall() to
+    # "__NR_getrandom" (i.e. system call "getentropy(2)") in
+    # "rand_unix.c", which is not available in LSB.
+    -DOPENSSL_RAND_SEED_DEVRANDOM
+    )
+
+else()
+  # Fixes error "OpenSSL error: error:2406C06E:random number
+  # generator:RAND_DRBG_instantiate:error retrieving entropy" that was
+  # present in Orthanc 1.6.0, if statically linking on Ubuntu 18.04
+  add_definitions(
+    -DOPENSSL_RAND_SEED_OS
     )
 endif()
 

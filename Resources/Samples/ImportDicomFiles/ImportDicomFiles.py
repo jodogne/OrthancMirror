@@ -72,7 +72,10 @@ def UploadFile(path):
             # Authentication (for some weird reason, this method does
             # not always work)
             # http://en.wikipedia.org/wiki/Basic_access_authentication
-            headers['authorization'] = 'Basic ' + base64.b64encode(username + ':' + password)       
+            creds_str = username + ':' + password
+            creds_str_bytes = creds_str.encode("ascii")
+            creds_str_bytes_b64 = b'Basic ' + base64.b64encode(creds_str_bytes)
+            headers['authorization'] = creds_str_bytes_b64.decode("ascii")
 
         resp, content = h.request(URL, 'POST', 
                                   body = content,
@@ -85,6 +88,8 @@ def UploadFile(path):
             sys.stdout.write(" => failure (Is it a DICOM file? Is there a password?)\n")
 
     except:
+        type, value, traceback = sys.exc_info()
+        sys.stderr.write(str(value))
         sys.stdout.write(" => unable to connect (Is Orthanc running? Is there a password?)\n")
 
 
