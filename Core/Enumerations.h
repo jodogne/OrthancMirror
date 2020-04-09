@@ -747,6 +747,14 @@ namespace Orthanc
   };
 
 
+  enum DicomAssociationRole
+  {
+    DicomAssociationRole_Default,
+    DicomAssociationRole_Scu,
+    DicomAssociationRole_Scp
+  };
+
+
   /**
    * WARNING: Do not change the explicit values in the enumerations
    * below this point. This would result in incompatible databases

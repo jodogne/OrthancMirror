@@ -2404,4 +2404,1323 @@ TEST(Toto, DISABLED_Transcode)
   }
 }
 
+
+
+#ifdef _WIN32
+/**
+ * "The maximum length, in bytes, of the string returned in the buffer 
+ * pointed to by the name parameter is dependent on the namespace provider,
+ * but this string must be 256 bytes or less.
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/ms738527(v=vs.85).aspx
+ **/
+#  define HOST_NAME_MAX 256
+#  include <winsock.h>
+#endif 
+
+
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+/**
+ * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
+ * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
+ * array of size _POSIX_HOST_NAME_MAX, invoke gethostname() and expect
+ * that the result will fit."
+ * http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00128.html
+ **/
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
+
+
+#include "../Core/DicomNetworking/RemoteModalityParameters.h"
+
+
+#include <dcmtk/dcmnet/diutil.h>  // For dcmConnectionTimeout()
+
+
+
+namespace Orthanc
+{
+  // By default, the timeout for client DICOM connections is set to 10 seconds
+  static boost::mutex  defaultTimeoutMutex_;
+  static uint32_t defaultTimeout_ = 10;
+
+
+  class DicomAssociationParameters
+  {
+  private:
+    std::string           localAet_;
+    std::string           remoteAet_;
+    std::string           remoteHost_;
+    uint16_t              remotePort_;
+    ModalityManufacturer  manufacturer_;
+    DicomAssociationRole  role_;
+    uint32_t              timeout_;
+
+    void ReadDefaultTimeout()
+    {
+      boost::mutex::scoped_lock lock(defaultTimeoutMutex_);
+      timeout_ = defaultTimeout_;
+    }
+
+  public:
+    DicomAssociationParameters() :
+      localAet_("STORESCU"),
+      remoteAet_("ANY-SCP"),
+      remoteHost_("127.0.0.1"),
+      remotePort_(104),
+      manufacturer_(ModalityManufacturer_Generic),
+      role_(DicomAssociationRole_Default)
+    {
+      ReadDefaultTimeout();
+    }
+    
+    DicomAssociationParameters(const std::string& localAet,
+                               const RemoteModalityParameters& remote) :
+      localAet_(localAet),
+      remoteAet_(remote.GetApplicationEntityTitle()),
+      remoteHost_(remote.GetHost()),
+      remotePort_(remote.GetPortNumber()),
+      manufacturer_(remote.GetManufacturer()),
+      role_(DicomAssociationRole_Default),
+      timeout_(defaultTimeout_)
+    {
+      ReadDefaultTimeout();
+    }
+    
+    const std::string& GetLocalApplicationEntityTitle() const
+    {
+      return localAet_;
+    }
+
+    const std::string& GetRemoteApplicationEntityTitle() const
+    {
+      return remoteAet_;
+    }
+
+    const std::string& GetRemoteHost() const
+    {
+      return remoteHost_;
+    }
+
+    uint16_t GetRemotePort() const
+    {
+      return remotePort_;
+    }
+
+    ModalityManufacturer GetRemoteManufacturer() const
+    {
+      return manufacturer_;
+    }
+
+    DicomAssociationRole GetRole() const
+    {
+      return role_;
+    }
+
+    void SetLocalApplicationEntityTitle(const std::string& aet)
+    {
+      localAet_ = aet;
+    }
+
+    void SetRemoteApplicationEntityTitle(const std::string& aet)
+    {
+      remoteAet_ = aet;
+    }
+
+    void SetRemoteHost(const std::string& host)
+    {
+      if (host.size() > HOST_NAME_MAX - 10)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Invalid host name (too long): " + host);
+      }
+
+      remoteHost_ = host;
+    }
+
+    void SetRemotePort(uint16_t port)
+    {
+      remotePort_ = port;
+    }
+
+    void SetRemoteManufacturer(ModalityManufacturer manufacturer)
+    {
+      manufacturer_ = manufacturer;
+    }
+
+    void SetRole(DicomAssociationRole role)
+    {
+      role_ = role;
+    }
+
+    void SetRemoteModality(const RemoteModalityParameters& parameters)
+    {
+      SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
+      SetRemoteHost(parameters.GetHost());
+      SetRemotePort(parameters.GetPortNumber());
+      SetRemoteManufacturer(parameters.GetManufacturer());
+    }
+
+    bool IsEqual(const DicomAssociationParameters& other) const
+    {
+      return (localAet_ == other.localAet_ &&
+              remoteAet_ == other.remoteAet_ &&
+              remoteHost_ == other.remoteHost_ &&
+              remotePort_ == other.remotePort_ &&
+              manufacturer_ == other.manufacturer_ &&
+              role_ == other.role_);
+    }
+
+    void SetTimeout(uint32_t seconds)
+    {
+      timeout_ = seconds;
+    }
+
+    uint32_t GetTimeout() const
+    {
+      return timeout_;
+    }
+
+    bool HasTimeout() const
+    {
+      return timeout_ != 0;
+    }
+    
+    static void SetDefaultTimeout(uint32_t seconds)
+    {
+      LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
+                << seconds << " seconds (0 = no timeout)";
+
+      {
+        boost::mutex::scoped_lock lock(defaultTimeoutMutex_);
+        defaultTimeout_ = seconds;
+      }
+    }
+
+    void CheckCondition(const OFCondition& cond,
+                        const std::string& command) const
+    {
+      if (cond.bad())
+      {
+        // Reformat the error message from DCMTK by turning multiline
+        // errors into a single line
+      
+        std::string s(cond.text());
+        std::string info;
+        info.reserve(s.size());
+
+        bool isMultiline = false;
+        for (size_t i = 0; i < s.size(); i++)
+        {
+          if (s[i] == '\r')
+          {
+            // Ignore
+          }
+          else if (s[i] == '\n')
+          {
+            if (isMultiline)
+            {
+              info += "; ";
+            }
+            else
+            {
+              info += " (";
+              isMultiline = true;
+            }
+          }
+          else
+          {
+            info.push_back(s[i]);
+          }
+        }
+
+        if (isMultiline)
+        {
+          info += ")";
+        }
+
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "DicomUserConnection - " + command + " to AET \"" +
+                               GetRemoteApplicationEntityTitle() + "\": " + info);
+      }
+    }
+  };
+  
+
+  class DicomAssociation : public boost::noncopyable
+  {
+  private:
+    // This is the maximum number of presentation context IDs (the
+    // number of odd integers between 1 and 255)
+    // http://dicom.nema.org/medical/dicom/2019e/output/chtml/part08/sect_9.3.2.2.html
+    static const size_t MAX_PROPOSED_PRESENTATIONS = 128;
+    
+    struct ProposedPresentationContext
+    {
+      std::string                    sopClassUid_;
+      std::set<DicomTransferSyntax>  transferSyntaxes_;
+    };
+
+    typedef std::map<std::string, std::map<DicomTransferSyntax, uint8_t> >  AcceptedPresentationContexts;
+
+    bool                                      isOpen_;
+    std::vector<ProposedPresentationContext>  proposed_;
+    AcceptedPresentationContexts              accepted_;
+    T_ASC_Network*                            net_;
+    T_ASC_Parameters*                         params_;
+    T_ASC_Association*                        assoc_;
+
+    void Initialize()
+    {
+      isOpen_ = false;
+      net_ = NULL; 
+      params_ = NULL;
+      assoc_ = NULL;      
+
+      // Must be after "isOpen_ = false"
+      ClearPresentationContexts();
+    }
+
+    void CheckConnecting(const DicomAssociationParameters& parameters,
+                         const OFCondition& cond)
+    {
+      try
+      {
+        parameters.CheckCondition(cond, "connecting");
+      }
+      catch (OrthancException&)
+      {
+        CloseInternal();
+        throw;
+      }
+    }
+    
+    void CloseInternal()
+    {
+      if (assoc_ != NULL)
+      {
+        ASC_releaseAssociation(assoc_);
+        ASC_destroyAssociation(&assoc_);
+        assoc_ = NULL;
+        params_ = NULL;
+      }
+      else
+      {
+        if (params_ != NULL)
+        {
+          ASC_destroyAssociationParameters(&params_);
+          params_ = NULL;
+        }
+      }
+
+      if (net_ != NULL)
+      {
+        ASC_dropNetwork(&net_);
+        net_ = NULL;
+      }
+
+      accepted_.clear();
+      isOpen_ = false;
+    }
+
+    void AddAccepted(const std::string& sopClassUid,
+                     DicomTransferSyntax syntax,
+                     uint8_t presentationContextId)
+    {
+      AcceptedPresentationContexts::iterator found = accepted_.find(sopClassUid);
+
+      if (found == accepted_.end())
+      {
+        std::map<DicomTransferSyntax, uint8_t> syntaxes;
+        syntaxes[syntax] = presentationContextId;
+        accepted_[sopClassUid] = syntaxes;
+      }      
+      else
+      {
+        if (found->second.find(syntax) != found->second.end())
+        {
+          LOG(WARNING) << "The same transfer syntax ("
+                       << GetTransferSyntaxUid(syntax)
+                       << ") was accepted twice for the same SOP class UID ("
+                       << sopClassUid << ")";
+        }
+        else
+        {
+          found->second[syntax] = presentationContextId;
+        }
+      }
+    }
+
+  public:
+    DicomAssociation()
+    {
+      Initialize();
+    }
+
+    ~DicomAssociation()
+    {
+      try
+      {
+        Close();
+      }
+      catch (OrthancException&)
+      {
+        // Don't throw exception in destructors
+      }
+    }
+
+    bool IsOpen() const
+    {
+      return isOpen_;
+    }
+
+    void ClearPresentationContexts()
+    {
+      Close();
+      proposed_.clear();
+      proposed_.reserve(MAX_PROPOSED_PRESENTATIONS);
+    }
+
+    void Open(const DicomAssociationParameters& parameters)
+    {
+      if (isOpen_)
+      {
+        return;  // Already open
+      }
+      
+      // Timeout used during association negociation and ASC_releaseAssociation()
+      uint32_t acseTimeout = parameters.GetTimeout();
+      if (acseTimeout == 0)
+      {
+        /**
+         * Timeout is disabled. Global timeout (seconds) for
+         * connecting to remote hosts.  Default value is -1 which
+         * selects infinite timeout, i.e. blocking connect().
+         **/
+        dcmConnectionTimeout.set(-1);
+        acseTimeout = 10;
+      }
+      else
+      {
+        dcmConnectionTimeout.set(acseTimeout);
+      }
+      
+      T_ASC_SC_ROLE dcmtkRole;
+      switch (parameters.GetRole())
+      {
+        case DicomAssociationRole_Default:
+          dcmtkRole = ASC_SC_ROLE_DEFAULT;
+          break;
+
+        case DicomAssociationRole_Scu:
+          dcmtkRole = ASC_SC_ROLE_SCU;
+          break;
+
+        case DicomAssociationRole_Scp:
+          dcmtkRole = ASC_SC_ROLE_SCP;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      assert(net_ == NULL &&
+             params_ == NULL &&
+             assoc_ == NULL);
+
+      if (proposed_.empty())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "No presentation context was proposed");
+      }
+
+      LOG(INFO) << "Opening a DICOM SCU connection from AET \""
+                << parameters.GetLocalApplicationEntityTitle() 
+                << "\" to AET \"" << parameters.GetRemoteApplicationEntityTitle()
+                << "\" on host " << parameters.GetRemoteHost()
+                << ":" << parameters.GetRemotePort() 
+                << " (manufacturer: " << EnumerationToString(parameters.GetRemoteManufacturer()) << ")";
+
+      CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
+      CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
+
+      // Set this application's title and the called application's title in the params
+      CheckConnecting(parameters, ASC_setAPTitles(
+                        params_, parameters.GetLocalApplicationEntityTitle().c_str(),
+                        parameters.GetRemoteApplicationEntityTitle().c_str(), NULL));
+
+      // Set the network addresses of the local and remote entities
+      char localHost[HOST_NAME_MAX];
+      gethostname(localHost, HOST_NAME_MAX - 1);
+
+      char remoteHostAndPort[HOST_NAME_MAX];
+
+#ifdef _MSC_VER
+      _snprintf
+#else
+        snprintf
+#endif
+        (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d",
+         parameters.GetRemoteHost().c_str(), parameters.GetRemotePort());
+
+      CheckConnecting(parameters, ASC_setPresentationAddresses(params_, localHost, remoteHostAndPort));
+
+      // Set various options
+      CheckConnecting(parameters, ASC_setTransportLayerType(params_, /*opt_secureConnection*/ false));
+
+      // Setup the list of proposed presentation contexts
+      unsigned int presentationContextId = 1;
+      for (size_t i = 0; i < proposed_.size(); i++)
+      {
+        assert(presentationContextId <= 255);
+        const char* sopClassUid = proposed_[i].sopClassUid_.c_str();
+
+        const std::set<DicomTransferSyntax>& source = proposed_[i].transferSyntaxes_;
+          
+        std::vector<const char*> transferSyntaxes;
+        transferSyntaxes.reserve(source.size());
+          
+        for (std::set<DicomTransferSyntax>::const_iterator
+               it = source.begin(); it != source.end(); ++it)
+        {
+          transferSyntaxes.push_back(GetTransferSyntaxUid(*it));
+        }
+
+        assert(!transferSyntaxes.empty());
+        CheckConnecting(parameters, ASC_addPresentationContext(
+                          params_, presentationContextId, sopClassUid,
+                          &transferSyntaxes[0], transferSyntaxes.size(), dcmtkRole));
+
+        presentationContextId += 2;
+      }
+
+      // Do the association
+      CheckConnecting(parameters, ASC_requestAssociation(net_, params_, &assoc_));
+      isOpen_ = true;
+
+      // Inspect the accepted transfer syntaxes
+      LST_HEAD **l = &params_->DULparams.acceptedPresentationContext;
+      if (*l != NULL)
+      {
+        DUL_PRESENTATIONCONTEXT* pc = (DUL_PRESENTATIONCONTEXT*) LST_Head(l);
+        LST_Position(l, (LST_NODE*)pc);
+        while (pc)
+        {
+          if (pc->result == ASC_P_ACCEPTANCE)
+          {
+            DicomTransferSyntax transferSyntax;
+            if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
+            {
+              AddAccepted(pc->abstractSyntax, transferSyntax, pc->presentationContextID);
+            }
+            else
+            {
+              LOG(WARNING) << "Unknown transfer syntax received from AET \""
+                           << parameters.GetRemoteApplicationEntityTitle()
+                           << "\": " << pc->acceptedTransferSyntax;
+            }
+          }
+            
+          pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
+        }
+      }
+
+      if (accepted_.empty())
+      {
+        throw OrthancException(ErrorCode_NoPresentationContext,
+                               "Unable to negotiate a presentation context with AET \"" +
+                               parameters.GetRemoteApplicationEntityTitle() + "\"");
+      }
+    }
+
+    void Close()
+    {
+      if (isOpen_)
+      {
+        CloseInternal();
+      }
+    }
+
+    bool LookupAcceptedPresentationContext(std::map<DicomTransferSyntax, uint8_t>& target,
+                                           const std::string& sopClassUid) const
+    {
+      if (!IsOpen())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Connection not opened");
+      }
+      
+      AcceptedPresentationContexts::const_iterator found = accepted_.find(sopClassUid);
+
+      if (found == accepted_.end())
+      {
+        return false;
+      }
+      else
+      {
+        target = found->second;
+        return true;
+      }
+    }
+
+    void ProposeGenericPresentationContext(const std::string& sopClassUid)
+    {
+      std::set<DicomTransferSyntax> ts;
+      ts.insert(DicomTransferSyntax_LittleEndianImplicit);
+      ts.insert(DicomTransferSyntax_LittleEndianExplicit);
+      ts.insert(DicomTransferSyntax_BigEndianExplicit);
+      ProposePresentationContext(sopClassUid, ts);
+    }
+
+    void ProposePresentationContext(const std::string& sopClassUid,
+                                    DicomTransferSyntax transferSyntax)
+    {
+      std::set<DicomTransferSyntax> ts;
+      ts.insert(transferSyntax);
+      ProposePresentationContext(sopClassUid, ts);
+    }
+
+    void ProposePresentationContext(const std::string& sopClassUid,
+                                    const std::set<DicomTransferSyntax>& transferSyntaxes)
+    {
+      if (transferSyntaxes.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "No transfer syntax provided");
+      }
+      
+      if (proposed_.size() >= MAX_PROPOSED_PRESENTATIONS)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Too many proposed presentation contexts");
+      }
+      
+      if (IsOpen())
+      {
+        Close();
+      }
+
+      ProposedPresentationContext context;
+      context.sopClassUid_ = sopClassUid;
+      context.transferSyntaxes_ = transferSyntaxes;
+
+      proposed_.push_back(context);
+    }
+
+    T_ASC_Association& GetDcmtkAssociation() const
+    {
+      if (isOpen_)
+      {
+        assert(assoc_ != NULL);
+        return *assoc_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "The connection is not open");
+      }
+    }
+
+    T_ASC_Network& GetDcmtkNetwork() const
+    {
+      if (isOpen_)
+      {
+        assert(net_ != NULL);
+        return *net_;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                               "The connection is not open");
+      }
+    }
+  };
+
+
+
+  static void TestAndCopyTag(DicomMap& result,
+                             const DicomMap& source,
+                             const DicomTag& tag)
+  {
+    if (!source.HasTag(tag))
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+    else
+    {
+      result.SetValue(tag, source.GetValue(tag));
+    }
+  }
+
+
+  namespace
+  {
+    struct FindPayload
+    {
+      DicomFindAnswers* answers;
+      const char*       level;
+      bool              isWorklist;
+    };
+  }
+
+
+  static void FindCallback(
+    /* in */
+    void *callbackData,
+    T_DIMSE_C_FindRQ *request,      /* original find request */
+    int responseCount,
+    T_DIMSE_C_FindRSP *response,    /* pending response received */
+    DcmDataset *responseIdentifiers /* pending response identifiers */
+    )
+  {
+    FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
+
+    if (responseIdentifiers != NULL)
+    {
+      if (payload.isWorklist)
+      {
+        ParsedDicomFile answer(*responseIdentifiers);
+        payload.answers->Add(answer);
+      }
+      else
+      {
+        DicomMap m;
+        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers);
+        
+        if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+        {
+          m.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, payload.level, false);
+        }
+
+        payload.answers->Add(m);
+      }
+    }
+  }
+
+
+  static void NormalizeFindQuery(DicomMap& fixedQuery,
+                                 ResourceType level,
+                                 const DicomMap& fields)
+  {
+    std::set<DicomTag> allowedTags;
+
+    // WARNING: Do not add "break" or reorder items in this switch-case!
+    switch (level)
+    {
+      case ResourceType_Instance:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Instance);
+
+      case ResourceType_Series:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Series);
+
+      case ResourceType_Study:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Study);
+
+      case ResourceType_Patient:
+        DicomTag::AddTagsForModule(allowedTags, DicomModule_Patient);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
+        break;
+
+      case ResourceType_Study:
+        allowedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
+        allowedTags.insert(DICOM_TAG_SOP_CLASSES_IN_STUDY);
+        break;
+
+      case ResourceType_Series:
+        allowedTags.insert(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
+        break;
+
+      default:
+        break;
+    }
+
+    allowedTags.insert(DICOM_TAG_SPECIFIC_CHARACTER_SET);
+
+    DicomArray query(fields);
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomTag& tag = query.GetElement(i).GetTag();
+      if (allowedTags.find(tag) == allowedTags.end())
+      {
+        LOG(WARNING) << "Tag not allowed for this C-Find level, will be ignored: " << tag;
+      }
+      else
+      {
+        fixedQuery.SetValue(tag, query.GetElement(i).GetValue());
+      }
+    }
+  }
+
+
+
+  static ParsedDicomFile* ConvertQueryFields(const DicomMap& fields,
+                                             ModalityManufacturer manufacturer)
+  {
+    // Fix outgoing C-Find requests issue for Syngo.Via and its
+    // solution was reported by Emsy Chan by private mail on
+    // 2015-06-17. According to Robert van Ommen (2015-11-30), the
+    // same fix is required for Agfa Impax. This was generalized for
+    // generic manufacturer since it seems to affect PhilipsADW,
+    // GEWAServer as well:
+    // https://bitbucket.org/sjodogne/orthanc/issues/31/
+
+    switch (manufacturer)
+    {
+      case ModalityManufacturer_GenericNoWildcardInDates:
+      case ModalityManufacturer_GenericNoUniversalWildcard:
+      {
+        std::unique_ptr<DicomMap> fix(fields.Clone());
+
+        std::set<DicomTag> tags;
+        fix->GetTags(tags);
+
+        for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+        {
+          // Replace a "*" wildcard query by an empty query ("") for
+          // "date" or "all" value representations depending on the
+          // type of manufacturer.
+          if (manufacturer == ModalityManufacturer_GenericNoUniversalWildcard ||
+              (manufacturer == ModalityManufacturer_GenericNoWildcardInDates &&
+               FromDcmtkBridge::LookupValueRepresentation(*it) == ValueRepresentation_Date))
+          {
+            const DicomValue* value = fix->TestAndGetValue(*it);
+
+            if (value != NULL && 
+                !value->IsNull() &&
+                value->GetContent() == "*")
+            {
+              fix->SetValue(*it, "", false);
+            }
+          }
+        }
+
+        return new ParsedDicomFile(*fix, GetDefaultDicomEncoding(), false /* be strict */);
+      }
+
+      default:
+        return new ParsedDicomFile(fields, GetDefaultDicomEncoding(), false /* be strict */);
+    }
+  }
+
+
+
+  class DicomControlUserConnection : public boost::noncopyable
+  {
+  private:
+    DicomAssociationParameters  parameters_;
+    DicomAssociation            association_;
+
+    void SetupPresentationContexts()
+    {
+      association_.ProposeGenericPresentationContext(UID_VerificationSOPClass);
+      association_.ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
+      association_.ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
+      association_.ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
+      association_.ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
+    }
+
+    void FindInternal(DicomFindAnswers& answers,
+                      DcmDataset* dataset,
+                      const char* sopClass,
+                      bool isWorklist,
+                      const char* level)
+    {
+      assert(isWorklist ^ (level != NULL));
+
+      association_.Open(parameters_);
+
+      FindPayload payload;
+      payload.answers = &answers;
+      payload.level = level;
+      payload.isWorklist = isWorklist;
+
+      // Figure out which of the accepted presentation contexts should be used
+      int presID = ASC_findAcceptedPresentationContextID(
+        &association_.GetDcmtkAssociation(), sopClass);
+      if (presID == 0)
+      {
+        throw OrthancException(ErrorCode_DicomFindUnavailable,
+                               "Remote AET is " + parameters_.GetRemoteApplicationEntityTitle());
+      }
+
+      T_DIMSE_C_FindRQ request;
+      memset(&request, 0, sizeof(request));
+      request.MessageID = association_.GetDcmtkAssociation().nextMsgID++;
+      strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
+      request.Priority = DIMSE_PRIORITY_MEDIUM;
+      request.DataSetType = DIMSE_DATASET_PRESENT;
+
+      T_DIMSE_C_FindRSP response;
+      DcmDataset* statusDetail = NULL;
+
+#if DCMTK_VERSION_NUMBER >= 364
+      int responseCount;
+#endif
+
+      OFCondition cond = DIMSE_findUser(
+        &association_.GetDcmtkAssociation(), presID, &request, dataset,
+#if DCMTK_VERSION_NUMBER >= 364
+        responseCount,
+#endif
+        FindCallback, &payload,
+        /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+        /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+        &response, &statusDetail);
+    
+      if (statusDetail)
+      {
+        delete statusDetail;
+      }
+
+      parameters_.CheckCondition(cond, "C-FIND");
+
+    
+      /**
+       * New in Orthanc 1.6.0: Deal with failures during C-FIND.
+       * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#table_C.4-1
+       **/
+    
+      if (response.DimseStatus != 0x0000 &&  // Success
+          response.DimseStatus != 0xFF00 &&  // Pending - Matches are continuing 
+          response.DimseStatus != 0xFF01)    // Pending - Matches are continuing 
+      {
+        char buf[16];
+        sprintf(buf, "%04X", response.DimseStatus);
+
+        if (response.DimseStatus == STATUS_FIND_Failed_UnableToProcess)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 HttpStatus_422_UnprocessableEntity,
+                                 "C-FIND SCU to AET \"" +
+                                 parameters_.GetRemoteApplicationEntityTitle() +
+                                 "\" has failed with DIMSE status 0x" + buf +
+                                 " (unable to process - invalid query ?)");
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
+                                 parameters_.GetRemoteApplicationEntityTitle() +
+                                 "\" has failed with DIMSE status 0x" + buf);
+        }
+      }
+    }
+
+    void MoveInternal(const std::string& targetAet,
+                      ResourceType level,
+                      const DicomMap& fields)
+    {
+      association_.Open(parameters_);
+
+      std::unique_ptr<ParsedDicomFile> query(
+        ConvertQueryFields(fields, parameters_.GetRemoteManufacturer()));
+      DcmDataset* dataset = query->GetDcmtkObject().getDataset();
+
+      const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
+      switch (level)
+      {
+        case ResourceType_Patient:
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
+          break;
+
+        case ResourceType_Study:
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
+          break;
+
+        case ResourceType_Series:
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
+          break;
+
+        case ResourceType_Instance:
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      // Figure out which of the accepted presentation contexts should be used
+      int presID = ASC_findAcceptedPresentationContextID(&association_.GetDcmtkAssociation(), sopClass);
+      if (presID == 0)
+      {
+        throw OrthancException(ErrorCode_DicomMoveUnavailable,
+                               "Remote AET is " + parameters_.GetRemoteApplicationEntityTitle());
+      }
+
+      T_DIMSE_C_MoveRQ request;
+      memset(&request, 0, sizeof(request));
+      request.MessageID = association_.GetDcmtkAssociation().nextMsgID++;
+      strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
+      request.Priority = DIMSE_PRIORITY_MEDIUM;
+      request.DataSetType = DIMSE_DATASET_PRESENT;
+      strncpy(request.MoveDestination, targetAet.c_str(), DIC_AE_LEN);
+
+      T_DIMSE_C_MoveRSP response;
+      DcmDataset* statusDetail = NULL;
+      DcmDataset* responseIdentifiers = NULL;
+      OFCondition cond = DIMSE_moveUser(
+        &association_.GetDcmtkAssociation(), presID, &request, dataset, NULL, NULL,
+        /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+        /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+        &association_.GetDcmtkNetwork(), NULL, NULL,
+        &response, &statusDetail, &responseIdentifiers);
+
+      if (statusDetail)
+      {
+        delete statusDetail;
+      }
+
+      if (responseIdentifiers)
+      {
+        delete responseIdentifiers;
+      }
+
+      parameters_.CheckCondition(cond, "C-MOVE");
+
+    
+      /**
+       * New in Orthanc 1.6.0: Deal with failures during C-MOVE.
+       * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.2.html#table_C.4-2
+       **/
+    
+      if (response.DimseStatus != 0x0000 &&  // Success
+          response.DimseStatus != 0xFF00)    // Pending - Sub-operations are continuing
+      {
+        char buf[16];
+        sprintf(buf, "%04X", response.DimseStatus);
+
+        if (response.DimseStatus == STATUS_MOVE_Failed_UnableToProcess)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 HttpStatus_422_UnprocessableEntity,
+                                 "C-MOVE SCU to AET \"" +
+                                 parameters_.GetRemoteApplicationEntityTitle() +
+                                 "\" has failed with DIMSE status 0x" + buf +
+                                 " (unable to process - resource not found ?)");
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
+                                 parameters_.GetRemoteApplicationEntityTitle() +
+                                 "\" has failed with DIMSE status 0x" + buf);
+        }
+      }
+    }
+    
+  public:
+    DicomControlUserConnection()
+    {
+      SetupPresentationContexts();
+    }
+    
+    DicomControlUserConnection(const DicomAssociationParameters& params) :
+      parameters_(params)
+    {
+      SetupPresentationContexts();
+    }
+    
+    void SetParameters(const DicomAssociationParameters& params)
+    {
+      if (!parameters_.IsEqual(params))
+      {
+        association_.Close();
+        parameters_ = params;
+      }
+    }
+
+    const DicomAssociationParameters& GetParameters() const
+    {
+      return parameters_;
+    }
+
+    bool Echo()
+    {
+      association_.Open(parameters_);
+
+      DIC_US status;
+      parameters_.CheckCondition(
+        DIMSE_echoUser(&association_.GetDcmtkAssociation(),
+                       association_.GetDcmtkAssociation().nextMsgID++, 
+                       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                       /*opt_dimse_timeout*/ parameters_.GetTimeout(),
+                       &status, NULL),
+        "C-ECHO");
+      
+      return status == STATUS_Success;
+    }
+
+
+    void Find(DicomFindAnswers& result,
+              ResourceType level,
+              const DicomMap& originalFields,
+              bool normalize)
+    {
+      std::unique_ptr<ParsedDicomFile> query;
+
+      if (normalize)
+      {
+        DicomMap fields;
+        NormalizeFindQuery(fields, level, originalFields);
+        query.reset(ConvertQueryFields(fields, parameters_.GetRemoteManufacturer()));
+      }
+      else
+      {
+        query.reset(new ParsedDicomFile(originalFields,
+                                        GetDefaultDicomEncoding(),
+                                        false /* be strict */));
+      }
+    
+      DcmDataset* dataset = query->GetDcmtkObject().getDataset();
+
+      const char* clevel = NULL;
+      const char* sopClass = NULL;
+
+      switch (level)
+      {
+        case ResourceType_Patient:
+          clevel = "PATIENT";
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
+          sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
+          break;
+
+        case ResourceType_Study:
+          clevel = "STUDY";
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
+          sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+          break;
+
+        case ResourceType_Series:
+          clevel = "SERIES";
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
+          sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+          break;
+
+        case ResourceType_Instance:
+          clevel = "IMAGE";
+          DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
+          sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+
+      const char* universal;
+      if (parameters_.GetRemoteManufacturer() == ModalityManufacturer_GE)
+      {
+        universal = "*";
+      }
+      else
+      {
+        universal = "";
+      }      
+    
+
+      // Add the expected tags for this query level.
+      // WARNING: Do not reorder or add "break" in this switch-case!
+      switch (level)
+      {
+        case ResourceType_Instance:
+          if (!dataset->tagExists(DCM_SOPInstanceUID))
+          {
+            DU_putStringDOElement(dataset, DCM_SOPInstanceUID, universal);
+          }
+
+        case ResourceType_Series:
+          if (!dataset->tagExists(DCM_SeriesInstanceUID))
+          {
+            DU_putStringDOElement(dataset, DCM_SeriesInstanceUID, universal);
+          }
+
+        case ResourceType_Study:
+          if (!dataset->tagExists(DCM_AccessionNumber))
+          {
+            DU_putStringDOElement(dataset, DCM_AccessionNumber, universal);
+          }
+
+          if (!dataset->tagExists(DCM_StudyInstanceUID))
+          {
+            DU_putStringDOElement(dataset, DCM_StudyInstanceUID, universal);
+          }
+
+        case ResourceType_Patient:
+          if (!dataset->tagExists(DCM_PatientID))
+          {
+            DU_putStringDOElement(dataset, DCM_PatientID, universal);
+          }
+        
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      assert(clevel != NULL && sopClass != NULL);
+      FindInternal(result, dataset, sopClass, false, clevel);
+    }
+    
+
+    void Move(const std::string& targetAet,
+              ResourceType level,
+              const DicomMap& findResult)
+    {
+      DicomMap move;
+      switch (level)
+      {
+        case ResourceType_Patient:
+          TestAndCopyTag(move, findResult, DICOM_TAG_PATIENT_ID);
+          break;
+
+        case ResourceType_Study:
+          TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+          break;
+
+        case ResourceType_Series:
+          TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+          TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+          break;
+
+        case ResourceType_Instance:
+          TestAndCopyTag(move, findResult, DICOM_TAG_STUDY_INSTANCE_UID);
+          TestAndCopyTag(move, findResult, DICOM_TAG_SERIES_INSTANCE_UID);
+          TestAndCopyTag(move, findResult, DICOM_TAG_SOP_INSTANCE_UID);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      MoveInternal(targetAet, level, move);
+    }
+
+
+    void Move(const std::string& targetAet,
+              const DicomMap& findResult)
+    {
+      if (!findResult.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
+      ResourceType level = StringToResourceType(tmp.c_str());
+
+      Move(targetAet, level, findResult);
+    }
+
+
+    void MovePatient(const std::string& targetAet,
+                     const std::string& patientId)
+    {
+      DicomMap query;
+      query.SetValue(DICOM_TAG_PATIENT_ID, patientId, false);
+      MoveInternal(targetAet, ResourceType_Patient, query);
+    }
+
+    void MoveStudy(const std::string& targetAet,
+                   const std::string& studyUid)
+    {
+      DicomMap query;
+      query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
+      MoveInternal(targetAet, ResourceType_Study, query);
+    }
+
+    void MoveSeries(const std::string& targetAet,
+                    const std::string& studyUid,
+                    const std::string& seriesUid)
+    {
+      DicomMap query;
+      query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
+      query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
+      MoveInternal(targetAet, ResourceType_Series, query);
+    }
+
+    void MoveInstance(const std::string& targetAet,
+                      const std::string& studyUid,
+                      const std::string& seriesUid,
+                      const std::string& instanceUid)
+    {
+      DicomMap query;
+      query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyUid, false);
+      query.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, seriesUid, false);
+      query.SetValue(DICOM_TAG_SOP_INSTANCE_UID, instanceUid, false);
+      MoveInternal(targetAet, ResourceType_Instance, query);
+    }
+
+
+    void FindWorklist(DicomFindAnswers& result,
+                      ParsedDicomFile& query)
+    {
+      DcmDataset* dataset = query.GetDcmtkObject().getDataset();
+      const char* sopClass = UID_FINDModalityWorklistInformationModel;
+
+      FindInternal(result, dataset, sopClass, true, NULL);
+    }
+  };
+  
+}
+
+
+TEST(Toto, DISABLED_DicomAssociation)
+{
+  DicomAssociationParameters params;
+  params.SetLocalApplicationEntityTitle("ORTHANC");
+  params.SetRemoteApplicationEntityTitle("PACS");
+  params.SetRemotePort(2001);
+
+#if 0
+  DicomAssociation assoc;
+  assoc.ProposeGenericPresentationContext(UID_StorageCommitmentPushModelSOPClass);
+  assoc.ProposeGenericPresentationContext(UID_VerificationSOPClass);
+  assoc.ProposePresentationContext(UID_ComputedRadiographyImageStorage,
+                                   DicomTransferSyntax_JPEGProcess1);
+  assoc.ProposePresentationContext(UID_ComputedRadiographyImageStorage,
+                                   DicomTransferSyntax_JPEGProcess2_4);
+  assoc.ProposePresentationContext(UID_ComputedRadiographyImageStorage,
+                                   DicomTransferSyntax_JPEG2000);
+  
+  assoc.Open(params);
+
+  int presID = ASC_findAcceptedPresentationContextID(&assoc.GetDcmtkAssociation(), UID_ComputedRadiographyImageStorage);
+  printf(">> %d\n", presID);
+    
+  std::map<DicomTransferSyntax, uint8_t> pc;
+  printf(">> %d\n", assoc.LookupAcceptedPresentationContext(pc, UID_ComputedRadiographyImageStorage));
+  
+  for (std::map<DicomTransferSyntax, uint8_t>::const_iterator
+         it = pc.begin(); it != pc.end(); ++it)
+  {
+    printf("[%s] => %d\n", GetTransferSyntaxUid(it->first), it->second);
+  }
+#else
+  DicomControlUserConnection assoc(params);
+
+  try
+  {
+    printf(">> %d\n", assoc.Echo());
+  }
+  catch (OrthancException&)
+  {
+  }
+
+  params.SetRemoteApplicationEntityTitle("PACS");
+  params.SetRemotePort(2000);
+  assoc.SetParameters(params);
+  printf(">> %d\n", assoc.Echo());
+
+#endif
+}
+
+
 #endif
