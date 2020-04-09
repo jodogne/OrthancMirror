@@ -2452,7 +2452,6 @@ namespace Orthanc
     std::string           remoteHost_;
     uint16_t              remotePort_;
     ModalityManufacturer  manufacturer_;
-    DicomAssociationRole  role_;
     uint32_t              timeout_;
 
     void ReadDefaultTimeout()
@@ -2467,8 +2466,7 @@ namespace Orthanc
       remoteAet_("ANY-SCP"),
       remoteHost_("127.0.0.1"),
       remotePort_(104),
-      manufacturer_(ModalityManufacturer_Generic),
-      role_(DicomAssociationRole_Default)
+      manufacturer_(ModalityManufacturer_Generic)
     {
       ReadDefaultTimeout();
     }
@@ -2480,7 +2478,6 @@ namespace Orthanc
       remoteHost_(remote.GetHost()),
       remotePort_(remote.GetPortNumber()),
       manufacturer_(remote.GetManufacturer()),
-      role_(DicomAssociationRole_Default),
       timeout_(defaultTimeout_)
     {
       ReadDefaultTimeout();
@@ -2509,11 +2506,6 @@ namespace Orthanc
     ModalityManufacturer GetRemoteManufacturer() const
     {
       return manufacturer_;
-    }
-
-    DicomAssociationRole GetRole() const
-    {
-      return role_;
     }
 
     void SetLocalApplicationEntityTitle(const std::string& aet)
@@ -2547,11 +2539,6 @@ namespace Orthanc
       manufacturer_ = manufacturer;
     }
 
-    void SetRole(DicomAssociationRole role)
-    {
-      role_ = role;
-    }
-
     void SetRemoteModality(const RemoteModalityParameters& parameters)
     {
       SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
@@ -2566,8 +2553,7 @@ namespace Orthanc
               remoteAet_ == other.remoteAet_ &&
               remoteHost_ == other.remoteHost_ &&
               remotePort_ == other.remotePort_ &&
-              manufacturer_ == other.manufacturer_ &&
-              role_ == other.role_);
+              manufacturer_ == other.manufacturer_);
     }
 
     void SetTimeout(uint32_t seconds)
@@ -2646,6 +2632,44 @@ namespace Orthanc
   };
   
 
+  static void FillSopSequence(DcmDataset& dataset,
+                              const DcmTagKey& tag,
+                              const std::vector<std::string>& sopClassUids,
+                              const std::vector<std::string>& sopInstanceUids,
+                              const std::vector<StorageCommitmentFailureReason>& failureReasons,
+                              bool hasFailureReasons)
+  {
+    assert(sopClassUids.size() == sopInstanceUids.size() &&
+           (hasFailureReasons ?
+            failureReasons.size() == sopClassUids.size() :
+            failureReasons.empty()));
+
+    if (sopInstanceUids.empty())
+    {
+      // Add an empty sequence
+      if (!dataset.insertEmptyElement(tag).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      for (size_t i = 0; i < sopClassUids.size(); i++)
+      {
+        std::unique_ptr<DcmItem> item(new DcmItem);
+        if (!item->putAndInsertString(DCM_ReferencedSOPClassUID, sopClassUids[i].c_str()).good() ||
+            !item->putAndInsertString(DCM_ReferencedSOPInstanceUID, sopInstanceUids[i].c_str()).good() ||
+            (hasFailureReasons &&
+             !item->putAndInsertUint16(DCM_FailureReason, failureReasons[i]).good()) ||
+            !dataset.insertSequenceItem(tag, item.release()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+    }
+  }                              
+
+
   class DicomAssociation : public boost::noncopyable
   {
   private:
@@ -2662,6 +2686,7 @@ namespace Orthanc
 
     typedef std::map<std::string, std::map<DicomTransferSyntax, uint8_t> >  AcceptedPresentationContexts;
 
+    DicomAssociationRole                      role_;
     bool                                      isOpen_;
     std::vector<ProposedPresentationContext>  proposed_;
     AcceptedPresentationContexts              accepted_;
@@ -2671,6 +2696,7 @@ namespace Orthanc
 
     void Initialize()
     {
+      role_ = DicomAssociationRole_Default;
       isOpen_ = false;
       net_ = NULL; 
       params_ = NULL;
@@ -2773,6 +2799,15 @@ namespace Orthanc
       return isOpen_;
     }
 
+    void SetRole(DicomAssociationRole role)
+    {
+      if (role_ != role)
+      {
+        Close();
+        role_ = role;
+      }
+    }
+
     void ClearPresentationContexts()
     {
       Close();
@@ -2805,7 +2840,7 @@ namespace Orthanc
       }
       
       T_ASC_SC_ROLE dcmtkRole;
-      switch (parameters.GetRole())
+      switch (role_)
       {
         case DicomAssociationRole_Default:
           dcmtkRole = ASC_SC_ROLE_DEFAULT;
@@ -3031,6 +3066,338 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadSequenceOfCalls,
                                "The connection is not open");
       }
+    }
+
+
+    static void ReportStorageCommitment(const DicomAssociationParameters& parameters,
+                                        const std::string& transactionUid,
+                                        const std::vector<std::string>& sopClassUids,
+                                        const std::vector<std::string>& sopInstanceUids,
+                                        const std::vector<StorageCommitmentFailureReason>& failureReasons)
+    {
+      if (sopClassUids.size() != sopInstanceUids.size() ||
+          sopClassUids.size() != failureReasons.size())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    
+
+      std::vector<std::string> successSopClassUids, successSopInstanceUids, failedSopClassUids, failedSopInstanceUids;
+      std::vector<StorageCommitmentFailureReason> failedReasons;
+
+      successSopClassUids.reserve(sopClassUids.size());
+      successSopInstanceUids.reserve(sopClassUids.size());
+      failedSopClassUids.reserve(sopClassUids.size());
+      failedSopInstanceUids.reserve(sopClassUids.size());
+      failedReasons.reserve(sopClassUids.size());
+
+      for (size_t i = 0; i < sopClassUids.size(); i++)
+      {
+        switch (failureReasons[i])
+        {
+          case StorageCommitmentFailureReason_Success:
+            successSopClassUids.push_back(sopClassUids[i]);
+            successSopInstanceUids.push_back(sopInstanceUids[i]);
+            break;
+
+          case StorageCommitmentFailureReason_ProcessingFailure:
+          case StorageCommitmentFailureReason_NoSuchObjectInstance:
+          case StorageCommitmentFailureReason_ResourceLimitation:
+          case StorageCommitmentFailureReason_ReferencedSOPClassNotSupported:
+          case StorageCommitmentFailureReason_ClassInstanceConflict:
+          case StorageCommitmentFailureReason_DuplicateTransactionUID:
+            failedSopClassUids.push_back(sopClassUids[i]);
+            failedSopInstanceUids.push_back(sopInstanceUids[i]);
+            failedReasons.push_back(failureReasons[i]);
+            break;
+
+          default:
+          {
+            char buf[16];
+            sprintf(buf, "%04xH", failureReasons[i]);
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Unsupported failure reason for storage commitment: " + std::string(buf));
+          }
+        }
+      }
+    
+      DicomAssociation association;
+
+      {
+        std::set<DicomTransferSyntax> transferSyntaxes;
+        transferSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+        transferSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+
+        association.SetRole(DicomAssociationRole_Scp);
+        association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
+                                               transferSyntaxes);
+      }
+      
+      association.Open(parameters);
+
+      /**
+       * N-EVENT-REPORT
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-1
+       *
+       * Status code:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.1.1.8
+       **/
+
+      /**
+       * Send the "EVENT_REPORT_RQ" request
+       **/
+
+      LOG(INFO) << "Reporting modality \""
+                << parameters.GetRemoteApplicationEntityTitle()
+                << "\" about storage commitment transaction: " << transactionUid
+                << " (" << successSopClassUids.size() << " successes, " 
+                << failedSopClassUids.size() << " failures)";
+      const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
+      
+      {
+        T_DIMSE_Message message;
+        memset(&message, 0, sizeof(message));
+        message.CommandField = DIMSE_N_EVENT_REPORT_RQ;
+
+        T_DIMSE_N_EventReportRQ& content = message.msg.NEventReportRQ;
+        content.MessageID = messageId;
+        strncpy(content.AffectedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        strncpy(content.AffectedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.DataSetType = DIMSE_DATASET_PRESENT;
+
+        DcmDataset dataset;
+        if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        {
+          std::vector<StorageCommitmentFailureReason> empty;
+          FillSopSequence(dataset, DCM_ReferencedSOPSequence, successSopClassUids,
+                          successSopInstanceUids, empty, false);
+        }
+
+        // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.3.html
+        if (failedSopClassUids.empty())
+        {
+          content.EventTypeID = 1;  // "Storage Commitment Request Successful"
+        }
+        else
+        {
+          content.EventTypeID = 2;  // "Storage Commitment Request Complete - Failures Exist"
+
+          // Failure reason
+          // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
+          FillSopSequence(dataset, DCM_FailedSOPSequence, failedSopClassUids,
+                          failedSopInstanceUids, failedReasons, true);
+        }
+
+        int presID = ASC_findAcceptedPresentationContextID(
+          &association.GetDcmtkAssociation(), UID_StorageCommitmentPushModelSOPClass);
+        if (presID == 0)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to send N-EVENT-REPORT request to AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        if (!DIMSE_sendMessageUsingMemoryData(
+              &association.GetDcmtkAssociation(), presID, &message, NULL /* status detail */,
+              &dataset, NULL /* callback */, NULL /* callback context */,
+              NULL /* commandSet */).good())
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol);
+        }
+      }
+
+      /**
+       * Read the "EVENT_REPORT_RSP" response
+       **/
+
+      {
+        T_ASC_PresentationContextID presID = 0;
+        T_DIMSE_Message message;
+
+        if (!DIMSE_receiveCommand(&association.GetDcmtkAssociation(),
+                                  (parameters.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                  parameters.GetTimeout(), &presID, &message,
+                                  NULL /* no statusDetail */).good() ||
+            message.CommandField != DIMSE_N_EVENT_REPORT_RSP)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to read N-EVENT-REPORT response from AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        const T_DIMSE_N_EventReportRSP& content = message.msg.NEventReportRSP;
+        if (content.MessageIDBeingRespondedTo != messageId ||
+            !(content.opts & O_NEVENTREPORT_AFFECTEDSOPCLASSUID) ||
+            !(content.opts & O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID) ||
+            //(content.opts & O_NEVENTREPORT_EVENTTYPEID) ||  // Pedantic test - The "content.EventTypeID" is not used by Orthanc
+            std::string(content.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+            std::string(content.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance ||
+            content.DataSetType != DIMSE_DATASET_NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Badly formatted N-EVENT-REPORT response from AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        if (content.DimseStatus != 0 /* success */)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "The request cannot be handled by remote AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+      }
+
+      association.Close();
+    }
+      
+    static void RequestStorageCommitment(const DicomAssociationParameters& parameters,
+                                         const std::string& transactionUid,
+                                         const std::vector<std::string>& sopClassUids,
+                                         const std::vector<std::string>& sopInstanceUids)
+    {
+      if (sopClassUids.size() != sopInstanceUids.size())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      for (size_t i = 0; i < sopClassUids.size(); i++)
+      {
+        if (sopClassUids[i].empty() ||
+            sopInstanceUids[i].empty())
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "The SOP class/instance UIDs cannot be empty, found: \"" +
+                                 sopClassUids[i] + "\" / \"" + sopInstanceUids[i] + "\"");
+        }
+      }
+
+      if (transactionUid.size() < 5 ||
+          transactionUid.substr(0, 5) != "2.25.")
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      DicomAssociation association;
+
+      {
+        std::set<DicomTransferSyntax> transferSyntaxes;
+        transferSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+        transferSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+      
+        association.SetRole(DicomAssociationRole_Default);
+        association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
+                                               transferSyntaxes);
+      }
+      
+      association.Open(parameters);
+      
+      /**
+       * N-ACTION
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part04/sect_J.3.2.html
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#table_10.1-4
+       *
+       * Status code:
+       * http://dicom.nema.org/medical/dicom/2019a/output/chtml/part07/chapter_10.html#sect_10.1.1.1.8
+       **/
+
+      /**
+       * Send the "N_ACTION_RQ" request
+       **/
+
+      LOG(INFO) << "Request to modality \""
+                << parameters.GetRemoteApplicationEntityTitle()
+                << "\" about storage commitment for " << sopClassUids.size()
+                << " instances, with transaction UID: " << transactionUid;
+      const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
+      
+      {
+        T_DIMSE_Message message;
+        memset(&message, 0, sizeof(message));
+        message.CommandField = DIMSE_N_ACTION_RQ;
+
+        T_DIMSE_N_ActionRQ& content = message.msg.NActionRQ;
+        content.MessageID = messageId;
+        strncpy(content.RequestedSOPClassUID, UID_StorageCommitmentPushModelSOPClass, DIC_UI_LEN);
+        strncpy(content.RequestedSOPInstanceUID, UID_StorageCommitmentPushModelSOPInstance, DIC_UI_LEN);
+        content.ActionTypeID = 1;  // "Request Storage Commitment"
+        content.DataSetType = DIMSE_DATASET_PRESENT;
+
+        DcmDataset dataset;
+        if (!dataset.putAndInsertString(DCM_TransactionUID, transactionUid.c_str()).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        {
+          std::vector<StorageCommitmentFailureReason> empty;
+          FillSopSequence(dataset, DCM_ReferencedSOPSequence, sopClassUids, sopInstanceUids, empty, false);
+        }
+          
+        int presID = ASC_findAcceptedPresentationContextID(
+          &association.GetDcmtkAssociation(), UID_StorageCommitmentPushModelSOPClass);
+        if (presID == 0)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to send N-ACTION request to AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        if (!DIMSE_sendMessageUsingMemoryData(
+              &association.GetDcmtkAssociation(), presID, &message, NULL /* status detail */,
+              &dataset, NULL /* callback */, NULL /* callback context */,
+              NULL /* commandSet */).good())
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol);
+        }
+      }
+
+      /**
+       * Read the "N_ACTION_RSP" response
+       **/
+
+      {
+        T_ASC_PresentationContextID presID = 0;
+        T_DIMSE_Message message;
+        
+        if (!DIMSE_receiveCommand(&association.GetDcmtkAssociation(),
+                                  (parameters.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                  parameters.GetTimeout(), &presID, &message,
+                                  NULL /* no statusDetail */).good() ||
+            message.CommandField != DIMSE_N_ACTION_RSP)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Unable to read N-ACTION response from AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        const T_DIMSE_N_ActionRSP& content = message.msg.NActionRSP;
+        if (content.MessageIDBeingRespondedTo != messageId ||
+            !(content.opts & O_NACTION_AFFECTEDSOPCLASSUID) ||
+            !(content.opts & O_NACTION_AFFECTEDSOPINSTANCEUID) ||
+            //(content.opts & O_NACTION_ACTIONTYPEID) ||  // Pedantic test - The "content.ActionTypeID" is not used by Orthanc
+            std::string(content.AffectedSOPClassUID) != UID_StorageCommitmentPushModelSOPClass ||
+            std::string(content.AffectedSOPInstanceUID) != UID_StorageCommitmentPushModelSOPInstance ||
+            content.DataSetType != DIMSE_DATASET_NULL)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "Badly formatted N-ACTION response from AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+
+        if (content.DimseStatus != 0 /* success */)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
+                                 "The request cannot be handled by remote AET: " +
+                                 parameters.GetRemoteApplicationEntityTitle());
+        }
+      }
+
+      association.Close();
     }
   };
 
@@ -3668,7 +4035,6 @@ namespace Orthanc
       FindInternal(result, dataset, sopClass, true, NULL);
     }
   };
-  
 }
 
 
