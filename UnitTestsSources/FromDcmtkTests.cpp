@@ -2680,7 +2680,7 @@ namespace Orthanc
     
     struct ProposedPresentationContext
     {
-      std::string                    sopClassUid_;
+      std::string                    abstractSyntax_;
       std::set<DicomTransferSyntax>  transferSyntaxes_;
     };
 
@@ -2748,17 +2748,17 @@ namespace Orthanc
       isOpen_ = false;
     }
 
-    void AddAccepted(const std::string& sopClassUid,
+    void AddAccepted(const std::string& abstractSyntax,
                      DicomTransferSyntax syntax,
                      uint8_t presentationContextId)
     {
-      AcceptedPresentationContexts::iterator found = accepted_.find(sopClassUid);
+      AcceptedPresentationContexts::iterator found = accepted_.find(abstractSyntax);
 
       if (found == accepted_.end())
       {
         std::map<DicomTransferSyntax, uint8_t> syntaxes;
         syntaxes[syntax] = presentationContextId;
-        accepted_[sopClassUid] = syntaxes;
+        accepted_[abstractSyntax] = syntaxes;
       }      
       else
       {
@@ -2766,8 +2766,8 @@ namespace Orthanc
         {
           LOG(WARNING) << "The same transfer syntax ("
                        << GetTransferSyntaxUid(syntax)
-                       << ") was accepted twice for the same SOP class UID ("
-                       << sopClassUid << ")";
+                       << ") was accepted twice for the same abstract syntax UID ("
+                       << abstractSyntax << ")";
         }
         else
         {
@@ -2907,7 +2907,7 @@ namespace Orthanc
       for (size_t i = 0; i < proposed_.size(); i++)
       {
         assert(presentationContextId <= 255);
-        const char* sopClassUid = proposed_[i].sopClassUid_.c_str();
+        const char* abstractSyntax = proposed_[i].abstractSyntax_.c_str();
 
         const std::set<DicomTransferSyntax>& source = proposed_[i].transferSyntaxes_;
           
@@ -2922,7 +2922,7 @@ namespace Orthanc
 
         assert(!transferSyntaxes.empty());
         CheckConnecting(parameters, ASC_addPresentationContext(
-                          params_, presentationContextId, sopClassUid,
+                          params_, presentationContextId, abstractSyntax,
                           &transferSyntaxes[0], transferSyntaxes.size(), dcmtkRole));
 
         presentationContextId += 2;
@@ -2976,14 +2976,14 @@ namespace Orthanc
     }
 
     bool LookupAcceptedPresentationContext(std::map<DicomTransferSyntax, uint8_t>& target,
-                                           const std::string& sopClassUid) const
+                                           const std::string& abstractSyntax) const
     {
       if (!IsOpen())
       {
         throw OrthancException(ErrorCode_BadSequenceOfCalls, "Connection not opened");
       }
       
-      AcceptedPresentationContexts::const_iterator found = accepted_.find(sopClassUid);
+      AcceptedPresentationContexts::const_iterator found = accepted_.find(abstractSyntax);
 
       if (found == accepted_.end())
       {
@@ -2996,21 +2996,21 @@ namespace Orthanc
       }
     }
 
-    void ProposeGenericPresentationContext(const std::string& sopClassUid)
+    void ProposeGenericPresentationContext(const std::string& abstractSyntax)
     {
       std::set<DicomTransferSyntax> ts;
       ts.insert(DicomTransferSyntax_LittleEndianImplicit);
       ts.insert(DicomTransferSyntax_LittleEndianExplicit);
-      ts.insert(DicomTransferSyntax_BigEndianExplicit);
-      ProposePresentationContext(sopClassUid, ts);
+      ts.insert(DicomTransferSyntax_BigEndianExplicit);  // Retired
+      ProposePresentationContext(abstractSyntax, ts);
     }
 
-    void ProposePresentationContext(const std::string& sopClassUid,
+    void ProposePresentationContext(const std::string& abstractSyntax,
                                     DicomTransferSyntax transferSyntax)
     {
       std::set<DicomTransferSyntax> ts;
       ts.insert(transferSyntax);
-      ProposePresentationContext(sopClassUid, ts);
+      ProposePresentationContext(abstractSyntax, ts);
     }
 
     size_t GetRemainingPropositions() const
@@ -3019,7 +3019,7 @@ namespace Orthanc
       return MAX_PROPOSED_PRESENTATIONS - proposed_.size();
     }
 
-    void ProposePresentationContext(const std::string& sopClassUid,
+    void ProposePresentationContext(const std::string& abstractSyntax,
                                     const std::set<DicomTransferSyntax>& transferSyntaxes)
     {
       if (transferSyntaxes.empty())
@@ -3040,7 +3040,7 @@ namespace Orthanc
       }
 
       ProposedPresentationContext context;
-      context.sopClassUid_ = sopClassUid;
+      context.abstractSyntax_ = abstractSyntax;
       context.transferSyntaxes_ = transferSyntaxes;
 
       proposed_.push_back(context);
@@ -3791,26 +3791,12 @@ namespace Orthanc
     }
     
   public:
-    DicomControlUserConnection()
-    {
-      SetupPresentationContexts();
-    }
-    
     DicomControlUserConnection(const DicomAssociationParameters& params) :
       parameters_(params)
     {
       SetupPresentationContexts();
     }
     
-    void SetParameters(const DicomAssociationParameters& params)
-    {
-      if (!parameters_.IsEqual(params))
-      {
-        association_.Close();
-        parameters_ = params;
-      }
-    }
-
     const DicomAssociationParameters& GetParameters() const
     {
       return parameters_;
@@ -4043,12 +4029,302 @@ namespace Orthanc
   };
 
 
-  class DicomStorageUserConnection : public boost::noncopyable
+  class DicomStoreUserConnection : public boost::noncopyable
   {
   private:
-    std::unique_ptr<DicomAssociation>  association_;
+    typedef std::map<std::string, std::set<DicomTransferSyntax> > StorageClasses;
+    
+    DicomAssociationParameters  parameters_;
+    DicomAssociation            association_;
+    StorageClasses              storageClasses_;
+    bool                        proposeCommonClasses_;
+    bool                        proposeUncompressedSyntaxes_;
+    bool                        proposeRetiredBigEndian_;
 
+
+    /**
+
+       Orthanc < 1.7.0:
+
+       Input        | Output
+       -------------+---------------------------------------------
+       Compressed   | Same transfer syntax
+       Uncompressed | Same transfer syntax, or other uncompressed
+
+       Orthanc >= 1.7.0:
+
+       Input        | Output
+       -------------+---------------------------------------------
+       Compressed   | Same transfer syntax, or uncompressed
+       Uncompressed | Same transfer syntax, or other uncompressed
+
+     **/
+
+
+    // Return "false" if there is not enough room remaining in the association
+    bool ProposeStorageClass(const std::string& sopClassUid,
+                             const std::set<DicomTransferSyntax>& syntaxes)
+    {
+      size_t requiredCount = syntaxes.size();
+      if (proposeUncompressedSyntaxes_)
+      {
+        requiredCount += 1;
+      }
+      
+      if (association_.GetRemainingPropositions() <= requiredCount)
+      {
+        return false;  // Not enough room
+      }
+      
+      for (std::set<DicomTransferSyntax>::const_iterator
+             it = syntaxes.begin(); it != syntaxes.end(); ++it)
+      {
+        association_.ProposePresentationContext(sopClassUid, *it);
+      }
+
+      if (proposeUncompressedSyntaxes_)
+      {
+        std::set<DicomTransferSyntax> uncompressed;
+        
+        if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end())
+        {
+          uncompressed.insert(DicomTransferSyntax_LittleEndianImplicit);
+        }
+        
+        if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end())
+        {
+          uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
+        }
+        
+        if (proposeRetiredBigEndian_ &&
+            syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end())
+        {
+          uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
+        }
+
+        if (!uncompressed.empty())
+        {
+          association_.ProposePresentationContext(sopClassUid, uncompressed);
+        }
+      }      
+
+      return true;
+    }
+
+
+    bool LookupPresentationContext(uint8_t& presentationContextId,
+                                   const std::string& sopClassUid,
+                                   DicomTransferSyntax transferSyntax)
+    {
+      typedef std::map<DicomTransferSyntax, uint8_t>  PresentationContexts;
+
+      PresentationContexts pc;
+      if (association_.IsOpen() &&
+          association_.LookupAcceptedPresentationContext(pc, sopClassUid))
+      {
+        PresentationContexts::const_iterator found = pc.find(transferSyntax);
+        if (found != pc.end())
+        {
+          presentationContextId = found->second;
+          return true;
+        }
+      }
+
+      return false;
+    }
+    
+    
+    bool NegotiatePresentationContext(uint8_t& presentationContextId,
+                                      const std::string& sopClassUid,
+                                      DicomTransferSyntax transferSyntax)
+    {
+      /**
+       * Step 1: Check whether this presentation context is already
+       * available in the previously negociated assocation.
+       **/
+
+      if (LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax))
+      {
+        return true;
+      }
+
+      // The association must be re-negotiated
+      association_.ClearPresentationContexts();
+      PrepareStorageClass(sopClassUid, transferSyntax);
+
+      
+      /**
+       * Step 2: Propose at least the mandatory SOP class.
+       **/
+
+      {
+        StorageClasses::const_iterator mandatory = storageClasses_.find(sopClassUid);
+
+        if (mandatory == storageClasses_.end() ||
+            mandatory->second.find(transferSyntax) == mandatory->second.end())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        if (!ProposeStorageClass(sopClassUid, mandatory->second))
+        {
+          // Should never happen in real life: There are no more than
+          // 128 transfer syntaxes in DICOM!
+          throw OrthancException(ErrorCode_InternalError,
+                                 "Too many transfer syntaxes for SOP class UID: " + sopClassUid);
+        }
+      }
+
+      
+      /**
+       * Step 3: Propose all the previously spotted SOP classes, as
+       * registered through the "PrepareStorageClass()" method.
+       **/
+      
+      for (StorageClasses::const_iterator it = storageClasses_.begin();
+           it != storageClasses_.end(); ++it)
+      {
+        if (it->first != sopClassUid)
+        {
+          ProposeStorageClass(it->first, it->second);
+        }
+      }
+      
+
+      /**
+       * Step 4: As long as there is room left in the proposed
+       * presentation contexts, propose the uncompressed transfer syntaxes
+       * for the most common SOP classes, as can be found in the
+       * "dcmShortSCUStorageSOPClassUIDs" array from DCMTK. The
+       * preferred transfer syntax is "LittleEndianImplicit".
+       **/
+
+      if (proposeCommonClasses_)
+      {
+        std::set<DicomTransferSyntax> ts;
+        ts.insert(DicomTransferSyntax_LittleEndianImplicit);
+        
+        for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs; i++)
+        {
+          std::string c(dcmShortSCUStorageSOPClassUIDs[i]);
+          
+          if (c != sopClassUid &&
+              storageClasses_.find(c) == storageClasses_.end())
+          {
+            ProposeStorageClass(c, ts);
+          }
+        }
+      }
+
+
+      /**
+       * Step 5: Open the association, and check whether the pair (SOP
+       * class UID, transfer syntax) was accepted by the remote host.
+       **/
+
+      association_.Open(parameters_);
+      return LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax);
+    }
+    
   public:
+    DicomStoreUserConnection(const DicomAssociationParameters& params) :
+      parameters_(params),
+      proposeCommonClasses_(true),
+      proposeUncompressedSyntaxes_(true),
+      proposeRetiredBigEndian_(false)
+    {
+    }
+    
+    const DicomAssociationParameters& GetParameters() const
+    {
+      return parameters_;
+    }
+
+    void SetCommonClassesProposed(bool proposed)
+    {
+      proposeCommonClasses_ = proposed;
+    }
+
+    bool IsCommonClassesProposed() const
+    {
+      return proposeCommonClasses_;
+    }
+
+    void SetUncompressedSyntaxesProposed(bool proposed)
+    {
+      proposeUncompressedSyntaxes_ = proposed;
+    }
+
+    bool IsUncompressedSyntaxesProposed() const
+    {
+      return proposeUncompressedSyntaxes_;
+    }
+
+    void SetRetiredBigEndianProposed(bool propose)
+    {
+      proposeRetiredBigEndian_ = propose;
+    }
+
+    bool IsRetiredBigEndianProposed() const
+    {
+      return proposeRetiredBigEndian_;
+    }      
+
+    void PrepareStorageClass(const std::string& sopClassUid,
+                             DicomTransferSyntax syntax)
+    {
+      StorageClasses::iterator found = storageClasses_.find(sopClassUid);
+
+      if (found == storageClasses_.end())
+      {
+        std::set<DicomTransferSyntax> ts;
+        ts.insert(syntax);
+        storageClasses_[sopClassUid] = ts;
+      }
+      else
+      {
+        found->second.insert(syntax);
+      }
+    }
+
+
+    void Toto(const std::string& sopClassUid,
+              DicomTransferSyntax transferSyntax)
+    {
+      uint8_t id;
+      
+      if (NegotiatePresentationContext(id, sopClassUid, transferSyntax))
+      {
+        printf("**** OK, without transcoding !! %d\n", id);
+      }
+      else
+      {
+        // Transcoding - only in Orthanc >= 1.7.0
+
+        const DicomTransferSyntax uncompressed[] = {
+          DicomTransferSyntax_LittleEndianImplicit,  // Default transfer syntax
+          DicomTransferSyntax_LittleEndianExplicit,
+          DicomTransferSyntax_BigEndianExplicit
+        };
+
+        bool found = false;
+        for (size_t i = 0; i < 3; i++)
+        {
+          if (LookupPresentationContext(id, sopClassUid, uncompressed[i]))
+          {
+            printf("**** TRANSCODING to %s => %d\n",
+                   GetTransferSyntaxUid(uncompressed[i]), id);
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+        {
+          printf("**** KO KO KO\n");
+        }
+      }
+    }
   };
 }
 
@@ -4085,23 +4361,46 @@ TEST(Toto, DISABLED_DicomAssociation)
     printf("[%s] => %d\n", GetTransferSyntaxUid(it->first), it->second);
   }
 #else
-  DicomControlUserConnection assoc(params);
-
-  try
   {
-    printf(">> %d\n", assoc.Echo());
-  }
-  catch (OrthancException&)
-  {
-  }
+    DicomControlUserConnection assoc(params);
 
+    try
+    {
+      printf(">> %d\n", assoc.Echo());
+    }
+    catch (OrthancException&)
+    {
+    }
+  }
+    
   params.SetRemoteApplicationEntityTitle("PACS");
   params.SetRemotePort(2000);
-  assoc.SetParameters(params);
-  printf(">> %d\n", assoc.Echo());
+
+  {
+    DicomControlUserConnection assoc(params);
+    printf(">> %d\n", assoc.Echo());
+  }
 
 #endif
 }
 
+
+TEST(Toto, DISABLED_Store)
+{
+  DicomAssociationParameters params;
+  params.SetLocalApplicationEntityTitle("ORTHANC");
+  params.SetRemoteApplicationEntityTitle("PACS");
+  params.SetRemotePort(2000);
+
+  DicomStoreUserConnection assoc(params);
+  assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess1);
+  assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess2_4);
+  //assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+
+  //assoc.SetUncompressedSyntaxesProposed(false);
+  //assoc.SetCommonClassesProposed(false);
+  assoc.Toto(UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
+  //assoc.Toto(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+}
 
 #endif
