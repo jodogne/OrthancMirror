@@ -124,7 +124,5 @@ namespace Orthanc
     }
     
     static void SetDefaultTimeout(uint32_t seconds);
-
-    static size_t GetMaxHostNameSize();
   };
 }
