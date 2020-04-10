@@ -3013,6 +3013,12 @@ namespace Orthanc
       ProposePresentationContext(sopClassUid, ts);
     }
 
+    size_t GetRemainingPropositions() const
+    {
+      assert(proposed_.size() <= MAX_PROPOSED_PRESENTATIONS);
+      return MAX_PROPOSED_PRESENTATIONS - proposed_.size();
+    }
+
     void ProposePresentationContext(const std::string& sopClassUid,
                                     const std::set<DicomTransferSyntax>& transferSyntaxes)
     {
@@ -4034,6 +4040,15 @@ namespace Orthanc
 
       FindInternal(result, dataset, sopClass, true, NULL);
     }
+  };
+
+
+  class DicomStorageUserConnection : public boost::noncopyable
+  {
+  private:
+    std::unique_ptr<DicomAssociation>  association_;
+
+  public:
   };
 }
 
