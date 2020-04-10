@@ -41,6 +41,8 @@
 #include <stdint.h>  // For uint8_t
 
 
+class DcmDataset;
+
 namespace Orthanc
 {
   /**
@@ -62,6 +64,7 @@ namespace Orthanc
   **/
 
   class DicomAssociation;  // Forward declaration for PImpl design pattern
+  class ParsedDicomFile;
 
   class DicomStoreUserConnection : public boost::noncopyable
   {
@@ -78,11 +81,12 @@ namespace Orthanc
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
                              const std::set<DicomTransferSyntax>& syntaxes);
-    
+        
+    // Should only be used if transcoding
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
                                    DicomTransferSyntax transferSyntax);
-        
+
   public:
     DicomStoreUserConnection(const DicomAssociationParameters& params);
     
@@ -124,8 +128,28 @@ namespace Orthanc
     void PrepareStorageClass(const std::string& sopClassUid,
                              DicomTransferSyntax syntax);
 
+    // TODO => to private
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax);
+
+    void Store(std::string& sopClassUid,
+               std::string& sopInstanceUid,
+               DcmDataset& dataset,
+               const std::string& moveOriginatorAET,
+               uint16_t moveOriginatorID);
+
+    void Store(std::string& sopClassUid,
+               std::string& sopInstanceUid,
+               ParsedDicomFile& parsed,
+               const std::string& moveOriginatorAET,
+               uint16_t moveOriginatorID);
+
+    void Store(std::string& sopClassUid,
+               std::string& sopInstanceUid,
+               const void* buffer,
+               size_t size,
+               const std::string& moveOriginatorAET,
+               uint16_t moveOriginatorID);
   };
 }
