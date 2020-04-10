@@ -34,10 +34,14 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomStoreUserConnection.h"
 
-#include "DicomAssociation.h"
-
+#include "../DicomParsing/FromDcmtkBridge.h"
+#include "../DicomParsing/ParsedDicomFile.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "DicomAssociation.h"
+
+#include <dcmtk/dcmdata/dcdeftag.h>
+
 
 namespace Orthanc
 {
@@ -236,5 +240,120 @@ namespace Orthanc
 
     association_->Open(parameters_);
     return LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax);
+  }
+
+
+  void DicomStoreUserConnection::Store(std::string& sopClassUid,
+                                       std::string& sopInstanceUid,
+                                       DcmDataset& dataset,
+                                       const std::string& moveOriginatorAET,
+                                       uint16_t moveOriginatorID)
+  {
+    OFString a, b;
+    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
+        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
+    {
+      throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                             "Unable to determine the SOP class/instance for C-STORE with AET " +
+                             parameters_.GetRemoteApplicationEntityTitle());
+    }
+
+    sopClassUid.assign(a.c_str());
+    sopInstanceUid.assign(b.c_str());
+
+    DicomTransferSyntax transferSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
+          transferSyntax, dataset.getOriginalXfer()))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unknown transfer syntax from DCMTK");
+    }
+
+    // Figure out which accepted presentation context should be used
+    uint8_t presID;
+    if (!NegotiatePresentationContext(presID, sopClassUid.c_str(), transferSyntax))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "No valid presentation context was negotiated upfront");
+    }
+    
+    // Prepare the transmission of data
+    T_DIMSE_C_StoreRQ request;
+    memset(&request, 0, sizeof(request));
+    request.MessageID = association_->GetDcmtkAssociation().nextMsgID++;
+    strncpy(request.AffectedSOPClassUID, sopClassUid.c_str(), DIC_UI_LEN);
+    request.Priority = DIMSE_PRIORITY_MEDIUM;
+    request.DataSetType = DIMSE_DATASET_PRESENT;
+    strncpy(request.AffectedSOPInstanceUID, sopInstanceUid.c_str(), DIC_UI_LEN);
+
+    if (!moveOriginatorAET.empty())
+    {
+      strncpy(request.MoveOriginatorApplicationEntityTitle, 
+              moveOriginatorAET.c_str(), DIC_AE_LEN);
+      request.opts = O_STORE_MOVEORIGINATORAETITLE;
+
+      request.MoveOriginatorID = moveOriginatorID;  // The type DIC_US is an alias for uint16_t
+      request.opts |= O_STORE_MOVEORIGINATORID;
+    }
+
+    // Finally conduct transmission of data
+    T_DIMSE_C_StoreRSP response;
+    DcmDataset* statusDetail = NULL;
+    DicomAssociation::CheckCondition(
+      DIMSE_storeUser(&association_->GetDcmtkAssociation(), presID, &request,
+                      NULL, &dataset, /*progressCallback*/ NULL, NULL,
+                      /*opt_blockMode*/ (GetParameters().HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                      /*opt_dimse_timeout*/ GetParameters().GetTimeout(),
+                      &response, &statusDetail, NULL),
+      GetParameters(), "C-STORE");
+
+    if (statusDetail != NULL) 
+    {
+      delete statusDetail;
+    }
+    
+    /**
+     * New in Orthanc 1.6.0: Deal with failures during C-STORE.
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_B.2.3.html#table_B.2-1
+     **/
+    
+    if (response.DimseStatus != 0x0000 &&  // Success
+        response.DimseStatus != 0xB000 &&  // Warning - Coercion of Data Elements
+        response.DimseStatus != 0xB007 &&  // Warning - Data Set does not match SOP Class
+        response.DimseStatus != 0xB006)    // Warning - Elements Discarded
+    {
+      char buf[16];
+      sprintf(buf, "%04X", response.DimseStatus);
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "C-STORE SCU to AET \"" +
+                             GetParameters().GetRemoteApplicationEntityTitle() +
+                             "\" has failed with DIMSE status 0x" + buf);
+    }
+  }
+
+
+  void DicomStoreUserConnection::Store(std::string& sopClassUid,
+                                       std::string& sopInstanceUid,
+                                       ParsedDicomFile& parsed,
+                                       const std::string& moveOriginatorAET,
+                                       uint16_t moveOriginatorID)
+  {
+    Store(sopClassUid, sopInstanceUid, *parsed.GetDcmtkObject().getDataset(),
+          moveOriginatorAET, moveOriginatorID);
+  }
+
+
+  void DicomStoreUserConnection::Store(std::string& sopClassUid,
+                                       std::string& sopInstanceUid,
+                                       const void* buffer,
+                                       size_t size,
+                                       const std::string& moveOriginatorAET,
+                                       uint16_t moveOriginatorID)
+  {
+    std::unique_ptr<DcmFileFormat> dicom(
+      FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
+
+    Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
+          moveOriginatorAET, moveOriginatorID);
   }
 }
