@@ -481,6 +481,10 @@ if (ENABLE_DCMTK)
   if (ENABLE_DCMTK_NETWORKING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociation.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociationParameters.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomControlUserConnection.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
