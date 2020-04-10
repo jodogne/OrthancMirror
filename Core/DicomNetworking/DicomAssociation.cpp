@@ -209,7 +209,7 @@ namespace Orthanc
     {
       return;  // Already open
     }
-      
+
     // Timeout used during association negociation and ASC_releaseAssociation()
     uint32_t acseTimeout = parameters.GetTimeout();
     if (acseTimeout == 0)
