@@ -2581,54 +2581,6 @@ namespace Orthanc
         defaultTimeout_ = seconds;
       }
     }
-
-    void CheckCondition(const OFCondition& cond,
-                        const std::string& command) const
-    {
-      if (cond.bad())
-      {
-        // Reformat the error message from DCMTK by turning multiline
-        // errors into a single line
-      
-        std::string s(cond.text());
-        std::string info;
-        info.reserve(s.size());
-
-        bool isMultiline = false;
-        for (size_t i = 0; i < s.size(); i++)
-        {
-          if (s[i] == '\r')
-          {
-            // Ignore
-          }
-          else if (s[i] == '\n')
-          {
-            if (isMultiline)
-            {
-              info += "; ";
-            }
-            else
-            {
-              info += " (";
-              isMultiline = true;
-            }
-          }
-          else
-          {
-            info.push_back(s[i]);
-          }
-        }
-
-        if (isMultiline)
-        {
-          info += ")";
-        }
-
-        throw OrthancException(ErrorCode_NetworkProtocol,
-                               "DicomUserConnection - " + command + " to AET \"" +
-                               GetRemoteApplicationEntityTitle() + "\": " + info);
-      }
-    }
   };
   
 
@@ -2711,7 +2663,7 @@ namespace Orthanc
     {
       try
       {
-        parameters.CheckCondition(cond, "connecting");
+        CheckCondition(cond, parameters, "connecting");
       }
       catch (OrthancException&)
       {
@@ -3074,6 +3026,56 @@ namespace Orthanc
       }
     }
 
+    static void CheckCondition(const OFCondition& cond,
+                               const DicomAssociationParameters& parameters,
+                               const std::string& command)
+    {
+      if (cond.bad())
+      {
+        // Reformat the error message from DCMTK by turning multiline
+        // errors into a single line
+      
+        std::string s(cond.text());
+        std::string info;
+        info.reserve(s.size());
+
+        bool isMultiline = false;
+        for (size_t i = 0; i < s.size(); i++)
+        {
+          if (s[i] == '\r')
+          {
+            // Ignore
+          }
+          else if (s[i] == '\n')
+          {
+            if (isMultiline)
+            {
+              info += "; ";
+            }
+            else
+            {
+              info += " (";
+              isMultiline = true;
+            }
+          }
+          else
+          {
+            info.push_back(s[i]);
+          }
+        }
+
+        if (isMultiline)
+        {
+          info += ")";
+        }
+
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                               "DicomUserConnection - " + command + " to AET \"" +
+                               parameters.GetRemoteApplicationEntityTitle() +
+                               "\": " + info);
+      }
+    }
+    
 
     static void ReportStorageCommitment(const DicomAssociationParameters& parameters,
                                         const std::string& transactionUid,
@@ -3656,7 +3658,7 @@ namespace Orthanc
         delete statusDetail;
       }
 
-      parameters_.CheckCondition(cond, "C-FIND");
+      DicomAssociation::CheckCondition(cond, parameters_, "C-FIND");
 
     
       /**
@@ -3758,7 +3760,7 @@ namespace Orthanc
         delete responseIdentifiers;
       }
 
-      parameters_.CheckCondition(cond, "C-MOVE");
+      DicomAssociation::CheckCondition(cond, parameters_, "C-MOVE");
 
     
       /**
@@ -3807,13 +3809,13 @@ namespace Orthanc
       association_.Open(parameters_);
 
       DIC_US status;
-      parameters_.CheckCondition(
+      DicomAssociation::CheckCondition(
         DIMSE_echoUser(&association_.GetDcmtkAssociation(),
                        association_.GetDcmtkAssociation().nextMsgID++, 
                        /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                        /*opt_dimse_timeout*/ parameters_.GetTimeout(),
                        &status, NULL),
-        "C-ECHO");
+        parameters_, "C-ECHO");
       
       return status == STATUS_Success;
     }
