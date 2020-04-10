@@ -34,6 +34,7 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomControlUserConnection.h"
 
+#include "../Compatibility.h"
 #include "../DicomParsing/FromDcmtkBridge.h"
 #include "../Logging.h"
 #include "../OrthancException.h"

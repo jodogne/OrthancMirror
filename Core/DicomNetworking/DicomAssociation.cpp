@@ -38,8 +38,10 @@
 #  error The macro DCMTK_VERSION_NUMBER must be defined
 #endif
 
+#include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "NetworkingCompatibility.h"
 
 #include <dcmtk/dcmnet/diutil.h>  // For dcmConnectionTimeout()
 #include <dcmtk/dcmdata/dcdeftag.h>
