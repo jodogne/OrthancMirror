@@ -34,9 +34,10 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomControlUserConnection.h"
 
+#include "../DicomParsing/FromDcmtkBridge.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
-#include "../DicomParsing/FromDcmtkBridge.h"
+#include "DicomAssociation.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmnet/diutil.h>
@@ -224,11 +225,11 @@ namespace Orthanc
 
   void DicomControlUserConnection::SetupPresentationContexts()
   {
-    association_.ProposeGenericPresentationContext(UID_VerificationSOPClass);
-    association_.ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
-    association_.ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
-    association_.ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
-    association_.ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
+    association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
+    association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
+    association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
+    association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
+    association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
   }
     
 
@@ -240,7 +241,7 @@ namespace Orthanc
   {
     assert(isWorklist ^ (level != NULL));
 
-    association_.Open(parameters_);
+    association_->Open(parameters_);
 
     FindPayload payload;
     payload.answers = &answers;
@@ -249,7 +250,7 @@ namespace Orthanc
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(
-      &association_.GetDcmtkAssociation(), sopClass);
+      &association_->GetDcmtkAssociation(), sopClass);
     if (presID == 0)
     {
       throw OrthancException(ErrorCode_DicomFindUnavailable,
@@ -258,7 +259,7 @@ namespace Orthanc
 
     T_DIMSE_C_FindRQ request;
     memset(&request, 0, sizeof(request));
-    request.MessageID = association_.GetDcmtkAssociation().nextMsgID++;
+    request.MessageID = association_->GetDcmtkAssociation().nextMsgID++;
     strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
     request.DataSetType = DIMSE_DATASET_PRESENT;
@@ -271,7 +272,7 @@ namespace Orthanc
 #endif
 
     OFCondition cond = DIMSE_findUser(
-      &association_.GetDcmtkAssociation(), presID, &request, dataset,
+      &association_->GetDcmtkAssociation(), presID, &request, dataset,
 #if DCMTK_VERSION_NUMBER >= 364
       responseCount,
 #endif
@@ -323,7 +324,7 @@ namespace Orthanc
                                                 ResourceType level,
                                                 const DicomMap& fields)
   {
-    association_.Open(parameters_);
+    association_->Open(parameters_);
 
     std::unique_ptr<ParsedDicomFile> query(
       ConvertQueryFields(fields, parameters_.GetRemoteManufacturer()));
@@ -353,7 +354,7 @@ namespace Orthanc
     }
 
     // Figure out which of the accepted presentation contexts should be used
-    int presID = ASC_findAcceptedPresentationContextID(&association_.GetDcmtkAssociation(), sopClass);
+    int presID = ASC_findAcceptedPresentationContextID(&association_->GetDcmtkAssociation(), sopClass);
     if (presID == 0)
     {
       throw OrthancException(ErrorCode_DicomMoveUnavailable,
@@ -362,7 +363,7 @@ namespace Orthanc
 
     T_DIMSE_C_MoveRQ request;
     memset(&request, 0, sizeof(request));
-    request.MessageID = association_.GetDcmtkAssociation().nextMsgID++;
+    request.MessageID = association_->GetDcmtkAssociation().nextMsgID++;
     strncpy(request.AffectedSOPClassUID, sopClass, DIC_UI_LEN);
     request.Priority = DIMSE_PRIORITY_MEDIUM;
     request.DataSetType = DIMSE_DATASET_PRESENT;
@@ -372,10 +373,10 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(
-      &association_.GetDcmtkAssociation(), presID, &request, dataset, NULL, NULL,
+      &association_->GetDcmtkAssociation(), presID, &request, dataset, NULL, NULL,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ parameters_.GetTimeout(),
-      &association_.GetDcmtkNetwork(), NULL, NULL,
+      &association_->GetDcmtkNetwork(), NULL, NULL,
       &response, &statusDetail, &responseIdentifiers);
 
     if (statusDetail)
@@ -422,7 +423,8 @@ namespace Orthanc
     
 
   DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params) :
-    parameters_(params)
+    parameters_(params),
+    association_(new DicomAssociation)
   {
     SetupPresentationContexts();
   }
@@ -430,12 +432,12 @@ namespace Orthanc
 
   bool DicomControlUserConnection::Echo()
   {
-    association_.Open(parameters_);
+    association_->Open(parameters_);
 
     DIC_US status;
     DicomAssociation::CheckCondition(
-      DIMSE_echoUser(&association_.GetDcmtkAssociation(),
-                     association_.GetDcmtkAssociation().nextMsgID++, 
+      DIMSE_echoUser(&association_->GetDcmtkAssociation(),
+                     association_->GetDcmtkAssociation().nextMsgID++, 
                      /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                      /*opt_dimse_timeout*/ parameters_.GetTimeout(),
                      &status, NULL),
