@@ -37,16 +37,20 @@
 #  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be set to 1
 #endif
 
-#include "DicomAssociation.h"
+#include "DicomAssociationParameters.h"
 #include "DicomFindAnswers.h"
+
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
+  class DicomAssociation;  // Forward declaration for PImpl design pattern
+  
   class DicomControlUserConnection : public boost::noncopyable
   {
   private:
-    DicomAssociationParameters  parameters_;
-    DicomAssociation            association_;
+    DicomAssociationParameters           parameters_;
+    boost::shared_ptr<DicomAssociation>  association_;
 
     void SetupPresentationContexts();
 

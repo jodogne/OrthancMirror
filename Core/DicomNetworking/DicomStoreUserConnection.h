@@ -33,7 +33,12 @@
 
 #pragma once
 
-#include "DicomAssociation.h"
+#include "DicomAssociationParameters.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
+#include <set>
+#include <stdint.h>  // For uint8_t
 
 
 namespace Orthanc
@@ -56,19 +61,19 @@ namespace Orthanc
 
   **/
 
+  class DicomAssociation;  // Forward declaration for PImpl design pattern
 
   class DicomStoreUserConnection : public boost::noncopyable
   {
   private:
     typedef std::map<std::string, std::set<DicomTransferSyntax> > StorageClasses;
     
-    DicomAssociationParameters  parameters_;
-    DicomAssociation            association_;
-    StorageClasses              storageClasses_;
-    bool                        proposeCommonClasses_;
-    bool                        proposeUncompressedSyntaxes_;
-    bool                        proposeRetiredBigEndian_;
-
+    DicomAssociationParameters           parameters_;
+    boost::shared_ptr<DicomAssociation>  association_;
+    StorageClasses                       storageClasses_;
+    bool                                 proposeCommonClasses_;
+    bool                                 proposeUncompressedSyntaxes_;
+    bool                                 proposeRetiredBigEndian_;
 
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,

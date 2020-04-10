@@ -34,6 +34,8 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomStoreUserConnection.h"
 
+#include "DicomAssociation.h"
+
 #include "../Logging.h"
 #include "../OrthancException.h"
 
@@ -48,7 +50,7 @@ namespace Orthanc
       requiredCount += 1;
     }
       
-    if (association_.GetRemainingPropositions() <= requiredCount)
+    if (association_->GetRemainingPropositions() <= requiredCount)
     {
       return false;  // Not enough room
     }
@@ -56,7 +58,7 @@ namespace Orthanc
     for (std::set<DicomTransferSyntax>::const_iterator
            it = syntaxes.begin(); it != syntaxes.end(); ++it)
     {
-      association_.ProposePresentationContext(sopClassUid, *it);
+      association_->ProposePresentationContext(sopClassUid, *it);
     }
 
     if (proposeUncompressedSyntaxes_)
@@ -81,7 +83,7 @@ namespace Orthanc
 
       if (!uncompressed.empty())
       {
-        association_.ProposePresentationContext(sopClassUid, uncompressed);
+        association_->ProposePresentationContext(sopClassUid, uncompressed);
       }
     }      
 
@@ -97,8 +99,8 @@ namespace Orthanc
     typedef std::map<DicomTransferSyntax, uint8_t>  PresentationContexts;
 
     PresentationContexts pc;
-    if (association_.IsOpen() &&
-        association_.LookupAcceptedPresentationContext(pc, sopClassUid))
+    if (association_->IsOpen() &&
+        association_->LookupAcceptedPresentationContext(pc, sopClassUid))
     {
       PresentationContexts::const_iterator found = pc.find(transferSyntax);
       if (found != pc.end())
@@ -115,6 +117,7 @@ namespace Orthanc
   DicomStoreUserConnection::DicomStoreUserConnection(
     const DicomAssociationParameters& params) :
     parameters_(params),
+    association_(new DicomAssociation),
     proposeCommonClasses_(true),
     proposeUncompressedSyntaxes_(true),
     proposeRetiredBigEndian_(false)
@@ -158,7 +161,7 @@ namespace Orthanc
     // The association must be re-negotiated
     LOG(INFO) << "Re-negociating DICOM association with "
               << parameters_.GetRemoteApplicationEntityTitle();
-    association_.ClearPresentationContexts();
+    association_->ClearPresentationContexts();
     PrepareStorageClass(sopClassUid, transferSyntax);
 
       
@@ -231,7 +234,7 @@ namespace Orthanc
      * class UID, transfer syntax) was accepted by the remote host.
      **/
 
-    association_.Open(parameters_);
+    association_->Open(parameters_);
     return LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax);
   }
 }
