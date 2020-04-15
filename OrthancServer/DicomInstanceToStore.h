@@ -44,7 +44,7 @@ namespace Orthanc
 {
   class ParsedDicomFile;
 
-  class DicomInstanceToStore
+  class DicomInstanceToStore : public boost::noncopyable
   {
   public:
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;

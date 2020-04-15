@@ -170,7 +170,7 @@ namespace Orthanc
 
 
 
-  class ChunkStore
+  class ChunkStore : public boost::noncopyable
   {
   private:
     typedef std::list<ChunkedFile*>  Content;
@@ -308,7 +308,7 @@ namespace Orthanc
                                                   struct mg_connection *connection,
                                                   const std::string& contentLength)
   {
-    int length;      
+    int length;
     try
     {
       length = boost::lexical_cast<int>(contentLength);
@@ -903,7 +903,6 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
     }
-
 
     if (!found && 
         server.HasHandler())

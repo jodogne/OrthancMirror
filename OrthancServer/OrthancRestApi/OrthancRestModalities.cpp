@@ -35,6 +35,8 @@
 #include "OrthancRestApi.h"
 
 #include "../../Core/Cache/SharedArchive.h"
+#include "../../Core/DicomNetworking/DicomAssociation.h"
+#include "../../Core/DicomNetworking/DicomControlUserConnection.h"
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
@@ -80,8 +82,7 @@ namespace Orthanc
 
     try
     {
-      DicomUserConnection connection(localAet, remote);
-      connection.Open();
+      DicomControlUserConnection connection(localAet, remote);
       
       if (connection.Echo())
       {
@@ -127,7 +128,7 @@ namespace Orthanc
 
 
   static void FindPatient(DicomFindAnswers& result,
-                          DicomUserConnection& connection,
+                          DicomControlUserConnection& connection,
                           const DicomMap& fields)
   {
     // Only keep the filters from "fields" that are related to the patient
@@ -138,7 +139,7 @@ namespace Orthanc
 
 
   static void FindStudy(DicomFindAnswers& result,
-                        DicomUserConnection& connection,
+                        DicomControlUserConnection& connection,
                         const DicomMap& fields)
   {
     // Only keep the filters from "fields" that are related to the study
@@ -153,7 +154,7 @@ namespace Orthanc
   }
 
   static void FindSeries(DicomFindAnswers& result,
-                         DicomUserConnection& connection,
+                         DicomControlUserConnection& connection,
                          const DicomMap& fields)
   {
     // Only keep the filters from "fields" that are related to the series
@@ -168,7 +169,7 @@ namespace Orthanc
   }
 
   static void FindInstance(DicomFindAnswers& result,
-                           DicomUserConnection& connection,
+                           DicomControlUserConnection& connection,
                            const DicomMap& fields)
   {
     // Only keep the filters from "fields" that are related to the instance
@@ -203,8 +204,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomUserConnection connection(localAet, remote);
-      connection.Open();
+      DicomControlUserConnection connection(localAet, remote);
       FindPatient(answers, connection, fields);
     }
 
@@ -238,8 +238,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomUserConnection connection(localAet, remote);
-      connection.Open();
+      DicomControlUserConnection connection(localAet, remote);
       FindStudy(answers, connection, fields);
     }
 
@@ -274,8 +273,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomUserConnection connection(localAet, remote);
-      connection.Open();
+      DicomControlUserConnection connection(localAet, remote);
       FindSeries(answers, connection, fields);
     }
 
@@ -311,8 +309,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomUserConnection connection(localAet, remote);
-      connection.Open();
+      DicomControlUserConnection connection(localAet, remote);
       FindInstance(answers, connection, fields);
     }
 
@@ -350,8 +347,7 @@ namespace Orthanc
     RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomUserConnection connection(localAet, remote);
-    connection.Open();
+    DicomControlUserConnection connection(localAet, remote);
     
     DicomFindAnswers patients(false);
     FindPatient(patients, connection, m);
@@ -804,7 +800,7 @@ namespace Orthanc
         DicomMap answer;
         parent.GetHandler().GetAnswer(answer, index);
 
-        // This switch-case mimics "DicomUserConnection::Move()"
+        // This switch-case mimics "DicomControlUserConnection::Move()"
         switch (parent.GetHandler().GetLevel())
         {
           case ResourceType_Patient:
@@ -1031,8 +1027,7 @@ namespace Orthanc
     const RemoteModalityParameters source =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomUserConnection connection(localAet, source);
-    connection.Open();
+    DicomControlUserConnection connection(localAet, source);
     
     for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
     {
@@ -1315,8 +1310,7 @@ namespace Orthanc
       DicomFindAnswers answers(true);
 
       {
-        DicomUserConnection connection(localAet, remote);
-        connection.Open();
+        DicomControlUserConnection connection(localAet, remote);
         connection.FindWorklist(answers, *query);
       }
 
@@ -1486,11 +1480,11 @@ namespace Orthanc
         context.GetStorageCommitmentReports().Store(
           transactionUid, new StorageCommitmentReports::Report(remoteAet));
 
-        DicomUserConnection scu(localAet, remote);
-
+        DicomAssociationParameters parameters(localAet, remote);
+        
         std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
         std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
-        scu.RequestStorageCommitment(transactionUid, a, b);
+        DicomAssociation::RequestStorageCommitment(parameters, transactionUid, a, b);
       }
 
       Json::Value result = Json::objectValue;

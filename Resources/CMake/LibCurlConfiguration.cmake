@@ -262,7 +262,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
     check_struct_has_member("struct sockaddr_un" sun_path "sys/un.h" USE_UNIX_SOCKETS)
 
-    set(CMAKE_REQUIRED_INCLUDES "${CURL_SOURCES_DIR}/include")
+    list(APPEND CMAKE_REQUIRED_INCLUDES "${CURL_SOURCES_DIR}/include")
     set(CMAKE_EXTRA_INCLUDE_FILES "curl/system.h")
     check_type_size("curl_off_t"  SIZEOF_CURL_OFF_T)
 
@@ -312,6 +312,22 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       ${CURL_SOURCES_DIR}/lib/curl_config.h
       )
   endif()
+
+elseif (CMAKE_CROSSCOMPILING AND
+    "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+
+  CHECK_INCLUDE_FILE_CXX(curl/curl.h HAVE_CURL_H)
+  if (NOT HAVE_CURL_H)
+    message(FATAL_ERROR "Please install the libcurl-dev package")
+  endif()
+
+  CHECK_LIBRARY_EXISTS(curl "curl_easy_init" "" HAVE_CURL_LIB)
+  if (NOT HAVE_CURL_LIB)
+    message(FATAL_ERROR "Please install the libcurl package")
+  endif()  
+  
+  link_libraries(curl)
+
 else()
   include(FindCURL)
   include_directories(${CURL_INCLUDE_DIRS})

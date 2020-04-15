@@ -148,13 +148,34 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
 
 else()
-  # The following line allows to manually add libraries at the
-  # command-line, which is necessary for Ubuntu/Debian packages
-  set(tmp "${DCMTK_LIBRARIES}")
-  include(FindDCMTK)
-  list(APPEND DCMTK_LIBRARIES "${tmp}")
+  if (CMAKE_CROSSCOMPILING AND
+      "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
 
-  include_directories(${DCMTK_INCLUDE_DIRS})
+    CHECK_INCLUDE_FILE_CXX(dcmtk/dcmdata/dcfilefo.h HAVE_DCMTK_H)
+    if (NOT HAVE_DCMTK_H)
+      message(FATAL_ERROR "Please install the libdcmtk-dev package")
+    endif()
+
+    CHECK_LIBRARY_EXISTS(dcmdata "dcmDataDict" "" HAVE_DCMTK_LIB)
+    if (NOT HAVE_DCMTK_LIB)
+      message(FATAL_ERROR "Please install the libdcmtk package")
+    endif()  
+
+    find_path(DCMTK_INCLUDE_DIRS dcmtk/config/osconfig.h
+      /usr/include
+      )
+
+    link_libraries(dcmdata dcmnet dcmjpeg oflog ofstd)
+
+  else()
+    # The following line allows to manually add libraries at the
+    # command-line, which is necessary for Ubuntu/Debian packages
+    set(tmp "${DCMTK_LIBRARIES}")
+    include(FindDCMTK)
+    list(APPEND DCMTK_LIBRARIES "${tmp}")
+
+    include_directories(${DCMTK_INCLUDE_DIRS})
+  endif()
 
   add_definitions(
     -DHAVE_CONFIG_H=1
@@ -223,6 +244,13 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
 
     if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
       message(FATAL_ERROR "Cannot locate the DICOM dictionary on this system")
+    endif()
+
+    if (CMAKE_CROSSCOMPILING AND
+        "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+      # Remove the sysroot prefix
+      file(RELATIVE_PATH tmp ${CMAKE_FIND_ROOT_PATH} ${DCMTK_DICTIONARY_DIR_AUTO})
+      set(DCMTK_DICTIONARY_DIR_AUTO /${tmp} CACHE INTERNAL "")
     endif()
 
     message("Autodetected path to the DICOM dictionaries: ${DCMTK_DICTIONARY_DIR_AUTO}")

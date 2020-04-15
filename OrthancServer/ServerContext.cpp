@@ -691,7 +691,7 @@ namespace Orthanc
   {
 #if ENABLE_DICOM_CACHE == 0
     static std::unique_ptr<IDynamicObject> p;
-    p.reset(provider_.Provide(instancePublicId));
+    p.reset(that_.provider_.Provide(instancePublicId));
     dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
 #else
     dicom_ = &dynamic_cast<ParsedDicomFile&>(that_.dicomCache_.Access(instancePublicId));

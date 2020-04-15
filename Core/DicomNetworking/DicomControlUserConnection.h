@@ -65,6 +65,9 @@ namespace Orthanc
                       const DicomMap& fields);
     
   public:
+    DicomControlUserConnection(const std::string& localAet,
+                               const RemoteModalityParameters& remote);
+    
     DicomControlUserConnection(const DicomAssociationParameters& params);
     
     const DicomAssociationParameters& GetParameters() const
