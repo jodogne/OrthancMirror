@@ -710,7 +710,14 @@ TEST(ParsedDicomFile, ToJsonFlags1)
 TEST(ParsedDicomFile, ToJsonFlags2)
 {
   ParsedDicomFile f(true);
-  f.Insert(DICOM_TAG_PIXEL_DATA, "Pixels", false, "");
+
+  {
+    // "ParsedDicomFile" uses Little Endian => 'B' (least significant
+    // byte) will be stored first in the memory buffer and in the
+    // file, then 'A'. Hence the expected "BA" value below.
+    Uint16 v[] = { 'A' * 256 + 'B', 0 };
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertUint16Array(DCM_PixelData, v, 2).good());
+  }
 
   Json::Value v;
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
@@ -729,7 +736,7 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   ASSERT_EQ(6u, v.getMemberNames().size());
   ASSERT_TRUE(v.isMember("7fe0,0010"));  
   ASSERT_EQ(Json::stringValue, v["7fe0,0010"].type());  
-  ASSERT_EQ("Pixels", v["7fe0,0010"].asString());  
+  ASSERT_EQ("BA", v["7fe0,0010"].asString().substr(0, 2));
 
   f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePixelData, 0);
   ASSERT_EQ(Json::objectValue, v.type());
@@ -739,7 +746,7 @@ TEST(ParsedDicomFile, ToJsonFlags2)
   std::string mime, content;
   ASSERT_TRUE(Toolbox::DecodeDataUriScheme(mime, content, v["7fe0,0010"].asString()));
   ASSERT_EQ("application/octet-stream", mime);
-  ASSERT_EQ("Pixels", content);
+  ASSERT_EQ("BA", content.substr(0, 2));
 }
 
 

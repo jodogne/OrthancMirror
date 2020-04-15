@@ -431,6 +431,15 @@ namespace Orthanc
   }
     
 
+  DicomControlUserConnection::DicomControlUserConnection(const std::string& localAet,
+                                                         const RemoteModalityParameters& remote) :
+    parameters_(localAet, remote),
+    association_(new DicomAssociation)
+  {
+    SetupPresentationContexts();
+  }
+    
+
   bool DicomControlUserConnection::Echo()
   {
     association_->Open(parameters_);
