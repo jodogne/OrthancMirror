@@ -100,6 +100,32 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
 
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 
+elseif (CMAKE_CROSSCOMPILING AND
+    "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+
+  set(LUA_VERSIONS 5.3 5.2 5.1)
+
+  unset(LUA_VERSION)
+  foreach(version IN ITEMS ${LUA_VERSIONS})
+    CHECK_INCLUDE_FILE(lua${version}/lua.h HAVE_LUA${version}_H)
+    if (HAVE_LUA${version}_H)
+      set(LUA_VERSION ${version})
+      break()
+    endif()
+  endforeach()
+
+  if (NOT LUA_VERSION)
+    message(FATAL_ERROR "Please install the liblua-dev package")
+  endif()
+  
+  CHECK_LIBRARY_EXISTS(lua${LUA_VERSION} "lua_call" "${LUA_LIB_DIR}" HAVE_LUA_LIB)
+  if (NOT HAVE_LUA_LIB)
+    message(FATAL_ERROR "Please install the liblua package")
+  endif()  
+
+  include_directories(${CROSSTOOL_NG_IMAGE}/usr/include/lua${LUA_VERSION})
+  link_libraries(lua${LUA_VERSION})
+
 else()
   include(FindLua)
 
