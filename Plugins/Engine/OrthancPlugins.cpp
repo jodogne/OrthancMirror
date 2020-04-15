@@ -2433,7 +2433,7 @@ namespace Orthanc
         return;
 
       case _OrthancPluginService_GetInstanceData:
-        *p.resultString = instance.GetBufferData();
+        *p.resultString = reinterpret_cast<const char*>(instance.GetBufferData());
         return;
 
       case _OrthancPluginService_HasInstanceMetadata:
