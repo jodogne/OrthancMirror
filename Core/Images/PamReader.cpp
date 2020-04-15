@@ -42,6 +42,7 @@
 #  include "../SystemToolbox.h"
 #endif
 
+#include <stdlib.h>  // For malloc/free
 #include <boost/algorithm/string/find.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -296,5 +297,13 @@ namespace Orthanc
   {
     content_.assign(reinterpret_cast<const char*>(buffer), size);
     ParseContent();
+  }
+
+  PamReader::~PamReader()
+  {
+    if (alignedImageBuffer_ != NULL)
+    {
+      free(alignedImageBuffer_);
+    }
   }
 }
