@@ -200,7 +200,30 @@ namespace Orthanc
     }
 
     size_t offset = content_.size() - pitch * height;
-    AssignWritable(format, width, height, pitch, &content_[offset]);
+
+    {
+      intptr_t bufferAddr = reinterpret_cast<intptr_t>(&content_[offset]);
+      if((bufferAddr % 8) == 0)
+        LOG(TRACE) << "PamReader::ParseContent() image address = " << bufferAddr;
+      else
+        LOG(TRACE) << "PamReader::ParseContent() image address = " << bufferAddr << " (not a multiple of 8!)";
+    }
+    
+    // if we want to enforce alignment, we need to use a freshly allocated
+    // buffer, since we have no alignment guarantees on the original one
+    if (enforceAligned_)
+    {
+      if (alignedImageBuffer_ != NULL)
+        free(alignedImageBuffer_);
+      alignedImageBuffer_ = malloc(pitch * height);
+      memcpy(alignedImageBuffer_, &content_[offset], pitch* height);
+      content_ = "";
+      AssignWritable(format, width, height, pitch, alignedImageBuffer_);
+    }
+    else
+    {
+      AssignWritable(format, width, height, pitch, &content_[offset]);
+    }
 
     // Byte swapping if needed
     if (bytesPerChannel != 1 &&
@@ -231,7 +254,7 @@ namespace Orthanc
             at SAFE_HEAP_LOAD_i32_2_2 (wasm-function[251132]:39)
             at __ZN7Orthanc9PamReader12ParseContentEv (wasm-function[11457]:8088)
 
-          Web Assenmbly IS LITTLE ENDIAN!
+          Web Assembly IS LITTLE ENDIAN!
 
           Perhaps in htobe16 ?
           */
