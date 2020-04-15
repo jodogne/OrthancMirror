@@ -9,6 +9,26 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
 
   source_group(ThirdParty\\OpenSSL REGULAR_EXPRESSION ${OPENSSL_SOURCES_DIR}/.*)
 
+elseif (CMAKE_CROSSCOMPILING AND
+    "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+
+  CHECK_INCLUDE_FILE_CXX(openssl/opensslv.h HAVE_OPENSSL_H)
+  if (NOT HAVE_OPENSSL_H)
+    message(FATAL_ERROR "Please install the libopenssl-dev package")
+  endif()
+
+  CHECK_LIBRARY_EXISTS(crypto "OPENSSL_init" "" HAVE_OPENSSL_CRYPTO_LIB)
+  if (NOT HAVE_OPENSSL_CRYPTO_LIB)
+    message(FATAL_ERROR "Please install the libopenssl package")
+  endif()  
+  
+  CHECK_LIBRARY_EXISTS(ssl "SSL_library_init" "" HAVE_OPENSSL_SSL_LIB)
+  if (NOT HAVE_OPENSSL_SSL_LIB)
+    message(FATAL_ERROR "Please install the libopenssl package")
+  endif()  
+  
+  link_libraries(crypto ssl)
+
 else()
   include(FindOpenSSL)
 

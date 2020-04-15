@@ -41,12 +41,14 @@ if (SQLITE_STATIC)
   source_group(ThirdParty\\SQLite REGULAR_EXPRESSION ${SQLITE_SOURCES_DIR}/.*)
 
 else()
-  CHECK_INCLUDE_FILE_CXX(sqlite3.h HAVE_SQLITE_H)
+  CHECK_INCLUDE_FILE(sqlite3.h HAVE_SQLITE_H)
   if (NOT HAVE_SQLITE_H)
     message(FATAL_ERROR "Please install the libsqlite3-dev package")
   endif()
 
-  find_path(SQLITE_INCLUDE_DIR sqlite3.h
+  find_path(SQLITE_INCLUDE_DIR
+    NAMES sqlite3.h
+    PATHS
     /usr/include
     /usr/local/include
     )
