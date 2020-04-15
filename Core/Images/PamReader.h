@@ -80,11 +80,7 @@ namespace Orthanc
     {
     }
 
-    virtual ~PamReader()
-    {
-      // freeing NULL is OK
-      free(alignedImageBuffer_);
-    }
+    virtual ~PamReader();
 
 #if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
