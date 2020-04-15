@@ -46,9 +46,45 @@ namespace Orthanc
   private:
     void ParseContent();
     
+    /**
+    Whether we want to use the default malloc alignment in the image buffer,
+    at the expense of an extra copy
+    */
+    bool enforceAligned_;
+
+    /**
+    This is actually a copy of wrappedContent_, but properly aligned.
+
+    It is only used if the enforceAligned parameter is set to true in the
+    constructor.
+    */
+    void* alignedImageBuffer_;
+    
+    /**
+    Points somewhere in the content_ buffer.      
+    */
+    ImageAccessor wrappedContent_;
+
+    /**
+    Raw content (file bytes or answer from the server, for instance). 
+    */
     std::string content_;
 
   public:
+    /**
+    See doc for field enforceAligned_
+    */
+    PamReader(bool enforceAligned = false) :
+      enforceAligned_(enforceAligned),
+      alignedImageBuffer_(NULL)
+    {
+    }
+
+    virtual ~PamReader()
+    {
+      // freeing NULL is OK
+      free(alignedImageBuffer_);
+    }
 
 #if ORTHANC_SANDBOXED == 0
     void ReadFromFile(const std::string& filename);
