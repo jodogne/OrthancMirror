@@ -47,9 +47,7 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomUserConnection);
-      connection_->SetLocalApplicationEntityTitle(localAet_);
-      connection_->SetRemoteModality(remote_);
+      connection_.reset(new DicomUserConnection(localAet_, remote_));
     }
   }
 

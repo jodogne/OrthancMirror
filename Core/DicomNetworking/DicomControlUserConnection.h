@@ -75,6 +75,8 @@ namespace Orthanc
       return parameters_;
     }
 
+    void Close();
+
     bool Echo();
 
     void Find(DicomFindAnswers& result,

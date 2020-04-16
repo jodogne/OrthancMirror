@@ -178,9 +178,10 @@ namespace Orthanc
     {
       Close();
     }
-    catch (OrthancException&)
+    catch (OrthancException& e)
     {
       // Don't throw exception in destructors
+      LOG(ERROR) << "Error while destroying a DICOM association: " << e.What();
     }
   }
 
@@ -515,7 +516,7 @@ namespace Orthanc
       }
 
       throw OrthancException(ErrorCode_NetworkProtocol,
-                             "DicomUserConnection - " + command + " to AET \"" +
+                             "DicomAssociation - " + command + " to AET \"" +
                              parameters.GetRemoteApplicationEntityTitle() +
                              "\": " + info);
     }
