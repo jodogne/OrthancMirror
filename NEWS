@@ -10,6 +10,14 @@ REST API
   - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
     body to another modality (alternative to command-line tools such as "storescu")
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginRegisterIncomingDicomInstanceFilter()
+  - OrthancPluginGetInstanceTransferSyntaxUid()
+  - OrthancPluginHasInstancePixelData()
+
 Lua
 ---
 
