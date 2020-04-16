@@ -20,6 +20,7 @@ Maintenance
 * Fix signature of "OrthancPluginRegisterStorageCommitmentScpCallback()" in plugins SDK
 * Error reporting on failure while initializing SSL
 * Fix unit test ParsedDicomFile.ToJsonFlags2 on big-endian architectures
+* Avoid one memcpy of the DICOM buffer on "POST /instances"
 * Upgraded dependencies for static builds (notably on Windows):
   - civetweb 1.12
   - openssl 1.1.1f

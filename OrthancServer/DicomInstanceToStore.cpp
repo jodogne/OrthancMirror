@@ -150,18 +150,28 @@ namespace Orthanc
   {
   public:
     DicomInstanceOrigin                  origin_;
-    SmartContainer<std::string>          buffer_;
+    bool                                 hasBuffer_;
+    std::unique_ptr<std::string>         ownBuffer_;
+    const void*                          bufferData_;
+    size_t                               bufferSize_;
     SmartContainer<ParsedDicomFile>      parsed_;
     SmartContainer<DicomMap>             summary_;
     SmartContainer<Json::Value>          json_;
     MetadataMap                          metadata_;
+
+    PImpl() :
+      hasBuffer_(false),
+      bufferData_(NULL),
+      bufferSize_(0)
+    {
+    }
 
   private:
     std::unique_ptr<DicomInstanceHasher>  hasher_;
 
     void ComputeMissingInformation()
     {
-      if (buffer_.HasContent() &&
+      if (hasBuffer_ &&
           summary_.HasContent() &&
           json_.HasContent())
       {
@@ -169,7 +179,7 @@ namespace Orthanc
         return; 
       }
     
-      if (!buffer_.HasContent())
+      if (!hasBuffer_)
       {
         if (!parsed_.HasContent())
         {
@@ -186,13 +196,15 @@ namespace Orthanc
         }
 
         // Serialize the parsed DICOM file
-        buffer_.Allocate();
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer_.GetContent(), 
+        ownBuffer_.reset(new std::string);
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(*ownBuffer_,
                                                  *parsed_.GetContent().GetDcmtkObject().getDataset()))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Unable to serialize a DICOM file to a memory buffer");
         }
+
+        hasBuffer_ = true;
       }
 
       if (summary_.HasContent() &&
@@ -205,9 +217,17 @@ namespace Orthanc
       // memory buffer, but that its summary or its JSON version is
       // missing
 
+      assert(hasBuffer_);
       if (!parsed_.HasContent())
       {
-        parsed_.TakeOwnership(new ParsedDicomFile(buffer_.GetConstContent()));
+        if (ownBuffer_.get() != NULL)
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(*ownBuffer_));
+        }
+        else
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(bufferData_, bufferSize_));
+        }
       }
 
       // At this point, we have parsed the DICOM file
@@ -232,22 +252,38 @@ namespace Orthanc
 
 
   public:
-    const char* GetBufferData()
+    void SetBuffer(const void* data,
+                   size_t size)
+    {
+      ownBuffer_.reset(NULL);
+      bufferData_ = data;
+      bufferSize_ = size;
+      hasBuffer_ = true;
+    }
+    
+    const void* GetBufferData()
     {
       ComputeMissingInformation();
-    
-      if (!buffer_.HasContent())
+
+      if (!hasBuffer_)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      if (buffer_.GetConstContent().size() == 0)
+      if (ownBuffer_.get() != NULL)
       {
-        return NULL;
+        if (ownBuffer_->empty())
+        {
+          return NULL;
+        }
+        else
+        {
+          return ownBuffer_->c_str();
+        }
       }
       else
       {
-        return buffer_.GetConstContent().c_str();
+        return bufferData_;
       }
     }
 
@@ -256,12 +292,19 @@ namespace Orthanc
     {
       ComputeMissingInformation();
     
-      if (!buffer_.HasContent())
+      if (!hasBuffer_)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      return buffer_.GetConstContent().size();
+      if (ownBuffer_.get() != NULL)
+      {
+        return ownBuffer_->size();
+      }
+      else
+      {
+        return bufferSize_;
+      }
     }
 
 
@@ -347,9 +390,10 @@ namespace Orthanc
   }
 
     
-  void DicomInstanceToStore::SetBuffer(const std::string& dicom)
+  void DicomInstanceToStore::SetBuffer(const void* dicom,
+                                       size_t size)
   {
-    pimpl_->buffer_.SetConstReference(dicom);
+    pimpl_->SetBuffer(dicom, size);
   }
 
 
@@ -391,7 +435,7 @@ namespace Orthanc
   }
 
 
-  const char* DicomInstanceToStore::GetBufferData()
+  const void* DicomInstanceToStore::GetBufferData()
   {
     return pimpl_->GetBufferData();
   }
