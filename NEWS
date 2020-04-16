@@ -21,6 +21,7 @@ Maintenance
 * Error reporting on failure while initializing SSL
 * Fix unit test ParsedDicomFile.ToJsonFlags2 on big-endian architectures
 * Avoid one memcpy of the DICOM buffer on "POST /instances"
+* Default value of "HttpThreadsCount" reduced from 50 to 10
 * Upgraded dependencies for static builds (notably on Windows):
   - civetweb 1.12
   - openssl 1.1.1f
