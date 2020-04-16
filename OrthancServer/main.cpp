@@ -82,7 +82,7 @@ public:
       DicomInstanceToStore toStore;
       toStore.SetOrigin(DicomInstanceOrigin::FromDicomProtocol
                         (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
-      toStore.SetBuffer(dicomFile);
+      toStore.SetBuffer(dicomFile.c_str(), dicomFile.size());
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
 
