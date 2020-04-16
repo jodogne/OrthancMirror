@@ -96,8 +96,7 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomUserConnection(localAet_, remote_));
-      connection_->Open();
+      connection_.reset(new DicomControlUserConnection(localAet_, remote_));
     }
     
     connection_->Move(targetAet_, findAnswer);
