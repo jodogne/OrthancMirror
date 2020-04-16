@@ -27,6 +27,7 @@
  *    - Possibly register a callback to refresh its metrics using OrthancPluginRegisterRefreshMetricsCallback().
  *    - Possibly register a callback to answer chunked HTTP transfers using ::OrthancPluginRegisterChunkedRestCallback().
  *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback().
+ *    - Possibly register a callback to filter incoming DICOM instance using OrthancPluginRegisterIncomingDicomInstanceFilter().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -124,7 +125,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     6
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -454,6 +455,7 @@ extern "C"
     _OrthancPluginService_RegisterRefreshMetricsCallback = 1011,
     _OrthancPluginService_RegisterChunkedRestCallback = 1012,  /* New in Orthanc 1.5.7 */
     _OrthancPluginService_RegisterStorageCommitmentScpCallback = 1013,
+    _OrthancPluginService_RegisterIncomingDicomInstanceFilter = 1014,
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -498,6 +500,8 @@ extern "C"
     _OrthancPluginService_HasInstanceMetadata = 4005,
     _OrthancPluginService_GetInstanceMetadata = 4006,
     _OrthancPluginService_GetInstanceOrigin = 4007,
+    _OrthancPluginService_GetInstanceTransferSyntaxUid = 4008,
+    _OrthancPluginService_HasInstancePixelData = 4009,
 
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
@@ -7412,6 +7416,128 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_RegisterStorageCommitmentScpCallback, &params);
   }
   
+
+
+  /**
+   * @brief Callback to filter incoming DICOM instances received by Orthanc.
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a new DICOM instance (e.g. through REST API or
+   * DICOM protocol), and that answers whether this DICOM instance
+   * should be accepted or discarded by Orthanc.
+   *
+   * Note that the metadata information is not available
+   * (i.e. GetInstanceMetadata() should not be used on "instance").
+   *
+   * @param instance The received DICOM instance.
+   * @return 0 to discard the instance, 1 to store the instance, -1 if error.
+   * @ingroup Callback
+   **/
+  typedef int32_t (*OrthancPluginIncomingDicomInstanceFilter) (
+    OrthancPluginDicomInstance* instance);
+
+
+  typedef struct
+  {
+    OrthancPluginIncomingDicomInstanceFilter callback;
+  } _OrthancPluginIncomingDicomInstanceFilter;
+
+  /**
+   * @brief Register a callback to filter incoming DICOM instance.
+   *
+   * This function registers a custom callback to filter incoming
+   * DICOM instances received by Orthanc (either through the REST API
+   * or through the DICOM protocol).
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterIncomingDicomInstanceFilter(
+    OrthancPluginContext*                     context,
+    OrthancPluginIncomingDicomInstanceFilter  callback)
+  {
+    _OrthancPluginIncomingDicomInstanceFilter params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterIncomingDicomInstanceFilter, &params);
+  }
+
+
+  /**
+   * @brief Get the transfer syntax of a DICOM file.
+   *
+   * This function returns a pointer to a newly created string that
+   * contains the transfer syntax UID of the DICOM instance. The empty
+   * string might be returned if this information is unknown.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The NULL value in case of error, or a string containing the
+   * transfer syntax UID. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceTransferSyntaxUid(
+    OrthancPluginContext*        context,
+    OrthancPluginDicomInstance*  instance)
+  {
+    const char* result;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultString = &result;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceTransferSyntaxUid, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  /**
+   * @brief Check whether the DICOM file has pixel data.
+   *
+   * This function returns a Boolean value indicating whether the
+   * DICOM instance contains the pixel data (7FE0,0010) tag.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return "1" if the DICOM instance contains pixel data, or "0" if
+   * the tag is missing, or "-1" in the case of an error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE int32_t OrthancPluginHasInstancePixelData(
+    OrthancPluginContext*       context,
+    OrthancPluginDicomInstance* instance)
+  {
+    int64_t hasPixelData;
+
+    _OrthancPluginAccessDicomInstance params;
+    memset(&params, 0, sizeof(params));
+    params.resultInt64 = &hasPixelData;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_HasInstancePixelData, &params) != OrthancPluginErrorCode_Success ||
+        hasPixelData < 0 ||
+        hasPixelData > 1)
+    {
+      /* Error */
+      return -1;
+    }
+    else
+    {
+      return hasPixelData;
+    }
+  }
+
+
 #ifdef  __cplusplus
 }
 #endif
