@@ -10,6 +10,11 @@ REST API
   - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
     body to another modality (alternative to command-line tools such as "storescu")
 
+Lua
+---
+
+* New "info" field in "ReceivedInstanceFilter()" callback, containing
+  "HasPixelData" and "TransferSyntaxUID" information
 
 Maintenance
 -----------
