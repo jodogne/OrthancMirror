@@ -169,6 +169,26 @@ namespace Orthanc
   private:
     std::unique_ptr<DicomInstanceHasher>  hasher_;
 
+    void ParseDicomFile()
+    {
+      if (!parsed_.HasContent())
+      {
+        if (!hasBuffer_)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      
+        if (ownBuffer_.get() != NULL)
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(*ownBuffer_));
+        }
+        else
+        {
+          parsed_.TakeOwnership(new ParsedDicomFile(bufferData_, bufferSize_));
+        }
+      }
+    }
+
     void ComputeMissingInformation()
     {
       if (hasBuffer_ &&
@@ -217,18 +237,8 @@ namespace Orthanc
       // memory buffer, but that its summary or its JSON version is
       // missing
 
-      assert(hasBuffer_);
-      if (!parsed_.HasContent())
-      {
-        if (ownBuffer_.get() != NULL)
-        {
-          parsed_.TakeOwnership(new ParsedDicomFile(*ownBuffer_));
-        }
-        else
-        {
-          parsed_.TakeOwnership(new ParsedDicomFile(bufferData_, bufferSize_));
-        }
-      }
+      ParseDicomFile();
+      assert(parsed_.HasContent());
 
       // At this point, we have parsed the DICOM file
     
@@ -369,6 +379,22 @@ namespace Orthanc
 
       return false;
     }
+
+
+    bool HasPixelData()
+    {
+      ComputeMissingInformation();
+      ParseDicomFile();
+      
+      if (parsed_.HasContent())
+      {
+        return parsed_.GetContent().HasTag(DICOM_TAG_PIXEL_DATA);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
   };
 
 
@@ -459,14 +485,19 @@ namespace Orthanc
   }
 
 
-  bool DicomInstanceToStore::LookupTransferSyntax(std::string& result)
+  bool DicomInstanceToStore::LookupTransferSyntax(std::string& result) const
   {
-    return pimpl_->LookupTransferSyntax(result);
+    return const_cast<PImpl&>(*pimpl_).LookupTransferSyntax(result);
   }
 
 
   DicomInstanceHasher& DicomInstanceToStore::GetHasher()
   {
     return pimpl_->GetHasher();
+  }
+
+  bool DicomInstanceToStore::HasPixelData() const
+  {
+    return const_cast<PImpl&>(*pimpl_).HasPixelData();
   }
 }

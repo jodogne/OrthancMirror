@@ -87,8 +87,10 @@ namespace Orthanc
     
     const Json::Value& GetJson();
 
-    bool LookupTransferSyntax(std::string& result);
+    bool LookupTransferSyntax(std::string& result) const;
 
     DicomInstanceHasher& GetHasher();
+
+    bool HasPixelData() const;
   };
 }
