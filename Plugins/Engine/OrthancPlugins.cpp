@@ -825,6 +825,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginOnChangeCallback>  OnChangeCallbacks;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
+    typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
@@ -844,6 +845,7 @@ namespace Orthanc
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
+    IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;
@@ -1782,7 +1784,33 @@ namespace Orthanc
   }
 
 
+  bool OrthancPlugins::FilterIncomingInstance(const DicomInstanceToStore& instance,
+                                              const Json::Value& simplified)
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    
+    for (PImpl::IncomingDicomInstanceFilters::const_iterator
+           filter = pimpl_->incomingDicomInstanceFilters_.begin();
+         filter != pimpl_->incomingDicomInstanceFilters_.end(); ++filter)
+    {
+      int32_t allowed = (*filter) (
+        reinterpret_cast<const OrthancPluginDicomInstance*>(&instance));
 
+      if (allowed == 0)
+      {
+        return false;
+      }
+      else if (allowed != 1)
+      {
+        // The callback is only allowed to answer 0 or 1
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+
+    return true;
+  }
+
+  
   void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
                                             OrthancPluginResourceType resourceType,
                                             const char* resource)
@@ -1964,6 +1992,16 @@ namespace Orthanc
 
     LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters2_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterIncomingDicomInstanceFilter(const void* parameters)
+  {
+    const _OrthancPluginIncomingDicomInstanceFilter& p = 
+      *reinterpret_cast<const _OrthancPluginIncomingDicomInstanceFilter*>(parameters);
+
+    LOG(INFO) << "Plugin has registered a callback to filter incoming DICOM instances";
+    pimpl_->incomingDicomInstanceFilters_.push_back(p.callback);
   }
 
 
@@ -2419,8 +2457,8 @@ namespace Orthanc
     const _OrthancPluginAccessDicomInstance& p = 
       *reinterpret_cast<const _OrthancPluginAccessDicomInstance*>(parameters);
 
-    DicomInstanceToStore& instance =
-      *reinterpret_cast<DicomInstanceToStore*>(p.instance);
+    const DicomInstanceToStore& instance =
+      *reinterpret_cast<const DicomInstanceToStore*>(p.instance);
 
     switch (service)
     {
@@ -2467,6 +2505,22 @@ namespace Orthanc
 
       case _OrthancPluginService_GetInstanceOrigin:   // New in Orthanc 0.9.5
         *p.resultOrigin = Plugins::Convert(instance.GetOrigin().GetRequestOrigin());
+        return;
+
+      case _OrthancPluginService_GetInstanceTransferSyntaxUid:   // New in Orthanc 1.6.1
+      {
+        std::string s;
+        if (!instance.LookupTransferSyntax(s))
+        {
+          s.clear();
+        }
+        
+        *p.resultStringToFree = CopyString(s);
+        return;
+      }
+
+      case _OrthancPluginService_HasInstancePixelData:   // New in Orthanc 1.6.1
+        *p.resultInt64 = instance.HasPixelData();
         return;
 
       default:
@@ -3420,6 +3474,8 @@ namespace Orthanc
       case _OrthancPluginService_HasInstanceMetadata:
       case _OrthancPluginService_GetInstanceMetadata:
       case _OrthancPluginService_GetInstanceOrigin:
+      case _OrthancPluginService_GetInstanceTransferSyntaxUid:
+      case _OrthancPluginService_HasInstancePixelData:
         AccessDicomInstance(service, parameters);
         return true;
 
@@ -4034,6 +4090,10 @@ namespace Orthanc
         RegisterIncomingHttpRequestFilter2(parameters);
         return true;
 
+      case _OrthancPluginService_RegisterIncomingDicomInstanceFilter:
+        RegisterIncomingDicomInstanceFilter(parameters);
+        return true;
+
       case _OrthancPluginService_RegisterRefreshMetricsCallback:
         RegisterRefreshMetricsCallback(parameters);
         return true;
@@ -4477,46 +4537,50 @@ namespace Orthanc
       getValues[i] = getArguments[i].second.c_str();
     }
 
-    // Improved callback with support for GET arguments, since Orthanc 1.3.0
-    for (PImpl::IncomingHttpRequestFilters2::const_iterator
-           filter = pimpl_->incomingHttpRequestFilters2_.begin();
-         filter != pimpl_->incomingHttpRequestFilters2_.end(); ++filter)
     {
-      int32_t allowed = (*filter) (cMethod, uri, ip,
-                                   httpKeys.size(),
-                                   httpKeys.empty() ? NULL : &httpKeys[0],
-                                   httpValues.empty() ? NULL : &httpValues[0],
-                                   getKeys.size(),
-                                   getKeys.empty() ? NULL : &getKeys[0],
-                                   getValues.empty() ? NULL : &getValues[0]);
+      boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    
+      // Improved callback with support for GET arguments, since Orthanc 1.3.0
+      for (PImpl::IncomingHttpRequestFilters2::const_iterator
+             filter = pimpl_->incomingHttpRequestFilters2_.begin();
+           filter != pimpl_->incomingHttpRequestFilters2_.end(); ++filter)
+      {
+        int32_t allowed = (*filter) (cMethod, uri, ip,
+                                     httpKeys.size(),
+                                     httpKeys.empty() ? NULL : &httpKeys[0],
+                                     httpValues.empty() ? NULL : &httpValues[0],
+                                     getKeys.size(),
+                                     getKeys.empty() ? NULL : &getKeys[0],
+                                     getValues.empty() ? NULL : &getValues[0]);
 
-      if (allowed == 0)
-      {
-        return false;
+        if (allowed == 0)
+        {
+          return false;
+        }
+        else if (allowed != 1)
+        {
+          // The callback is only allowed to answer 0 or 1
+          throw OrthancException(ErrorCode_Plugin);
+        }
       }
-      else if (allowed != 1)
-      {
-        // The callback is only allowed to answer 0 or 1
-        throw OrthancException(ErrorCode_Plugin);
-      }
-    }
 
-    for (PImpl::IncomingHttpRequestFilters::const_iterator
-           filter = pimpl_->incomingHttpRequestFilters_.begin();
-         filter != pimpl_->incomingHttpRequestFilters_.end(); ++filter)
-    {
-      int32_t allowed = (*filter) (cMethod, uri, ip, httpKeys.size(),
-                                   httpKeys.empty() ? NULL : &httpKeys[0],
-                                   httpValues.empty() ? NULL : &httpValues[0]);
+      for (PImpl::IncomingHttpRequestFilters::const_iterator
+             filter = pimpl_->incomingHttpRequestFilters_.begin();
+           filter != pimpl_->incomingHttpRequestFilters_.end(); ++filter)
+      {
+        int32_t allowed = (*filter) (cMethod, uri, ip, httpKeys.size(),
+                                     httpKeys.empty() ? NULL : &httpKeys[0],
+                                     httpValues.empty() ? NULL : &httpValues[0]);
 
-      if (allowed == 0)
-      {
-        return false;
-      }
-      else if (allowed != 1)
-      {
-        // The callback is only allowed to answer 0 or 1
-        throw OrthancException(ErrorCode_Plugin);
+        if (allowed == 0)
+        {
+          return false;
+        }
+        else if (allowed != 1)
+        {
+          // The callback is only allowed to answer 0 or 1
+          throw OrthancException(ErrorCode_Plugin);
+        }
       }
     }
 

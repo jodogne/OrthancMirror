@@ -79,13 +79,13 @@ namespace Orthanc
                      MetadataType metadata,
                      const std::string& value);
 
-    const void* GetBufferData();
+    const void* GetBufferData() const;
 
-    size_t GetBufferSize();
+    size_t GetBufferSize() const;
 
     const DicomMap& GetSummary();
     
-    const Json::Value& GetJson();
+    const Json::Value& GetJson() const;
 
     bool LookupTransferSyntax(std::string& result) const;
 

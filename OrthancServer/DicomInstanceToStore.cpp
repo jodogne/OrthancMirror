@@ -461,15 +461,15 @@ namespace Orthanc
   }
 
 
-  const void* DicomInstanceToStore::GetBufferData()
+  const void* DicomInstanceToStore::GetBufferData() const
   {
-    return pimpl_->GetBufferData();
+    return const_cast<PImpl&>(*pimpl_).GetBufferData();
   }
 
 
-  size_t DicomInstanceToStore::GetBufferSize()
+  size_t DicomInstanceToStore::GetBufferSize() const
   {
-    return pimpl_->GetBufferSize();
+    return const_cast<PImpl&>(*pimpl_).GetBufferSize();
   }
 
 
@@ -479,9 +479,9 @@ namespace Orthanc
   }
 
     
-  const Json::Value& DicomInstanceToStore::GetJson()
+  const Json::Value& DicomInstanceToStore::GetJson() const
   {
-    return pimpl_->GetJson();
+    return const_cast<PImpl&>(*pimpl_).GetJson();
   }
 
 
