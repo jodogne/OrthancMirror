@@ -1108,11 +1108,11 @@ extern "C"
 
 
   /**
-   * @brief Signature of a callback function that is triggered when Orthanc receives a DICOM instance.
+   * @brief Signature of a callback function that is triggered when Orthanc stores a new DICOM instance.
    * @ingroup Callbacks
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginOnStoredInstanceCallback) (
-    OrthancPluginDicomInstance* instance,
+    const OrthancPluginDicomInstance* instance,
     const char* instanceId);
 
 
@@ -2697,12 +2697,12 @@ extern "C"
 
   typedef struct
   {
-    char**                       resultStringToFree;
-    const char**                 resultString;
-    int64_t*                     resultInt64;
-    const char*                  key;
-    OrthancPluginDicomInstance*  instance;
-    OrthancPluginInstanceOrigin* resultOrigin;   /* New in Orthanc 0.9.5 SDK */
+    char**                             resultStringToFree;
+    const char**                       resultString;
+    int64_t*                           resultInt64;
+    const char*                        key;
+    const OrthancPluginDicomInstance*  instance;
+    OrthancPluginInstanceOrigin*       resultOrigin;   /* New in Orthanc 0.9.5 SDK */
   } _OrthancPluginAccessDicomInstance;
 
 
@@ -2718,8 +2718,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteAet(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
   {
     const char* result;
 
@@ -2751,8 +2751,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int64_t OrthancPluginGetInstanceSize(
-    OrthancPluginContext*       context,
-    OrthancPluginDicomInstance* instance)
+    OrthancPluginContext*             context,
+    const OrthancPluginDicomInstance* instance)
   {
     int64_t size;
 
@@ -2784,8 +2784,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const void* OrthancPluginGetInstanceData(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
   {
     const char* result;
 
@@ -2820,8 +2820,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceJson(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
   {
     char* result;
 
@@ -2858,8 +2858,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceSimplifiedJson(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
   {
     char* result;
 
@@ -2897,9 +2897,9 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance,
-    const char*                  metadata)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance,
+    const char*                        metadata)
   {
     int64_t result;
 
@@ -2938,9 +2938,9 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance,
-    const char*                  metadata)
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance,
+    const char*                        metadata)
   {
     const char* result;
 
@@ -5110,8 +5110,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginInstanceOrigin OrthancPluginGetInstanceOrigin(
-    OrthancPluginContext*       context,
-    OrthancPluginDicomInstance* instance)
+    OrthancPluginContext*             context,
+    const OrthancPluginDicomInstance* instance)
   {
     OrthancPluginInstanceOrigin origin;
 
@@ -7434,7 +7434,7 @@ extern "C"
    * @ingroup Callback
    **/
   typedef int32_t (*OrthancPluginIncomingDicomInstanceFilter) (
-    OrthancPluginDicomInstance* instance);
+    const OrthancPluginDicomInstance* instance);
 
 
   typedef struct
@@ -7478,15 +7478,15 @@ extern "C"
    * transfer syntax UID. This string must be freed by OrthancPluginFreeString().
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceTransferSyntaxUid(
-    OrthancPluginContext*        context,
-    OrthancPluginDicomInstance*  instance)
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceTransferSyntaxUid(
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance)
   {
-    const char* result;
+    char* result;
 
     _OrthancPluginAccessDicomInstance params;
     memset(&params, 0, sizeof(params));
-    params.resultString = &result;
+    params.resultStringToFree = &result;
     params.instance = instance;
 
     if (context->InvokeService(context, _OrthancPluginService_GetInstanceTransferSyntaxUid, &params) != OrthancPluginErrorCode_Success)
@@ -7514,8 +7514,8 @@ extern "C"
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int32_t OrthancPluginHasInstancePixelData(
-    OrthancPluginContext*       context,
-    OrthancPluginDicomInstance* instance)
+    OrthancPluginContext*             context,
+    const OrthancPluginDicomInstance* instance)
   {
     int64_t hasPixelData;
 
