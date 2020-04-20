@@ -121,22 +121,26 @@ TEST(HttpClient, Ssl)
   HttpClient c;
   c.SetHttpsVerifyPeers(true);
   c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
-  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
+
+  // Test file modified on 2020-04-20, in order to use a git
+  // repository on BitBucket instead of a Mercurial repository
+  // (because Mercurial support disappears on 2020-05-31)
+  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));
+  ASSERT_TRUE(v.isMember("ServeFolders"));
 }
 
 TEST(HttpClient, SslNoVerification)
 {
   HttpClient c;
   c.SetHttpsVerifyPeers(false);
-  c.SetUrl("https://bitbucket.org/sjodogne/orthanc/raw/Orthanc-0.9.3/Resources/Configuration.json");
+  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
-  ASSERT_TRUE(v.isMember("LuaScripts"));
+  ASSERT_TRUE(v.isMember("ServeFolders"));
 }
 
 #endif

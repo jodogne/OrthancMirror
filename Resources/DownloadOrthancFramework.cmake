@@ -216,7 +216,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg")
   else()
     message("Forking the Orthanc source repository using Mercurial")
     execute_process(
-      COMMAND ${ORTHANC_FRAMEWORK_HG} clone "https://bitbucket.org/sjodogne/orthanc"
+      COMMAND ${ORTHANC_FRAMEWORK_HG} clone "https://hg.orthanc-server.com/orthanc/"
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )    
