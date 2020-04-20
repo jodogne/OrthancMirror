@@ -82,7 +82,7 @@ public:
       DicomInstanceToStore toStore;
       toStore.SetOrigin(DicomInstanceOrigin::FromDicomProtocol
                         (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
-      toStore.SetBuffer(dicomFile);
+      toStore.SetBuffer(dicomFile.c_str(), dicomFile.size());
       toStore.SetSummary(dicomSummary);
       toStore.SetJson(dicomJson);
 
@@ -906,7 +906,7 @@ static bool StartHttpServer(ServerContext& context,
       httpDescribeErrors = lock.GetConfiguration().GetBooleanParameter("HttpDescribeErrors", true);
   
       // HTTP server
-      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
+      httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 10));
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));

@@ -36,6 +36,7 @@
 
 #include "OrthancConfiguration.h"
 
+#include "../Core/DicomNetworking/DicomControlUserConnection.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/Logging.h"
 #include "LuaScripting.h"
@@ -81,8 +82,7 @@ namespace Orthanc
       FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
       {
-        DicomUserConnection connection(localAet_, modality_);
-        connection.Open();
+        DicomControlUserConnection connection(localAet_, modality_);
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
 

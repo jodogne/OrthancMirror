@@ -257,8 +257,10 @@ Implementation notes
 
 The information above about the SCP support is readily extracted from
 the function "Orthanc::Internals::AcceptAssociation()" from file
-"OrthancServer/Internals/CommandDispatcher.cpp".
+"Core/DicomNetworking/Internals/CommandDispatcher.cpp".
 
-The information above about the SCU support is derived from the class
-"Orthanc::DicomUserConnection" from file
-"OrthancServer/DicomProtocol/DicomUserConnection.cpp".
+The information above about the SCU support is derived from the
+classes "Orthanc::DicomControlUserConnection" and
+"Orthanc::DicomStoreUserConnection" from file
+"Core/DicomNetworking/DicomControlUserConnection.cpp" and
+"Core/DicomNetworking/DicomStoreUserConnection.cpp".

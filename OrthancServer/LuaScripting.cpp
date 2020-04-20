@@ -874,6 +874,17 @@ namespace Orthanc
       instance.GetOrigin().Format(origin);
       call.PushJson(origin);
 
+      Json::Value info = Json::objectValue;
+      info["HasPixelData"] = instance.HasPixelData();
+
+      std::string s;
+      if (instance.LookupTransferSyntax(s))
+      {
+        info["TransferSyntaxUID"] = s;
+      }
+
+      call.PushJson(info);
+
       if (!call.ExecutePredicate())
       {
         return false;
