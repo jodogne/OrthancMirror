@@ -43,7 +43,6 @@ namespace Orthanc
 {
   static const char* CURRENT = "Current";
   static const char* DESCRIPTION = "Description";
-  static const char* DICOM_TIMEOUT = "DicomTimeout";
   static const char* NEXT_OPERATIONS = "Next";
   static const char* OPERATION = "Operation";
   static const char* OPERATIONS = "Operations";
@@ -127,7 +126,7 @@ namespace Orthanc
       return currentInput_ >= originalInputs_->GetSize() + workInputs_->GetSize();
     }
 
-    void Step(TimeoutDicomConnectionManager& connectionManager)
+    void Step()
     {
       if (IsDone())
       {
@@ -146,7 +145,7 @@ namespace Orthanc
       }
 
       JobOperationValues outputs;
-      operation_->Apply(outputs, *input, connectionManager);
+      operation_->Apply(outputs, *input);
 
       if (!nextOperations_.empty())
       {
@@ -254,12 +253,6 @@ namespace Orthanc
   }
 
   
-  void SequenceOfOperationsJob::Lock::SetDicomAssociationTimeout(unsigned int timeout)
-  {
-    that_.connectionManager_.SetTimeout(timeout);
-  }
-
-
   size_t SequenceOfOperationsJob::Lock::AddOperation(IJobOperation* operation)
   {
     if (IsDone())
@@ -341,7 +334,6 @@ namespace Orthanc
           (*it)->SignalDone(*this);
         }
 
-        connectionManager_.Close();
         return JobStepResult::Success();
       }
       else
@@ -360,10 +352,8 @@ namespace Orthanc
 
     if (current_ < operations_.size())
     {
-      operations_[current_]->Step(connectionManager_);
+      operations_[current_]->Step();
     }
-
-    connectionManager_.CheckTimeout();
 
     return JobStepResult::Continue();
   }
@@ -380,13 +370,6 @@ namespace Orthanc
     {
       operations_[i]->Reset();
     }
-  }
-
-
-  void SequenceOfOperationsJob::Stop(JobStopReason reason)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    connectionManager_.Close();
   }
 
 
@@ -420,7 +403,6 @@ namespace Orthanc
     
     value[DESCRIPTION] = description_;
     value[TRAILING_TIMEOUT] = static_cast<unsigned int>(trailingTimeout_.total_milliseconds());
-    value[DICOM_TIMEOUT] = connectionManager_.GetTimeout();
     value[CURRENT] = static_cast<unsigned int>(current_);
     
     Json::Value tmp = Json::arrayValue;
@@ -454,8 +436,6 @@ namespace Orthanc
     description_ = SerializationToolbox::ReadString(serialized, DESCRIPTION);
     trailingTimeout_ = boost::posix_time::milliseconds
       (SerializationToolbox::ReadUnsignedInteger(serialized, TRAILING_TIMEOUT));
-    connectionManager_.SetTimeout
-      (SerializationToolbox::ReadUnsignedInteger(serialized, DICOM_TIMEOUT));
     current_ = SerializationToolbox::ReadUnsignedInteger(serialized, CURRENT);
 
     const Json::Value& ops = serialized[OPERATIONS];

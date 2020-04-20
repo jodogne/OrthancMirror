@@ -68,13 +68,16 @@ namespace Orthanc
     priority_(0),
     trailingTimeout_(5000)
   {
+    unsigned int dicomTimeout;
+    
     {
       OrthancConfiguration::ReaderLock lock;
-      dicomTimeout_ = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
+      dicomTimeout = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomAssociationCloseDelay", 5);
     }
 
+    connectionManager_.SetInactivityTimeout(dicomTimeout * 1000);  // Milliseconds expected
     LOG(INFO) << "Lua: DICOM associations will be closed after "
-              << dicomTimeout_ << " seconds of inactivity";
+              << dicomTimeout << " seconds of inactivity";
   }
 
 
@@ -149,7 +152,6 @@ namespace Orthanc
       {
         jobLock_.reset(new SequenceOfOperationsJob::Lock(*that_.currentJob_));
         jobLock_->SetTrailingOperationTimeout(that_.trailingTimeout_);
-        jobLock_->SetDicomAssociationTimeout(that_.dicomTimeout_ * 1000);  // Milliseconds expected
       }
     }
 
@@ -202,7 +204,7 @@ namespace Orthanc
                                                    const RemoteModalityParameters& modality)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation(new StoreScuOperation(localAet, modality));    
+    return jobLock_->AddOperation(new StoreScuOperation(that_.connectionManager_, localAet, modality));    
   }
 
 

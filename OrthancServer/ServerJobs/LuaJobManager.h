@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
 #include "../../Core/DicomParsing/DicomModification.h"
 #include "../../Core/JobsEngine/JobsEngine.h"
 #include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
@@ -51,7 +52,7 @@ namespace Orthanc
     size_t                    maxOperations_;
     int                       priority_;
     unsigned int              trailingTimeout_;
-    unsigned int              dicomTimeout_;
+    TimeoutDicomConnectionManager  connectionManager_;
 
     virtual void SignalDone(const SequenceOfOperationsJob& job);
 
@@ -65,6 +66,11 @@ namespace Orthanc
     void SetTrailingOperationTimeout(unsigned int timeout);
 
     void AwakeTrailingSleep();
+
+    TimeoutDicomConnectionManager& GetDicomConnectionManager()
+    {
+      return connectionManager_;
+    }
 
     class Lock : public boost::noncopyable
     {

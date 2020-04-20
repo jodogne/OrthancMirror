@@ -43,8 +43,7 @@
 namespace Orthanc
 {
   void DeleteResourceOperation::Apply(JobOperationValues& outputs,
-                                      const JobOperationValue& input,
-                                      TimeoutDicomConnectionManager& connectionManager)
+                                      const JobOperationValue& input)
   {
     switch (input.GetType())
     {

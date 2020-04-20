@@ -81,8 +81,7 @@ namespace Orthanc
   }
 
   void ModifyInstanceOperation::Apply(JobOperationValues& outputs,
-                                      const JobOperationValue& input,
-                                      TimeoutDicomConnectionManager& connectionManager)
+                                      const JobOperationValue& input)
   {
     if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
