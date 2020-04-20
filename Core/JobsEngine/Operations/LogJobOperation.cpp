@@ -41,7 +41,7 @@ namespace Orthanc
 {
   void LogJobOperation::Apply(JobOperationValues& outputs,
                               const JobOperationValue& input,
-                              IDicomConnectionManager& connectionManager)
+                              TimeoutDicomConnectionManager& connectionManager)
   {
     switch (input.GetType())
     {

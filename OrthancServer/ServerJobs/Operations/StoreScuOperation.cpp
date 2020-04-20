@@ -44,9 +44,9 @@ namespace Orthanc
 {
   void StoreScuOperation::Apply(JobOperationValues& outputs,
                                 const JobOperationValue& input,
-                                IDicomConnectionManager& connectionManager)
+                                TimeoutDicomConnectionManager& connectionManager)
   {
-    std::unique_ptr<IDicomConnectionManager::IResource> resource
+    std::unique_ptr<TimeoutDicomConnectionManager::Resource> resource
       (connectionManager.AcquireConnection(localAet_, modality_));
 
     if (resource.get() == NULL)

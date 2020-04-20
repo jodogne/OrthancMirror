@@ -44,32 +44,28 @@ namespace Orthanc
     return boost::posix_time::microsec_clock::universal_time();
   }
 
-  class TimeoutDicomConnectionManager::Resource : public IDicomConnectionManager::IResource
+
+  TimeoutDicomConnectionManager::Resource::Resource(TimeoutDicomConnectionManager& that) : 
+    that_(that)
   {
-  private:
-    TimeoutDicomConnectionManager&  that_;
-
-  public:
-    Resource(TimeoutDicomConnectionManager& that) : 
-      that_(that)
+    if (that_.connection_.get() == NULL)
     {
-      if (that_.connection_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
+      throw OrthancException(ErrorCode_InternalError);
     }
+  }
 
-    ~Resource()
-    {
-      that_.Touch();
-    }
+  
+  TimeoutDicomConnectionManager::Resource::~Resource()
+  {
+    that_.Touch();
+  }
 
-    DicomUserConnection& GetConnection()
-    {
-      assert(that_.connection_.get() != NULL);
-      return *that_.connection_;
-    }
-  };
+  
+  DicomUserConnection& TimeoutDicomConnectionManager::Resource::GetConnection()
+  {
+    assert(that_.connection_.get() != NULL);
+    return *that_.connection_;
+  }
 
 
   void TimeoutDicomConnectionManager::Touch()
@@ -119,7 +115,7 @@ namespace Orthanc
   }
 
 
-  IDicomConnectionManager::IResource* 
+  TimeoutDicomConnectionManager::Resource* 
   TimeoutDicomConnectionManager::AcquireConnection(const std::string& localAet,
                                                    const RemoteModalityParameters& remote)
   {
