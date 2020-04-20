@@ -226,6 +226,7 @@ namespace Orthanc
 
   void DicomControlUserConnection::SetupPresentationContexts()
   {
+    assert(association_.get() != NULL);
     association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
     association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
     association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
@@ -241,6 +242,7 @@ namespace Orthanc
                                                 const char* level)
   {
     assert(isWorklist ^ (level != NULL));
+    assert(association_.get() != NULL);
 
     association_->Open(parameters_);
 
@@ -325,6 +327,7 @@ namespace Orthanc
                                                 ResourceType level,
                                                 const DicomMap& fields)
   {
+    assert(association_.get() != NULL);
     association_->Open(parameters_);
 
     std::unique_ptr<ParsedDicomFile> query(
@@ -440,8 +443,16 @@ namespace Orthanc
   }
     
 
+  void DicomControlUserConnection::Close()
+  {
+    assert(association_.get() != NULL);
+    association_->Close();
+  }
+
+
   bool DicomControlUserConnection::Echo()
   {
+    assert(association_.get() != NULL);
     association_->Open(parameters_);
 
     DIC_US status;

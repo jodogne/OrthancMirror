@@ -180,11 +180,11 @@ namespace Orthanc
 
     void GetTags(std::set<DicomTag>& tags) const;
 
-    static bool IsDicomFile(const char* dicom,
+    static bool IsDicomFile(const void* dicom,
                             size_t size);
     
     static bool ParseDicomMetaInformation(DicomMap& result,
-                                          const char* dicom,
+                                          const void* dicom,
                                           size_t size);
 
     void LogMissingTagsForStore() const;

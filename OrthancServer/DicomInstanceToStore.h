@@ -59,8 +59,11 @@ namespace Orthanc
     void SetOrigin(const DicomInstanceOrigin& origin);
     
     const DicomInstanceOrigin& GetOrigin() const;
-    
-    void SetBuffer(const std::string& dicom);
+
+    // WARNING: The buffer is not copied, it must not be removed as
+    // long as the "DicomInstanceToStore" object is alive
+    void SetBuffer(const void* dicom,
+                   size_t size);
 
     void SetParsedDicomFile(ParsedDicomFile& parsed);
 
@@ -76,16 +79,18 @@ namespace Orthanc
                      MetadataType metadata,
                      const std::string& value);
 
-    const char* GetBufferData();
+    const void* GetBufferData() const;
 
-    size_t GetBufferSize();
+    size_t GetBufferSize() const;
 
     const DicomMap& GetSummary();
     
-    const Json::Value& GetJson();
+    const Json::Value& GetJson() const;
 
-    bool LookupTransferSyntax(std::string& result);
+    bool LookupTransferSyntax(std::string& result) const;
 
     DicomInstanceHasher& GetHasher();
+
+    bool HasPixelData() const;
   };
 }

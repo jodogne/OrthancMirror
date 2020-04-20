@@ -10,6 +10,19 @@ REST API
   - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
     body to another modality (alternative to command-line tools such as "storescu")
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginRegisterIncomingDicomInstanceFilter()
+  - OrthancPluginGetInstanceTransferSyntaxUid()
+  - OrthancPluginHasInstancePixelData()
+
+Lua
+---
+
+* New "info" field in "ReceivedInstanceFilter()" callback, containing
+  "HasPixelData" and "TransferSyntaxUID" information
 
 Maintenance
 -----------
@@ -20,6 +33,8 @@ Maintenance
 * Fix signature of "OrthancPluginRegisterStorageCommitmentScpCallback()" in plugins SDK
 * Error reporting on failure while initializing SSL
 * Fix unit test ParsedDicomFile.ToJsonFlags2 on big-endian architectures
+* Avoid one memcpy of the DICOM buffer on "POST /instances"
+* Default value of "HttpThreadsCount" reduced from 50 to 10
 * Upgraded dependencies for static builds (notably on Windows):
   - civetweb 1.12
   - openssl 1.1.1f
