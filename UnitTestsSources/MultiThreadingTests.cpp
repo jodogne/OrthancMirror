@@ -1284,7 +1284,6 @@ namespace
     MemoryStorageArea              storage_;
     SQLiteDatabaseWrapper          db_;   // The SQLite DB is in memory
     std::unique_ptr<ServerContext>   context_;
-    TimeoutDicomConnectionManager  manager_;
 
   public:
     OrthancJobsSerialization()
