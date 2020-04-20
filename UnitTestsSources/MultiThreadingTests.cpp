@@ -1098,7 +1098,6 @@ TEST(JobsSerialization, GenericJobs)
       StringOperationValue s2("world");
       lock.AddInput(a, s1);
       lock.AddInput(a, s2);
-      lock.SetDicomAssociationTimeout(200);
       lock.SetTrailingOperationTimeout(300);
     }
 
@@ -1406,27 +1405,31 @@ TEST_F(OrthancJobsSerialization, Operations)
   // StoreScuOperation
 
   {
-    RemoteModalityParameters modality;
-    modality.SetApplicationEntityTitle("REMOTE");
-    modality.SetHost("192.168.1.1");
-    modality.SetPortNumber(1000);
-    modality.SetManufacturer(ModalityManufacturer_StoreScp);
+    TimeoutDicomConnectionManager luaManager;
+    
+    {
+      RemoteModalityParameters modality;
+      modality.SetApplicationEntityTitle("REMOTE");
+      modality.SetHost("192.168.1.1");
+      modality.SetPortNumber(1000);
+      modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
-    StoreScuOperation operation("TEST", modality);
+      StoreScuOperation operation(luaManager, "TEST", modality);
 
-    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
-    operation.Serialize(s);
-  }
+      ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
+      operation.Serialize(s);
+    }
 
-  {
-    operation.reset(unserializer.UnserializeOperation(s));
+    {
+      operation.reset(unserializer.UnserializeOperation(s));
 
-    const StoreScuOperation& tmp = dynamic_cast<StoreScuOperation&>(*operation);
-    ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
-    ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
-    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
-    ASSERT_EQ("TEST", tmp.GetLocalAet());
+      const StoreScuOperation& tmp = dynamic_cast<StoreScuOperation&>(*operation);
+      ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
+      ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
+      ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
+      ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+      ASSERT_EQ("TEST", tmp.GetLocalAet());
+    }
   }
 
   // SystemCallOperation

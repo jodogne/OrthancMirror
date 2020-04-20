@@ -126,7 +126,8 @@ namespace Orthanc
     }
     else if (type == "StoreScu")
     {
-      return new StoreScuOperation(source);
+      return new StoreScuOperation(
+        context_.GetLuaScripting().GetDicomConnectionManager(), source);
     }
     else if (type == "SystemCall")
     {

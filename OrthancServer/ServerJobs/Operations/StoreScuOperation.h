@@ -34,25 +34,29 @@
 #pragma once
 
 #include "../../../Core/JobsEngine/Operations/IJobOperation.h"
-#include "../../../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
 
 namespace Orthanc
 {
   class StoreScuOperation : public IJobOperation
   {
   private:
-    std::string               localAet_;
-    RemoteModalityParameters  modality_;
+    TimeoutDicomConnectionManager&  connectionManager_;
+    std::string                     localAet_;
+    RemoteModalityParameters        modality_;
     
   public:
-    StoreScuOperation(const std::string& localAet,
+    StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+                      const std::string& localAet,
                       const RemoteModalityParameters& modality) :
+      connectionManager_(connectionManager),
       localAet_(localAet),
       modality_(modality)
     {
     }
 
-    StoreScuOperation(const Json::Value& serialized);
+    StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+                      const Json::Value& serialized);
 
     const std::string& GetLocalAet() const
     {
@@ -65,8 +69,7 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       TimeoutDicomConnectionManager& manager);
+                       const JobOperationValue& input);
 
     virtual void Serialize(Json::Value& result) const;
   };

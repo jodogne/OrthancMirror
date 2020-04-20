@@ -45,59 +45,58 @@ namespace Orthanc
   }
 
 
-  TimeoutDicomConnectionManager::Resource::Resource(TimeoutDicomConnectionManager& that) : 
-    that_(that)
+  TimeoutDicomConnectionManager::Lock::Lock(TimeoutDicomConnectionManager& that,
+                                            const std::string& localAet,
+                                            const RemoteModalityParameters& remote) : 
+    that_(that),
+    lock_(that_.mutex_)
+  {
+    // Calling "Touch()" will be done by the "~Lock()" destructor
+    that_.OpenInternal(localAet, remote);
+  }
+
+  
+  TimeoutDicomConnectionManager::Lock::~Lock()
+  {
+    that_.TouchInternal();
+  }
+
+  
+  DicomUserConnection& TimeoutDicomConnectionManager::Lock::GetConnection()
   {
     if (that_.connection_.get() == NULL)
     {
+      // The allocation should have been done by "that_.Open()" in the constructor
       throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      return *that_.connection_;
     }
   }
 
-  
-  TimeoutDicomConnectionManager::Resource::~Resource()
-  {
-    that_.Touch();
-  }
 
-  
-  DicomUserConnection& TimeoutDicomConnectionManager::Resource::GetConnection()
-  {
-    assert(that_.connection_.get() != NULL);
-    return *that_.connection_;
-  }
-
-
-  void TimeoutDicomConnectionManager::Touch()
+  // Mutex must be locked
+  void TimeoutDicomConnectionManager::TouchInternal()
   {
     lastUse_ = GetNow();
   }
 
 
-  void TimeoutDicomConnectionManager::CheckTimeoutInternal()
+  // Mutex must be locked
+  void TimeoutDicomConnectionManager::OpenInternal(const std::string& localAet,
+                                                   const RemoteModalityParameters& remote)
   {
-    if (connection_.get() != NULL &&
-        (GetNow() - lastUse_) >= timeout_)
+    if (connection_.get() == NULL ||
+        !connection_->IsSameAssociation(localAet, remote))
     {
-      Close();
+      connection_.reset(new DicomUserConnection(localAet, remote));
     }
   }
 
 
-  void TimeoutDicomConnectionManager::SetTimeout(unsigned int timeout)
-  {
-    timeout_ = boost::posix_time::milliseconds(timeout);
-    CheckTimeoutInternal();
-  }
-
-
-  unsigned int TimeoutDicomConnectionManager::GetTimeout()
-  {
-    return static_cast<unsigned int>(timeout_.total_milliseconds());
-  }
-
-
-  void TimeoutDicomConnectionManager::Close()
+  // Mutex must be locked
+  void TimeoutDicomConnectionManager::CloseInternal()
   {
     if (connection_.get() != NULL)
     {
@@ -109,22 +108,29 @@ namespace Orthanc
   }
 
 
-  void TimeoutDicomConnectionManager::CheckTimeout()
+  void TimeoutDicomConnectionManager::SetInactivityTimeout(unsigned int milliseconds)
   {
-    CheckTimeoutInternal();
+    boost::mutex::scoped_lock lock(mutex_);
+    timeout_ = boost::posix_time::milliseconds(milliseconds);
+    CloseInternal();
   }
 
 
-  TimeoutDicomConnectionManager::Resource* 
-  TimeoutDicomConnectionManager::AcquireConnection(const std::string& localAet,
-                                                   const RemoteModalityParameters& remote)
+  unsigned int TimeoutDicomConnectionManager::GetInactivityTimeout()
   {
-    if (connection_.get() == NULL ||
-        !connection_->IsSameAssociation(localAet, remote))
-    {
-      connection_.reset(new DicomUserConnection(localAet, remote));
-    }
+    boost::mutex::scoped_lock lock(mutex_);
+    return static_cast<unsigned int>(timeout_.total_milliseconds());
+  }
 
-    return new Resource(*this);
+
+  void TimeoutDicomConnectionManager::CloseIfInactive()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (connection_.get() != NULL &&
+        (GetNow() - lastUse_) >= timeout_)
+    {
+      CloseInternal();
+    }
   }
 }
