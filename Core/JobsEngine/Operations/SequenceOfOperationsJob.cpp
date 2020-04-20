@@ -127,7 +127,7 @@ namespace Orthanc
       return currentInput_ >= originalInputs_->GetSize() + workInputs_->GetSize();
     }
 
-    void Step(IDicomConnectionManager& connectionManager)
+    void Step(TimeoutDicomConnectionManager& connectionManager)
     {
       if (IsDone())
       {

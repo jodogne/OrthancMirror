@@ -68,7 +68,7 @@ namespace Orthanc
 
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input,
-                       IDicomConnectionManager& connectionManager);
+                       TimeoutDicomConnectionManager& connectionManager);
 
     virtual void Serialize(Json::Value& target) const;
   };

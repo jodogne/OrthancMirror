@@ -33,13 +33,15 @@
 
 #pragma once
 
-#include "IDicomConnectionManager.h"
+#if !defined(ORTHANC_ENABLE_DCMTK_NETWORKING)
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be defined
+#endif
 
 #if ORTHANC_ENABLE_DCMTK_NETWORKING == 0
 
 namespace Orthanc
 {
-  class TimeoutDicomConnectionManager : public IDicomConnectionManager
+  class TimeoutDicomConnectionManager : public boost::noncopyable
   {
   public:
     void SetTimeout(unsigned int timeout)
@@ -64,16 +66,15 @@ namespace Orthanc
 #else
 
 #include "../Compatibility.h"
+#include "DicomUserConnection.h"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
-  class TimeoutDicomConnectionManager : public IDicomConnectionManager
+  class TimeoutDicomConnectionManager : public boost::noncopyable
   {
   private:
-    class Resource;
-
     std::unique_ptr<DicomUserConnection>  connection_;
     boost::posix_time::ptime              lastUse_;
     boost::posix_time::time_duration      timeout_;
@@ -83,6 +84,19 @@ namespace Orthanc
     void CheckTimeoutInternal();
 
   public:
+    class Resource : public boost::noncopyable
+    {
+    private:
+      TimeoutDicomConnectionManager&  that_;
+
+    public:
+      Resource(TimeoutDicomConnectionManager& that);
+      
+      ~Resource();
+
+      DicomUserConnection& GetConnection();
+    };
+
     TimeoutDicomConnectionManager() :
       timeout_(boost::posix_time::milliseconds(1000))
     {
@@ -96,8 +110,8 @@ namespace Orthanc
 
     void CheckTimeout();
 
-    virtual IResource* AcquireConnection(const std::string& localAet,
-                                         const RemoteModalityParameters& remote);
+    Resource* AcquireConnection(const std::string& localAet,
+                                const RemoteModalityParameters& remote);
   };
 }
 
