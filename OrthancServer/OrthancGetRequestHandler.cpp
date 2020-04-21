@@ -100,7 +100,7 @@ namespace Orthanc
                                              sopClass, sizeof(sopClass),
                                              sopInstance, sizeof(sopInstance)))
 #else
-      if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClassUid, sopInstance))
+      if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
 #endif
       {
         throw OrthancException(ErrorCode_NoSopClassOrInstance,
