@@ -410,6 +410,28 @@ TEST(PamWriter, EndToEnd)
   }
 
   {
+    // true means "enforce alignment by using a temporary buffer"
+    Orthanc::PamReader r(true);
+    r.ReadFromMemory(s);
+
+    ASSERT_EQ(r.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r.GetWidth(), width);
+    ASSERT_EQ(r.GetHeight(), height);
+
+    v = 0;
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const uint16_t* p = reinterpret_cast<const uint16_t*>
+        ((const uint8_t*)r.GetConstBuffer() + y * r.GetPitch());
+      ASSERT_EQ(p, r.GetConstRow(y));
+      for (unsigned int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(v, *p);
+      }
+    }
+  }
+
+  {
     Orthanc::TemporaryFile tmp;
     tmp.Write(s);
 
@@ -432,4 +454,30 @@ TEST(PamWriter, EndToEnd)
       }
     }
   }
+
+  {
+    Orthanc::TemporaryFile tmp;
+    tmp.Write(s);
+
+    // true means "enforce alignment by using a temporary buffer"
+    Orthanc::PamReader r2(true);
+    r2.ReadFromFile(tmp.GetPath());
+
+    ASSERT_EQ(r2.GetFormat(), Orthanc::PixelFormat_Grayscale16);
+    ASSERT_EQ(r2.GetWidth(), width);
+    ASSERT_EQ(r2.GetHeight(), height);
+
+    v = 0;
+    for (unsigned int y = 0; y < height; y++)
+    {
+      const uint16_t* p = reinterpret_cast<const uint16_t*>
+        ((const uint8_t*)r2.GetConstBuffer() + y * r2.GetPitch());
+      ASSERT_EQ(p, r2.GetConstRow(y));
+      for (unsigned int x = 0; x < width; x++, p++, v++)
+      {
+        ASSERT_EQ(*p, v);
+      }
+    }
+  }
+
 }

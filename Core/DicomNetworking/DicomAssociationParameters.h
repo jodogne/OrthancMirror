@@ -33,69 +33,96 @@
 
 #pragma once
 
-#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "RemoteModalityParameters.h"
 
-#include <string>
+class OFCondition;  // From DCMTK
 
 namespace Orthanc
 {
-  class SystemCallOperation : public IJobOperation
+  class DicomAssociationParameters
   {
   private:
-    std::string               command_;
-    std::vector<std::string>  preArguments_;
-    std::vector<std::string>  postArguments_;
-    
+    std::string           localAet_;
+    std::string           remoteAet_;
+    std::string           remoteHost_;
+    uint16_t              remotePort_;
+    ModalityManufacturer  manufacturer_;
+    uint32_t              timeout_;
+
+    void ReadDefaultTimeout();
+
   public:
-    SystemCallOperation(const std::string& command) :
-      command_(command)
+    DicomAssociationParameters();
+    
+    DicomAssociationParameters(const std::string& localAet,
+                               const RemoteModalityParameters& remote);
+    
+    const std::string& GetLocalApplicationEntityTitle() const
     {
+      return localAet_;
     }
 
-    SystemCallOperation(const Json::Value& serialized);
-
-    SystemCallOperation(const std::string& command,
-                        const std::vector<std::string>& preArguments,
-                        const std::vector<std::string>& postArguments) :
-      command_(command),
-      preArguments_(preArguments),
-      postArguments_(postArguments)
+    const std::string& GetRemoteApplicationEntityTitle() const
     {
+      return remoteAet_;
     }
 
-    void AddPreArgument(const std::string& argument)
+    const std::string& GetRemoteHost() const
     {
-      preArguments_.push_back(argument);
+      return remoteHost_;
     }
 
-    void AddPostArgument(const std::string& argument)
+    uint16_t GetRemotePort() const
     {
-      postArguments_.push_back(argument);
+      return remotePort_;
     }
 
-    const std::string& GetCommand() const
+    ModalityManufacturer GetRemoteManufacturer() const
     {
-      return command_;
+      return manufacturer_;
     }
 
-    size_t GetPreArgumentsCount() const
+    void SetLocalApplicationEntityTitle(const std::string& aet)
     {
-      return preArguments_.size();
+      localAet_ = aet;
     }
 
-    size_t GetPostArgumentsCount() const
+    void SetRemoteApplicationEntityTitle(const std::string& aet)
     {
-      return postArguments_.size();
+      remoteAet_ = aet;
     }
 
-    const std::string& GetPreArgument(size_t i) const;
+    void SetRemoteHost(const std::string& host);
 
-    const std::string& GetPostArgument(size_t i) const;
+    void SetRemotePort(uint16_t port)
+    {
+      remotePort_ = port;
+    }
 
-    virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+    void SetRemoteManufacturer(ModalityManufacturer manufacturer)
+    {
+      manufacturer_ = manufacturer;
+    }
 
-    virtual void Serialize(Json::Value& result) const;
+    void SetRemoteModality(const RemoteModalityParameters& parameters);
+
+    bool IsEqual(const DicomAssociationParameters& other) const;
+
+    void SetTimeout(uint32_t seconds)
+    {
+      timeout_ = seconds;
+    }
+
+    uint32_t GetTimeout() const
+    {
+      return timeout_;
+    }
+
+    bool HasTimeout() const
+    {
+      return timeout_ != 0;
+    }
+    
+    static void SetDefaultTimeout(uint32_t seconds);
   };
 }
-

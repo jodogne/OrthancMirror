@@ -36,8 +36,6 @@
 #include "../IJob.h"
 #include "IJobOperation.h"
 
-#include "../../DicomNetworking/TimeoutDicomConnectionManager.h"
-
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 
@@ -69,7 +67,6 @@ namespace Orthanc
     boost::condition_variable         operationAdded_;
     boost::posix_time::time_duration  trailingTimeout_;
     std::list<IObserver*>             observers_;
-    TimeoutDicomConnectionManager     connectionManager_;
 
     void NotifyDone() const;
 
@@ -109,8 +106,6 @@ namespace Orthanc
       }
 
       void SetTrailingOperationTimeout(unsigned int timeout);
-
-      void SetDicomAssociationTimeout(unsigned int timeout);
       
       size_t AddOperation(IJobOperation* operation);
 
@@ -134,7 +129,9 @@ namespace Orthanc
 
     virtual void Reset() ORTHANC_OVERRIDE;
 
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
+    {
+    }
 
     virtual float GetProgress() ORTHANC_OVERRIDE;
 
