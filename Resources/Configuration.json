@@ -391,11 +391,8 @@
   // caveats: https://eklitzke.org/the-caveats-of-tcp-nodelay
   "TcpNoDelay" : true,
 
-  // Number of threads that are used by the embedded HTTP server.  In
-  // Orthanc <= 1.6.0, the default value was 50. In Orthanc >= 1.6.1,
-  // default is 10 to prevent memory grow in basic setups.
-  // https://groups.google.com/d/msg/orthanc-users/qWqxpvCPv8g/Z8huoA5FDAAJ
-  "HttpThreadsCount" : 10,
+  // Number of threads that are used by the embedded HTTP server.
+  "HttpThreadsCount" : 50,
 
   // If this option is set to "false", Orthanc will run in index-only
   // mode. The DICOM files will not be stored on the drive. Note that
@@ -406,7 +403,7 @@
   // as new DICOM commands are issued. This option sets the number of
   // seconds of inactivity to wait before automatically closing a
   // DICOM association used by Lua. If set to 0, the connection is
-  // closed immediately.
+  // closed immediately. This option is only used in Lua scripts.
   "DicomAssociationCloseDelay" : 5,
 
   // Maximum number of query/retrieve DICOM requests that are

@@ -93,8 +93,7 @@ namespace Orthanc
     const std::string& GetPostArgument(size_t i) const;
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       IDicomConnectionManager& connectionManager);
+                       const JobOperationValue& input);
 
     virtual void Serialize(Json::Value& result) const;
   };

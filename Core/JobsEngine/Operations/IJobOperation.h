@@ -34,7 +34,6 @@
 #pragma once
 
 #include "JobOperationValues.h"
-#include "../../DicomNetworking/IDicomConnectionManager.h"
 
 namespace Orthanc
 {
@@ -46,8 +45,7 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input,
-                       IDicomConnectionManager& dicomConnection) = 0;
+                       const JobOperationValue& input) = 0;
 
     virtual void Serialize(Json::Value& result) const = 0;
   };
