@@ -2,15 +2,15 @@ if (USE_GOOGLE_TEST_DEBIAN_PACKAGE)
   find_path(GOOGLE_TEST_DEBIAN_SOURCES_DIR
     NAMES src/gtest-all.cc
     PATHS
-    /usr/src/gtest
-    /usr/src/googletest/googletest
+    ${CROSSTOOL_NG_IMAGE}/usr/src/gtest
+    ${CROSSTOOL_NG_IMAGE}/usr/src/googletest/googletest
     PATH_SUFFIXES src
     )
 
   find_path(GOOGLE_TEST_DEBIAN_INCLUDE_DIR
     NAMES gtest.h
     PATHS
-    /usr/include/gtest
+    ${CROSSTOOL_NG_IMAGE}/usr/include/gtest
     )
 
   message("Path to the Debian Google Test sources: ${GOOGLE_TEST_DEBIAN_SOURCES_DIR}")

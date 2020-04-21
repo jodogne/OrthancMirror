@@ -29,9 +29,9 @@ static OrthancPluginContext* context = NULL;
 static OrthancPluginErrorCode customError;
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* output,
-                                                     const char* url,
-                                                     const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   char buffer[1024];
   uint32_t i;
@@ -83,9 +83,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback1(OrthancPluginRestOutput* ou
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback2(OrthancPluginRestOutput* output,
-                                                     const char* url,
-                                                     const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode Callback2(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 16bpp image. */
 
@@ -115,9 +115,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback2(OrthancPluginRestOutput* ou
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback3(OrthancPluginRestOutput* output,
-                                                     const char* url,
-                                                     const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode Callback3(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Get)
   {
@@ -140,9 +140,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback3(OrthancPluginRestOutput* ou
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback4(OrthancPluginRestOutput* output,
-                                                     const char* url,
-                                                     const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode Callback4(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   /* Answer with a sample 8bpp image. */
 
@@ -172,9 +172,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback4(OrthancPluginRestOutput* ou
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* output,
-                                                     const char* url,
-                                                     const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* output,
+                                 const char* url,
+                                 const OrthancPluginHttpRequest* request)
 {
   /**
    * Demonstration the difference between the
@@ -222,9 +222,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* ou
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRestOutput* output,
-                                                               const char* url,
-                                                               const OrthancPluginHttpRequest* request)
+OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRestOutput* output,
+                                           const char* url,
+                                           const OrthancPluginHttpRequest* request)
 {
   const char* pathLocator = "\"Path\" : \"";
   char info[1024];
@@ -266,7 +266,7 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRest
 }
 
 
-ORTHANC_PLUGINS_API void DicomWebBinaryCallback(
+void DicomWebBinaryCallback(
   OrthancPluginDicomWebNode*          node,
   OrthancPluginDicomWebSetBinaryNode  setter,
   uint32_t                            levelDepth,
@@ -281,8 +281,8 @@ ORTHANC_PLUGINS_API void DicomWebBinaryCallback(
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomInstance* instance,
-                                                            const char* instanceId)
+OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instance,
+                                        const char* instanceId)
 {
   char buffer[256];
   FILE* fp;
@@ -333,9 +333,9 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomIn
 }
 
 
-ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
-                                                            OrthancPluginResourceType resourceType,
-                                                            const char* resourceId)
+OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
+                                        OrthancPluginResourceType resourceType,
+                                        const char* resourceId)
 {
   char info[1024];
 
@@ -391,12 +391,12 @@ ORTHANC_PLUGINS_API OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeT
 }
 
 
-ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  method,
-                                                      const char*              uri,
-                                                      const char*              ip,
-                                                      uint32_t                 headersCount,
-                                                      const char* const*       headersKeys,
-                                                      const char* const*       headersValues)
+int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  method,
+                                  const char*              uri,
+                                  const char*              ip,
+                                  uint32_t                 headersCount,
+                                  const char* const*       headersKeys,
+                                  const char* const*       headersValues)
 {
   uint32_t i;
 
@@ -423,11 +423,31 @@ ORTHANC_PLUGINS_API int32_t FilterIncomingHttpRequest(OrthancPluginHttpMethod  m
 }
 
 
-ORTHANC_PLUGINS_API void RefreshMetrics()
+static void RefreshMetrics()
 {
   static unsigned int count = 0;
   OrthancPluginSetMetricsValue(context, "sample_counter", 
-	  (float) (count++), OrthancPluginMetricsType_Default); 
+                               (float) (count++), OrthancPluginMetricsType_Default); 
+}
+
+
+static int32_t FilterIncomingDicomInstance(const OrthancPluginDicomInstance* instance)
+{
+  char buf[1024];
+  char* s;
+  int32_t hasPixelData;
+
+  s = OrthancPluginGetInstanceTransferSyntaxUid(context, instance);
+  sprintf(buf, "Incoming transfer syntax: %s", s);
+  OrthancPluginFreeString(context, s);
+  OrthancPluginLogWarning(context, buf);
+
+  hasPixelData = OrthancPluginHasInstancePixelData(context, instance);
+  sprintf(buf, "Incoming has pixel data: %d", hasPixelData);
+  OrthancPluginLogWarning(context, buf);
+
+  /* Reject all instances without pixel data */
+  return hasPixelData;
 }
 
 
@@ -495,7 +515,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
   OrthancPluginRegisterIncomingHttpRequestFilter(context, FilterIncomingHttpRequest);
   OrthancPluginRegisterRefreshMetricsCallback(context, RefreshMetrics);
-
+  OrthancPluginRegisterIncomingDicomInstanceFilter(context, FilterIncomingDicomInstance);
+    
   
   /* Declare several properties of the plugin */
   OrthancPluginSetRootUri(context, "/plugin/hello");

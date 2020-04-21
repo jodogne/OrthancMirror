@@ -33,50 +33,26 @@
 
 #pragma once
 
-#if !defined(ORTHANC_ENABLE_DCMTK_NETWORKING)
-#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be defined
-#endif
 
-#if ORTHANC_ENABLE_DCMTK_NETWORKING == 0
+#ifdef _WIN32
+/**
+ * "The maximum length, in bytes, of the string returned in the buffer 
+ * pointed to by the name parameter is dependent on the namespace provider,
+ * but this string must be 256 bytes or less.
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/ms738527(v=vs.85).aspx
+ **/
+#  define HOST_NAME_MAX 256
+#  include <winsock.h>
+#endif 
 
-namespace Orthanc
-{
-  // DICOM networking is disabled, this is just a void class
-  class IDicomConnectionManager : public boost::noncopyable
-  {
-  public:
-    virtual ~IDicomConnectionManager()
-    {
-    }
-  };
-}
 
-#else
-
-#include "DicomUserConnection.h"
-
-namespace Orthanc
-{
-  class IDicomConnectionManager : public boost::noncopyable
-  {
-  public:
-    virtual ~IDicomConnectionManager()
-    {
-    }
-
-    class IResource : public boost::noncopyable
-    {
-    public:
-      virtual ~IResource()
-      {
-      }
-
-      virtual DicomUserConnection& GetConnection() = 0;
-    };
-
-    virtual IResource* AcquireConnection(const std::string& localAet,
-                                         const RemoteModalityParameters& remote) = 0;
-  };
-}
-
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+/**
+ * TO IMPROVE: "_POSIX_HOST_NAME_MAX is only the minimum value that
+ * HOST_NAME_MAX can ever have [...] Therefore you cannot allocate an
+ * array of size _POSIX_HOST_NAME_MAX, invoke gethostname() and expect
+ * that the result will fit."
+ * http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00128.html
+ **/
+#  define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif

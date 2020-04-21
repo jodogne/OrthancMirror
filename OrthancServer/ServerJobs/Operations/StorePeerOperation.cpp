@@ -44,8 +44,7 @@
 namespace Orthanc
 {
   void StorePeerOperation::Apply(JobOperationValues& outputs,
-                                 const JobOperationValue& input,
-                                 IDicomConnectionManager& connectionManager)
+                                 const JobOperationValue& input)
   {
     // Configure the HTTP client
     HttpClient client(peer_, "instances");

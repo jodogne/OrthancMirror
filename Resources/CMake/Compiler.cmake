@@ -1,6 +1,7 @@
 # This file sets all the compiler-related flags
 
-if (CMAKE_CROSSCOMPILING OR
+if ((CMAKE_CROSSCOMPILING AND NOT
+      "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg") OR    
     "${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # Cross-compilation necessarily implies standalone and static build
   SET(STATIC_BUILD ON)

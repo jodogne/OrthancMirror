@@ -121,22 +121,23 @@ namespace Orthanc
                              "Received an empty DICOM file");
     }
 
+    // The lifetime of "dicom" must be longer than "toStore", as the
+    // latter can possibly store a reference to the former (*)
     std::string dicom;
+
+    DicomInstanceToStore toStore;
+    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
 
     if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
     {
       GzipCompressor compressor;
       compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
+      toStore.SetBuffer(dicom.c_str(), dicom.size());  // (*)
     }
     else
     {
-      // TODO Remove unneccessary memcpy
-      call.BodyToString(dicom);
-    }
-
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-    toStore.SetBuffer(dicom);
+      toStore.SetBuffer(call.GetBodyData(), call.GetBodySize());
+    }    
 
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore);

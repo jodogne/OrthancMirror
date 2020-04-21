@@ -409,7 +409,7 @@
   // as new DICOM commands are issued. This option sets the number of
   // seconds of inactivity to wait before automatically closing a
   // DICOM association used by Lua. If set to 0, the connection is
-  // closed immediately.
+  // closed immediately. This option is only used in Lua scripts.
   "DicomAssociationCloseDelay" : 5,
 
   // Maximum number of query/retrieve DICOM requests that are

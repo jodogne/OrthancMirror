@@ -694,8 +694,8 @@ namespace Orthanc
           dicom.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
         }
 
-        windowWidth = static_cast<float>(1 << info.GetBitsStored());
-        windowCenter = windowWidth / 2.0f;
+        windowWidth = static_cast<float>(1 << info.GetBitsStored()) * rescaleSlope;
+        windowCenter = windowWidth / 2.0f + rescaleIntercept;
 
         if (dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
             dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))

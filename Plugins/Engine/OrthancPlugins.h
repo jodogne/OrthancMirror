@@ -124,6 +124,8 @@ namespace Orthanc
 
     void RegisterIncomingHttpRequestFilter2(const void* parameters);
 
+    void RegisterIncomingDicomInstanceFilter(const void* parameters);
+
     void RegisterRefreshMetricsCallback(const void* parameters);
 
     void RegisterStorageCommitmentScpCallback(const void* parameters);
@@ -252,10 +254,7 @@ namespace Orthanc
                                       const Json::Value& simplifiedTags) ORTHANC_OVERRIDE;
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
-                                        const Json::Value& simplified) ORTHANC_OVERRIDE
-    {
-      return true; // TODO Enable filtering of instances from plugins
-    }
+                                        const Json::Value& simplified) ORTHANC_OVERRIDE;
 
     bool HasStorageArea() const;
 

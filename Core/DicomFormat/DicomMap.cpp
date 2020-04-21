@@ -745,7 +745,7 @@ namespace Orthanc
   }
 
 
-  bool DicomMap::IsDicomFile(const char* dicom,
+  bool DicomMap::IsDicomFile(const void* dicom,
                              size_t size)
   {
     /**
@@ -755,16 +755,18 @@ namespace Orthanc
      * account to determine whether the file is or is not a DICOM file.
      **/
 
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
     return (size >= 132 &&
-            dicom[128] == 'D' &&
-            dicom[129] == 'I' &&
-            dicom[130] == 'C' &&
-            dicom[131] == 'M');
+            p[128] == 'D' &&
+            p[129] == 'I' &&
+            p[130] == 'C' &&
+            p[131] == 'M');
   }
     
 
   bool DicomMap::ParseDicomMetaInformation(DicomMap& result,
-                                           const char* dicom,
+                                           const void* dicom,
                                            size_t size)
   {
     if (!IsDicomFile(dicom, size))
@@ -788,7 +790,7 @@ namespace Orthanc
     DicomTag tag(0x0000, 0x0000);  // Dummy initialization
     ValueRepresentation vr;
     std::string value;
-    if (!ReadNextTag(tag, vr, value, dicom, size, position) ||
+    if (!ReadNextTag(tag, vr, value, reinterpret_cast<const char*>(dicom), size, position) ||
         tag.GetGroup() != 0x0002 ||
         tag.GetElement() != 0x0000 ||
         vr != ValueRepresentation_UnsignedLong ||
@@ -805,7 +807,7 @@ namespace Orthanc
 
     while (position < stopPosition)
     {
-      if (ReadNextTag(tag, vr, value, dicom, size, position))
+      if (ReadNextTag(tag, vr, value, reinterpret_cast<const char*>(dicom), size, position))
       {
         result.SetValue(tag, value, IsBinaryValueRepresentation(vr));
       }

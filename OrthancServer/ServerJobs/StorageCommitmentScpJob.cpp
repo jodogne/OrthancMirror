@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "StorageCommitmentScpJob.h"
 
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/DicomNetworking/DicomAssociation.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
@@ -347,9 +347,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-      
-    DicomUserConnection scu(calledAet_, remoteModality_);
-    scu.ReportStorageCommitment(transactionUid_, sopClassUids_, sopInstanceUids_, failureReasons);
+
+    DicomAssociationParameters parameters(calledAet_, remoteModality_);
+    DicomAssociation::ReportStorageCommitment(
+      parameters, transactionUid_, sopClassUids_, sopInstanceUids_, failureReasons);
   }
     
 

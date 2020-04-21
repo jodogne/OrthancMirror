@@ -33,72 +33,72 @@
 
 #pragma once
 
-#include "IDicomConnectionManager.h"
+#if !defined(ORTHANC_ENABLE_DCMTK_NETWORKING)
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be defined
+#endif
 
-#if ORTHANC_ENABLE_DCMTK_NETWORKING == 0
+#if ORTHANC_ENABLE_DCMTK_NETWORKING != 1
+#  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be 1 to use this file
+#endif
 
-namespace Orthanc
-{
-  class TimeoutDicomConnectionManager : public IDicomConnectionManager
-  {
-  public:
-    void SetTimeout(unsigned int timeout)
-    {
-    }
-
-    unsigned int GetTimeout()
-    {
-      return 0;
-    }
-
-    void Close()
-    {
-    }
-
-    void CheckTimeout()
-    {
-    }
-  };
-}
-
-#else
 
 #include "../Compatibility.h"
+#include "DicomUserConnection.h"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace Orthanc
 {
-  class TimeoutDicomConnectionManager : public IDicomConnectionManager
+  /**
+   * This class corresponds to a singleton to a DICOM SCU connection.
+   **/
+  class TimeoutDicomConnectionManager : public boost::noncopyable
   {
   private:
-    class Resource;
-
+    boost::mutex                          mutex_;
     std::unique_ptr<DicomUserConnection>  connection_;
     boost::posix_time::ptime              lastUse_;
     boost::posix_time::time_duration      timeout_;
 
-    void Touch();
+    // Mutex must be locked
+    void TouchInternal();
 
-    void CheckTimeoutInternal();
+    // Mutex must be locked
+    void OpenInternal(const std::string& localAet,
+                      const RemoteModalityParameters& remote);
+
+    // Mutex must be locked
+    void CloseInternal();
 
   public:
+    class Lock : public boost::noncopyable
+    {
+    private:
+      TimeoutDicomConnectionManager&  that_;
+      boost::mutex::scoped_lock       lock_;
+
+    public:
+      Lock(TimeoutDicomConnectionManager& that,
+           const std::string& localAet,
+           const RemoteModalityParameters& remote);
+      
+      ~Lock();
+
+      DicomUserConnection& GetConnection();
+    };
+
     TimeoutDicomConnectionManager() :
       timeout_(boost::posix_time::milliseconds(1000))
     {
     }
 
-    void SetTimeout(unsigned int timeout);
+    void SetInactivityTimeout(unsigned int milliseconds);
 
-    unsigned int GetTimeout();
+    unsigned int GetInactivityTimeout();  // In milliseconds
 
     void Close();
 
-    void CheckTimeout();
-
-    virtual IResource* AcquireConnection(const std::string& localAet,
-                                         const RemoteModalityParameters& remote);
+    void CloseIfInactive();
   };
 }
-
-#endif
