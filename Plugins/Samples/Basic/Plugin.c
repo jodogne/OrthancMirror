@@ -446,7 +446,7 @@ static int32_t FilterIncomingDicomInstance(const OrthancPluginDicomInstance* ins
   sprintf(buf, "Incoming has pixel data: %d", hasPixelData);
   OrthancPluginLogWarning(context, buf);
 
-  // Reject all instances without pixel data
+  /* Reject all instances without pixel data */
   return hasPixelData;
 }
 

@@ -772,6 +772,8 @@ namespace Orthanc
           LOG(ERROR) << "Error while processing Lua events: " << e.What();
         }
       }
+
+      that->jobManager_.GetDicomConnectionManager().CloseIfInactive();
     }
   }
 

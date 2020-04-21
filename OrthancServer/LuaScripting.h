@@ -136,5 +136,10 @@ namespace Orthanc
     void SignalJobSuccess(const std::string& jobId);
 
     void SignalJobFailure(const std::string& jobId);
+
+    TimeoutDicomConnectionManager& GetDicomConnectionManager()
+    {
+      return jobManager_.GetDicomConnectionManager();
+    }
   };
 }

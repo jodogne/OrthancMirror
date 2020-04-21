@@ -43,18 +43,10 @@
 namespace Orthanc
 {
   void StoreScuOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input,
-                                IDicomConnectionManager& connectionManager)
+                                const JobOperationValue& input)
   {
-    std::unique_ptr<IDicomConnectionManager::IResource> resource
-      (connectionManager.AcquireConnection(localAet_, modality_));
-
-    if (resource.get() == NULL)
-    {
-      LOG(ERROR) << "Lua: Cannot connect to modality: " << modality_.GetApplicationEntityTitle();
-      return;
-    }
-
+    TimeoutDicomConnectionManager::Lock lock(connectionManager_, localAet_, modality_);
+    
     if (input.GetType() != JobOperationValue::Type_DicomInstance)
     {
       throw OrthancException(ErrorCode_BadParameterType);
@@ -72,7 +64,7 @@ namespace Orthanc
       instance.ReadDicom(dicom);
 
       std::string sopClassUid, sopInstanceUid;  // Unused
-      resource->GetConnection().Store(sopClassUid, sopInstanceUid, dicom);
+      lock.GetConnection().Store(sopClassUid, sopInstanceUid, dicom);
     }
     catch (OrthancException& e)
     {
@@ -93,7 +85,9 @@ namespace Orthanc
   }
 
 
-  StoreScuOperation::StoreScuOperation(const Json::Value& serialized)
+  StoreScuOperation::StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+                                       const Json::Value& serialized) :
+    connectionManager_(connectionManager)
   {
     if (SerializationToolbox::ReadString(serialized, "Type") != "StoreScu" ||
         !serialized.isMember("LocalAET"))

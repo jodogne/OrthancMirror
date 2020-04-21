@@ -952,7 +952,7 @@ namespace Orthanc
        * equals the empty string, then proceed. In Orthanc <= 1.5.6,
        * an exception "Bad file format" was generated.
        * https://groups.google.com/d/msg/orthanc-users/aphG_h1AHVg/rfOTtTPTAgAJ
-       * https://bitbucket.org/sjodogne/orthanc/commits/4c45e018bd3de3cfa21d6efc6734673aaaee4435
+       * https://hg.orthanc-server.com/orthanc/rev/4c45e018bd3de3cfa21d6efc6734673aaaee4435
        **/
       patientId.clear();
     }        
