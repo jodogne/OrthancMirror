@@ -83,6 +83,7 @@ namespace Orthanc
     bool allowManualIdentifiers_;
     bool keepStudyInstanceUid_;
     bool keepSeriesInstanceUid_;
+    bool keepSopInstanceUid_;
     bool updateReferencedRelationships_;
     bool isAnonymization_;
     DicomMap currentSource_;
