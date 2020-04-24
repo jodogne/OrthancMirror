@@ -358,6 +358,7 @@ namespace Orthanc
     allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
     keepSeriesInstanceUid_(false),
+    keepSopInstanceUid_(false),
     updateReferencedRelationships_(true),
     isAnonymization_(false),
     //privateCreator_("PrivateCreator"),
@@ -387,6 +388,10 @@ namespace Orthanc
     else if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
     {
       keepSeriesInstanceUid_ = true;
+    }
+    else if (tag == DICOM_TAG_SOP_INSTANCE_UID)
+    {
+      keepSopInstanceUid_ = true;
     }
     else if (tag.IsPrivate())
     {
@@ -1103,7 +1108,14 @@ namespace Orthanc
     if (level_ <= ResourceType_Instance &&  // Always true
         !IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
     {
-      MapDicomTags(toModify, ResourceType_Instance);
+      if (keepSopInstanceUid_)
+      {
+        LOG(WARNING) << "Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!";
+      }
+      else
+      {
+        MapDicomTags(toModify, ResourceType_Instance);
+      }
     }
 
     // (7) Update the "referenced" relationships in the case of an anonymization
@@ -1341,6 +1353,7 @@ namespace Orthanc
   static const char* ALLOW_MANUAL_IDENTIFIERS = "AllowManualIdentifiers";
   static const char* KEEP_STUDY_INSTANCE_UID = "KeepStudyInstanceUID";
   static const char* KEEP_SERIES_INSTANCE_UID = "KeepSeriesInstanceUID";
+  static const char* KEEP_SOP_INSTANCE_UID = "KeepSOPInstanceUID";
   static const char* UPDATE_REFERENCED_RELATIONSHIPS = "UpdateReferencedRelationships";
   static const char* IS_ANONYMIZATION = "IsAnonymization";
   static const char* REMOVALS = "Removals";
@@ -1367,6 +1380,7 @@ namespace Orthanc
     value[ALLOW_MANUAL_IDENTIFIERS] = allowManualIdentifiers_;
     value[KEEP_STUDY_INSTANCE_UID] = keepStudyInstanceUid_;
     value[KEEP_SERIES_INSTANCE_UID] = keepSeriesInstanceUid_;
+    value[KEEP_SOP_INSTANCE_UID] = keepSopInstanceUid_;
     value[UPDATE_REFERENCED_RELATIONSHIPS] = updateReferencedRelationships_;
     value[IS_ANONYMIZATION] = isAnonymization_;
     value[PRIVATE_CREATOR] = privateCreator_;
@@ -1464,6 +1478,7 @@ namespace Orthanc
     allowManualIdentifiers_ = SerializationToolbox::ReadBoolean(serialized, ALLOW_MANUAL_IDENTIFIERS);
     keepStudyInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_STUDY_INSTANCE_UID);
     keepSeriesInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SERIES_INSTANCE_UID);
+    keepSopInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOP_INSTANCE_UID);
     updateReferencedRelationships_ = SerializationToolbox::ReadBoolean
       (serialized, UPDATE_REFERENCED_RELATIONSHIPS);
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
