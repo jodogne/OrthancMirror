@@ -981,8 +981,7 @@ namespace Orthanc
     RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomUserConnection connection(localAet, remote);
-    connection.Open();
+    DicomStoreUserConnection connection(localAet, remote);
 
     std::string sopClassUid, sopInstanceUid;
     connection.Store(sopClassUid, sopInstanceUid,

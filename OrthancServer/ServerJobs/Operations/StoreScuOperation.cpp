@@ -63,8 +63,10 @@ namespace Orthanc
       std::string dicom;
       instance.ReadDicom(dicom);
 
+      const void* data = dicom.empty() ? NULL : dicom.c_str();
+      
       std::string sopClassUid, sopInstanceUid;  // Unused
-      lock.GetConnection().Store(sopClassUid, sopInstanceUid, dicom);
+      lock.GetConnection().Store(sopClassUid, sopInstanceUid, data, dicom.size());
     }
     catch (OrthancException& e)
     {

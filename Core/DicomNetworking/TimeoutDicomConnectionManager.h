@@ -43,7 +43,7 @@
 
 
 #include "../Compatibility.h"
-#include "DicomUserConnection.h"
+#include "DicomStoreUserConnection.h"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/mutex.hpp>
@@ -56,10 +56,10 @@ namespace Orthanc
   class TimeoutDicomConnectionManager : public boost::noncopyable
   {
   private:
-    boost::mutex                          mutex_;
-    std::unique_ptr<DicomUserConnection>  connection_;
-    boost::posix_time::ptime              lastUse_;
-    boost::posix_time::time_duration      timeout_;
+    boost::mutex                               mutex_;
+    std::unique_ptr<DicomStoreUserConnection>  connection_;
+    boost::posix_time::ptime                   lastUse_;
+    boost::posix_time::time_duration           timeout_;
 
     // Mutex must be locked
     void TouchInternal();
@@ -85,7 +85,7 @@ namespace Orthanc
       
       ~Lock();
 
-      DicomUserConnection& GetConnection();
+      DicomStoreUserConnection& GetConnection();
     };
 
     TimeoutDicomConnectionManager() :

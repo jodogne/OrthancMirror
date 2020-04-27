@@ -1288,7 +1288,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
-    DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
+    DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
 
     maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
 

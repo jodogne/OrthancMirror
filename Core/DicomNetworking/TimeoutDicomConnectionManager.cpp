@@ -62,7 +62,7 @@ namespace Orthanc
   }
 
   
-  DicomUserConnection& TimeoutDicomConnectionManager::Lock::GetConnection()
+  DicomStoreUserConnection& TimeoutDicomConnectionManager::Lock::GetConnection()
   {
     if (that_.connection_.get() == NULL)
     {
@@ -87,10 +87,12 @@ namespace Orthanc
   void TimeoutDicomConnectionManager::OpenInternal(const std::string& localAet,
                                                    const RemoteModalityParameters& remote)
   {
+    DicomAssociationParameters other(localAet, remote);
+    
     if (connection_.get() == NULL ||
-        !connection_->IsSameAssociation(localAet, remote))
+        !connection_->GetParameters().IsEqual(other))
     {
-      connection_.reset(new DicomUserConnection(localAet, remote));
+      connection_.reset(new DicomStoreUserConnection(other));
     }
   }
 
@@ -101,7 +103,7 @@ namespace Orthanc
     if (connection_.get() != NULL)
     {
       LOG(INFO) << "Closing inactive DICOM association with modality: "
-                << connection_->GetRemoteApplicationEntityTitle();
+                << connection_->GetParameters().GetRemoteApplicationEntityTitle();
 
       connection_.reset(NULL);
     }
