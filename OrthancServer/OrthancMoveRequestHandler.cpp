@@ -59,7 +59,7 @@ namespace Orthanc
       RemoteModalityParameters remote_;
       std::string originatorAet_;
       uint16_t originatorId_;
-      std::unique_ptr<DicomUserConnection> connection_;
+      std::unique_ptr<DicomStoreUserConnection> connection_;
 
     public:
       SynchronousMove(ServerContext& context,
@@ -113,11 +113,14 @@ namespace Orthanc
 
         if (connection_.get() == NULL)
         {
-          connection_.reset(new DicomUserConnection(localAet_, remote_));
+          connection_.reset(new DicomStoreUserConnection(localAet_, remote_));
         }
 
         std::string sopClassUid, sopInstanceUid;  // Unused
-        connection_->Store(sopClassUid, sopInstanceUid, dicom, originatorAet_, originatorId_);
+
+        const void* data = dicom.empty() ? NULL : dicom.c_str();
+        connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
+                           originatorAet_, originatorId_);
 
         return Status_Success;
       }
