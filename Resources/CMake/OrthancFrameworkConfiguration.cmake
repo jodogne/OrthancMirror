@@ -484,10 +484,9 @@ if (ENABLE_DCMTK)
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociation.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociationParameters.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomControlUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
