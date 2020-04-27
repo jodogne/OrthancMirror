@@ -38,6 +38,7 @@
 
 #include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/DicomNetworking/DicomAssociationParameters.h"
 #include "../Core/DicomNetworking/DicomServer.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
