@@ -38,6 +38,7 @@
 
 #include "../Core/Compatibility.h"
 #include "../Core/DicomFormat/DicomArray.h"
+#include "../Core/DicomNetworking/DicomAssociationParameters.h"
 #include "../Core/DicomNetworking/DicomServer.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
@@ -1304,6 +1305,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
     DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
+    DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
 
     maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
 
