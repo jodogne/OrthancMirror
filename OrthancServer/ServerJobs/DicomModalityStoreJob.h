@@ -35,7 +35,9 @@
 
 #include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/DicomNetworking/DicomStoreUserConnection.h"
+
+#include <list>
 
 namespace Orthanc
 {
@@ -44,13 +46,13 @@ namespace Orthanc
   class DicomModalityStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&                        context_;
-    std::string                           localAet_;
-    RemoteModalityParameters              remote_;
-    std::string                           moveOriginatorAet_;
-    uint16_t                              moveOriginatorId_;
-    std::unique_ptr<DicomUserConnection>  connection_;
-    bool                                  storageCommitment_;
+    ServerContext&                             context_;
+    std::string                                localAet_;
+    RemoteModalityParameters                   remote_;
+    std::string                                moveOriginatorAet_;
+    uint16_t                                   moveOriginatorId_;
+    std::unique_ptr<DicomStoreUserConnection>  connection_;
+    bool                                       storageCommitment_;
 
     // For storage commitment
     std::string             transactionUid_;

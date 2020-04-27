@@ -2516,7 +2516,7 @@ TEST(Toto, DISABLED_Store)
 {
   DicomAssociationParameters params;
   params.SetLocalApplicationEntityTitle("ORTHANC");
-  params.SetRemoteApplicationEntityTitle("PACS");
+  params.SetRemoteApplicationEntityTitle("STORESCP");
   params.SetRemotePort(2000);
 
   DicomStoreUserConnection assoc(params);
@@ -2524,10 +2524,10 @@ TEST(Toto, DISABLED_Store)
   assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess2_4);
   //assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
 
-  //assoc.SetUncompressedSyntaxesProposed(false);
+  //assoc.SetUncompressedSyntaxesProposed(false);  // Necessary for transcoding
   //assoc.SetCommonClassesProposed(false);
   TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
-  //TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+  TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
 }
 
 #endif

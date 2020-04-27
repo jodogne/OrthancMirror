@@ -35,6 +35,7 @@
 #include "DicomModalityStoreJob.h"
 
 #include "../../Core/Compatibility.h"
+#include "../../Core/DicomNetworking/DicomAssociation.h"
 #include "../../Core/Logging.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
@@ -47,7 +48,7 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomUserConnection(localAet_, remote_));
+      connection_.reset(new DicomStoreUserConnection(localAet_, remote_));
     }
   }
 
@@ -74,13 +75,16 @@ namespace Orthanc
     
     std::string sopClassUid, sopInstanceUid;
 
+    const void* data = dicom.empty() ? NULL : dicom.c_str();
+    
     if (HasMoveOriginator())
     {
-      connection_->Store(sopClassUid, sopInstanceUid, dicom, moveOriginatorAet_, moveOriginatorId_);
+      connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
+                         moveOriginatorAet_, moveOriginatorId_);
     }
     else
     {
-      connection_->Store(sopClassUid, sopInstanceUid, dicom);
+      connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size());
     }
 
     if (storageCommitment_)
@@ -96,6 +100,9 @@ namespace Orthanc
       
       if (sopClassUids_.size() == GetInstancesCount())
       {
+        assert(IsStarted());
+        connection_.reset(NULL);
+        
         const std::string& remoteAet = remote_.GetApplicationEntityTitle();
         
         LOG(INFO) << "Sending storage commitment request to modality: " << remoteAet;
@@ -105,12 +112,11 @@ namespace Orthanc
         context_.GetStorageCommitmentReports().Store(
           transactionUid_, new StorageCommitmentReports::Report(remoteAet));
         
-        assert(IsStarted());
-        OpenConnection();
-
         std::vector<std::string> a(sopClassUids_.begin(), sopClassUids_.end());
         std::vector<std::string> b(sopInstanceUids_.begin(), sopInstanceUids_.end());
-        connection_->RequestStorageCommitment(transactionUid_, a, b);
+
+        DicomAssociationParameters parameters(localAet_, remote_);
+        DicomAssociation::RequestStorageCommitment(parameters, transactionUid_, a, b);
       }
     }
 

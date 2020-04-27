@@ -116,16 +116,31 @@ namespace Orthanc
 
     return false;
   }
+
+
+  void DicomStoreUserConnection::Setup()
+  {
+    association_.reset(new DicomAssociation);
+    proposeCommonClasses_ = true;
+    proposeUncompressedSyntaxes_ = true;
+    proposeRetiredBigEndian_ = false;
+  }
     
         
   DicomStoreUserConnection::DicomStoreUserConnection(
-    const DicomAssociationParameters& params) :
-    parameters_(params),
-    association_(new DicomAssociation),
-    proposeCommonClasses_(true),
-    proposeUncompressedSyntaxes_(true),
-    proposeRetiredBigEndian_(false)
+    const std::string& localAet,
+    const RemoteModalityParameters& remote) :
+    parameters_(localAet, remote)
   {
+    Setup();
+  }
+  
+
+  DicomStoreUserConnection::DicomStoreUserConnection(
+    const DicomAssociationParameters& params) :
+    parameters_(params)
+  {
+    Setup();
   }
     
 
@@ -147,6 +162,32 @@ namespace Orthanc
   }
 
 
+  void DicomStoreUserConnection::LookupParameters(std::string& sopClassUid,
+                                                  std::string& sopInstanceUid,
+                                                  DicomTransferSyntax& transferSyntax,
+                                                  DcmDataset& dataset)
+  {
+    OFString a, b;
+    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
+        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
+    {
+      throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                             "Unable to determine the SOP class/instance for C-STORE with AET " +
+                             parameters_.GetRemoteApplicationEntityTitle());
+    }
+
+    sopClassUid.assign(a.c_str());
+    sopInstanceUid.assign(b.c_str());
+
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
+          transferSyntax, dataset.getOriginalXfer()))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unknown transfer syntax from DCMTK");
+    }
+  }
+  
+
   bool DicomStoreUserConnection::NegotiatePresentationContext(
     uint8_t& presentationContextId,
     const std::string& sopClassUid,
@@ -163,8 +204,12 @@ namespace Orthanc
     }
 
     // The association must be re-negotiated
-    LOG(INFO) << "Re-negociating DICOM association with "
-              << parameters_.GetRemoteApplicationEntityTitle();
+    if (association_->IsOpen())
+    {
+      LOG(INFO) << "Re-negociating DICOM association with "
+                << parameters_.GetRemoteApplicationEntityTitle();
+    }
+    
     association_->ClearPresentationContexts();
     PrepareStorageClass(sopClassUid, transferSyntax);
 
@@ -249,32 +294,18 @@ namespace Orthanc
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
-    OFString a, b;
-    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
-        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
-    {
-      throw OrthancException(ErrorCode_NoSopClassOrInstance,
-                             "Unable to determine the SOP class/instance for C-STORE with AET " +
-                             parameters_.GetRemoteApplicationEntityTitle());
-    }
-
-    sopClassUid.assign(a.c_str());
-    sopInstanceUid.assign(b.c_str());
-
     DicomTransferSyntax transferSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
-          transferSyntax, dataset.getOriginalXfer()))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unknown transfer syntax from DCMTK");
-    }
-
-    // Figure out which accepted presentation context should be used
+    LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dataset);
+    
     uint8_t presID;
-    if (!NegotiatePresentationContext(presID, sopClassUid.c_str(), transferSyntax))
+    if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax))
     {
-      throw OrthancException(ErrorCode_InternalError,
-                             "No valid presentation context was negotiated upfront");
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "No valid presentation context was negotiated for "
+                             "SOP class UID [" + sopClassUid + "] and transfer "
+                             "syntax [" + GetTransferSyntaxUid(transferSyntax) + "] "
+                             "while sending to modality [" +
+                             parameters_.GetRemoteApplicationEntityTitle() + "]");
     }
     
     // Prepare the transmission of data
@@ -338,6 +369,11 @@ namespace Orthanc
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
+    if (parsed.GetDcmtkObject().getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
     Store(sopClassUid, sopInstanceUid, *parsed.GetDcmtkObject().getDataset(),
           moveOriginatorAET, moveOriginatorID);
   }
@@ -353,6 +389,12 @@ namespace Orthanc
     std::unique_ptr<DcmFileFormat> dicom(
       FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
 
+    if (dicom.get() == NULL ||
+        dicom->getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
     Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
           moveOriginatorAET, moveOriginatorID);
   }
