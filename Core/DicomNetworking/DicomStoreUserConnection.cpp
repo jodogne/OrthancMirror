@@ -48,8 +48,28 @@ namespace Orthanc
   bool DicomStoreUserConnection::ProposeStorageClass(const std::string& sopClassUid,
                                                      const std::set<DicomTransferSyntax>& syntaxes)
   {
+    // Default transfer syntax for DICOM
+    const bool addLittleEndianImplicit = (
+      proposeUncompressedSyntaxes_ &&
+      syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end());
+    
+    const bool addLittleEndianExplicit = (
+      proposeUncompressedSyntaxes_ &&
+      syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end());
+    
+    const bool addBigEndianExplicit = (
+      proposeUncompressedSyntaxes_ &&
+      proposeRetiredBigEndian_ &&
+      syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end());
+    
     size_t requiredCount = syntaxes.size();
-    if (proposeUncompressedSyntaxes_)
+    if (addLittleEndianImplicit)
+    {
+      requiredCount += 1;
+    }
+      
+    if (addLittleEndianExplicit ||
+        addBigEndianExplicit)
     {
       requiredCount += 1;
     }
@@ -58,40 +78,41 @@ namespace Orthanc
     {
       return false;  // Not enough room
     }
-      
-    for (std::set<DicomTransferSyntax>::const_iterator
-           it = syntaxes.begin(); it != syntaxes.end(); ++it)
+    else
     {
-      association_->ProposePresentationContext(sopClassUid, *it);
-    }
-
-    if (proposeUncompressedSyntaxes_)
-    {
-      std::set<DicomTransferSyntax> uncompressed;
-        
-      if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end())
+      for (std::set<DicomTransferSyntax>::const_iterator
+             it = syntaxes.begin(); it != syntaxes.end(); ++it)
       {
+        association_->ProposePresentationContext(sopClassUid, *it);
+      }
+
+      if (addLittleEndianImplicit)
+      {
+        std::set<DicomTransferSyntax> uncompressed;
         uncompressed.insert(DicomTransferSyntax_LittleEndianImplicit);
-      }
-        
-      if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end())
-      {
-        uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
-      }
-        
-      if (proposeRetiredBigEndian_ &&
-          syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end())
-      {
-        uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
-      }
-
-      if (!uncompressed.empty())
-      {
         association_->ProposePresentationContext(sopClassUid, uncompressed);
       }
-    }      
 
-    return true;
+      if (addLittleEndianExplicit ||
+          addBigEndianExplicit)
+      {
+        std::set<DicomTransferSyntax> uncompressed;
+
+        if (addLittleEndianExplicit)
+        {
+          uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
+        }
+
+        if (addBigEndianExplicit)
+        {
+          uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
+        }
+
+        association_->ProposePresentationContext(sopClassUid, uncompressed);
+      }
+
+      return true;
+    }
   }
 
 
@@ -144,8 +165,8 @@ namespace Orthanc
   }
     
 
-  void DicomStoreUserConnection::PrepareStorageClass(const std::string& sopClassUid,
-                                                     DicomTransferSyntax syntax)
+  void DicomStoreUserConnection::RegisterStorageClass(const std::string& sopClassUid,
+                                                      DicomTransferSyntax syntax)
   {
     StorageClasses::iterator found = storageClasses_.find(sopClassUid);
 
@@ -211,7 +232,7 @@ namespace Orthanc
     }
     
     association_->ClearPresentationContexts();
-    PrepareStorageClass(sopClassUid, transferSyntax);
+    RegisterStorageClass(sopClassUid, transferSyntax);
 
       
     /**
@@ -239,7 +260,7 @@ namespace Orthanc
       
     /**
      * Step 3: Propose all the previously spotted SOP classes, as
-     * registered through the "PrepareStorageClass()" method.
+     * registered through the "RegisterStorageClass()" method.
      **/
       
     for (StorageClasses::const_iterator it = storageClasses_.begin();
@@ -262,8 +283,9 @@ namespace Orthanc
 
     if (proposeCommonClasses_)
     {
+      // The method "ProposeStorageClass()" will automatically add
+      // "LittleEndianImplicit"
       std::set<DicomTransferSyntax> ts;
-      ts.insert(DicomTransferSyntax_LittleEndianImplicit);
         
       for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs; i++)
       {

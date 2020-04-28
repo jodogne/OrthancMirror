@@ -125,8 +125,8 @@ namespace Orthanc
       return proposeRetiredBigEndian_;
     }      
 
-    void PrepareStorageClass(const std::string& sopClassUid,
-                             DicomTransferSyntax syntax);
+    void RegisterStorageClass(const std::string& sopClassUid,
+                              DicomTransferSyntax syntax);
 
     // Should only be used if transcoding
     // TODO => to private
