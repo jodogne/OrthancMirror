@@ -44,7 +44,7 @@ first invoking cmake, you will have to manually remove the build
 directory ("rm -rf ~/OrthancBuild") after installing this package,
 then run cmake again.
 
-Note 3- To build the documentation, you will have to install doxyen.
+Note 3- To build the documentation, you will have to install doxygen.
 
 
 Use system-wide libraries under GNU/Linux
