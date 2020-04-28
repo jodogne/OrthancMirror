@@ -2520,14 +2520,34 @@ TEST(Toto, DISABLED_Store)
   params.SetRemotePort(2000);
 
   DicomStoreUserConnection assoc(params);
-  assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess1);
-  assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess2_4);
-  //assoc.PrepareStorageClass(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+  assoc.RegisterStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess1);
+  assoc.RegisterStorageClass(UID_MRImageStorage, DicomTransferSyntax_JPEGProcess2_4);
+  //assoc.RegisterStorageClass(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
 
   //assoc.SetUncompressedSyntaxesProposed(false);  // Necessary for transcoding
   //assoc.SetCommonClassesProposed(false);
   TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
   TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+}
+
+
+TEST(Toto, DISABLED_Store2)
+{
+  DicomAssociationParameters params;
+  params.SetLocalApplicationEntityTitle("ORTHANC");
+  params.SetRemoteApplicationEntityTitle("STORESCP");
+  params.SetRemotePort(2000);
+
+  DicomStoreUserConnection assoc(params);
+  //assoc.SetCommonClassesProposed(false);
+  assoc.SetRetiredBigEndianProposed(true);
+
+  std::string s;
+  Orthanc::SystemToolbox::ReadFile(s, "/tmp/i/" + std::string(GetTransferSyntaxUid(DicomTransferSyntax_BigEndianExplicit)) +".dcm");
+
+  std::string c, i;
+  assoc.Store(c, i, s.c_str(), s.size());
+  printf("[%s] [%s]\n", c.c_str(), i.c_str());
 }
 
 #endif
