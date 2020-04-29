@@ -1933,6 +1933,16 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 #include <dcmtk/dcmjpeg/djrplol.h>    // for DJ_RPLossless
 
 
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
+#  error Macro ORTHANC_ENABLE_DCMTK_JPEG must be defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error Macro ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS must be defined
+#endif
+
+
+
 namespace Orthanc
 {
   class IDicomTranscoder : public boost::noncopyable
@@ -1960,7 +1970,7 @@ namespace Orthanc
     // NB: Transcoding can change the value of "GetSopInstanceUid()"
     // and "GetTransferSyntax()" if lossy compression is applied
     virtual bool Transcode(std::string& target,
-                           std::set<DicomTransferSyntax> syntaxes,
+                           DicomTransferSyntax syntax,
                            bool allowNewSopInstanceUid) = 0;
 
     virtual void WriteToMemoryBuffer(std::string& target) = 0;
@@ -2122,13 +2132,13 @@ namespace Orthanc
     }
 
     virtual bool Transcode(std::string& target,
-                           std::set<DicomTransferSyntax> syntaxes,
+                           DicomTransferSyntax syntax,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
       assert(dicom_ != NULL &&
              dicom_->getDataset() != NULL);
       
-      if (syntaxes.find(GetTransferSyntax()) != syntaxes.end())
+      if (syntax == GetTransferSyntax())
       {
         printf("NO TRANSCODING\n");
         
@@ -2139,48 +2149,66 @@ namespace Orthanc
       
       printf(">> %d\n", bitsStored_);
 
-      DJ_RPLossy rpLossy(lossyQuality_);
-
-      if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != syntaxes.end() &&
+      if (syntax == DicomTransferSyntax_LittleEndianImplicit &&
           FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianImplicit, NULL))
       {
         transferSyntax_ = DicomTransferSyntax_LittleEndianImplicit;
         return true;
       }
-      else if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != syntaxes.end() &&
-               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianExplicit, NULL))
+
+      if (syntax == DicomTransferSyntax_LittleEndianExplicit &&
+          FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_LittleEndianExplicit, NULL))
       {
         transferSyntax_ = DicomTransferSyntax_LittleEndianExplicit;
         return true;
       }
-      else if (syntaxes.find(DicomTransferSyntax_BigEndianExplicit) != syntaxes.end() &&
-               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_BigEndianExplicit, NULL))
+      
+      if (syntax == DicomTransferSyntax_BigEndianExplicit &&
+          FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_BigEndianExplicit, NULL))
       {
         transferSyntax_ = DicomTransferSyntax_BigEndianExplicit;
         return true;
       }
-      else if (syntaxes.find(DicomTransferSyntax_JPEGProcess1) != syntaxes.end() &&
-               allowNewSopInstanceUid &&
-               GetBitsStored() == 8 &&
-               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
+
+      if (syntax == DicomTransferSyntax_DeflatedLittleEndianExplicit &&
+          FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
       {
-        transferSyntax_ = DicomTransferSyntax_JPEGProcess1;
-        sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
+        transferSyntax_ = DicomTransferSyntax_DeflatedLittleEndianExplicit;
         return true;
       }
-      else if (syntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != syntaxes.end() &&
-               allowNewSopInstanceUid &&
-               GetBitsStored() <= 12 &&
-               FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
+
+#if ORTHANC_ENABLE_JPEG == 1
+      if (syntax == DicomTransferSyntax_JPEGProcess1 &&
+          allowNewSopInstanceUid &&
+          GetBitsStored() == 8)
       {
-        transferSyntax_ = DicomTransferSyntax_JPEGProcess2_4;
-        sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
-        return true;
+        DJ_RPLossy rpLossy(lossyQuality_);
+        
+        if (FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess1, &rpLossy))
+        {
+          transferSyntax_ = DicomTransferSyntax_JPEGProcess1;
+          sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
+          return true;
+        }
       }
-      else
+#endif
+      
+#if ORTHANC_ENABLE_JPEG == 1
+      if (syntax == DicomTransferSyntax_JPEGProcess2_4 &&
+          allowNewSopInstanceUid &&
+          GetBitsStored() <= 12)
       {
-        return false;
+        DJ_RPLossy rpLossy(lossyQuality_);
+        if (FromDcmtkBridge::Transcode(target, *dicom_, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
+        {
+          transferSyntax_ = DicomTransferSyntax_JPEGProcess2_4;
+          sopInstanceUid_ = GetStringTag(*dicom_->getDataset(), DCM_SOPInstanceUID);
+          return true;
+        }
       }
+#endif
+
+      return false;
     }
   };
 }
@@ -2314,12 +2342,11 @@ static void TestFile(const std::string& path)
     std::string a = transcoder.GetSopInstanceUid();
     DicomTransferSyntax b = transcoder.GetTransferSyntax();
     
-    std::set<DicomTransferSyntax> syntaxes;
-    syntaxes.insert(DicomTransferSyntax_JPEGProcess2_4);
-    //syntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+    DicomTransferSyntax syntax = DicomTransferSyntax_JPEGProcess2_4;
+    //DicomTransferSyntax syntax = DicomTransferSyntax_LittleEndianExplicit;
 
     std::string t;
-    bool ok = transcoder.Transcode(t, syntaxes, true);
+    bool ok = transcoder.Transcode(t, syntax, true);
     printf("Transcoding: %d\n", ok);
 
     if (ok)
@@ -2343,7 +2370,7 @@ static void TestFile(const std::string& path)
   printf("\n");
 }
 
-TEST(Toto, DISABLED_Transcode)
+TEST(Toto, Transcode)
 {
   //OFLog::configure(OFLogger::DEBUG_LOG_LEVEL);
 
