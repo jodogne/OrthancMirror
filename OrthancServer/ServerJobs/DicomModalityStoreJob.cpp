@@ -49,6 +49,11 @@ namespace Orthanc
     if (connection_.get() == NULL)
     {
       connection_.reset(new DicomStoreUserConnection(localAet_, remote_));
+
+      if (timeout_ > -1)
+      {
+        connection_->SetTimeout(timeout_);
+      }
     }
   }
 
@@ -276,6 +281,7 @@ namespace Orthanc
   static const char* MOVE_ORIGINATOR_AET = "MoveOriginatorAet";
   static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorId";
   static const char* STORAGE_COMMITMENT = "StorageCommitment";
+  static const char* TIMEOUT = "Timeout";
   
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context,
@@ -289,6 +295,9 @@ namespace Orthanc
     moveOriginatorId_ = static_cast<uint16_t>
       (SerializationToolbox::ReadUnsignedInteger(serialized, MOVE_ORIGINATOR_ID));
     EnableStorageCommitment(SerializationToolbox::ReadBoolean(serialized, STORAGE_COMMITMENT));
+
+    // New in Orthanc in 1.7.0
+    timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, -1);
   }
 
 
@@ -305,6 +314,7 @@ namespace Orthanc
       target[MOVE_ORIGINATOR_AET] = moveOriginatorAet_;
       target[MOVE_ORIGINATOR_ID] = moveOriginatorId_;
       target[STORAGE_COMMITMENT] = storageCommitment_;
+      target[TIMEOUT] = timeout_;
       return true;
     }
   }  

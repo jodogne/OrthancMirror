@@ -669,6 +669,10 @@ namespace Orthanc
     MoveInternal(targetAet, ResourceType_Instance, query);
   }
 
+  void DicomControlUserConnection::SetTimeout(uint32_t seconds)
+  {
+    parameters_.SetTimeout(seconds);
+  }
 
   void DicomControlUserConnection::FindWorklist(DicomFindAnswers& result,
                                                 ParsedDicomFile& query)

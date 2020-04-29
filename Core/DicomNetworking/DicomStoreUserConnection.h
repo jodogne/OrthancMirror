@@ -95,6 +95,11 @@ namespace Orthanc
       return parameters_;
     }
 
+    void SetTimeout(int timeout)
+    {
+      parameters_.SetTimeout(timeout);
+    }
+
     void SetCommonClassesProposed(bool proposed)
     {
       proposeCommonClasses_ = proposed;

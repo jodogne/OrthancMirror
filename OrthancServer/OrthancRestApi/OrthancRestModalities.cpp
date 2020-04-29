@@ -80,10 +80,20 @@ namespace Orthanc
     RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
+    Json::Value request;
+    call.ParseJsonRequest(request);
+    int timeout = Toolbox::GetJsonIntegerField(request, "Timeout", -1);
+
     try
     {
       DicomControlUserConnection connection(localAet, remote);
-      
+
+      // New in Orthanc 1.7.0
+      if (timeout != -1)
+      {
+        connection.SetTimeout(timeout);
+      }
+
       if (connection.Echo())
       {
         // Echo has succeeded
@@ -605,16 +615,25 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string targetAet;
+    int timeout = -1;
     
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
-      targetAet = SerializationToolbox::ReadString(body, "TargetAet");
+      targetAet = Toolbox::GetJsonStringField(body, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
+      timeout = Toolbox::GetJsonIntegerField(body, "Timeout", -1);
     }
     else
     {
       body = Json::objectValue;
-      call.BodyToString(targetAet);
+      if (call.GetBodySize() > 0)
+      {
+        call.BodyToString(targetAet);
+      }
+      else
+      {
+        targetAet = context.GetDefaultLocalApplicationEntityTitle();
+      }
     }
     
     std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
@@ -624,6 +643,7 @@ namespace Orthanc
       job->SetTargetAet(targetAet);
       job->SetLocalAet(query.GetHandler().GetLocalAet());
       job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+      job->SetTimeout(timeout);
 
       LOG(WARNING) << "Driving C-Move SCU on remote modality "
                    << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
@@ -953,6 +973,8 @@ namespace Orthanc
       (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField
       (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+    int timeout = Toolbox::GetJsonIntegerField
+      (request, "Timeout", -1);
 
     job->SetLocalAet(localAet);
     job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
@@ -967,6 +989,9 @@ namespace Orthanc
     {
       job->EnableStorageCommitment(true);
     }
+
+    // New in Orthanc 1.7.0
+    job->SetTimeout(timeout);
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
@@ -1022,11 +1047,18 @@ namespace Orthanc
       (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
     std::string targetAet = Toolbox::GetJsonStringField
       (request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
+    int timeout = Toolbox::GetJsonIntegerField
+      (request, "Timeout", -1);
 
     const RemoteModalityParameters source =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomControlUserConnection connection(localAet, source);
+
+    if (timeout > -1)
+    {
+      connection.SetTimeout(timeout);
+    }
     
     for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
     {
