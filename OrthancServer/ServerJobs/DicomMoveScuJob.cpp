@@ -40,6 +40,7 @@ static const char* const LOCAL_AET = "LocalAet";
 static const char* const TARGET_AET = "TargetAet";
 static const char* const REMOTE = "Remote";
 static const char* const QUERY = "Query";
+static const char* const TIMEOUT = "Timeout";
 
 namespace Orthanc
 {
@@ -99,6 +100,11 @@ namespace Orthanc
       connection_.reset(new DicomControlUserConnection(localAet_, remote_));
     }
     
+    if (timeout_ > -1)
+    {
+      connection_->SetTimeout(timeout_);
+    }
+
     connection_->Move(targetAet_, findAnswer);
   }
 
@@ -214,6 +220,9 @@ namespace Orthanc
     {
       query_ = serialized[QUERY];
     }
+
+    // New in Orthanc in 1.7.0
+    timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, -1);
   }
 
   
@@ -228,6 +237,7 @@ namespace Orthanc
       target[LOCAL_AET] = localAet_;
       target[TARGET_AET] = targetAet_;
       target[QUERY] = query_;
+      target[TIMEOUT] = timeout_;
       remote_.Serialize(target[REMOTE], true /* force advanced format */);
       return true;
     }

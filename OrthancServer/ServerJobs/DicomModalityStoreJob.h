@@ -49,6 +49,7 @@ namespace Orthanc
     ServerContext&                             context_;
     std::string                                localAet_;
     RemoteModalityParameters                   remote_;
+    int                                        timeout_;
     std::string                                moveOriginatorAet_;
     uint16_t                                   moveOriginatorId_;
     std::unique_ptr<DicomStoreUserConnection>  connection_;
@@ -87,6 +88,16 @@ namespace Orthanc
     }
 
     void SetRemoteModality(const RemoteModalityParameters& remote);
+
+    void SetTimeout(int timeout)
+    {
+      timeout_ = timeout;
+    }
+
+    int GetTimeout() const
+    {
+      return timeout_;
+    }
 
     bool HasMoveOriginator() const
     {

@@ -4,9 +4,13 @@ Pending changes in the mainline
 REST API
 --------
 
+* API version has been upgraded to 7
 * Improved:
   - "/instances/../modify": it is now possible to "Keep" the "SOPInstanceUID".  
     Note that it was already possible to "Replace" it.
+  - added "Timeout" parameter to every DICOM operation
+  - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
+    (defaults to the local AET)
 
 
 
