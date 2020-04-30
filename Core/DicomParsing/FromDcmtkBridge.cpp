@@ -1206,7 +1206,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-
+  
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
                                          E_TransferSyntax xfer)
@@ -1252,6 +1252,27 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
   }
   
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmFileFormat& dicom,
+                                           DicomTransferSyntax syntax)
+  {
+    E_TransferSyntax xfer;
+    if (!LookupDcmtkTransferSyntax(xfer, syntax))
+    {
+      return false;
+    }
+    else if (!dicom.validateMetaInfo(xfer).good())
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot setup the transfer syntax to write a DICOM instance");
+    }
+    else
+    {
+      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+    }
+  }
+
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
@@ -1307,8 +1328,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  bool FromDcmtkBridge::Transcode(std::string& buffer,
-                                  DcmFileFormat& dicom,
+  bool FromDcmtkBridge::Transcode(DcmFileFormat& dicom,
                                   DicomTransferSyntax syntax,
                                   const DcmRepresentationParameter* representation)
   {
@@ -1325,10 +1345,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       {
         return false;
       }
-
-      dicom.removeInvalidGroups();
-      
-      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+      else
+      {
+        dicom.removeInvalidGroups();
+        return true;
+      }
     }
   }
 

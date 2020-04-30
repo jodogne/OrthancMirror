@@ -203,13 +203,16 @@ namespace Orthanc
     static std::string GenerateUniqueIdentifier(ResourceType level);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
+                                   DcmFileFormat& dicom,
+                                   DicomTransferSyntax xfer);
+    
+    static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
 
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmFileFormat& dicom);
 
-    static bool Transcode(std::string& buffer,
-                          DcmFileFormat& dicom,
+    static bool Transcode(DcmFileFormat& dicom,
                           DicomTransferSyntax syntax,
                           const DcmRepresentationParameter* representation);
 
