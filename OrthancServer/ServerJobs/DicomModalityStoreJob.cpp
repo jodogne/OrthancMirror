@@ -140,6 +140,7 @@ namespace Orthanc
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context) :
     context_(context),
     localAet_("ORTHANC"),
+    timeout_(-1),
     moveOriginatorId_(0),      // By default, not a C-MOVE
     storageCommitment_(false)  // By default, no storage commitment
   {
