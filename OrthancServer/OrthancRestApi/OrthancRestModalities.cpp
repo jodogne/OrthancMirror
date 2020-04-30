@@ -86,7 +86,8 @@ namespace Orthanc
 
     try
     {
-      DicomControlUserConnection connection(localAet, remote);
+      DicomAssociationParameters params(localAet, remote);
+      DicomControlUserConnection connection(params);
 
       // New in Orthanc 1.7.0
       if (timeout != -1)
@@ -214,7 +215,8 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(localAet, remote);
+      DicomAssociationParameters params(localAet, remote);
+      DicomControlUserConnection connection(params);
       FindPatient(answers, connection, fields);
     }
 
@@ -248,7 +250,8 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(localAet, remote);
+      DicomAssociationParameters params(localAet, remote);
+      DicomControlUserConnection connection(params);
       FindStudy(answers, connection, fields);
     }
 
@@ -283,7 +286,8 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(localAet, remote);
+      DicomAssociationParameters params(localAet, remote);
+      DicomControlUserConnection connection(params);
       FindSeries(answers, connection, fields);
     }
 
@@ -319,7 +323,8 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(localAet, remote);
+      DicomAssociationParameters params(localAet, remote);
+      DicomControlUserConnection connection(params);
       FindInstance(answers, connection, fields);
     }
 
@@ -357,7 +362,8 @@ namespace Orthanc
     RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomControlUserConnection connection(localAet, remote);
+    DicomAssociationParameters params(localAet, remote);
+    DicomControlUserConnection connection(params);
     
     DicomFindAnswers patients(false);
     FindPatient(patients, connection, m);
@@ -1006,7 +1012,8 @@ namespace Orthanc
     RemoteModalityParameters remote =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomStoreUserConnection connection(localAet, remote);
+    DicomAssociationParameters params(localAet, remote);
+    DicomStoreUserConnection connection(params);
 
     std::string sopClassUid, sopInstanceUid;
     connection.Store(sopClassUid, sopInstanceUid,
@@ -1053,7 +1060,8 @@ namespace Orthanc
     const RemoteModalityParameters source =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
-    DicomControlUserConnection connection(localAet, source);
+    DicomAssociationParameters params(localAet, source);
+    DicomControlUserConnection connection(params);
 
     if (timeout > -1)
     {
@@ -1341,7 +1349,8 @@ namespace Orthanc
       DicomFindAnswers answers(true);
 
       {
-        DicomControlUserConnection connection(localAet, remote);
+        DicomAssociationParameters params(localAet, remote);
+        DicomControlUserConnection connection(params);
         connection.FindWorklist(answers, *query);
       }
 

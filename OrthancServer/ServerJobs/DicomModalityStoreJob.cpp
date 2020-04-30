@@ -48,7 +48,8 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomStoreUserConnection(localAet_, remote_));
+      DicomAssociationParameters params(localAet_, remote_);
+      connection_.reset(new DicomStoreUserConnection(params));
 
       if (timeout_ > -1)
       {
