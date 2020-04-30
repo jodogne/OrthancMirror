@@ -139,29 +139,14 @@ namespace Orthanc
   }
 
 
-  void DicomStoreUserConnection::Setup()
-  {
-    association_.reset(new DicomAssociation);
-    proposeCommonClasses_ = true;
-    proposeUncompressedSyntaxes_ = true;
-    proposeRetiredBigEndian_ = false;
-  }
-    
-        
-  DicomStoreUserConnection::DicomStoreUserConnection(
-    const std::string& localAet,
-    const RemoteModalityParameters& remote) :
-    parameters_(localAet, remote)
-  {
-    Setup();
-  }
-  
-
   DicomStoreUserConnection::DicomStoreUserConnection(
     const DicomAssociationParameters& params) :
-    parameters_(params)
+    parameters_(params),
+    association_(new DicomAssociation),
+    proposeCommonClasses_(true),
+    proposeUncompressedSyntaxes_(true),
+    proposeRetiredBigEndian_(false)
   {
-    Setup();
   }
     
 

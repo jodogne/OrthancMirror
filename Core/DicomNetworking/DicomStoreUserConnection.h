@@ -78,16 +78,11 @@ namespace Orthanc
     bool                                 proposeUncompressedSyntaxes_;
     bool                                 proposeRetiredBigEndian_;
 
-    void Setup();
-
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
                              const std::set<DicomTransferSyntax>& syntaxes);
 
   public:
-    DicomStoreUserConnection(const std::string& localAet,
-                             const RemoteModalityParameters& remote);
-    
     DicomStoreUserConnection(const DicomAssociationParameters& params);
     
     const DicomAssociationParameters& GetParameters() const

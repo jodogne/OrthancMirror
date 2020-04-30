@@ -97,7 +97,8 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomControlUserConnection(localAet_, remote_));
+      DicomAssociationParameters params(localAet_, remote_);
+      connection_.reset(new DicomControlUserConnection(params));
     }
     
     if (timeout_ > -1)
