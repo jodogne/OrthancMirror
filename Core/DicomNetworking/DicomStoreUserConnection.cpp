@@ -153,13 +153,13 @@ namespace Orthanc
   void DicomStoreUserConnection::RegisterStorageClass(const std::string& sopClassUid,
                                                       DicomTransferSyntax syntax)
   {
-    StorageClasses::iterator found = storageClasses_.find(sopClassUid);
+    RegisteredClasses::iterator found = registeredClasses_.find(sopClassUid);
 
-    if (found == storageClasses_.end())
+    if (found == registeredClasses_.end())
     {
       std::set<DicomTransferSyntax> ts;
       ts.insert(syntax);
-      storageClasses_[sopClassUid] = ts;
+      registeredClasses_[sopClassUid] = ts;
     }
     else
     {
@@ -217,19 +217,20 @@ namespace Orthanc
     }
     
     association_->ClearPresentationContexts();
-    RegisterStorageClass(sopClassUid, transferSyntax);
+    RegisterStorageClass(sopClassUid, transferSyntax);  // (*)
 
-      
+    
     /**
      * Step 2: Propose at least the mandatory SOP class.
      **/
 
     {
-      StorageClasses::const_iterator mandatory = storageClasses_.find(sopClassUid);
+      RegisteredClasses::const_iterator mandatory = registeredClasses_.find(sopClassUid);
 
-      if (mandatory == storageClasses_.end() ||
+      if (mandatory == registeredClasses_.end() ||
           mandatory->second.find(transferSyntax) == mandatory->second.end())
       {
+        // Should never fail because of (*)
         throw OrthancException(ErrorCode_InternalError);
       }
 
@@ -248,8 +249,8 @@ namespace Orthanc
      * registered through the "RegisterStorageClass()" method.
      **/
       
-    for (StorageClasses::const_iterator it = storageClasses_.begin();
-         it != storageClasses_.end(); ++it)
+    for (RegisteredClasses::const_iterator it = registeredClasses_.begin();
+         it != registeredClasses_.end(); ++it)
     {
       if (it->first != sopClassUid)
       {
@@ -277,7 +278,7 @@ namespace Orthanc
         std::string c(dcmShortSCUStorageSOPClassUIDs[i]);
           
         if (c != sopClassUid &&
-            storageClasses_.find(c) == storageClasses_.end())
+            registeredClasses_.find(c) == registeredClasses_.end())
         {
           ProposeStorageClass(c, ts);
         }
@@ -295,11 +296,11 @@ namespace Orthanc
   }
 
 
-  void DicomStoreUserConnection::Store(std::string& sopClassUid,
-                                       std::string& sopInstanceUid,
-                                       DcmDataset& dataset,
-                                       const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
+  void DicomStoreUserConnection::StoreInternal(std::string& sopClassUid,
+                                               std::string& sopInstanceUid,
+                                               DcmDataset& dataset,
+                                               const std::string& moveOriginatorAET,
+                                               uint16_t moveOriginatorID)
   {
     DicomTransferSyntax transferSyntax;
     LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dataset);
@@ -372,22 +373,6 @@ namespace Orthanc
 
   void DicomStoreUserConnection::Store(std::string& sopClassUid,
                                        std::string& sopInstanceUid,
-                                       ParsedDicomFile& parsed,
-                                       const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
-  {
-    if (parsed.GetDcmtkObject().getDataset() == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    
-    Store(sopClassUid, sopInstanceUid, *parsed.GetDcmtkObject().getDataset(),
-          moveOriginatorAET, moveOriginatorID);
-  }
-
-
-  void DicomStoreUserConnection::Store(std::string& sopClassUid,
-                                       std::string& sopInstanceUid,
                                        const void* buffer,
                                        size_t size,
                                        const std::string& moveOriginatorAET,
@@ -402,7 +387,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
-          moveOriginatorAET, moveOriginatorID);
+    StoreInternal(sopClassUid, sopInstanceUid, *dicom->getDataset(),
+                  moveOriginatorAET, moveOriginatorID);
   }
 }
