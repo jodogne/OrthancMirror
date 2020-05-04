@@ -69,10 +69,15 @@ namespace Orthanc
   {
   private:
     typedef std::map<std::string, std::set<DicomTransferSyntax> > RegisteredClasses;
+
+    // "ProposedOriginalClasses" keeps track of the storage classes
+    // that were proposed with a single transfer syntax
+    typedef std::set< std::pair<std::string, DicomTransferSyntax> > ProposedOriginalClasses;
     
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;  // "shared_ptr" is for PImpl
     RegisteredClasses                    registeredClasses_;
+    ProposedOriginalClasses              proposedOriginalClasses_;
     bool                                 proposeCommonClasses_;
     bool                                 proposeUncompressedSyntaxes_;
     bool                                 proposeRetiredBigEndian_;
@@ -85,6 +90,14 @@ namespace Orthanc
                           std::string& sopInstanceUid,
                           DicomTransferSyntax& transferSyntax,
                           DcmDataset& dataset);
+
+    bool LookupPresentationContext(uint8_t& presentationContextId,
+                                   const std::string& sopClassUid,
+                                   DicomTransferSyntax transferSyntax);
+    
+    bool NegotiatePresentationContext(uint8_t& presentationContextId,
+                                      const std::string& sopClassUid,
+                                      DicomTransferSyntax transferSyntax);
 
     void StoreInternal(std::string& sopClassUid,
                        std::string& sopInstanceUid,
@@ -133,17 +146,6 @@ namespace Orthanc
     void RegisterStorageClass(const std::string& sopClassUid,
                               DicomTransferSyntax syntax);
 
-    // Should only be used if transcoding
-    // TODO => to private
-    bool LookupPresentationContext(uint8_t& presentationContextId,
-                                   const std::string& sopClassUid,
-                                   DicomTransferSyntax transferSyntax);
-    
-    // TODO => to private
-    bool NegotiatePresentationContext(uint8_t& presentationContextId,
-                                      const std::string& sopClassUid,
-                                      DicomTransferSyntax transferSyntax);
-
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
                const void* buffer,
@@ -158,5 +160,9 @@ namespace Orthanc
     {
       Store(sopClassUid, sopInstanceUid, buffer, size, "", 0);  // Not a C-Move
     }
+
+    bool LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+                           const std::string& sopClassUid,
+                           DicomTransferSyntax sourceSyntax);
   };
 }

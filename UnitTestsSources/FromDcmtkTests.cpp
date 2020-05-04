@@ -2875,11 +2875,27 @@ static void TestTranscode(DicomStoreUserConnection& scu,
                           const std::string& sopClassUid,
                           DicomTransferSyntax transferSyntax)
 {
-  uint8_t id;
-      
-  if (scu.NegotiatePresentationContext(id, sopClassUid, transferSyntax))
+  std::set<DicomTransferSyntax> accepted;
+
+  if (!scu.LookupTranscoding(accepted, sopClassUid, transferSyntax))
   {
-    printf("**** OK, without transcoding !! %d\n", id);
+    throw OrthancException(ErrorCode_NetworkProtocol,
+                           "The SOP class is not supported by the remote modality");
+  }
+
+  {
+    unsigned int count = 0;
+    for (std::set<DicomTransferSyntax>::const_iterator
+           it = accepted.begin(); it != accepted.end(); ++it)
+    {
+      LOG(INFO) << "available for transcoding " << (count++) << ": " << sopClassUid
+                << " / " << GetTransferSyntaxUid(*it);
+    }
+  }
+  
+  if (accepted.find(transferSyntax) != accepted.end())
+  {
+    printf("**** OK, without transcoding !! [%s]\n", GetTransferSyntaxUid(transferSyntax));
   }
   else
   {
@@ -2894,10 +2910,9 @@ static void TestTranscode(DicomStoreUserConnection& scu,
     bool found = false;
     for (size_t i = 0; i < 3; i++)
     {
-      if (scu.LookupPresentationContext(id, sopClassUid, uncompressed[i]))
+      if (accepted.find(uncompressed[i]) != accepted.end())
       {
-        printf("**** TRANSCODING to %s => %d\n",
-               GetTransferSyntaxUid(uncompressed[i]), id);
+        printf("**** TRANSCODING to %s\n", GetTransferSyntaxUid(uncompressed[i]));
         found = true;
         break;
       }
@@ -2924,9 +2939,11 @@ TEST(Toto, DISABLED_Store)
   //assoc.RegisterStorageClass(UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
 
   //assoc.SetUncompressedSyntaxesProposed(false);  // Necessary for transcoding
-  //assoc.SetCommonClassesProposed(false);
-  TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
+  assoc.SetCommonClassesProposed(false);
+  assoc.SetRetiredBigEndianProposed(true);
   TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_LittleEndianExplicit);
+  TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
+  TestTranscode(assoc, UID_MRImageStorage, DicomTransferSyntax_JPEG2000);
 }
 
 
