@@ -97,13 +97,6 @@ namespace Orthanc
   }
 
 
-  void DicomAssociationParameters::SetTimeout(uint32_t seconds)
-  {
-    assert(seconds != -1);
-    timeout_ = seconds;
-  }
-
-
   bool DicomAssociationParameters::IsEqual(const DicomAssociationParameters& other) const
   {
     return (localAet_ == other.localAet_ &&

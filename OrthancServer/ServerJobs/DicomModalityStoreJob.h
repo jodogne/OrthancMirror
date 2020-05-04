@@ -110,5 +110,10 @@ namespace Orthanc
     virtual void Reset() ORTHANC_OVERRIDE;
 
     void EnableStorageCommitment(bool enabled);
+
+    bool HasStorageCommitment() const
+    {
+      return storageCommitment_;
+    }
   };
 }

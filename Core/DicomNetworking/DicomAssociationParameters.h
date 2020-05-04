@@ -50,8 +50,6 @@ namespace Orthanc
 
     static void CheckHost(const std::string& host);
 
-    static uint32_t GetDefaultTimeout();
-
   public:
     DicomAssociationParameters();
     
@@ -95,7 +93,10 @@ namespace Orthanc
     bool IsEqual(const DicomAssociationParameters& other) const;
 
     // Setting it to "0" disables the timeout (infinite wait)
-    void SetTimeout(uint32_t seconds);
+    void SetTimeout(uint32_t seconds)
+    {
+      timeout_ = seconds;
+    }
 
     uint32_t GetTimeout() const
     {
@@ -112,5 +113,7 @@ namespace Orthanc
     static DicomAssociationParameters UnserializeJob(const Json::Value& serialized);
     
     static void SetDefaultTimeout(uint32_t seconds);
+
+    static uint32_t GetDefaultTimeout();
   };
 }
