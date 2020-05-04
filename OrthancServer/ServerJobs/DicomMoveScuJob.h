@@ -49,12 +49,10 @@ namespace Orthanc
     class Command;
     class Unserializer;
     
-    ServerContext&            context_;
-    std::string               localAet_;
-    std::string               targetAet_;
-    RemoteModalityParameters  remote_;
-    int                       timeout_;
-    Json::Value               query_;
+    ServerContext&              context_;
+    DicomAssociationParameters  parameters_;
+    std::string                 targetAet_;
+    Json::Value                 query_;
 
     std::unique_ptr<DicomControlUserConnection>  connection_;
     
@@ -74,38 +72,24 @@ namespace Orthanc
     
     void AddFindAnswer(QueryRetrieveHandler& query,
                        size_t i);
-    
-    const std::string& GetLocalAet() const
-    {
-      return localAet_;
-    }
 
+    const DicomAssociationParameters& GetParameters() const
+    {
+      return parameters_;
+    }
+    
     void SetLocalAet(const std::string& aet);
+
+    void SetRemoteModality(const RemoteModalityParameters& remote);
+
+    void SetTimeout(uint32_t timeout);
 
     const std::string& GetTargetAet() const
     {
       return targetAet_;
     }
-
+    
     void SetTargetAet(const std::string& aet);
-
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    void SetTimeout(int timeout)
-    {
-      timeout_ = timeout;
-    }
-
-    int GetTimeout() const
-    {
-      return timeout_;
-    }
-
 
     virtual void Stop(JobStopReason reason);
 
