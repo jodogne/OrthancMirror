@@ -179,7 +179,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NoSopClassOrInstance,
                              "Unable to determine the SOP class/instance for C-STORE with AET " +
-                             parameters_.GetRemoteApplicationEntityTitle());
+                             parameters_.GetRemoteModality().GetApplicationEntityTitle());
     }
 
     sopClassUid.assign(a.c_str());
@@ -213,7 +213,7 @@ namespace Orthanc
     if (association_->IsOpen())
     {
       LOG(INFO) << "Re-negociating DICOM association with "
-                << parameters_.GetRemoteApplicationEntityTitle();
+                << parameters_.GetRemoteModality().GetApplicationEntityTitle();
     }
     
     association_->ClearPresentationContexts();
@@ -312,7 +312,7 @@ namespace Orthanc
                              "SOP class UID [" + sopClassUid + "] and transfer "
                              "syntax [" + GetTransferSyntaxUid(transferSyntax) + "] "
                              "while sending to modality [" +
-                             parameters_.GetRemoteApplicationEntityTitle() + "]");
+                             parameters_.GetRemoteModality().GetApplicationEntityTitle() + "]");
     }
     
     // Prepare the transmission of data
@@ -364,7 +364,7 @@ namespace Orthanc
       sprintf(buf, "%04X", response.DimseStatus);
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "C-STORE SCU to AET \"" +
-                             GetParameters().GetRemoteApplicationEntityTitle() +
+                             GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
                              "\" has failed with DIMSE status 0x" + buf);
     }
   }

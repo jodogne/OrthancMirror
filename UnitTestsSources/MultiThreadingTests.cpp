@@ -1514,11 +1514,11 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.reset(unserializer.UnserializeJob(s));
 
     DicomModalityStoreJob& tmp = dynamic_cast<DicomModalityStoreJob&>(*job);
-    ASSERT_EQ("LOCAL", tmp.GetLocalAet());
-    ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
-    ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
-    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+    ASSERT_EQ("LOCAL", tmp.GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("REMOTE", tmp.GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("192.168.1.1", tmp.GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(1000, tmp.GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetParameters().GetRemoteModality().GetManufacturer());
     ASSERT_TRUE(tmp.HasMoveOriginator());
     ASSERT_EQ("MOVESCU", tmp.GetMoveOriginatorAet());
     ASSERT_EQ(42, tmp.GetMoveOriginatorId());

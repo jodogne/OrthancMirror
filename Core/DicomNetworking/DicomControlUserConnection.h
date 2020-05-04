@@ -105,7 +105,5 @@ namespace Orthanc
 
     void FindWorklist(DicomFindAnswers& result,
                       ParsedDicomFile& query);
-
-    void SetTimeout(uint32_t seconds); // 0 = no timeout
   };
 }

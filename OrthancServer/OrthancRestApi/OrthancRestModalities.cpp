@@ -87,13 +87,14 @@ namespace Orthanc
     try
     {
       DicomAssociationParameters params(localAet, remote);
-      DicomControlUserConnection connection(params);
 
       // New in Orthanc 1.7.0
-      if (timeout != -1)
+      if (timeout >= 0)
       {
-        connection.SetTimeout(timeout);
+        params.SetTimeout(static_cast<uint32_t>(timeout));
       }
+
+      DicomControlUserConnection connection(params);
 
       if (connection.Echo())
       {
@@ -649,7 +650,11 @@ namespace Orthanc
       job->SetTargetAet(targetAet);
       job->SetLocalAet(query.GetHandler().GetLocalAet());
       job->SetRemoteModality(query.GetHandler().GetRemoteModality());
-      job->SetTimeout(timeout);
+
+      if (timeout >= 0)
+      {
+        job->SetTimeout(static_cast<uint32_t>(timeout));
+      }
 
       LOG(WARNING) << "Driving C-Move SCU on remote modality "
                    << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
@@ -997,7 +1002,10 @@ namespace Orthanc
     }
 
     // New in Orthanc 1.7.0
-    job->SetTimeout(timeout);
+    if (timeout >= 0)
+    {
+      job->SetTimeout(static_cast<uint32_t>(timeout));
+    }
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
@@ -1061,13 +1069,15 @@ namespace Orthanc
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomAssociationParameters params(localAet, source);
+
+    // New in Orthanc 1.7.0
+    if (timeout >= 0)
+    {
+      params.SetTimeout(static_cast<uint32_t>(timeout));
+    }
+
     DicomControlUserConnection connection(params);
 
-    if (timeout > -1)
-    {
-      connection.SetTimeout(timeout);
-    }
-    
     for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
     {
       DicomMap resource;

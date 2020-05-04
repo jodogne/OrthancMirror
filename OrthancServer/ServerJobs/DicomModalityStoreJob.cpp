@@ -48,13 +48,7 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      DicomAssociationParameters params(localAet_, remote_);
-      connection_.reset(new DicomStoreUserConnection(params));
-
-      if (timeout_ > -1)
-      {
-        connection_->SetTimeout(timeout_);
-      }
+      connection_.reset(new DicomStoreUserConnection(parameters_));
     }
   }
 
@@ -65,7 +59,7 @@ namespace Orthanc
     OpenConnection();
 
     LOG(INFO) << "Sending instance " << instance << " to modality \"" 
-              << remote_.GetApplicationEntityTitle() << "\"";
+              << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "\"";
 
     std::string dicom;
 
@@ -109,7 +103,7 @@ namespace Orthanc
         assert(IsStarted());
         connection_.reset(NULL);
         
-        const std::string& remoteAet = remote_.GetApplicationEntityTitle();
+        const std::string& remoteAet = parameters_.GetRemoteModality().GetApplicationEntityTitle();
         
         LOG(INFO) << "Sending storage commitment request to modality: " << remoteAet;
 
@@ -121,8 +115,7 @@ namespace Orthanc
         std::vector<std::string> a(sopClassUids_.begin(), sopClassUids_.end());
         std::vector<std::string> b(sopInstanceUids_.begin(), sopInstanceUids_.end());
 
-        DicomAssociationParameters parameters(localAet_, remote_);
-        DicomAssociation::RequestStorageCommitment(parameters, transactionUid_, a, b);
+        DicomAssociation::RequestStorageCommitment(parameters_, transactionUid_, a, b);
       }
     }
 
@@ -140,8 +133,6 @@ namespace Orthanc
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context) :
     context_(context),
-    localAet_("ORTHANC"),
-    timeout_(-1),
     moveOriginatorId_(0),      // By default, not a C-MOVE
     storageCommitment_(false)  // By default, no storage commitment
   {
@@ -157,7 +148,7 @@ namespace Orthanc
     }
     else
     {
-      localAet_ = aet;
+      parameters_.SetLocalApplicationEntityTitle(aet);
     }
   }
 
@@ -170,11 +161,24 @@ namespace Orthanc
     }
     else
     {
-      remote_ = remote;
+      parameters_.SetRemoteModality(remote);
     }
   }
 
     
+  void DicomModalityStoreJob::SetTimeout(uint32_t seconds)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      parameters_.SetTimeout(seconds);
+    }
+  }
+
+
   const std::string& DicomModalityStoreJob::GetMoveOriginatorAet() const
   {
     if (HasMoveOriginator())
@@ -262,8 +266,8 @@ namespace Orthanc
   {
     SetOfInstancesJob::GetPublicContent(value);
     
-    value["LocalAet"] = localAet_;
-    value["RemoteAet"] = remote_.GetApplicationEntityTitle();
+    value["LocalAet"] = parameters_.GetLocalApplicationEntityTitle();
+    value["RemoteAet"] = parameters_.GetRemoteModality().GetApplicationEntityTitle();
 
     if (HasMoveOriginator())
     {
@@ -278,12 +282,9 @@ namespace Orthanc
   }
 
 
-  static const char* LOCAL_AET = "LocalAet";
-  static const char* REMOTE = "Remote";
   static const char* MOVE_ORIGINATOR_AET = "MoveOriginatorAet";
   static const char* MOVE_ORIGINATOR_ID = "MoveOriginatorId";
   static const char* STORAGE_COMMITMENT = "StorageCommitment";
-  static const char* TIMEOUT = "Timeout";
   
 
   DicomModalityStoreJob::DicomModalityStoreJob(ServerContext& context,
@@ -291,15 +292,12 @@ namespace Orthanc
     SetOfInstancesJob(serialized),
     context_(context)
   {
-    localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
-    remote_ = RemoteModalityParameters(serialized[REMOTE]);
     moveOriginatorAet_ = SerializationToolbox::ReadString(serialized, MOVE_ORIGINATOR_AET);
     moveOriginatorId_ = static_cast<uint16_t>
       (SerializationToolbox::ReadUnsignedInteger(serialized, MOVE_ORIGINATOR_ID));
     EnableStorageCommitment(SerializationToolbox::ReadBoolean(serialized, STORAGE_COMMITMENT));
 
-    // New in Orthanc in 1.7.0
-    timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, -1);
+    parameters_ = DicomAssociationParameters::UnserializeJob(serialized);
   }
 
 
@@ -311,12 +309,10 @@ namespace Orthanc
     }
     else
     {
-      target[LOCAL_AET] = localAet_;
-      remote_.Serialize(target[REMOTE], true /* force advanced format */);
+      parameters_.SerializeJob(target);
       target[MOVE_ORIGINATOR_AET] = moveOriginatorAet_;
       target[MOVE_ORIGINATOR_ID] = moveOriginatorId_;
       target[STORAGE_COMMITMENT] = storageCommitment_;
-      target[TIMEOUT] = timeout_;
       return true;
     }
   }  
