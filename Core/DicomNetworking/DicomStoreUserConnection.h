@@ -64,16 +64,15 @@ namespace Orthanc
   **/
 
   class DicomAssociation;  // Forward declaration for PImpl design pattern
-  class ParsedDicomFile;
 
   class DicomStoreUserConnection : public boost::noncopyable
   {
   private:
-    typedef std::map<std::string, std::set<DicomTransferSyntax> > StorageClasses;
+    typedef std::map<std::string, std::set<DicomTransferSyntax> > RegisteredClasses;
     
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;  // "shared_ptr" is for PImpl
-    StorageClasses                       storageClasses_;
+    RegisteredClasses                    registeredClasses_;
     bool                                 proposeCommonClasses_;
     bool                                 proposeUncompressedSyntaxes_;
     bool                                 proposeRetiredBigEndian_;
@@ -81,6 +80,17 @@ namespace Orthanc
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
                              const std::set<DicomTransferSyntax>& syntaxes);
+
+    void LookupParameters(std::string& sopClassUid,
+                          std::string& sopInstanceUid,
+                          DicomTransferSyntax& transferSyntax,
+                          DcmDataset& dataset);
+
+    void StoreInternal(std::string& sopClassUid,
+                       std::string& sopInstanceUid,
+                       DcmDataset& dataset,
+                       const std::string& moveOriginatorAET,
+                       uint16_t moveOriginatorID);
 
   public:
     DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -128,32 +138,12 @@ namespace Orthanc
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
                                    DicomTransferSyntax transferSyntax);
-        
+    
     // TODO => to private
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax);
 
-    // TODO => to private
-    void LookupParameters(std::string& sopClassUid,
-                          std::string& sopInstanceUid,
-                          DicomTransferSyntax& transferSyntax,
-                          DcmDataset& dataset);
-
-  private:
-    void Store(std::string& sopClassUid,
-               std::string& sopInstanceUid,
-               DcmDataset& dataset,
-               const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
-
-    void Store(std::string& sopClassUid,
-               std::string& sopInstanceUid,
-               ParsedDicomFile& parsed,
-               const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
-
-  public:
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
                const void* buffer,
