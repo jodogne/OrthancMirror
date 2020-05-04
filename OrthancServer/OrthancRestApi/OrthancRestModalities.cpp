@@ -54,12 +54,14 @@
 namespace Orthanc
 {
   static const char* const KEY_LEVEL = "Level";
-  static const char* const KEY_QUERY = "Query";
+  static const char* const KEY_LOCAL_AET = "LocalAet";
   static const char* const KEY_NORMALIZE = "Normalize";
+  static const char* const KEY_QUERY = "Query";
   static const char* const KEY_RESOURCES = "Resources";
+  static const char* const KEY_TARGET_AET = "TargetAet";
+  static const char* const KEY_TIMEOUT = "Timeout";
   static const char* const SOP_CLASS_UID = "SOPClassUID";
   static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
-
   
   static RemoteModalityParameters MyGetModalityUsingSymbolicName(const std::string& name)
   {
@@ -68,33 +70,52 @@ namespace Orthanc
   }
 
 
+  static void InjectAssociationTimeout(DicomAssociationParameters& params,
+                                       const Json::Value& body)
+  {
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
+    }
+    else if (body.isMember(KEY_TIMEOUT))
+    {
+      // New in Orthanc 1.7.0
+      params.SetTimeout(SerializationToolbox::ReadUnsignedInteger(body, KEY_TIMEOUT));
+    }
+  }
+
+  static DicomAssociationParameters GetAssociationParameters(RestApiPostCall& call,
+                                                             const Json::Value& body)
+  {   
+    const std::string& localAet =
+      OrthancRestApi::GetContext(call).GetDefaultLocalApplicationEntityTitle();
+    const RemoteModalityParameters remote =
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    DicomAssociationParameters params(localAet, remote);
+    InjectAssociationTimeout(params, body);
+    
+    return params;
+  }
+
+
+  static DicomAssociationParameters GetAssociationParameters(RestApiPostCall& call)
+  {
+    Json::Value body;
+    call.ParseJsonRequest(body);
+    return GetAssociationParameters(call, body);
+  }
+  
+
   /***************************************************************************
    * DICOM C-Echo SCU
    ***************************************************************************/
 
   static void DicomEcho(RestApiPostCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
-    Json::Value request;
-    call.ParseJsonRequest(request);
-    int timeout = Toolbox::GetJsonIntegerField(request, "Timeout", -1);
-
     try
     {
-      DicomAssociationParameters params(localAet, remote);
-
-      // New in Orthanc 1.7.0
-      if (timeout >= 0)
-      {
-        params.SetTimeout(static_cast<uint32_t>(timeout));
-      }
-
-      DicomControlUserConnection connection(params);
+      DicomControlUserConnection connection(GetAssociationParameters(call));
 
       if (connection.Echo())
       {
@@ -200,7 +221,6 @@ namespace Orthanc
   static void DicomFindPatient(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
-    ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap fields;
     DicomMap::SetupFindPatientTemplate(fields);
@@ -209,15 +229,10 @@ namespace Orthanc
       return;
     }
 
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-    
     DicomFindAnswers answers(false);
 
     {
-      DicomAssociationParameters params(localAet, remote);
-      DicomControlUserConnection connection(params);
+      DicomControlUserConnection connection(GetAssociationParameters(call));
       FindPatient(answers, connection, fields);
     }
 
@@ -229,7 +244,6 @@ namespace Orthanc
   static void DicomFindStudy(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
-    ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap fields;
     DicomMap::SetupFindStudyTemplate(fields);
@@ -244,15 +258,10 @@ namespace Orthanc
       return;
     }        
       
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
     DicomFindAnswers answers(false);
 
     {
-      DicomAssociationParameters params(localAet, remote);
-      DicomControlUserConnection connection(params);
+      DicomControlUserConnection connection(GetAssociationParameters(call));
       FindStudy(answers, connection, fields);
     }
 
@@ -264,7 +273,6 @@ namespace Orthanc
   static void DicomFindSeries(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
-    ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap fields;
     DicomMap::SetupFindSeriesTemplate(fields);
@@ -280,15 +288,10 @@ namespace Orthanc
       return;
     }        
          
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
     DicomFindAnswers answers(false);
 
     {
-      DicomAssociationParameters params(localAet, remote);
-      DicomControlUserConnection connection(params);
+      DicomControlUserConnection connection(GetAssociationParameters(call));
       FindSeries(answers, connection, fields);
     }
 
@@ -300,7 +303,6 @@ namespace Orthanc
   static void DicomFindInstance(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
-    ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap fields;
     DicomMap::SetupFindInstanceTemplate(fields);
@@ -317,15 +319,10 @@ namespace Orthanc
       return;
     }        
          
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
     DicomFindAnswers answers(false);
 
     {
-      DicomAssociationParameters params(localAet, remote);
-      DicomControlUserConnection connection(params);
+      DicomControlUserConnection connection(GetAssociationParameters(call));
       FindInstance(answers, connection, fields);
     }
 
@@ -350,7 +347,6 @@ namespace Orthanc
   static void DicomFind(RestApiPostCall& call)
   {
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
-    ServerContext& context = OrthancRestApi::GetContext(call);
 
     DicomMap m;
     DicomMap::SetupFindPatientTemplate(m);
@@ -359,12 +355,7 @@ namespace Orthanc
       return;
     }
  
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
-    DicomAssociationParameters params(localAet, remote);
-    DicomControlUserConnection connection(params);
+    DicomControlUserConnection connection(GetAssociationParameters(call));
     
     DicomFindAnswers patients(false);
     FindPatient(patients, connection, m);
@@ -627,8 +618,8 @@ namespace Orthanc
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
-      targetAet = Toolbox::GetJsonStringField(body, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
-      timeout = Toolbox::GetJsonIntegerField(body, "Timeout", -1);
+      targetAet = Toolbox::GetJsonStringField(body, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
+      timeout = Toolbox::GetJsonIntegerField(body, KEY_TIMEOUT, -1);
     }
     else
     {
@@ -653,6 +644,7 @@ namespace Orthanc
 
       if (timeout >= 0)
       {
+        // New in Orthanc 1.7.0
         job->SetTimeout(static_cast<uint32_t>(timeout));
       }
 
@@ -979,13 +971,11 @@ namespace Orthanc
     GetInstancesToExport(request, *job, remote, call);
 
     std::string localAet = Toolbox::GetJsonStringField
-      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
     std::string moveOriginatorAET = Toolbox::GetJsonStringField
       (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField
       (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
-    int timeout = Toolbox::GetJsonIntegerField
-      (request, "Timeout", -1);
 
     job->SetLocalAet(localAet);
     job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
@@ -1002,9 +992,9 @@ namespace Orthanc
     }
 
     // New in Orthanc 1.7.0
-    if (timeout >= 0)
+    if (request.isMember(KEY_TIMEOUT))
     {
-      job->SetTimeout(static_cast<uint32_t>(timeout));
+      job->SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
     }
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
@@ -1014,14 +1004,8 @@ namespace Orthanc
 
   static void DicomStoreStraight(RestApiPostCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-    RemoteModalityParameters remote =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
-    DicomAssociationParameters params(localAet, remote);
-    DicomStoreUserConnection connection(params);
+    Json::Value body = Json::objectValue;  // No body
+    DicomStoreUserConnection connection(GetAssociationParameters(call, body));
 
     std::string sopClassUid, sopInstanceUid;
     connection.Store(sopClassUid, sopInstanceUid,
@@ -1059,22 +1043,15 @@ namespace Orthanc
     ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
     
     std::string localAet = Toolbox::GetJsonStringField
-      (request, "LocalAet", context.GetDefaultLocalApplicationEntityTitle());
+      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
     std::string targetAet = Toolbox::GetJsonStringField
-      (request, "TargetAet", context.GetDefaultLocalApplicationEntityTitle());
-    int timeout = Toolbox::GetJsonIntegerField
-      (request, "Timeout", -1);
+      (request, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
 
     const RemoteModalityParameters source =
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomAssociationParameters params(localAet, source);
-
-    // New in Orthanc 1.7.0
-    if (timeout >= 0)
-    {
-      params.SetTimeout(static_cast<uint32_t>(timeout));
-    }
+    InjectAssociationTimeout(params, request);
 
     DicomControlUserConnection connection(params);
 
@@ -1343,15 +1320,9 @@ namespace Orthanc
 
   static void DicomFindWorklist(RestApiPostCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     Json::Value json;
     if (call.ParseJsonRequest(json))
     {
-      const std::string& localAet = context.GetDefaultLocalApplicationEntityTitle();
-      const RemoteModalityParameters remote =
-        MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
-
       std::unique_ptr<ParsedDicomFile> query
         (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0),
                                          "" /* no private creator */));
@@ -1359,8 +1330,7 @@ namespace Orthanc
       DicomFindAnswers answers(true);
 
       {
-        DicomAssociationParameters params(localAet, remote);
-        DicomControlUserConnection connection(params);
+        DicomControlUserConnection connection(GetAssociationParameters(call, json));
         connection.FindWorklist(answers, *query);
       }
 
