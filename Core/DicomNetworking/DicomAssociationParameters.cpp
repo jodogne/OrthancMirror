@@ -37,6 +37,7 @@
 #include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "NetworkingCompatibility.h"
 
 #include <boost/thread/mutex.hpp>
@@ -48,68 +49,111 @@ static uint32_t defaultTimeout_ = 10;
 
 namespace Orthanc
 {
-  void DicomAssociationParameters::ReadDefaultTimeout()
-  {
-    boost::mutex::scoped_lock lock(defaultTimeoutMutex_);
-    timeout_ = defaultTimeout_;
-  }
-
-
-  DicomAssociationParameters::DicomAssociationParameters() :
-    localAet_("STORESCU"),
-    remoteAet_("ANY-SCP"),
-    remoteHost_("127.0.0.1"),
-    remotePort_(104),
-    manufacturer_(ModalityManufacturer_Generic)
-  {
-    ReadDefaultTimeout();
-  }
-
-    
-  DicomAssociationParameters::DicomAssociationParameters(const std::string& localAet,
-                                                         const RemoteModalityParameters& remote) :
-    localAet_(localAet),
-    remoteAet_(remote.GetApplicationEntityTitle()),
-    remoteHost_(remote.GetHost()),
-    remotePort_(remote.GetPortNumber()),
-    manufacturer_(remote.GetManufacturer()),
-    timeout_(defaultTimeout_)
-  {
-    ReadDefaultTimeout();
-  }
-
-    
-  void DicomAssociationParameters::SetRemoteHost(const std::string& host)
+  void DicomAssociationParameters::CheckHost(const std::string& host)
   {
     if (host.size() > HOST_NAME_MAX - 10)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Invalid host name (too long): " + host);
     }
+  }
 
-    remoteHost_ = host;
+  
+  uint32_t DicomAssociationParameters::GetDefaultTimeout()
+  {
+    boost::mutex::scoped_lock lock(defaultTimeoutMutex_);
+    return defaultTimeout_;
   }
 
 
-  void DicomAssociationParameters::SetRemoteModality(const RemoteModalityParameters& parameters)
+  DicomAssociationParameters::DicomAssociationParameters() :
+    localAet_("ORTHANC"),
+    timeout_(GetDefaultTimeout())
   {
-    SetRemoteApplicationEntityTitle(parameters.GetApplicationEntityTitle());
-    SetRemoteHost(parameters.GetHost());
-    SetRemotePort(parameters.GetPortNumber());
-    SetRemoteManufacturer(parameters.GetManufacturer());
+    remote_.SetApplicationEntityTitle("ANY-SCP");
+  }
+
+    
+  DicomAssociationParameters::DicomAssociationParameters(const std::string& localAet,
+                                                         const RemoteModalityParameters& remote) :
+    localAet_(localAet),
+    timeout_(GetDefaultTimeout())
+  {
+    SetRemoteModality(remote);
+  }
+
+    
+  void DicomAssociationParameters::SetRemoteModality(const RemoteModalityParameters& remote)
+  {
+    CheckHost(remote.GetHost());
+    remote_ = remote;
+  }
+
+
+  void DicomAssociationParameters::SetRemoteHost(const std::string& host)
+  {
+    CheckHost(host);
+    remote_.SetHost(host);
+  }
+
+
+  void DicomAssociationParameters::SetTimeout(uint32_t seconds)
+  {
+    assert(seconds != -1);
+    timeout_ = seconds;
   }
 
 
   bool DicomAssociationParameters::IsEqual(const DicomAssociationParameters& other) const
   {
     return (localAet_ == other.localAet_ &&
-            remoteAet_ == other.remoteAet_ &&
-            remoteHost_ == other.remoteHost_ &&
-            remotePort_ == other.remotePort_ &&
-            manufacturer_ == other.manufacturer_);
+            remote_.GetApplicationEntityTitle() == other.remote_.GetApplicationEntityTitle() &&
+            remote_.GetHost() == other.remote_.GetHost() &&
+            remote_.GetPortNumber() == other.remote_.GetPortNumber() &&
+            remote_.GetManufacturer() == other.remote_.GetManufacturer() &&
+            timeout_ == other.timeout_);
   }
 
+
+  static const char* const LOCAL_AET = "LocalAet";
+  static const char* const REMOTE = "Remote";
+  static const char* const TIMEOUT = "Timeout";  // New in Orthanc in 1.7.0
+
+  
+  void DicomAssociationParameters::SerializeJob(Json::Value& target) const
+  {
+    if (target.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      target[LOCAL_AET] = localAet_;
+      remote_.Serialize(target[REMOTE], true /* force advanced format */);
+      target[TIMEOUT] = timeout_;
+    }
+  }
+
+
+  DicomAssociationParameters DicomAssociationParameters::UnserializeJob(const Json::Value& serialized)
+  {
+    if (serialized.type() == Json::objectValue)
+    {
+      DicomAssociationParameters result;
     
+      result.remote_ = RemoteModalityParameters(serialized[REMOTE]);
+      result.localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
+      result.timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, GetDefaultTimeout());
+
+      return result;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+  }
+    
+
   void DicomAssociationParameters::SetDefaultTimeout(uint32_t seconds)
   {
     LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 

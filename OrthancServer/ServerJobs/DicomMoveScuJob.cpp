@@ -98,14 +98,15 @@ namespace Orthanc
     if (connection_.get() == NULL)
     {
       DicomAssociationParameters params(localAet_, remote_);
+
+      if (timeout_ >= 0)
+      {
+        params.SetTimeout(static_cast<uint32_t>(timeout_));
+      }
+
       connection_.reset(new DicomControlUserConnection(params));
     }
     
-    if (timeout_ > -1)
-    {
-      connection_->SetTimeout(timeout_);
-    }
-
     connection_->Move(targetAet_, findAnswer);
   }
 
