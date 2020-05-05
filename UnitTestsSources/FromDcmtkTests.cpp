@@ -1927,7 +1927,8 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 #include "../Core/DicomNetworking/DicomStoreUserConnection.h"
 
 #include <dcmtk/dcmjpeg/djrploss.h>   // for DJ_RPLossy
-#include <dcmtk/dcmjpeg/djrplol.h>    // for DJ_RPLossless
+//#include <dcmtk/dcmjpeg/djrplol.h>    // for DJ_RPLossless
+#include <dcmtk/dcmjpls/djrparam.h>    // for DJLSRepresentationParameter
 
 
 #if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
@@ -2095,6 +2096,49 @@ namespace Orthanc
       }      
     }
 
+    static std::string GetSopInstanceUid(DcmDataset& dataset)
+    {
+      const char* v = NULL;
+
+      if (dataset.findAndGetString(DCM_SOPInstanceUID, v).good() &&
+          v != NULL)
+      {
+        return std::string(v);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "File without SOP instance UID");
+      }
+    }
+
+    static void CheckSopInstanceUid(DcmFileFormat& dicom,
+                                    const std::string& sopInstanceUid,
+                                    bool mustEqual)
+    {
+      if (dicom.getDataset() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      
+      bool ok;
+      
+      if (mustEqual)
+      {
+        ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
+      }
+      else
+      {
+        ok = (GetSopInstanceUid(*dicom.getDataset()) != sopInstanceUid);
+      }
+
+      if (!ok)
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               mustEqual ? "The SOP instance UID has changed unexpectedly during transcoding" :
+                               "The SOP instance UID has not changed as expected during transcoding");
+      }
+    }
+    
   public:
     DcmtkTranscoder() :
       lossyQuality_(90)
@@ -2158,6 +2202,7 @@ namespace Orthanc
       }
 
       const uint16_t bitsStored = GetBitsStored(*dicom.getDataset());
+      std::string sourceSopInstanceUid = GetSopInstanceUid(*dicom.getDataset());
 
       if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
       {
@@ -2168,49 +2213,94 @@ namespace Orthanc
       if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != allowedSyntaxes.end() &&
           FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
       {
+        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
         return true;
       }
 
       if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != allowedSyntaxes.end() &&
           FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
       {
+        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
         return true;
       }
       
       if (allowedSyntaxes.find(DicomTransferSyntax_BigEndianExplicit) != allowedSyntaxes.end() &&
           FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
       {
+        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
         return true;
       }
 
       if (allowedSyntaxes.find(DicomTransferSyntax_DeflatedLittleEndianExplicit) != allowedSyntaxes.end() &&
           FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
       {
+        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
         return true;
       }
 
-#if ORTHANC_ENABLE_JPEG == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
       if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end() &&
           allowNewSopInstanceUid &&
           bitsStored == 8)
       {
-        DJ_RPLossy rpLossy(lossyQuality_);
+        DJ_RPLossy parameters(lossyQuality_);
         
-        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &rpLossy))
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
         {
+          CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
           return true;
         }
       }
 #endif
       
-#if ORTHANC_ENABLE_JPEG == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
       if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end() &&
           allowNewSopInstanceUid &&
           bitsStored <= 12)
       {
-        DJ_RPLossy rpLossy(lossyQuality_);
-        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
+        DJ_RPLossy parameters(lossyQuality_);
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
         {
+          CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
+          return true;
+        }
+      }
+#endif
+      
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+      if (allowedSyntaxes.find(DicomTransferSyntax_JPEGLSLossless) != allowedSyntaxes.end())
+      {
+        // Check out "dcmjpls/apps/dcmcjpls.cc"
+        DJLSRepresentationParameter parameters(2 /* opt_nearlossless_deviation */,
+                                               OFTrue /* opt_useLosslessProcess */);
+
+        /**
+         * WARNING: This call results in a segmentation fault if using
+         * the DCMTK package 3.6.2 from Ubuntu 18.04.
+         **/              
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossless, &parameters))
+        {
+          CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+          return true;
+        }
+      }
+#endif
+      
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+      if (allowNewSopInstanceUid &&
+          allowedSyntaxes.find(DicomTransferSyntax_JPEGLSLossy) != allowedSyntaxes.end())
+      {
+        // Check out "dcmjpls/apps/dcmcjpls.cc"
+        DJLSRepresentationParameter parameters(2 /* opt_nearlossless_deviation */,
+                                               OFFalse /* opt_useLosslessProcess */);
+
+        /**
+         * WARNING: This call results in a segmentation fault if using
+         * the DCMTK package 3.6.2 from Ubuntu 18.04.
+         **/              
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
+        {
+          CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
           return true;
         }
       }
@@ -2233,7 +2323,7 @@ TEST(Toto, DISABLED_Transcode3)
 
   DcmtkTranscoder transcoder;
 
-  for (int j = 0; j < 2; j++)
+  //for (int j = 0; j < 2; j++)
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
@@ -2262,6 +2352,47 @@ TEST(Toto, DISABLED_Transcode3)
         {
           throw e;
         }
+      }
+    }
+  }
+}
+
+
+
+
+TEST(Toto, DISABLED_Transcode4)
+{
+  std::string source;
+  Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
+
+  std::unique_ptr<DcmFileFormat> toto(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
+  DicomTransferSyntax sourceSyntax;
+  ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
+
+  DcmtkTranscoder transcoder;
+
+  for (int i = 0; i <= DicomTransferSyntax_XML; i++)
+  {
+    DicomTransferSyntax a = (DicomTransferSyntax) i;
+    std::set<DicomTransferSyntax> s;
+    s.insert(a);
+    std::unique_ptr<DcmFileFormat> transcoded(transcoder.Transcode(source.c_str(), source.size(), s, true));
+    if (transcoded.get() == NULL)
+    {
+      printf("**************** CANNOT: [%s] => [%s]\n",
+             GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
+    }
+    else
+    {
+      std::string t;
+      FromDcmtkBridge::SaveToMemoryBuffer(t, *transcoded->getDataset());
+      printf("SIZE: %lu\n", t.size());
+      
+      const char* v = NULL;
+      transcoded->getDataset()->findAndGetString(DCM_SOPInstanceUID, v);
+      if (std::string(v) != "1.3.12.2.1107.5.12.1.2013021918595000.1.1")
+      {
+        printf("CHANGED SOP INSTANCE UID\n");
       }
     }
   }
