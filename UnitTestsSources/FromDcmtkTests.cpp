@@ -2227,8 +2227,13 @@ TEST(Toto, DISABLED_Transcode3)
   DicomAssociationParameters p;
   p.SetRemotePort(2000);
 
+  DicomStoreUserConnection scu(p);
+  scu.SetCommonClassesProposed(false);
+  scu.SetRetiredBigEndianProposed(true);
+
   DcmtkTranscoder transcoder;
-  
+
+  for (int j = 0; j < 2; j++)
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
@@ -2241,10 +2246,6 @@ TEST(Toto, DISABLED_Transcode3)
 
       std::string source;
       Orthanc::SystemToolbox::ReadFile(source, path);
-
-      DicomStoreUserConnection scu(p);
-      scu.SetCommonClassesProposed(false);
-      scu.SetRetiredBigEndianProposed(true);
 
       std::string c, i;
       try
