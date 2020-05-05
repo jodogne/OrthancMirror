@@ -2091,11 +2091,11 @@ namespace Orthanc
         
       DcmDataset& dataset = *dicom.getDataset();
 
-      E_TransferSyntax xfer = dataset.getOriginalXfer();
+      E_TransferSyntax xfer = dataset.getCurrentXfer();
       if (xfer == EXS_Unknown)
       {
         dataset.updateOriginalXfer();
-        xfer = dataset.getOriginalXfer();
+        xfer = dataset.getCurrentXfer();
         if (xfer == EXS_Unknown)
         {
           throw OrthancException(ErrorCode_BadFileFormat,
@@ -2327,11 +2327,11 @@ namespace Orthanc
       DcmDataset& dataset = *dicom_->getDataset();
       index_.reset(new DicomFrameIndex(dataset));
 
-      E_TransferSyntax xfer = dataset.getOriginalXfer();
+      E_TransferSyntax xfer = dataset.getCurrentXfer();
       if (xfer == EXS_Unknown)
       {
         dataset.updateOriginalXfer();
-        xfer = dataset.getOriginalXfer();
+        xfer = dataset.getCurrentXfer();
         if (xfer == EXS_Unknown)
         {
           throw OrthancException(ErrorCode_BadFileFormat,
@@ -2869,13 +2869,22 @@ namespace Orthanc
     {
     }
 
+    /**
+     * Transcoding flavor that creates a new parsed DICOM file. A
+     * "std::set<>" is used to give the possible plugin the
+     * possibility to do a single parsing for all the possible
+     * transfer syntaxes.
+     **/
     virtual DcmFileFormat* Transcode(const void* buffer,
                                      size_t size,
                                      const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                      bool allowNewSopInstanceUid) = 0;
 
-    // In-place transcoding. This method can return "false" if not supported,
-    // in which case the "Transcode()" method should be used.
+    /**
+     * In-place transcoding. This method is used first during
+     * C-STORE. It can return "false" if inplace is not supported, in
+     * which case the "Transcode()" method should be used.
+     **/
     virtual bool InplaceTranscode(DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) = 0;
@@ -2943,7 +2952,9 @@ namespace Orthanc
           transcoded.reset(transcoder.Transcode(buffer, size, uncompressedSyntaxes, false));
         }
 
-        // The "dicom" variable must not be used below this point
+        // WARNING: The "dicom" variable must not be used below this
+        // point. The "sopInstanceUid" might also have changed (if
+        // using lossy compression).
         
         if (transcoded == NULL ||
             transcoded->getDataset() == NULL)
@@ -2970,6 +2981,17 @@ namespace Orthanc
           }
         }
       }
+    }
+
+    static void Store(std::string& sopClassUid /* out */,
+                      std::string& sopInstanceUid /* out */,
+                      DicomStoreUserConnection& connection,
+                      IDicomTranscoder& transcoder,
+                      const void* buffer,
+                      size_t size)
+    {
+      Store(sopClassUid, sopInstanceUid, connection, transcoder,
+            buffer, size, "", 0 /* Not a C-MOVE */);
     }
   };
 
@@ -3048,72 +3070,106 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
+      DicomTransferSyntax syntax;
+      if (!FromDcmtkBridge::LookupOrthancTransferSyntax(syntax, dicom))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Cannot determine the transfer syntax");
+      }
+
       const uint16_t bitsStored = GetBitsStored(*dicom.getDataset());
 
-#if 0     
-
-      if (syntax == DetectTransferSyntax(*dicom))
+      if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
       {
         // No transcoding is needed
-        return new Image(dicom.release(), syntax);
+        return true;
       }
       
-      if (syntax == DicomTransferSyntax_LittleEndianImplicit &&
-          FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
+      if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != allowedSyntaxes.end() &&
+          FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
       {
-        return new Image(dicom.release(), syntax);
+        return true;
       }
 
-      if (syntax == DicomTransferSyntax_LittleEndianExplicit &&
-          FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
+      if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != allowedSyntaxes.end() &&
+          FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
       {
-        return new Image(dicom.release(), syntax);
+        return true;
       }
       
-      if (syntax == DicomTransferSyntax_BigEndianExplicit &&
-          FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
+      if (allowedSyntaxes.find(DicomTransferSyntax_BigEndianExplicit) != allowedSyntaxes.end() &&
+          FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
       {
-        return new Image(dicom.release(), syntax);
+        return true;
       }
 
-      if (syntax == DicomTransferSyntax_DeflatedLittleEndianExplicit &&
-          FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
+      if (allowedSyntaxes.find(DicomTransferSyntax_DeflatedLittleEndianExplicit) != allowedSyntaxes.end() &&
+          FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
       {
-        return new Image(dicom.release(), syntax);
+        return true;
       }
 
 #if ORTHANC_ENABLE_JPEG == 1
-      if (syntax == DicomTransferSyntax_JPEGProcess1 &&
+      if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end() &&
           allowNewSopInstanceUid &&
           bitsStored == 8)
       {
         DJ_RPLossy rpLossy(lossyQuality_);
         
-        if (FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_JPEGProcess1, &rpLossy))
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &rpLossy))
         {
-          return new Image(dicom.release(), syntax);
+          return true;
         }
       }
 #endif
       
 #if ORTHANC_ENABLE_JPEG == 1
-      if (syntax == DicomTransferSyntax_JPEGProcess2_4 &&
+      if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end() &&
           allowNewSopInstanceUid &&
           bitsStored <= 12)
       {
         DJ_RPLossy rpLossy(lossyQuality_);
-        if (FromDcmtkBridge::Transcode(*dicom, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &rpLossy))
         {
-          return new Image(dicom.release(), syntax);
+          return true;
         }
       }
-#endif
-
 #endif
 
       return false;
     }
   };
+}
+
+
+TEST(Toto, DISABLED_Transcode3)
+{
+  DicomAssociationParameters p;
+  p.SetRemotePort(2000);
+
+  DcmtkTranscoder transcoder;
+  
+  for (int i = 0; i <= DicomTransferSyntax_XML; i++)
+  {
+    DicomTransferSyntax a = (DicomTransferSyntax) i;
+
+    std::string path = ("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+                        std::string(GetTransferSyntaxUid(a)) + ".dcm");
+    if (Orthanc::SystemToolbox::IsRegularFile(path))
+    {
+      printf("\n======= %s\n", GetTransferSyntaxUid(a));
+
+      std::string source;
+      Orthanc::SystemToolbox::ReadFile(source, path);
+
+      DicomStoreUserConnection scu(p);
+      scu.SetCommonClassesProposed(false);
+      scu.SetRetiredBigEndianProposed(true);
+
+      std::string c, i;
+      IDicomTranscoder::Store(c, i, scu, transcoder, source.c_str(), source.size());
+    }
+  }
 }
 
 
