@@ -286,9 +286,6 @@ namespace Orthanc
                                             E_TransferSyntax source);
 
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
-                                            const DcmDataset& dataset)
-    {
-      return LookupOrthancTransferSyntax(target, dataset.getOriginalXfer());
-    }
+                                            DcmFileFormat& dicom);
   };
 }
