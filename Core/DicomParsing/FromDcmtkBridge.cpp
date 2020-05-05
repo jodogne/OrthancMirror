@@ -2061,25 +2061,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  bool FromDcmtkBridge::LookupTransferSyntax(std::string& result,
-                                             DcmFileFormat& dicom)
-  {
-    const char* value = NULL;
-
-    if (dicom.getMetaInfo() != NULL &&
-        dicom.getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
-        value != NULL)
-    {
-      result.assign(value);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
 #if ORTHANC_ENABLE_LUA == 1
   void FromDcmtkBridge::ExecuteToDicom(DicomMap& target,
                                        LuaFunctionCall& call)
