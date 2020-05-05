@@ -41,7 +41,7 @@
 #include <stdint.h>  // For uint8_t
 
 
-class DcmDataset;
+class DcmFileFormat;
 
 namespace Orthanc
 {
@@ -85,10 +85,6 @@ namespace Orthanc
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
                              const std::set<DicomTransferSyntax>& syntaxes);
-
-    void LookupParameters(std::string& sopClassUid,
-                          std::string& sopInstanceUid,
-                          DcmDataset& dataset);
 
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
@@ -141,7 +137,7 @@ namespace Orthanc
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
-               DcmDataset& dataset,
+               DcmFileFormat& dicom,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
@@ -154,9 +150,9 @@ namespace Orthanc
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
-               DcmDataset& dataset)
+               DcmFileFormat& dicom)
     {
-      Store(sopClassUid, sopInstanceUid, dataset, "", 0);  // Not a C-Move
+      Store(sopClassUid, sopInstanceUid, dicom, "", 0);  // Not a C-Move
     }
 
     void Store(std::string& sopClassUid,
@@ -167,7 +163,12 @@ namespace Orthanc
       Store(sopClassUid, sopInstanceUid, buffer, size, "", 0);  // Not a C-Move
     }
 
-    bool LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+    void LookupParameters(std::string& sopClassUid,
+                          std::string& sopInstanceUid,
+                          DicomTransferSyntax& transferSyntax,
+                          DcmFileFormat& dicom);
+
+    void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                            const std::string& sopClassUid,
                            DicomTransferSyntax sourceSyntax);
   };

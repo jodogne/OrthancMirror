@@ -2657,6 +2657,33 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
     ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
   }
+
+
+
+  bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                                    DcmFileFormat& dicom)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+        
+    DcmDataset& dataset = *dicom.getDataset();
+
+    E_TransferSyntax xfer = dataset.getOriginalXfer();
+    if (xfer == EXS_Unknown)
+    {
+      dataset.updateOriginalXfer();
+      xfer = dataset.getOriginalXfer();
+      if (xfer == EXS_Unknown)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Cannot determine the transfer syntax of the DICOM instance");
+      }
+    }
+
+    return FromDcmtkBridge::LookupOrthancTransferSyntax(target, xfer);
+  }
 }
 
 

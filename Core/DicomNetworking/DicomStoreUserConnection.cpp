@@ -178,11 +178,17 @@ namespace Orthanc
 
   void DicomStoreUserConnection::LookupParameters(std::string& sopClassUid,
                                                   std::string& sopInstanceUid,
-                                                  DcmDataset& dataset)
+                                                  DicomTransferSyntax& transferSyntax,
+                                                  DcmFileFormat& dicom)
   {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
     OFString a, b;
-    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
-        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
+    if (!dicom.getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+        !dicom.getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
     {
       throw OrthancException(ErrorCode_NoSopClassOrInstance,
                              "Unable to determine the SOP class/instance for C-STORE with AET " +
@@ -191,6 +197,12 @@ namespace Orthanc
 
     sopClassUid.assign(a.c_str());
     sopInstanceUid.assign(b.c_str());
+
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax, dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unknown transfer syntax from DCMTK");
+    }
   }
   
 
@@ -308,18 +320,12 @@ namespace Orthanc
 
   void DicomStoreUserConnection::Store(std::string& sopClassUid,
                                        std::string& sopInstanceUid,
-                                       DcmDataset& dataset,
+                                       DcmFileFormat& dicom,
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
-    LookupParameters(sopClassUid, sopInstanceUid, dataset);
-
     DicomTransferSyntax transferSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax, dataset))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unknown transfer syntax from DCMTK");
-    }
+    LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
 
     uint8_t presID;
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax))
@@ -351,12 +357,17 @@ namespace Orthanc
       request.opts |= O_STORE_MOVEORIGINATORID;
     }
 
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     // Finally conduct transmission of data
     T_DIMSE_C_StoreRSP response;
     DcmDataset* statusDetail = NULL;
     DicomAssociation::CheckCondition(
       DIMSE_storeUser(&association_->GetDcmtkAssociation(), presID, &request,
-                      NULL, &dataset, /*progressCallback*/ NULL, NULL,
+                      NULL, dicom.getDataset(), /*progressCallback*/ NULL, NULL,
                       /*opt_blockMode*/ (GetParameters().HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                       /*opt_dimse_timeout*/ GetParameters().GetTimeout(),
                       &response, &statusDetail, NULL),
@@ -397,18 +408,16 @@ namespace Orthanc
     std::unique_ptr<DcmFileFormat> dicom(
       FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
 
-    if (dicom.get() == NULL ||
-        dicom->getDataset() == NULL)
+    if (dicom.get() == NULL)
     {
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
-          moveOriginatorAET, moveOriginatorID);
+    Store(sopClassUid, sopInstanceUid, *dicom, moveOriginatorAET, moveOriginatorID);
   }
 
 
-  bool DicomStoreUserConnection::LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+  void DicomStoreUserConnection::LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                                                    const std::string& sopClassUid,
                                                    DicomTransferSyntax sourceSyntax)
   {
@@ -428,12 +437,6 @@ namespace Orthanc
       {
         acceptedSyntaxes.insert(it->first);
       }
-      
-      return true;
-    }
-    else
-    {
-      return false;
     }
   }
 }
