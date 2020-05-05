@@ -1254,27 +1254,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
-                                           DcmFileFormat& dicom,
-                                           DicomTransferSyntax syntax)
-  {
-    E_TransferSyntax xfer;
-    if (!LookupDcmtkTransferSyntax(xfer, syntax))
-    {
-      return false;
-    }
-    else if (!dicom.validateMetaInfo(xfer).good())
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Cannot setup the transfer syntax to write a DICOM instance");
-    }
-    else
-    {
-      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
-    }
-  }
-
-
-  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
   {
     // Determine the transfer syntax which shall be used to write the
@@ -1307,27 +1286,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
-                                           DcmFileFormat& dicom)
-  {
-    E_TransferSyntax xfer = dicom.getDataset()->getCurrentXfer();
-    if (xfer == EXS_Unknown)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Cannot write a DICOM instance with unknown transfer syntax");
-    }
-    else if (!dicom.validateMetaInfo(xfer).good())
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Cannot setup the transfer syntax to write a DICOM instance");
-    }
-    else
-    {
-      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
-    }
-  }
-
-
   bool FromDcmtkBridge::Transcode(DcmFileFormat& dicom,
                                   DicomTransferSyntax syntax,
                                   const DcmRepresentationParameter* representation)
@@ -1338,7 +1296,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       throw OrthancException(ErrorCode_InternalError);
     }
     else
-    {     
+    {
+      DicomTransferSyntax sourceSyntax;
+      bool known = LookupOrthancTransferSyntax(sourceSyntax, dicom);
+
       if (!dicom.getDataset()->chooseRepresentation(xfer, representation).good() ||
           !dicom.getDataset()->canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
@@ -1349,8 +1310,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       {
         dicom.removeInvalidGroups();
 
-        DicomTransferSyntax sourceSyntax;
-        if (LookupOrthancTransferSyntax(sourceSyntax, dicom))
+        if (known)
         {
           LOG(INFO) << "Transcoded an image from transfer syntax "
                     << GetTransferSyntaxUid(sourceSyntax) << " to "

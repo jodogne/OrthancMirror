@@ -1,3 +1,48 @@
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmFileFormat& dicom,
+                                           DicomTransferSyntax syntax)
+  {
+    E_TransferSyntax xfer;
+    if (!LookupDcmtkTransferSyntax(xfer, syntax))
+    {
+      return false;
+    }
+    else if (!dicom.validateMetaInfo(xfer).good())
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot setup the transfer syntax to write a DICOM instance");
+    }
+    else
+    {
+      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+    }
+  }
+
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmFileFormat& dicom)
+  {
+    E_TransferSyntax xfer = dicom.getDataset()->getCurrentXfer();
+    if (xfer == EXS_Unknown)
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot write a DICOM instance with unknown transfer syntax");
+    }
+    else if (!dicom.validateMetaInfo(xfer).good())
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Cannot setup the transfer syntax to write a DICOM instance");
+    }
+    else
+    {
+      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+    }
+  }
+
+
+
+
+
 #include <dcmtk/dcmdata/dcostrmb.h>
 #include <dcmtk/dcmdata/dcpixel.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
