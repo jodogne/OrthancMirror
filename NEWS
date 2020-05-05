@@ -8,6 +8,11 @@ REST API
   - "/instances/../modify": it is now possible to "Keep" the "SOPInstanceUID".  
     Note that it was already possible to "Replace" it.
 
+Maintenance
+-----------
+
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 1.1.1g
 
 
 Version 1.6.1 (2020-04-21)
