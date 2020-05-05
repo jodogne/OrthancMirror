@@ -1943,12 +1943,23 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 
 namespace Orthanc
 {
+  /**
+   * WARNING: This class might be called from several threads at
+   * once. Make sure to implement proper locking.
+   **/
+  
   class IDicomTranscoder : public boost::noncopyable
   {
   public:
     virtual ~IDicomTranscoder()
     {
     }
+
+    virtual bool TranscodeToBuffer(std::string& target,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid) = 0;
 
     /**
      * Transcoding flavor that creates a new parsed DICOM file. A
@@ -2166,7 +2177,7 @@ namespace Orthanc
     virtual DcmFileFormat* Transcode(const void* buffer,
                                      size_t size,
                                      const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                     bool allowNewSopInstanceUid)
+                                     bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
       std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
 
@@ -2187,7 +2198,7 @@ namespace Orthanc
 
     virtual bool InplaceTranscode(DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                  bool allowNewSopInstanceUid)
+                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
       if (dicom.getDataset() == NULL)
       {
@@ -2324,6 +2335,32 @@ namespace Orthanc
 
       return false;
     }
+
+    
+    virtual bool TranscodeToBuffer(std::string& target,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    {
+      std::unique_ptr<DcmFileFormat> transcoded(
+        Transcode(buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
+
+      if (transcoded.get() == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        if (transcoded->getDataset() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }          
+        
+        FromDcmtkBridge::SaveToMemoryBuffer(target, *transcoded->getDataset());
+        return true;
+      }
+    }
   };
 }
 
@@ -2392,24 +2429,17 @@ TEST(Toto, DISABLED_Transcode4)
     DicomTransferSyntax a = (DicomTransferSyntax) i;
     std::set<DicomTransferSyntax> s;
     s.insert(a);
-    std::unique_ptr<DcmFileFormat> transcoded(transcoder.Transcode(source.c_str(), source.size(), s, true));
-    if (transcoded.get() == NULL)
+
+    std::string t;
+    
+    if (!transcoder.TranscodeToBuffer(t, source.c_str(), source.size(), s, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
     }
     else
     {
-      std::string t;
-      FromDcmtkBridge::SaveToMemoryBuffer(t, *transcoded->getDataset());
       printf("SIZE: %lu\n", t.size());
-      
-      const char* v = NULL;
-      transcoded->getDataset()->findAndGetString(DCM_SOPInstanceUID, v);
-      if (std::string(v) != "1.3.12.2.1107.5.12.1.2013021918595000.1.1")
-      {
-        printf("CHANGED SOP INSTANCE UID\n");
-      }
     }
   }
 }
