@@ -1290,7 +1290,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
      * dataset into memory. We now keep the original transfer syntax
      * (if available).
      **/
-    E_TransferSyntax xfer = dataSet.getOriginalXfer();
+    E_TransferSyntax xfer = dataSet.getCurrentXfer();
     if (xfer == EXS_Unknown)
     {
       // No information about the original transfer syntax: This is
@@ -1310,7 +1310,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmFileFormat& dicom)
   {
-    E_TransferSyntax xfer = dicom.getDataset()->getOriginalXfer();
+    E_TransferSyntax xfer = dicom.getDataset()->getCurrentXfer();
     if (xfer == EXS_Unknown)
     {
       throw OrthancException(ErrorCode_InternalError,
@@ -1338,7 +1338,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       throw OrthancException(ErrorCode_InternalError);
     }
     else
-    {
+    {     
       if (!dicom.getDataset()->chooseRepresentation(xfer, representation).good() ||
           !dicom.getDataset()->canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
@@ -1348,6 +1348,20 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       else
       {
         dicom.removeInvalidGroups();
+
+        DicomTransferSyntax sourceSyntax;
+        if (LookupOrthancTransferSyntax(sourceSyntax, dicom))
+        {
+          LOG(INFO) << "Transcoded an image from transfer syntax "
+                    << GetTransferSyntaxUid(sourceSyntax) << " to "
+                    << GetTransferSyntaxUid(syntax);
+        }
+        else
+        {
+          LOG(INFO) << "Transcoded an image from unknown transfer syntax to "
+                    << GetTransferSyntaxUid(syntax);
+        }
+        
         return true;
       }
     }
@@ -1808,7 +1822,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
     DcmPixelSequence* pixelSequence = NULL;
     if (!pixelData.getEncapsulatedRepresentation
-        (dataset.getOriginalXfer(), NULL, pixelSequence).good())
+        (dataset.getCurrentXfer(), NULL, pixelSequence).good())
     {
       return NULL;
     }
@@ -2670,7 +2684,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         
     DcmDataset& dataset = *dicom.getDataset();
 
-    E_TransferSyntax xfer = dataset.getOriginalXfer();
+    E_TransferSyntax xfer = dataset.getCurrentXfer();
     if (xfer == EXS_Unknown)
     {
       dataset.updateOriginalXfer();
