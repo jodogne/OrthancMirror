@@ -1967,15 +1967,15 @@ namespace Orthanc
      * possibility to do a single parsing for all the possible
      * transfer syntaxes.
      **/
-    virtual DcmFileFormat* Transcode(const void* buffer,
-                                     size_t size,
-                                     const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                     bool allowNewSopInstanceUid) = 0;
+    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+                                             size_t size,
+                                             const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                             bool allowNewSopInstanceUid) = 0;
+
+    virtual bool HasInplaceTranscode() const = 0;
 
     /**
-     * In-place transcoding. This method is used first during
-     * C-STORE. It can return "false" if inplace is not supported, in
-     * which case the "Transcode()" method should be used.
+     * In-place transcoding. This method is preferred for C-STORE.
      **/
     virtual bool InplaceTranscode(DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -2034,14 +2034,17 @@ namespace Orthanc
 
         std::unique_ptr<DcmFileFormat> transcoded;
 
-        if (transcoder.InplaceTranscode(*dicom, uncompressedSyntaxes, false))
+        if (transcoder.HasInplaceTranscode())
         {
-          // In-place transcoding is supported
-          transcoded.reset(dicom.release());
+          if (transcoder.InplaceTranscode(*dicom, uncompressedSyntaxes, false))
+          {
+            // In-place transcoding is supported and has succeeded
+            transcoded.reset(dicom.release());
+          }
         }
         else
         {
-          transcoded.reset(transcoder.Transcode(buffer, size, uncompressedSyntaxes, false));
+          transcoded.reset(transcoder.TranscodeToParsed(buffer, size, uncompressedSyntaxes, false));
         }
 
         // WARNING: The "dicom" variable must not be used below this
@@ -2174,10 +2177,10 @@ namespace Orthanc
       return lossyQuality_;
     }
     
-    virtual DcmFileFormat* Transcode(const void* buffer,
-                                     size_t size,
-                                     const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                     bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+                                             size_t size,
+                                             const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                             bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
       std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
 
@@ -2194,6 +2197,11 @@ namespace Orthanc
       {
         return NULL;
       }
+    }
+
+    virtual bool HasInplaceTranscode() const
+    {
+      return true;
     }
 
     virtual bool InplaceTranscode(DcmFileFormat& dicom,
@@ -2344,7 +2352,7 @@ namespace Orthanc
                                    bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
     {
       std::unique_ptr<DcmFileFormat> transcoded(
-        Transcode(buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
+        TranscodeToParsed(buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
 
       if (transcoded.get() == NULL)
       {
@@ -2362,6 +2370,88 @@ namespace Orthanc
       }
     }
   };
+
+
+
+  class PluginDicomTranscoder: public IDicomTranscoder
+  {
+  private:
+    bool             tryDcmtk_;
+    DcmtkTranscoder  dcmtk_;
+
+  protected:
+    virtual bool TranscodeInternal(std::string& target,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid) = 0;
+    
+  public:
+    PluginDicomTranscoder(bool tryDcmtk) :
+      tryDcmtk_(tryDcmtk)
+    {
+    }
+    
+    virtual bool TranscodeToBuffer(std::string& target,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    {
+      if (tryDcmtk_)
+      {
+        return dcmtk_.TranscodeToBuffer(target, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      }
+      else
+      {
+        return TranscodeInternal(target, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      }
+    }
+    
+    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+                                             size_t size,
+                                             const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                             bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    {
+      if (tryDcmtk_)
+      {
+        return dcmtk_.TranscodeToParsed(buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      }
+      else
+      {
+        std::string transcoded;
+        if (TranscodeInternal(transcoded, buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
+        {
+          return FromDcmtkBridge::LoadFromMemoryBuffer(
+            transcoded.empty() ? NULL : transcoded.c_str(), transcoded.size());
+        }
+        else
+        {
+          return NULL;
+        }
+      }
+    }
+
+    virtual bool HasInplaceTranscode() const ORTHANC_OVERRIDE
+    {
+      return tryDcmtk_;
+    }
+    
+    virtual bool InplaceTranscode(DcmFileFormat& dicom,
+                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE
+    {
+      if (tryDcmtk_)
+      {
+        return dcmtk_.InplaceTranscode(dicom, allowedSyntaxes, allowNewSopInstanceUid);
+      }
+      else
+      {
+        // "HasInplaceTranscode()" should have been called
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+    }
+  };
 }
 
 
@@ -2376,38 +2466,38 @@ TEST(Toto, DISABLED_Transcode3)
 
   DcmtkTranscoder transcoder;
 
-  //for (int j = 0; j < 2; j++)
-  for (int i = 0; i <= DicomTransferSyntax_XML; i++)
-  {
-    DicomTransferSyntax a = (DicomTransferSyntax) i;
-
-    std::string path = ("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
-                        std::string(GetTransferSyntaxUid(a)) + ".dcm");
-    if (Orthanc::SystemToolbox::IsRegularFile(path))
+  for (int j = 0; j < 2; j++)
+    for (int i = 0; i <= DicomTransferSyntax_XML; i++)
     {
-      printf("\n======= %s\n", GetTransferSyntaxUid(a));
+      DicomTransferSyntax a = (DicomTransferSyntax) i;
 
-      std::string source;
-      Orthanc::SystemToolbox::ReadFile(source, path);
+      std::string path = ("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+                          std::string(GetTransferSyntaxUid(a)) + ".dcm");
+      if (Orthanc::SystemToolbox::IsRegularFile(path))
+      {
+        printf("\n======= %s\n", GetTransferSyntaxUid(a));
 
-      std::string c, i;
-      try
-      {
-        IDicomTranscoder::Store(c, i, scu, transcoder, source.c_str(), source.size());
-      }
-      catch (OrthancException& e)
-      {
-        if (e.GetErrorCode() == ErrorCode_NotImplemented)
+        std::string source;
+        Orthanc::SystemToolbox::ReadFile(source, path);
+
+        std::string c, i;
+        try
         {
-          LOG(ERROR) << "cannot transcode " << GetTransferSyntaxUid(a);
+          IDicomTranscoder::Store(c, i, scu, transcoder, source.c_str(), source.size());
         }
-        else
+        catch (OrthancException& e)
         {
-          throw e;
+          if (e.GetErrorCode() == ErrorCode_NotImplemented)
+          {
+            LOG(ERROR) << "cannot transcode " << GetTransferSyntaxUid(a);
+          }
+          else
+          {
+            throw e;
+          }
         }
       }
     }
-  }
 }
 
 
