@@ -1926,9 +1926,9 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 
 #include "../Core/DicomNetworking/DicomStoreUserConnection.h"
 
-#include <dcmtk/dcmjpeg/djrploss.h>   // for DJ_RPLossy
-//#include <dcmtk/dcmjpeg/djrplol.h>    // for DJ_RPLossless
-#include <dcmtk/dcmjpls/djrparam.h>    // for DJLSRepresentationParameter
+#include <dcmtk/dcmjpeg/djrploss.h>  // for DJ_RPLossy
+#include <dcmtk/dcmjpeg/djrplol.h>   // for DJ_RPLossless
+#include <dcmtk/dcmjpls/djrparam.h>  // for DJLSRepresentationParameter
 
 
 #if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
@@ -2243,6 +2243,7 @@ namespace Orthanc
           allowNewSopInstanceUid &&
           bitsStored == 8)
       {
+        // Check out "dcmjpeg/apps/dcmcjpeg.cc"
         DJ_RPLossy parameters(lossyQuality_);
         
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
@@ -2258,10 +2259,25 @@ namespace Orthanc
           allowNewSopInstanceUid &&
           bitsStored <= 12)
       {
+        // Check out "dcmjpeg/apps/dcmcjpeg.cc"
         DJ_RPLossy parameters(lossyQuality_);
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
         {
           CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
+          return true;
+        }
+      }
+#endif
+      
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+      if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess14SV1) != allowedSyntaxes.end())
+      {
+        // Check out "dcmjpeg/apps/dcmcjpeg.cc"
+        DJ_RPLossless parameters(6 /* opt_selection_value */,
+                                 0 /* opt_point_transform */);
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14SV1, &parameters))
+        {
+          CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
           return true;
         }
       }
