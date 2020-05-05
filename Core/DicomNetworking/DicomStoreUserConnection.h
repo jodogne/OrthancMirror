@@ -88,7 +88,6 @@ namespace Orthanc
 
     void LookupParameters(std::string& sopClassUid,
                           std::string& sopInstanceUid,
-                          DicomTransferSyntax& transferSyntax,
                           DcmDataset& dataset);
 
     bool LookupPresentationContext(uint8_t& presentationContextId,
@@ -98,12 +97,6 @@ namespace Orthanc
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax);
-
-    void StoreInternal(std::string& sopClassUid,
-                       std::string& sopInstanceUid,
-                       DcmDataset& dataset,
-                       const std::string& moveOriginatorAET,
-                       uint16_t moveOriginatorID);
 
   public:
     DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -148,10 +141,23 @@ namespace Orthanc
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
+               DcmDataset& dataset,
+               const std::string& moveOriginatorAET,
+               uint16_t moveOriginatorID);
+
+    void Store(std::string& sopClassUid,
+               std::string& sopInstanceUid,
                const void* buffer,
                size_t size,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
+
+    void Store(std::string& sopClassUid,
+               std::string& sopInstanceUid,
+               DcmDataset& dataset)
+    {
+      Store(sopClassUid, sopInstanceUid, dataset, "", 0);  // Not a C-Move
+    }
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,

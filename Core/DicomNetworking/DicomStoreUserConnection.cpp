@@ -178,7 +178,6 @@ namespace Orthanc
 
   void DicomStoreUserConnection::LookupParameters(std::string& sopClassUid,
                                                   std::string& sopInstanceUid,
-                                                  DicomTransferSyntax& transferSyntax,
                                                   DcmDataset& dataset)
   {
     OFString a, b;
@@ -192,13 +191,6 @@ namespace Orthanc
 
     sopClassUid.assign(a.c_str());
     sopInstanceUid.assign(b.c_str());
-
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
-          transferSyntax, dataset.getOriginalXfer()))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unknown transfer syntax from DCMTK");
-    }
   }
   
 
@@ -314,14 +306,20 @@ namespace Orthanc
   }
 
 
-  void DicomStoreUserConnection::StoreInternal(std::string& sopClassUid,
-                                               std::string& sopInstanceUid,
-                                               DcmDataset& dataset,
-                                               const std::string& moveOriginatorAET,
-                                               uint16_t moveOriginatorID)
+  void DicomStoreUserConnection::Store(std::string& sopClassUid,
+                                       std::string& sopInstanceUid,
+                                       DcmDataset& dataset,
+                                       const std::string& moveOriginatorAET,
+                                       uint16_t moveOriginatorID)
   {
+    LookupParameters(sopClassUid, sopInstanceUid, dataset);
+
     DicomTransferSyntax transferSyntax;
-    LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dataset);
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax, dataset))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unknown transfer syntax from DCMTK");
+    }
 
     uint8_t presID;
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax))
@@ -405,8 +403,8 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    StoreInternal(sopClassUid, sopInstanceUid, *dicom->getDataset(),
-                  moveOriginatorAET, moveOriginatorID);
+    Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
+          moveOriginatorAET, moveOriginatorID);
   }
 
 

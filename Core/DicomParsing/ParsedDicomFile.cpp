@@ -1625,7 +1625,22 @@ namespace Orthanc
 
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
-    return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
+    // TODO - Shouldn't "dataset.getOriginalXfer()" be used instead of
+    // using the meta header?
+    const char* value = NULL;
+
+    assert(pimpl_->file_ != NULL);
+    if (pimpl_->file_->getMetaInfo() != NULL &&
+        pimpl_->file_->getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
+        value != NULL)
+    {
+      result.assign(value);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
 
