@@ -439,4 +439,97 @@ namespace Orthanc
       }
     }
   }
+
+
+  void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
+                                           std::string& sopInstanceUid /* out */,
+                                           IDicomTranscoder& transcoder,
+                                           const void* buffer,
+                                           size_t size,
+                                           const std::string& moveOriginatorAET,
+                                           uint16_t moveOriginatorID)
+  {
+    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
+    if (dicom.get() == NULL ||
+        dicom->getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    DicomTransferSyntax inputSyntax;
+    LookupParameters(sopClassUid, sopInstanceUid, inputSyntax, *dicom);
+
+    std::set<DicomTransferSyntax> accepted;
+    LookupTranscoding(accepted, sopClassUid, inputSyntax);
+
+    if (accepted.find(inputSyntax) != accepted.end())
+    {
+      // No need for transcoding
+      Store(sopClassUid, sopInstanceUid, *dicom, moveOriginatorAET, moveOriginatorID);
+    }
+    else
+    {
+      // Transcoding is needed
+      std::set<DicomTransferSyntax> uncompressedSyntaxes;
+
+      if (accepted.find(DicomTransferSyntax_LittleEndianImplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+      }
+
+      if (accepted.find(DicomTransferSyntax_LittleEndianExplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+      }
+
+      if (accepted.find(DicomTransferSyntax_BigEndianExplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
+      }
+
+      std::unique_ptr<DcmFileFormat> transcoded;
+
+      if (transcoder.HasInplaceTranscode())
+      {
+        if (transcoder.InplaceTranscode(*dicom, uncompressedSyntaxes, false))
+        {
+          // In-place transcoding is supported and has succeeded
+          transcoded.reset(dicom.release());
+        }
+      }
+      else
+      {
+        transcoded.reset(transcoder.TranscodeToParsed(buffer, size, uncompressedSyntaxes, false));
+      }
+
+      // WARNING: The "dicom" variable must not be used below this
+      // point. The "sopInstanceUid" might also have changed (if
+      // using lossy compression).
+        
+      if (transcoded == NULL ||
+          transcoded->getDataset() == NULL)
+      {
+        throw OrthancException(
+          ErrorCode_NotImplemented,
+          "Cannot transcode from \"" + std::string(GetTransferSyntaxUid(inputSyntax)) +
+          "\" to an uncompressed syntax for modality: " +
+          GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+      }
+      else
+      {
+        DicomTransferSyntax transcodedSyntax;
+
+        // Sanity check
+        if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, *transcoded) ||
+            accepted.find(transcodedSyntax) == accepted.end())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        else
+        {
+          Store(sopClassUid, sopInstanceUid, *transcoded, moveOriginatorAET, moveOriginatorID);
+        }
+      }
+    }
+  }
 }

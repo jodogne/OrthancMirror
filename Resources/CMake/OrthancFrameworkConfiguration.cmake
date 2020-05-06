@@ -501,6 +501,10 @@ if (ENABLE_DCMTK)
   # New in Orthanc 1.6.0
   if (ENABLE_DCMTK_TRANSCODING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
+    list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/DicomParsing/DcmtkTranscoder.cpp
+      ${ORTHANC_ROOT}/Core/DicomParsing/MemoryBufferTranscoder.cpp
+      )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
   endif()
