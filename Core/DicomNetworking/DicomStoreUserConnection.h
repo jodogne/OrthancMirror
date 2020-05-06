@@ -33,7 +33,15 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
+#endif
+
 #include "DicomAssociationParameters.h"
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#  include "../DicomParsing/IDicomTranscoder.h"
+#endif
 
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -93,6 +101,10 @@ namespace Orthanc
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax);
+
+    void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+                           const std::string& sopClassUid,
+                           DicomTransferSyntax sourceSyntax);
 
   public:
     DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -168,8 +180,22 @@ namespace Orthanc
                           DicomTransferSyntax& transferSyntax,
                           DcmFileFormat& dicom);
 
-    void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
-                           const std::string& sopClassUid,
-                           DicomTransferSyntax sourceSyntax);
+    void Transcode(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   IDicomTranscoder& transcoder,
+                   const void* buffer,
+                   size_t size,
+                   const std::string& moveOriginatorAET,
+                   uint16_t moveOriginatorID);
+
+    void Transcode(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   IDicomTranscoder& transcoder,
+                   const void* buffer,
+                   size_t size)
+    {
+      Transcode(sopClassUid, sopInstanceUid, transcoder,
+                buffer, size, "", 0);  // Not a C-Move
+    }
   };
 }
