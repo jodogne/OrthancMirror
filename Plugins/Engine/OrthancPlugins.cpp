@@ -2732,10 +2732,12 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Post:
         client.SetMethod(HttpMethod_Post);
+        client.GetBody().assign(reinterpret_cast<const char*>(parameters.body), parameters.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Put:
         client.SetMethod(HttpMethod_Put);
+        client.GetBody().assign(reinterpret_cast<const char*>(parameters.body), parameters.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Delete:
