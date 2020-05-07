@@ -463,10 +463,11 @@ namespace Orthanc
                               const std::string& moveOriginatorAet,
                               uint16_t moveOriginatorId);
 
-    // This method can be used even if "TranscodingEnabled" is set to "false"
+    // This method can be used even if the global option
+    // "TranscodingEnabled" is set to "false"
     bool Transcode(std::string& target,
                    bool& hasSopInstanceUidChanged,
-                   ParsedDicomFile& dicom, // Possibly modified
+                   ParsedDicomFile& dicom, // Can possibly be modified
                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                    bool allowNewSopInstanceUid);
   };
