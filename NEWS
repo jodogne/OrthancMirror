@@ -18,6 +18,7 @@ REST API
 Maintenance
 -----------
 
+* Fix missing body in "OrthancPluginHttpPost()" and "OrthancPluginHttpPut()"
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 1.1.1g
 
