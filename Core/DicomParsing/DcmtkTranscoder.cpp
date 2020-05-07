@@ -243,6 +243,20 @@ namespace Orthanc
 #endif
       
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
+    if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess14) != allowedSyntaxes.end())
+    {
+      // Check out "dcmjpeg/apps/dcmcjpeg.cc"
+      DJ_RPLossless parameters(6 /* opt_selection_value */,
+                               0 /* opt_point_transform */);
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14, &parameters))
+      {
+        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+        return true;
+      }
+    }
+#endif
+      
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess14SV1) != allowedSyntaxes.end())
     {
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
