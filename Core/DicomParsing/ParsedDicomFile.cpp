@@ -869,7 +869,7 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
     {
-      output.AnswerBuffer(serialized, MimeType_Binary);
+      output.AnswerBuffer(serialized, MimeType_Dicom);
     }
   }
 #endif
