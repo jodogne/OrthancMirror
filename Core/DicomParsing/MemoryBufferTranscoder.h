@@ -47,7 +47,7 @@ namespace Orthanc
   class MemoryBufferTranscoder : public IDicomTranscoder
   {
   private:
-    bool  tryDcmtk_;
+    bool  useDcmtk_;
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DcmtkTranscoder  dcmtk_;
@@ -55,6 +55,7 @@ namespace Orthanc
 
   protected:
     virtual bool Transcode(std::string& target,
+                           bool& hasSopInstanceUidChanged /* out */,
                            const void* buffer,
                            size_t size,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -62,28 +63,38 @@ namespace Orthanc
     
   public:
     /**
-     * If "tryDcmtk" is "true", the transcoder will first try and call
+     * If "useDcmtk" is "true", the transcoder will first try and call
      * DCMTK, before calling its own "Transcode()" implementation.
      **/
-    MemoryBufferTranscoder(bool tryDcmtk);
+    MemoryBufferTranscoder();
+
+    void SetDcmtkUsed(bool used);
+
+    bool IsDcmtkUsed() const
+    {
+      return useDcmtk_;
+    }
     
     virtual bool TranscodeToBuffer(std::string& target,
+                                   bool& hasSopInstanceUidChanged /* out */,
                                    const void* buffer,
                                    size_t size,
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                    bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
-    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+    virtual DcmFileFormat* TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
+                                             const void* buffer,
                                              size_t size,
                                              const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                              bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
     virtual bool HasInplaceTranscode() const ORTHANC_OVERRIDE
     {
-      return tryDcmtk_;
+      return useDcmtk_;
     }
     
-    virtual bool InplaceTranscode(DcmFileFormat& dicom,
+    virtual bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                                  DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };

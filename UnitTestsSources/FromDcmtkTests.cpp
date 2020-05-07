@@ -1955,7 +1955,7 @@ TEST(Toto, DISABLED_Transcode3)
         std::string c, i;
         try
         {
-          scu.Transcode(c, i, transcoder, source.c_str(), source.size());
+          scu.Transcode(c, i, transcoder, source.c_str(), source.size(), false, "", 0);
         }
         catch (OrthancException& e)
         {
@@ -1991,15 +1991,29 @@ TEST(Toto, DISABLED_Transcode4)
     s.insert(a);
 
     std::string t;
-    
-    if (!transcoder.TranscodeToBuffer(t, source.c_str(), source.size(), s, true))
+
+    bool hasSopInstanceUidChanged;
+                                   
+    if (!transcoder.TranscodeToBuffer(t, hasSopInstanceUidChanged, source.c_str(), source.size(), s, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
     }
     else
     {
+      bool lossy = (a == DicomTransferSyntax_JPEGProcess1 ||
+                    a == DicomTransferSyntax_JPEGProcess2_4 ||
+                    a == DicomTransferSyntax_JPEGLSLossy);
+      
       printf("SIZE: %lu\n", t.size());
+      if (hasSopInstanceUidChanged)
+      {
+        ASSERT_TRUE(lossy);
+      }
+      else
+      {
+        ASSERT_FALSE(lossy);
+      }
     }
   }
 }

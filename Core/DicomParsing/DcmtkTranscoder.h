@@ -63,7 +63,8 @@ namespace Orthanc
       return lossyQuality_;
     }
     
-    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+    virtual DcmFileFormat* TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
+                                             const void* buffer,
                                              size_t size,
                                              const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                              bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
@@ -73,11 +74,13 @@ namespace Orthanc
       return true;
     }
 
-    virtual bool InplaceTranscode(DcmFileFormat& dicom,
+    virtual bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                                  DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
     virtual bool TranscodeToBuffer(std::string& target,
+                                   bool& hasSopInstanceUidChanged /* out */,
                                    const void* buffer,
                                    size_t size,
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,

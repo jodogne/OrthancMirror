@@ -150,6 +150,7 @@ namespace Orthanc
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
                DcmFileFormat& dicom,
+               bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
@@ -157,23 +158,9 @@ namespace Orthanc
                std::string& sopInstanceUid,
                const void* buffer,
                size_t size,
+               bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
-
-    void Store(std::string& sopClassUid,
-               std::string& sopInstanceUid,
-               DcmFileFormat& dicom)
-    {
-      Store(sopClassUid, sopInstanceUid, dicom, "", 0);  // Not a C-Move
-    }
-
-    void Store(std::string& sopClassUid,
-               std::string& sopInstanceUid,
-               const void* buffer,
-               size_t size)
-    {
-      Store(sopClassUid, sopInstanceUid, buffer, size, "", 0);  // Not a C-Move
-    }
 
     void LookupParameters(std::string& sopClassUid,
                           std::string& sopInstanceUid,
@@ -185,17 +172,8 @@ namespace Orthanc
                    IDicomTranscoder& transcoder,
                    const void* buffer,
                    size_t size,
+                   bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
-
-    void Transcode(std::string& sopClassUid /* out */,
-                   std::string& sopInstanceUid /* out */,
-                   IDicomTranscoder& transcoder,
-                   const void* buffer,
-                   size_t size)
-    {
-      Transcode(sopClassUid, sopInstanceUid, transcoder,
-                buffer, size, "", 0);  // Not a C-Move
-    }
   };
 }

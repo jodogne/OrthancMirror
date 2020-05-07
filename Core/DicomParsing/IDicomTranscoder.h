@@ -55,6 +55,7 @@ namespace Orthanc
     }
 
     virtual bool TranscodeToBuffer(std::string& target,
+                                   bool& hasSopInstanceUidChanged /* out */,
                                    const void* buffer,
                                    size_t size,
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -66,7 +67,8 @@ namespace Orthanc
      * possibility to do a single parsing for all the possible
      * transfer syntaxes.
      **/
-    virtual DcmFileFormat* TranscodeToParsed(const void* buffer,
+    virtual DcmFileFormat* TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
+                                             const void* buffer,
                                              size_t size,
                                              const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                              bool allowNewSopInstanceUid) = 0;
@@ -76,7 +78,8 @@ namespace Orthanc
     /**
      * In-place transcoding. This method is preferred for C-STORE.
      **/
-    virtual bool InplaceTranscode(DcmFileFormat& dicom,
+    virtual bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                                  DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) = 0;
   };

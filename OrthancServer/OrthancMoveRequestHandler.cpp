@@ -121,7 +121,7 @@ namespace Orthanc
 
         const void* data = dicom.empty() ? NULL : dicom.c_str();
         connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                           originatorAet_, originatorId_);
+                           true, originatorAet_, originatorId_);
 
         return Status_Success;
       }

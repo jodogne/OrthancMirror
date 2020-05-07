@@ -74,18 +74,8 @@ namespace Orthanc
     }
     
     std::string sopClassUid, sopInstanceUid;
-
-    const void* data = dicom.empty() ? NULL : dicom.c_str();
-    
-    if (HasMoveOriginator())
-    {
-      connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                         moveOriginatorAet_, moveOriginatorId_);
-    }
-    else
-    {
-      connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size());
-    }
+    context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
+                                  HasMoveOriginator(), moveOriginatorAet_, moveOriginatorId_);
 
     if (storageCommitment_)
     {

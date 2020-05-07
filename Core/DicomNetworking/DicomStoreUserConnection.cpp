@@ -321,6 +321,7 @@ namespace Orthanc
   void DicomStoreUserConnection::Store(std::string& sopClassUid,
                                        std::string& sopInstanceUid,
                                        DcmFileFormat& dicom,
+                                       bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
@@ -347,8 +348,8 @@ namespace Orthanc
     request.DataSetType = DIMSE_DATASET_PRESENT;
     strncpy(request.AffectedSOPInstanceUID, sopInstanceUid.c_str(), DIC_UI_LEN);
 
-    if (!moveOriginatorAET.empty())
-    {
+    if (hasMoveOriginator)
+    {    
       strncpy(request.MoveOriginatorApplicationEntityTitle, 
               moveOriginatorAET.c_str(), DIC_AE_LEN);
       request.opts = O_STORE_MOVEORIGINATORAETITLE;
@@ -402,6 +403,7 @@ namespace Orthanc
                                        std::string& sopInstanceUid,
                                        const void* buffer,
                                        size_t size,
+                                       bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
@@ -413,7 +415,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    Store(sopClassUid, sopInstanceUid, *dicom, moveOriginatorAET, moveOriginatorID);
+    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
   }
 
 
@@ -446,6 +448,7 @@ namespace Orthanc
                                            IDicomTranscoder& transcoder,
                                            const void* buffer,
                                            size_t size,
+                                           bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
                                            uint16_t moveOriginatorID)
   {
@@ -465,7 +468,8 @@ namespace Orthanc
     if (accepted.find(inputSyntax) != accepted.end())
     {
       // No need for transcoding
-      Store(sopClassUid, sopInstanceUid, *dicom, moveOriginatorAET, moveOriginatorID);
+      Store(sopClassUid, sopInstanceUid, *dicom,
+            hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
     }
     else
     {
@@ -489,9 +493,11 @@ namespace Orthanc
 
       std::unique_ptr<DcmFileFormat> transcoded;
 
+      bool hasSopInstanceUidChanged;
+      
       if (transcoder.HasInplaceTranscode())
       {
-        if (transcoder.InplaceTranscode(*dicom, uncompressedSyntaxes, false))
+        if (transcoder.InplaceTranscode(hasSopInstanceUidChanged, *dicom, uncompressedSyntaxes, false))
         {
           // In-place transcoding is supported and has succeeded
           transcoded.reset(dicom.release());
@@ -499,7 +505,13 @@ namespace Orthanc
       }
       else
       {
-        transcoded.reset(transcoder.TranscodeToParsed(buffer, size, uncompressedSyntaxes, false));
+        transcoded.reset(transcoder.TranscodeToParsed(hasSopInstanceUidChanged, buffer, size, uncompressedSyntaxes, false));
+      }
+
+      if (hasSopInstanceUidChanged)
+      {
+        throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
+                               "instance UID while transcoding to an uncompressed transfer syntax");
       }
 
       // WARNING: The "dicom" variable must not be used below this
@@ -527,7 +539,8 @@ namespace Orthanc
         }
         else
         {
-          Store(sopClassUid, sopInstanceUid, *transcoded, moveOriginatorAET, moveOriginatorID);
+          Store(sopClassUid, sopInstanceUid, *transcoded,
+                hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
         }
       }
     }

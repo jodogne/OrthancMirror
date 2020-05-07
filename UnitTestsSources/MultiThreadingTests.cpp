@@ -1415,7 +1415,7 @@ TEST_F(OrthancJobsSerialization, Operations)
       modality.SetPortNumber(1000);
       modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
-      StoreScuOperation operation(luaManager, "TEST", modality);
+      StoreScuOperation operation(GetContext(), luaManager, "TEST", modality);
 
       ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
       operation.Serialize(s);
@@ -1903,6 +1903,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   s = Json::nullValue;
@@ -1933,6 +1934,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   s["Port"] = "46";
@@ -1999,6 +2001,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   {
@@ -2008,6 +2011,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     s["AET"] = "AET";
     s["Host"] = "host";
     s["Port"] = "104";
+    s["AllowTranscoding"] = false;
     
     RemoteModalityParameters modality(s);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
@@ -2016,6 +2020,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_FALSE(modality.IsTranscodingAllowed());
   }
 
   {
@@ -2033,6 +2038,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 }
 
