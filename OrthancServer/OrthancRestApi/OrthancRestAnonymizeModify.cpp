@@ -112,19 +112,46 @@ namespace Orthanc
 
 
   static void AnonymizeOrModifyInstance(DicomModification& modification,
-                                        RestApiPostCall& call)
+                                        RestApiPostCall& call,
+                                        bool transcode,
+                                        DicomTransferSyntax targetSyntax)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
     std::string id = call.GetUriComponent("id", "");
 
     std::unique_ptr<ParsedDicomFile> modified;
 
     {
-      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+      ServerContext::DicomCacheLocker locker(context, id);
       modified.reset(locker.GetDicom().Clone(true));
     }
     
     modification.Apply(*modified);
-    modified->Answer(call.GetOutput());
+
+    if (transcode)
+    {
+      std::string saved;
+      modified->SaveToMemoryBuffer(saved);
+
+      std::string transcoded;
+      bool hasSopInstanceUidChanged;
+      std::set<DicomTransferSyntax> ts;
+      ts.insert(targetSyntax);
+      if (context.TranscodeMemoryBuffer(transcoded, hasSopInstanceUidChanged, saved, ts, true))
+      {      
+        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot transcode to transfer syntax: " +
+                               std::string(GetTransferSyntaxUid(targetSyntax)));
+      }
+    }
+    else
+    {
+      modified->Answer(call.GetOutput());
+    }
   }
 
 
@@ -153,7 +180,25 @@ namespace Orthanc
       modification.SetLevel(ResourceType_Instance);
     }
 
-    AnonymizeOrModifyInstance(modification, call);
+    if (request.isMember("Transcode"))
+    {
+      std::string s = SerializationToolbox::ReadString(request, "Transcode");
+      
+      DicomTransferSyntax syntax;
+      if (LookupTransferSyntax(syntax, s))
+      {
+        AnonymizeOrModifyInstance(modification, call, true, syntax);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown transfer syntax: " + s);
+      }
+    }
+    else
+    {
+      AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
+                                DicomTransferSyntax_LittleEndianImplicit /* unused */);
+    }
   }
 
 
@@ -165,7 +210,8 @@ namespace Orthanc
     Json::Value request;
     ParseAnonymizationRequest(request, modification, call);
 
-    AnonymizeOrModifyInstance(modification, call);
+    AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
+                              DicomTransferSyntax_LittleEndianImplicit /* unused */);
   }
 
 
