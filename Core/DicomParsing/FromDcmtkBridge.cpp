@@ -1725,7 +1725,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         DcmTag key(tag.GetGroup(), tag.GetElement());
         if (key.getEVR() != EVR_SQ)
         {
-          throw OrthancException(ErrorCode_BadParameterType);
+          throw OrthancException(ErrorCode_BadParameterType, "Bad Parameter type for tag " + tag.Format());
         }
 
         DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key);
@@ -1769,7 +1769,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       }
 
       default:
-        throw OrthancException(ErrorCode_BadParameterType);
+        throw OrthancException(ErrorCode_BadParameterType, "Bad Parameter type for tag " + tag.Format());
     }
 
     return element.release();
