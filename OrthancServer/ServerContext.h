@@ -464,10 +464,10 @@ namespace Orthanc
                               uint16_t moveOriginatorId);
 
     // This method can be used even if "TranscodingEnabled" is set to "false"
-    bool TranscodeMemoryBuffer(std::string& target,
-                               bool& hasSopInstanceUidChanged,
-                               const std::string& source,
-                               const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                               bool allowNewSopInstanceUid);
+    bool Transcode(std::string& target,
+                   bool& hasSopInstanceUidChanged,
+                   ParsedDicomFile& dicom, // Possibly modified
+                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                   bool allowNewSopInstanceUid);
   };
 }
