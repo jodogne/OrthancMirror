@@ -1206,7 +1206,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-
+  
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
                                          E_TransferSyntax xfer)
@@ -1269,7 +1269,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
      * dataset into memory. We now keep the original transfer syntax
      * (if available).
      **/
-    E_TransferSyntax xfer = dataSet.getOriginalXfer();
+    E_TransferSyntax xfer = dataSet.getCurrentXfer();
     if (xfer == EXS_Unknown)
     {
       // No information about the original transfer syntax: This is
@@ -1286,29 +1286,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
-                                           DcmFileFormat& dicom)
-  {
-    E_TransferSyntax xfer = dicom.getDataset()->getOriginalXfer();
-    if (xfer == EXS_Unknown)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Cannot write a DICOM instance with unknown transfer syntax");
-    }
-    else if (!dicom.validateMetaInfo(xfer).good())
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Cannot setup the transfer syntax to write a DICOM instance");
-    }
-    else
-    {
-      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
-    }
-  }
-
-
-  bool FromDcmtkBridge::Transcode(std::string& buffer,
-                                  DcmFileFormat& dicom,
+  bool FromDcmtkBridge::Transcode(DcmFileFormat& dicom,
                                   DicomTransferSyntax syntax,
                                   const DcmRepresentationParameter* representation)
   {
@@ -1319,16 +1297,33 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
     else
     {
+      DicomTransferSyntax sourceSyntax;
+      bool known = LookupOrthancTransferSyntax(sourceSyntax, dicom);
+
       if (!dicom.getDataset()->chooseRepresentation(xfer, representation).good() ||
           !dicom.getDataset()->canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
       {
         return false;
       }
+      else
+      {
+        dicom.removeInvalidGroups();
 
-      dicom.removeInvalidGroups();
-      
-      return SaveToMemoryBufferInternal(buffer, dicom, xfer);
+        if (known)
+        {
+          LOG(INFO) << "Transcoded an image from transfer syntax "
+                    << GetTransferSyntaxUid(sourceSyntax) << " to "
+                    << GetTransferSyntaxUid(syntax);
+        }
+        else
+        {
+          LOG(INFO) << "Transcoded an image from unknown transfer syntax to "
+                    << GetTransferSyntaxUid(syntax);
+        }
+        
+        return true;
+      }
     }
   }
 
@@ -1787,7 +1782,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
     DcmPixelSequence* pixelSequence = NULL;
     if (!pixelData.getEncapsulatedRepresentation
-        (dataset.getOriginalXfer(), NULL, pixelSequence).good())
+        (dataset.getCurrentXfer(), NULL, pixelSequence).good())
     {
       return NULL;
     }
@@ -2036,25 +2031,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
           }
         }
       }
-    }
-  }
-
-
-  bool FromDcmtkBridge::LookupTransferSyntax(std::string& result,
-                                             DcmFileFormat& dicom)
-  {
-    const char* value = NULL;
-
-    if (dicom.getMetaInfo() != NULL &&
-        dicom.getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
-        value != NULL)
-    {
-      result.assign(value);
-      return true;
-    }
-    else
-    {
-      return false;
     }
   }
 
@@ -2654,6 +2630,33 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
     ApplyVisitorToDataset(dataset, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
+  }
+
+
+
+  bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                                    DcmFileFormat& dicom)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+        
+    DcmDataset& dataset = *dicom.getDataset();
+
+    E_TransferSyntax xfer = dataset.getCurrentXfer();
+    if (xfer == EXS_Unknown)
+    {
+      dataset.updateOriginalXfer();
+      xfer = dataset.getOriginalXfer();
+      if (xfer == EXS_Unknown)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Cannot determine the transfer syntax of the DICOM instance");
+      }
+    }
+
+    return FromDcmtkBridge::LookupOrthancTransferSyntax(target, xfer);
   }
 }
 

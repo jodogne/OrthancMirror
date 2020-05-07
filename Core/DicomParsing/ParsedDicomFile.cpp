@@ -456,7 +456,7 @@ namespace Orthanc
                                       const UriComponents& uri)
   {
     DcmItem* dicom = pimpl_->file_->getDataset();
-    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
+    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getCurrentXfer();
 
     // Special case: Accessing the pixel data
     if (uri.size() == 1 || 
@@ -1564,7 +1564,7 @@ namespace Orthanc
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
 
-    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
+    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getCurrentXfer();
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
@@ -1625,7 +1625,22 @@ namespace Orthanc
 
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
-    return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
+    // TODO - Shouldn't "dataset.getCurrentXfer()" be used instead of
+    // using the meta header?
+    const char* value = NULL;
+
+    assert(pimpl_->file_ != NULL);
+    if (pimpl_->file_->getMetaInfo() != NULL &&
+        pimpl_->file_->getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
+        value != NULL)
+    {
+      result.assign(value);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
 

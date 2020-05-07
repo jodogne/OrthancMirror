@@ -97,14 +97,9 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomControlUserConnection(localAet_, remote_));
+      connection_.reset(new DicomControlUserConnection(parameters_));
     }
     
-    if (timeout_ > -1)
-    {
-      connection_->SetTimeout(timeout_);
-    }
-
     connection_->Move(targetAet_, findAnswer);
   }
 
@@ -158,7 +153,7 @@ namespace Orthanc
     }
     else
     {
-      localAet_ = aet;
+      parameters_.SetLocalApplicationEntityTitle(aet);
     }
   }
 
@@ -184,7 +179,20 @@ namespace Orthanc
     }
     else
     {
-      remote_ = remote;
+      parameters_.SetRemoteModality(remote);
+    }
+  }
+
+
+  void DicomMoveScuJob::SetTimeout(uint32_t seconds)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      parameters_.SetTimeout(seconds);
     }
   }
 
@@ -198,9 +206,9 @@ namespace Orthanc
   void DicomMoveScuJob::GetPublicContent(Json::Value& value)
   {
     SetOfCommandsJob::GetPublicContent(value);
-    
-    value["LocalAet"] = localAet_;
-    value["RemoteAet"] = remote_.GetApplicationEntityTitle();
+
+    value["LocalAet"] = parameters_.GetLocalApplicationEntityTitle();
+    value["RemoteAet"] = parameters_.GetRemoteModality().GetApplicationEntityTitle();
     value["Query"] = query_;
   }
 
@@ -211,18 +219,14 @@ namespace Orthanc
     context_(context),
     query_(Json::arrayValue)
   {
-    localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
+    parameters_ = DicomAssociationParameters::UnserializeJob(serialized);
     targetAet_ = SerializationToolbox::ReadString(serialized, TARGET_AET);
-    remote_ = RemoteModalityParameters(serialized[REMOTE]);
 
     if (serialized.isMember(QUERY) &&
         serialized[QUERY].type() == Json::arrayValue)
     {
       query_ = serialized[QUERY];
     }
-
-    // New in Orthanc in 1.7.0
-    timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, -1);
   }
 
   
@@ -234,11 +238,9 @@ namespace Orthanc
     }
     else
     {
-      target[LOCAL_AET] = localAet_;
+      parameters_.SerializeJob(target);
       target[TARGET_AET] = targetAet_;
       target[QUERY] = query_;
-      target[TIMEOUT] = timeout_;
-      remote_.Serialize(target[REMOTE], true /* force advanced format */);
       return true;
     }
   }

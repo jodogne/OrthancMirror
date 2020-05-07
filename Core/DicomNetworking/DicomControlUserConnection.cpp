@@ -257,7 +257,7 @@ namespace Orthanc
     if (presID == 0)
     {
       throw OrthancException(ErrorCode_DicomFindUnavailable,
-                             "Remote AET is " + parameters_.GetRemoteApplicationEntityTitle());
+                             "Remote AET is " + parameters_.GetRemoteModality().GetApplicationEntityTitle());
     }
 
     T_DIMSE_C_FindRQ request;
@@ -309,14 +309,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NetworkProtocol,
                                HttpStatus_422_UnprocessableEntity,
                                "C-FIND SCU to AET \"" +
-                               parameters_.GetRemoteApplicationEntityTitle() +
+                               parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status 0x" + buf +
                                " (unable to process - invalid query ?)");
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-FIND SCU to AET \"" +
-                               parameters_.GetRemoteApplicationEntityTitle() +
+                               parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status 0x" + buf);
       }
     }
@@ -331,7 +331,7 @@ namespace Orthanc
     association_->Open(parameters_);
 
     std::unique_ptr<ParsedDicomFile> query(
-      ConvertQueryFields(fields, parameters_.GetRemoteManufacturer()));
+      ConvertQueryFields(fields, parameters_.GetRemoteModality().GetManufacturer()));
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
 
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
@@ -362,7 +362,7 @@ namespace Orthanc
     if (presID == 0)
     {
       throw OrthancException(ErrorCode_DicomMoveUnavailable,
-                             "Remote AET is " + parameters_.GetRemoteApplicationEntityTitle());
+                             "Remote AET is " + parameters_.GetRemoteModality().GetApplicationEntityTitle());
     }
 
     T_DIMSE_C_MoveRQ request;
@@ -412,14 +412,14 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NetworkProtocol,
                                HttpStatus_422_UnprocessableEntity,
                                "C-MOVE SCU to AET \"" +
-                               parameters_.GetRemoteApplicationEntityTitle() +
+                               parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status 0x" + buf +
                                " (unable to process - resource not found ?)");
       }
       else
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "C-MOVE SCU to AET \"" +
-                               parameters_.GetRemoteApplicationEntityTitle() +
+                               parameters_.GetRemoteModality().GetApplicationEntityTitle() +
                                "\" has failed with DIMSE status 0x" + buf);
       }
     }
@@ -428,15 +428,6 @@ namespace Orthanc
 
   DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params) :
     parameters_(params),
-    association_(new DicomAssociation)
-  {
-    SetupPresentationContexts();
-  }
-    
-
-  DicomControlUserConnection::DicomControlUserConnection(const std::string& localAet,
-                                                         const RemoteModalityParameters& remote) :
-    parameters_(localAet, remote),
     association_(new DicomAssociation)
   {
     SetupPresentationContexts();
@@ -479,7 +470,7 @@ namespace Orthanc
     {
       DicomMap fields;
       NormalizeFindQuery(fields, level, originalFields);
-      query.reset(ConvertQueryFields(fields, parameters_.GetRemoteManufacturer()));
+      query.reset(ConvertQueryFields(fields, parameters_.GetRemoteModality().GetManufacturer()));
     }
     else
     {
@@ -525,7 +516,7 @@ namespace Orthanc
 
 
     const char* universal;
-    if (parameters_.GetRemoteManufacturer() == ModalityManufacturer_GE)
+    if (parameters_.GetRemoteModality().GetManufacturer() == ModalityManufacturer_GE)
     {
       universal = "*";
     }
@@ -669,10 +660,6 @@ namespace Orthanc
     MoveInternal(targetAet, ResourceType_Instance, query);
   }
 
-  void DicomControlUserConnection::SetTimeout(uint32_t seconds)
-  {
-    parameters_.SetTimeout(seconds);
-  }
 
   void DicomControlUserConnection::FindWorklist(DicomFindAnswers& result,
                                                 ParsedDicomFile& query)

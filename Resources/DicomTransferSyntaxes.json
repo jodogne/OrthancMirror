@@ -274,7 +274,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.100",
-    "Name" : "MPEG2 Main Profile at Main Level",
+    "Name" : "MPEG2 Main Profile / Main Level",
     "Value" : "MPEG2MainProfileAtMainLevel",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG2MainProfileAtMainLevel"
@@ -282,7 +282,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.101",
-    "Name" : "MPEG2 Main Profile at High Level",
+    "Name" : "MPEG2 Main Profile / High Level",
     "Value" : "MPEG2MainProfileAtHighLevel",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG2MainProfileAtHighLevel"
@@ -290,7 +290,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.102",
-    "Name" : "MPEG4 High Profile / Level 4.1",
+    "Name" : "MPEG4 AVC/H.264 High Profile / Level 4.1",
     "Value" : "MPEG4HighProfileLevel4_1",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_1",
@@ -299,7 +299,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.103",
-    "Name" : "MPEG4 BD-compatible High Profile / Level 4.1",
+    "Name" : "MPEG4 AVC/H.264 BD-compatible High Profile / Level 4.1",
     "Value" : "MPEG4BDcompatibleHighProfileLevel4_1",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4BDcompatibleHighProfileLevel4_1",
@@ -308,7 +308,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.104",
-    "Name" : "MPEG4 High Profile / Level 4.2 For 2D Video",
+    "Name" : "MPEG4 AVC/H.264 High Profile / Level 4.2 For 2D Video",
     "Value" : "MPEG4HighProfileLevel4_2_For2DVideo",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For2DVideo",
@@ -317,7 +317,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.105",
-    "Name" : "MPEG4 High Profile / Level 4.2 For 3D Video",
+    "Name" : "MPEG4 AVC/H.264 High Profile / Level 4.2 For 3D Video",
     "Value" : "MPEG4HighProfileLevel4_2_For3DVideo",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4HighProfileLevel4_2_For3DVideo",
@@ -326,7 +326,7 @@
 
   {
     "UID" : "1.2.840.10008.1.2.4.106",
-    "Name" : "1.2.840.10008.1.2.4.106",
+    "Name" : "MPEG4 AVC/H.264 Stereo High Profile / Level 4.2",
     "Value" : "MPEG4StereoHighProfileLevel4_2",
     "Retired" : false,
     "DCMTK" : "EXS_MPEG4StereoHighProfileLevel4_2",

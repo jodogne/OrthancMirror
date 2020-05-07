@@ -1,6 +1,6 @@
-diff -urEb openssl-1.1.1f.orig/crypto/rand/rand_unix.c openssl-1.1.1f/crypto/rand/rand_unix.c
---- openssl-1.1.1f.orig/crypto/rand/rand_unix.c	2020-03-31 14:17:45.000000000 +0200
-+++ openssl-1.1.1f/crypto/rand/rand_unix.c	2020-04-02 16:38:56.091240847 +0200
+diff -urEb openssl-1.1.1g.orig/crypto/rand/rand_unix.c openssl-1.1.1g/crypto/rand/rand_unix.c
+--- openssl-1.1.1g.orig/crypto/rand/rand_unix.c	2020-05-05 17:58:08.785998440 +0200
++++ openssl-1.1.1g/crypto/rand/rand_unix.c	2020-05-05 17:58:55.201881117 +0200
 @@ -445,6 +445,7 @@
               * system call and this should always succeed which renders
               * this alternative but essentially identical source moot.
