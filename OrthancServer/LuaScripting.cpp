@@ -588,7 +588,7 @@ namespace Orthanc
       }
 
       // This is not a C-MOVE: No need to call "StoreScuCommand::SetMoveOriginator()"
-      return lock.AddStoreScuOperation(localAet, modality);
+      return lock.AddStoreScuOperation(context_, localAet, modality);
     }
 
     if (operation == "store-peer")

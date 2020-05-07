@@ -47,9 +47,7 @@ namespace Orthanc
   {
   private:
     ServerContext&                             context_;
-    std::string                                localAet_;
-    RemoteModalityParameters                   remote_;
-    int                                        timeout_;
+    DicomAssociationParameters                 parameters_;
     std::string                                moveOriginatorAet_;
     uint16_t                                   moveOriginatorId_;
     std::unique_ptr<DicomStoreUserConnection>  connection_;
@@ -75,29 +73,16 @@ namespace Orthanc
     DicomModalityStoreJob(ServerContext& context,
                           const Json::Value& serialized);
 
-    const std::string& GetLocalAet() const
+    const DicomAssociationParameters& GetParameters() const
     {
-      return localAet_;
+      return parameters_;
     }
 
     void SetLocalAet(const std::string& aet);
 
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
     void SetRemoteModality(const RemoteModalityParameters& remote);
 
-    void SetTimeout(int timeout)
-    {
-      timeout_ = timeout;
-    }
-
-    int GetTimeout() const
-    {
-      return timeout_;
-    }
+    void SetTimeout(uint32_t seconds);
 
     bool HasMoveOriginator() const
     {
@@ -125,5 +110,10 @@ namespace Orthanc
     virtual void Reset() ORTHANC_OVERRIDE;
 
     void EnableStorageCommitment(bool enabled);
+
+    bool HasStorageCommitment() const
+    {
+      return storageCommitment_;
+    }
   };
 }

@@ -113,14 +113,15 @@ namespace Orthanc
 
         if (connection_.get() == NULL)
         {
-          connection_.reset(new DicomStoreUserConnection(localAet_, remote_));
+          DicomAssociationParameters params(localAet_, remote_);
+          connection_.reset(new DicomStoreUserConnection(params));
         }
 
         std::string sopClassUid, sopInstanceUid;  // Unused
 
         const void* data = dicom.empty() ? NULL : dicom.c_str();
         connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                           originatorAet_, originatorId_);
+                           true, originatorAet_, originatorId_);
 
         return Status_Success;
       }

@@ -62,6 +62,7 @@
 
 #include "../OrthancServer/ServerJobs/ArchiveJob.h"
 #include "../OrthancServer/ServerJobs/DicomModalityStoreJob.h"
+#include "../OrthancServer/ServerJobs/DicomMoveScuJob.h"
 #include "../OrthancServer/ServerJobs/MergeStudyJob.h"
 #include "../OrthancServer/ServerJobs/OrthancPeerStoreJob.h"
 #include "../OrthancServer/ServerJobs/ResourceModificationJob.h"
@@ -1414,7 +1415,7 @@ TEST_F(OrthancJobsSerialization, Operations)
       modality.SetPortNumber(1000);
       modality.SetManufacturer(ModalityManufacturer_StoreScp);
 
-      StoreScuOperation operation(luaManager, "TEST", modality);
+      StoreScuOperation operation(GetContext(), luaManager, "TEST", modality);
 
       ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
       operation.Serialize(s);
@@ -1514,11 +1515,11 @@ TEST_F(OrthancJobsSerialization, Jobs)
     job.reset(unserializer.UnserializeJob(s));
 
     DicomModalityStoreJob& tmp = dynamic_cast<DicomModalityStoreJob&>(*job);
-    ASSERT_EQ("LOCAL", tmp.GetLocalAet());
-    ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
-    ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
-    ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+    ASSERT_EQ("LOCAL", tmp.GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("REMOTE", tmp.GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("192.168.1.1", tmp.GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(1000, tmp.GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetParameters().GetRemoteModality().GetManufacturer());
     ASSERT_TRUE(tmp.HasMoveOriginator());
     ASSERT_EQ("MOVESCU", tmp.GetMoveOriginatorAet());
     ASSERT_EQ(42, tmp.GetMoveOriginatorId());
@@ -1902,6 +1903,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   s = Json::nullValue;
@@ -1932,6 +1934,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   s["Port"] = "46";
@@ -1998,6 +2001,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
   }
 
   {
@@ -2007,6 +2011,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     s["AET"] = "AET";
     s["Host"] = "host";
     s["Port"] = "104";
+    s["AllowTranscoding"] = false;
     
     RemoteModalityParameters modality(s);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
@@ -2015,6 +2020,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_FALSE(modality.IsTranscodingAllowed());
   }
 
   {
@@ -2032,5 +2038,143 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(104u, modality.GetPortNumber());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
+    ASSERT_TRUE(modality.IsTranscodingAllowed());
+  }
+}
+
+
+TEST_F(OrthancJobsSerialization, DicomAssociationParameters)
+{
+  Json::Value v;
+
+  {
+    v = Json::objectValue;
+    DicomAssociationParameters p;
+    p.SerializeJob(v);
+  }
+
+  {
+    DicomAssociationParameters p = DicomAssociationParameters::UnserializeJob(v);
+    ASSERT_EQ("ORTHANC", p.GetLocalApplicationEntityTitle());
+    ASSERT_EQ("ANY-SCP", p.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ(104u, p.GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, p.GetRemoteModality().GetManufacturer());
+    ASSERT_EQ("127.0.0.1", p.GetRemoteModality().GetHost());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), p.GetTimeout());
+  }
+
+  {
+    v = Json::objectValue;
+    DicomAssociationParameters p;
+    p.SetLocalApplicationEntityTitle("HELLO");
+    p.SetRemoteApplicationEntityTitle("WORLD");
+    p.SetRemotePort(42);
+    p.SetRemoteHost("MY_HOST");
+    p.SetTimeout(43);
+    p.SerializeJob(v);
+  }
+
+  {
+    DicomAssociationParameters p = DicomAssociationParameters::UnserializeJob(v);
+    ASSERT_EQ("HELLO", p.GetLocalApplicationEntityTitle());
+    ASSERT_EQ("WORLD", p.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ(42u, p.GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, p.GetRemoteModality().GetManufacturer());
+    ASSERT_EQ("MY_HOST", p.GetRemoteModality().GetHost());
+    ASSERT_EQ(43u, p.GetTimeout());
+  }
+  
+  {
+    DicomModalityStoreJob job(GetContext());
+    job.Serialize(v);
+  }
+  
+  {
+    OrthancJobUnserializer unserializer(GetContext());
+    std::unique_ptr<DicomModalityStoreJob> job(
+      dynamic_cast<DicomModalityStoreJob*>(unserializer.UnserializeJob(v)));
+    ASSERT_EQ("ORTHANC", job->GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("ANY-SCP", job->GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("127.0.0.1", job->GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(104u, job->GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), job->GetParameters().GetTimeout());
+    ASSERT_FALSE(job->HasMoveOriginator());
+    ASSERT_THROW(job->GetMoveOriginatorAet(), OrthancException);
+    ASSERT_THROW(job->GetMoveOriginatorId(), OrthancException);
+    ASSERT_FALSE(job->HasStorageCommitment());
+  }
+  
+  {
+    RemoteModalityParameters r;
+    r.SetApplicationEntityTitle("HELLO");
+    r.SetPortNumber(42);
+    r.SetHost("MY_HOST");
+
+    DicomModalityStoreJob job(GetContext());
+    job.SetLocalAet("WORLD");
+    job.SetRemoteModality(r);
+    job.SetTimeout(43);
+    job.SetMoveOriginator("ORIGINATOR", 100);
+    job.EnableStorageCommitment(true);
+    job.Serialize(v);
+  }
+  
+  {
+    OrthancJobUnserializer unserializer(GetContext());
+    std::unique_ptr<DicomModalityStoreJob> job(
+      dynamic_cast<DicomModalityStoreJob*>(unserializer.UnserializeJob(v)));
+    ASSERT_EQ("WORLD", job->GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("HELLO", job->GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("MY_HOST", job->GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(42u, job->GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
+    ASSERT_EQ(43u, job->GetParameters().GetTimeout());
+    ASSERT_TRUE(job->HasMoveOriginator());
+    ASSERT_EQ("ORIGINATOR", job->GetMoveOriginatorAet());
+    ASSERT_EQ(100, job->GetMoveOriginatorId());
+    ASSERT_TRUE(job->HasStorageCommitment());
+  }
+    
+  {
+    DicomMoveScuJob job(GetContext());
+    job.Serialize(v);
+  }
+  
+  {
+    OrthancJobUnserializer unserializer(GetContext());
+    std::unique_ptr<DicomMoveScuJob> job(
+      dynamic_cast<DicomMoveScuJob*>(unserializer.UnserializeJob(v)));
+    ASSERT_EQ("ORTHANC", job->GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("ANY-SCP", job->GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("127.0.0.1", job->GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(104u, job->GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), job->GetParameters().GetTimeout());
+  }
+  
+  {
+    RemoteModalityParameters r;
+    r.SetApplicationEntityTitle("HELLO");
+    r.SetPortNumber(42);
+    r.SetHost("MY_HOST");
+
+    DicomMoveScuJob job(GetContext());
+    job.SetLocalAet("WORLD");
+    job.SetRemoteModality(r);
+    job.SetTimeout(43);
+    job.Serialize(v);
+  }
+  
+  {
+    OrthancJobUnserializer unserializer(GetContext());
+    std::unique_ptr<DicomMoveScuJob> job(
+      dynamic_cast<DicomMoveScuJob*>(unserializer.UnserializeJob(v)));
+    ASSERT_EQ("WORLD", job->GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("HELLO", job->GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("MY_HOST", job->GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(42u, job->GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
+    ASSERT_EQ(43u, job->GetParameters().GetTimeout());
   }
 }

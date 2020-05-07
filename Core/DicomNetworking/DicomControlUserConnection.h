@@ -65,9 +65,6 @@ namespace Orthanc
                       const DicomMap& fields);
     
   public:
-    DicomControlUserConnection(const std::string& localAet,
-                               const RemoteModalityParameters& remote);
-    
     DicomControlUserConnection(const DicomAssociationParameters& params);
     
     const DicomAssociationParameters& GetParameters() const
@@ -108,7 +105,5 @@ namespace Orthanc
 
     void FindWorklist(DicomFindAnswers& result,
                       ParsedDicomFile& query);
-
-    void SetTimeout(uint32_t seconds); // 0 = no timeout
   };
 }

@@ -33,73 +33,57 @@
 
 #pragma once
 
-#include "../../Core/Compatibility.h"
-#include "../../Core/DicomNetworking/DicomControlUserConnection.h"
-#include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
+#endif
 
-#include "../QueryRetrieveHandler.h"
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING != 1
+#  error Transcoding is disabled, cannot compile this file
+#endif
+
+#include "IDicomTranscoder.h"
 
 namespace Orthanc
 {
-  class ServerContext;
-  
-  class DicomMoveScuJob : public SetOfCommandsJob
+  class DcmtkTranscoder : public IDicomTranscoder
   {
   private:
-    class Command;
-    class Unserializer;
-    
-    ServerContext&              context_;
-    DicomAssociationParameters  parameters_;
-    std::string                 targetAet_;
-    Json::Value                 query_;
-
-    std::unique_ptr<DicomControlUserConnection>  connection_;
-    
-    void Retrieve(const DicomMap& findAnswer);
+    unsigned int  lossyQuality_;
     
   public:
-    DicomMoveScuJob(ServerContext& context) :
-      context_(context),
-      query_(Json::arrayValue)
+    DcmtkTranscoder() :
+      lossyQuality_(90)
     {
     }
 
-    DicomMoveScuJob(ServerContext& context,
-                    const Json::Value& serialized);
+    void SetLossyQuality(unsigned int quality);
 
-    void AddFindAnswer(const DicomMap& answer);
-    
-    void AddFindAnswer(QueryRetrieveHandler& query,
-                       size_t i);
-
-    const DicomAssociationParameters& GetParameters() const
+    unsigned int GetLossyQuality() const
     {
-      return parameters_;
+      return lossyQuality_;
     }
     
-    void SetLocalAet(const std::string& aet);
+    virtual DcmFileFormat* TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
+                                             const void* buffer,
+                                             size_t size,
+                                             const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                             bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    void SetTimeout(uint32_t timeout);
-
-    const std::string& GetTargetAet() const
+    virtual bool HasInplaceTranscode() const
     {
-      return targetAet_;
+      return true;
     }
+
+    virtual bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                                  DcmFileFormat& dicom,
+                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
-    void SetTargetAet(const std::string& aet);
-
-    virtual void Stop(JobStopReason reason);
-
-    virtual void GetJobType(std::string& target)
-    {
-      target = "DicomMoveScu";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
-
-    virtual bool Serialize(Json::Value& target);
+    virtual bool TranscodeToBuffer(std::string& target,
+                                   bool& hasSopInstanceUidChanged /* out */,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

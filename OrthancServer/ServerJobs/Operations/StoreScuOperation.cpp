@@ -35,6 +35,7 @@
 #include "StoreScuOperation.h"
 
 #include "DicomInstanceOperationValue.h"
+#include "../../ServerContext.h"
 
 #include "../../../Core/Logging.h"
 #include "../../../Core/OrthancException.h"
@@ -63,10 +64,9 @@ namespace Orthanc
       std::string dicom;
       instance.ReadDicom(dicom);
 
-      const void* data = dicom.empty() ? NULL : dicom.c_str();
-      
       std::string sopClassUid, sopInstanceUid;  // Unused
-      lock.GetConnection().Store(sopClassUid, sopInstanceUid, data, dicom.size());
+      context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, lock.GetConnection(), dicom,
+                                    false /* Not a C-MOVE */, "", 0);
     }
     catch (OrthancException& e)
     {
@@ -87,8 +87,10 @@ namespace Orthanc
   }
 
 
-  StoreScuOperation::StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+  StoreScuOperation::StoreScuOperation(ServerContext& context,
+                                       TimeoutDicomConnectionManager& connectionManager,
                                        const Json::Value& serialized) :
+    context_(context),
     connectionManager_(connectionManager)
   {
     if (SerializationToolbox::ReadString(serialized, "Type") != "StoreScu" ||
