@@ -35,6 +35,7 @@
 #include "ServerContext.h"
 
 #include "../Core/Cache/SharedArchive.h"
+#include "../Core/DicomParsing/DcmtkTranscoder.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/FileStorage/StorageAccessor.h"
 #include "../Core/HttpServer/FilesystemHttpSender.h"
@@ -243,7 +244,8 @@ namespace Orthanc
     metricsRegistry_(new MetricsRegistry),
     isHttpServerSecure_(true),
     isExecuteLuaEnabled_(false),
-    overwriteInstances_(false)
+    overwriteInstances_(false),
+    dcmtkTranscoder_(new DcmtkTranscoder)
   {
     {
       OrthancConfiguration::ReaderLock lock;
@@ -264,6 +266,9 @@ namespace Orthanc
 
       // New configuration option in Orthanc 1.6.0
       storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
+
+      // New option in Orthanc 1.7.0
+      transcodingEnabled_ = lock.GetConfiguration().GetBooleanParameter("TranscodingEnabled", true);
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1107,5 +1112,67 @@ namespace Orthanc
 #endif
 
     return NULL;
+  }
+
+
+  void ServerContext::StoreWithTranscoding(std::string& sopClassUid,
+                                           std::string& sopInstanceUid,
+                                           DicomStoreUserConnection& connection,
+                                           const std::string& dicom,
+                                           bool hasMoveOriginator,
+                                           const std::string& moveOriginatorAet,
+                                           uint16_t moveOriginatorId)
+  {
+    const void* data = dicom.empty() ? NULL : dicom.c_str();
+    
+    if (!transcodingEnabled_ ||
+        !connection.GetParameters().GetRemoteModality().IsTranscodingAllowed())
+    {
+      connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
+                       hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
+    }
+    else
+    {
+      IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+      if (HasPlugins())
+      {
+        transcoder = &GetPlugins();
+      }
+#endif
+
+      if (transcoder == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        connection.Transcode(sopClassUid, sopInstanceUid, *transcoder, data, dicom.size(),
+                             hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
+      }
+    }
+  }
+
+
+  bool ServerContext::TranscodeMemoryBuffer(std::string& target,
+                                            bool& hasSopInstanceUidChanged,
+                                            const std::string& source,
+                                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                            bool allowNewSopInstanceUid)
+  {
+    const char* data = source.empty() ? NULL : source.c_str();
+    
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      return GetPlugins().TranscodeToBuffer(
+        target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
+    }
+#endif
+
+    assert(dcmtkTranscoder_.get() != NULL);
+    return dcmtkTranscoder_->TranscodeToBuffer(
+      target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
   }
 }

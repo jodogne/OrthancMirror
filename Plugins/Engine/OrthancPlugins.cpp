@@ -4791,4 +4791,16 @@ namespace Orthanc
     
     return NULL;
   }
+
+
+  bool OrthancPlugins::Transcode(std::string& target,
+                                 bool& hasSopInstanceUidChanged /* out */,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid)
+  {
+    // TODO
+    return false;
+  }
 }

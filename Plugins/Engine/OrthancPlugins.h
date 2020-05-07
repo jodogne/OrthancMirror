@@ -56,6 +56,7 @@ namespace Orthanc
 #include "../../Core/DicomNetworking/IFindRequestHandlerFactory.h"
 #include "../../Core/DicomNetworking/IMoveRequestHandlerFactory.h"
 #include "../../Core/DicomNetworking/IWorklistRequestHandlerFactory.h"
+#include "../../Core/DicomParsing/MemoryBufferTranscoder.h"
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
@@ -82,7 +83,8 @@ namespace Orthanc
     public IIncomingHttpRequestFilter,
     public IFindRequestHandlerFactory,
     public IMoveRequestHandlerFactory,
-    public IStorageCommitmentFactory
+    public IStorageCommitmentFactory,
+    public MemoryBufferTranscoder
   {
   private:
     class PImpl;
@@ -223,6 +225,15 @@ namespace Orthanc
                                 _OrthancPluginService service,
                                 const void* parameters);
 
+  protected:
+    // From "MemoryBufferTranscoder"
+    virtual bool Transcode(std::string& target,
+                           bool& hasSopInstanceUidChanged /* out */,
+                           const void* buffer,
+                           size_t size,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    
   public:
     OrthancPlugins();
 

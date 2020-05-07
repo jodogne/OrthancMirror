@@ -113,23 +113,19 @@ namespace Orthanc
 
   static void DicomEcho(RestApiPostCall& call)
   {
-    try
-    {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+    DicomControlUserConnection connection(GetAssociationParameters(call));
 
-      if (connection.Echo())
-      {
-        // Echo has succeeded
-        call.GetOutput().AnswerBuffer("{}", MimeType_Json);
-        return;
-      }
-    }
-    catch (OrthancException&)
+    if (connection.Echo())
     {
+      // Echo has succeeded
+      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
+      return;
     }
-
-    // Echo has failed
-    call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    else
+    {
+      // Echo has failed
+      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+    }
   }
 
 
@@ -1008,8 +1004,8 @@ namespace Orthanc
     DicomStoreUserConnection connection(GetAssociationParameters(call, body));
 
     std::string sopClassUid, sopInstanceUid;
-    connection.Store(sopClassUid, sopInstanceUid,
-                     call.GetBodyData(), call.GetBodySize());
+    connection.Store(sopClassUid, sopInstanceUid, call.GetBodyData(),
+                     call.GetBodySize(), false /* Not a C-MOVE */, "", 0);
 
     Json::Value answer = Json::objectValue;
     answer[SOP_CLASS_UID] = sopClassUid;
