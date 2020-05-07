@@ -1155,24 +1155,48 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::TranscodeMemoryBuffer(std::string& target,
-                                            bool& hasSopInstanceUidChanged,
-                                            const std::string& source,
-                                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                            bool allowNewSopInstanceUid)
+  bool ServerContext::Transcode(std::string& target,
+                                bool& hasSopInstanceUidChanged,
+                                ParsedDicomFile& dicom, // Possibly modified
+                                const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                bool allowNewSopInstanceUid)
   {
-    const char* data = source.empty() ? NULL : source.c_str();
+    IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
     
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
-      return GetPlugins().TranscodeToBuffer(
-        target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
+      transcoder = &GetPlugins();
     }
 #endif
 
-    assert(dcmtkTranscoder_.get() != NULL);
-    return dcmtkTranscoder_->TranscodeToBuffer(
-      target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
+    if (transcoder == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else if (transcoder->HasInplaceTranscode())
+    {
+      if (transcoder->InplaceTranscode(hasSopInstanceUidChanged, dicom.GetDcmtkObject(),
+                                       allowedSyntaxes, allowNewSopInstanceUid))
+      {
+        // In-place transcoding is supported and has succeeded
+        dicom.SaveToMemoryBuffer(target);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      std::string source;
+      dicom.SaveToMemoryBuffer(source);
+      
+      const char* data = source.empty() ? NULL : source.c_str();
+    
+      return transcoder->TranscodeToBuffer(
+        target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
+    }
   }
 }
