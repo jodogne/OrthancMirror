@@ -1161,6 +1161,13 @@ namespace Orthanc
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                 bool allowNewSopInstanceUid)
   {
+    DicomTransferSyntax inputSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(inputSyntax, dicom.GetDcmtkObject()))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Cannot determine the source transfer syntax during transcoding");
+    }
+
     IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
     
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1174,7 +1181,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-    else if (transcoder->HasInplaceTranscode())
+    else if (transcoder->HasInplaceTranscode(inputSyntax, allowedSyntaxes))
     {
       if (transcoder->InplaceTranscode(hasSopInstanceUidChanged, dicom.GetDcmtkObject(),
                                        allowedSyntaxes, allowNewSopInstanceUid))

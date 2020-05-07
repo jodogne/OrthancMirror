@@ -111,13 +111,54 @@ namespace Orthanc
   }
 
 
+  bool MemoryBufferTranscoder::HasInplaceTranscode(
+    DicomTransferSyntax inputSyntax,
+    const std::set<DicomTransferSyntax>& outputSyntaxes) const
+  {
+    /**
+     * Inplace transcoding is only possible if DCMTK is enabled, and
+     * if DCMTK supports all the requested transfer
+     * syntaxes. Otherwise, one has to call the "buffer-to-buffer"
+     * transcoder.
+     **/
+    
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    if (useDcmtk_)
+    {
+      if (!DcmtkTranscoder::IsSupported(inputSyntax))
+      {
+        return false;
+      }
+      
+      for (std::set<DicomTransferSyntax>::const_iterator
+             it = outputSyntaxes.begin(); it != outputSyntaxes.end(); ++it)
+      {
+        if (!DcmtkTranscoder::IsSupported(*it))
+        {
+          return false;
+        }
+      }
+
+      return true;
+    }
+    else
+#endif
+    {
+      return false;
+    }
+  }
+    
+
   bool MemoryBufferTranscoder::InplaceTranscode(bool& hasSopInstanceUidChanged,
                                                 DcmFileFormat& dicom,
                                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                                 bool allowNewSopInstanceUid)
   {
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    if (useDcmtk_)
+    DicomTransferSyntax inputSyntax;
+    if (useDcmtk_ &&
+        FromDcmtkBridge::LookupOrthancTransferSyntax(inputSyntax, dicom) &&
+        HasInplaceTranscode(inputSyntax, allowedSyntaxes))
     {
       return dcmtk_.InplaceTranscode(hasSopInstanceUidChanged, dicom, allowedSyntaxes, allowNewSopInstanceUid);
     }

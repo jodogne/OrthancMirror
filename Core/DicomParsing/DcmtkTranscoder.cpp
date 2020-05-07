@@ -339,4 +339,36 @@ namespace Orthanc
       return true;
     }
   }
+
+
+  bool DcmtkTranscoder::IsSupported(DicomTransferSyntax syntax)
+  {
+    if (syntax == DicomTransferSyntax_LittleEndianImplicit ||
+        syntax == DicomTransferSyntax_LittleEndianExplicit ||
+        syntax == DicomTransferSyntax_BigEndianExplicit ||
+        syntax == DicomTransferSyntax_DeflatedLittleEndianExplicit)
+    {
+      return true;
+    }
+
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+    if (syntax == DicomTransferSyntax_JPEGProcess1 ||
+        syntax == DicomTransferSyntax_JPEGProcess2_4 ||
+        syntax == DicomTransferSyntax_JPEGProcess14 ||
+        syntax == DicomTransferSyntax_JPEGProcess14SV1)
+    {
+      return true;
+    }
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
+    if (syntax == DicomTransferSyntax_JPEGLSLossless ||
+        syntax == DicomTransferSyntax_JPEGLSLossy)
+    {
+      return true;
+    }
+#endif
+    
+    return false;
+  }
 }

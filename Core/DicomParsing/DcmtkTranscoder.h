@@ -69,7 +69,8 @@ namespace Orthanc
                                              const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                              bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
-    virtual bool HasInplaceTranscode() const
+    virtual bool HasInplaceTranscode(DicomTransferSyntax inputSyntax,
+                                     const std::set<DicomTransferSyntax>& outputSyntaxes) const
     {
       return true;
     }
@@ -85,5 +86,7 @@ namespace Orthanc
                                    size_t size,
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                    bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    static bool IsSupported(DicomTransferSyntax syntax);
   };
 }

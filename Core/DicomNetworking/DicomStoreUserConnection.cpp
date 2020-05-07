@@ -495,7 +495,7 @@ namespace Orthanc
 
       bool hasSopInstanceUidChanged;
       
-      if (transcoder.HasInplaceTranscode())
+      if (transcoder.HasInplaceTranscode(inputSyntax, uncompressedSyntaxes))
       {
         if (transcoder.InplaceTranscode(hasSopInstanceUidChanged, *dicom, uncompressedSyntaxes, false))
         {
