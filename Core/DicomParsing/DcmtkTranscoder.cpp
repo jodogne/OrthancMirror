@@ -326,10 +326,9 @@ namespace Orthanc
   bool DcmtkTranscoder::TranscodeParsedToBuffer(
     std::string& target /* out */,
     DicomTransferSyntax& sourceSyntax /* out */,
-    DicomTransferSyntax& targetSyntax /* out */,
     bool& hasSopInstanceUidChanged /* out */,
     DcmFileFormat& dicom /* in, possibly modified */,
-    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+    DicomTransferSyntax targetSyntax,
     bool allowNewSopInstanceUid)
   {
     if (dicom.getDataset() == NULL)
@@ -343,10 +342,14 @@ namespace Orthanc
       return false;
     }
 
-    if (InplaceTranscode(hasSopInstanceUidChanged, dicom, allowedSyntaxes, allowNewSopInstanceUid))
+    std::set<DicomTransferSyntax> tmp;
+    tmp.insert(targetSyntax);
+
+    if (InplaceTranscode(hasSopInstanceUidChanged, dicom, tmp, allowNewSopInstanceUid))
     {
-      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, dicom) &&
-          allowedSyntaxes.find(targetSyntax) != allowedSyntaxes.end() &&
+      DicomTransferSyntax targetSyntax2;
+      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax2, dicom) &&
+          targetSyntax == targetSyntax2 &&
           dicom.getDataset() != NULL)
       {
         FromDcmtkBridge::SaveToMemoryBuffer(target, *dicom.getDataset());
