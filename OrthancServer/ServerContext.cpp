@@ -1157,10 +1157,9 @@ namespace Orthanc
 
   bool ServerContext::Transcode(std::string& target /* out */,
                                 DicomTransferSyntax& sourceSyntax /* out */,
-                                DicomTransferSyntax& targetSyntax /* out */,
                                 bool& hasSopInstanceUidChanged /* out */,
                                 ParsedDicomFile& dicom, // Possibly modified
-                                const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                DicomTransferSyntax targetSyntax,
                                 bool allowNewSopInstanceUid)
   {
     IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
@@ -1176,9 +1175,11 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-
-    return transcoder->TranscodeParsedToBuffer(
-      target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
-      dicom.GetDcmtkObject(), allowedSyntaxes, allowNewSopInstanceUid);
+    else
+    {
+      return transcoder->TranscodeParsedToBuffer(
+        target, sourceSyntax, hasSopInstanceUidChanged,
+        dicom.GetDcmtkObject(), targetSyntax, allowNewSopInstanceUid);
+    }
   }
 }

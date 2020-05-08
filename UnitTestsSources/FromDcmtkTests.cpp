@@ -1987,22 +1987,23 @@ TEST(Toto, DISABLED_Transcode4)
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
-    std::set<DicomTransferSyntax> s;
-    s.insert(a);
 
     std::string t;
 
     bool hasSopInstanceUidChanged;
-    DicomTransferSyntax sourceSyntax2, targetSyntax;
+    DicomTransferSyntax sourceSyntax2;
 
     std::unique_ptr<DcmFileFormat> cloned(dynamic_cast<DcmFileFormat*>(toto->clone()));
-    if (!transcoder.TranscodeParsedToBuffer(t, sourceSyntax2, targetSyntax, hasSopInstanceUidChanged, *cloned, s, true))
+    if (!transcoder.TranscodeParsedToBuffer(t, sourceSyntax2, hasSopInstanceUidChanged, *cloned, a, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
     }
     else
     {
+      DicomTransferSyntax targetSyntax;
+      ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, *cloned));
+      
       ASSERT_EQ(targetSyntax, a);
       ASSERT_EQ(sourceSyntax, sourceSyntax2);
       bool lossy = (a == DicomTransferSyntax_JPEGProcess1 ||

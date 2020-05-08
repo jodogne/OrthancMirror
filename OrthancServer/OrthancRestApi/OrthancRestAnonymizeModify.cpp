@@ -130,15 +130,12 @@ namespace Orthanc
 
     if (transcode)
     {
-      std::set<DicomTransferSyntax> ts;
-      ts.insert(targetSyntax);
-
       std::string transcoded;
-      DicomTransferSyntax sourceSyntax, targetSyntax;
+      DicomTransferSyntax sourceSyntax;
       bool hasSopInstanceUidChanged;
 
-      if (context.Transcode(transcoded, sourceSyntax, targetSyntax,
-                            hasSopInstanceUidChanged, *modified, ts, true))
+      if (context.Transcode(transcoded, sourceSyntax, hasSopInstanceUidChanged,
+                            *modified, targetSyntax, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }

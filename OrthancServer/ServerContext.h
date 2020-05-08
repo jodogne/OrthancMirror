@@ -467,10 +467,9 @@ namespace Orthanc
     // "TranscodingEnabled" is set to "false"
     bool Transcode(std::string& target /* out */,
                    DicomTransferSyntax& sourceSyntax /* out */,
-                   DicomTransferSyntax& targetSyntax /* out */,
                    bool& hasSopInstanceUidChanged /* out */,
                    ParsedDicomFile& dicom, // Possibly modified
-                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                   DicomTransferSyntax targetSyntax,
                    bool allowNewSopInstanceUid);
   };
 }
