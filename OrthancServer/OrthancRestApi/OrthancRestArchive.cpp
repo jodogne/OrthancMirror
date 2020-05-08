@@ -46,6 +46,7 @@ namespace Orthanc
 {
   static const char* const KEY_RESOURCES = "Resources";
   static const char* const KEY_EXTENDED = "Extended";
+  static const char* const KEY_TRANSCODE = "Transcode";
   
   static void AddResourcesOfInterestFromArray(ArchiveJob& job,
                                               const Json::Value& resources)
@@ -98,11 +99,28 @@ namespace Orthanc
   }
 
 
-  static void GetJobParameters(bool& synchronous,         /* out */
-                               bool& extended,            /* out */
-                               int& priority,             /* out */
-                               const Json::Value& body,   /* in */
-                               const bool defaultExtended /* in */)
+  static DicomTransferSyntax GetTransferSyntax(const std::string& value)
+  {
+    DicomTransferSyntax syntax;
+    if (LookupTransferSyntax(syntax, value))
+    {
+      return syntax;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unknown transfer syntax: " + value);
+    }
+  }
+  
+  
+  static void GetJobParameters(bool& synchronous,            /* out */
+                               bool& extended,               /* out */
+                               bool& transcode,              /* out */
+                               DicomTransferSyntax& syntax,  /* out */
+                               int& priority,                /* out */
+                               const Json::Value& body,      /* in */
+                               const bool defaultExtended    /* in */)
   {
     synchronous = OrthancRestApi::IsSynchronousJobRequest
       (true /* synchronous by default */, body);
@@ -117,6 +135,17 @@ namespace Orthanc
     else
     {
       extended = defaultExtended;
+    }
+
+    if (body.type() == Json::objectValue &&
+        body.isMember(KEY_TRANSCODE))
+    {
+      transcode = true;
+      syntax = GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
+    }
+    else
+    {
+      transcode = false;
     }
   }
 
@@ -175,12 +204,20 @@ namespace Orthanc
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
-      bool synchronous, extended;
+      bool synchronous, extended, transcode;
+      DicomTransferSyntax transferSyntax;
       int priority;
-      GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
+      GetJobParameters(synchronous, extended, transcode, transferSyntax,
+                       priority, body, DEFAULT_IS_EXTENDED);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       AddResourcesOfInterest(*job, body);
+
+      if (transcode)
+      {
+        job->SetTranscode(transferSyntax);
+      }
+      
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, "Archive.zip");
     }
     else
@@ -208,9 +245,15 @@ namespace Orthanc
     {
       extended = false;
     }
-    
+
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
     job->AddResource(id);
+
+    static const char* const TRANSCODE = "transcode";
+    if (call.HasArgument(TRANSCODE))
+    {
+      job->SetTranscode(GetTransferSyntax(call.GetArgument(TRANSCODE, "")));
+    }
 
     SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
               true /* synchronous */, id + ".zip");
@@ -228,12 +271,20 @@ namespace Orthanc
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
-      bool synchronous, extended;
+      bool synchronous, extended, transcode;
+      DicomTransferSyntax transferSyntax;
       int priority;
-      GetJobParameters(synchronous, extended, priority, body, DEFAULT_IS_EXTENDED);
+      GetJobParameters(synchronous, extended, transcode, transferSyntax,
+                       priority, body, DEFAULT_IS_EXTENDED);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       job->AddResource(id);
+
+      if (transcode)
+      {
+        job->SetTranscode(transferSyntax);
+      }
+
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, id + ".zip");
     }
     else
