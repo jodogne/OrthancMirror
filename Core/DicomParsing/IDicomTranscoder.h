@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../Enumerations.h"
 
 #include <boost/noncopyable.hpp>
@@ -83,5 +84,51 @@ namespace Orthanc
                                   DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) = 0;
+
+
+
+    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
+                                         DicomTransferSyntax& sourceSyntax /* out */,
+                                         DicomTransferSyntax& targetSyntax /* out */,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DcmFileFormat& dicom /* in, possibly modified */,
+                                         const std::set<DicomTransferSyntax>& allowedSyntaxes,  // TODO => is a set needed?
+                                         bool allowNewSopInstanceUid) = 0;
+
+
+    class TranscodedDicom : public boost::noncopyable
+    {
+    private:
+      std::unique_ptr<DcmFileFormat>  internal_;
+      DcmFileFormat*                  external_;
+      bool                            hasSopInstanceUidChanged_;
+
+      TranscodedDicom(bool hasSopInstanceUidChanged);
+
+    public:
+      static TranscodedDicom* CreateFromExternal(DcmFileFormat& dicom,
+                                                 bool hasSopInstanceUidChanged);
+        
+      static TranscodedDicom* CreateFromInternal(DcmFileFormat* dicom,
+                                                 bool hasSopInstanceUidChanged);
+
+      // TODO - Is this information used somewhere?
+      bool HasSopInstanceUidChanged() const
+      {
+        return hasSopInstanceUidChanged_;
+      }
+      
+      DcmFileFormat& GetDicom() const;      
+    };
+    
+    /**
+     * This flavor is used by C-STORE.
+     **/
+    virtual TranscodedDicom* TranscodeToParsed2(
+      DcmFileFormat& dicom /* in, possibly modified */,
+      const void* buffer /* in, same DICOM file as "dicom" */,
+      size_t size,
+      const std::set<DicomTransferSyntax>& allowedSyntaxes,
+      bool allowNewSopInstanceUid) = 0;
   };
 }

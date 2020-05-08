@@ -465,9 +465,11 @@ namespace Orthanc
 
     // This method can be used even if the global option
     // "TranscodingEnabled" is set to "false"
-    bool Transcode(std::string& target,
-                   bool& hasSopInstanceUidChanged,
-                   ParsedDicomFile& dicom, // Can possibly be modified
+    bool Transcode(std::string& target /* out */,
+                   DicomTransferSyntax& sourceSyntax /* out */,
+                   DicomTransferSyntax& targetSyntax /* out */,
+                   bool& hasSopInstanceUidChanged /* out */,
+                   ParsedDicomFile& dicom, // Possibly modified
                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                    bool allowNewSopInstanceUid);
   };

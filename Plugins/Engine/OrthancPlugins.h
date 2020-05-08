@@ -228,6 +228,8 @@ namespace Orthanc
   protected:
     // From "MemoryBufferTranscoder"
     virtual bool Transcode(std::string& target,
+                           DicomTransferSyntax& sourceSyntax /* out */,
+                           DicomTransferSyntax& targetSyntax /* out */,
                            bool& hasSopInstanceUidChanged /* out */,
                            const void* buffer,
                            size_t size,

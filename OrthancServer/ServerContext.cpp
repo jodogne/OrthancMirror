@@ -1155,19 +1155,14 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::Transcode(std::string& target,
-                                bool& hasSopInstanceUidChanged,
+  bool ServerContext::Transcode(std::string& target /* out */,
+                                DicomTransferSyntax& sourceSyntax /* out */,
+                                DicomTransferSyntax& targetSyntax /* out */,
+                                bool& hasSopInstanceUidChanged /* out */,
                                 ParsedDicomFile& dicom, // Possibly modified
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                 bool allowNewSopInstanceUid)
   {
-    DicomTransferSyntax inputSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(inputSyntax, dicom.GetDcmtkObject()))
-    {
-      throw OrthancException(ErrorCode_BadFileFormat,
-                             "Cannot determine the source transfer syntax during transcoding");
-    }
-
     IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
     
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1181,29 +1176,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-    else if (transcoder->HasInplaceTranscode(inputSyntax, allowedSyntaxes))
-    {
-      if (transcoder->InplaceTranscode(hasSopInstanceUidChanged, dicom.GetDcmtkObject(),
-                                       allowedSyntaxes, allowNewSopInstanceUid))
-      {
-        // In-place transcoding is supported and has succeeded
-        dicom.SaveToMemoryBuffer(target);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-    else
-    {
-      std::string source;
-      dicom.SaveToMemoryBuffer(source);
-      
-      const char* data = source.empty() ? NULL : source.c_str();
-    
-      return transcoder->TranscodeToBuffer(
-        target, hasSopInstanceUidChanged, data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
-    }
+
+    return transcoder->TranscodeParsedToBuffer(
+      target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
+      dicom.GetDcmtkObject(), allowedSyntaxes, allowNewSopInstanceUid);
   }
 }

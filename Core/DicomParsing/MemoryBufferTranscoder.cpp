@@ -81,7 +81,8 @@ namespace Orthanc
     }
 #endif
 
-    return Transcode(target, hasSopInstanceUidChanged, buffer, size,
+    DicomTransferSyntax sourceSyntax, targetSyntax;
+    return Transcode(target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged, buffer, size,
                      allowedSyntaxes, allowNewSopInstanceUid);
   }
 
@@ -106,7 +107,9 @@ namespace Orthanc
 #endif
 
     std::string transcoded;
-    if (Transcode(transcoded, hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
+    DicomTransferSyntax sourceSyntax, targetSyntax;
+    if (Transcode(transcoded, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
+                  buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
     {
       return FromDcmtkBridge::LoadFromMemoryBuffer(
         transcoded.empty() ? NULL : transcoded.c_str(), transcoded.size());
@@ -174,6 +177,75 @@ namespace Orthanc
     {
       // "HasInplaceTranscode()" should have been called
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+
+  
+  bool MemoryBufferTranscoder::TranscodeParsedToBuffer(
+    std::string& target /* out */,
+    DicomTransferSyntax& sourceSyntax /* out */,
+    DicomTransferSyntax& targetSyntax /* out */,
+    bool& hasSopInstanceUidChanged /* out */,
+    DcmFileFormat& dicom /* in, possibly modified */,
+    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+    bool allowNewSopInstanceUid)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::string source;
+    FromDcmtkBridge::SaveToMemoryBuffer(source, *dicom.getDataset());
+
+    const void* data = source.empty() ? NULL : source.c_str();
+
+    bool success = Transcode(target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
+                             data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    if (useDcmtk_ &&
+        dcmtk_.TranscodeParsedToBuffer(
+          target, sourceSyntax, targetSyntax,hasSopInstanceUidChanged,
+          dicom, allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      success = true;
+    }
+#endif
+
+    return success;
+  }
+  
+
+  IDicomTranscoder::TranscodedDicom* MemoryBufferTranscoder::TranscodeToParsed2(
+    DcmFileFormat& dicom /* in, possibly modified */,
+    const void* buffer /* in, same DICOM file as "dicom" */,
+    size_t size,
+    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+    bool allowNewSopInstanceUid)
+  {
+    DicomTransferSyntax sourceSyntax, targetSyntax;
+    bool hasSopInstanceUidChanged;
+    
+    std::string target;
+    if (Transcode(target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
+                  buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      const void* data = target.empty() ? NULL : target.c_str();
+      return IDicomTranscoder::TranscodedDicom::CreateFromInternal(
+        FromDcmtkBridge::LoadFromMemoryBuffer(data, target.size()), hasSopInstanceUidChanged);
+    }
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+    else if (useDcmtk_)
+    {
+      return dcmtk_.TranscodeToParsed2(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+    }
+#endif
+    else
+    {
+      return NULL;
     }
   }
 }

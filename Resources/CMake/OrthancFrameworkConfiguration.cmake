@@ -503,6 +503,7 @@ if (ENABLE_DCMTK)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
       ${ORTHANC_ROOT}/Core/DicomParsing/DcmtkTranscoder.cpp
+      ${ORTHANC_ROOT}/Core/DicomParsing/IDicomTranscoder.cpp
       ${ORTHANC_ROOT}/Core/DicomParsing/MemoryBufferTranscoder.cpp
       )
   else()

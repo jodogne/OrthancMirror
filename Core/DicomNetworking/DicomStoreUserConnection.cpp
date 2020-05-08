@@ -491,35 +491,14 @@ namespace Orthanc
         uncompressedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
       }
 
-      std::unique_ptr<DcmFileFormat> transcoded;
+      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
+        transcoder.TranscodeToParsed2(*dicom, buffer, size, uncompressedSyntaxes, false));
 
-      bool hasSopInstanceUidChanged;
+      // WARNING: Below this point, "transcoded->GetDicom()" is possibly
+      // a reference to "*dicom", if the DCMTK transcoder was used
       
-      if (transcoder.HasInplaceTranscode(inputSyntax, uncompressedSyntaxes))
-      {
-        if (transcoder.InplaceTranscode(hasSopInstanceUidChanged, *dicom, uncompressedSyntaxes, false))
-        {
-          // In-place transcoding is supported and has succeeded
-          transcoded.reset(dicom.release());
-        }
-      }
-      else
-      {
-        transcoded.reset(transcoder.TranscodeToParsed(hasSopInstanceUidChanged, buffer, size, uncompressedSyntaxes, false));
-      }
-
-      if (hasSopInstanceUidChanged)
-      {
-        throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
-                               "instance UID while transcoding to an uncompressed transfer syntax");
-      }
-
-      // WARNING: The "dicom" variable must not be used below this
-      // point. The "sopInstanceUid" might also have changed (if
-      // using lossy compression).
-        
-      if (transcoded == NULL ||
-          transcoded->getDataset() == NULL)
+      if (transcoded.get() == NULL ||
+          transcoded->GetDicom().getDataset() == NULL)
       {
         throw OrthancException(
           ErrorCode_NotImplemented,
@@ -527,19 +506,24 @@ namespace Orthanc
           "\" to an uncompressed syntax for modality: " +
           GetParameters().GetRemoteModality().GetApplicationEntityTitle());
       }
+      else if (transcoded->HasSopInstanceUidChanged())
+      {
+        throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
+                               "instance UID while transcoding to an uncompressed transfer syntax");
+      }
       else
       {
         DicomTransferSyntax transcodedSyntax;
 
         // Sanity check
-        if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, *transcoded) ||
+        if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded->GetDicom()) ||
             accepted.find(transcodedSyntax) == accepted.end())
         {
           throw OrthancException(ErrorCode_InternalError);
         }
         else
         {
-          Store(sopClassUid, sopInstanceUid, *transcoded,
+          Store(sopClassUid, sopInstanceUid, transcoded->GetDicom(),
                 hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
         }
       }
