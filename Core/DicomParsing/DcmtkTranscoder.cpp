@@ -290,39 +290,6 @@ namespace Orthanc
   }
 
     
-  bool DcmtkTranscoder::TranscodeToBuffer(std::string& target,
-                                          bool& hasSopInstanceUidChanged /* out */,
-                                          const void* buffer,
-                                          size_t size,
-                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                          bool allowNewSopInstanceUid) 
-  {
-    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
-    if (dicom.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat);
-    }
-    
-    std::unique_ptr<TranscodedDicom> transcoded(
-      TranscodeToParsed(*dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
-
-    if (transcoded.get() == NULL)
-    {
-      return false;
-    }
-    else
-    {
-      if (transcoded->GetDicom().getDataset() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }          
-        
-      FromDcmtkBridge::SaveToMemoryBuffer(target, *transcoded->GetDicom().getDataset());
-      return true;
-    }
-  }
-
-
   bool DcmtkTranscoder::IsSupported(DicomTransferSyntax syntax)
   {
     if (syntax == DicomTransferSyntax_LittleEndianImplicit ||
