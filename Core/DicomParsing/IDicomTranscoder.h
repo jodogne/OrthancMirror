@@ -62,19 +62,6 @@ namespace Orthanc
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                    bool allowNewSopInstanceUid) = 0;
 
-    virtual bool HasInplaceTranscode(DicomTransferSyntax inputSyntax,
-                                     const std::set<DicomTransferSyntax>& outputSyntaxes) const = 0;
-
-    /**
-     * In-place transcoding. This method is preferred for C-STORE.
-     **/
-    virtual bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
-                                  DcmFileFormat& dicom,
-                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                  bool allowNewSopInstanceUid) = 0;
-
-
-
     virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
                                          DicomTransferSyntax& sourceSyntax /* out */,
                                          DicomTransferSyntax& targetSyntax /* out */,
