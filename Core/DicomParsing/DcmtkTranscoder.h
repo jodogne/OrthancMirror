@@ -88,5 +88,21 @@ namespace Orthanc
                                    bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
     static bool IsSupported(DicomTransferSyntax syntax);
+
+
+    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
+                                         DicomTransferSyntax& sourceSyntax /* out */,
+                                         DicomTransferSyntax& targetSyntax /* out */,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DcmFileFormat& dicom /* in, possibly modified */,
+                                         const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual TranscodedDicom* TranscodeToParsed2(
+      DcmFileFormat& dicom /* in, possibly modified */,
+      const void* buffer /* in, same DICOM file as "dicom" */,
+      size_t size,
+      const std::set<DicomTransferSyntax>& allowedSyntaxes,
+      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

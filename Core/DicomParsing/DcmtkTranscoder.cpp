@@ -371,4 +371,80 @@ namespace Orthanc
     
     return false;
   }
+
+
+
+  bool DcmtkTranscoder::TranscodeParsedToBuffer(
+    std::string& target /* out */,
+    DicomTransferSyntax& sourceSyntax /* out */,
+    DicomTransferSyntax& targetSyntax /* out */,
+    bool& hasSopInstanceUidChanged /* out */,
+    DcmFileFormat& dicom /* in, possibly modified */,
+    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+    bool allowNewSopInstanceUid)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom))
+    {
+      LOG(ERROR) << "Unsupport transfer syntax for transcoding";
+      return false;
+    }
+
+    if (InplaceTranscode(hasSopInstanceUidChanged, dicom, allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, dicom) &&
+          allowedSyntaxes.find(targetSyntax) != allowedSyntaxes.end() &&
+          dicom.getDataset() != NULL)
+      {
+        FromDcmtkBridge::SaveToMemoryBuffer(target, *dicom.getDataset());
+        return true;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }      
+    }
+    else
+    {
+      return false;
+    }    
+  }
+
+
+  IDicomTranscoder::TranscodedDicom* DcmtkTranscoder::TranscodeToParsed2(
+    DcmFileFormat& dicom /* in, possibly modified */,
+    const void* buffer /* in, same DICOM file as "dicom" */,
+    size_t size,
+    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+    bool allowNewSopInstanceUid)
+  {
+    DicomTransferSyntax sourceSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom))
+    {
+      LOG(ERROR) << "Unsupport transfer syntax for transcoding";
+      return NULL;
+    }
+
+    bool hasSopInstanceUidChanged;
+    
+    if (allowedSyntaxes.find(sourceSyntax) != allowedSyntaxes.end())
+    {
+      // No transcoding is needed
+      return TranscodedDicom::CreateFromExternal(dicom, false /* no change in UID */);
+    }
+    else if (InplaceTranscode(hasSopInstanceUidChanged, dicom,
+                              allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      return TranscodedDicom::CreateFromExternal(dicom, hasSopInstanceUidChanged);
+    }
+    else
+    {
+      // Cannot transcode
+      return NULL;
+    }
+  }
 }

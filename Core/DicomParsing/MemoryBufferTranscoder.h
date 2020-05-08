@@ -55,6 +55,8 @@ namespace Orthanc
 
   protected:
     virtual bool Transcode(std::string& target,
+                           DicomTransferSyntax& sourceSyntax /* out */,
+                           DicomTransferSyntax& targetSyntax /* out */,
                            bool& hasSopInstanceUidChanged /* out */,
                            const void* buffer,
                            size_t size,
@@ -96,5 +98,22 @@ namespace Orthanc
                                   DcmFileFormat& dicom,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+
+
+    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
+                                         DicomTransferSyntax& sourceSyntax /* out */,
+                                         DicomTransferSyntax& targetSyntax /* out */,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DcmFileFormat& dicom /* in, possibly modified */,
+                                         const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual TranscodedDicom* TranscodeToParsed2(
+      DcmFileFormat& dicom /* in, possibly modified */,
+      const void* buffer /* in, same DICOM file as "dicom" */,
+      size_t size,
+      const std::set<DicomTransferSyntax>& allowedSyntaxes,
+      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }
