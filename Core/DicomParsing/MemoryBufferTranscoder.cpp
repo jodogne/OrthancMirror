@@ -87,40 +87,6 @@ namespace Orthanc
   }
 
   
-  DcmFileFormat* MemoryBufferTranscoder::TranscodeToParsed(bool& hasSopInstanceUidChanged,
-                                                           const void* buffer,
-                                                           size_t size,
-                                                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                                           bool allowNewSopInstanceUid)
-  {
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    if (useDcmtk_)
-    {
-      std::unique_ptr<DcmFileFormat> transcoded(
-        dcmtk_.TranscodeToParsed(hasSopInstanceUidChanged, buffer, size,
-                                 allowedSyntaxes, allowNewSopInstanceUid));
-      if (transcoded.get() != NULL)
-      {
-        return transcoded.release();
-      }
-    }
-#endif
-
-    std::string transcoded;
-    DicomTransferSyntax sourceSyntax, targetSyntax;
-    if (Transcode(transcoded, sourceSyntax, targetSyntax, hasSopInstanceUidChanged,
-                  buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
-    {
-      return FromDcmtkBridge::LoadFromMemoryBuffer(
-        transcoded.empty() ? NULL : transcoded.c_str(), transcoded.size());
-    }
-    else
-    {
-      return NULL;
-    }
-  }
-
-
   bool MemoryBufferTranscoder::HasInplaceTranscode(
     DicomTransferSyntax inputSyntax,
     const std::set<DicomTransferSyntax>& outputSyntaxes) const
@@ -219,7 +185,7 @@ namespace Orthanc
   }
   
 
-  IDicomTranscoder::TranscodedDicom* MemoryBufferTranscoder::TranscodeToParsed2(
+  IDicomTranscoder::TranscodedDicom* MemoryBufferTranscoder::TranscodeToParsed(
     DcmFileFormat& dicom /* in, possibly modified */,
     const void* buffer /* in, same DICOM file as "dicom" */,
     size_t size,
@@ -240,7 +206,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     else if (useDcmtk_)
     {
-      return dcmtk_.TranscodeToParsed2(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      return dcmtk_.TranscodeToParsed(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
     }
 #endif
     else

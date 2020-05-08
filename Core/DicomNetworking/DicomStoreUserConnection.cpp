@@ -492,7 +492,7 @@ namespace Orthanc
       }
 
       std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-        transcoder.TranscodeToParsed2(*dicom, buffer, size, uncompressedSyntaxes, false));
+        transcoder.TranscodeToParsed(*dicom, buffer, size, uncompressedSyntaxes, false));
 
       // WARNING: Below this point, "transcoded->GetDicom()" is possibly
       // a reference to "*dicom", if the DCMTK transcoder was used

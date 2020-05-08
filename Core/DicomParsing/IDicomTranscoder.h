@@ -62,18 +62,6 @@ namespace Orthanc
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                    bool allowNewSopInstanceUid) = 0;
 
-    /**
-     * Transcoding flavor that creates a new parsed DICOM file. A
-     * "std::set<>" is used to give the possible plugin the
-     * possibility to do a single parsing for all the possible
-     * transfer syntaxes.
-     **/
-    virtual DcmFileFormat* TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
-                                             const void* buffer,
-                                             size_t size,
-                                             const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                             bool allowNewSopInstanceUid) = 0;
-    
     virtual bool HasInplaceTranscode(DicomTransferSyntax inputSyntax,
                                      const std::set<DicomTransferSyntax>& outputSyntaxes) const = 0;
 
@@ -122,9 +110,12 @@ namespace Orthanc
     };
     
     /**
-     * This flavor is used by C-STORE.
+     * Transcoding flavor that creates a new parsed DICOM file. A
+     * "std::set<>" is used to give the possible plugin the
+     * possibility to do a single parsing for all the possible
+     * transfer syntaxes. This flavor is used by C-STORE.
      **/
-    virtual TranscodedDicom* TranscodeToParsed2(
+    virtual TranscodedDicom* TranscodeToParsed(
       DcmFileFormat& dicom /* in, possibly modified */,
       const void* buffer /* in, same DICOM file as "dicom" */,
       size_t size,

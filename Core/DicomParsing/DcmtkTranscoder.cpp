@@ -129,30 +129,6 @@ namespace Orthanc
   }
 
     
-  DcmFileFormat* DcmtkTranscoder::TranscodeToParsed(bool& hasSopInstanceUidChanged /* out */,
-                                                    const void* buffer,
-                                                    size_t size,
-                                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                                    bool allowNewSopInstanceUid) 
-  {
-    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
-
-    if (dicom.get() == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (InplaceTranscode(hasSopInstanceUidChanged, *dicom, allowedSyntaxes, allowNewSopInstanceUid))
-    {
-      return dicom.release();
-    }
-    else
-    {
-      return NULL;
-    }
-  }
-
-
   bool DcmtkTranscoder::InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
                                          DcmFileFormat& dicom,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -321,8 +297,14 @@ namespace Orthanc
                                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                           bool allowNewSopInstanceUid) 
   {
-    std::unique_ptr<DcmFileFormat> transcoded(
-      TranscodeToParsed(hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
+    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
+    if (dicom.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    
+    std::unique_ptr<TranscodedDicom> transcoded(
+      TranscodeToParsed(*dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
 
     if (transcoded.get() == NULL)
     {
@@ -330,12 +312,12 @@ namespace Orthanc
     }
     else
     {
-      if (transcoded->getDataset() == NULL)
+      if (transcoded->GetDicom().getDataset() == NULL)
       {
         throw OrthancException(ErrorCode_InternalError);
       }          
         
-      FromDcmtkBridge::SaveToMemoryBuffer(target, *transcoded->getDataset());
+      FromDcmtkBridge::SaveToMemoryBuffer(target, *transcoded->GetDicom().getDataset());
       return true;
     }
   }
@@ -415,7 +397,7 @@ namespace Orthanc
   }
 
 
-  IDicomTranscoder::TranscodedDicom* DcmtkTranscoder::TranscodeToParsed2(
+  IDicomTranscoder::TranscodedDicom* DcmtkTranscoder::TranscodeToParsed(
     DcmFileFormat& dicom /* in, possibly modified */,
     const void* buffer /* in, same DICOM file as "dicom" */,
     size_t size,
