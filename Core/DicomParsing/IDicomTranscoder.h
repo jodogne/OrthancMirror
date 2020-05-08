@@ -85,7 +85,9 @@ namespace Orthanc
         return hasSopInstanceUidChanged_;
       }
       
-      DcmFileFormat& GetDicom() const;      
+      DcmFileFormat& GetDicom() const;
+
+      DcmFileFormat* ReleaseDicom();
     };
     
     /**

@@ -1113,6 +1113,12 @@ namespace Orthanc
   }
 
 
+  ParsedDicomFile::ParsedDicomFile(DcmFileFormat* dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(dicom);  // No cloning
+  }
+
+
   DcmFileFormat& ParsedDicomFile::GetDcmtkObject() const
   {
     return *pimpl_->file_.get();

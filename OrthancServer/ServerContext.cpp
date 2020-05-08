@@ -344,9 +344,9 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DicomInstanceToStore& dicom,
-                                   StoreInstanceMode mode)
+  StoreStatus ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                   DicomInstanceToStore& dicom,
+                                                   StoreInstanceMode mode)
   {
     bool overwrite;
     switch (mode)
@@ -502,6 +502,61 @@ namespace Orthanc
   }
 
 
+  StoreStatus ServerContext::Store(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom,
+                                   StoreInstanceMode mode)
+  {
+    const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
+    
+    if (1)
+    {
+      return StoreAfterTranscoding(resultPublicId, dicom, mode);
+    }
+    else
+    {
+      // TODO => Automated transcoding of incoming DICOM files
+      
+      DicomTransferSyntax sourceSyntax;
+      if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
+            sourceSyntax, dicom.GetParsedDicomFile().GetDcmtkObject()) ||
+          sourceSyntax == option)
+      {
+        // No transcoding
+        return StoreAfterTranscoding(resultPublicId, dicom, mode);
+      }
+      else
+      {      
+        std::set<DicomTransferSyntax> syntaxes;
+        syntaxes.insert(option);
+
+        std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
+          GetTranscoder().TranscodeToParsed(dicom.GetParsedDicomFile().GetDcmtkObject(),
+                                            dicom.GetBufferData(), dicom.GetBufferSize(),
+                                            syntaxes, true /* allow new SOP instance UID */));
+
+        if (transcoded.get() == NULL)
+        {
+          // Cannot transcode => store the original file
+          return StoreAfterTranscoding(resultPublicId, dicom, mode);
+        }
+        else
+        {
+          std::unique_ptr<ParsedDicomFile> tmp(
+            ParsedDicomFile::AcquireDcmtkObject(transcoded->ReleaseDicom()));
+      
+          DicomInstanceToStore toStore;
+          toStore.SetParsedDicomFile(*tmp);
+          toStore.SetOrigin(dicom.GetOrigin());
+
+          StoreStatus ok = StoreAfterTranscoding(resultPublicId, toStore, mode);
+          printf(">> %s\n", resultPublicId.c_str());
+          return ok;
+        }
+      }
+    }
+  }
+
+  
   void ServerContext::AnswerAttachment(RestApiOutput& output,
                                        const std::string& resourceId,
                                        FileContentType content)
@@ -1115,6 +1170,28 @@ namespace Orthanc
   }
 
 
+  IDicomTranscoder& ServerContext::GetTranscoder()
+  {
+    IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      transcoder = &GetPlugins();
+    }
+#endif
+
+    if (transcoder == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      return *transcoder;
+    }
+  }   
+
+
   void ServerContext::StoreWithTranscoding(std::string& sopClassUid,
                                            std::string& sopInstanceUid,
                                            DicomStoreUserConnection& connection,
@@ -1133,24 +1210,8 @@ namespace Orthanc
     }
     else
     {
-      IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-      if (HasPlugins())
-      {
-        transcoder = &GetPlugins();
-      }
-#endif
-
-      if (transcoder == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-      else
-      {
-        connection.Transcode(sopClassUid, sopInstanceUid, *transcoder, data, dicom.size(),
-                             hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
-      }
+      connection.Transcode(sopClassUid, sopInstanceUid, GetTranscoder(), data, dicom.size(),
+                           hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
   }
 
@@ -1162,24 +1223,8 @@ namespace Orthanc
                                 DicomTransferSyntax targetSyntax,
                                 bool allowNewSopInstanceUid)
   {
-    IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
-    
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      transcoder = &GetPlugins();
-    }
-#endif
-
-    if (transcoder == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return transcoder->TranscodeParsedToBuffer(
-        target, sourceSyntax, hasSopInstanceUidChanged,
-        dicom.GetDcmtkObject(), targetSyntax, allowNewSopInstanceUid);
-    }
+    return GetTranscoder().TranscodeParsedToBuffer(
+      target, sourceSyntax, hasSopInstanceUidChanged,
+      dicom.GetDcmtkObject(), targetSyntax, allowNewSopInstanceUid);
   }
 }
