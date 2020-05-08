@@ -544,7 +544,7 @@
   "StorageCommitmentReportsSize" : 100,
 
   // Whether Orthanc transcodes DICOM files to an uncompressed
-  // transfer syntax, if remote modalities do not support compressed
-  // transfer syntaxes (new in Orthanc 1.7.0).
-  "TranscodingEnabled" : true
+  // transfer syntax over the DICOM protocol, if the remote modality
+  // does not support compressed transfer syntaxes (new in Orthanc 1.7.0).
+  "TranscodeDicomProtocol" : true
 }
