@@ -73,13 +73,16 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     if (useDcmtk_)
     {
-      return dcmtk_.TranscodeToBuffer(target, hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      if (dcmtk_.TranscodeToBuffer(target, hasSopInstanceUidChanged, buffer,
+                                   size, allowedSyntaxes, allowNewSopInstanceUid))
+      {
+        return true;
+      }
     }
-    else
 #endif
-    {
-      return Transcode(target, hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
-    }
+
+    return Transcode(target, hasSopInstanceUidChanged, buffer, size,
+                     allowedSyntaxes, allowNewSopInstanceUid);
   }
 
   
@@ -92,21 +95,25 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     if (useDcmtk_)
     {
-      return dcmtk_.TranscodeToParsed(hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+      std::unique_ptr<DcmFileFormat> transcoded(
+        dcmtk_.TranscodeToParsed(hasSopInstanceUidChanged, buffer, size,
+                                 allowedSyntaxes, allowNewSopInstanceUid));
+      if (transcoded.get() != NULL)
+      {
+        return transcoded.release();
+      }
+    }
+#endif
+
+    std::string transcoded;
+    if (Transcode(transcoded, hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      return FromDcmtkBridge::LoadFromMemoryBuffer(
+        transcoded.empty() ? NULL : transcoded.c_str(), transcoded.size());
     }
     else
-#endif
     {
-      std::string transcoded;
-      if (Transcode(transcoded, hasSopInstanceUidChanged, buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
-      {
-        return FromDcmtkBridge::LoadFromMemoryBuffer(
-          transcoded.empty() ? NULL : transcoded.c_str(), transcoded.size());
-      }
-      else
-      {
-        return NULL;
-      }
+      return NULL;
     }
   }
 
