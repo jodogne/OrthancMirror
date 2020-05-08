@@ -63,30 +63,6 @@ namespace Orthanc
   }
 
 
-  bool MemoryBufferTranscoder::TranscodeToBuffer(std::string& target,
-                                                 bool& hasSopInstanceUidChanged,
-                                                 const void* buffer,
-                                                 size_t size,
-                                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                                 bool allowNewSopInstanceUid)
-  {
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    if (useDcmtk_)
-    {
-      if (dcmtk_.TranscodeToBuffer(target, hasSopInstanceUidChanged, buffer,
-                                   size, allowedSyntaxes, allowNewSopInstanceUid))
-      {
-        return true;
-      }
-    }
-#endif
-
-    DicomTransferSyntax sourceSyntax, targetSyntax;
-    return Transcode(target, sourceSyntax, targetSyntax, hasSopInstanceUidChanged, buffer, size,
-                     allowedSyntaxes, allowNewSopInstanceUid);
-  }
-
-  
   bool MemoryBufferTranscoder::TranscodeParsedToBuffer(
     std::string& target /* out */,
     DicomTransferSyntax& sourceSyntax /* out */,
