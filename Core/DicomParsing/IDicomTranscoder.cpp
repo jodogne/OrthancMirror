@@ -86,7 +86,26 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_InternalError);
+      // Probably results from a call to "ReleaseDicom()"
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
+  }
+
+
+  DcmFileFormat* IDicomTranscoder::TranscodedDicom::ReleaseDicom()
+  {
+    if (internal_.get() != NULL)
+    {
+      return internal_.release();
+    }
+    else if (external_ != NULL)
+    {
+      return new DcmFileFormat(*external_);  // Clone
+    }
+    else
+    {
+      // Probably results from a call to "ReleaseDicom()"
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);      
+    }        
   }
 }

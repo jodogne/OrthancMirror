@@ -229,6 +229,12 @@ namespace Orthanc
     bool transcodeDicomProtocol_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
 
+    IDicomTranscoder& GetTranscoder();
+    
+    StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
+                                      DicomInstanceToStore& dicom,
+                                      StoreInstanceMode mode);
+
   public:
     class DicomCacheLocker : public boost::noncopyable
     {

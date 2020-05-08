@@ -63,11 +63,11 @@ namespace Orthanc
 
   void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
                                             DicomInstanceToStore& instance,
-                                            StoreStatus status) const
+                                            StoreStatus status,
+                                            const std::string& instanceId) const
   {
     Json::Value result;
-    SetupResourceAnswer(result, instance.GetHasher().HashInstance(), 
-                        ResourceType_Instance, status);
+    SetupResourceAnswer(result, instanceId, ResourceType_Instance, status);
 
     result["ParentPatient"] = instance.GetHasher().HashPatient();
     result["ParentStudy"] = instance.GetHasher().HashStudy();
@@ -142,7 +142,7 @@ namespace Orthanc
     std::string publicId;
     StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
 
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
+    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, publicId);
   }
 
 

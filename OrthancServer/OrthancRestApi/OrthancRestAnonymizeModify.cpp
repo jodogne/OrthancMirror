@@ -280,7 +280,7 @@ namespace Orthanc
 
     if (sendAnswer)
     {
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, id);
     }
   }
 
