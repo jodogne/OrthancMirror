@@ -229,8 +229,6 @@ namespace Orthanc
     bool transcodeDicomProtocol_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
 
-    IDicomTranscoder& GetTranscoder();
-    
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode);
@@ -469,13 +467,8 @@ namespace Orthanc
                               const std::string& moveOriginatorAet,
                               uint16_t moveOriginatorId);
 
-    // This method can be used even if the global option
+    // This accessor can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"
-    bool Transcode(std::string& target /* out */,
-                   DicomTransferSyntax& sourceSyntax /* out */,
-                   bool& hasSopInstanceUidChanged /* out */,
-                   ParsedDicomFile& dicom, // Possibly modified
-                   DicomTransferSyntax targetSyntax,
-                   bool allowNewSopInstanceUid);
+    IDicomTranscoder& GetTranscoder();
   };
 }

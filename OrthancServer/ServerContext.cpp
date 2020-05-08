@@ -506,7 +506,8 @@ namespace Orthanc
                                    DicomInstanceToStore& dicom,
                                    StoreInstanceMode mode)
   {
-    const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
+    //const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
+    const DicomTransferSyntax option = DicomTransferSyntax_LittleEndianExplicit;
     
     if (1)
     {
@@ -1213,18 +1214,5 @@ namespace Orthanc
       connection.Transcode(sopClassUid, sopInstanceUid, GetTranscoder(), data, dicom.size(),
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
-  }
-
-
-  bool ServerContext::Transcode(std::string& target /* out */,
-                                DicomTransferSyntax& sourceSyntax /* out */,
-                                bool& hasSopInstanceUidChanged /* out */,
-                                ParsedDicomFile& dicom, // Possibly modified
-                                DicomTransferSyntax targetSyntax,
-                                bool allowNewSopInstanceUid)
-  {
-    return GetTranscoder().TranscodeParsedToBuffer(
-      target, sourceSyntax, hasSopInstanceUidChanged,
-      dicom.GetDcmtkObject(), targetSyntax, allowNewSopInstanceUid);
   }
 }

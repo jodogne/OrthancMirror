@@ -12,7 +12,8 @@ REST API
   - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
     (defaults to the local AET)
 * Changes:
-  - "/instances/.../modify": New option "Transcode"
+  - "/instances/.../modify", ".../archive", ".../media",
+    "/tools/create-media" and "/tools/create-archive": New option "Transcode"
   - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 
     to 1.5.7 behaviour.
 

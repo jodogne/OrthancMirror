@@ -134,8 +134,9 @@ namespace Orthanc
       DicomTransferSyntax sourceSyntax;
       bool hasSopInstanceUidChanged;
 
-      if (context.Transcode(transcoded, sourceSyntax, hasSopInstanceUidChanged,
-                            *modified, targetSyntax, true))
+      if (context.GetTranscoder().TranscodeParsedToBuffer(
+            transcoded, sourceSyntax, hasSopInstanceUidChanged,
+            modified->GetDcmtkObject(), targetSyntax, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }
