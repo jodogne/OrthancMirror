@@ -226,7 +226,7 @@ namespace Orthanc
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
 
-    bool transcodingEnabled_;
+    bool transcodeDicomProtocol_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
 
   public:
@@ -464,7 +464,7 @@ namespace Orthanc
                               uint16_t moveOriginatorId);
 
     // This method can be used even if the global option
-    // "TranscodingEnabled" is set to "false"
+    // "TranscodeDicomProtocol" is set to "false"
     bool Transcode(std::string& target /* out */,
                    DicomTransferSyntax& sourceSyntax /* out */,
                    bool& hasSopInstanceUidChanged /* out */,

@@ -268,7 +268,7 @@ namespace Orthanc
       storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
 
       // New option in Orthanc 1.7.0
-      transcodingEnabled_ = lock.GetConfiguration().GetBooleanParameter("TranscodingEnabled", true);
+      transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1125,7 +1125,7 @@ namespace Orthanc
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     
-    if (!transcodingEnabled_ ||
+    if (!transcodeDicomProtocol_ ||
         !connection.GetParameters().GetRemoteModality().IsTranscodingAllowed())
     {
       connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
