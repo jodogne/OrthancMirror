@@ -22,17 +22,15 @@
 #include "GdcmDecoderCache.h"
 
 #include "../../../Core/Compatibility.h"
-#include "OrthancImageWrapper.h"
 
 namespace OrthancPlugins
 {
-  std::string GdcmDecoderCache::ComputeMd5(OrthancPluginContext* context,
-                                           const void* dicom,
+  std::string GdcmDecoderCache::ComputeMd5(const void* dicom,
                                            size_t size)
   {
     std::string result;
 
-    char* md5 = OrthancPluginComputeMd5(context, dicom, size);
+    char* md5 = OrthancPluginComputeMd5(OrthancPlugins::GetGlobalContext(), dicom, size);
 
     if (md5 == NULL)
     {
@@ -49,7 +47,7 @@ namespace OrthancPlugins
     {
     }
 
-    OrthancPluginFreeString(context, md5);
+    OrthancPluginFreeString(OrthancPlugins::GetGlobalContext(), md5);
 
     if (!ok)
     {
@@ -62,12 +60,11 @@ namespace OrthancPlugins
   }
 
 
-  OrthancImageWrapper* GdcmDecoderCache::Decode(OrthancPluginContext* context,
-                                                const void* dicom,
-                                                const uint32_t size,
-                                                uint32_t frameIndex)
+  OrthancImage* GdcmDecoderCache::Decode(const void* dicom,
+                                         const uint32_t size,
+                                         uint32_t frameIndex)
   {
-    std::string md5 = ComputeMd5(context, dicom, size);
+    std::string md5 = ComputeMd5(dicom, size);
 
     // First check whether the previously decoded image is the same
     // as this one
@@ -79,13 +76,13 @@ namespace OrthancPlugins
           md5_ == md5)
       {
         // This is the same image: Reuse the previous decoding
-        return new OrthancImageWrapper(context, decoder_->Decode(context, frameIndex));
+        return new OrthancImage(decoder_->Decode(frameIndex));
       }
     }
 
     // This is not the same image
     std::unique_ptr<GdcmImageDecoder> decoder(new GdcmImageDecoder(dicom, size));
-    std::unique_ptr<OrthancImageWrapper> image(new OrthancImageWrapper(context, decoder->Decode(context, frameIndex)));
+    std::unique_ptr<OrthancImage> image(new OrthancImage(decoder->Decode(frameIndex)));
 
     {
       // Cache the newly created decoder for further use

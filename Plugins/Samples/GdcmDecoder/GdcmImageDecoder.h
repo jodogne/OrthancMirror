@@ -21,21 +21,11 @@
 
 #pragma once
 
-#include <orthanc/OrthancCPlugin.h>
+#include "../Common/OrthancPluginCppWrapper.h"
+
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-
-
-// This is for compatibility with Orthanc SDK <= 1.3.0
-#if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
-#define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision) \
-  (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||               \
-   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER == major &&             \
-    (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER > minor ||             \
-     (ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER == minor &&           \
-      ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER >= revision))))
-#endif
 
 
 namespace OrthancPlugins
@@ -60,7 +50,6 @@ namespace OrthancPlugins
 
     static size_t GetBytesPerPixel(OrthancPluginPixelFormat format);
 
-    OrthancPluginImage* Decode(OrthancPluginContext* context,
-                               unsigned int frameIndex) const;
+    OrthancPluginImage* Decode(unsigned int frameIndex) const;
   };
 }
