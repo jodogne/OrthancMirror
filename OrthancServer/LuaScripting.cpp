@@ -821,7 +821,7 @@ namespace Orthanc
 
 
   void LuaScripting::SignalStoredInstance(const std::string& publicId,
-                                          DicomInstanceToStore& instance,
+                                          const DicomInstanceToStore& instance,
                                           const Json::Value& simplifiedTags)
   {
     Json::Value metadata = Json::objectValue;

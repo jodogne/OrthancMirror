@@ -121,7 +121,7 @@ namespace Orthanc
     void Stop();
     
     void SignalStoredInstance(const std::string& publicId,
-                              DicomInstanceToStore& instance,
+                              const DicomInstanceToStore& instance,
                               const Json::Value& simplifiedTags);
 
     void SignalChange(const ServerIndexChange& change);
