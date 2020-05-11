@@ -386,8 +386,7 @@ namespace OrthancPlugins
                  uint32_t                  width,
                  uint32_t                  height,
                  uint32_t                  pitch,
-                 void*                     buffer
-      );
+                 void*                     buffer);
 
     ~OrthancImage()
     {
@@ -1139,4 +1138,76 @@ namespace OrthancPlugins
     static void Destructor(void* rawHandler);
   };
 #endif
+
+
+  class DicomInstance : public boost::noncopyable
+  {
+  private:
+    bool toFree_;
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+    const OrthancPluginDicomInstance*  instance_;
+#else
+    OrthancPluginDicomInstance*  instance_;
+#endif
+    
+  public:
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+    DicomInstance(const OrthancPluginDicomInstance* instance);
+#else
+    DicomInstance(OrthancPluginDicomInstance* instance);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    DicomInstance(const void* buffer,
+                  size_t size);
+#endif
+
+    ~DicomInstance();
+
+    std::string GetRemoteAet() const;
+
+    const void* GetBuffer() const
+    {
+      return OrthancPluginGetInstanceData(GetGlobalContext(), instance_);
+    }
+
+    size_t GetSize() const
+    {
+      return OrthancPluginGetInstanceSize(GetGlobalContext(), instance_);
+    }
+
+    void GetJson(Json::Value& target) const;
+
+    void GetSimplifiedJson(Json::Value& target) const;
+
+    OrthancPluginInstanceOrigin GetOrigin() const
+    {
+      return OrthancPluginGetInstanceOrigin(GetGlobalContext(), instance_);
+    }
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+    std::string GetTransferSyntaxUid() const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+    bool HasPixelData() const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    unsigned int GetFramesCount() const
+    {
+      return OrthancPluginGetInstanceFramesCount(GetGlobalContext(), instance_);
+    }
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void GetRawFrame(std::string& target,
+                     unsigned int frameIndex) const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    OrthancImage* GetDecodedFrame(unsigned int frameIndex) const;
+#endif
+  };
 }

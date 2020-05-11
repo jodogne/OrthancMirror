@@ -99,7 +99,7 @@ namespace Orthanc
       }
 
       virtual void SignalStoredInstance(const std::string& publicId,
-                                        DicomInstanceToStore& instance,
+                                        const DicomInstanceToStore& instance,
                                         const Json::Value& simplifiedTags)
       {
         context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);

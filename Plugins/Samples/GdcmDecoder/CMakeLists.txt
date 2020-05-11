@@ -21,7 +21,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(GdcmDecoder)
 
-SET(PLUGIN_VERSION "0.0" CACHE STRING "Version of the plugin")
+SET(PLUGIN_VERSION "mainline" CACHE STRING "Version of the plugin")
 
 
 # Parameters of the build

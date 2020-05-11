@@ -17,6 +17,17 @@ REST API
   - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 
     to 1.5.7 behaviour.
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCreateDicomInstance()
+  - OrthancPluginFreeDicomInstance()
+  - OrthancPluginGetInstanceFramesCount()
+  - OrthancPluginGetInstanceRawFrame()
+  - OrthancPluginGetInstanceDecodedFrame()
+* "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"
+
 Maintenance
 -----------
 
