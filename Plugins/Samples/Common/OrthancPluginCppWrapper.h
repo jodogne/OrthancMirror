@@ -412,7 +412,7 @@ namespace OrthancPlugins
 
     unsigned int GetPitch() const;
     
-    const void* GetBuffer() const;
+    void* GetBuffer() const;
 
     const OrthancPluginImage* GetObject() const
     {
@@ -428,6 +428,10 @@ namespace OrthancPlugins
 
     void AnswerJpegImage(OrthancPluginRestOutput* output,
                          uint8_t quality) const;
+    
+    void* GetWriteableBuffer();
+
+    OrthancPluginImage* Release();
   };
 
 

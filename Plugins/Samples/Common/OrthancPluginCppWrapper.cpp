@@ -1045,7 +1045,7 @@ namespace OrthancPlugins
   }
 
 
-  const void* OrthancImage::GetBuffer() const
+  void* OrthancImage::GetBuffer() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImageBuffer(GetGlobalContext(), image_);
@@ -1093,6 +1093,14 @@ namespace OrthancPlugins
                                             GetWidth(), GetHeight(), GetPitch(), GetBuffer(), quality);
   }
 
+
+  OrthancPluginImage* OrthancImage::Release()
+  {
+    CheckImageAvailable();
+    OrthancPluginImage* tmp = image_;
+    image_ = NULL;
+    return tmp;
+  }
 
 
 #if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
