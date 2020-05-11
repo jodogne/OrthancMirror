@@ -47,6 +47,13 @@
 
 
 
+/**
+ * The definition of ORTHANC_PLUGINS_VERSION_IS_ABOVE below is for
+ * backward compatibility with Orthanc SDK <= 1.3.0.
+ * 
+ *   $ hg diff -r Orthanc-1.3.0:Orthanc-1.3.1 ../../../Plugins/Include/orthanc/OrthancCPlugin.h
+ *
+ **/
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
 #define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
