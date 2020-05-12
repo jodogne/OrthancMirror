@@ -26,6 +26,8 @@ Plugins
   - OrthancPluginGetInstanceFramesCount()
   - OrthancPluginGetInstanceRawFrame()
   - OrthancPluginGetInstanceDecodedFrame()
+  - OrthancPluginTranscodeDicomInstance()
+  - OrthancPluginSerializeDicomInstance()
 * "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"
 
 Maintenance

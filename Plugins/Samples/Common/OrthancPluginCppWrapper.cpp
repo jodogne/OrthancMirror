@@ -3297,17 +3297,20 @@ namespace OrthancPlugins
   void DicomInstance::GetRawFrame(std::string& target,
                                   unsigned int frameIndex) const
   {
-    OrthancPluginMemoryBuffer buffer;
+    MemoryBuffer buffer;
     OrthancPluginErrorCode code = OrthancPluginGetInstanceRawFrame(
-      GetGlobalContext(), &buffer, instance_, frameIndex);
+      GetGlobalContext(), *buffer, instance_, frameIndex);
 
-    if (code != OrthancPluginErrorCode_Success)
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      buffer.ToString(target);
+    }
+    else
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
   }
 #endif
-
 
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)  
@@ -3326,4 +3329,43 @@ namespace OrthancPlugins
     }
   }
 #endif  
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  void DicomInstance::Serialize(std::string& target) const
+  {
+    MemoryBuffer buffer;
+    OrthancPluginErrorCode code = OrthancPluginSerializeDicomInstance(
+      GetGlobalContext(), *buffer, instance_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      buffer.ToString(target);
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+  }
+#endif
+  
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  DicomInstance* DicomInstance::Transcode(const void* buffer,
+                                          size_t size,
+                                          const std::string& transferSyntax)
+  {
+    OrthancPluginDicomInstance* instance = OrthancPluginTranscodeDicomInstance(
+      GetGlobalContext(), buffer, size, transferSyntax.c_str());
+
+    if (instance == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      return new DicomInstance(instance);
+    }
+  }
+#endif
 }

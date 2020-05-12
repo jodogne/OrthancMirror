@@ -507,6 +507,8 @@ extern "C"
     _OrthancPluginService_GetInstanceFramesCount = 4012,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GetInstanceRawFrame = 4013,      /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GetInstanceDecodedFrame = 4014,  /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_TranscodeDicomInstance = 4015,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_SerializeDicomInstance = 4016,   /* New in Orthanc 1.7.0 */
     
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
@@ -7552,6 +7554,7 @@ extern "C"
     OrthancPluginDicomInstance**  target;
     const void*                   buffer;
     uint32_t                      size;
+    const char*                   transferSyntax;
   } _OrthancPluginCreateDicomInstance;
 
   ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginCreateDicomInstance(
@@ -7660,6 +7663,44 @@ extern "C"
     {
       return target;
     }
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginTranscodeDicomInstance(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               size,
+    const char*            transferSyntax)
+  {
+    OrthancPluginDicomInstance* target = NULL;
+
+    _OrthancPluginCreateDicomInstance params;
+    params.target = &target;
+    params.buffer = buffer;
+    params.size = size;
+    params.transferSyntax = transferSyntax;
+
+    if (context->InvokeService(context, _OrthancPluginService_TranscodeDicomInstance, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSerializeDicomInstance(
+    OrthancPluginContext*             context,
+    OrthancPluginMemoryBuffer*        target,
+    const OrthancPluginDicomInstance* instance)
+  {
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetBuffer = target;
+    params.instance = instance;
+
+    return context->InvokeService(context, _OrthancPluginService_SerializeDicomInstance, &params);
   }
 
 #ifdef  __cplusplus
