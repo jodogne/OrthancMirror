@@ -3364,7 +3364,7 @@ namespace OrthancPlugins
     }
     else
     {
-      std::unique_ptr<DicomInstance> result(new DicomInstance(instance));
+      boost::movelib::unique_ptr<DicomInstance> result(new DicomInstance(instance));
       result->toFree_ = true;
       return result.release();
     }
