@@ -35,7 +35,9 @@
 
 #include "../../Core/Compatibility.h"
 #include "../../Core/JobsEngine/SetOfInstancesJob.h"
-#include "../../Core/DicomNetworking/DicomUserConnection.h"
+#include "../../Core/DicomNetworking/DicomStoreUserConnection.h"
+
+#include <list>
 
 namespace Orthanc
 {
@@ -44,13 +46,12 @@ namespace Orthanc
   class DicomModalityStoreJob : public SetOfInstancesJob
   {
   private:
-    ServerContext&                        context_;
-    std::string                           localAet_;
-    RemoteModalityParameters              remote_;
-    std::string                           moveOriginatorAet_;
-    uint16_t                              moveOriginatorId_;
-    std::unique_ptr<DicomUserConnection>  connection_;
-    bool                                  storageCommitment_;
+    ServerContext&                             context_;
+    DicomAssociationParameters                 parameters_;
+    std::string                                moveOriginatorAet_;
+    uint16_t                                   moveOriginatorId_;
+    std::unique_ptr<DicomStoreUserConnection>  connection_;
+    bool                                       storageCommitment_;
 
     // For storage commitment
     std::string             transactionUid_;
@@ -72,19 +73,16 @@ namespace Orthanc
     DicomModalityStoreJob(ServerContext& context,
                           const Json::Value& serialized);
 
-    const std::string& GetLocalAet() const
+    const DicomAssociationParameters& GetParameters() const
     {
-      return localAet_;
+      return parameters_;
     }
 
     void SetLocalAet(const std::string& aet);
 
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
-
     void SetRemoteModality(const RemoteModalityParameters& remote);
+
+    void SetTimeout(uint32_t seconds);
 
     bool HasMoveOriginator() const
     {
@@ -112,5 +110,10 @@ namespace Orthanc
     virtual void Reset() ORTHANC_OVERRIDE;
 
     void EnableStorageCommitment(bool enabled);
+
+    bool HasStorageCommitment() const
+    {
+      return storageCommitment_;
+    }
   };
 }

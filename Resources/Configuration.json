@@ -209,9 +209,17 @@
      * registered remote SCU modalities. Starting with Orthanc 1.5.0,
      * it is possible to specify which DICOM commands are allowed,
      * separately for each remote modality, using the syntax
-     * below. The "AllowEcho" (resp.  "AllowStore") option only has an
-     * effect respectively if global option "DicomAlwaysAllowEcho"
-     * (resp. "DicomAlwaysAllowStore") is set to false.
+     * below.
+     *
+     * The "AllowEcho" (resp.  "AllowStore") option only has an effect
+     * respectively if global option "DicomAlwaysAllowEcho"
+     * (resp. "DicomAlwaysAllowStore") is set to "false".
+     *
+     * Starting with Orthanc 1.7.0, "AllowTranscoding" can be used to
+     * disable the transcoding to uncompressed transfer syntaxes if
+     * the remote modality doesn't support compressed transfer
+     * syntaxes. This option only has an effect if global option
+     * "EnableTranscoding" is set to "true".
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -223,7 +231,8 @@
     //  "AllowGet"  : false,
     //  "AllowMove" : false,
     //  "AllowStore" : true,
-    //  "AllowStorageCommitment" : false  // new in 1.6.0
+    //  "AllowStorageCommitment" : false,  // new in 1.6.0
+    //  "AllowTranscoding" : true          // new in 1.7.0
     //}
   },
 
@@ -533,5 +542,10 @@
 
   // Maximum number of storage commitment reports (i.e. received from
   // remote modalities) to be kept in memory (new in Orthanc 1.6.0).
-  "StorageCommitmentReportsSize" : 100
+  "StorageCommitmentReportsSize" : 100,
+
+  // Whether Orthanc transcodes DICOM files to an uncompressed
+  // transfer syntax over the DICOM protocol, if the remote modality
+  // does not support compressed transfer syntaxes (new in Orthanc 1.7.0).
+  "TranscodeDicomProtocol" : true
 }

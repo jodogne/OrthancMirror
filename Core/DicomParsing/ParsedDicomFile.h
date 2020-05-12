@@ -102,6 +102,8 @@ namespace Orthanc
 
     bool EmbedContentInternal(const std::string& dataUriScheme);
 
+    ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
+
   public:
     ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 
@@ -114,9 +116,14 @@ namespace Orthanc
 
     ParsedDicomFile(const std::string& content);
 
-    ParsedDicomFile(DcmDataset& dicom);
+    ParsedDicomFile(DcmDataset& dicom);  // This clones the DCMTK object
 
-    ParsedDicomFile(DcmFileFormat& dicom);
+    ParsedDicomFile(DcmFileFormat& dicom);  // This clones the DCMTK object
+
+    static ParsedDicomFile* AcquireDcmtkObject(DcmFileFormat* dicom)  // No clone here
+    {
+      return new ParsedDicomFile(dicom);
+    }
 
     DcmFileFormat& GetDcmtkObject() const;
 

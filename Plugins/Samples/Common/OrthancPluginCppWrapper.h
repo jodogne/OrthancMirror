@@ -47,6 +47,13 @@
 
 
 
+/**
+ * The definition of ORTHANC_PLUGINS_VERSION_IS_ABOVE below is for
+ * backward compatibility with Orthanc SDK <= 1.3.0.
+ * 
+ *   $ hg diff -r Orthanc-1.3.0:Orthanc-1.3.1 ../../../Plugins/Include/orthanc/OrthancCPlugin.h
+ *
+ **/
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
 #define ORTHANC_PLUGINS_VERSION_IS_ABOVE(major, minor, revision)        \
   (ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER > major ||                      \
@@ -379,8 +386,7 @@ namespace OrthancPlugins
                  uint32_t                  width,
                  uint32_t                  height,
                  uint32_t                  pitch,
-                 void*                     buffer
-      );
+                 void*                     buffer);
 
     ~OrthancImage()
     {
@@ -405,7 +411,7 @@ namespace OrthancPlugins
 
     unsigned int GetPitch() const;
     
-    const void* GetBuffer() const;
+    void* GetBuffer() const;
 
     const OrthancPluginImage* GetObject() const
     {
@@ -421,6 +427,10 @@ namespace OrthancPlugins
 
     void AnswerJpegImage(OrthancPluginRestOutput* output,
                          uint8_t quality) const;
+    
+    void* GetWriteableBuffer();
+
+    OrthancPluginImage* Release();
   };
 
 
@@ -1128,4 +1138,86 @@ namespace OrthancPlugins
     static void Destructor(void* rawHandler);
   };
 #endif
+
+
+  class DicomInstance : public boost::noncopyable
+  {
+  private:
+    bool toFree_;
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+    const OrthancPluginDicomInstance*  instance_;
+#else
+    OrthancPluginDicomInstance*  instance_;
+#endif
+    
+  public:
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+    DicomInstance(const OrthancPluginDicomInstance* instance);
+#else
+    DicomInstance(OrthancPluginDicomInstance* instance);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    DicomInstance(const void* buffer,
+                  size_t size);
+#endif
+
+    ~DicomInstance();
+
+    std::string GetRemoteAet() const;
+
+    const void* GetBuffer() const
+    {
+      return OrthancPluginGetInstanceData(GetGlobalContext(), instance_);
+    }
+
+    size_t GetSize() const
+    {
+      return OrthancPluginGetInstanceSize(GetGlobalContext(), instance_);
+    }
+
+    void GetJson(Json::Value& target) const;
+
+    void GetSimplifiedJson(Json::Value& target) const;
+
+    OrthancPluginInstanceOrigin GetOrigin() const
+    {
+      return OrthancPluginGetInstanceOrigin(GetGlobalContext(), instance_);
+    }
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+    std::string GetTransferSyntaxUid() const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+    bool HasPixelData() const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    unsigned int GetFramesCount() const
+    {
+      return OrthancPluginGetInstanceFramesCount(GetGlobalContext(), instance_);
+    }
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void GetRawFrame(std::string& target,
+                     unsigned int frameIndex) const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    OrthancImage* GetDecodedFrame(unsigned int frameIndex) const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void Serialize(std::string& target) const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    static DicomInstance* Transcode(const void* buffer,
+                                    size_t size,
+                                    const std::string& transferSyntax);
+#endif
+  };
 }

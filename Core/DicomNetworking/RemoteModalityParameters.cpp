@@ -51,6 +51,7 @@ static const char* KEY_ALLOW_STORE = "AllowStore";
 static const char* KEY_ALLOW_N_ACTION = "AllowNAction";
 static const char* KEY_ALLOW_N_EVENT_REPORT = "AllowEventReport";
 static const char* KEY_ALLOW_STORAGE_COMMITMENT = "AllowStorageCommitment";
+static const char* KEY_ALLOW_TRANSCODING = "AllowTranscoding";
 static const char* KEY_HOST = "Host";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
@@ -71,6 +72,7 @@ namespace Orthanc
     allowGet_ = true;
     allowNAction_ = true;  // For storage commitment
     allowNEventReport_ = true;  // For storage commitment
+    allowTranscoding_ = true;
   }
 
 
@@ -233,6 +235,11 @@ namespace Orthanc
       allowNAction_ = allow;
       allowNEventReport_ = allow;
     }
+
+    if (serialized.isMember(KEY_ALLOW_TRANSCODING))
+    {
+      allowTranscoding_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_TRANSCODING);
+    }
   }
 
 
@@ -314,7 +321,8 @@ namespace Orthanc
             !allowGet_ ||
             !allowMove_ ||
             !allowNAction_ ||
-            !allowNEventReport_);
+            !allowNEventReport_ ||
+            !allowTranscoding_);
   }
 
   
@@ -336,6 +344,7 @@ namespace Orthanc
       target[KEY_ALLOW_MOVE] = allowMove_;
       target[KEY_ALLOW_N_ACTION] = allowNAction_;
       target[KEY_ALLOW_N_EVENT_REPORT] = allowNEventReport_;
+      target[KEY_ALLOW_TRANSCODING] = allowTranscoding_;
     }
     else
     {

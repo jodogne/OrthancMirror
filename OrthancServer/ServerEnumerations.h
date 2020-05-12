@@ -90,6 +90,13 @@ namespace Orthanc
     FindStorageAccessMode_DiskOnLookupAndAnswer
   };
 
+  enum StoreInstanceMode
+  {
+    StoreInstanceMode_Default,
+    StoreInstanceMode_OverwriteDuplicate,
+    StoreInstanceMode_IgnoreDuplicate
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations

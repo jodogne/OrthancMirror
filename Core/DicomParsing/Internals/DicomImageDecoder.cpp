@@ -676,7 +676,7 @@ namespace Orthanc
   ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
                                            unsigned int frame)
   {
-    E_TransferSyntax syntax = dataset.getOriginalXfer();
+    E_TransferSyntax syntax = dataset.getCurrentXfer();
 
     /**
      * Deal with uncompressed, raw images.

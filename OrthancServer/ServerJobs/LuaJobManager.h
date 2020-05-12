@@ -91,7 +91,8 @@ namespace Orthanc
 
       size_t AddDeleteResourceOperation(ServerContext& context);
 
-      size_t AddStoreScuOperation(const std::string& localAet,
+      size_t AddStoreScuOperation(ServerContext& context,
+                                  const std::string& localAet,
                                   const RemoteModalityParameters& modality);
 
       size_t AddStorePeerOperation(const WebServiceParameters& peer);

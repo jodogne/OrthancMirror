@@ -35,6 +35,8 @@
 
 #include "RemoteModalityParameters.h"
 
+#include <json/value.h>
+
 class OFCondition;  // From DCMTK
 
 namespace Orthanc
@@ -42,14 +44,11 @@ namespace Orthanc
   class DicomAssociationParameters
   {
   private:
-    std::string           localAet_;
-    std::string           remoteAet_;
-    std::string           remoteHost_;
-    uint16_t              remotePort_;
-    ModalityManufacturer  manufacturer_;
-    uint32_t              timeout_;
+    std::string               localAet_;
+    RemoteModalityParameters  remote_;
+    uint32_t                  timeout_;
 
-    void ReadDefaultTimeout();
+    static void CheckHost(const std::string& host);
 
   public:
     DicomAssociationParameters();
@@ -62,52 +61,38 @@ namespace Orthanc
       return localAet_;
     }
 
-    const std::string& GetRemoteApplicationEntityTitle() const
-    {
-      return remoteAet_;
-    }
-
-    const std::string& GetRemoteHost() const
-    {
-      return remoteHost_;
-    }
-
-    uint16_t GetRemotePort() const
-    {
-      return remotePort_;
-    }
-
-    ModalityManufacturer GetRemoteManufacturer() const
-    {
-      return manufacturer_;
-    }
-
     void SetLocalApplicationEntityTitle(const std::string& aet)
     {
       localAet_ = aet;
     }
 
+    const RemoteModalityParameters& GetRemoteModality() const
+    {
+      return remote_;
+    }
+
+    void SetRemoteModality(const RemoteModalityParameters& parameters);
+    
     void SetRemoteApplicationEntityTitle(const std::string& aet)
     {
-      remoteAet_ = aet;
+      remote_.SetApplicationEntityTitle(aet);
     }
 
     void SetRemoteHost(const std::string& host);
 
     void SetRemotePort(uint16_t port)
     {
-      remotePort_ = port;
+      remote_.SetPortNumber(port);
     }
 
     void SetRemoteManufacturer(ModalityManufacturer manufacturer)
     {
-      manufacturer_ = manufacturer;
+      remote_.SetManufacturer(manufacturer);
     }
-
-    void SetRemoteModality(const RemoteModalityParameters& parameters);
 
     bool IsEqual(const DicomAssociationParameters& other) const;
 
+    // Setting it to "0" disables the timeout (infinite wait)
     void SetTimeout(uint32_t seconds)
     {
       timeout_ = seconds;
@@ -122,7 +107,13 @@ namespace Orthanc
     {
       return timeout_ != 0;
     }
+
+    void SerializeJob(Json::Value& target) const;
+    
+    static DicomAssociationParameters UnserializeJob(const Json::Value& serialized);
     
     static void SetDefaultTimeout(uint32_t seconds);
+
+    static uint32_t GetDefaultTimeout();
   };
 }

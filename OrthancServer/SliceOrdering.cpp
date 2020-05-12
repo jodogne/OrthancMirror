@@ -320,7 +320,6 @@ namespace Orthanc
     if (instances_.size() <= 1)
     {
       // One single instance: It is sorted by default
-      sortedInstances_ = instances_;
       return true;
     }
 
@@ -329,32 +328,25 @@ namespace Orthanc
       return false;
     }
 
-    sortedInstances_.clear();
-
-    // consider only the instances with a position and correctly oriented (if they have a normal)
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (instances_[i]->HasPosition() &&
-          (!instances_[i]->HasNormal() ||
-           IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
+
+      if (!instances_[i]->HasPosition() ||
+          (instances_[i]->HasNormal() &&
+           !IsParallelOrOpposite(instances_[i]->GetNormal(), normal_)))
       {
-        sortedInstances_.push_back(instances_[i]);
+        return false;
       }
     }
 
-    if (sortedInstances_.size() == 0)
-    {
-      return false;
-    }
-
     PositionComparator comparator(normal_);
-    std::sort(sortedInstances_.begin(), sortedInstances_.end(), comparator);
+    std::sort(instances_.begin(), instances_.end(), comparator);
 
-    float a = sortedInstances_[0]->ComputeRelativePosition(normal_);
-    for (size_t i = 1; i < sortedInstances_.size(); i++)
+    float a = instances_[0]->ComputeRelativePosition(normal_);
+    for (size_t i = 1; i < instances_.size(); i++)
     {
-      float b = sortedInstances_[i]->ComputeRelativePosition(normal_);
+      float b = instances_[i]->ComputeRelativePosition(normal_);
 
       if (std::fabs(b - a) <= 10.0f * std::numeric_limits<float>::epsilon())
       {
@@ -376,38 +368,27 @@ namespace Orthanc
     if (instances_.size() <= 1)
     {
       // One single instance: It is sorted by default
-      sortedInstances_ = instances_;
       return true;
     }
 
-    sortedInstances_.clear();
-
-    // consider only the instances with an index
     for (size_t i = 0; i < instances_.size(); i++)
     {
       assert(instances_[i] != NULL);
-      if (instances_[i]->HasIndexInSeries())
+      if (!instances_[i]->HasIndexInSeries())
       {
-        sortedInstances_.push_back(instances_[i]);
+        return false;
       }
     }
 
-    if (sortedInstances_.size() == 0) // if we were not able to sort instances because none of them had an index, return all instances in a "random" order
+    std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
+    
+    for (size_t i = 1; i < instances_.size(); i++)
     {
-      sortedInstances_ = instances_;
-    }
-    else
-    {
-      std::sort(sortedInstances_.begin(), sortedInstances_.end(), IndexInSeriesComparator);
-
-      for (size_t i = 1; i < sortedInstances_.size(); i++)
+      if (instances_[i - 1]->GetIndexInSeries() == instances_[i]->GetIndexInSeries())
       {
-        if (sortedInstances_[i - 1]->GetIndexInSeries() == sortedInstances_[i]->GetIndexInSeries())
-        {
-          // The current "IndexInSeries" occurs 2 times: Not a proper ordering
-          LOG(WARNING) << "This series contains 2 slices with the same index, trying to display it anyway";
-          break;
-        }
+        // The current "IndexInSeries" occurs 2 times: Not a proper ordering
+        LOG(WARNING) << "This series contains 2 slices with the same index, trying to display it anyway";
+        break;
       }
     }
 
@@ -446,28 +427,28 @@ namespace Orthanc
   }
 
 
-  const std::string& SliceOrdering::GetSortedInstanceId(size_t index) const
+  const std::string& SliceOrdering::GetInstanceId(size_t index) const
   {
-    if (index >= sortedInstances_.size())
+    if (index >= instances_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {
-      return sortedInstances_[index]->GetIdentifier();
+      return instances_[index]->GetIdentifier();
     }
   }
 
 
-  unsigned int SliceOrdering::GetSortedInstanceFramesCount(size_t index) const
+  unsigned int SliceOrdering::GetFramesCount(size_t index) const
   {
-    if (index >= sortedInstances_.size())
+    if (index >= instances_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {
-      return sortedInstances_[index]->GetFramesCount();
+      return instances_[index]->GetFramesCount();
     }
   }
 
@@ -478,9 +459,9 @@ namespace Orthanc
     result["Type"] = (isVolume_ ? "Volume" : "Sequence");
     
     Json::Value tmp = Json::arrayValue;
-    for (size_t i = 0; i < GetSortedInstancesCount(); i++)
+    for (size_t i = 0; i < GetInstancesCount(); i++)
     {
-      tmp.append(GetBasePath(ResourceType_Instance, GetSortedInstanceId(i)) + "/file");
+      tmp.append(GetBasePath(ResourceType_Instance, GetInstanceId(i)) + "/file");
     }
 
     result["Dicom"] = tmp;
@@ -488,18 +469,18 @@ namespace Orthanc
     Json::Value slicesShort = Json::arrayValue;
 
     tmp.clear();
-    for (size_t i = 0; i < GetSortedInstancesCount(); i++)
+    for (size_t i = 0; i < GetInstancesCount(); i++)
     {
-      std::string base = GetBasePath(ResourceType_Instance, GetSortedInstanceId(i));
-      for (size_t j = 0; j < GetSortedInstanceFramesCount(i); j++)
+      std::string base = GetBasePath(ResourceType_Instance, GetInstanceId(i));
+      for (size_t j = 0; j < GetFramesCount(i); j++)
       {
         tmp.append(base + "/frames/" + boost::lexical_cast<std::string>(j));
       }
 
       Json::Value tmp2 = Json::arrayValue;
-      tmp2.append(GetSortedInstanceId(i));
+      tmp2.append(GetInstanceId(i));
       tmp2.append(0);
-      tmp2.append(GetSortedInstanceFramesCount(i));
+      tmp2.append(GetFramesCount(i));
       
       slicesShort.append(tmp2);
     }

@@ -259,10 +259,10 @@ namespace Orthanc
 
     LOG(INFO) << "Opening a DICOM SCU connection from AET \""
               << parameters.GetLocalApplicationEntityTitle() 
-              << "\" to AET \"" << parameters.GetRemoteApplicationEntityTitle()
-              << "\" on host " << parameters.GetRemoteHost()
-              << ":" << parameters.GetRemotePort() 
-              << " (manufacturer: " << EnumerationToString(parameters.GetRemoteManufacturer()) << ")";
+              << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
+              << "\" on host " << parameters.GetRemoteModality().GetHost()
+              << ":" << parameters.GetRemoteModality().GetPortNumber() 
+              << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer()) << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
@@ -270,7 +270,7 @@ namespace Orthanc
     // Set this application's title and the called application's title in the params
     CheckConnecting(parameters, ASC_setAPTitles(
                       params_, parameters.GetLocalApplicationEntityTitle().c_str(),
-                      parameters.GetRemoteApplicationEntityTitle().c_str(), NULL));
+                      parameters.GetRemoteModality().GetApplicationEntityTitle().c_str(), NULL));
 
     // Set the network addresses of the local and remote entities
     char localHost[HOST_NAME_MAX];
@@ -284,7 +284,8 @@ namespace Orthanc
       snprintf
 #endif
       (remoteHostAndPort, HOST_NAME_MAX - 1, "%s:%d",
-       parameters.GetRemoteHost().c_str(), parameters.GetRemotePort());
+       parameters.GetRemoteModality().GetHost().c_str(),
+       parameters.GetRemoteModality().GetPortNumber());
 
     CheckConnecting(parameters, ASC_setPresentationAddresses(params_, localHost, remoteHostAndPort));
 
@@ -339,7 +340,7 @@ namespace Orthanc
           else
           {
             LOG(WARNING) << "Unknown transfer syntax received from AET \""
-                         << parameters.GetRemoteApplicationEntityTitle()
+                         << parameters.GetRemoteModality().GetApplicationEntityTitle()
                          << "\": " << pc->acceptedTransferSyntax;
           }
         }
@@ -352,7 +353,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NoPresentationContext,
                              "Unable to negotiate a presentation context with AET \"" +
-                             parameters.GetRemoteApplicationEntityTitle() + "\"");
+                             parameters.GetRemoteModality().GetApplicationEntityTitle() + "\"");
     }
   }
 
@@ -517,7 +518,7 @@ namespace Orthanc
 
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "DicomAssociation - " + command + " to AET \"" +
-                             parameters.GetRemoteApplicationEntityTitle() +
+                             parameters.GetRemoteModality().GetApplicationEntityTitle() +
                              "\": " + info);
     }
   }
@@ -604,7 +605,7 @@ namespace Orthanc
      **/
 
     LOG(INFO) << "Reporting modality \""
-              << parameters.GetRemoteApplicationEntityTitle()
+              << parameters.GetRemoteModality().GetApplicationEntityTitle()
               << "\" about storage commitment transaction: " << transactionUid
               << " (" << successSopClassUids.size() << " successes, " 
               << failedSopClassUids.size() << " failures)";
@@ -654,7 +655,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Unable to send N-EVENT-REPORT request to AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       if (!DIMSE_sendMessageUsingMemoryData(
@@ -682,7 +683,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Unable to read N-EVENT-REPORT response from AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       const T_DIMSE_N_EventReportRSP& content = message.msg.NEventReportRSP;
@@ -696,14 +697,14 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Badly formatted N-EVENT-REPORT response from AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       if (content.DimseStatus != 0 /* success */)
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "The request cannot be handled by remote AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
     }
 
@@ -767,7 +768,7 @@ namespace Orthanc
      **/
 
     LOG(INFO) << "Request to modality \""
-              << parameters.GetRemoteApplicationEntityTitle()
+              << parameters.GetRemoteModality().GetApplicationEntityTitle()
               << "\" about storage commitment for " << sopClassUids.size()
               << " instances, with transaction UID: " << transactionUid;
     const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
@@ -801,7 +802,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Unable to send N-ACTION request to AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       if (!DIMSE_sendMessageUsingMemoryData(
@@ -829,7 +830,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Unable to read N-ACTION response from AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       const T_DIMSE_N_ActionRSP& content = message.msg.NActionRSP;
@@ -843,14 +844,14 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Badly formatted N-ACTION response from AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
       if (content.DimseStatus != 0 /* success */)
       {
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "The request cannot be handled by remote AET: " +
-                               parameters.GetRemoteApplicationEntityTitle());
+                               parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
     }
 
