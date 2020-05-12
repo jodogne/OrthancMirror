@@ -3364,7 +3364,9 @@ namespace OrthancPlugins
     }
     else
     {
-      return new DicomInstance(instance);
+      std::unique_ptr<DicomInstance> result(new DicomInstance(instance));
+      result->toFree_ = true;
+      return result.release();
     }
   }
 #endif
