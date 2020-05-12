@@ -33,7 +33,15 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
+#endif
+
 #include "DicomAssociationParameters.h"
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
+#  include "../DicomParsing/IDicomTranscoder.h"
+#endif
 
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -41,7 +49,7 @@
 #include <stdint.h>  // For uint8_t
 
 
-class DcmDataset;
+class DcmFileFormat;
 
 namespace Orthanc
 {
@@ -64,16 +72,20 @@ namespace Orthanc
   **/
 
   class DicomAssociation;  // Forward declaration for PImpl design pattern
-  class ParsedDicomFile;
 
   class DicomStoreUserConnection : public boost::noncopyable
   {
   private:
-    typedef std::map<std::string, std::set<DicomTransferSyntax> > StorageClasses;
+    typedef std::map<std::string, std::set<DicomTransferSyntax> > RegisteredClasses;
+
+    // "ProposedOriginalClasses" keeps track of the storage classes
+    // that were proposed with a single transfer syntax
+    typedef std::set< std::pair<std::string, DicomTransferSyntax> > ProposedOriginalClasses;
     
     DicomAssociationParameters           parameters_;
-    boost::shared_ptr<DicomAssociation>  association_;
-    StorageClasses                       storageClasses_;
+    boost::shared_ptr<DicomAssociation>  association_;  // "shared_ptr" is for PImpl
+    RegisteredClasses                    registeredClasses_;
+    ProposedOriginalClasses              proposedOriginalClasses_;
     bool                                 proposeCommonClasses_;
     bool                                 proposeUncompressedSyntaxes_;
     bool                                 proposeRetiredBigEndian_;
@@ -81,11 +93,18 @@ namespace Orthanc
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
                              const std::set<DicomTransferSyntax>& syntaxes);
-        
-    // Should only be used if transcoding
+
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
                                    DicomTransferSyntax transferSyntax);
+    
+    bool NegotiatePresentationContext(uint8_t& presentationContextId,
+                                      const std::string& sopClassUid,
+                                      DicomTransferSyntax transferSyntax);
+
+    void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+                           const std::string& sopClassUid,
+                           DicomTransferSyntax sourceSyntax);
 
   public:
     DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -125,23 +144,13 @@ namespace Orthanc
       return proposeRetiredBigEndian_;
     }      
 
-    void PrepareStorageClass(const std::string& sopClassUid,
-                             DicomTransferSyntax syntax);
-
-    // TODO => to private
-    bool NegotiatePresentationContext(uint8_t& presentationContextId,
-                                      const std::string& sopClassUid,
-                                      DicomTransferSyntax transferSyntax);
+    void RegisterStorageClass(const std::string& sopClassUid,
+                              DicomTransferSyntax syntax);
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
-               DcmDataset& dataset,
-               const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
-
-    void Store(std::string& sopClassUid,
-               std::string& sopInstanceUid,
-               ParsedDicomFile& parsed,
+               DcmFileFormat& dicom,
+               bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
 
@@ -149,7 +158,22 @@ namespace Orthanc
                std::string& sopInstanceUid,
                const void* buffer,
                size_t size,
+               bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
                uint16_t moveOriginatorID);
+
+    void LookupParameters(std::string& sopClassUid,
+                          std::string& sopInstanceUid,
+                          DicomTransferSyntax& transferSyntax,
+                          DcmFileFormat& dicom);
+
+    void Transcode(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   IDicomTranscoder& transcoder,
+                   const void* buffer,
+                   size_t size,
+                   bool hasMoveOriginator,
+                   const std::string& moveOriginatorAET,
+                   uint16_t moveOriginatorID);
   };
 }

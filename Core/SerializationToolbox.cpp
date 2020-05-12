@@ -98,6 +98,21 @@ namespace Orthanc
     }
 
 
+    int ReadInteger(const Json::Value& value,
+                    const std::string& field,
+                    int defaultValue)
+    {
+      if (value.isMember(field.c_str()))
+      {
+        return ReadInteger(value, field);
+      }
+      else
+      {
+        return defaultValue;
+      }
+    }
+
+
     unsigned int ReadUnsignedInteger(const Json::Value& value,
                                      const std::string& field)
     {

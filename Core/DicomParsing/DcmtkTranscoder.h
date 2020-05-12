@@ -33,73 +33,55 @@
 
 #pragma once
 
-#include "../../Core/IDynamicObject.h"
-#include "IServerCommand.h"
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING != 1
+#  error Transcoding is disabled, cannot compile this file
+#endif
+
+#include "IDicomTranscoder.h"
 
 namespace Orthanc
 {
-  class ServerCommandInstance : public IDynamicObject
+  class DcmtkTranscoder : public IDicomTranscoder
   {
-    friend class ServerScheduler;
-
-  public:
-    class IListener
-    {
-    public:
-      virtual ~IListener()
-      {
-      }
-
-      virtual void SignalSuccess(const std::string& jobId) = 0;
-
-      virtual void SignalFailure(const std::string& jobId) = 0;
-    };
-
   private:
-    typedef IServerCommand::ListOfStrings  ListOfStrings;
-
-    IServerCommand *command_;
-    std::string jobId_;
-    ListOfStrings inputs_;
-    std::list<ServerCommandInstance*> next_;
-    bool connectedToSink_;
-
-    bool Execute(IListener& listener);
-
+    unsigned int  lossyQuality_;
+    
   public:
-    ServerCommandInstance(IServerCommand *command,
-                          const std::string& jobId);
-
-    virtual ~ServerCommandInstance();
-
-    const std::string& GetJobId() const
+    DcmtkTranscoder() :
+      lossyQuality_(90)
     {
-      return jobId_;
     }
 
-    void AddInput(const std::string& input)
-    {
-      inputs_.push_back(input);
-    }
+    void SetLossyQuality(unsigned int quality);
 
-    void ConnectOutput(ServerCommandInstance& next)
+    unsigned int GetLossyQuality() const
     {
-      next_.push_back(&next);
+      return lossyQuality_;
     }
+    
+    bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                          DcmFileFormat& dicom,
+                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                          bool allowNewSopInstanceUid);
+    
+    static bool IsSupported(DicomTransferSyntax syntax);
 
-    void SetConnectedToSink(bool connected = true)
-    {
-      connectedToSink_ = connected;
-    }
+    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
+                                         DicomTransferSyntax& sourceSyntax /* out */,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DcmFileFormat& dicom /* in, possibly modified */,
+                                         DicomTransferSyntax targetSyntax,
+                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
-    bool IsConnectedToSink() const
-    {
-      return connectedToSink_;
-    }
-
-    const std::list<ServerCommandInstance*>& GetNextCommands() const
-    {
-      return next_;
-    }
+    virtual TranscodedDicom* TranscodeToParsed(
+      DcmFileFormat& dicom /* in, possibly modified */,
+      const void* buffer /* in, same DICOM file as "dicom" */,
+      size_t size,
+      const std::set<DicomTransferSyntax>& allowedSyntaxes,
+      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

@@ -675,7 +675,6 @@ namespace Orthanc
     db_(db),
     maximumStorageSize_(0),
     maximumPatients_(0),
-    overwrite_(false),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry)
   {
     listener_.reset(new Listener(context));
@@ -753,7 +752,8 @@ namespace Orthanc
   
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  DicomInstanceToStore& instanceToStore,
-                                 const Attachments& attachments)
+                                 const Attachments& attachments,
+                                 bool overwrite)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -784,7 +784,7 @@ namespace Orthanc
       {
         // The instance already exists
         
-        if (overwrite_)
+        if (overwrite)
         {
           // Overwrite the old instance
           LOG(INFO) << "Overwriting instance: " << hashInstance;
@@ -1658,12 +1658,6 @@ namespace Orthanc
     }
 
     StandaloneRecycling();
-  }
-
-  void ServerIndex::SetOverwriteInstances(bool overwrite)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    overwrite_ = overwrite;
   }
 
 

@@ -23,7 +23,7 @@
 
 #include "../../../Core/Compatibility.h"
 #include "GdcmImageDecoder.h"
-#include "OrthancImageWrapper.h"
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
 
@@ -38,8 +38,7 @@ namespace OrthancPlugins
     size_t       size_;
     std::string  md5_;
 
-    static std::string ComputeMd5(OrthancPluginContext* context,
-                                  const void* dicom,
+    static std::string ComputeMd5(const void* dicom,
                                   size_t size);
 
   public:
@@ -47,9 +46,8 @@ namespace OrthancPlugins
     {
     }
 
-    OrthancImageWrapper* Decode(OrthancPluginContext* context,
-                                const void* dicom,
-                                const uint32_t size,
-                                uint32_t frameIndex);
+    OrthancImage* Decode(const void* dicom,
+                         const uint32_t size,
+                         uint32_t frameIndex);
   };
 }

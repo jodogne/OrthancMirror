@@ -4,10 +4,39 @@ Pending changes in the mainline
 REST API
 --------
 
+* API version has been upgraded to 7
 * Improved:
   - "/instances/../modify": it is now possible to "Keep" the "SOPInstanceUID".  
     Note that it was already possible to "Replace" it.
+  - added "Timeout" parameter to every DICOM operation
+  - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
+    (defaults to the local AET)
+* Changes:
+  - "/instances/.../modify", ".../archive", ".../media",
+    "/tools/create-media" and "/tools/create-archive": New option "Transcode"
+  - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 
+    to 1.5.7 behaviour.
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCreateDicomInstance()
+  - OrthancPluginFreeDicomInstance()
+  - OrthancPluginGetInstanceFramesCount()
+  - OrthancPluginGetInstanceRawFrame()
+  - OrthancPluginGetInstanceDecodedFrame()
+  - OrthancPluginTranscodeDicomInstance()
+  - OrthancPluginSerializeDicomInstance()
+* "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"
+
+Maintenance
+-----------
+
+* Fix missing body in "OrthancPluginHttpPost()" and "OrthancPluginHttpPut()"
+* Fix issue #169 (TransferSyntaxUID change from Explicit to Implicit during C-STORE SCU)
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 1.1.1g
 
 
 Version 1.6.1 (2020-04-21)

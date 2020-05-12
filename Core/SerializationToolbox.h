@@ -49,6 +49,10 @@ namespace Orthanc
     int ReadInteger(const Json::Value& value,
                     const std::string& field);
 
+    int ReadInteger(const Json::Value& value,
+                    const std::string& field,
+                    int defaultValue);
+
     unsigned int ReadUnsignedInteger(const Json::Value& value,
                                      const std::string& field);
 

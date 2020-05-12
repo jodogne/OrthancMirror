@@ -38,24 +38,30 @@
 
 namespace Orthanc
 {
+  class ServerContext;
+  
   class StoreScuOperation : public IJobOperation
   {
   private:
+    ServerContext&                  context_;
     TimeoutDicomConnectionManager&  connectionManager_;
     std::string                     localAet_;
     RemoteModalityParameters        modality_;
     
   public:
-    StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+    StoreScuOperation(ServerContext& context,
+                      TimeoutDicomConnectionManager& connectionManager,
                       const std::string& localAet,
                       const RemoteModalityParameters& modality) :
+      context_(context),
       connectionManager_(connectionManager),
       localAet_(localAet),
       modality_(modality)
     {
     }
 
-    StoreScuOperation(TimeoutDicomConnectionManager& connectionManager,
+    StoreScuOperation(ServerContext& context,
+                      TimeoutDicomConnectionManager& connectionManager,
                       const Json::Value& serialized);
 
     const std::string& GetLocalAet() const

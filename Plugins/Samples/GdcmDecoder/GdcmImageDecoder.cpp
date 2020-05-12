@@ -22,7 +22,6 @@
 #include "GdcmImageDecoder.h"
 
 #include "../../../Core/Compatibility.h"
-#include "OrthancImageWrapper.h"
 
 #include <gdcmImageReader.h>
 #include <gdcmImageApplyLookupTable.h>
@@ -298,7 +297,7 @@ namespace OrthancPlugins
   }
 
   
-  static void FixPhotometricInterpretation(OrthancImageWrapper& image,
+  static void FixPhotometricInterpretation(OrthancImage& image,
                                            gdcm::PhotometricInterpretation interpretation)
   {
     switch (interpretation)
@@ -317,7 +316,7 @@ namespace OrthancPlugins
         uint32_t pitch = image.GetPitch();
         uint8_t* buffer = reinterpret_cast<uint8_t*>(image.GetBuffer());
         
-        if (image.GetFormat() != OrthancPluginPixelFormat_RGB24 ||
+        if (image.GetPixelFormat() != OrthancPluginPixelFormat_RGB24 ||
             pitch < 3 * width)
         {
           throw std::runtime_error("Internal error");
@@ -346,8 +345,7 @@ namespace OrthancPlugins
   }
 
 
-  OrthancPluginImage* GdcmImageDecoder::Decode(OrthancPluginContext* context,
-                                               unsigned int frameIndex) const
+  OrthancPluginImage* GdcmImageDecoder::Decode(unsigned int frameIndex) const
   {
     unsigned int frames = GetFramesCount();
     unsigned int width = GetWidth();
@@ -361,7 +359,7 @@ namespace OrthancPlugins
     }
 
     std::string& decoded = pimpl_->decoded_;
-    OrthancImageWrapper target(context, format, width, height);
+    OrthancImage target(format, width, height);
 
     if (width == 0 ||
         height == 0)
@@ -391,8 +389,9 @@ namespace OrthancPlugins
       size_t targetPitch = target.GetPitch();
       size_t sourcePitch = width * bpp;
 
-      const char* a = &decoded[sourcePitch * height * frameIndex];
-      char* b = target.GetBuffer();
+      const uint8_t* a = (reinterpret_cast<const uint8_t*>(decoded.c_str()) +
+                          sourcePitch * height * frameIndex);
+      uint8_t* b = reinterpret_cast<uint8_t*>(target.GetBuffer());
 
       for (uint32_t y = 0; y < height; y++)
       {

@@ -82,7 +82,8 @@ namespace Orthanc
       FixQueryLua(fixed, context_, modality_.GetApplicationEntityTitle()); 
 
       {
-        DicomControlUserConnection connection(localAet_, modality_);
+        DicomAssociationParameters params(localAet_, modality_);
+        DicomControlUserConnection connection(params);
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
 

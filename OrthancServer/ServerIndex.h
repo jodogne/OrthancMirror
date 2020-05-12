@@ -71,7 +71,6 @@ namespace Orthanc
 
     uint64_t     maximumStorageSize_;
     unsigned int maximumPatients_;
-    bool         overwrite_;
     std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
     static void FlushThread(ServerIndex* that,
@@ -139,11 +138,10 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
-    void SetOverwriteInstances(bool overwrite);
-
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       DicomInstanceToStore& instance,
-                      const Attachments& attachments);
+                      const Attachments& attachments,
+                      bool overwrite);
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,

@@ -522,6 +522,8 @@ namespace Orthanc
         assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
+      // now that C-GET SCP is always enabled, the first branch of this if is useless
+      // TO BE ANALIZED by SJ
       if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
       {
         cond = ASC_acceptContextsWithPreferredTransferSyntaxes(

@@ -124,8 +124,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     6
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     7
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -503,7 +503,14 @@ extern "C"
     _OrthancPluginService_GetInstanceOrigin = 4007,
     _OrthancPluginService_GetInstanceTransferSyntaxUid = 4008,
     _OrthancPluginService_HasInstancePixelData = 4009,
-
+    _OrthancPluginService_CreateDicomInstance = 4010,      /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_FreeDicomInstance = 4011,        /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceFramesCount = 4012,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceRawFrame = 4013,      /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceDecodedFrame = 4014,  /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_TranscodeDicomInstance = 4015,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_SerializeDicomInstance = 4016,   /* New in Orthanc 1.7.0 */
+    
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
     _OrthancPluginService_DatabaseAnswer = 5001,
@@ -7538,6 +7545,164 @@ extern "C"
     }
   }
 
+
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginDicomInstance**  target;
+    const void*                   buffer;
+    uint32_t                      size;
+    const char*                   transferSyntax;
+  } _OrthancPluginCreateDicomInstance;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginCreateDicomInstance(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               size)
+  {
+    OrthancPluginDicomInstance* target = NULL;
+
+    _OrthancPluginCreateDicomInstance params;
+    params.target = &target;
+    params.buffer = buffer;
+    params.size = size;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateDicomInstance, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+  typedef struct
+  {
+    OrthancPluginDicomInstance*   dicom;
+  } _OrthancPluginFreeDicomInstance;
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeDicomInstance(
+    OrthancPluginContext*        context, 
+    OrthancPluginDicomInstance*  dicom)
+  {
+    _OrthancPluginFreeDicomInstance params;
+    params.dicom = dicom;
+
+    context->InvokeService(context, _OrthancPluginService_FreeDicomInstance, &params);
+  }
+
+
+  typedef struct
+  {
+    uint32_t*                          targetUint32;
+    OrthancPluginMemoryBuffer*         targetBuffer;
+    OrthancPluginImage**               targetImage;
+    const OrthancPluginDicomInstance*  instance;
+    uint32_t                           frameIndex;
+  } _OrthancPluginAccessDicomInstance2;
+
+  ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetInstanceFramesCount(
+    OrthancPluginContext*             context,
+    const OrthancPluginDicomInstance* instance)
+  {
+    uint32_t count;
+
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetUint32 = &count;
+    params.instance = instance;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceFramesCount, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return 0;
+    }
+    else
+    {
+      return count;
+    }
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetInstanceRawFrame(
+    OrthancPluginContext*             context,
+    OrthancPluginMemoryBuffer*        target,
+    const OrthancPluginDicomInstance* instance,
+    uint32_t                          frameIndex)
+  {
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetBuffer = target;
+    params.instance = instance;
+    params.frameIndex = frameIndex;
+
+    return context->InvokeService(context, _OrthancPluginService_GetInstanceRawFrame, &params);
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginImage* OrthancPluginGetInstanceDecodedFrame(
+    OrthancPluginContext*             context,
+    const OrthancPluginDicomInstance* instance,
+    uint32_t                          frameIndex)
+  {
+    OrthancPluginImage* target = NULL;
+
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetImage = &target;
+    params.instance = instance;
+    params.frameIndex = frameIndex;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceDecodedFrame, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginTranscodeDicomInstance(
+    OrthancPluginContext*  context,
+    const void*            buffer,
+    uint32_t               size,
+    const char*            transferSyntax)
+  {
+    OrthancPluginDicomInstance* target = NULL;
+
+    _OrthancPluginCreateDicomInstance params;
+    params.target = &target;
+    params.buffer = buffer;
+    params.size = size;
+    params.transferSyntax = transferSyntax;
+
+    if (context->InvokeService(context, _OrthancPluginService_TranscodeDicomInstance, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSerializeDicomInstance(
+    OrthancPluginContext*             context,
+    OrthancPluginMemoryBuffer*        target,
+    const OrthancPluginDicomInstance* instance)
+  {
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetBuffer = target;
+    params.instance = instance;
+
+    return context->InvokeService(context, _OrthancPluginService_SerializeDicomInstance, &params);
+  }
 
 #ifdef  __cplusplus
 }

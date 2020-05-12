@@ -40,6 +40,11 @@
 #include <json/writer.h>
 
 
+#if !ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
+static const OrthancPluginErrorCode OrthancPluginErrorCode_NullPointer = OrthancPluginErrorCode_Plugin;
+#endif
+
+
 namespace OrthancPlugins
 {
   static OrthancPluginContext* globalContext_ = NULL;
@@ -1045,7 +1050,7 @@ namespace OrthancPlugins
   }
 
 
-  const void* OrthancImage::GetBuffer() const
+  void* OrthancImage::GetBuffer() const
   {
     CheckImageAvailable();
     return OrthancPluginGetImageBuffer(GetGlobalContext(), image_);
@@ -1093,6 +1098,14 @@ namespace OrthancPlugins
                                             GetWidth(), GetHeight(), GetPitch(), GetBuffer(), quality);
   }
 
+
+  OrthancPluginImage* OrthancImage::Release()
+  {
+    CheckImageAvailable();
+    OrthancPluginImage* tmp = image_;
+    image_ = NULL;
+    return tmp;
+  }
 
 
 #if HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1
@@ -3175,6 +3188,184 @@ namespace OrthancPlugins
   {
     assert(rawHandler != NULL);
     delete reinterpret_cast<IStorageCommitmentScpHandler*>(rawHandler);
+  }
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
+  DicomInstance::DicomInstance(const OrthancPluginDicomInstance* instance) :
+    toFree_(false),
+    instance_(instance)
+  {
+  }
+#else
+  DicomInstance::DicomInstance(OrthancPluginDicomInstance* instance) :
+    toFree_(false),
+    instance_(instance)
+  {
+  }
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  DicomInstance::DicomInstance(const void* buffer,
+                               size_t size) :
+    toFree_(true),
+    instance_(OrthancPluginCreateDicomInstance(GetGlobalContext(), buffer, size))
+  {
+    if (instance_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NullPointer);
+    }
+  }
+#endif
+
+
+  DicomInstance::~DicomInstance()
+  {
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    if (toFree_ &&
+        instance_ != NULL)
+    {
+      OrthancPluginFreeDicomInstance(
+        GetGlobalContext(), const_cast<OrthancPluginDicomInstance*>(instance_));
+    }
+#endif
+  }
+
+  
+  std::string DicomInstance::GetRemoteAet() const
+  {
+    const char* s = OrthancPluginGetInstanceRemoteAet(GetGlobalContext(), instance_);
+    if (s == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      return std::string(s);
+    }
+  }
+
+
+  void DicomInstance::GetJson(Json::Value& target) const
+  {
+    OrthancString s;
+    s.Assign(OrthancPluginGetInstanceJson(GetGlobalContext(), instance_));
+    s.ToJson(target);
+  }
+  
+
+  void DicomInstance::GetSimplifiedJson(Json::Value& target) const
+  {
+    OrthancString s;
+    s.Assign(OrthancPluginGetInstanceSimplifiedJson(GetGlobalContext(), instance_));
+    s.ToJson(target);
+  }
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+  std::string DicomInstance::GetTransferSyntaxUid() const
+  {
+    OrthancString s;
+    s.Assign(OrthancPluginGetInstanceTransferSyntaxUid(GetGlobalContext(), instance_));
+
+    std::string result;
+    s.ToString(result);
+    return result;
+  }
+#endif
+
+  
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)
+  bool DicomInstance::HasPixelData() const
+  {
+    int32_t result = OrthancPluginHasInstancePixelData(GetGlobalContext(), instance_);
+    if (result < 0)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      return (result != 0);
+    }
+  }
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)  
+  void DicomInstance::GetRawFrame(std::string& target,
+                                  unsigned int frameIndex) const
+  {
+    MemoryBuffer buffer;
+    OrthancPluginErrorCode code = OrthancPluginGetInstanceRawFrame(
+      GetGlobalContext(), *buffer, instance_, frameIndex);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      buffer.ToString(target);
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+  }
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)  
+  OrthancImage* DicomInstance::GetDecodedFrame(unsigned int frameIndex) const
+  {
+    OrthancPluginImage* image = OrthancPluginGetInstanceDecodedFrame(
+      GetGlobalContext(), instance_, frameIndex);
+
+    if (image == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      return new OrthancImage(image);
+    }
+  }
+#endif  
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  void DicomInstance::Serialize(std::string& target) const
+  {
+    MemoryBuffer buffer;
+    OrthancPluginErrorCode code = OrthancPluginSerializeDicomInstance(
+      GetGlobalContext(), *buffer, instance_);
+
+    if (code == OrthancPluginErrorCode_Success)
+    {
+      buffer.ToString(target);
+    }
+    else
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+  }
+#endif
+  
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  DicomInstance* DicomInstance::Transcode(const void* buffer,
+                                          size_t size,
+                                          const std::string& transferSyntax)
+  {
+    OrthancPluginDicomInstance* instance = OrthancPluginTranscodeDicomInstance(
+      GetGlobalContext(), buffer, size, transferSyntax.c_str());
+
+    if (instance == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      return new DicomInstance(instance);
+    }
   }
 #endif
 }

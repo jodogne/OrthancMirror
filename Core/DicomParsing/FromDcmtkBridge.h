@@ -205,6 +205,10 @@ namespace Orthanc
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
 
+    static bool Transcode(DcmFileFormat& dicom,
+                          DicomTransferSyntax syntax,
+                          const DcmRepresentationParameter* representation);
+
     static ValueRepresentation Convert(DcmEVR vr);
 
     static ValueRepresentation LookupValueRepresentation(const DicomTag& tag);
@@ -240,9 +244,6 @@ namespace Orthanc
     static void FromJson(DicomMap& values,
                          const Json::Value& result);
 
-    static bool LookupTransferSyntax(std::string& result,
-                                     DcmFileFormat& dicom);
-
 #if ORTHANC_ENABLE_LUA == 1
     static void ExecuteToDicom(DicomMap& target,
                                LuaFunctionCall& call);
@@ -276,5 +277,8 @@ namespace Orthanc
 
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                             E_TransferSyntax source);
+
+    static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                            DcmFileFormat& dicom);
   };
 }

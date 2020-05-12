@@ -107,9 +107,12 @@ namespace Orthanc
 
     static ServerIndex& GetIndex(RestApiCall& call);
 
+    // WARNING: "instanceId" can be different from
+    // "instance.GetHasher().HashInstance()" if transcoding is enabled
     void AnswerStoredInstance(RestApiPostCall& call,
                               DicomInstanceToStore& instance,
-                              StoreStatus status) const;
+                              StoreStatus status,
+                              const std::string& instanceId) const;
 
     void AnswerStoredResource(RestApiPostCall& call,
                               const std::string& publicId,
