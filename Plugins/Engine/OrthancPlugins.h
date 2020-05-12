@@ -99,6 +99,7 @@ namespace Orthanc
     class IDicomInstance;
     class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
+    class DicomInstanceFromTranscoded;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);

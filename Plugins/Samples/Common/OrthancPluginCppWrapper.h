@@ -1209,5 +1209,15 @@ namespace OrthancPlugins
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
     OrthancImage* GetDecodedFrame(unsigned int frameIndex) const;
 #endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void Serialize(std::string& target) const;
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    static DicomInstance* Transcode(const void* buffer,
+                                    size_t size,
+                                    const std::string& transferSyntax);
+#endif
   };
 }

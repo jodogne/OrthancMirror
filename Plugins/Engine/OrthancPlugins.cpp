@@ -1824,6 +1824,32 @@ namespace Orthanc
   };
 
 
+  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
+  {
+  private:
+    std::unique_ptr<ParsedDicomFile>  parsed_;
+    DicomInstanceToStore              instance_;
+
+  public:
+    DicomInstanceFromTranscoded(IDicomTranscoder::TranscodedDicom& transcoded) :
+      parsed_(ParsedDicomFile::AcquireDcmtkObject(transcoded.ReleaseDicom()))
+    {
+      instance_.SetParsedDicomFile(*parsed_);
+      instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
   void OrthancPlugins::SignalStoredInstance(const std::string& instanceId,
                                             const DicomInstanceToStore& instance,
                                             const Json::Value& simplifiedTags)
@@ -2748,6 +2774,22 @@ namespace Orthanc
         return;
       }
         
+      case _OrthancPluginService_SerializeDicomInstance:
+      {
+        if (p.targetBuffer == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        p.targetBuffer->data = NULL;
+        p.targetBuffer->size = 0;
+        
+        std::string serialized;
+        instance.GetParsedDicomFile().SaveToMemoryBuffer(serialized);
+        CopyToMemoryBuffer(*p.targetBuffer, serialized);
+        return;
+      }
+        
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
@@ -3632,6 +3674,7 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceFramesCount:
       case _OrthancPluginService_GetInstanceRawFrame:
       case _OrthancPluginService_GetInstanceDecodedFrame:
+      case _OrthancPluginService_SerializeDicomInstance:
         AccessDicomInstance2(service, parameters);
         return true;
 
@@ -4212,6 +4255,47 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_TranscodeDicomInstance:
+      {
+        const _OrthancPluginCreateDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginCreateDicomInstance*>(parameters);
+
+        DicomTransferSyntax transferSyntax;
+        if (p.transferSyntax == NULL ||
+            !LookupTransferSyntax(transferSyntax, p.transferSyntax))
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange, "Unsupported transfer syntax: " +
+                                 std::string(p.transferSyntax == NULL ? "(null)" : p.transferSyntax));
+        }
+        else
+        {
+          ParsedDicomFile dicom(p.buffer, p.size);
+
+          std::set<DicomTransferSyntax> syntaxes;
+          syntaxes.insert(transferSyntax);
+          
+          std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded;
+          
+          {
+            PImpl::ServerContextLock lock(*pimpl_);
+            transcoded.reset(lock.GetContext().GetTranscoder().TranscodeToParsed(
+                               dicom.GetDcmtkObject(), p.buffer, p.size,
+                               syntaxes, true /* allow new sop */));
+          }
+
+          if (transcoded.get() == NULL)
+          {
+            throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode image");
+          }
+          else
+          {
+            *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
+              new DicomInstanceFromTranscoded(*transcoded));
+            return true;
+          }
+        }
+      }
+        
       default:
         return false;
     }
