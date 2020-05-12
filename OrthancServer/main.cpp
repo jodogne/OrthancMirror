@@ -1042,12 +1042,10 @@ static bool StartDicomServer(ServerContext& context,
                              OrthancPlugins* plugins)
 {
   bool dicomServerEnabled;
-  bool dicomCGetEnabled;
 
   {
     OrthancConfiguration::ReaderLock lock;
     dicomServerEnabled = lock.GetConfiguration().GetBooleanParameter("DicomServerEnabled", true);
-    dicomCGetEnabled = lock.GetConfiguration().GetBooleanParameter("DicomEnableCGet", false);
   }
 
   if (!dicomServerEnabled)
@@ -1066,10 +1064,7 @@ static bool StartDicomServer(ServerContext& context,
     dicomServer.SetRemoteModalities(modalities);
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);
-    if (dicomCGetEnabled)
-    {
-      dicomServer.SetGetRequestHandlerFactory(serverFactory);
-    }
+    dicomServer.SetGetRequestHandlerFactory(serverFactory);
     dicomServer.SetFindRequestHandlerFactory(serverFactory);
     dicomServer.SetStorageCommitmentRequestHandlerFactory(serverFactory);
 
