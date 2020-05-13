@@ -511,6 +511,9 @@ extern "C"
     _OrthancPluginService_GetInstanceDecodedFrame = 4014,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_TranscodeDicomInstance = 4015,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_SerializeDicomInstance = 4016,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceAdvancedJson = 4017,  /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceDicomWebJson = 4018,  /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GetInstanceDicomWebXml = 4019,   /* New in Orthanc 1.7.0 */
     
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,
@@ -7740,11 +7743,17 @@ extern "C"
 
   typedef struct
   {
-    uint32_t*                          targetUint32;
-    OrthancPluginMemoryBuffer*         targetBuffer;
-    OrthancPluginImage**               targetImage;
-    const OrthancPluginDicomInstance*  instance;
-    uint32_t                           frameIndex;
+    uint32_t*                             targetUint32;
+    OrthancPluginMemoryBuffer*            targetBuffer;
+    OrthancPluginImage**                  targetImage;
+    char**                                targetStringToFree;
+    const OrthancPluginDicomInstance*     instance;
+    uint32_t                              frameIndex;
+    OrthancPluginDicomToJsonFormat        format;
+    OrthancPluginDicomToJsonFlags         flags;
+    uint32_t                              maxStringLength;
+    OrthancPluginDicomWebBinaryCallback2  dicomWebCallback;
+    void*                                 dicomWebPayload;
   } _OrthancPluginAccessDicomInstance2;
 
   ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetInstanceFramesCount(
@@ -7844,6 +7853,105 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_SerializeDicomInstance, &params);
   }
+
+  /**
+   * @brief Format a DICOM memory buffer as a JSON string.
+   *
+   * This function takes as input a memory buffer containing a DICOM
+   * file, and outputs a JSON string representing the tags of this
+   * DICOM file.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The DICOM instance of interest.
+   * @param format The output format.
+   * @param flags Flags governing the output.
+   * @param maxStringLength The maximum length of a field. Too long fields will
+   * be output as "null". The 0 value means no maximum length.
+   * @return The NULL value if the case of an error, or the JSON
+   * string. This string must be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   * @see OrthancPluginDicomBufferToJson
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceAdvancedJson(
+    OrthancPluginContext*              context,
+    const OrthancPluginDicomInstance*  instance,
+    OrthancPluginDicomToJsonFormat     format,
+    OrthancPluginDicomToJsonFlags      flags, 
+    uint32_t                           maxStringLength)
+  {
+    char* result = NULL;
+
+    _OrthancPluginAccessDicomInstance2 params;
+    memset(&params, 0, sizeof(params));
+    params.targetStringToFree = &result;
+    params.instance = instance;
+    params.format = format;
+    params.flags = flags;
+    params.maxStringLength = maxStringLength;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceAdvancedJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceDicomWebJson(
+    OrthancPluginContext*                 context,
+    const OrthancPluginDicomInstance*     instance,
+    OrthancPluginDicomWebBinaryCallback2  callback,
+    void*                                 payload)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginAccessDicomInstance2 params;
+    params.targetStringToFree = &target;
+    params.instance = instance;
+    params.dicomWebCallback = callback;
+    params.dicomWebPayload = payload;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceDicomWebJson, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+  
+
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceDicomWebXml(
+    OrthancPluginContext*                 context,
+    const OrthancPluginDicomInstance*     instance,
+    OrthancPluginDicomWebBinaryCallback2  callback,
+    void*                                 payload)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginAccessDicomInstance2 params;
+    params.targetStringToFree = &target;
+    params.instance = instance;
+    params.dicomWebCallback = callback;
+    params.dicomWebPayload = payload;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetInstanceDicomWebXml, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+  
 
 #ifdef  __cplusplus
 }
