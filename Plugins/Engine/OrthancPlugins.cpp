@@ -368,17 +368,18 @@ namespace Orthanc
       }
       
     public:
-      DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
-        oldCallback_(parameters.callback),
+      DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback callback) :
+        oldCallback_(callback),
         newCallback_(NULL),
         newPayload_(NULL)
       {
       }
       
-      DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb2& parameters) :
+      DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback2 callback,
+                              void* payload) :
         oldCallback_(NULL),
-        newCallback_(parameters.callback),
-        newPayload_(parameters.payload)
+        newCallback_(callback),
+        newPayload_(payload)
       {
       }
       
@@ -440,6 +441,39 @@ namespace Orthanc
           bulkDataUri = currentBulkDataUri_;          
           return currentMode_;
         }
+      }
+
+      void Apply(char** target,
+                 bool isJson,
+                 ParsedDicomFile& dicom)
+      {
+        DicomWebJsonVisitor visitor;
+        visitor.SetFormatter(*this);
+
+        dicom.Apply(visitor);
+
+        std::string s;
+
+        if (isJson)
+        {
+          s = visitor.GetResult().toStyledString();
+        }
+        else
+        {
+          visitor.FormatXml(s);
+        }
+
+        *target = CopyString(s);
+      }
+
+  
+      void Apply(char** target,
+                 bool isJson,
+                 const void* dicom,
+                 size_t dicomSize) 
+      {
+        ParsedDicomFile parsed(dicom, dicomSize);
+        Apply(target, isJson, parsed);
       }
     };
   }
@@ -2790,8 +2824,7 @@ namespace Orthanc
         else if (hasDecoderPlugin)
         {
           // TODO - This call could be speeded up the future, if a
-          // "decoding context" gets introduced in the decoder plugins
-          
+          // "decoding context" gets introduced in the decoder plugins          
           decoded.reset(Decode(instance.GetBufferData(), instance.GetBufferSize(), p.frameIndex));
         }
         else
@@ -2818,7 +2851,40 @@ namespace Orthanc
         CopyToMemoryBuffer(*p.targetBuffer, serialized);
         return;
       }
+
+      case _OrthancPluginService_GetInstanceAdvancedJson:
+      {
+        if (p.targetStringToFree == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
         
+        Json::Value json;
+        instance.GetParsedDicomFile().DatasetToJson(
+          json, Plugins::Convert(p.format), 
+          static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
+
+        Json::FastWriter writer;
+        *p.targetStringToFree = CopyString(writer.write(json));
+        
+        return;
+      }
+      
+      case _OrthancPluginService_GetInstanceDicomWebJson:
+      case _OrthancPluginService_GetInstanceDicomWebXml:
+      {
+        if (p.targetStringToFree == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        DicomWebBinaryFormatter formatter(p.dicomWebCallback, p.dicomWebPayload);
+        formatter.Apply(p.targetStringToFree,
+                        (service == _OrthancPluginService_GetInstanceDicomWebJson),
+                        instance.GetParsedDicomFile());
+        return;
+      }
+
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
@@ -3543,35 +3609,6 @@ namespace Orthanc
   }
 
 
-  static void FormatDicomWeb(char** target,
-                             bool isJson,
-                             DicomWebBinaryFormatter& formatter,
-                             const void* dicom,
-                             size_t dicomSize)
-  {
-    DicomWebJsonVisitor visitor;
-    visitor.SetFormatter(formatter);
-
-    {
-      ParsedDicomFile parsed(dicom, dicomSize);
-      parsed.Apply(visitor);
-    }
-
-    std::string s;
-
-    if (isJson)
-    {
-      s = visitor.GetResult().toStyledString();
-    }
-    else
-    {
-      visitor.FormatXml(s);
-    }
-
-    *target = CopyString(s);
-  }
-  
-
   bool OrthancPlugins::InvokeSafeService(SharedLibrary& plugin,
                                          _OrthancPluginService service,
                                          const void* parameters)
@@ -3733,6 +3770,9 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceRawFrame:
       case _OrthancPluginService_GetInstanceDecodedFrame:
       case _OrthancPluginService_SerializeDicomInstance:
+      case _OrthancPluginService_GetInstanceAdvancedJson:
+      case _OrthancPluginService_GetInstanceDicomWebJson:
+      case _OrthancPluginService_GetInstanceDicomWebXml:
         AccessDicomInstance2(service, parameters);
         return true;
 
@@ -4253,11 +4293,10 @@ namespace Orthanc
         const _OrthancPluginEncodeDicomWeb& p =
           *reinterpret_cast<const _OrthancPluginEncodeDicomWeb*>(parameters);
 
-        DicomWebBinaryFormatter formatter(p);
-
-        FormatDicomWeb(p.target,
-                       (service == _OrthancPluginService_EncodeDicomWebJson),
-                       formatter, p.dicom, p.dicomSize);
+        DicomWebBinaryFormatter formatter(p.callback);
+        formatter.Apply(p.target,
+                        (service == _OrthancPluginService_EncodeDicomWebJson),
+                        p.dicom, p.dicomSize);
         return true;
       }
 
@@ -4267,11 +4306,10 @@ namespace Orthanc
         const _OrthancPluginEncodeDicomWeb2& p =
           *reinterpret_cast<const _OrthancPluginEncodeDicomWeb2*>(parameters);
 
-        DicomWebBinaryFormatter formatter(p);
-
-        FormatDicomWeb(p.target,
-                       (service == _OrthancPluginService_EncodeDicomWebJson2),
-                       formatter, p.dicom, p.dicomSize);
+        DicomWebBinaryFormatter formatter(p.callback, p.payload);
+        formatter.Apply(p.target,
+                        (service == _OrthancPluginService_EncodeDicomWebJson2),
+                        p.dicom, p.dicomSize);
         return true;
       }
 
