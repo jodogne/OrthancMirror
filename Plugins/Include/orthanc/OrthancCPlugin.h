@@ -437,8 +437,10 @@ extern "C"
     _OrthancPluginService_SetMetricsValue = 31,
     _OrthancPluginService_EncodeDicomWebJson = 32,
     _OrthancPluginService_EncodeDicomWebXml = 33,
-    _OrthancPluginService_ChunkedHttpClient = 34,   /* New in Orthanc 1.5.7 */
-    _OrthancPluginService_GetTagName = 35,   /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_ChunkedHttpClient = 34,    /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_GetTagName = 35,           /* New in Orthanc 1.5.7 */
+    _OrthancPluginService_EncodeDicomWebJson2 = 36,  /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_EncodeDicomWebXml2 = 37,   /* New in Orthanc 1.7.0 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1612,6 +1614,45 @@ extern "C"
     uint16_t                            tagGroup,
     uint16_t                            tagElement,
     OrthancPluginValueRepresentation    vr);
+
+
+
+  /**
+   * @brief Callback executed to encode a binary tag in DICOMweb.
+   * 
+   * Signature of a callback function that is called by Orthanc
+   * whenever a DICOM tag that contains a binary value must be written
+   * to a JSON or XML node, while a DICOMweb document is being
+   * generated. The value representation (VR) of the DICOM tag can be
+   * OB, OD, OF, OL, OW, or UN.
+   * 
+   * @see OrthancPluginEncodeDicomWebJson() and OrthancPluginEncodeDicomWebXml()
+   * @param node The node being generated, as provided by Orthanc.
+   * @param setter The setter to be used to encode the content of the node. If
+   * the setter is not called, the binary tag is not written to the output document.
+   * @param levelDepth The depth of the node in the DICOM hierarchy of sequences.
+   * This parameter gives the number of elements in the "levelTagGroup", 
+   * "levelTagElement", and "levelIndex" arrays.
+   * @param levelTagGroup The group of the parent DICOM tags in the hierarchy.
+   * @param levelTagElement The element of the parent DICOM tags in the hierarchy.
+   * @param levelIndex The index of the node in the parent sequences of the hierarchy.
+   * @param tagGroup The group of the DICOM tag of interest.
+   * @param tagElement The element of the DICOM tag of interest.
+   * @param vr The value representation of the binary DICOM node.
+   * @param payload The user payload.
+   * @ingroup Callbacks
+   **/
+  typedef void (*OrthancPluginDicomWebBinaryCallback2) (
+    OrthancPluginDicomWebNode*          node,
+    OrthancPluginDicomWebSetBinaryNode  setter,
+    uint32_t                            levelDepth,
+    const uint16_t*                     levelTagGroup,
+    const uint16_t*                     levelTagElement,
+    const uint32_t*                     levelIndex,
+    uint16_t                            tagGroup,
+    uint16_t                            tagElement,
+    OrthancPluginValueRepresentation    vr,
+    void*                               payload);
 
 
 
@@ -6798,6 +6839,7 @@ extern "C"
    * @see OrthancPluginCreateDicom()
    * @return The NULL value in case of error, or the JSON document. This string must
    * be freed by OrthancPluginFreeString().
+   * @deprecated OrthancPluginEncodeDicomWebJson2()
    * @ingroup Toolbox
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson(
@@ -6839,6 +6881,7 @@ extern "C"
    * @return The NULL value in case of error, or the JSON document. This string must
    * be freed by OrthancPluginFreeString().
    * @see OrthancPluginCreateDicom()
+   * @deprecated OrthancPluginEncodeDicomWebXml2()
    * @ingroup Toolbox
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml(
@@ -6856,6 +6899,105 @@ extern "C"
     params.callback = callback;
 
     if (context->InvokeService(context, _OrthancPluginService_EncodeDicomWebXml, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+  
+
+
+  typedef struct
+  {
+    char**                                target;
+    const void*                           dicom;
+    uint32_t                              dicomSize;
+    OrthancPluginDicomWebBinaryCallback2  callback;
+    void*                                 payload;
+  } _OrthancPluginEncodeDicomWeb2;
+
+  /**
+   * @brief Convert a DICOM instance to DICOMweb JSON.
+   *
+   * This function converts a memory buffer containing a DICOM instance,
+   * into its DICOMweb JSON representation.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param dicom Pointer to the DICOM instance.
+   * @param dicomSize Size of the DICOM instance.
+   * @param callback Callback to set the value of the binary tags.
+   * @param payload User payload.
+   * @see OrthancPluginCreateDicom()
+   * @return The NULL value in case of error, or the JSON document. This string must
+   * be freed by OrthancPluginFreeString().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson2(
+    OrthancPluginContext*                 context,
+    const void*                           dicom,
+    uint32_t                              dicomSize,
+    OrthancPluginDicomWebBinaryCallback2  callback,
+    void*                                 payload)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginEncodeDicomWeb2 params;
+    params.target = &target;
+    params.dicom = dicom;
+    params.dicomSize = dicomSize;
+    params.callback = callback;
+    params.payload = payload;
+
+    if (context->InvokeService(context, _OrthancPluginService_EncodeDicomWebJson2, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  /**
+   * @brief Convert a DICOM instance to DICOMweb XML.
+   *
+   * This function converts a memory buffer containing a DICOM instance,
+   * into its DICOMweb XML representation.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param dicom Pointer to the DICOM instance.
+   * @param dicomSize Size of the DICOM instance.
+   * @param callback Callback to set the value of the binary tags.
+   * @param payload User payload.
+   * @return The NULL value in case of error, or the JSON document. This string must
+   * be freed by OrthancPluginFreeString().
+   * @see OrthancPluginCreateDicom()
+   * @deprecated OrthancPluginEncodeDicomWebXml2()
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml2(
+    OrthancPluginContext*                 context,
+    const void*                           dicom,
+    uint32_t                              dicomSize,
+    OrthancPluginDicomWebBinaryCallback2  callback,
+    void*                                 payload)
+  {
+    char* target = NULL;
+    
+    _OrthancPluginEncodeDicomWeb2 params;
+    params.target = &target;
+    params.dicom = dicom;
+    params.dicomSize = dicomSize;
+    params.callback = callback;
+    params.payload = payload;
+
+    if (context->InvokeService(context, _OrthancPluginService_EncodeDicomWebXml2, &params) != OrthancPluginErrorCode_Success)
     {
       /* Error */
       return NULL;

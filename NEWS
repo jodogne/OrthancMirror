@@ -21,6 +21,8 @@ Plugins
 -------
 
 * New functions in the SDK:
+  - OrthancPluginEncodeDicomWebJson2()
+  - OrthancPluginEncodeDicomWebXml2()
   - OrthancPluginCreateDicomInstance()
   - OrthancPluginFreeDicomInstance()
   - OrthancPluginGetInstanceFramesCount()
