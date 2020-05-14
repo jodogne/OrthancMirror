@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Support of DICOM C-GET SCP
+
 REST API
 --------
 
