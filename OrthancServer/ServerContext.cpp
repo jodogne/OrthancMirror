@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
+#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../Core/Cache/SharedArchive.h"
 #include "../Core/DicomParsing/DcmtkTranscoder.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
@@ -1191,6 +1192,69 @@ namespace Orthanc
       return *transcoder;
     }
   }   
+
+
+  ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
+                                                 unsigned int frameIndex)
+  {
+    // TODO => Reorder given the global parameter
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins() &&
+        GetPlugins().HasCustomImageDecoder())
+    {
+      // TODO: Store the raw buffer in the DicomCacheLocker
+      std::string dicomContent;
+      ReadDicom(dicomContent, publicId);
+
+      std::unique_ptr<ImageAccessor> decoded(
+        GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+      if (decoded.get() != NULL)
+      {
+        return decoded.release();
+      }
+      else
+      {
+        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
+                  << "fallback to the built-in decoder";
+      }
+    }
+#endif
+
+    {
+      // Use Orthanc's built-in decoder, using the cache to speed-up
+      // things on multi-frame images
+      ServerContext::DicomCacheLocker locker(*this, publicId);        
+      return DicomImageDecoder::Decode(locker.GetDicom(), frameIndex);
+    }
+  }
+
+
+  ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
+                                                 unsigned int frameIndex)
+  {
+    // TODO => Reorder given the global parameter
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins() &&
+        GetPlugins().HasCustomImageDecoder())
+    {
+      std::unique_ptr<ImageAccessor> decoded(
+        GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
+      if (decoded.get() != NULL)
+      {
+        return decoded.release();
+      }
+      else
+      {
+        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
+                  << "fallback to the built-in decoder";
+      }
+    }
+#endif
+
+    return DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex);
+  }
 
 
   void ServerContext::StoreWithTranscoding(std::string& sopClassUid,

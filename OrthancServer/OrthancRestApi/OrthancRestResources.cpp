@@ -44,7 +44,6 @@
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Logging.h"
 #include "../../Core/MultiThreading/Semaphore.h"
-#include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
 #include "../ServerContext.h"
@@ -556,44 +555,23 @@ namespace Orthanc
         {
           std::string publicId = call.GetUriComponent("id", "");
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-          if (context.GetPlugins().HasCustomImageDecoder())
-          {
-            // TODO create a cache of file
-            std::string dicomContent;
-            context.ReadDicom(dicomContent, publicId);
-            decoded.reset(context.GetPlugins().DecodeUnsafe(dicomContent.c_str(), dicomContent.size(), frame));
-
-            /**
-             * Note that we call "DecodeUnsafe()": We do not fallback to
-             * the builtin decoder if no installed decoder plugin is able
-             * to decode the image. This allows us to take advantage of
-             * the cache below.
-             **/
-
-            if (handler.RequiresDicomTags() &&
-                decoded.get() != NULL)
-            {
-              // TODO Optimize this lookup for photometric interpretation:
-              // It should be implemented by the plugin to avoid parsing
-              // twice the DICOM file
-              ParsedDicomFile parsed(dicomContent);
-              parsed.ExtractDicomSummary(dicom);
-            }
-          }
-#endif
+          decoded.reset(context.DecodeDicomFrame(publicId, frame));
 
           if (decoded.get() == NULL)
           {
-            // Use Orthanc's built-in decoder, using the cache to speed-up
-            // things on multi-frame images
-            ServerContext::DicomCacheLocker locker(context, publicId);        
-            decoded.reset(DicomImageDecoder::Decode(locker.GetDicom(), frame));
-
-            if (handler.RequiresDicomTags())
-            {
-              locker.GetDicom().ExtractDicomSummary(dicom);
-            }
+            throw OrthancException(ErrorCode_NotImplemented,
+                                   "Cannot decode DICOM instance with ID: " + publicId);
+          }
+          
+          if (handler.RequiresDicomTags())
+          {
+            /**
+             * Retrieve a summary of the DICOM tags, which is
+             * necessary to deal with MONOCHROME1 photometric
+             * interpretation, and with windowing parameters.
+             **/ 
+            ServerContext::DicomCacheLocker locker(context, publicId);
+            locker.GetDicom().ExtractDicomSummary(dicom);
           }
         }
         catch (OrthancException& e)
@@ -982,21 +960,19 @@ namespace Orthanc
     }
 
     std::string publicId = call.GetUriComponent("id", "");
-    std::string dicomContent;
-    context.ReadDicom(dicomContent, publicId);
+    std::unique_ptr<ImageAccessor> decoded(context.DecodeDicomFrame(publicId, frame));
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    IDicomImageDecoder& decoder = context.GetPlugins();
-#else
-    DefaultDicomImageDecoder decoder;  // This is Orthanc's built-in decoder
-#endif
-
-    std::unique_ptr<ImageAccessor> decoded(decoder.Decode(dicomContent.c_str(), dicomContent.size(), frame));
-
-    std::string result;
-    decoded->ToMatlabString(result);
-
-    call.GetOutput().AnswerBuffer(result, MimeType_PlainText);
+    if (decoded.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "Cannot decode DICOM instance with ID: " + publicId);
+    }
+    else
+    {
+      std::string result;
+      decoded->ToMatlabString(result);
+      call.GetOutput().AnswerBuffer(result, MimeType_PlainText);
+    }
   }
 
 

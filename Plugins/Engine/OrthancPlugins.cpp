@@ -62,7 +62,6 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../../Core/Toolbox.h"
-#include "../../OrthancServer/DefaultDicomImageDecoder.h"
 #include "../../OrthancServer/OrthancConfiguration.h"
 #include "../../OrthancServer/OrthancFindRequestHandler.h"
 #include "../../OrthancServer/Search/HierarchicalMatcher.h"
@@ -2757,6 +2756,11 @@ namespace Orthanc
     // Images returned to plugins are assumed to be writeable. If the
     // input image is read-only, we return a copy so that it can be modified.
 
+    if (image.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    
     if (image->IsReadOnly())
     {
       std::unique_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
@@ -2810,22 +2814,17 @@ namespace Orthanc
         
       case _OrthancPluginService_GetInstanceDecodedFrame:
       {
-        std::unique_ptr<ImageAccessor> decoded;
         if (p.targetImage == NULL)
         {
           throw OrthancException(ErrorCode_NullPointer);
         }
-        else if (HasCustomImageDecoder())
-        {
-          // TODO - This call could be speeded up the future, if a
-          // "decoding context" gets introduced in the decoder plugins          
-          decoded.reset(Decode(instance.GetBufferData(), instance.GetBufferSize(), p.frameIndex));
-        }
-        else
-        {
-          decoded.reset(DicomImageDecoder::Decode(instance.GetParsedDicomFile(), p.frameIndex));
-        }
 
+        std::unique_ptr<ImageAccessor> decoded;
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          decoded.reset(lock.GetContext().DecodeDicomFrame(instance, p.frameIndex));
+        }
+        
         *(p.targetImage) = ReturnImage(decoded);
         return;
       }
@@ -2859,8 +2858,7 @@ namespace Orthanc
           static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
         Json::FastWriter writer;
-        *p.targetStringToFree = CopyString(writer.write(json));
-        
+        *p.targetStringToFree = CopyString(writer.write(json));        
         return;
       }
       
@@ -4825,9 +4823,9 @@ namespace Orthanc
   }
 
 
-  ImageAccessor*  OrthancPlugins::DecodeUnsafe(const void* dicom,
-                                               size_t size,
-                                               unsigned int frame)
+  ImageAccessor* OrthancPlugins::Decode(const void* dicom,
+                                        size_t size,
+                                        unsigned int frame)
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
 
@@ -4844,25 +4842,6 @@ namespace Orthanc
     }
 
     return NULL;
-  }
-
-
-  ImageAccessor* OrthancPlugins::Decode(const void* dicom,
-                                        size_t size,
-                                        unsigned int frame)
-  {
-    ImageAccessor* result = DecodeUnsafe(dicom, size, frame);
-
-    if (result != NULL)
-    {
-      return result;
-    }
-    else
-    {
-      LOG(INFO) << "The installed image decoding plugins cannot handle an image, fallback to the built-in decoder";
-      DefaultDicomImageDecoder defaultDecoder;
-      return defaultDecoder.Decode(dicom, size, frame); 
-    }
   }
 
   
