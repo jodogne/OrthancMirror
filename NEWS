@@ -1,10 +1,17 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* DICOM transcoding over the REST API
+* Transcoding from compressed to uncompressed transfer syntaxes over DICOM
+  C-STORE SCU (if the remote modality doesn't support compressed syntaxes)
+
 REST API
 --------
 
-* API version has been upgraded to 7
+* API version upgraded to 7
 * Improved:
   - "/instances/../modify": it is now possible to "Keep" the "SOPInstanceUID".  
     Note that it was already possible to "Replace" it.
@@ -12,8 +19,9 @@ REST API
   - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
     (defaults to the local AET)
 * Changes:
-  - "/instances/.../modify", ".../archive", ".../media",
-    "/tools/create-media" and "/tools/create-archive": New option "Transcode"
+  - "/instances/.../modify": New option "Transcode"
+  - ".../archive", ".../media", "/tools/create-media" and
+    "/tools/create-archive": New option "Transcode"
   - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 
     to 1.5.7 behaviour.
 
@@ -33,6 +41,7 @@ Plugins
   - OrthancPluginSerializeDicomInstance()
   - OrthancPluginTranscodeDicomInstance()
 * "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"
+* Allow concurrent calls to the custom image decoders provided by the plugins
 
 Maintenance
 -----------

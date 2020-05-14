@@ -43,6 +43,7 @@
 #include "../../Core/Images/Image.h"
 #include "../../Core/Images/ImageProcessing.h"
 #include "../../Core/Logging.h"
+#include "../../Core/MultiThreading/Semaphore.h"
 #include "../DefaultDicomImageDecoder.h"
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -54,6 +55,14 @@
 
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/math/special_functions/round.hpp>
+
+
+/**
+ * This semaphore is used to limit the number of concurrent HTTP
+ * requests on CPU-intensive routes of the REST API, in order to
+ * prevent exhaustion of resources (new in Orthanc 1.7.0).
+ **/
+static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 
 namespace Orthanc
@@ -938,6 +947,8 @@ namespace Orthanc
   template <enum ImageExtractionMode mode>
   static void GetImage(RestApiGetCall& call)
   {
+    Semaphore::Locker locker(throttlingSemaphore_);
+        
     GetImageHandler handler(mode);
     IDecodedFrameHandler::Apply(call, handler);
   }
@@ -945,6 +956,8 @@ namespace Orthanc
 
   static void GetRenderedFrame(RestApiGetCall& call)
   {
+    Semaphore::Locker locker(throttlingSemaphore_);
+        
     RenderedFrameHandler handler;
     IDecodedFrameHandler::Apply(call, handler);
   }
@@ -952,6 +965,8 @@ namespace Orthanc
 
   static void GetMatlabImage(RestApiGetCall& call)
   {
+    Semaphore::Locker locker(throttlingSemaphore_);
+        
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string frameId = call.GetUriComponent("frame", "0");
