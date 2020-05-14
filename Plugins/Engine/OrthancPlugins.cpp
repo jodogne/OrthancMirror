@@ -71,11 +71,12 @@
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
-#include <boost/regex.hpp> 
+#include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 
 #define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
+
 
 namespace Orthanc
 {
@@ -918,7 +919,7 @@ namespace Orthanc
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
-    boost::mutex decodeImageCallbackMutex_;
+    boost::shared_mutex decodeImageCallbackMutex_;  // Changed from "boost::mutex" in Orthanc 1.7.0
     boost::mutex jobsUnserializersMutex_;
     boost::mutex refreshMetricsMutex_;
     boost::mutex storageCommitmentScpMutex_;
@@ -2109,7 +2110,7 @@ namespace Orthanc
     const _OrthancPluginDecodeImageCallback& p = 
       *reinterpret_cast<const _OrthancPluginDecodeImageCallback*>(parameters);
 
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
 
     pimpl_->decodeImageCallbacks_.push_back(p.callback);
     LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
@@ -2809,19 +2810,12 @@ namespace Orthanc
         
       case _OrthancPluginService_GetInstanceDecodedFrame:
       {
-        bool hasDecoderPlugin;
-
-        {
-          boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
-          hasDecoderPlugin = !pimpl_->decodeImageCallbacks_.empty();
-        }
-
         std::unique_ptr<ImageAccessor> decoded;
         if (p.targetImage == NULL)
         {
           throw OrthancException(ErrorCode_NullPointer);
         }
-        else if (hasDecoderPlugin)
+        else if (HasCustomImageDecoder())
         {
           // TODO - This call could be speeded up the future, if a
           // "decoding context" gets introduced in the decoder plugins          
@@ -4826,7 +4820,7 @@ namespace Orthanc
 
   bool OrthancPlugins::HasCustomImageDecoder()
   {
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
     return !pimpl_->decodeImageCallbacks_.empty();
   }
 
@@ -4835,7 +4829,7 @@ namespace Orthanc
                                                size_t size,
                                                unsigned int frame)
   {
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
 
     for (PImpl::DecodeImageCallbacks::const_iterator
            decoder = pimpl_->decodeImageCallbacks_.begin();
