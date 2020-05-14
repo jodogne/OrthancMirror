@@ -325,7 +325,6 @@ namespace Orthanc
 
   bool DcmtkTranscoder::TranscodeParsedToBuffer(
     std::string& target /* out */,
-    DicomTransferSyntax& sourceSyntax /* out */,
     bool& hasSopInstanceUidChanged /* out */,
     DcmFileFormat& dicom /* in, possibly modified */,
     DicomTransferSyntax targetSyntax,
@@ -334,12 +333,6 @@ namespace Orthanc
     if (dicom.getDataset() == NULL)
     {
       throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, dicom))
-    {
-      LOG(ERROR) << "Unsupport transfer syntax for transcoding";
-      return false;
     }
 
     std::set<DicomTransferSyntax> tmp;

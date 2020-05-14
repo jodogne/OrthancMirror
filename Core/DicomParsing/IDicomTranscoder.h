@@ -56,7 +56,6 @@ namespace Orthanc
     }
 
     virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
-                                         DicomTransferSyntax& sourceSyntax /* out */,
                                          bool& hasSopInstanceUidChanged /* out */,
                                          DcmFileFormat& dicom /* in, possibly modified */,
                                          DicomTransferSyntax targetSyntax,

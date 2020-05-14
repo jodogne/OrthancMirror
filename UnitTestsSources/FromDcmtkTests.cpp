@@ -1991,10 +1991,9 @@ TEST(Toto, DISABLED_Transcode4)
     std::string t;
 
     bool hasSopInstanceUidChanged;
-    DicomTransferSyntax sourceSyntax2;
 
     std::unique_ptr<DcmFileFormat> cloned(dynamic_cast<DcmFileFormat*>(toto->clone()));
-    if (!transcoder.TranscodeParsedToBuffer(t, sourceSyntax2, hasSopInstanceUidChanged, *cloned, a, true))
+    if (!transcoder.TranscodeParsedToBuffer(t, hasSopInstanceUidChanged, *cloned, a, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
@@ -2005,7 +2004,6 @@ TEST(Toto, DISABLED_Transcode4)
       ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, *cloned));
       
       ASSERT_EQ(targetSyntax, a);
-      ASSERT_EQ(sourceSyntax, sourceSyntax2);
       bool lossy = (a == DicomTransferSyntax_JPEGProcess1 ||
                     a == DicomTransferSyntax_JPEGProcess2_4 ||
                     a == DicomTransferSyntax_JPEGLSLossy);
