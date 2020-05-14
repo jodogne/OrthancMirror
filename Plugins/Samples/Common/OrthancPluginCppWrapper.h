@@ -146,6 +146,9 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
+    MemoryBuffer(const void* buffer,
+                 size_t size);
+
     ~MemoryBuffer()
     {
       Clear();

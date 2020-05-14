@@ -124,6 +124,8 @@ namespace Orthanc
 
     void RegisterDecodeImageCallback(const void* parameters);
 
+    void RegisterTranscoderCallback(const void* parameters);
+
     void RegisterJobsUnserializer(const void* parameters);
 
     void RegisterIncomingHttpRequestFilter(const void* parameters);

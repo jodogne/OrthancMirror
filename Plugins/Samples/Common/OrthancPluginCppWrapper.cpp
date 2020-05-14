@@ -130,6 +130,26 @@ namespace OrthancPlugins
   }
 
 
+  MemoryBuffer::MemoryBuffer(const void* buffer,
+                             size_t size)
+  {
+    uint32_t s = static_cast<uint32_t>(size);
+    if (static_cast<size_t>(s) != size)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+    else if (OrthancPluginCreateMemoryBuffer(GetGlobalContext(), &buffer_, s) !=
+             OrthancPluginErrorCode_Success)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+    else
+    {
+      memcpy(buffer_.data, buffer, size);
+    }
+  }
+
+
   void MemoryBuffer::Clear()
   {
     if (buffer_.data != NULL)

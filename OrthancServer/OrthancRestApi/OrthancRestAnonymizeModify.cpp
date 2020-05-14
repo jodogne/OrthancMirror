@@ -133,9 +133,8 @@ namespace Orthanc
       std::string transcoded;
       bool hasSopInstanceUidChanged;
 
-      if (context.GetTranscoder().TranscodeParsedToBuffer(
-            transcoded, hasSopInstanceUidChanged,
-            modified->GetDcmtkObject(), targetSyntax, true))
+      if (context.TranscodeParsedToBuffer(transcoded, hasSopInstanceUidChanged,
+                                          modified->GetDcmtkObject(), targetSyntax, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }

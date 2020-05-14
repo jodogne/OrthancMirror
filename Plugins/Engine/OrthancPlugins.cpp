@@ -890,6 +890,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
+    typedef std::list<OrthancPluginTranscoderCallback>  TranscoderCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
     typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
@@ -904,6 +905,7 @@ namespace Orthanc
     OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
     DecodeImageCallbacks  decodeImageCallbacks_;
+    TranscoderCallbacks  transcoderCallbacks_;
     JobsUnserializers  jobsUnserializers_;
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
@@ -918,7 +920,7 @@ namespace Orthanc
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
-    boost::shared_mutex decodeImageCallbackMutex_;  // Changed from "boost::mutex" in Orthanc 1.7.0
+    boost::shared_mutex decoderTranscoderMutex_;  // Changed from "boost::mutex" in Orthanc 1.7.0
     boost::mutex jobsUnserializersMutex_;
     boost::mutex refreshMetricsMutex_;
     boost::mutex storageCommitmentScpMutex_;
@@ -2109,11 +2111,24 @@ namespace Orthanc
     const _OrthancPluginDecodeImageCallback& p = 
       *reinterpret_cast<const _OrthancPluginDecodeImageCallback*>(parameters);
 
-    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     pimpl_->decodeImageCallbacks_.push_back(p.callback);
     LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
               << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
+  }
+
+
+  void OrthancPlugins::RegisterTranscoderCallback(const void* parameters)
+  {
+    const _OrthancPluginTranscoderCallback& p = 
+      *reinterpret_cast<const _OrthancPluginTranscoderCallback*>(parameters);
+
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
+
+    pimpl_->transcoderCallbacks_.push_back(p.callback);
+    LOG(INFO) << "Plugin has registered a callback to transcode DICOM images (" 
+              << pimpl_->transcoderCallbacks_.size() << " transcoder(s) now active)";
   }
 
 
@@ -4363,7 +4378,7 @@ namespace Orthanc
           
           {
             PImpl::ServerContextLock lock(*pimpl_);
-            transcoded.reset(lock.GetContext().GetTranscoder().TranscodeToParsed(
+            transcoded.reset(lock.GetContext().TranscodeToParsed(
                                dicom.GetDcmtkObject(), p.buffer, p.size,
                                syntaxes, true /* allow new sop */));
           }
@@ -4379,6 +4394,25 @@ namespace Orthanc
             return true;
           }
         }
+      }
+
+      case _OrthancPluginService_CreateMemoryBuffer:
+      {
+        const _OrthancPluginCreateMemoryBuffer& p =
+          *reinterpret_cast<const _OrthancPluginCreateMemoryBuffer*>(parameters);
+
+        p.target->size = p.size;
+        
+        if (p.size == 0)
+        {
+          p.target->data = NULL;
+        }
+        else
+        {
+          p.target->data = malloc(p.size);
+        }          
+        
+        return true;
       }
         
       default:
@@ -4432,6 +4466,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDecodeImageCallback:
         RegisterDecodeImageCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterTranscoderCallback:
+        RegisterTranscoderCallback(parameters);
         return true;
 
       case _OrthancPluginService_RegisterJobsUnserializer:
@@ -4818,7 +4856,7 @@ namespace Orthanc
 
   bool OrthancPlugins::HasCustomImageDecoder()
   {
-    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
     return !pimpl_->decodeImageCallbacks_.empty();
   }
 
@@ -4827,7 +4865,7 @@ namespace Orthanc
                                         size_t size,
                                         unsigned int frame)
   {
-    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     for (PImpl::DecodeImageCallbacks::const_iterator
            decoder = pimpl_->decodeImageCallbacks_.begin();
@@ -5130,6 +5168,43 @@ namespace Orthanc
   }
 
 
+  class MemoryBufferRaii : public boost::noncopyable
+  {
+  private:
+    OrthancPluginMemoryBuffer  buffer_;
+
+  public:
+    MemoryBufferRaii()
+    {
+      buffer_.size = 0;
+      buffer_.data = NULL;
+    }
+
+    ~MemoryBufferRaii()
+    {
+      if (buffer_.size != 0)
+      {
+        free(buffer_.data);
+      }
+    }
+
+    OrthancPluginMemoryBuffer* GetObject()
+    {
+      return &buffer_;
+    }
+
+    void ToString(std::string& target) const
+    {
+      target.resize(buffer_.size);
+
+      if (buffer_.size != 0)
+      {
+        memcpy(&target[0], buffer_.data, buffer_.size);
+      }
+    }
+  };
+  
+
   bool OrthancPlugins::Transcode(std::string& target,
                                  bool& hasSopInstanceUidChanged /* out */,
                                  const void* buffer,
@@ -5137,7 +5212,37 @@ namespace Orthanc
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                  bool allowNewSopInstanceUid)
   {
-    // TODO
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
+
+    if (pimpl_->transcoderCallbacks_.empty())
+    {
+      return NULL;
+    }
+
+    std::vector<const char*> uids;
+    uids.reserve(allowedSyntaxes.size());
+    for (std::set<DicomTransferSyntax>::const_iterator
+           it = allowedSyntaxes.begin(); it != allowedSyntaxes.end(); ++it)
+    {
+      uids.push_back(GetTransferSyntaxUid(*it));
+    }
+    
+    for (PImpl::TranscoderCallbacks::const_iterator
+           transcoder = pimpl_->transcoderCallbacks_.begin();
+         transcoder != pimpl_->transcoderCallbacks_.end(); ++transcoder)
+    {
+      MemoryBufferRaii a;
+      uint8_t b;
+
+      if ((*transcoder) (a.GetObject(), &b, buffer, size, uids.empty() ? NULL : &uids[0],
+                         static_cast<uint32_t>(uids.size()), allowNewSopInstanceUid) ==
+          OrthancPluginErrorCode_Success)
+      {
+        a.ToString(target);
+        return true;
+      }
+    }
+
     return false;
   }
 }

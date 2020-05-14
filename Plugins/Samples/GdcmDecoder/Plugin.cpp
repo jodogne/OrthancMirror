@@ -24,6 +24,13 @@
 #include "../../../Core/Toolbox.h"
 #include "GdcmDecoderCache.h"
 
+#include <gdcmImageChangeTransferSyntax.h>
+#include <gdcmImageReader.h>
+#include <gdcmImageWriter.h>
+#include <gdcmUIDGenerator.h>
+#include <gdcmAttribute.h>
+
+
 static OrthancPlugins::GdcmDecoderCache  cache_;
 static bool restrictTransferSyntaxes_ = false;
 static std::set<std::string> enabledTransferSyntaxes_;
@@ -148,6 +155,124 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 }
 
 
+OrthancPluginErrorCode TranscoderCallback(
+  OrthancPluginMemoryBuffer* transcoded /* out */,
+  uint8_t*                   hasSopInstanceUidChanged /* out */,
+  const void*                buffer,
+  uint64_t                   size,
+  const char* const*         allowedSyntaxes,
+  uint32_t                   countSyntaxes,
+  uint8_t                    allowNewSopInstanceUid)
+{
+  try
+  {
+    std::string dicom(reinterpret_cast<const char*>(buffer), size);
+    std::stringstream stream(dicom);
+
+    gdcm::ImageReader reader;
+    reader.SetStream(stream);
+    if (!reader.Read())
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat,
+                                      "GDCM cannot decode the image");
+    }
+
+    // First check that transcoding is mandatory
+    for (uint32_t i = 0; i < countSyntaxes; i++)
+    {
+      gdcm::TransferSyntax syntax(gdcm::TransferSyntax::GetTSType(allowedSyntaxes[i]));
+      if (syntax.IsValid() &&
+          reader.GetImage().GetTransferSyntax() == syntax)
+      {
+        // Same transfer syntax as in the source, return a copy of the
+        // source buffer
+        OrthancPlugins::MemoryBuffer orthancBuffer(buffer, size);
+        *transcoded = orthancBuffer.Release();
+        *hasSopInstanceUidChanged = false;
+        return OrthancPluginErrorCode_Success;
+      }
+    }
+
+    for (uint32_t i = 0; i < countSyntaxes; i++)
+    {
+      gdcm::TransferSyntax syntax(gdcm::TransferSyntax::GetTSType(allowedSyntaxes[i]));
+      if (syntax.IsValid())
+      {
+        gdcm::ImageChangeTransferSyntax change;
+        change.SetTransferSyntax(syntax);
+        change.SetInput(reader.GetImage());
+
+        if (change.Change())
+        {
+          if (syntax == gdcm::TransferSyntax::JPEGBaselineProcess1 ||
+              syntax == gdcm::TransferSyntax::JPEGExtendedProcess2_4 ||
+              syntax == gdcm::TransferSyntax::JPEGLSNearLossless ||
+              syntax == gdcm::TransferSyntax::JPEG2000 ||
+              syntax == gdcm::TransferSyntax::JPEG2000Part2)
+          {
+            // In the case of a lossy compression, generate new SOP instance UID
+            gdcm::UIDGenerator generator;
+            std::string uid = generator.Generate();
+            if (uid.size() == 0)
+            {
+              throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
+                                              "GDCM cannot generate a UID");
+            }
+
+            gdcm::Attribute<0x0008,0x0018> sopInstanceUid;
+            sopInstanceUid.SetValue(uid);
+            reader.GetFile().GetDataSet().Replace(sopInstanceUid.GetAsDataElement());
+            *hasSopInstanceUidChanged = 1;
+          }
+          else
+          {
+            *hasSopInstanceUidChanged = 0;
+          }
+      
+          // GDCM was able to change the transfer syntax, serialize it
+          // to the output buffer
+          gdcm::ImageWriter writer;
+          writer.SetImage(change.GetOutput());
+          writer.SetFile(reader.GetFile());
+
+          std::stringstream ss;
+          writer.SetStream(ss);
+          if (writer.Write())
+          {
+            std::string s = ss.str();
+            OrthancPlugins::MemoryBuffer orthancBuffer(s.empty() ? NULL : s.c_str(), s.size());
+            *transcoded = orthancBuffer.Release();
+
+            return OrthancPluginErrorCode_Success;
+          }
+          else
+          {
+            throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
+                                            "GDCM cannot serialize the image");
+          }
+        }
+      }
+    }
+    
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+  }
+  catch (Orthanc::OrthancException& e)
+  {
+    LOG(INFO) << "Cannot transcode image using GDCM: " << e.What();
+    return OrthancPluginErrorCode_Plugin;
+  }
+  catch (std::runtime_error& e)
+  {
+    LOG(INFO) << "Cannot transcode image using GDCM: " << e.what();
+    return OrthancPluginErrorCode_Plugin;
+  }
+  catch (...)
+  {
+    LOG(INFO) << "Native exception while decoding image using GDCM";
+    return OrthancPluginErrorCode_Plugin;
+  }
+}
+
 
 /**
  * We force the redefinition of the "ORTHANC_PLUGINS_API" macro, that
@@ -176,23 +301,18 @@ extern "C"
     static const char* const KEY_RESTRICT_TRANSFER_SYNTAXES = "RestrictTransferSyntaxes";
 
     OrthancPlugins::SetGlobalContext(context);
-    LOG(INFO) << "Initializing the advanced decoder of medical images using GDCM";
-
+    Orthanc::Logging::Initialize(context);
+    LOG(INFO) << "Initializing the decoder/transcoder of medical images using GDCM";
 
     /* Check the version of the Orthanc core */
-    if (OrthancPluginCheckVersion(context) == 0)
+    if (!OrthancPlugins::CheckMinimalOrthancVersion(0, 9, 5))
     {
-      char info[1024];
-      sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
-              context->orthancVersion,
-              ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
-              ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-      OrthancPluginLogError(context, info);
+      LOG(ERROR) << "Your version of Orthanc (" << std::string(context->orthancVersion)
+                 << ") must be above 0.9.5 to run this plugin";
       return -1;
     }
 
-    OrthancPluginSetDescription(context, "Advanced decoder of medical images using GDCM.");
+    OrthancPluginSetDescription(context, "Decoder/transcoder of medical images using GDCM.");
 
     OrthancPlugins::OrthancConfiguration global;
 
@@ -220,10 +340,20 @@ extern "C"
     if (enabled)
     {
       OrthancPluginRegisterDecodeImageCallback(context, DecodeImageCallback);
+
+      if (OrthancPlugins::CheckMinimalOrthancVersion(1, 7, 0))
+      {
+        OrthancPluginRegisterTranscoderCallback(context, TranscoderCallback);
+      }
+      else
+      {
+        LOG(ERROR) << "Your version of Orthanc (" << std::string(context->orthancVersion)
+                   << ") must be above 1.7.0 to benefit from transcoding";
+      }
     }
     else
     {
-      LOG(WARNING) << "The advanced decoder of medical images using GDCM is disabled";
+      LOG(WARNING) << "The decoder/transcoder of medical images using GDCM is disabled";
     }
     
     return 0;
@@ -232,13 +362,13 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    LOG(INFO) << "Finalizing the advanced decoder of medical images using GDCM";
+    LOG(INFO) << "Finalizing the decoder/transcoder of medical images using GDCM";
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "gdcm-decoder";
+    return "gdcm";
   }
 
 

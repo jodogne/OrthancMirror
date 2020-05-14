@@ -532,10 +532,10 @@ namespace Orthanc
         syntaxes.insert(option);
 
         std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-          GetTranscoder().TranscodeToParsed(dicom.GetParsedDicomFile().GetDcmtkObject(),
-                                            dicom.GetBufferData(), dicom.GetBufferSize(),
-                                            syntaxes, true /* allow new SOP instance UID */));
-
+          TranscodeToParsed(dicom.GetParsedDicomFile().GetDcmtkObject(),
+                            dicom.GetBufferData(), dicom.GetBufferSize(),
+                            syntaxes, true /* allow new SOP instance UID */));
+        
         if (transcoded.get() == NULL)
         {
           // Cannot transcode => store the original file
@@ -1172,28 +1172,6 @@ namespace Orthanc
   }
 
 
-  IDicomTranscoder& ServerContext::GetTranscoder()
-  {
-    IDicomTranscoder* transcoder = dcmtkTranscoder_.get();
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      transcoder = &GetPlugins();
-    }
-#endif
-
-    if (transcoder == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return *transcoder;
-    }
-  }   
-
-
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
@@ -1216,7 +1194,7 @@ namespace Orthanc
       else
       {
         LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in decoder";
+                  << "fallback to the built-in DCMTK decoder";
       }
     }
 #endif
@@ -1248,7 +1226,7 @@ namespace Orthanc
       else
       {
         LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in decoder";
+                  << "fallback to the built-in DCMTK decoder";
       }
     }
 #endif
@@ -1275,8 +1253,65 @@ namespace Orthanc
     }
     else
     {
-      connection.Transcode(sopClassUid, sopInstanceUid, GetTranscoder(), data, dicom.size(),
+      connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(),
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
+  }
+
+
+  bool ServerContext::TranscodeParsedToBuffer(std::string& target /* out */,
+                                              bool& hasSopInstanceUidChanged /* out */,
+                                              DcmFileFormat& dicom /* in, possibly modified */,
+                                              DicomTransferSyntax targetSyntax,
+                                              bool allowNewSopInstanceUid)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      if (GetPlugins().TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
+                                               targetSyntax, allowNewSopInstanceUid))
+      {
+        return true;
+      }
+      else
+      {
+        LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
+                  << "fallback to the built-in DCMTK transcoder";
+      }
+    }
+#endif
+
+    return dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
+                                                     targetSyntax, allowNewSopInstanceUid);
+  }
+      
+
+  IDicomTranscoder::TranscodedDicom*
+  ServerContext::TranscodeToParsed(DcmFileFormat& dicom,
+                                   const void* buffer,
+                                   size_t size,
+                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                   bool allowNewSopInstanceUid)
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
+        GetPlugins().TranscodeToParsed(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
+
+      if (transcoded.get() != NULL)
+      {
+        return transcoded.release();
+      }
+      else
+      {
+        LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
+                  << "fallback to the built-in DCMTK transcoder";
+      }
+    }
+#endif
+
+    return dcmtkTranscoder_->TranscodeToParsed(
+      dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
   }
 }
