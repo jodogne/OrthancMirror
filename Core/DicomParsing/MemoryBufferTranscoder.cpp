@@ -43,30 +43,6 @@
 
 namespace Orthanc
 {
-  MemoryBufferTranscoder::MemoryBufferTranscoder()
-  {
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    useDcmtk_ = true;
-#else
-    useDcmtk_ = false;
-#endif
-  }
-
-
-  void MemoryBufferTranscoder::SetDcmtkUsed(bool used)
-  {
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING != 1
-    if (useDcmtk)
-    {
-      throw OrthancException(ErrorCode_NotImplemented,
-                             "Orthanc was built without support for DMCTK transcoding");
-    }
-#endif    
-
-    useDcmtk_ = used;
-  }
-
-
   static void CheckTargetSyntax(const std::string& transcoded,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes)
   {
@@ -110,21 +86,16 @@ namespace Orthanc
     std::set<DicomTransferSyntax> allowedSyntaxes;
     allowedSyntaxes.insert(targetSyntax);
 
-    bool success = Transcode(target, hasSopInstanceUidChanged,
-                             data, source.size(), allowedSyntaxes, allowNewSopInstanceUid);
-
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    if (!success &&
-        useDcmtk_ &&
-        dcmtk_.TranscodeParsedToBuffer(
-          target, hasSopInstanceUidChanged, dicom, targetSyntax, allowNewSopInstanceUid))
+    if (Transcode(target, hasSopInstanceUidChanged,
+                  data, source.size(), allowedSyntaxes, allowNewSopInstanceUid))
     {
-      success = true;
+      CheckTargetSyntax(target, allowedSyntaxes);
+      return true;
     }
-#endif
-
-    CheckTargetSyntax(target, allowedSyntaxes);
-    return success;
+    else
+    {
+      return false;
+    }    
   }
   
 
@@ -147,12 +118,6 @@ namespace Orthanc
       return IDicomTranscoder::TranscodedDicom::CreateFromInternal(
         FromDcmtkBridge::LoadFromMemoryBuffer(data, target.size()), hasSopInstanceUidChanged);
     }
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    else if (useDcmtk_)
-    {
-      return dcmtk_.TranscodeToParsed(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
-    }
-#endif
     else
     {
       return NULL;

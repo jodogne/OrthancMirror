@@ -33,26 +33,13 @@
 
 #pragma once
 
-#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
-#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
-#endif
-
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-#  include "DcmtkTranscoder.h"
-#endif
+#include "IDicomTranscoder.h"
 
 namespace Orthanc
 {
   // This is the basis class for transcoding plugins
   class MemoryBufferTranscoder : public IDicomTranscoder
   {
-  private:
-    bool  useDcmtk_;
-
-#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
-    DcmtkTranscoder  dcmtk_;
-#endif
-
   protected:
     virtual bool Transcode(std::string& target,
                            bool& hasSopInstanceUidChanged /* out */,
@@ -62,19 +49,6 @@ namespace Orthanc
                            bool allowNewSopInstanceUid) = 0;
     
   public:
-    /**
-     * If "useDcmtk" is "true", the transcoder will first try and call
-     * DCMTK, before calling its own "Transcode()" implementation.
-     **/
-    MemoryBufferTranscoder();
-
-    void SetDcmtkUsed(bool used);
-
-    bool IsDcmtkUsed() const
-    {
-      return useDcmtk_;
-    }
-    
     virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
                                          bool& hasSopInstanceUidChanged /* out */,
                                          DcmFileFormat& dicom /* in, possibly modified */,

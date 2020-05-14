@@ -65,6 +65,7 @@ namespace Orthanc
    **/
   class ServerContext :
     public IStorageCommitmentFactory,
+    public IDicomTranscoder,
     private JobsRegistry::IObserver
   {
   public:
@@ -473,8 +474,21 @@ namespace Orthanc
                               const std::string& moveOriginatorAet,
                               uint16_t moveOriginatorId);
 
-    // This accessor can be used even if the global option
+    // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"
-    IDicomTranscoder& GetTranscoder();
+    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DcmFileFormat& dicom /* in, possibly modified */,
+                                         DicomTransferSyntax targetSyntax,
+                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    // This method can be used even if the global option
+    // "TranscodeDicomProtocol" is set to "false"
+    virtual IDicomTranscoder::TranscodedDicom* TranscodeToParsed(
+      DcmFileFormat& dicom /* in, possibly modified */,
+      const void* buffer /* in, same DICOM file as "dicom" */,
+      size_t size,
+      const std::set<DicomTransferSyntax>& allowedSyntaxes,
+      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

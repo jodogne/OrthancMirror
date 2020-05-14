@@ -447,9 +447,8 @@ namespace Orthanc
               const char* data = content.empty() ? NULL : content.c_str();
               
               std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcodedDicom(
-                context.GetTranscoder().TranscodeToParsed(
-                  parsed->GetDcmtkObject(), data, content.size(),
-                  syntaxes, true /* allow new SOP instance UID */));
+                context.TranscodeToParsed(parsed->GetDcmtkObject(), data, content.size(),
+                                          syntaxes, true /* allow new SOP instance UID */));
 
               if (transcodedDicom.get() != NULL &&
                   transcodedDicom->GetDicom().getDataset() != NULL)

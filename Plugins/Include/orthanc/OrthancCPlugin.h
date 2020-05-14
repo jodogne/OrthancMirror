@@ -28,6 +28,7 @@
  *    - Possibly register a callback to answer chunked HTTP transfers using ::OrthancPluginRegisterChunkedRestCallback().
  *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback().
  *    - Possibly register a callback to filter incoming DICOM instance using OrthancPluginRegisterIncomingDicomInstanceFilter().
+ *    - Possibly register a custom transcoder for DICOM images using OrthancPluginRegisterTranscoderCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -441,6 +442,7 @@ extern "C"
     _OrthancPluginService_GetTagName = 35,           /* New in Orthanc 1.5.7 */
     _OrthancPluginService_EncodeDicomWebJson2 = 36,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_EncodeDicomWebXml2 = 37,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_CreateMemoryBuffer = 38,   /* New in Orthanc 1.7.0 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -458,7 +460,8 @@ extern "C"
     _OrthancPluginService_RegisterChunkedRestCallback = 1012,  /* New in Orthanc 1.5.7 */
     _OrthancPluginService_RegisterStorageCommitmentScpCallback = 1013,
     _OrthancPluginService_RegisterIncomingDicomInstanceFilter = 1014,
-
+    _OrthancPluginService_RegisterTranscoderCallback = 1015,   /* New in Orthanc 1.7.0 */
+    
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
     _OrthancPluginService_CompressAndAnswerPngImage = 2001,  /* Unused as of Orthanc 0.9.4 */
@@ -7950,6 +7953,54 @@ extern "C"
     {
       return target;
     }
+  }
+
+
+
+
+  typedef OrthancPluginErrorCode (*OrthancPluginTranscoderCallback) (
+    OrthancPluginMemoryBuffer* transcoded /* out */,
+    uint8_t*                   hasSopInstanceUidChanged /* out */,
+    const void*                buffer,
+    uint64_t                   size,
+    const char* const*         allowedSyntaxes,
+    uint32_t                   countSyntaxes,
+    uint8_t                    allowNewSopInstanceUid);
+
+
+  typedef struct
+  {
+    OrthancPluginTranscoderCallback callback;
+  } _OrthancPluginTranscoderCallback;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterTranscoderCallback(
+    OrthancPluginContext*            context,
+    OrthancPluginTranscoderCallback  callback)
+  {
+    _OrthancPluginTranscoderCallback params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterTranscoderCallback, &params);
+  }
+  
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  target;
+    uint32_t                    size;
+  } _OrthancPluginCreateMemoryBuffer;
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateMemoryBuffer(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  target,
+    uint32_t                    size)
+  {
+    _OrthancPluginCreateMemoryBuffer params;
+    params.target = target;
+    params.size = size;
+
+    return context->InvokeService(context, _OrthancPluginService_CreateMemoryBuffer, &params);
   }
   
 
