@@ -328,13 +328,6 @@ namespace Orthanc
 
     bool HasCustomImageDecoder();
 
-    // Contrarily to "Decode()", this method does not fallback to the
-    // builtin image decoder, if no installed custom decoder can
-    // handle the image (it returns NULL in this case).
-    ImageAccessor* DecodeUnsafe(const void* dicom,
-                                size_t size,
-                                unsigned int frame);
-
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,
                                   unsigned int frame) ORTHANC_OVERRIDE;

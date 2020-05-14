@@ -459,6 +459,12 @@ namespace Orthanc
       return *storageCommitmentReports_;
     }
 
+    ImageAccessor* DecodeDicomFrame(const std::string& publicId,
+                                    unsigned int frameIndex);
+
+    ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
+                                    unsigned int frameIndex);
+
     void StoreWithTranscoding(std::string& sopClassUid,
                               std::string& sopInstanceUid,
                               DicomStoreUserConnection& connection,
