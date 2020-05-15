@@ -328,6 +328,8 @@ namespace Orthanc
 
     bool HasCustomImageDecoder();
 
+    bool HasCustomTranscoder();
+
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,
                                   unsigned int frame) ORTHANC_OVERRIDE;
