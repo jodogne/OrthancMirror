@@ -214,6 +214,29 @@ namespace Orthanc
                              "should be \"Always\", \"Never\" or \"Answers\": " + value);
     }    
   }
+
+
+  BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& value)
+  {
+    if (value == "Before")
+    {
+      return BuiltinDecoderTranscoderOrder_Before;
+    }
+    else if (value == "After")
+    {
+      return BuiltinDecoderTranscoderOrder_After;
+    }
+    else if (value == "Disabled")
+    {
+      return BuiltinDecoderTranscoderOrder_Disabled;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Configuration option \"BuiltinDecoderTranscoderOrder\" "
+                             "should be \"After\", \"Before\" or \"Disabled\": " + value);
+    }    
+  }
   
 
   std::string GetBasePath(ResourceType type,

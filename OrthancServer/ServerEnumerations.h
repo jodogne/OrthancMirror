@@ -175,6 +175,13 @@ namespace Orthanc
     ChangeType_NewChildInstance = 4097
   };
 
+  enum BuiltinDecoderTranscoderOrder
+  {
+    BuiltinDecoderTranscoderOrder_Before,
+    BuiltinDecoderTranscoderOrder_After,
+    BuiltinDecoderTranscoderOrder_Disabled
+  };
+
 
 
   void InitializeServerEnumerations();
@@ -193,6 +200,8 @@ namespace Orthanc
   FileContentType StringToContentType(const std::string& str);
 
   FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
+
+  BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& str);
 
   std::string EnumerationToString(FileContentType type);
 

@@ -268,8 +268,9 @@ namespace Orthanc
       // New configuration option in Orthanc 1.6.0
       storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
 
-      // New option in Orthanc 1.7.0
+      // New options in Orthanc 1.7.0
       transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
+      builtinDecoderTranscoderOrder_ = StringToBuiltinDecoderTranscoderOrder(lock.GetConfiguration().GetStringParameter("BuiltinDecoderTranscoderOrder", "After"));
     }
 
     jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1175,7 +1176,18 @@ namespace Orthanc
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
-    // TODO => Reorder given the global parameter
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      // Use Orthanc's built-in decoder, using the cache to speed-up
+      // things on multi-frame images
+      ServerContext::DicomCacheLocker locker(*this, publicId);        
+      std::unique_ptr<ImageAccessor> decoded(
+        DicomImageDecoder::Decode(locker.GetDicom(), frameIndex));
+      if (decoded.get() != NULL)
+      {
+        return decoded.release();
+      }
+    }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins() &&
@@ -1184,14 +1196,13 @@ namespace Orthanc
       // TODO: Store the raw buffer in the DicomCacheLocker
       std::string dicomContent;
       ReadDicom(dicomContent, publicId);
-
       std::unique_ptr<ImageAccessor> decoded(
         GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
       }
-      else
+      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
       {
         LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
                   << "fallback to the built-in DCMTK decoder";
@@ -1199,11 +1210,14 @@ namespace Orthanc
     }
 #endif
 
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      // Use Orthanc's built-in decoder, using the cache to speed-up
-      // things on multi-frame images
       ServerContext::DicomCacheLocker locker(*this, publicId);        
       return DicomImageDecoder::Decode(locker.GetDicom(), frameIndex);
+    }
+    else
+    {
+      return NULL;  // Built-in decoder is disabled
     }
   }
 
@@ -1211,7 +1225,15 @@ namespace Orthanc
   ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                                  unsigned int frameIndex)
   {
-    // TODO => Reorder given the global parameter
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      std::unique_ptr<ImageAccessor> decoded(
+        DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex));
+      if (decoded.get() != NULL)
+      {
+        return decoded.release();
+      }
+    }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins() &&
@@ -1223,7 +1245,7 @@ namespace Orthanc
       {
         return decoded.release();
       }
-      else
+      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
       {
         LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
                   << "fallback to the built-in DCMTK decoder";
@@ -1231,7 +1253,14 @@ namespace Orthanc
     }
 #endif
 
-    return DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex);
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      return DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex);
+    }
+    else
+    {
+      return NULL;
+    }
   }
 
 
@@ -1265,24 +1294,41 @@ namespace Orthanc
                                               DicomTransferSyntax targetSyntax,
                                               bool allowNewSopInstanceUid)
   {
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      if (dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
+                                                    targetSyntax, allowNewSopInstanceUid))
+      {
+        return true;
+      }
+    }
+    
 #if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
+    if (HasPlugins() &&
+        GetPlugins().HasCustomTranscoder())
     {
       if (GetPlugins().TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
                                                targetSyntax, allowNewSopInstanceUid))
       {
         return true;
       }
-      else
+      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
       {
         LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
                   << "fallback to the built-in DCMTK transcoder";
       }
     }
 #endif
-
-    return dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
-                                                     targetSyntax, allowNewSopInstanceUid);
+    
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      return dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
+                                                       targetSyntax, allowNewSopInstanceUid);
+    }
+    else
+    {
+      return false;
+    }
   }
       
 
@@ -1293,8 +1339,20 @@ namespace Orthanc
                                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                    bool allowNewSopInstanceUid)
   {
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
+        dcmtkTranscoder_->TranscodeToParsed(dicom, buffer, size, allowedSyntaxes,
+                                            allowNewSopInstanceUid));
+      if (transcoded.get() != NULL)
+      {
+        return transcoded.release();
+      }
+    }
+
 #if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
+    if (HasPlugins() &&
+        GetPlugins().HasCustomTranscoder())
     {
       std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
         GetPlugins().TranscodeToParsed(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
@@ -1303,7 +1361,7 @@ namespace Orthanc
       {
         return transcoded.release();
       }
-      else
+      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
       {
         LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
                   << "fallback to the built-in DCMTK transcoder";
@@ -1311,7 +1369,14 @@ namespace Orthanc
     }
 #endif
 
-    return dcmtkTranscoder_->TranscodeToParsed(
-      dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      return dcmtkTranscoder_->TranscodeToParsed(
+        dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
+    }
+    else
+    {
+      return NULL;
+    }
   }
 }
