@@ -130,6 +130,7 @@ namespace OrthancPlugins
   }
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
   MemoryBuffer::MemoryBuffer(const void* buffer,
                              size_t size)
   {
@@ -148,6 +149,7 @@ namespace OrthancPlugins
       memcpy(buffer_.data, buffer, size);
     }
   }
+#endif
 
 
   void MemoryBuffer::Clear()
