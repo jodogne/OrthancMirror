@@ -65,6 +65,9 @@
  *
  * @defgroup Orthanc Orthanc
  * @brief Functions to access the content of the Orthanc server.
+ *
+ * @defgroup DicomInstance DicomInstance
+ * @brief Functions to access DICOM images that are managed by the Orthanc core.
  **/
 
 
@@ -1024,7 +1027,8 @@ extern "C"
 
 
   /**
-   * @brief Opaque structure that represents a DICOM instance received by Orthanc.
+   * @brief Opaque structure that represents a DICOM instance that is managed by the Orthanc core.
+   * @ingroup DicomInstance
    **/
   typedef struct _OrthancPluginDicomInstance_t OrthancPluginDicomInstance;
 
@@ -2769,7 +2773,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The AET if success, NULL if error.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceRemoteAet(
     OrthancPluginContext*              context,
@@ -2802,7 +2806,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The size of the file, -1 in case of error.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE int64_t OrthancPluginGetInstanceSize(
     OrthancPluginContext*             context,
@@ -2835,7 +2839,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The pointer to the DICOM data, NULL in case of error.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE const void* OrthancPluginGetInstanceData(
     OrthancPluginContext*              context,
@@ -2871,7 +2875,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return The NULL value in case of error, or a string containing the JSON file.
    * This string must be freed by OrthancPluginFreeString().
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceJson(
     OrthancPluginContext*              context,
@@ -2909,7 +2913,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return The NULL value in case of error, or a string containing the JSON file.
    * This string must be freed by OrthancPluginFreeString().
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceSimplifiedJson(
     OrthancPluginContext*              context,
@@ -2948,7 +2952,7 @@ extern "C"
    * @param instance The instance of interest.
    * @param metadata The metadata of interest.
    * @return 1 if the metadata is present, 0 if it is absent, -1 in case of error.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
     OrthancPluginContext*              context,
@@ -2989,7 +2993,7 @@ extern "C"
    *         returned string belongs to the instance object and must NOT be 
    *         deallocated. Please make a copy of the string if you wish to access 
    *         it later.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetInstanceMetadata(
     OrthancPluginContext*              context,
@@ -5161,7 +5165,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param instance The instance of interest.
    * @return The origin of the instance.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginInstanceOrigin OrthancPluginGetInstanceOrigin(
     OrthancPluginContext*             context,
@@ -7631,7 +7635,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return The NULL value in case of error, or a string containing the
    * transfer syntax UID. This string must be freed by OrthancPluginFreeString().
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceTransferSyntaxUid(
     OrthancPluginContext*              context,
@@ -7666,7 +7670,7 @@ extern "C"
    * @param instance The instance of interest.
    * @return "1" if the DICOM instance contains pixel data, or "0" if
    * the tag is missing, or "-1" in the case of an error.
-   * @ingroup Callbacks
+   * @ingroup DicomInstance
    **/
   ORTHANC_PLUGIN_INLINE int32_t OrthancPluginHasInstancePixelData(
     OrthancPluginContext*             context,
@@ -7705,6 +7709,19 @@ extern "C"
     const char*                   transferSyntax;
   } _OrthancPluginCreateDicomInstance;
 
+  /**
+   * @brief Parse a DICOM instance.
+   *
+   * This function parses a memory buffer that contains a DICOM
+   * file. The function returns a new pointer to a data structure that
+   * is managed by the Orthanc core.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The memory buffer containing the DICOM instance.
+   * @param size The size of the memory buffer.
+   * @return The newly allocated DICOM instance. It must be freed with OrthancPluginFreeDicomInstance().
+   * @ingroup DicomInstance
+   **/
   ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginCreateDicomInstance(
     OrthancPluginContext*  context,
     const void*            buffer,
@@ -7733,6 +7750,16 @@ extern "C"
     OrthancPluginDicomInstance*   dicom;
   } _OrthancPluginFreeDicomInstance;
 
+  /**
+   * @brief Free a DICOM instance.
+   *
+   * This function frees a DICOM instance that was parsed using
+   * OrthancPluginCreateDicomInstance().
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param dicom The DICOM instance.
+   * @ingroup DicomInstance
+   **/
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeDicomInstance(
     OrthancPluginContext*        context, 
     OrthancPluginDicomInstance*  dicom)
@@ -7759,6 +7786,17 @@ extern "C"
     void*                                 dicomWebPayload;
   } _OrthancPluginAccessDicomInstance2;
 
+  /**
+   * @brief Get the number of frames in a DICOM instance.
+   *
+   * This function returns the number of frames that are part of a
+   * DICOM image managed by the Orthanc core.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instance The instance of interest.
+   * @return The number of frames (will be zero in the case of an error).
+   * @ingroup DicomInstance
+   **/
   ORTHANC_PLUGIN_INLINE uint32_t OrthancPluginGetInstanceFramesCount(
     OrthancPluginContext*             context,
     const OrthancPluginDicomInstance* instance)
