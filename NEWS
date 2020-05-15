@@ -48,6 +48,7 @@ Plugins
 Maintenance
 -----------
 
+* Moved the GDCM sample plugin out of the Orthanc repository as a separate plugin
 * Fix missing body in "OrthancPluginHttpPost()" and "OrthancPluginHttpPut()"
 * Fix issue #169 (TransferSyntaxUID change from Explicit to Implicit during C-STORE SCU)
 * Upgraded dependencies for static builds (notably on Windows and LSB):
