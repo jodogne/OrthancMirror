@@ -21,6 +21,7 @@
 
 #include "../../../Core/Compatibility.h"
 #include "../../../Core/DicomFormat/DicomMap.h"
+#include "../../../Core/MultiThreading/Semaphore.h"
 #include "../../../Core/Toolbox.h"
 #include "GdcmDecoderCache.h"
 
@@ -34,7 +35,8 @@
 static OrthancPlugins::GdcmDecoderCache  cache_;
 static bool restrictTransferSyntaxes_ = false;
 static std::set<std::string> enabledTransferSyntaxes_;
-
+static bool hasThrottling_ = false;
+static std::unique_ptr<Orthanc::Semaphore> throttlingSemaphore_;
 
 static bool ExtractTransferSyntax(std::string& transferSyntax,
                                   const void* dicom,
@@ -111,6 +113,20 @@ static OrthancPluginErrorCode DecodeImageCallback(OrthancPluginImage** target,
 {
   try
   {
+    std::unique_ptr<Orthanc::Semaphore::Locker> locker;
+    
+    if (hasThrottling_)
+    {
+      if (throttlingSemaphore_.get() == NULL)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+      }
+      else
+      {
+        locker.reset(new Orthanc::Semaphore::Locker(*throttlingSemaphore_));
+      }
+    }
+
     if (!IsTransferSyntaxEnabled(dicom, size))
     {
       *target = NULL;
@@ -166,6 +182,20 @@ OrthancPluginErrorCode TranscoderCallback(
 {
   try
   {
+    std::unique_ptr<Orthanc::Semaphore::Locker> locker;
+    
+    if (hasThrottling_)
+    {
+      if (throttlingSemaphore_.get() == NULL)
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+      }
+      else
+      {
+        locker.reset(new Orthanc::Semaphore::Locker(*throttlingSemaphore_));
+      }
+    }
+
     std::string dicom(reinterpret_cast<const char*>(buffer), size);
     std::stringstream stream(dicom);
 
@@ -297,66 +327,100 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
     static const char* const KEY_GDCM = "Gdcm";
-    static const char* const KEY_ENABLE_GDCM = "EnableGdcm";
+    static const char* const KEY_ENABLE_GDCM = "Enable";
+    static const char* const KEY_THROTTLING = "Throttling";
     static const char* const KEY_RESTRICT_TRANSFER_SYNTAXES = "RestrictTransferSyntaxes";
 
-    OrthancPlugins::SetGlobalContext(context);
-    Orthanc::Logging::Initialize(context);
-    LOG(INFO) << "Initializing the decoder/transcoder of medical images using GDCM";
-
-    /* Check the version of the Orthanc core */
-    if (!OrthancPlugins::CheckMinimalOrthancVersion(0, 9, 5))
+    try
     {
-      LOG(ERROR) << "Your version of Orthanc (" << std::string(context->orthancVersion)
-                 << ") must be above 0.9.5 to run this plugin";
-      return -1;
-    }
+      OrthancPlugins::SetGlobalContext(context);
+      Orthanc::Logging::Initialize(context);
+      LOG(INFO) << "Initializing the decoder/transcoder of medical images using GDCM";
 
-    OrthancPluginSetDescription(context, "Decoder/transcoder of medical images using GDCM.");
-
-    OrthancPlugins::OrthancConfiguration global;
-
-    bool enabled = true;
-    
-    if (global.IsSection(KEY_GDCM))
-    {
-      OrthancPlugins::OrthancConfiguration config;
-      global.GetSection(config, KEY_GDCM);
-
-      enabled = config.GetBooleanValue(KEY_ENABLE_GDCM, true);
-
-      if (config.LookupSetOfStrings(enabledTransferSyntaxes_, KEY_RESTRICT_TRANSFER_SYNTAXES, false))
+      /* Check the version of the Orthanc core */
+      if (!OrthancPlugins::CheckMinimalOrthancVersion(0, 9, 5))
       {
-        restrictTransferSyntaxes_ = true;
-        
-        for (std::set<std::string>::const_iterator it = enabledTransferSyntaxes_.begin();
-             it != enabledTransferSyntaxes_.end(); ++it)
+        LOG(ERROR) << "Your version of Orthanc (" << std::string(context->orthancVersion)
+                   << ") must be above 0.9.5 to run this plugin";
+        return -1;
+      }
+
+      OrthancPluginSetDescription(context, "Decoder/transcoder of medical images using GDCM.");
+
+      OrthancPlugins::OrthancConfiguration global;
+
+      bool enabled = true;
+      hasThrottling_ = false;
+    
+      if (global.IsSection(KEY_GDCM))
+      {
+        OrthancPlugins::OrthancConfiguration config;
+        global.GetSection(config, KEY_GDCM);
+
+        enabled = config.GetBooleanValue(KEY_ENABLE_GDCM, true);
+
+        if (enabled &&
+            config.LookupSetOfStrings(enabledTransferSyntaxes_, KEY_RESTRICT_TRANSFER_SYNTAXES, false))
         {
-          LOG(WARNING) << "Orthanc will use GDCM to decode transfer syntax: " << *it;
+          restrictTransferSyntaxes_ = true;
+        
+          for (std::set<std::string>::const_iterator it = enabledTransferSyntaxes_.begin();
+               it != enabledTransferSyntaxes_.end(); ++it)
+          {
+            LOG(WARNING) << "Orthanc will use GDCM to decode transfer syntax: " << *it;
+          }
+        }
+
+        unsigned int throttling;
+        if (enabled &&
+            config.LookupUnsignedIntegerValue(throttling, KEY_THROTTLING))
+        {
+          if (throttling == 0)
+          {
+            LOG(ERROR) << "Bad value for option \"" << KEY_THROTTLING
+                       << "\": Must be a strictly positive integer";
+            return -1;
+          }
+          else
+          {
+            LOG(WARNING) << "Throttling GDCM to " << throttling << " concurrent thread(s)";
+            hasThrottling_ = true;
+            throttlingSemaphore_.reset(new Orthanc::Semaphore(throttling));
+          }
         }
       }
-    }
 
-    if (enabled)
-    {
-      OrthancPluginRegisterDecodeImageCallback(context, DecodeImageCallback);
-
-      if (OrthancPlugins::CheckMinimalOrthancVersion(1, 7, 0))
+      if (enabled)
       {
-        OrthancPluginRegisterTranscoderCallback(context, TranscoderCallback);
+        if (!hasThrottling_)
+        {
+          LOG(WARNING) << "GDCM throttling is disabled";
+        }
+
+        OrthancPluginRegisterDecodeImageCallback(context, DecodeImageCallback);
+
+        if (OrthancPlugins::CheckMinimalOrthancVersion(1, 7, 0))
+        {
+          OrthancPluginRegisterTranscoderCallback(context, TranscoderCallback);
+        }
+        else
+        {
+          LOG(WARNING) << "Your version of Orthanc (" << std::string(context->orthancVersion)
+                       << ") must be above 1.7.0 to benefit from transcoding";
+        }
       }
       else
       {
-        LOG(ERROR) << "Your version of Orthanc (" << std::string(context->orthancVersion)
-                   << ") must be above 1.7.0 to benefit from transcoding";
+        LOG(WARNING) << "The decoder/transcoder of medical images using GDCM is disabled";
       }
-    }
-    else
-    {
-      LOG(WARNING) << "The decoder/transcoder of medical images using GDCM is disabled";
-    }
     
-    return 0;
+      return 0;
+    }
+    catch (Orthanc::OrthancException& e)
+    {
+      LOG(ERROR) << "Exception while initializing the GDCM plugin: " << e.What();
+      return -1;
+    }
   }
 
 
