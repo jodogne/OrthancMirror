@@ -146,8 +146,12 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    // This constructor makes a copy of the given buffer in the memory
+    // handled by the Orthanc core
     MemoryBuffer(const void* buffer,
                  size_t size);
+#endif
 
     ~MemoryBuffer()
     {
