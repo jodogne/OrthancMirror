@@ -120,10 +120,14 @@ namespace Orthanc
     if (quality <= 0 ||
         quality > 100)
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(
+        ErrorCode_ParameterOutOfRange,
+        "The quality for lossy transcoding must be an integer between 1 and 100, received: " +
+        boost::lexical_cast<std::string>(quality));
     }
     else
     {
+      LOG(INFO) << "Quality for lossy transcoding using DCMTK is set to: " << quality;
       lossyQuality_ = quality;
     }
   }

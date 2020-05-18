@@ -230,6 +230,8 @@ namespace Orthanc
     bool transcodeDicomProtocol_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
     BuiltinDecoderTranscoderOrder builtinDecoderTranscoderOrder_;
+    bool isIngestTranscoding_;
+    DicomTransferSyntax ingestTransferSyntax_;
 
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
