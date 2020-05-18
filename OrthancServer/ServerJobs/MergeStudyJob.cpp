@@ -81,6 +81,12 @@ namespace Orthanc
 
   bool MergeStudyJob::HandleInstance(const std::string& instance)
   {
+    if (!HasTrailingStep())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called after AddSourceXXX()");
+    }
+    
     /**
      * Retrieve the DICOM instance to be modified
      **/

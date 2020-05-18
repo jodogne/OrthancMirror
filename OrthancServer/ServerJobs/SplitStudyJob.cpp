@@ -67,6 +67,12 @@ namespace Orthanc
   
   bool SplitStudyJob::HandleInstance(const std::string& instance)
   {
+    if (!HasTrailingStep())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called after AddSourceSeries()");
+    }
+    
     /**
      * Retrieve the DICOM instance to be modified
      **/
