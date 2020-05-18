@@ -38,6 +38,8 @@
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
+#include <dcmtk/dcmdata/dcfilefo.h>
+
 namespace Orthanc
 {
   class ResourceModificationJob::Output : public boost::noncopyable
@@ -171,6 +173,26 @@ namespace Orthanc
 
     modification_->Apply(*modified);
 
+    if (transcode_)
+    {
+      std::set<DicomTransferSyntax> syntaxes;
+      syntaxes.insert(transferSyntax_);
+      
+      std::string s;
+      modified->SaveToMemoryBuffer(s);  // TODO - AVOID THIS SERIALIZATION IF NO PLUGIN
+
+      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded;
+      transcoded.reset(GetContext().TranscodeToParsed(modified->GetDcmtkObject(), s.empty() ? NULL : s.c_str(), s.size(), syntaxes, true));
+      if (transcoded.get() == NULL)
+      {
+        LOG(WARNING) << "Cannot transcode instance, keeping original transfer syntax: " << instance;
+      }
+      else
+      {
+        modified.reset(ParsedDicomFile::AcquireDcmtkObject(transcoded->ReleaseDicom()));
+      }
+    }
+
     DicomInstanceToStore toStore;
     toStore.SetOrigin(origin_);
     toStore.SetParsedDicomFile(*modified);
@@ -231,6 +253,15 @@ namespace Orthanc
   }
 
 
+  ResourceModificationJob::ResourceModificationJob(ServerContext& context) :
+    CleaningInstancesJob(context, true /* by default, keep source */),
+    modification_(new DicomModification),
+    isAnonymization_(false),
+    transcode_(false)
+  {
+  }
+
+
   void ResourceModificationJob::SetModification(DicomModification* modification,
                                                 ResourceType level,
                                                 bool isAnonymization)
@@ -284,6 +315,61 @@ namespace Orthanc
   }
 
 
+  DicomTransferSyntax ResourceModificationJob::GetTransferSyntax() const
+  {
+    if (transcode_)
+    {
+      return transferSyntax_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+  
+
+  void ResourceModificationJob::SetTranscode(DicomTransferSyntax syntax)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = true;
+      transferSyntax_ = syntax;
+    }    
+  }
+
+
+  void ResourceModificationJob::SetTranscode(const std::string& transferSyntaxUid)
+  {
+    DicomTransferSyntax s;
+    if (LookupTransferSyntax(s, transferSyntaxUid))
+    {
+      SetTranscode(s);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Unknown transfer syntax UID: " + transferSyntaxUid);
+    }
+  }
+
+
+  void ResourceModificationJob::ClearTranscode()
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = false;
+    }
+  }
+
+
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
     CleaningInstancesJob::GetPublicContent(value);
@@ -294,21 +380,38 @@ namespace Orthanc
     {
       output_->Format(value);
     }
+
+    if (transcode_)
+    {
+      value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
+    }
   }
 
 
   static const char* MODIFICATION = "Modification";
   static const char* ORIGIN = "Origin";
   static const char* IS_ANONYMIZATION = "IsAnonymization";
+  static const char* TRANSCODE = "Transcode";
   
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
     CleaningInstancesJob(context, serialized, true /* by default, keep source */)
   {
+    assert(serialized.type() == Json::objectValue);
+
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
     modification_.reset(new DicomModification(serialized[MODIFICATION]));
+
+    if (serialized.isMember(TRANSCODE))
+    {
+      SetTranscode(SerializationToolbox::ReadString(serialized, TRANSCODE));
+    }
+    else
+    {
+      transcode_ = false;
+    }
   }
   
   bool ResourceModificationJob::Serialize(Json::Value& value)
@@ -319,7 +422,15 @@ namespace Orthanc
     }
     else
     {
+      assert(value.type() == Json::objectValue);
+      
       value[IS_ANONYMIZATION] = isAnonymization_;
+
+      if (transcode_)
+      {
+        value[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
+      }
+      
       origin_.Serialize(value[ORIGIN]);
       
       Json::Value tmp;

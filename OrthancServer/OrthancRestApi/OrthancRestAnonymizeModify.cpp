@@ -177,9 +177,10 @@ namespace Orthanc
       modification.SetLevel(ResourceType_Instance);
     }
 
-    if (request.isMember("Transcode"))
+    static const char* TRANSCODE = "Transcode";
+    if (request.isMember(TRANSCODE))
     {
-      std::string s = SerializationToolbox::ReadString(request, "Transcode");
+      std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
       
       DicomTransferSyntax syntax;
       if (LookupTransferSyntax(syntax, s))
@@ -236,6 +237,12 @@ namespace Orthanc
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
     SetKeepSource(*job, body);
+
+    static const char* TRANSCODE = "Transcode";
+    if (body.isMember(TRANSCODE))
+    {
+      job->SetTranscode(SerializationToolbox::ReadString(body, TRANSCODE));
+    }
     
     context.AddChildInstances(*job, call.GetUriComponent("id", ""));
     job->AddTrailingStep();
