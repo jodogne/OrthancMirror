@@ -212,6 +212,17 @@ namespace Orthanc
   }
 
 
+  static void SetKeepSource(CleaningInstancesJob& job,
+                            const Json::Value& body)
+  {
+    static const char* KEEP_SOURCE = "KeepSource";
+    if (body.isMember(KEEP_SOURCE))
+    {
+      job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
+    }
+  }
+
+
   static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
                                     RestApiPostCall& call,
@@ -221,11 +232,13 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
-    
+
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
+    SetKeepSource(*job, body);
     
     context.AddChildInstances(*job, call.GetUriComponent("id", ""));
+    job->AddTrailingStep();
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
@@ -721,14 +734,10 @@ namespace Orthanc
     {
       job->AddSourceSeries(series[i]);
     }
-
+    
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     static const char* REMOVE = "Remove";
     if (request.isMember(REMOVE))
@@ -807,11 +816,7 @@ namespace Orthanc
 
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);

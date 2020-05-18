@@ -33,20 +33,19 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomParsing/DicomModification.h"
 #include "../DicomInstanceOrigin.h"
+#include "CleaningInstancesJob.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class ResourceModificationJob : public SetOfInstancesJob
+  class ResourceModificationJob : public CleaningInstancesJob
   {
   private:
     class Output;
     
-    ServerContext&                      context_;
     std::unique_ptr<DicomModification>  modification_;
     boost::shared_ptr<Output>           output_;
     bool                                isAnonymization_;
@@ -55,11 +54,9 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance);
     
-    virtual bool HandleTrailingStep();
-
   public:
     ResourceModificationJob(ServerContext& context) :
-      context_(context),
+      CleaningInstancesJob(context, true /* by default, keep source */),
       isAnonymization_(false)
     {
     }

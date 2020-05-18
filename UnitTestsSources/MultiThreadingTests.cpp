@@ -1560,7 +1560,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ResourceModificationJob job(GetContext());
     job.SetModification(modification.release(), ResourceType_Patient, true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
-    
+
+    job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }

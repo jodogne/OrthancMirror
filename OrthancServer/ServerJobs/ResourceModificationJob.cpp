@@ -152,7 +152,7 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(context_, instance);
+      ServerContext::DicomCacheLocker locker(GetContext(), instance);
       ParsedDicomFile& original = locker.GetDicom();
 
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
@@ -211,8 +211,8 @@ namespace Orthanc
      **/
 
     std::string modifiedInstance;
-    if (context_.Store(modifiedInstance, toStore,
-                       StoreInstanceMode_Default) != StoreStatus_Success)
+    if (GetContext().Store(modifiedInstance, toStore,
+                           StoreInstanceMode_Default) != StoreStatus_Success)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);
@@ -228,12 +228,6 @@ namespace Orthanc
     output_->Update(modifiedHasher);
 
     return true;
-  }
-
-  
-  bool ResourceModificationJob::HandleTrailingStep()
-  {
-    throw OrthancException(ErrorCode_InternalError);
   }
 
 
@@ -292,7 +286,7 @@ namespace Orthanc
 
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
-    SetOfInstancesJob::GetPublicContent(value);
+    CleaningInstancesJob::GetPublicContent(value);
 
     value["IsAnonymization"] = isAnonymization_;
 
@@ -310,8 +304,7 @@ namespace Orthanc
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),
-    context_(context)
+    CleaningInstancesJob(context, serialized, true /* by default, keep source */)
   {
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
@@ -320,7 +313,7 @@ namespace Orthanc
   
   bool ResourceModificationJob::Serialize(Json::Value& value)
   {
-    if (!SetOfInstancesJob::Serialize(value))
+    if (!CleaningInstancesJob::Serialize(value))
     {
       return false;
     }
