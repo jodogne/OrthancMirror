@@ -33,73 +33,47 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-#include "../DicomInstanceOrigin.h"
-#include "CleaningInstancesJob.h"
+#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class MergeStudyJob : public CleaningInstancesJob
+  class CleaningInstancesJob : public SetOfInstancesJob
   {
   private:
-    typedef std::map<std::string, std::string>  SeriesUidMap;
-    typedef std::map<DicomTag, std::string>     Replacements;
+    ServerContext&  context_;
+    bool            keepSource_;
     
-    
-    std::string            targetStudy_;
-    Replacements           replacements_;
-    std::set<DicomTag>     removals_;
-    SeriesUidMap           seriesUidMap_;
-    DicomInstanceOrigin    origin_;
-
-
-    void AddSourceSeriesInternal(const std::string& series);
-
-    void AddSourceStudyInternal(const std::string& study);
-
   protected:
-    virtual bool HandleInstance(const std::string& instance);
-
+    virtual bool HandleTrailingStep();
+    
   public:
-    MergeStudyJob(ServerContext& context,
-                  const std::string& targetStudy);
-
-    MergeStudyJob(ServerContext& context,
-                  const Json::Value& serialized);
-
-    const std::string& GetTargetStudy() const
-    {
-      return targetStudy_;
-    }
-
-    void AddSource(const std::string& studyOrSeries);
-
-    void AddSourceStudy(const std::string& study);
-
-    void AddSourceSeries(const std::string& series);
-
-    void SetOrigin(const DicomInstanceOrigin& origin);
-
-    void SetOrigin(const RestApiCall& call);
-
-    const DicomInstanceOrigin& GetOrigin() const
-    {
-      return origin_;
-    }
-
-    virtual void Stop(JobStopReason reason)
+    CleaningInstancesJob(ServerContext& context,
+                         bool keepSource) :
+      context_(context),
+      keepSource_(keepSource)
     {
     }
 
-    virtual void GetJobType(std::string& target)
-    {
-      target = "MergeStudy";
-    }
+    CleaningInstancesJob(ServerContext& context,
+                         const Json::Value& serialized,
+                         bool defaultKeepSource);
 
-    virtual void GetPublicContent(Json::Value& value);
+    ServerContext& GetContext() const
+    {
+      return context_;
+    }
+    
+    bool IsKeepSource() const
+    {
+      return keepSource_;
+    }
+    
+    void SetKeepSource(bool keep);
 
     virtual bool Serialize(Json::Value& target);
+
+    virtual void Start();
   };
 }
