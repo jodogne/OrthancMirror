@@ -22,6 +22,7 @@ REST API
   - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
     (defaults to the local AET)
 * Changes:
+  - "/{patients|studies|series}/.../modify": New option "KeepSource"
   - "/instances/.../modify": New option "Transcode"
   - ".../archive", ".../media", "/tools/create-media" and
     "/tools/create-archive": New option "Transcode"
