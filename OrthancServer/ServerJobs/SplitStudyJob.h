@@ -33,24 +33,22 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomFormat/DicomTag.h"
 #include "../DicomInstanceOrigin.h"
+#include "CleaningInstancesJob.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class SplitStudyJob : public SetOfInstancesJob
+  class SplitStudyJob : public CleaningInstancesJob
   {
   private:
     typedef std::map<std::string, std::string>  SeriesUidMap;
     typedef std::map<DicomTag, std::string>     Replacements;
     
     
-    ServerContext&         context_;
     std::set<DicomTag>     allowedTags_;
-    bool                   keepSource_;
     std::string            sourceStudy_;
     std::string            targetStudy_;
     std::string            targetStudyUid_;
@@ -66,8 +64,6 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance);
 
-    virtual bool HandleTrailingStep();
-    
   public:
     SplitStudyJob(ServerContext& context,
                   const std::string& sourceStudy);
@@ -91,13 +87,6 @@ namespace Orthanc
     }
 
     void AddSourceSeries(const std::string& series);
-
-    bool IsKeepSource() const
-    {
-      return keepSource_;
-    }
-    
-    void SetKeepSource(bool keep);
 
     bool LookupTargetSeriesUid(std::string& uid,
                                const std::string& series) const;

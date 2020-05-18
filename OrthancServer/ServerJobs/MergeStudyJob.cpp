@@ -48,7 +48,7 @@ namespace Orthanc
 
     // Add all the instances of the series as to be processed
     std::list<std::string> instances;
-    context_.GetIndex().GetChildren(instances, series);
+    GetContext().GetIndex().GetChildren(instances, series);
 
     for (std::list<std::string>::const_iterator
            it = instances.begin(); it != instances.end(); ++it)
@@ -68,7 +68,7 @@ namespace Orthanc
     else
     {
       std::list<std::string> series;
-      context_.GetIndex().GetChildren(series, study);
+      GetContext().GetIndex().GetChildren(series, study);
 
       for (std::list<std::string>::const_iterator
              it = series.begin(); it != series.end(); ++it)
@@ -95,7 +95,7 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(context_, instance);
+      ServerContext::DicomCacheLocker locker(GetContext(), instance);
       modified.reset(locker.GetDicom().Clone(true));
     }
     catch (OrthancException&)
@@ -151,7 +151,7 @@ namespace Orthanc
     toStore.SetParsedDicomFile(*modified);
 
     std::string modifiedInstance;
-    if (context_.Store(modifiedInstance, toStore,
+    if (GetContext().Store(modifiedInstance, toStore,
                        StoreInstanceMode_Default) != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;
@@ -162,27 +162,9 @@ namespace Orthanc
   }
 
   
-  bool MergeStudyJob::HandleTrailingStep()
-  {
-    if (!keepSource_)
-    {
-      const size_t n = GetInstancesCount();
-
-      for (size_t i = 0; i < n; i++)
-      {
-        Json::Value tmp;
-        context_.DeleteResource(tmp, GetInstance(i), ResourceType_Instance);
-      }
-    }
-
-    return true;
-  }
-
-  
   MergeStudyJob::MergeStudyJob(ServerContext& context,
                                const std::string& targetStudy) :
-    context_(context),
-    keepSource_(false),
+    CleaningInstancesJob(context, false /* by default, remove source instances */),
     targetStudy_(targetStudy)
   {
     /**
@@ -191,7 +173,7 @@ namespace Orthanc
     
     ResourceType type;
 
-    if (!context_.GetIndex().LookupResourceType(type, targetStudy) ||
+    if (!GetContext().GetIndex().LookupResourceType(type, targetStudy) ||
         type != ResourceType_Study)
     {
       throw OrthancException(ErrorCode_UnknownResource,
@@ -208,7 +190,7 @@ namespace Orthanc
     DicomTag::AddTagsForModule(removals_, DicomModule_Study);
     
     std::list<std::string> instances;
-    context_.GetIndex().GetChildInstances(instances, targetStudy);
+    GetContext().GetIndex().GetChildInstances(instances, targetStudy);
     
     if (instances.empty())
     {
@@ -218,7 +200,7 @@ namespace Orthanc
     DicomMap dicom;
 
     {
-      ServerContext::DicomCacheLocker locker(context_, instances.front());
+      ServerContext::DicomCacheLocker locker(GetContext(), instances.front());
       locker.GetDicom().ExtractDicomSummary(dicom);
     }
 
@@ -266,7 +248,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!context_.GetIndex().LookupResourceType(level, studyOrSeries))
+    else if (!GetContext().GetIndex().LookupResourceType(level, studyOrSeries))
     {
       throw OrthancException(ErrorCode_UnknownResource,
                              "Cannot find this resource: " + studyOrSeries);
@@ -301,7 +283,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!context_.GetIndex().LookupParent(parent, series, ResourceType_Study))
+    else if (!GetContext().GetIndex().LookupParent(parent, series, ResourceType_Study))
     {
       throw OrthancException(ErrorCode_UnknownResource,
                              "This resource is not a series: " + series);
@@ -327,7 +309,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!context_.GetIndex().LookupResourceType(actualLevel, study) ||
+    else if (!GetContext().GetIndex().LookupResourceType(actualLevel, study) ||
              actualLevel != ResourceType_Study)
     {
       throw OrthancException(ErrorCode_UnknownResource,
@@ -340,25 +322,13 @@ namespace Orthanc
   }
 
 
-  void MergeStudyJob::SetKeepSource(bool keep)
-  {
-    if (IsStarted())
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    keepSource_ = keep;
-  }
-
-
   void MergeStudyJob::GetPublicContent(Json::Value& value)
   {
-    SetOfInstancesJob::GetPublicContent(value);
+    CleaningInstancesJob::GetPublicContent(value);
     value["TargetStudy"] = targetStudy_;
   }
 
 
-  static const char* KEEP_SOURCE = "KeepSource";
   static const char* TARGET_STUDY = "TargetStudy";
   static const char* REPLACEMENTS = "Replacements";
   static const char* REMOVALS = "Removals";
@@ -368,8 +338,8 @@ namespace Orthanc
 
   MergeStudyJob::MergeStudyJob(ServerContext& context,
                                const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),  // (*)
-    context_(context)
+    CleaningInstancesJob(context, serialized,
+                         false /* by default, remove source instances */)  // (*)
   {
     if (!HasTrailingStep())
     {
@@ -377,7 +347,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
     targetStudy_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY);
     SerializationToolbox::ReadMapOfTags(replacements_, serialized, REPLACEMENTS);
     SerializationToolbox::ReadSetOfTags(removals_, serialized, REMOVALS);
@@ -388,13 +357,12 @@ namespace Orthanc
   
   bool MergeStudyJob::Serialize(Json::Value& target)
   {
-    if (!SetOfInstancesJob::Serialize(target))
+    if (!CleaningInstancesJob::Serialize(target))
     {
       return false;
     }
     else
     {
-      target[KEEP_SOURCE] = keepSource_;
       target[TARGET_STUDY] = targetStudy_;
       SerializationToolbox::WriteMapOfTags(target, replacements_, REPLACEMENTS);
       SerializationToolbox::WriteSetOfTags(target, removals_, REMOVALS);

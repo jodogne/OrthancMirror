@@ -295,7 +295,7 @@ namespace Orthanc
         }
         else
         {
-          isIngestTranscoding_ = true;
+          isIngestTranscoding_ = false;
           LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
         }
       }
@@ -545,7 +545,7 @@ namespace Orthanc
   {
     if (!isIngestTranscoding_)
     {
-      // No automated transcoding
+      // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
       return StoreAfterTranscoding(resultPublicId, dicom, mode);
     }
     else

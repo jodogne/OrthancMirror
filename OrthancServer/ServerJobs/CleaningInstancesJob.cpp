@@ -31,75 +31,90 @@
  **/
 
 
-#pragma once
-
-#include "../../Core/DicomFormat/DicomMap.h"
-#include "../DicomInstanceOrigin.h"
 #include "CleaningInstancesJob.h"
+
+#include "../../Core/SerializationToolbox.h"
+#include "../ServerContext.h"
+
 
 namespace Orthanc
 {
-  class ServerContext;
-  
-  class MergeStudyJob : public CleaningInstancesJob
+  bool CleaningInstancesJob::HandleTrailingStep()
   {
-  private:
-    typedef std::map<std::string, std::string>  SeriesUidMap;
-    typedef std::map<DicomTag, std::string>     Replacements;
-    
-    
-    std::string            targetStudy_;
-    Replacements           replacements_;
-    std::set<DicomTag>     removals_;
-    SeriesUidMap           seriesUidMap_;
-    DicomInstanceOrigin    origin_;
-
-
-    void AddSourceSeriesInternal(const std::string& series);
-
-    void AddSourceStudyInternal(const std::string& study);
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-
-  public:
-    MergeStudyJob(ServerContext& context,
-                  const std::string& targetStudy);
-
-    MergeStudyJob(ServerContext& context,
-                  const Json::Value& serialized);
-
-    const std::string& GetTargetStudy() const
+    if (!keepSource_)
     {
-      return targetStudy_;
+      const size_t n = GetInstancesCount();
+
+      for (size_t i = 0; i < n; i++)
+      {
+        Json::Value tmp;
+        context_.DeleteResource(tmp, GetInstance(i), ResourceType_Instance);
+      }
     }
 
-    void AddSource(const std::string& studyOrSeries);
+    return true;
+  }
 
-    void AddSourceStudy(const std::string& study);
-
-    void AddSourceSeries(const std::string& series);
-
-    void SetOrigin(const DicomInstanceOrigin& origin);
-
-    void SetOrigin(const RestApiCall& call);
-
-    const DicomInstanceOrigin& GetOrigin() const
+  
+  void CleaningInstancesJob::SetKeepSource(bool keep)
+  {
+    if (IsStarted())
     {
-      return origin_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    virtual void Stop(JobStopReason reason)
+    keepSource_ = keep;
+  }
+
+
+  static const char* KEEP_SOURCE = "KeepSource";
+
+
+  CleaningInstancesJob::CleaningInstancesJob(ServerContext& context,
+                                             const Json::Value& serialized,
+                                             bool defaultKeepSource) :
+    SetOfInstancesJob(serialized),  // (*)
+    context_(context)
+  {
+    if (!HasTrailingStep())
     {
+      // Should have been set by (*)
+      throw OrthancException(ErrorCode_InternalError);
     }
 
-    virtual void GetJobType(std::string& target)
+    if (serialized.isMember(KEEP_SOURCE))
     {
-      target = "MergeStudy";
+      keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
+    }
+    else
+    {
+      keepSource_ = defaultKeepSource;
+    }
+  }
+
+  
+  bool CleaningInstancesJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[KEEP_SOURCE] = keepSource_;
+      return true;
+    }
+  }
+
+
+  void CleaningInstancesJob::Start()
+  {
+    if (!HasTrailingStep())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called before submitting the job");
     }
 
-    virtual void GetPublicContent(Json::Value& value);
-
-    virtual bool Serialize(Json::Value& target);
-  };
+    SetOfInstancesJob::Start();
+  }
 }
