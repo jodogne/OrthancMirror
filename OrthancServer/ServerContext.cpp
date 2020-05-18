@@ -508,9 +508,10 @@ namespace Orthanc
                                    DicomInstanceToStore& dicom,
                                    StoreInstanceMode mode)
   {
-    //const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
-    const DicomTransferSyntax option = DicomTransferSyntax_LittleEndianExplicit;
-    
+    const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
+    //const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess14SV1;
+    //const DicomTransferSyntax option = DicomTransferSyntax_LittleEndianExplicit;
+
     if (1)
     {
       return StoreAfterTranscoding(resultPublicId, dicom, mode);
@@ -552,7 +553,8 @@ namespace Orthanc
           toStore.SetOrigin(dicom.GetOrigin());
 
           StoreStatus ok = StoreAfterTranscoding(resultPublicId, toStore, mode);
-          printf(">> %s\n", resultPublicId.c_str());
+          assert(resultPublicId == tmp->GetHasher().HashInstance());
+
           return ok;
         }
       }
