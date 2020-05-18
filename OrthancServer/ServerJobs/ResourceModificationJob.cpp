@@ -218,7 +218,12 @@ namespace Orthanc
                              "Error while storing a modified instance " + instance);
     }
 
-    assert(modifiedInstance == modifiedHasher.HashInstance());
+    /**
+     * The assertion below will fail if automated transcoding to a
+     * lossy transfer syntax is enabled in the Orthanc core, and if
+     * the source instance is not in this transfer syntax.
+     **/
+    // assert(modifiedInstance == modifiedHasher.HashInstance());
 
     output_->Update(modifiedHasher);
 

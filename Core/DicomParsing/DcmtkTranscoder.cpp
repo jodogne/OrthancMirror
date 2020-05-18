@@ -55,18 +55,10 @@
 
 namespace Orthanc
 {
-  static uint16_t GetBitsStored(DcmDataset& dataset)
+  static bool GetBitsStored(uint16_t& bitsStored,
+                            DcmDataset& dataset)
   {
-    uint16_t bitsStored;
-    if (dataset.findAndGetUint16(DCM_BitsStored, bitsStored).good())
-    {
-      return bitsStored;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadFileFormat,
-                             "Missing \"Bits Stored\" tag in DICOM instance");
-    }      
+    return dataset.findAndGetUint16(DCM_BitsStored, bitsStored).good();
   }
 
   
@@ -94,18 +86,26 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-      
+
     bool ok;
       
-    if (mustEqual)
+    if (dicom.getDataset()->tagExists(DCM_PixelData))
     {
-      ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
+      if (mustEqual)
+      {
+        ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
+      }
+      else
+      {
+        ok = (GetSopInstanceUid(*dicom.getDataset()) != sopInstanceUid);
+      }
     }
     else
     {
-      ok = (GetSopInstanceUid(*dicom.getDataset()) != sopInstanceUid);
+      // No pixel data: Transcoding must not change the SOP instance UID
+      ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
     }
-
+    
     if (!ok)
     {
       throw OrthancException(ErrorCode_InternalError,
@@ -148,7 +148,9 @@ namespace Orthanc
                              "Cannot determine the transfer syntax");
     }
 
-    const uint16_t bitsStored = GetBitsStored(*dicom.getDataset());
+    uint16_t bitsStored;
+    bool hasBitsStored = GetBitsStored(bitsStored, *dicom.getDataset());
+    
     std::string sourceSopInstanceUid = GetSopInstanceUid(*dicom.getDataset());
     
     if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
@@ -188,7 +190,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end() &&
         allowNewSopInstanceUid &&
-        bitsStored == 8)
+        (!hasBitsStored || bitsStored == 8))
     {
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossy parameters(lossyQuality_);
@@ -205,7 +207,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end() &&
         allowNewSopInstanceUid &&
-        bitsStored <= 12)
+        (!hasBitsStored || bitsStored <= 12))
     {
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossy parameters(lossyQuality_);
