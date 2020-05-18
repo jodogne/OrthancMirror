@@ -246,37 +246,72 @@ namespace Orthanc
     isHttpServerSecure_(true),
     isExecuteLuaEnabled_(false),
     overwriteInstances_(false),
-    dcmtkTranscoder_(new DcmtkTranscoder)
+    dcmtkTranscoder_(new DcmtkTranscoder),
+    isIngestTranscoding_(false)
   {
+    try
     {
-      OrthancConfiguration::ReaderLock lock;
+      unsigned int lossyQuality;
 
-      queryRetrieveArchive_.reset(
-        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
-      mediaArchive_.reset(
-        new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
-      defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
-      jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
-      saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
-      metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
+      {
+        OrthancConfiguration::ReaderLock lock;
 
-      // New configuration options in Orthanc 1.5.1
-      findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
-      limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
-      limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
+        queryRetrieveArchive_.reset(
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
+        mediaArchive_.reset(
+          new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
+        defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+        jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+        saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
+        metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
 
-      // New configuration option in Orthanc 1.6.0
-      storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
+        // New configuration options in Orthanc 1.5.1
+        findStorageAccessMode_ = StringToFindStorageAccessMode(lock.GetConfiguration().GetStringParameter("StorageAccessOnFind", "Always"));
+        limitFindInstances_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindInstances", 0);
+        limitFindResults_ = lock.GetConfiguration().GetUnsignedIntegerParameter("LimitFindResults", 0);
 
-      // New options in Orthanc 1.7.0
-      transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
-      builtinDecoderTranscoderOrder_ = StringToBuiltinDecoderTranscoderOrder(lock.GetConfiguration().GetStringParameter("BuiltinDecoderTranscoderOrder", "After"));
+        // New configuration option in Orthanc 1.6.0
+        storageCommitmentReports_.reset(new StorageCommitmentReports(lock.GetConfiguration().GetUnsignedIntegerParameter("StorageCommitmentReportsSize", 100)));
+
+        // New options in Orthanc 1.7.0
+        transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
+        builtinDecoderTranscoderOrder_ = StringToBuiltinDecoderTranscoderOrder(lock.GetConfiguration().GetStringParameter("BuiltinDecoderTranscoderOrder", "After"));
+        lossyQuality = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomLossyTranscodingQuality", 90);
+
+        std::string s;
+        if (lock.GetConfiguration().LookupStringParameter(s, "IngestTranscoding"))
+        {
+          if (LookupTransferSyntax(ingestTransferSyntax_, s))
+          {
+            isIngestTranscoding_ = true;
+            LOG(WARNING) << "Incoming DICOM instances will automatically be transcoded to "
+                         << "transfer syntax: " << GetTransferSyntaxUid(ingestTransferSyntax_);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                   "Unknown transfer syntax for ingest transcoding: " + s);
+          }
+        }
+        else
+        {
+          isIngestTranscoding_ = true;
+          LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
+        }
+      }
+
+      jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
+
+      listeners_.push_back(ServerListener(luaListener_, "Lua"));
+      changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+    
+      dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
     }
-
-    jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
-
-    listeners_.push_back(ServerListener(luaListener_, "Lua"));
-    changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+    catch (OrthancException&)
+    {
+      Stop();
+      throw;
+    }
   }
 
 
@@ -508,22 +543,19 @@ namespace Orthanc
                                    DicomInstanceToStore& dicom,
                                    StoreInstanceMode mode)
   {
-    const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess1;
-    //const DicomTransferSyntax option = DicomTransferSyntax_JPEGProcess14SV1;
-    //const DicomTransferSyntax option = DicomTransferSyntax_LittleEndianExplicit;
-
-    if (1)
+    if (!isIngestTranscoding_)
     {
+      // No automated transcoding
       return StoreAfterTranscoding(resultPublicId, dicom, mode);
     }
     else
     {
-      // TODO => Automated transcoding of incoming DICOM files
+      // Automated transcoding of incoming DICOM files
       
       DicomTransferSyntax sourceSyntax;
       if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
             sourceSyntax, dicom.GetParsedDicomFile().GetDcmtkObject()) ||
-          sourceSyntax == option)
+          sourceSyntax == ingestTransferSyntax_)
       {
         // No transcoding
         return StoreAfterTranscoding(resultPublicId, dicom, mode);
@@ -531,7 +563,7 @@ namespace Orthanc
       else
       {      
         std::set<DicomTransferSyntax> syntaxes;
-        syntaxes.insert(option);
+        syntaxes.insert(ingestTransferSyntax_);
 
         std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
           TranscodeToParsed(dicom.GetParsedDicomFile().GetDcmtkObject(),

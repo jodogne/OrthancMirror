@@ -7,8 +7,9 @@ General
 * DICOM transcoding over the REST API
 * Transcoding from compressed to uncompressed transfer syntaxes over DICOM
   C-STORE SCU (if the remote modality doesn't support compressed syntaxes)
-* New configuration options: "TranscodeDicomProtocol" and
-  "BuiltinDecoderTranscoderOrder"
+* New configuration options related to transcoding:
+  "TranscodeDicomProtocol", "BuiltinDecoderTranscoderOrder",
+  "IngestTranscoding" and "DicomLossyTranscodingQuality"
 
 REST API
 --------

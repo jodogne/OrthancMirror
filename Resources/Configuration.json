@@ -554,5 +554,22 @@
   // or is not applied at all (new in Orthanc 1.7.0). The allowed
   // values for this option are "After" (default value, corresponding
   // to the behavior of Orthanc <= 1.6.1), "Before", or "Disabled".
-  "BuiltinDecoderTranscoderOrder" : "After"
+  "BuiltinDecoderTranscoderOrder" : "After",
+
+  // If this option is set, Orthanc will transparently transcode any
+  // incoming DICOM instance to the given transfer syntax before
+  // storing it into its database. Beware that this might result in
+  // high CPU usage (if transcoding to some compressed transfer
+  // syntax), or in higher disk consumption (if transcoding to an
+  // uncompressed syntax). Also, beware that transcoding to a transfer
+  // syntax with lossy compression (notably JPEG) will change the
+  // "SOPInstanceUID" DICOM tag, and thus the Orthanc identifier at
+  // the instance level, which might break external workflow.
+  /**
+     "IngestTranscoding" : "1.2.840.10008.1.2",
+  **/
+
+  // The compression level that is used when transcoding to one of the
+  // lossy/JPEG transfer syntaxes (integer between 1 and 100).
+  "DicomLossyTranscodingQuality" : 90
 }
