@@ -32,14 +32,17 @@ Plugins
 
 * New functions in the SDK:
   - OrthancPluginCreateDicomInstance()
+  - OrthancPluginCreateMemoryBuffer()
   - OrthancPluginEncodeDicomWebJson2()
   - OrthancPluginEncodeDicomWebXml2()
   - OrthancPluginFreeDicomInstance()
+  - OrthancPluginGetInstanceAdvancedJson()
   - OrthancPluginGetInstanceDecodedFrame()
   - OrthancPluginGetInstanceDicomWebJson()
   - OrthancPluginGetInstanceDicomWebXml()
   - OrthancPluginGetInstanceFramesCount()
   - OrthancPluginGetInstanceRawFrame()
+  - OrthancPluginRegisterTranscoderCallback()
   - OrthancPluginSerializeDicomInstance()
   - OrthancPluginTranscodeDicomInstance()
 * "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"

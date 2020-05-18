@@ -551,7 +551,8 @@
   // If some plugin to decode/transcode DICOM instances is installed,
   // this option specifies whether the built-in decoder/transcoder of
   // Orthanc (that uses DCMTK) is applied before or after the plugins,
-  // or is not applied at all. The allowed values for this option are
-  // "After" (default value), "Before", or "Disabled". (new in Orthanc 1.7.0)
+  // or is not applied at all (new in Orthanc 1.7.0). The allowed
+  // values for this option are "After" (default value, corresponding
+  // to the behavior of Orthanc <= 1.6.1), "Before", or "Disabled".
   "BuiltinDecoderTranscoderOrder" : "After"
 }
