@@ -35,6 +35,7 @@
 #include "OrthancPeerStoreJob.h"
 
 #include "../../Core/Logging.h"
+#include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 
@@ -94,6 +95,61 @@ namespace Orthanc
   }
 
 
+  DicomTransferSyntax OrthancPeerStoreJob::GetTransferSyntax() const
+  {
+    if (transcode_)
+    {
+      return transferSyntax_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+  
+
+  void OrthancPeerStoreJob::SetTranscode(DicomTransferSyntax syntax)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = true;
+      transferSyntax_ = syntax;
+    }    
+  }
+  
+
+  void OrthancPeerStoreJob::SetTranscode(const std::string& transferSyntaxUid)
+  {
+    DicomTransferSyntax s;
+    if (LookupTransferSyntax(s, transferSyntaxUid))
+    {
+      SetTranscode(s);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Unknown transfer syntax UID: " + transferSyntaxUid);
+    }
+  }
+
+
+  void OrthancPeerStoreJob::ClearTranscode()
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = false;
+    }
+  }
+
+
   void OrthancPeerStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     client_.reset(NULL);
@@ -109,17 +165,33 @@ namespace Orthanc
                     false /* allow simple format if possible */,
                     false /* don't include passwords */);
     value["Peer"] = v;
+    
+    if (transcode_)
+    {
+      value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
+    }
   }
 
 
   static const char* PEER = "Peer";
+  static const char* TRANSCODE = "Transcode";
 
   OrthancPeerStoreJob::OrthancPeerStoreJob(ServerContext& context,
                                            const Json::Value& serialized) :
     SetOfInstancesJob(serialized),
     context_(context)
   {
+    assert(serialized.type() == Json::objectValue);
     peer_ = WebServiceParameters(serialized[PEER]);
+
+    if (serialized.isMember(TRANSCODE))
+    {
+      SetTranscode(SerializationToolbox::ReadString(serialized, TRANSCODE));
+    }
+    else
+    {
+      transcode_ = false;
+    }
   }
 
 
@@ -131,9 +203,16 @@ namespace Orthanc
     }
     else
     {
+      assert(target.type() == Json::objectValue);
       peer_.Serialize(target[PEER],
                       true /* force advanced format */,
                       true /* include passwords */);
+
+      if (transcode_)
+      {
+        target[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
+      }
+      
       return true;
     }
   }  

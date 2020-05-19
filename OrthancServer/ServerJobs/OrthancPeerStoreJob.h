@@ -48,6 +48,8 @@ namespace Orthanc
     ServerContext&               context_;
     WebServiceParameters         peer_;
     std::unique_ptr<HttpClient>  client_;
+    bool                         transcode_;
+    DicomTransferSyntax          transferSyntax_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);
@@ -56,7 +58,8 @@ namespace Orthanc
 
   public:
     OrthancPeerStoreJob(ServerContext& context) :
-      context_(context)
+      context_(context),
+      transcode_(false)
     {
     }
 
@@ -69,6 +72,19 @@ namespace Orthanc
     {
       return peer_;
     }
+
+    bool IsTranscode() const
+    {
+      return transcode_;
+    }
+
+    DicomTransferSyntax GetTransferSyntax() const;
+
+    void SetTranscode(DicomTransferSyntax syntax);
+
+    void SetTranscode(const std::string& transferSyntaxUid);
+
+    void ClearTranscode();
 
     virtual void Stop(JobStopReason reason);   // For pausing jobs
 
