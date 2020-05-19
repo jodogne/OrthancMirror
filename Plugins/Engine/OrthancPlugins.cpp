@@ -5247,6 +5247,7 @@ namespace Orthanc
           OrthancPluginErrorCode_Success)
       {
         a.ToString(target);
+        hasSopInstanceUidChanged = b;
         return true;
       }
     }

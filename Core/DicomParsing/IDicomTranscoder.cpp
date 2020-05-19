@@ -39,9 +39,156 @@
 #include "ParsedDicomFile.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 
 namespace Orthanc
 {
+  IDicomTranscoder::TranscodingType IDicomTranscoder::GetTranscodingType(DicomTransferSyntax target,
+                                                                         DicomTransferSyntax source)
+  {
+    if (target == source)
+    {
+      return TranscodingType_Lossless;
+    }
+    else if (target == DicomTransferSyntax_LittleEndianImplicit ||
+             target == DicomTransferSyntax_LittleEndianExplicit ||
+             target == DicomTransferSyntax_BigEndianExplicit ||
+             target == DicomTransferSyntax_DeflatedLittleEndianExplicit ||
+             target == DicomTransferSyntax_JPEGProcess14 ||
+             target == DicomTransferSyntax_JPEGProcess14SV1 ||
+             target == DicomTransferSyntax_JPEGLSLossless ||
+             target == DicomTransferSyntax_JPEG2000LosslessOnly ||
+             target == DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly)
+    {
+      return TranscodingType_Lossless;
+    }
+    else if (target == DicomTransferSyntax_JPEGProcess1 ||
+             target == DicomTransferSyntax_JPEGProcess2_4 ||
+             target == DicomTransferSyntax_JPEGLSLossy ||
+             target == DicomTransferSyntax_JPEG2000 ||
+             target == DicomTransferSyntax_JPEG2000Multicomponent)
+    {
+      return TranscodingType_Lossy;
+    }
+    else
+    {
+      return TranscodingType_Unknown;
+    }
+  }
+
+
+  std::string IDicomTranscoder::GetSopInstanceUid(DcmFileFormat& dicom)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    DcmDataset& dataset = *dicom.getDataset();
+    
+    const char* v = NULL;
+
+    if (dataset.findAndGetString(DCM_SOPInstanceUID, v).good() &&
+        v != NULL)
+    {
+      return std::string(v);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "File without SOP instance UID");
+    }
+  }
+
+
+  void IDicomTranscoder::CheckTranscoding(IDicomTranscoder::DicomImage& transcoded,
+                                          bool hasSopInstanceUidChanged,
+                                          DicomTransferSyntax sourceSyntax,
+                                          const std::string& sourceSopInstanceUid,
+                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                          bool allowNewSopInstanceUid)
+  {
+    DcmFileFormat& parsed = transcoded.GetParsed();
+    
+    if (parsed.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    std::string targetSopInstanceUid = GetSopInstanceUid(parsed);
+
+    if (hasSopInstanceUidChanged && (targetSopInstanceUid == sourceSopInstanceUid))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (!hasSopInstanceUidChanged && (targetSopInstanceUid != sourceSopInstanceUid))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (parsed.getDataset()->tagExists(DCM_PixelData))
+    {
+      if (!allowNewSopInstanceUid && (targetSopInstanceUid != sourceSopInstanceUid))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    else
+    {
+      if (hasSopInstanceUidChanged ||
+          targetSopInstanceUid != sourceSopInstanceUid)
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "No pixel data: Transcoding must not change the SOP instance UID");
+      }
+    }
+
+    DicomTransferSyntax targetSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, parsed))
+    {
+      return;  // Unknown transfer syntax, cannot do further test
+    }
+
+    if (allowedSyntaxes.find(sourceSyntax) != allowedSyntaxes.end())
+    {
+      // No transcoding should have happened
+      if (targetSopInstanceUid != sourceSopInstanceUid ||
+          hasSopInstanceUidChanged)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+        
+    if (allowedSyntaxes.find(targetSyntax) == allowedSyntaxes.end())
+    {
+      throw OrthancException(ErrorCode_InternalError, "An incorrect output transfer syntax was chosen");
+    }
+    
+    if (parsed.getDataset()->tagExists(DCM_PixelData))
+    {
+      switch (GetTranscodingType(targetSyntax, sourceSyntax))
+      {
+        case TranscodingType_Lossy:
+          if (targetSopInstanceUid == sourceSopInstanceUid)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        case TranscodingType_Lossless:
+          if (targetSopInstanceUid != sourceSopInstanceUid)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+    
+
   void IDicomTranscoder::DicomImage::Parse()
   {
     if (parsed_.get() != NULL)

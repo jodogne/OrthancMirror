@@ -98,11 +98,31 @@ namespace Orthanc
       size_t GetBufferSize();
     };
 
+
+  protected:
+    enum TranscodingType
+    {
+      TranscodingType_Lossy,
+      TranscodingType_Lossless,
+      TranscodingType_Unknown
+    };
+
+    static TranscodingType GetTranscodingType(DicomTransferSyntax target,
+                                              DicomTransferSyntax source);
+
+    static std::string GetSopInstanceUid(DcmFileFormat& dicom);
+
+    static void CheckTranscoding(DicomImage& transcoded,
+                                 bool hasSopInstanceUidChanged,
+                                 DicomTransferSyntax sourceSyntax,
+                                 const std::string& sourceSopInstanceUid,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid);
     
+  public:    
     virtual ~IDicomTranscoder()
     {
     }
-
 
     virtual bool Transcode(DicomImage& target,
                            bool& hasSopInstanceUidChanged /* out */,

@@ -74,12 +74,32 @@ namespace Orthanc
   {
     target.Clear();
     
+#if !defined(NDEBUG)
+    // Don't run this code in release mode, as it implies parsing the DICOM file
+    DicomTransferSyntax sourceSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, source.GetParsed()))
+    {
+      LOG(ERROR) << "Unsupport transfer syntax for transcoding";
+      return false;
+    }
+    
+    const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
+#endif
+
     std::string buffer;
     if (TranscodeBuffer(buffer, hasSopInstanceUidChanged, source.GetBufferData(),
                         source.GetBufferSize(), allowedSyntaxes, allowNewSopInstanceUid))
     {
       CheckTargetSyntax(buffer, allowedSyntaxes);  // For debug only
+
       target.AcquireBuffer(buffer);
+      
+#if !defined(NDEBUG)
+      // Only run the sanity check in debug mode
+      CheckTranscoding(target, hasSopInstanceUidChanged, sourceSyntax, sourceSopInstanceUid,
+                       allowedSyntaxes, allowNewSopInstanceUid);
+#endif
+
       return true;
     }
     else
