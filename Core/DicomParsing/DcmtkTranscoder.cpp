@@ -62,59 +62,6 @@ namespace Orthanc
   }
 
   
-  static std::string GetSopInstanceUid(DcmDataset& dataset)
-  {
-    const char* v = NULL;
-
-    if (dataset.findAndGetString(DCM_SOPInstanceUID, v).good() &&
-        v != NULL)
-    {
-      return std::string(v);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "File without SOP instance UID");
-    }
-  }
-
-  
-  static void CheckSopInstanceUid(DcmFileFormat& dicom,
-                                  const std::string& sopInstanceUid,
-                                  bool mustEqual)
-  {
-    if (dicom.getDataset() == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    bool ok;
-      
-    if (dicom.getDataset()->tagExists(DCM_PixelData))
-    {
-      if (mustEqual)
-      {
-        ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
-      }
-      else
-      {
-        ok = (GetSopInstanceUid(*dicom.getDataset()) != sopInstanceUid);
-      }
-    }
-    else
-    {
-      // No pixel data: Transcoding must not change the SOP instance UID
-      ok = (GetSopInstanceUid(*dicom.getDataset()) == sopInstanceUid);
-    }
-    
-    if (!ok)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             mustEqual ? "The SOP instance UID has changed unexpectedly during transcoding" :
-                             "The SOP instance UID has not changed as expected during transcoding");
-    }
-  }
-    
-
   void DcmtkTranscoder::SetLossyQuality(unsigned int quality)
   {
     if (quality <= 0 ||
@@ -134,6 +81,7 @@ namespace Orthanc
 
     
   bool DcmtkTranscoder::InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
+                                         DicomTransferSyntax& selectedSyntax /* out */,
                                          DcmFileFormat& dicom,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                          bool allowNewSopInstanceUid) 
@@ -155,7 +103,7 @@ namespace Orthanc
     uint16_t bitsStored;
     bool hasBitsStored = GetBitsStored(bitsStored, *dicom.getDataset());
     
-    std::string sourceSopInstanceUid = GetSopInstanceUid(*dicom.getDataset());
+    std::string sourceSopInstanceUid = IDicomTranscoder::GetSopInstanceUid(dicom);
     
     if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
     {
@@ -166,28 +114,28 @@ namespace Orthanc
     if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != allowedSyntaxes.end() &&
         FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
     {
-      CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+      selectedSyntax = DicomTransferSyntax_LittleEndianImplicit;
       return true;
     }
 
     if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != allowedSyntaxes.end() &&
         FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
     {
-      CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+      selectedSyntax = DicomTransferSyntax_LittleEndianExplicit;
       return true;
     }
       
     if (allowedSyntaxes.find(DicomTransferSyntax_BigEndianExplicit) != allowedSyntaxes.end() &&
         FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
     {
-      CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+      selectedSyntax = DicomTransferSyntax_BigEndianExplicit;
       return true;
     }
 
     if (allowedSyntaxes.find(DicomTransferSyntax_DeflatedLittleEndianExplicit) != allowedSyntaxes.end() &&
         FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
     {
-      CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+      selectedSyntax = DicomTransferSyntax_DeflatedLittleEndianExplicit;
       return true;
     }
 
@@ -201,7 +149,7 @@ namespace Orthanc
         
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
+        selectedSyntax = DicomTransferSyntax_JPEGProcess1;
         hasSopInstanceUidChanged = true;
         return true;
       }
@@ -217,7 +165,7 @@ namespace Orthanc
       DJ_RPLossy parameters(lossyQuality_);
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
+        selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
         hasSopInstanceUidChanged = true;
         return true;
       }
@@ -232,7 +180,7 @@ namespace Orthanc
                                0 /* opt_point_transform */);
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+        selectedSyntax = DicomTransferSyntax_JPEGProcess14;
         return true;
       }
     }
@@ -246,7 +194,7 @@ namespace Orthanc
                                0 /* opt_point_transform */);
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14SV1, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+        selectedSyntax = DicomTransferSyntax_JPEGProcess14SV1;
         return true;
       }
     }
@@ -265,7 +213,7 @@ namespace Orthanc
        **/              
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossless, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, true);
+        selectedSyntax = DicomTransferSyntax_JPEGLSLossless;
         return true;
       }
     }
@@ -285,7 +233,7 @@ namespace Orthanc
        **/              
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
       {
-        CheckSopInstanceUid(dicom, sourceSopInstanceUid, false);
+        selectedSyntax = DicomTransferSyntax_JPEGLSLossy;
         hasSopInstanceUidChanged = true;
         return true;
       }
@@ -343,6 +291,11 @@ namespace Orthanc
       return false;
     }
 
+#if !defined(NDEBUG)
+    const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
+#endif
+
+    DicomTransferSyntax targetSyntax;
     if (allowedSyntaxes.find(sourceSyntax) != allowedSyntaxes.end())
     {
       // No transcoding is needed
@@ -350,16 +303,24 @@ namespace Orthanc
       target.AcquireBuffer(source);
       return true;
     }
-    else if (InplaceTranscode(hasSopInstanceUidChanged, source.GetParsed(),
+    else if (InplaceTranscode(hasSopInstanceUidChanged, targetSyntax, source.GetParsed(),
                               allowedSyntaxes, allowNewSopInstanceUid))
-    {
+    {   
       // Sanity check
-      DicomTransferSyntax targetSyntax;
-      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, source.GetParsed()) &&
-          allowedSyntaxes.find(targetSyntax) != allowedSyntaxes.end())
+      DicomTransferSyntax targetSyntax2;
+      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax2, source.GetParsed()) &&
+          targetSyntax == targetSyntax2 &&
+          allowedSyntaxes.find(targetSyntax2) != allowedSyntaxes.end())
       {
         target.AcquireParsed(source);
         source.Clear();
+        
+#if !defined(NDEBUG)
+        // Only run the sanity check in debug mode
+        CheckTranscoding(target, hasSopInstanceUidChanged, sourceSyntax, sourceSopInstanceUid,
+                         allowedSyntaxes, allowNewSopInstanceUid);
+#endif
+        
         return true;
       }
       else
