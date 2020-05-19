@@ -38,6 +38,8 @@
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
+#include <dcmtk/dcmdata/dcfilefo.h>
+
 
 namespace Orthanc
 {
@@ -56,7 +58,32 @@ namespace Orthanc
 
     try
     {
-      context_.ReadDicom(client_->GetBody(), instance);
+      if (transcode_)
+      {
+        std::string dicom;
+        context_.ReadDicom(dicom, instance);
+
+        std::set<DicomTransferSyntax> syntaxes;
+        syntaxes.insert(transferSyntax_);
+        
+        IDicomTranscoder::DicomImage source, transcoded;
+        source.SetExternalBuffer(dicom);
+
+        bool hasSopInstanceUidChanged;
+        if (context_.Transcode(transcoded, hasSopInstanceUidChanged, source, syntaxes, true))
+        {
+          client_->GetBody().assign(reinterpret_cast<const char*>(transcoded.GetBufferData()),
+                                    transcoded.GetBufferSize());
+        }
+        else
+        {
+          client_->GetBody().swap(dicom);
+        }
+      }
+      else
+      {
+        context_.ReadDicom(client_->GetBody(), instance);
+      }
     }
     catch (OrthancException& e)
     {

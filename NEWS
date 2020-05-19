@@ -24,6 +24,7 @@ REST API
 * Changes:
   - "/{patients|studies|series}/.../modify": New option "KeepSource"
   - "/{patients|studies|series|instances}/.../modify": New option "Transcode"
+  - "/peers/{id}/store": New option "Transcode"
   - ".../archive", ".../media", "/tools/create-media" and
     "/tools/create-archive": New option "Transcode"
   - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 

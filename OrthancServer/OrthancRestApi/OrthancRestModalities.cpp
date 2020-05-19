@@ -1136,21 +1136,31 @@ namespace Orthanc
     std::unique_ptr<OrthancPeerStoreJob> job(new OrthancPeerStoreJob(context));
 
     GetInstancesToExport(request, *job, remote, call);
-    
-    OrthancConfiguration::ReaderLock lock;
 
-    WebServiceParameters peer;
-    if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
+    static const char* TRANSCODE = "Transcode";
+    if (request.type() == Json::objectValue &&
+        request.isMember(TRANSCODE))
     {
-      job->SetPeer(peer);    
-      OrthancRestApi::GetApi(call).SubmitCommandsJob
-        (call, job.release(), true /* synchronous by default */, request);
+      job->SetTranscode(SerializationToolbox::ReadString(request, TRANSCODE));
     }
-    else
+    
     {
-      throw OrthancException(ErrorCode_UnknownResource,
-                             "No peer with symbolic name: " + remote);
+      OrthancConfiguration::ReaderLock lock;
+      
+      WebServiceParameters peer;
+      if (lock.GetConfiguration().LookupOrthancPeer(peer, remote))
+      {
+        job->SetPeer(peer);    
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_UnknownResource,
+                               "No peer with symbolic name: " + remote);
+      }
     }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
   }
 
   static void PeerSystem(RestApiGetCall& call)
