@@ -203,7 +203,7 @@ namespace Orthanc
 #endif
 
     ServerListeners listeners_;
-    boost::recursive_mutex listenersMutex_;
+    boost::shared_mutex listenersMutex_;
 
     bool done_;
     bool haveJobsChanged_;

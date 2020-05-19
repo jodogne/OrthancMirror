@@ -58,6 +58,7 @@ Maintenance
 * Fix issue #169 (TransferSyntaxUID change from Explicit to Implicit during C-STORE SCU)
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 1.1.1g
+* Fix issue #179 (deadlock in Python plugins)
 
 
 Version 1.6.1 (2020-04-21)
