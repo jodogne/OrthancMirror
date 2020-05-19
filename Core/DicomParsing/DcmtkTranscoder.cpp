@@ -80,8 +80,7 @@ namespace Orthanc
   }
 
     
-  bool DcmtkTranscoder::InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
-                                         DicomTransferSyntax& selectedSyntax /* out */,
+  bool DcmtkTranscoder::InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                                          DcmFileFormat& dicom,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                          bool allowNewSopInstanceUid) 
@@ -90,8 +89,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-
-    hasSopInstanceUidChanged = false;
 
     DicomTransferSyntax syntax;
     if (!FromDcmtkBridge::LookupOrthancTransferSyntax(syntax, dicom))
@@ -150,7 +147,6 @@ namespace Orthanc
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess1;
-        hasSopInstanceUidChanged = true;
         return true;
       }
     }
@@ -166,7 +162,6 @@ namespace Orthanc
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
-        hasSopInstanceUidChanged = true;
         return true;
       }
     }
@@ -234,7 +229,6 @@ namespace Orthanc
       if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
       {
         selectedSyntax = DicomTransferSyntax_JPEGLSLossy;
-        hasSopInstanceUidChanged = true;
         return true;
       }
     }
@@ -277,7 +271,6 @@ namespace Orthanc
 
 
   bool DcmtkTranscoder::Transcode(DicomImage& target,
-                                  bool& hasSopInstanceUidChanged /* out */,
                                   DicomImage& source /* in, "GetParsed()" possibly modified */,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid)
@@ -303,7 +296,7 @@ namespace Orthanc
       target.AcquireBuffer(source);
       return true;
     }
-    else if (InplaceTranscode(hasSopInstanceUidChanged, targetSyntax, source.GetParsed(),
+    else if (InplaceTranscode(targetSyntax, source.GetParsed(),
                               allowedSyntaxes, allowNewSopInstanceUid))
     {   
       // Sanity check
@@ -317,7 +310,7 @@ namespace Orthanc
         
 #if !defined(NDEBUG)
         // Only run the sanity check in debug mode
-        CheckTranscoding(target, hasSopInstanceUidChanged, sourceSyntax, sourceSopInstanceUid,
+        CheckTranscoding(target, sourceSyntax, sourceSopInstanceUid,
                          allowedSyntaxes, allowNewSopInstanceUid);
 #endif
         

@@ -69,8 +69,7 @@ namespace Orthanc
         IDicomTranscoder::DicomImage source, transcoded;
         source.SetExternalBuffer(dicom);
 
-        bool hasSopInstanceUidChanged;
-        if (context_.Transcode(transcoded, hasSopInstanceUidChanged, source, syntaxes, true))
+        if (context_.Transcode(transcoded, source, syntaxes, true))
         {
           client_->GetBody().assign(reinterpret_cast<const char*>(transcoded.GetBufferData()),
                                     transcoded.GetBufferSize());

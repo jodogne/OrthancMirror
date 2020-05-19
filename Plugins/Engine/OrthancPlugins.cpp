@@ -4376,12 +4376,12 @@ namespace Orthanc
           source.SetExternalBuffer(p.buffer, p.size);
 
           IDicomTranscoder::DicomImage transcoded;
-          bool success, hasSopInstanceChanged;
+          bool success;
           
           {
             PImpl::ServerContextLock lock(*pimpl_);
-            success = lock.GetContext().Transcode(transcoded, hasSopInstanceChanged, source,
-                                                  syntaxes, true /* allow new sop */);
+            success = lock.GetContext().Transcode(
+              transcoded, source, syntaxes, true /* allow new sop */);
           }
 
           if (success)
@@ -5214,7 +5214,6 @@ namespace Orthanc
   
 
   bool OrthancPlugins::TranscodeBuffer(std::string& target,
-                                       bool& hasSopInstanceUidChanged /* out */,
                                        const void* buffer,
                                        size_t size,
                                        const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -5240,14 +5239,12 @@ namespace Orthanc
          transcoder != pimpl_->transcoderCallbacks_.end(); ++transcoder)
     {
       MemoryBufferRaii a;
-      uint8_t b;
 
-      if ((*transcoder) (a.GetObject(), &b, buffer, size, uids.empty() ? NULL : &uids[0],
+      if ((*transcoder) (a.GetObject(), buffer, size, uids.empty() ? NULL : &uids[0],
                          static_cast<uint32_t>(uids.size()), allowNewSopInstanceUid) ==
           OrthancPluginErrorCode_Success)
       {
         a.ToString(target);
-        hasSopInstanceUidChanged = b;
         return true;
       }
     }

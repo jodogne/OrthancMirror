@@ -8091,10 +8091,6 @@ extern "C"
    * @brief Signature of a callback function to transcode a DICOM instance.
    * @param transcoded Target memory buffer. It must be allocated by the
    * plugin using OrthancPluginCreateMemoryBuffer().
-   * @param hasSopInstanceUidChanged Whether the SOP Instance UID of the
-   * DICOM instance has changed because of the transcoding. This value
-   * should be "true" if and only if the selected transfer syntax is
-   * affected by lossy compression.
    * @param buffer Memory buffer containing the source DICOM instance.
    * @param size Size of the source memory buffer.
    * @param allowedSyntaxes A C array of possible transfer syntaxes UIDs for the
@@ -8111,7 +8107,6 @@ extern "C"
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginTranscoderCallback) (
     OrthancPluginMemoryBuffer* transcoded /* out */,
-    uint8_t*                   hasSopInstanceUidChanged /* out */,
     const void*                buffer,
     uint64_t                   size,
     const char* const*         allowedSyntaxes,

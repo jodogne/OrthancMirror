@@ -134,12 +134,11 @@ namespace Orthanc
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
       
       IDicomTranscoder::DicomImage transcoded;
-      bool hasSopInstanceUidChanged;
 
       std::set<DicomTransferSyntax> s;
       s.insert(targetSyntax);
       
-      if (context.Transcode(transcoded, hasSopInstanceUidChanged, source, s, true))
+      if (context.Transcode(transcoded, source, s, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
                                       transcoded.GetBufferSize(), MimeType_Dicom);

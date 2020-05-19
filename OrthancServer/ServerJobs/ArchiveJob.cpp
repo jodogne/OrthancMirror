@@ -446,9 +446,7 @@ namespace Orthanc
               IDicomTranscoder::DicomImage source, transcoded;
               source.SetExternalBuffer(content);
 
-              bool hasSopInstanceChanged;
-              if (context.Transcode(transcoded, hasSopInstanceChanged, source,
-                                    syntaxes, true /* allow new SOP instance UID */))
+              if (context.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
               {
                 writer.Write(transcoded.GetBufferData(), transcoded.GetBufferSize());
 

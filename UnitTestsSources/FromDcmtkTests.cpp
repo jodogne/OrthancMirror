@@ -1980,6 +1980,8 @@ TEST(Toto, DISABLED_Transcode4)
   Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
 
   std::unique_ptr<DcmFileFormat> toto(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
+  const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(*toto);
+  
   DicomTransferSyntax sourceSyntax;
   ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
 
@@ -1994,12 +1996,10 @@ TEST(Toto, DISABLED_Transcode4)
 
     std::string t;
 
-    bool hasSopInstanceUidChanged;
-
     IDicomTranscoder::DicomImage source, target;
     source.AcquireParsed(dynamic_cast<DcmFileFormat*>(toto->clone()));
 
-    if (!transcoder.Transcode(target, hasSopInstanceUidChanged, source, s, true))
+    if (!transcoder.Transcode(target, source, s, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
@@ -2015,13 +2015,13 @@ TEST(Toto, DISABLED_Transcode4)
                     a == DicomTransferSyntax_JPEGLSLossy);
       
       printf("SIZE: %lu\n", t.size());
-      if (hasSopInstanceUidChanged)
+      if (sourceUid == IDicomTranscoder::GetSopInstanceUid(target.GetParsed()))
       {
-        ASSERT_TRUE(lossy);
+        ASSERT_FALSE(lossy);
       }
       else
       {
-        ASSERT_FALSE(lossy);
+        ASSERT_TRUE(lossy);
       }
     }
   }
