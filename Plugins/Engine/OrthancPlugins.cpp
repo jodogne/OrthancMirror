@@ -1896,8 +1896,8 @@ namespace Orthanc
     DicomInstanceToStore              instance_;
 
   public:
-    DicomInstanceFromTranscoded(IDicomTranscoder::TranscodedDicom& transcoded) :
-      parsed_(ParsedDicomFile::AcquireDcmtkObject(transcoded.ReleaseDicom()))
+    DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
+      parsed_(transcoded.ReleaseAsParsedDicomFile())
     {
       instance_.SetParsedDicomFile(*parsed_);
       instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
@@ -4369,29 +4369,30 @@ namespace Orthanc
         }
         else
         {
-          ParsedDicomFile dicom(p.buffer, p.size);
-
           std::set<DicomTransferSyntax> syntaxes;
           syntaxes.insert(transferSyntax);
-          
-          std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded;
+
+          IDicomTranscoder::DicomImage source;
+          source.SetExternalBuffer(p.buffer, p.size);
+
+          IDicomTranscoder::DicomImage transcoded;
+          bool success, hasSopInstanceChanged;
           
           {
             PImpl::ServerContextLock lock(*pimpl_);
-            transcoded.reset(lock.GetContext().TranscodeToParsed(
-                               dicom.GetDcmtkObject(), p.buffer, p.size,
-                               syntaxes, true /* allow new sop */));
+            success = lock.GetContext().Transcode(transcoded, hasSopInstanceChanged, source,
+                                                  syntaxes, true /* allow new sop */);
           }
 
-          if (transcoded.get() == NULL)
+          if (success)
           {
-            throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode image");
+            *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
+              new DicomInstanceFromTranscoded(transcoded));
+            return true;
           }
           else
           {
-            *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
-              new DicomInstanceFromTranscoded(*transcoded));
-            return true;
+            throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode image");
           }
         }
       }

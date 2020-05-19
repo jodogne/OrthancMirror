@@ -551,7 +551,7 @@ namespace Orthanc
     else
     {
       // Automated transcoding of incoming DICOM files
-      
+
       DicomTransferSyntax sourceSyntax;
       if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
             sourceSyntax, dicom.GetParsedDicomFile().GetDcmtkObject()) ||
@@ -565,21 +565,16 @@ namespace Orthanc
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(ingestTransferSyntax_);
 
-        std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-          TranscodeToParsed(dicom.GetParsedDicomFile().GetDcmtkObject(),
-                            dicom.GetBufferData(), dicom.GetBufferSize(),
-                            syntaxes, true /* allow new SOP instance UID */));
-        
-        if (transcoded.get() == NULL)
+        IDicomTranscoder::DicomImage source;
+        source.SetExternalBuffer(dicom.GetBufferData(), dicom.GetBufferSize());
+
+        IDicomTranscoder::DicomImage transcoded;
+        bool hasSopInstanceUidChanged;
+        if (Transcode(transcoded, hasSopInstanceUidChanged,
+                      source, syntaxes, true /* allow new SOP instance UID */))
         {
-          // Cannot transcode => store the original file
-          return StoreAfterTranscoding(resultPublicId, dicom, mode);
-        }
-        else
-        {
-          std::unique_ptr<ParsedDicomFile> tmp(
-            ParsedDicomFile::AcquireDcmtkObject(transcoded->ReleaseDicom()));
-      
+          std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
+
           DicomInstanceToStore toStore;
           toStore.SetParsedDicomFile(*tmp);
           toStore.SetOrigin(dicom.GetOrigin());
@@ -588,6 +583,11 @@ namespace Orthanc
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
           return ok;
+        }
+        else
+        {
+          // Cannot transcode => store the original file
+          return StoreAfterTranscoding(resultPublicId, dicom, mode);
         }
       }
     }
@@ -1318,99 +1318,6 @@ namespace Orthanc
     {
       connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(),
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
-    }
-  }
-
-
-  bool ServerContext::TranscodeParsedToBuffer(std::string& target /* out */,
-                                              bool& hasSopInstanceUidChanged /* out */,
-                                              DcmFileFormat& dicom /* in, possibly modified */,
-                                              DicomTransferSyntax targetSyntax,
-                                              bool allowNewSopInstanceUid)
-  {
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
-    {
-      if (dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
-                                                    targetSyntax, allowNewSopInstanceUid))
-      {
-        return true;
-      }
-    }
-    
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins() &&
-        GetPlugins().HasCustomTranscoder())
-    {
-      if (GetPlugins().TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
-                                               targetSyntax, allowNewSopInstanceUid))
-      {
-        return true;
-      }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK transcoder";
-      }
-    }
-#endif
-    
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-    {
-      return dcmtkTranscoder_->TranscodeParsedToBuffer(target, hasSopInstanceUidChanged, dicom,
-                                                       targetSyntax, allowNewSopInstanceUid);
-    }
-    else
-    {
-      return false;
-    }
-  }
-      
-
-  IDicomTranscoder::TranscodedDicom*
-  ServerContext::TranscodeToParsed(DcmFileFormat& dicom,
-                                   const void* buffer,
-                                   size_t size,
-                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                   bool allowNewSopInstanceUid)
-  {
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
-    {
-      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-        dcmtkTranscoder_->TranscodeToParsed(dicom, buffer, size, allowedSyntaxes,
-                                            allowNewSopInstanceUid));
-      if (transcoded.get() != NULL)
-      {
-        return transcoded.release();
-      }
-    }
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins() &&
-        GetPlugins().HasCustomTranscoder())
-    {
-      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-        GetPlugins().TranscodeToParsed(dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid));
-
-      if (transcoded.get() != NULL)
-      {
-        return transcoded.release();
-      }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK transcoder";
-      }
-    }
-#endif
-
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-    {
-      return dcmtkTranscoder_->TranscodeToParsed(
-        dicom, buffer, size, allowedSyntaxes, allowNewSopInstanceUid);
-    }
-    else
-    {
-      return NULL;
     }
   }
 

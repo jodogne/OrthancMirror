@@ -479,21 +479,6 @@ namespace Orthanc
 
     // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"
-    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
-                                         bool& hasSopInstanceUidChanged /* out */,
-                                         DcmFileFormat& dicom /* in, possibly modified */,
-                                         DicomTransferSyntax targetSyntax,
-                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
-
-    // This method can be used even if the global option
-    // "TranscodeDicomProtocol" is set to "false"
-    virtual IDicomTranscoder::TranscodedDicom* TranscodeToParsed(
-      DcmFileFormat& dicom /* in, possibly modified */,
-      const void* buffer /* in, same DICOM file as "dicom" */,
-      size_t size,
-      const std::set<DicomTransferSyntax>& allowedSyntaxes,
-      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
-
     virtual bool Transcode(DicomImage& target,
                            bool& hasSopInstanceUidChanged /* out */,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,

@@ -66,65 +66,6 @@ namespace Orthanc
   }
     
 
-  bool MemoryBufferTranscoder::TranscodeParsedToBuffer(
-    std::string& target /* out */,
-    bool& hasSopInstanceUidChanged /* out */,
-    DcmFileFormat& dicom /* in, possibly modified */,
-    DicomTransferSyntax targetSyntax,
-    bool allowNewSopInstanceUid)
-  {
-    if (dicom.getDataset() == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    std::string source;
-    FromDcmtkBridge::SaveToMemoryBuffer(source, *dicom.getDataset());
-
-    const void* data = source.empty() ? NULL : source.c_str();
-
-    std::set<DicomTransferSyntax> allowedSyntaxes;
-    allowedSyntaxes.insert(targetSyntax);
-
-    if (TranscodeBuffer(target, hasSopInstanceUidChanged,
-                        data, source.size(), allowedSyntaxes, allowNewSopInstanceUid))
-    {
-      CheckTargetSyntax(target, allowedSyntaxes);
-      return true;
-    }
-    else
-    {
-      return false;
-    }    
-  }
-  
-
-  IDicomTranscoder::TranscodedDicom* MemoryBufferTranscoder::TranscodeToParsed(
-    DcmFileFormat& dicom /* in, possibly modified */,
-    const void* buffer /* in, same DICOM file as "dicom" */,
-    size_t size,
-    const std::set<DicomTransferSyntax>& allowedSyntaxes,
-    bool allowNewSopInstanceUid)
-  {
-    bool hasSopInstanceUidChanged;
-    
-    std::string target;
-    if (TranscodeBuffer(target, hasSopInstanceUidChanged,
-                        buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
-    {
-      CheckTargetSyntax(target, allowedSyntaxes);
-      
-      const void* data = target.empty() ? NULL : target.c_str();
-      return IDicomTranscoder::TranscodedDicom::CreateFromInternal(
-        FromDcmtkBridge::LoadFromMemoryBuffer(data, target.size()), hasSopInstanceUidChanged);
-    }
-    else
-    {
-      return NULL;
-    }
-  }
-
-
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          bool& hasSopInstanceUidChanged /* out */,
                                          DicomImage& source,
