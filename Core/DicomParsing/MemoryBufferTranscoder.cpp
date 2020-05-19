@@ -86,8 +86,8 @@ namespace Orthanc
     std::set<DicomTransferSyntax> allowedSyntaxes;
     allowedSyntaxes.insert(targetSyntax);
 
-    if (Transcode(target, hasSopInstanceUidChanged,
-                  data, source.size(), allowedSyntaxes, allowNewSopInstanceUid))
+    if (TranscodeBuffer(target, hasSopInstanceUidChanged,
+                        data, source.size(), allowedSyntaxes, allowNewSopInstanceUid))
     {
       CheckTargetSyntax(target, allowedSyntaxes);
       return true;
@@ -109,8 +109,8 @@ namespace Orthanc
     bool hasSopInstanceUidChanged;
     
     std::string target;
-    if (Transcode(target, hasSopInstanceUidChanged,
-                  buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
+    if (TranscodeBuffer(target, hasSopInstanceUidChanged,
+                        buffer, size, allowedSyntaxes, allowNewSopInstanceUid))
     {
       CheckTargetSyntax(target, allowedSyntaxes);
       
@@ -121,6 +121,29 @@ namespace Orthanc
     else
     {
       return NULL;
+    }
+  }
+
+
+  bool MemoryBufferTranscoder::Transcode(DicomImage& target,
+                                         bool& hasSopInstanceUidChanged /* out */,
+                                         DicomImage& source,
+                                         const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                         bool allowNewSopInstanceUid)
+  {
+    target.Clear();
+    
+    std::string buffer;
+    if (TranscodeBuffer(buffer, hasSopInstanceUidChanged, source.GetBufferData(),
+                        source.GetBufferSize(), allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      CheckTargetSyntax(buffer, allowedSyntaxes);  // For debug only
+      target.AcquireBuffer(buffer);
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 }

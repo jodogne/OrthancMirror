@@ -41,12 +41,12 @@ namespace Orthanc
   class MemoryBufferTranscoder : public IDicomTranscoder
   {
   protected:
-    virtual bool Transcode(std::string& target,
-                           bool& hasSopInstanceUidChanged /* out */,
-                           const void* buffer,
-                           size_t size,
-                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) = 0;
+    virtual bool TranscodeBuffer(std::string& target,
+                                 bool& hasSopInstanceUidChanged /* out */,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid) = 0;
     
   public:
     virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
@@ -61,5 +61,11 @@ namespace Orthanc
       size_t size,
       const std::set<DicomTransferSyntax>& allowedSyntaxes,
       bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual bool Transcode(DicomImage& target /* out */,
+                           bool& hasSopInstanceUidChanged /* out */,
+                           DicomImage& source,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

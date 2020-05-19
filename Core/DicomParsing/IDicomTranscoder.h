@@ -47,13 +47,58 @@ namespace Orthanc
    * WARNING: This class might be called from several threads at
    * once. Make sure to implement proper locking.
    **/
+
+  class ParsedDicomFile;
   
   class IDicomTranscoder : public boost::noncopyable
   {
   public:
+    class DicomImage : public boost::noncopyable
+    {
+    private:
+      std::unique_ptr<DcmFileFormat>  parsed_;
+      std::unique_ptr<std::string>    buffer_;
+
+      void Parse();
+
+      void Serialize();
+
+      DcmFileFormat* ReleaseParsed();
+
+    public:
+      void Clear();
+      
+      // Calling this method will invalidate the "ParsedDicomFile" object
+      void AcquireParsed(ParsedDicomFile& parsed);
+      
+      void AcquireParsed(DcmFileFormat* parsed);
+
+      void AcquireParsed(DicomImage& other);
+
+      void AcquireBuffer(std::string& buffer /* will be swapped */);
+
+      void AcquireBuffer(DicomImage& other);
+
+      DcmFileFormat& GetParsed();
+
+      const void* GetBufferData();
+
+      size_t GetBufferSize();
+    };
+
+    
     virtual ~IDicomTranscoder()
     {
     }
+
+
+    virtual bool Transcode(DicomImage& target,
+                           bool& hasSopInstanceUidChanged /* out */,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) = 0;
+                           
+
 
     virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
                                          bool& hasSopInstanceUidChanged /* out */,

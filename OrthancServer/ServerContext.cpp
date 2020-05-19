@@ -1413,4 +1413,48 @@ namespace Orthanc
       return NULL;
     }
   }
+
+
+  bool ServerContext::Transcode(DicomImage& target,
+                                bool& hasSopInstanceUidChanged /* out */,
+                                DicomImage& source /* in, "GetParsed()" possibly modified */,
+                                const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                bool allowNewSopInstanceUid)
+  {
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
+    {
+      if (dcmtkTranscoder_->Transcode(target, hasSopInstanceUidChanged, source,
+                                      allowedSyntaxes, allowNewSopInstanceUid))
+      {
+        return true;
+      }
+    }
+      
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins() &&
+        GetPlugins().HasCustomTranscoder())
+    {
+      if (GetPlugins().Transcode(target, hasSopInstanceUidChanged, source,
+                                 allowedSyntaxes, allowNewSopInstanceUid))
+      {
+        return true;
+      }
+      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+      {
+        LOG(INFO) << "The installed transcoding plugins cannot handle an image, "
+                  << "fallback to the built-in DCMTK transcoder";
+      }
+    }
+#endif
+
+    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
+    {
+      return dcmtkTranscoder_->Transcode(target, hasSopInstanceUidChanged, source,
+                                         allowedSyntaxes, allowNewSopInstanceUid);
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
