@@ -110,8 +110,6 @@ namespace Orthanc
     static TranscodingType GetTranscodingType(DicomTransferSyntax target,
                                               DicomTransferSyntax source);
 
-    static std::string GetSopInstanceUid(DcmFileFormat& dicom);
-
     static void CheckTranscoding(DicomImage& transcoded,
                                  bool hasSopInstanceUidChanged,
                                  DicomTransferSyntax sourceSyntax,
@@ -129,5 +127,7 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) = 0;
+
+    static std::string GetSopInstanceUid(DcmFileFormat& dicom);
   };
 }
