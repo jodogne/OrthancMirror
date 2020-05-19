@@ -39,6 +39,8 @@
 #include "../ServerContext.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <cassert>
 
 namespace Orthanc
 {
@@ -173,6 +175,8 @@ namespace Orthanc
 
     modification_->Apply(*modified);
 
+    const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
+    
     if (transcode_)
     {
       std::set<DicomTransferSyntax> syntaxes;
@@ -186,6 +190,17 @@ namespace Orthanc
       if (GetContext().Transcode(transcoded, hasSopInstanceUidChanged, source, syntaxes, true))
       {
         modified.reset(transcoded.ReleaseAsParsedDicomFile());
+
+        // Fix the SOP instance UID in order the preserve the
+        // references between instance UIDs in the DICOM hierarchy
+        // (the UID might have changed in the case of lossy transcoding)
+        if (modified.get() == NULL ||
+            modified->GetDcmtkObject().getDataset() == NULL ||
+            !modified->GetDcmtkObject().getDataset()->putAndInsertString(
+              DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
       }
       else
       {
@@ -193,6 +208,8 @@ namespace Orthanc
         modified.reset(source.ReleaseAsParsedDicomFile());
       }
     }
+
+    assert(modifiedUid == IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject()));
 
     DicomInstanceToStore toStore;
     toStore.SetOrigin(origin_);

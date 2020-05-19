@@ -1655,6 +1655,9 @@ namespace Orthanc
 
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
+#if 0
+    // This was the implementation in Orthanc <= 1.6.1
+
     // TODO - Shouldn't "dataset.getCurrentXfer()" be used instead of
     // using the meta header?
     const char* value = NULL;
@@ -1670,6 +1673,18 @@ namespace Orthanc
     {
       return false;
     }
+#else
+    DicomTransferSyntax s;
+    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, GetDcmtkObject()))
+    {
+      result.assign(GetTransferSyntaxUid(s));
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+#endif
   }
 
 
