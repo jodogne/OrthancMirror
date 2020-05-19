@@ -177,19 +177,20 @@ namespace Orthanc
     {
       std::set<DicomTransferSyntax> syntaxes;
       syntaxes.insert(transferSyntax_);
-      
-      std::string s;
-      modified->SaveToMemoryBuffer(s);  // TODO - AVOID THIS SERIALIZATION IF NO PLUGIN
 
-      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded;
-      transcoded.reset(GetContext().TranscodeToParsed(modified->GetDcmtkObject(), s.empty() ? NULL : s.c_str(), s.size(), syntaxes, true));
-      if (transcoded.get() == NULL)
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*modified);  // "modified" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
+      bool hasSopInstanceUidChanged;
+      if (GetContext().Transcode(transcoded, hasSopInstanceUidChanged, source, syntaxes, true))
       {
-        LOG(WARNING) << "Cannot transcode instance, keeping original transfer syntax: " << instance;
+        modified.reset(transcoded.ReleaseAsParsedDicomFile());
       }
       else
       {
-        modified.reset(ParsedDicomFile::AcquireDcmtkObject(transcoded->ReleaseDicom()));
+        LOG(WARNING) << "Cannot transcode instance, keeping original transfer syntax: " << instance;
+        modified.reset(source.ReleaseAsParsedDicomFile());
       }
     }
 

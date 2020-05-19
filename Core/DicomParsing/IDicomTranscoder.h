@@ -58,6 +58,9 @@ namespace Orthanc
     private:
       std::unique_ptr<DcmFileFormat>  parsed_;
       std::unique_ptr<std::string>    buffer_;
+      bool                            isExternalBuffer_;
+      const void*                     externalBuffer_;
+      size_t                          externalSize_;
 
       void Parse();
 
@@ -66,6 +69,8 @@ namespace Orthanc
       DcmFileFormat* ReleaseParsed();
 
     public:
+      DicomImage();
+      
       void Clear();
       
       // Calling this method will invalidate the "ParsedDicomFile" object
@@ -79,7 +84,14 @@ namespace Orthanc
 
       void AcquireBuffer(DicomImage& other);
 
+      void SetExternalBuffer(const void* buffer,
+                             size_t size);
+
+      void SetExternalBuffer(const std::string& buffer);
+
       DcmFileFormat& GetParsed();
+
+      ParsedDicomFile* ReleaseAsParsedDicomFile();
 
       const void* GetBufferData();
 
@@ -97,54 +109,5 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) = 0;
-                           
-
-
-    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
-                                         bool& hasSopInstanceUidChanged /* out */,
-                                         DcmFileFormat& dicom /* in, possibly modified */,
-                                         DicomTransferSyntax targetSyntax,
-                                         bool allowNewSopInstanceUid) = 0;
-
-
-    class TranscodedDicom : public boost::noncopyable
-    {
-    private:
-      std::unique_ptr<DcmFileFormat>  internal_;
-      DcmFileFormat*                  external_;
-      bool                            hasSopInstanceUidChanged_;
-
-      TranscodedDicom(bool hasSopInstanceUidChanged);
-
-    public:
-      static TranscodedDicom* CreateFromExternal(DcmFileFormat& dicom,
-                                                 bool hasSopInstanceUidChanged);
-        
-      static TranscodedDicom* CreateFromInternal(DcmFileFormat* dicom,
-                                                 bool hasSopInstanceUidChanged);
-
-      // TODO - Is this information used somewhere?
-      bool HasSopInstanceUidChanged() const
-      {
-        return hasSopInstanceUidChanged_;
-      }
-      
-      DcmFileFormat& GetDicom() const;
-
-      DcmFileFormat* ReleaseDicom();
-    };
-    
-    /**
-     * Transcoding flavor that creates a new parsed DICOM file. A
-     * "std::set<>" is used to give the possible plugin the
-     * possibility to do a single parsing for all the possible
-     * transfer syntaxes. This flavor is used by C-STORE.
-     **/
-    virtual TranscodedDicom* TranscodeToParsed(
-      DcmFileFormat& dicom /* in, possibly modified */,
-      const void* buffer /* in, same DICOM file as "dicom" */,
-      size_t size,
-      const std::set<DicomTransferSyntax>& allowedSyntaxes,
-      bool allowNewSopInstanceUid) = 0;
   };
 }

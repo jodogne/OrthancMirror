@@ -491,40 +491,34 @@ namespace Orthanc
         uncompressedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
       }
 
-      std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcoded(
-        transcoder.TranscodeToParsed(*dicom, buffer, size, uncompressedSyntaxes, false));
-
-      // WARNING: Below this point, "transcoded->GetDicom()" is possibly
-      // a reference to "*dicom", if the DCMTK transcoder was used
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(dicom.release());
+      source.SetExternalBuffer(buffer, size);
       
-      if (transcoded.get() == NULL ||
-          transcoded->GetDicom().getDataset() == NULL)
+      IDicomTranscoder::DicomImage transcoded;
+      bool hasSopInstanceUidChanged;
+      if (transcoder.Transcode(transcoded, hasSopInstanceUidChanged, source, uncompressedSyntaxes, false))
       {
-        throw OrthancException(
-          ErrorCode_NotImplemented,
-          "Cannot transcode from \"" + std::string(GetTransferSyntaxUid(inputSyntax)) +
-          "\" to an uncompressed syntax for modality: " +
-          GetParameters().GetRemoteModality().GetApplicationEntityTitle());
-      }
-      else if (transcoded->HasSopInstanceUidChanged())
-      {
-        throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
-                               "instance UID while transcoding to an uncompressed transfer syntax");
-      }
-      else
-      {
-        DicomTransferSyntax transcodedSyntax;
-
-        // Sanity check
-        if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded->GetDicom()) ||
-            accepted.find(transcodedSyntax) == accepted.end())
+        if (hasSopInstanceUidChanged)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
+                                 "instance UID while transcoding to an uncompressed transfer syntax");
         }
         else
         {
-          Store(sopClassUid, sopInstanceUid, transcoded->GetDicom(),
-                hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+          DicomTransferSyntax transcodedSyntax;
+          
+          // Sanity check
+          if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
+              accepted.find(transcodedSyntax) == accepted.end())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          else
+          {
+            Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
+                  hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+          }
         }
       }
     }
