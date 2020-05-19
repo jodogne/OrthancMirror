@@ -239,12 +239,12 @@ namespace Orthanc
 
   protected:
     // From "MemoryBufferTranscoder"
-    virtual bool Transcode(std::string& target,
-                           bool& hasSopInstanceUidChanged /* out */,
-                           const void* buffer,
-                           size_t size,
-                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    virtual bool TranscodeBuffer(std::string& target,
+                                 bool& hasSopInstanceUidChanged /* out */,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
   public:
     OrthancPlugins();

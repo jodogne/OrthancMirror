@@ -398,4 +398,51 @@ namespace Orthanc
       return NULL;
     }
   }
+
+
+  bool DcmtkTranscoder::Transcode(DicomImage& target,
+                                  bool& hasSopInstanceUidChanged /* out */,
+                                  DicomImage& source /* in, "GetParsed()" possibly modified */,
+                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                  bool allowNewSopInstanceUid)
+  {
+    target.Clear();
+    
+    DicomTransferSyntax sourceSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, source.GetParsed()))
+    {
+      LOG(ERROR) << "Unsupport transfer syntax for transcoding";
+      return false;
+    }
+
+    if (allowedSyntaxes.find(sourceSyntax) != allowedSyntaxes.end())
+    {
+      // No transcoding is needed
+      target.AcquireParsed(source);
+      target.AcquireBuffer(source);
+      return true;
+    }
+    else if (InplaceTranscode(hasSopInstanceUidChanged, source.GetParsed(),
+                              allowedSyntaxes, allowNewSopInstanceUid))
+    {
+      // Sanity check
+      DicomTransferSyntax targetSyntax;
+      if (FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, source.GetParsed()) &&
+          allowedSyntaxes.find(targetSyntax) != allowedSyntaxes.end())
+      {
+        target.AcquireParsed(source);
+        source.Clear();
+        return true;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }  
+    }
+    else
+    {
+      // Cannot transcode
+      return false;
+    }
+  }
 }

@@ -35,11 +35,187 @@
 #include "IDicomTranscoder.h"
 
 #include "../OrthancException.h"
+#include "FromDcmtkBridge.h"
+#include "ParsedDicomFile.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 namespace Orthanc
 {
+  void IDicomTranscoder::DicomImage::Parse()
+  {
+    if (parsed_.get() != NULL ||
+        buffer_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      parsed_.reset(FromDcmtkBridge::LoadFromMemoryBuffer(
+                      buffer_->empty() ? NULL : buffer_->c_str(), buffer_->size()));
+
+      if (parsed_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }      
+    }
+  }
+  
+  
+  void IDicomTranscoder::DicomImage::Serialize()
+  {
+    if (parsed_.get() == NULL ||
+        buffer_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (parsed_->getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      buffer_.reset(new std::string);
+      FromDcmtkBridge::SaveToMemoryBuffer(*buffer_, *parsed_->getDataset());
+    }
+  }
+
+  
+  void IDicomTranscoder::DicomImage::Clear()
+  {
+    parsed_.reset(NULL);
+    buffer_.reset(NULL);
+  }
+
+  
+  void IDicomTranscoder::DicomImage::AcquireParsed(ParsedDicomFile& parsed)
+  {
+    AcquireParsed(parsed.ReleaseDcmtkObject());
+  }
+  
+      
+  void IDicomTranscoder::DicomImage::AcquireParsed(DcmFileFormat* parsed)
+  {
+    if (parsed == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (parsed_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (parsed->getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      parsed_.reset(parsed);
+    }
+  }
+  
+
+  void IDicomTranscoder::DicomImage::AcquireParsed(DicomImage& other)
+  {
+    AcquireParsed(other.ReleaseParsed());
+  }
+  
+
+  void IDicomTranscoder::DicomImage::AcquireBuffer(std::string& buffer /* will be swapped */)
+  {
+    if (buffer_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      buffer_.reset(new std::string);
+      buffer_->swap(buffer);
+    }
+  }
+
+
+  void IDicomTranscoder::DicomImage::AcquireBuffer(DicomImage& other)
+  {
+    if (buffer_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (other.buffer_.get() == NULL)
+    {
+      buffer_.reset(NULL);
+    }
+    else
+    {
+      buffer_.reset(other.buffer_.release());
+    }    
+  }
+
+  
+  DcmFileFormat& IDicomTranscoder::DicomImage::GetParsed()
+  {
+    if (parsed_.get() != NULL)
+    {
+      return *parsed_;
+    }
+    else if (buffer_.get() != NULL)
+    {
+      Parse();
+      return *parsed_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AcquireParsed() or AcquireBuffer() should have been called");
+    }
+  }
+  
+
+  DcmFileFormat* IDicomTranscoder::DicomImage::ReleaseParsed()
+  {
+    if (parsed_.get() != NULL)
+    {
+      buffer_.reset(NULL);
+      return parsed_.release();
+    }
+    else if (buffer_.get() != NULL)
+    {
+      Parse();
+      buffer_.reset(NULL);
+      return parsed_.release();
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AcquireParsed() or AcquireBuffer() should have been called");
+    }
+  }
+
+  
+  const void* IDicomTranscoder::DicomImage::GetBufferData()
+  {
+    if (buffer_.get() == NULL)
+    {
+      Serialize();
+    }
+
+    assert(buffer_.get() != NULL);
+    return buffer_->empty() ? NULL : buffer_->c_str();
+  }
+
+  
+  size_t IDicomTranscoder::DicomImage::GetBufferSize()
+  {
+    if (buffer_.get() == NULL)
+    {
+      Serialize();
+    }
+
+    assert(buffer_.get() != NULL);
+    return buffer_->size();
+  }
+
+
   IDicomTranscoder::TranscodedDicom::TranscodedDicom(bool hasSopInstanceUidChanged) :
     external_(NULL),
     hasSopInstanceUidChanged_(hasSopInstanceUidChanged)

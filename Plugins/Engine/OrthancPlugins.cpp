@@ -5212,12 +5212,12 @@ namespace Orthanc
   };
   
 
-  bool OrthancPlugins::Transcode(std::string& target,
-                                 bool& hasSopInstanceUidChanged /* out */,
-                                 const void* buffer,
-                                 size_t size,
-                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                 bool allowNewSopInstanceUid)
+  bool OrthancPlugins::TranscodeBuffer(std::string& target,
+                                       bool& hasSopInstanceUidChanged /* out */,
+                                       const void* buffer,
+                                       size_t size,
+                                       const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                       bool allowNewSopInstanceUid)
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
