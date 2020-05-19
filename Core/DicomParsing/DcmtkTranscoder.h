@@ -50,8 +50,7 @@ namespace Orthanc
   private:
     unsigned int  lossyQuality_;
     
-    bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
-                          DicomTransferSyntax& selectedSyntax /* out */,
+    bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                           DcmFileFormat& dicom,
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
                           bool allowNewSopInstanceUid);
@@ -72,7 +71,6 @@ namespace Orthanc
     static bool IsSupported(DicomTransferSyntax syntax);
 
     virtual bool Transcode(DicomImage& target,
-                           bool& hasSopInstanceUidChanged /* out */,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;

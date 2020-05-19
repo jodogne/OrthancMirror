@@ -494,12 +494,13 @@ namespace Orthanc
       IDicomTranscoder::DicomImage source;
       source.AcquireParsed(dicom.release());
       source.SetExternalBuffer(buffer, size);
+
+      const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(source.GetParsed());
       
       IDicomTranscoder::DicomImage transcoded;
-      bool hasSopInstanceUidChanged;
-      if (transcoder.Transcode(transcoded, hasSopInstanceUidChanged, source, uncompressedSyntaxes, false))
+      if (transcoder.Transcode(transcoded, source, uncompressedSyntaxes, false))
       {
-        if (hasSopInstanceUidChanged)
+        if (sourceUid != IDicomTranscoder::GetSopInstanceUid(transcoded.GetParsed()))
         {
           throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
                                  "instance UID while transcoding to an uncompressed transfer syntax");

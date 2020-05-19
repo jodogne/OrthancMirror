@@ -186,8 +186,7 @@ namespace Orthanc
       source.AcquireParsed(*modified);  // "modified" is invalid below this point
       
       IDicomTranscoder::DicomImage transcoded;
-      bool hasSopInstanceUidChanged;
-      if (GetContext().Transcode(transcoded, hasSopInstanceUidChanged, source, syntaxes, true))
+      if (GetContext().Transcode(transcoded, source, syntaxes, true))
       {
         modified.reset(transcoded.ReleaseAsParsedDicomFile());
 

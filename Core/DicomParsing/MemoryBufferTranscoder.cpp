@@ -67,7 +67,6 @@ namespace Orthanc
     
 
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
-                                         bool& hasSopInstanceUidChanged /* out */,
                                          DicomImage& source,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                          bool allowNewSopInstanceUid)
@@ -87,8 +86,8 @@ namespace Orthanc
 #endif
 
     std::string buffer;
-    if (TranscodeBuffer(buffer, hasSopInstanceUidChanged, source.GetBufferData(),
-                        source.GetBufferSize(), allowedSyntaxes, allowNewSopInstanceUid))
+    if (TranscodeBuffer(buffer, source.GetBufferData(), source.GetBufferSize(),
+                        allowedSyntaxes, allowNewSopInstanceUid))
     {
       CheckTargetSyntax(buffer, allowedSyntaxes);  // For debug only
 
@@ -96,7 +95,7 @@ namespace Orthanc
       
 #if !defined(NDEBUG)
       // Only run the sanity check in debug mode
-      CheckTranscoding(target, hasSopInstanceUidChanged, sourceSyntax, sourceSopInstanceUid,
+      CheckTranscoding(target, sourceSyntax, sourceSopInstanceUid,
                        allowedSyntaxes, allowNewSopInstanceUid);
 #endif
 

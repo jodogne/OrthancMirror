@@ -111,7 +111,6 @@ namespace Orthanc
                                               DicomTransferSyntax source);
 
     static void CheckTranscoding(DicomImage& transcoded,
-                                 bool hasSopInstanceUidChanged,
                                  DicomTransferSyntax sourceSyntax,
                                  const std::string& sourceSopInstanceUid,
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -123,7 +122,6 @@ namespace Orthanc
     }
 
     virtual bool Transcode(DicomImage& target,
-                           bool& hasSopInstanceUidChanged /* out */,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) = 0;

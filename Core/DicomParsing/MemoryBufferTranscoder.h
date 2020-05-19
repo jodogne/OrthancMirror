@@ -42,7 +42,6 @@ namespace Orthanc
   {
   protected:
     virtual bool TranscodeBuffer(std::string& target,
-                                 bool& hasSopInstanceUidChanged /* out */,
                                  const void* buffer,
                                  size_t size,
                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -50,7 +49,6 @@ namespace Orthanc
     
   public:
     virtual bool Transcode(DicomImage& target /* out */,
-                           bool& hasSopInstanceUidChanged /* out */,
                            DicomImage& source,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;

@@ -101,7 +101,6 @@ namespace Orthanc
 
 
   void IDicomTranscoder::CheckTranscoding(IDicomTranscoder::DicomImage& transcoded,
-                                          bool hasSopInstanceUidChanged,
                                           DicomTransferSyntax sourceSyntax,
                                           const std::string& sourceSopInstanceUid,
                                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -116,16 +115,6 @@ namespace Orthanc
 
     std::string targetSopInstanceUid = GetSopInstanceUid(parsed);
 
-    if (hasSopInstanceUidChanged && (targetSopInstanceUid == sourceSopInstanceUid))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!hasSopInstanceUidChanged && (targetSopInstanceUid != sourceSopInstanceUid))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
     if (parsed.getDataset()->tagExists(DCM_PixelData))
     {
       if (!allowNewSopInstanceUid && (targetSopInstanceUid != sourceSopInstanceUid))
@@ -135,8 +124,7 @@ namespace Orthanc
     }
     else
     {
-      if (hasSopInstanceUidChanged ||
-          targetSopInstanceUid != sourceSopInstanceUid)
+      if (targetSopInstanceUid != sourceSopInstanceUid)
       {
         throw OrthancException(ErrorCode_InternalError,
                                "No pixel data: Transcoding must not change the SOP instance UID");
@@ -152,8 +140,7 @@ namespace Orthanc
     if (allowedSyntaxes.find(sourceSyntax) != allowedSyntaxes.end())
     {
       // No transcoding should have happened
-      if (targetSopInstanceUid != sourceSopInstanceUid ||
-          hasSopInstanceUidChanged)
+      if (targetSopInstanceUid != sourceSopInstanceUid)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
