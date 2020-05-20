@@ -241,6 +241,7 @@ namespace Orthanc
     ErrorCode_NoWorklistHandler = 2041    /*!< No request handler factory for DICOM C-Find Modality SCP */,
     ErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
     ErrorCode_NoStorageCommitmentHandler = 2043    /*!< No request handler factory for DICOM N-ACTION SCP (storage commitment) */,
+    ErrorCode_NoCGetHandler = 2044    /*!< No request handler factory for DICOM C-GET SCP */,
     ErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
     ErrorCode_START_PLUGINS = 1000000
   };
