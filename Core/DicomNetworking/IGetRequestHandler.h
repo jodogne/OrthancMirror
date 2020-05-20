@@ -60,7 +60,8 @@ namespace Orthanc
     virtual bool Handle(const DicomMap& input,
                         const std::string& originatorIp,
                         const std::string& originatorAet,
-                        const std::string& calledAet) = 0;
+                        const std::string& calledAet,
+                        uint32_t timeout) = 0;
     
     virtual unsigned int GetSubOperationCount() const = 0;
     
