@@ -39,6 +39,8 @@
 
 #include <list>
 
+class DcmFileFormat;
+
 namespace Orthanc
 {
   class ServerContext;
@@ -72,7 +74,7 @@ namespace Orthanc
     OFCondition PerformGetSubOp(T_ASC_Association *assoc,
                                 const std::string& sopClassUid,
                                 const std::string& sopInstanceUid,
-                                DcmDataset& dataset);
+                                DcmFileFormat* datasetRaw);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 

@@ -483,5 +483,10 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    bool IsTranscodeDicomProtocol() const
+    {
+      return transcodeDicomProtocol_;
+    }
   };
 }
