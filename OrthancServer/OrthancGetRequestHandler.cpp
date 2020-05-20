@@ -33,10 +33,11 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancGetRequestHandler.h"
 
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmnet/assoc.h>
 #include <dcmtk/dcmnet/dimse.h>
-#include <dcmtk/dcmdata/dcdeftag.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmnet/diutil.h>
 
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
@@ -46,7 +47,6 @@
 #include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
-
 
 
 namespace Orthanc
@@ -64,7 +64,8 @@ namespace Orthanc
     }
   }
 
-  OrthancGetRequestHandler::Status OrthancGetRequestHandler::DoNext(T_ASC_Association* assoc)
+  OrthancGetRequestHandler::Status
+  OrthancGetRequestHandler::DoNext(T_ASC_Association* assoc)
   {
     if (position_ >= instances_.size())
     {
@@ -81,14 +82,16 @@ namespace Orthanc
       return Status_Failure;
     }
 
-    ParsedDicomFile parsed(dicom);
+    std::unique_ptr<DcmFileFormat> parsed(
+      FromDcmtkBridge::LoadFromMemoryBuffer(dicom.c_str(), dicom.size()));
 
-    if (parsed.GetDcmtkObject().getDataset() == NULL)
+    if (parsed.get() == NULL ||
+        parsed->getDataset() == NULL)
     {
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    DcmDataset& dataset = *parsed.GetDcmtkObject().getDataset();
+    DcmDataset& dataset = *parsed->getDataset();
     
     OFString a, b;
     if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
@@ -102,11 +105,11 @@ namespace Orthanc
     std::string sopClassUid(a.c_str());
     std::string sopInstanceUid(b.c_str());
     
-    OFCondition cond = PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dataset);
+    OFCondition cond = PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, parsed.release());
     
     if (getCancelled_)
     {
-      LOG(INFO) << "Get SCP: Received C-Cancel RQ";
+      LOG(INFO) << "C-GET SCP: Received C-Cancel RQ";
     }
     
     if (cond.bad() || getCancelled_)
@@ -131,21 +134,131 @@ namespace Orthanc
   }
 
 
+  static bool SelectPresentationContext(T_ASC_PresentationContextID& selectedPresentationId,
+                                        DicomTransferSyntax& selectedSyntax,
+                                        T_ASC_Association* assoc,
+                                        const std::string& sopClassUid,
+                                        DicomTransferSyntax sourceSyntax,
+                                        bool allowTranscoding)
+  {
+    typedef std::map<DicomTransferSyntax, T_ASC_PresentationContextID> Accepted;
+
+    Accepted accepted;
+
+    /**
+     * 1. Inspect and index all the accepted transfer syntaxes. This
+     * is similar to the code from "DicomAssociation::Open()".
+     **/
+
+    LST_HEAD **l = &assoc->params->DULparams.acceptedPresentationContext;
+    if (*l != NULL)
+    {
+      DUL_PRESENTATIONCONTEXT* pc = (DUL_PRESENTATIONCONTEXT*) LST_Head(l);
+      LST_Position(l, (LST_NODE*)pc);
+      while (pc)
+      {
+        if (pc->result == ASC_P_ACCEPTANCE &&
+            std::string(pc->abstractSyntax) == sopClassUid)
+        {
+          DicomTransferSyntax transferSyntax;
+          if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
+          {
+            accepted[transferSyntax] = pc->presentationContextID;
+          }
+          else
+          {
+            LOG(WARNING) << "C-GET: Unknown transfer syntax received: "
+                         << pc->acceptedTransferSyntax;
+          }
+        }
+            
+        pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
+      }
+    }
+
+    
+    /**
+     * 2. Select the preferred transfer syntaxes, which corresponds to
+     * the source transfer syntax, plus all the uncompressed transfer
+     * syntaxes if transcoding is enabled.
+     **/
+    
+    std::list<DicomTransferSyntax> preferred;
+    preferred.push_back(sourceSyntax);
+
+    if (allowTranscoding)
+    {
+      if (sourceSyntax != DicomTransferSyntax_LittleEndianImplicit)
+      {
+        // Default Transfer Syntax for DICOM
+        preferred.push_back(DicomTransferSyntax_LittleEndianImplicit);
+      }
+
+      if (sourceSyntax != DicomTransferSyntax_LittleEndianExplicit)
+      {
+        preferred.push_back(DicomTransferSyntax_LittleEndianExplicit);
+      }
+
+      if (sourceSyntax != DicomTransferSyntax_BigEndianExplicit)
+      {
+        // Retired
+        preferred.push_back(DicomTransferSyntax_BigEndianExplicit);
+      }
+    }
+
+
+    /**
+     * 3. Lookup whether one of the preferred transfer syntaxes was
+     * accepted.
+     **/
+    
+    for (std::list<DicomTransferSyntax>::const_iterator
+           it = preferred.begin(); it != preferred.end(); ++it)
+    {    
+      Accepted::const_iterator found = accepted.find(*it);
+      if (found != accepted.end())
+      {
+        selectedPresentationId = found->second;
+        selectedSyntax = *it;
+        return true;
+      }
+    }
+
+    // No preferred syntax was accepted
+    return false;
+  }                                                           
+
+
   OFCondition OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
                                                         const std::string& sopClassUid,
                                                         const std::string& sopInstanceUid,
-                                                        DcmDataset& dataset)
+                                                        DcmFileFormat* dicomRaw)
   {
-    T_ASC_PresentationContextID presId;
+    assert(dicomRaw != NULL);
+    std::unique_ptr<DcmFileFormat> dicom(dicomRaw);
     
-    // which presentation context should be used
-    presId = ASC_findAcceptedPresentationContextID(assoc, sopClassUid.c_str());
-    
-    if (presId == 0)
+    DicomTransferSyntax sourceSyntax;
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *dicom))
     {
       nFailed_++;
       AddFailedUIDInstance(sopInstanceUid);
-      LOG(ERROR) << "Get SCP: storeSCU: No presentation context for: ("
+      LOG(ERROR) << "C-GET SCP: Unknown transfer syntax: ("
+                 << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
+      return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+    }
+
+    bool allowTranscoding = (context_.IsTranscodeDicomProtocol() &&
+                             remote_.IsTranscodingAllowed());
+    
+    T_ASC_PresentationContextID presId;
+    DicomTransferSyntax selectedSyntax;
+    if (!SelectPresentationContext(presId, selectedSyntax, assoc, sopClassUid,
+                                   sourceSyntax, allowTranscoding) ||
+        presId == 0)
+    {
+      nFailed_++;
+      AddFailedUIDInstance(sopInstanceUid);
+      LOG(ERROR) << "C-GET SCP: storeSCU: No presentation context for: ("
                  << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
       return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
     }
@@ -161,7 +274,7 @@ namespace Orthanc
         // the role is not appropriate
         nFailed_++;
         AddFailedUIDInstance(sopInstanceUid);
-        LOG(ERROR) <<"Get SCP: storeSCU: [No presentation context with requestor SCP role for: ("
+        LOG(ERROR) << "C-GET SCP: storeSCU: [No presentation context with requestor SCP role for: ("
                    << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
         return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
       }
@@ -191,13 +304,48 @@ namespace Orthanc
 
     OFCondition cond;
 
+    if (sourceSyntax == selectedSyntax)
     {
+      // No transcoding is required
       DcmDataset *stDetailTmp = NULL;
-      cond = DIMSE_storeUser(assoc, presId, &req, NULL /* imageFileName */, &dataset,
-                             GetSubOpProgressCallback, this /* callbackData */,
-                             (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
-                             &rsp, &stDetailTmp, &cancelParameters);
+      cond = DIMSE_storeUser(
+        assoc, presId, &req, NULL /* imageFileName */, dicom->getDataset(),
+        GetSubOpProgressCallback, this /* callbackData */,
+        (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
+        &rsp, &stDetailTmp, &cancelParameters);
       stDetail.reset(stDetailTmp);
+    }
+    else
+    {
+      // Transcoding to the selected uncompressed transfer syntax
+      IDicomTranscoder::DicomImage source, transcoded;
+      source.AcquireParsed(dicom.release());
+
+      std::set<DicomTransferSyntax> ts;
+      ts.insert(selectedSyntax);
+      
+      if (context_.Transcode(transcoded, source, ts, true))
+      {
+        // Transcoding has succeeded
+        DcmDataset *stDetailTmp = NULL;
+        cond = DIMSE_storeUser(
+          assoc, presId, &req, NULL /* imageFileName */,
+          transcoded.GetParsed().getDataset(),
+          GetSubOpProgressCallback, this /* callbackData */,
+          (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
+          &rsp, &stDetailTmp, &cancelParameters);
+        stDetail.reset(stDetailTmp);
+      }
+      else
+      {
+        // Cannot transcode
+        nFailed_++;
+        AddFailedUIDInstance(sopInstanceUid);
+        LOG(ERROR) << "C-GET SCP: Cannot transcode " << sopClassUid
+                   << " from transfer syntax " << GetTransferSyntaxUid(sourceSyntax)
+                   << " to " << GetTransferSyntaxUid(selectedSyntax);
+        return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+      }      
     }
     
     if (cond.good())
@@ -211,7 +359,7 @@ namespace Orthanc
         }
         else
         {
-          LOG(ERROR) << "Get SCP: Unexpected C-Cancel-RQ encountered: pid=" << (int)cancelParameters.presId
+          LOG(ERROR) << "C-GET SCP: Unexpected C-Cancel-RQ encountered: pid=" << (int)cancelParameters.presId
                      << ", mid=" << (int)cancelParameters.req.MessageIDBeingRespondedTo;
         }
       }
@@ -225,7 +373,7 @@ namespace Orthanc
       {
         // a warning status message
         warningCount_++;
-        LOG(ERROR) << "Get SCP: Store Warning: Response Status: "
+        LOG(ERROR) << "C-GET SCP: Store Warning: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
       }
       else
@@ -233,7 +381,7 @@ namespace Orthanc
         nFailed_++;
         AddFailedUIDInstance(sopInstanceUid);
         // print a status message
-        LOG(ERROR) << "Get SCP: Store Failed: Response Status: "
+        LOG(ERROR) << "C-GET SCP: Store Failed: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
       }
     }
@@ -242,7 +390,7 @@ namespace Orthanc
       nFailed_++;
       AddFailedUIDInstance(sopInstanceUid);
       OFString temp_str;
-      LOG(ERROR) << "Get SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
+      LOG(ERROR) << "C-GET SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
     }
     
     if (stDetail.get() != NULL)
@@ -343,7 +491,7 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_get_scp_duration_ms");
 
-    LOG(WARNING) << "Get-SCU request received from AET \"" << originatorAet << "\"";
+    LOG(WARNING) << "C-GET-SCU request received from AET \"" << originatorAet << "\"";
 
     {
       DicomArray query(input);

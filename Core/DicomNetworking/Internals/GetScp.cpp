@@ -163,8 +163,9 @@ namespace Orthanc
 
         try
         {
-          if (!data.handler_->Handle(input, data.remoteIp_, data.remoteAet_, data.calledAet_,
-                                     data.timeout_ < 0 ? 0 : static_cast<uint32_t>(data.timeout_)))
+          if (!data.handler_->Handle(
+                input, data.remoteIp_, data.remoteAet_, data.calledAet_,
+                data.timeout_ < 0 ? 0 : static_cast<uint32_t>(data.timeout_)))
           {
             response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
             return;
