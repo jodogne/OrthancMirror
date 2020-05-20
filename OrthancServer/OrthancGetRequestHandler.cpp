@@ -48,6 +48,8 @@
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
 
+#include <sstream>  // For std::stringstream
+
 
 namespace Orthanc
 {
@@ -395,7 +397,9 @@ namespace Orthanc
     
     if (stDetail.get() != NULL)
     {
-      LOG(INFO) << "  Status Detail:" << OFendl << DcmObject::PrintHelper(*stDetail);
+      std::stringstream s;
+      s << DcmObject::PrintHelper(*stDetail);
+      LOG(INFO) << "  Status Detail:" << OFendl << s.str();
     }
     
     return cond;
