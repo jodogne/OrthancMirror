@@ -55,6 +55,7 @@ namespace Orthanc
     bool                  allowGet_;
     bool                  allowNAction_;
     bool                  allowNEventReport_;
+    bool                  allowTranscoding_;
     
     void Clear();
 
@@ -131,5 +132,15 @@ namespace Orthanc
 
     void Serialize(Json::Value& target,
                    bool forceAdvancedFormat) const;
+
+    bool IsTranscodingAllowed() const
+    {
+      return allowTranscoding_;
+    }
+
+    void SetTranscodingAllowed(bool allowed)
+    {
+      allowTranscoding_ = allowed;
+    }
   };
 }

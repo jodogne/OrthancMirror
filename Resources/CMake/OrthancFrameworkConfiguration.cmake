@@ -484,10 +484,9 @@ if (ENABLE_DCMTK)
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociation.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociationParameters.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomControlUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomUserConnection.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
@@ -502,6 +501,11 @@ if (ENABLE_DCMTK)
   # New in Orthanc 1.6.0
   if (ENABLE_DCMTK_TRANSCODING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
+    list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
+      ${ORTHANC_ROOT}/Core/DicomParsing/DcmtkTranscoder.cpp
+      ${ORTHANC_ROOT}/Core/DicomParsing/IDicomTranscoder.cpp
+      ${ORTHANC_ROOT}/Core/DicomParsing/MemoryBufferTranscoder.cpp
+      )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
   endif()

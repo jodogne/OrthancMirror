@@ -13,6 +13,7 @@ include(${CMAKE_SOURCE_DIR}/Resources/CMake/OrthancFrameworkParameters.cmake)
 set(ENABLE_CRYPTO_OPTIONS ON)
 set(ENABLE_DCMTK ON)
 set(ENABLE_DCMTK_NETWORKING ON)
+set(ENABLE_DCMTK_TRANSCODING ON)
 set(ENABLE_GOOGLE_TEST ON)
 set(ENABLE_JPEG ON)
 set(ENABLE_LOCALE ON)
@@ -24,9 +25,6 @@ set(ENABLE_SQLITE ON)
 set(ENABLE_WEB_CLIENT ON)
 set(ENABLE_WEB_SERVER ON)
 set(ENABLE_ZLIB ON)
-
-# To test transcoding
-#set(ENABLE_DCMTK_TRANSCODING ON)
 
 set(HAS_EMBEDDED_RESOURCES ON)
 
@@ -92,6 +90,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerJobs/ArchiveJob.cpp
+  OrthancServer/ServerJobs/CleaningInstancesJob.cpp
   OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
   OrthancServer/ServerJobs/DicomMoveScuJob.cpp
   OrthancServer/ServerJobs/LuaJobManager.cpp

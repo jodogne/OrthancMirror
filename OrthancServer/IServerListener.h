@@ -48,7 +48,7 @@ namespace Orthanc
     }
 
     virtual void SignalStoredInstance(const std::string& publicId,
-                                      DicomInstanceToStore& instance,
+                                      const DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags) = 0;
     
     virtual void SignalChange(const ServerIndexChange& change) = 0;

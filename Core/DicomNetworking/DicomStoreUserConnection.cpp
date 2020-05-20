@@ -48,8 +48,28 @@ namespace Orthanc
   bool DicomStoreUserConnection::ProposeStorageClass(const std::string& sopClassUid,
                                                      const std::set<DicomTransferSyntax>& syntaxes)
   {
+    // Default transfer syntax for DICOM
+    const bool addLittleEndianImplicit = (
+      proposeUncompressedSyntaxes_ &&
+      syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end());
+    
+    const bool addLittleEndianExplicit = (
+      proposeUncompressedSyntaxes_ &&
+      syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end());
+    
+    const bool addBigEndianExplicit = (
+      proposeUncompressedSyntaxes_ &&
+      proposeRetiredBigEndian_ &&
+      syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end());
+    
     size_t requiredCount = syntaxes.size();
-    if (proposeUncompressedSyntaxes_)
+    if (addLittleEndianImplicit)
+    {
+      requiredCount += 1;
+    }
+      
+    if (addLittleEndianExplicit ||
+        addBigEndianExplicit)
     {
       requiredCount += 1;
     }
@@ -58,40 +78,49 @@ namespace Orthanc
     {
       return false;  // Not enough room
     }
-      
-    for (std::set<DicomTransferSyntax>::const_iterator
-           it = syntaxes.begin(); it != syntaxes.end(); ++it)
+    else
     {
-      association_->ProposePresentationContext(sopClassUid, *it);
-    }
-
-    if (proposeUncompressedSyntaxes_)
-    {
-      std::set<DicomTransferSyntax> uncompressed;
-        
-      if (syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end())
+      for (std::set<DicomTransferSyntax>::const_iterator
+             it = syntaxes.begin(); it != syntaxes.end(); ++it)
       {
-        uncompressed.insert(DicomTransferSyntax_LittleEndianImplicit);
-      }
-        
-      if (syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end())
-      {
-        uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
-      }
-        
-      if (proposeRetiredBigEndian_ &&
-          syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end())
-      {
-        uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
+        association_->ProposePresentationContext(sopClassUid, *it);
+        proposedOriginalClasses_.insert(std::make_pair(sopClassUid, *it));
       }
 
-      if (!uncompressed.empty())
+      if (addLittleEndianImplicit)
       {
+        association_->ProposePresentationContext(sopClassUid, DicomTransferSyntax_LittleEndianImplicit);
+        proposedOriginalClasses_.insert(std::make_pair(sopClassUid, DicomTransferSyntax_LittleEndianImplicit));
+      }
+
+      if (addLittleEndianExplicit ||
+          addBigEndianExplicit)
+      {
+        std::set<DicomTransferSyntax> uncompressed;
+
+        if (addLittleEndianExplicit)
+        {
+          uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
+        }
+
+        if (addBigEndianExplicit)
+        {
+          uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
+        }
+
         association_->ProposePresentationContext(sopClassUid, uncompressed);
-      }
-    }      
 
-    return true;
+        assert(!uncompressed.empty());
+        if (addLittleEndianExplicit ^ addBigEndianExplicit)
+        {
+          // Only one transfer syntax was proposed for this presentation context
+          assert(uncompressed.size() == 1);
+          proposedOriginalClasses_.insert(std::make_pair(sopClassUid, *uncompressed.begin()));
+        }
+      }
+
+      return true;
+    }
   }
 
 
@@ -116,8 +145,8 @@ namespace Orthanc
 
     return false;
   }
-    
-        
+
+
   DicomStoreUserConnection::DicomStoreUserConnection(
     const DicomAssociationParameters& params) :
     parameters_(params),
@@ -129,16 +158,16 @@ namespace Orthanc
   }
     
 
-  void DicomStoreUserConnection::PrepareStorageClass(const std::string& sopClassUid,
-                                                     DicomTransferSyntax syntax)
+  void DicomStoreUserConnection::RegisterStorageClass(const std::string& sopClassUid,
+                                                      DicomTransferSyntax syntax)
   {
-    StorageClasses::iterator found = storageClasses_.find(sopClassUid);
+    RegisteredClasses::iterator found = registeredClasses_.find(sopClassUid);
 
-    if (found == storageClasses_.end())
+    if (found == registeredClasses_.end())
     {
       std::set<DicomTransferSyntax> ts;
       ts.insert(syntax);
-      storageClasses_[sopClassUid] = ts;
+      registeredClasses_[sopClassUid] = ts;
     }
     else
     {
@@ -147,6 +176,36 @@ namespace Orthanc
   }
 
 
+  void DicomStoreUserConnection::LookupParameters(std::string& sopClassUid,
+                                                  std::string& sopInstanceUid,
+                                                  DicomTransferSyntax& transferSyntax,
+                                                  DcmFileFormat& dicom)
+  {
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    OFString a, b;
+    if (!dicom.getDataset()->findAndGetOFString(DCM_SOPClassUID, a).good() ||
+        !dicom.getDataset()->findAndGetOFString(DCM_SOPInstanceUID, b).good())
+    {
+      throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                             "Unable to determine the SOP class/instance for C-STORE with AET " +
+                             parameters_.GetRemoteModality().GetApplicationEntityTitle());
+    }
+
+    sopClassUid.assign(a.c_str());
+    sopInstanceUid.assign(b.c_str());
+
+    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax, dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unknown transfer syntax from DCMTK");
+    }
+  }
+  
+
   bool DicomStoreUserConnection::NegotiatePresentationContext(
     uint8_t& presentationContextId,
     const std::string& sopClassUid,
@@ -154,7 +213,7 @@ namespace Orthanc
   {
     /**
      * Step 1: Check whether this presentation context is already
-     * available in the previously negociated assocation.
+     * available in the previously negotiated assocation.
      **/
 
     if (LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax))
@@ -163,22 +222,37 @@ namespace Orthanc
     }
 
     // The association must be re-negotiated
-    LOG(INFO) << "Re-negociating DICOM association with "
-              << parameters_.GetRemoteApplicationEntityTitle();
-    association_->ClearPresentationContexts();
-    PrepareStorageClass(sopClassUid, transferSyntax);
+    if (association_->IsOpen())
+    {
+      LOG(INFO) << "Re-negotiating DICOM association with "
+                << parameters_.GetRemoteModality().GetApplicationEntityTitle();
 
-      
+      if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) !=
+          proposedOriginalClasses_.end())
+      {
+        LOG(INFO) << "The remote modality has already rejected SOP class UID \""
+                  << sopClassUid << "\" with transfer syntax \""
+                  << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
+        return false;
+      }
+    }
+
+    association_->ClearPresentationContexts();
+    proposedOriginalClasses_.clear();
+    RegisterStorageClass(sopClassUid, transferSyntax);  // (*)
+
+    
     /**
      * Step 2: Propose at least the mandatory SOP class.
      **/
 
     {
-      StorageClasses::const_iterator mandatory = storageClasses_.find(sopClassUid);
+      RegisteredClasses::const_iterator mandatory = registeredClasses_.find(sopClassUid);
 
-      if (mandatory == storageClasses_.end() ||
+      if (mandatory == registeredClasses_.end() ||
           mandatory->second.find(transferSyntax) == mandatory->second.end())
       {
+        // Should never fail because of (*)
         throw OrthancException(ErrorCode_InternalError);
       }
 
@@ -194,11 +268,11 @@ namespace Orthanc
       
     /**
      * Step 3: Propose all the previously spotted SOP classes, as
-     * registered through the "PrepareStorageClass()" method.
+     * registered through the "RegisterStorageClass()" method.
      **/
       
-    for (StorageClasses::const_iterator it = storageClasses_.begin();
-         it != storageClasses_.end(); ++it)
+    for (RegisteredClasses::const_iterator it = registeredClasses_.begin();
+         it != registeredClasses_.end(); ++it)
     {
       if (it->first != sopClassUid)
       {
@@ -217,15 +291,16 @@ namespace Orthanc
 
     if (proposeCommonClasses_)
     {
+      // The method "ProposeStorageClass()" will automatically add
+      // "LittleEndianImplicit"
       std::set<DicomTransferSyntax> ts;
-      ts.insert(DicomTransferSyntax_LittleEndianImplicit);
         
       for (int i = 0; i < numberOfDcmShortSCUStorageSOPClassUIDs; i++)
       {
         std::string c(dcmShortSCUStorageSOPClassUIDs[i]);
           
         if (c != sopClassUid &&
-            storageClasses_.find(c) == storageClasses_.end())
+            registeredClasses_.find(c) == registeredClasses_.end())
         {
           ProposeStorageClass(c, ts);
         }
@@ -245,36 +320,23 @@ namespace Orthanc
 
   void DicomStoreUserConnection::Store(std::string& sopClassUid,
                                        std::string& sopInstanceUid,
-                                       DcmDataset& dataset,
+                                       DcmFileFormat& dicom,
+                                       bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
-    OFString a, b;
-    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
-        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
-    {
-      throw OrthancException(ErrorCode_NoSopClassOrInstance,
-                             "Unable to determine the SOP class/instance for C-STORE with AET " +
-                             parameters_.GetRemoteApplicationEntityTitle());
-    }
-
-    sopClassUid.assign(a.c_str());
-    sopInstanceUid.assign(b.c_str());
-
     DicomTransferSyntax transferSyntax;
-    if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
-          transferSyntax, dataset.getOriginalXfer()))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unknown transfer syntax from DCMTK");
-    }
+    LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
 
-    // Figure out which accepted presentation context should be used
     uint8_t presID;
-    if (!NegotiatePresentationContext(presID, sopClassUid.c_str(), transferSyntax))
+    if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax))
     {
-      throw OrthancException(ErrorCode_InternalError,
-                             "No valid presentation context was negotiated upfront");
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "No valid presentation context was negotiated for "
+                             "SOP class UID [" + sopClassUid + "] and transfer "
+                             "syntax [" + GetTransferSyntaxUid(transferSyntax) + "] "
+                             "while sending to modality [" +
+                             parameters_.GetRemoteModality().GetApplicationEntityTitle() + "]");
     }
     
     // Prepare the transmission of data
@@ -286,8 +348,8 @@ namespace Orthanc
     request.DataSetType = DIMSE_DATASET_PRESENT;
     strncpy(request.AffectedSOPInstanceUID, sopInstanceUid.c_str(), DIC_UI_LEN);
 
-    if (!moveOriginatorAET.empty())
-    {
+    if (hasMoveOriginator)
+    {    
       strncpy(request.MoveOriginatorApplicationEntityTitle, 
               moveOriginatorAET.c_str(), DIC_AE_LEN);
       request.opts = O_STORE_MOVEORIGINATORAETITLE;
@@ -296,12 +358,17 @@ namespace Orthanc
       request.opts |= O_STORE_MOVEORIGINATORID;
     }
 
+    if (dicom.getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     // Finally conduct transmission of data
     T_DIMSE_C_StoreRSP response;
     DcmDataset* statusDetail = NULL;
     DicomAssociation::CheckCondition(
       DIMSE_storeUser(&association_->GetDcmtkAssociation(), presID, &request,
-                      NULL, &dataset, /*progressCallback*/ NULL, NULL,
+                      NULL, dicom.getDataset(), /*progressCallback*/ NULL, NULL,
                       /*opt_blockMode*/ (GetParameters().HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                       /*opt_dimse_timeout*/ GetParameters().GetTimeout(),
                       &response, &statusDetail, NULL),
@@ -326,7 +393,7 @@ namespace Orthanc
       sprintf(buf, "%04X", response.DimseStatus);
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "C-STORE SCU to AET \"" +
-                             GetParameters().GetRemoteApplicationEntityTitle() +
+                             GetParameters().GetRemoteModality().GetApplicationEntityTitle() +
                              "\" has failed with DIMSE status 0x" + buf);
     }
   }
@@ -334,26 +401,127 @@ namespace Orthanc
 
   void DicomStoreUserConnection::Store(std::string& sopClassUid,
                                        std::string& sopInstanceUid,
-                                       ParsedDicomFile& parsed,
-                                       const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
-  {
-    Store(sopClassUid, sopInstanceUid, *parsed.GetDcmtkObject().getDataset(),
-          moveOriginatorAET, moveOriginatorID);
-  }
-
-
-  void DicomStoreUserConnection::Store(std::string& sopClassUid,
-                                       std::string& sopInstanceUid,
                                        const void* buffer,
                                        size_t size,
+                                       bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
                                        uint16_t moveOriginatorID)
   {
     std::unique_ptr<DcmFileFormat> dicom(
       FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
 
-    Store(sopClassUid, sopInstanceUid, *dicom->getDataset(),
-          moveOriginatorAET, moveOriginatorID);
+    if (dicom.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+  }
+
+
+  void DicomStoreUserConnection::LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
+                                                   const std::string& sopClassUid,
+                                                   DicomTransferSyntax sourceSyntax)
+  {
+    acceptedSyntaxes.clear();
+
+    // Make sure a negotiation has already occurred for this transfer
+    // syntax. We don't use the return code: Transcoding is possible
+    // even if the "sourceSyntax" is not supported.
+    uint8_t presID;
+    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax);
+
+    std::map<DicomTransferSyntax, uint8_t> contexts;
+    if (association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
+    {
+      for (std::map<DicomTransferSyntax, uint8_t>::const_iterator
+             it = contexts.begin(); it != contexts.end(); ++it)
+      {
+        acceptedSyntaxes.insert(it->first);
+      }
+    }
+  }
+
+
+  void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
+                                           std::string& sopInstanceUid /* out */,
+                                           IDicomTranscoder& transcoder,
+                                           const void* buffer,
+                                           size_t size,
+                                           bool hasMoveOriginator,
+                                           const std::string& moveOriginatorAET,
+                                           uint16_t moveOriginatorID)
+  {
+    std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
+    if (dicom.get() == NULL ||
+        dicom->getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    DicomTransferSyntax inputSyntax;
+    LookupParameters(sopClassUid, sopInstanceUid, inputSyntax, *dicom);
+
+    std::set<DicomTransferSyntax> accepted;
+    LookupTranscoding(accepted, sopClassUid, inputSyntax);
+
+    if (accepted.find(inputSyntax) != accepted.end())
+    {
+      // No need for transcoding
+      Store(sopClassUid, sopInstanceUid, *dicom,
+            hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+    }
+    else
+    {
+      // Transcoding is needed
+      std::set<DicomTransferSyntax> uncompressedSyntaxes;
+
+      if (accepted.find(DicomTransferSyntax_LittleEndianImplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+      }
+
+      if (accepted.find(DicomTransferSyntax_LittleEndianExplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+      }
+
+      if (accepted.find(DicomTransferSyntax_BigEndianExplicit) != accepted.end())
+      {
+        uncompressedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
+      }
+
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(dicom.release());
+      source.SetExternalBuffer(buffer, size);
+
+      const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(source.GetParsed());
+      
+      IDicomTranscoder::DicomImage transcoded;
+      if (transcoder.Transcode(transcoded, source, uncompressedSyntaxes, false))
+      {
+        if (sourceUid != IDicomTranscoder::GetSopInstanceUid(transcoded.GetParsed()))
+        {
+          throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
+                                 "instance UID while transcoding to an uncompressed transfer syntax");
+        }
+        else
+        {
+          DicomTransferSyntax transcodedSyntax;
+          
+          // Sanity check
+          if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
+              accepted.find(transcodedSyntax) == accepted.end())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          else
+          {
+            Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
+                  hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+          }
+        }
+      }
+    }
   }
 }

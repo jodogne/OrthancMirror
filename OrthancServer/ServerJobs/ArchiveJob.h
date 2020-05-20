@@ -69,6 +69,10 @@ namespace Orthanc
     uint64_t                              uncompressedSize_;
     std::string                           mediaArchiveId_;
 
+    // New in Orthanc 1.7.0
+    bool                 transcode_;
+    DicomTransferSyntax  transferSyntax_;
+    
     void FinalizeTarget();
     
   public:
@@ -88,6 +92,8 @@ namespace Orthanc
     }
 
     void AddResource(const std::string& publicId);
+
+    void SetTranscode(DicomTransferSyntax transferSyntax);
 
     virtual void Reset() ORTHANC_OVERRIDE;
 

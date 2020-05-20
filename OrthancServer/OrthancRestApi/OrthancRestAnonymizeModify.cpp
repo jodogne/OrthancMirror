@@ -112,19 +112,48 @@ namespace Orthanc
 
 
   static void AnonymizeOrModifyInstance(DicomModification& modification,
-                                        RestApiPostCall& call)
+                                        RestApiPostCall& call,
+                                        bool transcode,
+                                        DicomTransferSyntax targetSyntax)
   {
+    ServerContext& context = OrthancRestApi::GetContext(call);
     std::string id = call.GetUriComponent("id", "");
 
     std::unique_ptr<ParsedDicomFile> modified;
 
     {
-      ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
+      ServerContext::DicomCacheLocker locker(context, id);
       modified.reset(locker.GetDicom().Clone(true));
     }
     
     modification.Apply(*modified);
-    modified->Answer(call.GetOutput());
+
+    if (transcode)
+    {
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*modified);  // "modified" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
+
+      std::set<DicomTransferSyntax> s;
+      s.insert(targetSyntax);
+      
+      if (context.Transcode(transcoded, source, s, true))
+      {      
+        call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
+                                      transcoded.GetBufferSize(), MimeType_Dicom);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot transcode to transfer syntax: " +
+                               std::string(GetTransferSyntaxUid(targetSyntax)));
+      }
+    }
+    else
+    {
+      modified->Answer(call.GetOutput());
+    }
   }
 
 
@@ -153,7 +182,26 @@ namespace Orthanc
       modification.SetLevel(ResourceType_Instance);
     }
 
-    AnonymizeOrModifyInstance(modification, call);
+    static const char* TRANSCODE = "Transcode";
+    if (request.isMember(TRANSCODE))
+    {
+      std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
+      
+      DicomTransferSyntax syntax;
+      if (LookupTransferSyntax(syntax, s))
+      {
+        AnonymizeOrModifyInstance(modification, call, true, syntax);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown transfer syntax: " + s);
+      }
+    }
+    else
+    {
+      AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
+                                DicomTransferSyntax_LittleEndianImplicit /* unused */);
+    }
   }
 
 
@@ -165,7 +213,19 @@ namespace Orthanc
     Json::Value request;
     ParseAnonymizationRequest(request, modification, call);
 
-    AnonymizeOrModifyInstance(modification, call);
+    AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
+                              DicomTransferSyntax_LittleEndianImplicit /* unused */);
+  }
+
+
+  static void SetKeepSource(CleaningInstancesJob& job,
+                            const Json::Value& body)
+  {
+    static const char* KEEP_SOURCE = "KeepSource";
+    if (body.isMember(KEEP_SOURCE))
+    {
+      job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
+    }
   }
 
 
@@ -178,11 +238,19 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
-    
+
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
+    SetKeepSource(*job, body);
+
+    static const char* TRANSCODE = "Transcode";
+    if (body.isMember(TRANSCODE))
+    {
+      job->SetTranscode(SerializationToolbox::ReadString(body, TRANSCODE));
+    }
     
     context.AddChildInstances(*job, call.GetUriComponent("id", ""));
+    job->AddTrailingStep();
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
@@ -227,7 +295,7 @@ namespace Orthanc
     toStore.SetParsedDicomFile(dicom);
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    StoreStatus status = context.Store(id, toStore);
+    StoreStatus status = context.Store(id, toStore, StoreInstanceMode_Default);
 
     if (status == StoreStatus_Failure)
     {
@@ -236,7 +304,7 @@ namespace Orthanc
 
     if (sendAnswer)
     {
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status);
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, id);
     }
   }
 
@@ -678,14 +746,10 @@ namespace Orthanc
     {
       job->AddSourceSeries(series[i]);
     }
-
+    
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     static const char* REMOVE = "Remove";
     if (request.isMember(REMOVE))
@@ -764,11 +828,7 @@ namespace Orthanc
 
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);

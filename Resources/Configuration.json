@@ -209,9 +209,17 @@
      * registered remote SCU modalities. Starting with Orthanc 1.5.0,
      * it is possible to specify which DICOM commands are allowed,
      * separately for each remote modality, using the syntax
-     * below. The "AllowEcho" (resp.  "AllowStore") option only has an
-     * effect respectively if global option "DicomAlwaysAllowEcho"
-     * (resp. "DicomAlwaysAllowStore") is set to false.
+     * below.
+     *
+     * The "AllowEcho" (resp.  "AllowStore") option only has an effect
+     * respectively if global option "DicomAlwaysAllowEcho"
+     * (resp. "DicomAlwaysAllowStore") is set to "false".
+     *
+     * Starting with Orthanc 1.7.0, "AllowTranscoding" can be used to
+     * disable the transcoding to uncompressed transfer syntaxes if
+     * the remote modality doesn't support compressed transfer
+     * syntaxes. This option only has an effect if global option
+     * "EnableTranscoding" is set to "true".
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -222,7 +230,8 @@
     //  "AllowFind" : false,
     //  "AllowMove" : false,
     //  "AllowStore" : true,
-    //  "AllowStorageCommitment" : false  // new in 1.6.0
+    //  "AllowStorageCommitment" : false,  // new in 1.6.0
+    //  "AllowTranscoding" : true          // new in 1.7.0
     //}
   },
 
@@ -532,5 +541,35 @@
 
   // Maximum number of storage commitment reports (i.e. received from
   // remote modalities) to be kept in memory (new in Orthanc 1.6.0).
-  "StorageCommitmentReportsSize" : 100
+  "StorageCommitmentReportsSize" : 100,
+
+  // Whether Orthanc transcodes DICOM files to an uncompressed
+  // transfer syntax over the DICOM protocol, if the remote modality
+  // does not support compressed transfer syntaxes (new in Orthanc 1.7.0).
+  "TranscodeDicomProtocol" : true,
+
+  // If some plugin to decode/transcode DICOM instances is installed,
+  // this option specifies whether the built-in decoder/transcoder of
+  // Orthanc (that uses DCMTK) is applied before or after the plugins,
+  // or is not applied at all (new in Orthanc 1.7.0). The allowed
+  // values for this option are "After" (default value, corresponding
+  // to the behavior of Orthanc <= 1.6.1), "Before", or "Disabled".
+  "BuiltinDecoderTranscoderOrder" : "After",
+
+  // If this option is set, Orthanc will transparently transcode any
+  // incoming DICOM instance to the given transfer syntax before
+  // storing it into its database. Beware that this might result in
+  // high CPU usage (if transcoding to some compressed transfer
+  // syntax), or in higher disk consumption (if transcoding to an
+  // uncompressed syntax). Also, beware that transcoding to a transfer
+  // syntax with lossy compression (notably JPEG) will change the
+  // "SOPInstanceUID" DICOM tag, and thus the Orthanc identifier at
+  // the instance level, which might break external workflow.
+  /**
+     "IngestTranscoding" : "1.2.840.10008.1.2",
+  **/
+
+  // The compression level that is used when transcoding to one of the
+  // lossy/JPEG transfer syntaxes (integer between 1 and 100).
+  "DicomLossyTranscodingQuality" : 90
 }

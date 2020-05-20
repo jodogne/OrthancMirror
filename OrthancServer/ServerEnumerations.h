@@ -90,6 +90,13 @@ namespace Orthanc
     FindStorageAccessMode_DiskOnLookupAndAnswer
   };
 
+  enum StoreInstanceMode
+  {
+    StoreInstanceMode_Default,
+    StoreInstanceMode_OverwriteDuplicate,
+    StoreInstanceMode_IgnoreDuplicate
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -168,6 +175,13 @@ namespace Orthanc
     ChangeType_NewChildInstance = 4097
   };
 
+  enum BuiltinDecoderTranscoderOrder
+  {
+    BuiltinDecoderTranscoderOrder_Before,
+    BuiltinDecoderTranscoderOrder_After,
+    BuiltinDecoderTranscoderOrder_Disabled
+  };
+
 
 
   void InitializeServerEnumerations();
@@ -186,6 +200,8 @@ namespace Orthanc
   FileContentType StringToContentType(const std::string& str);
 
   FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
+
+  BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& str);
 
   std::string EnumerationToString(FileContentType type);
 

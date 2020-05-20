@@ -33,51 +33,47 @@
 
 #pragma once
 
-#include "ServerCommandInstance.h"
-#include "../../Core/MultiThreading/SharedMessageQueue.h"
+#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 
 namespace Orthanc
 {
-  class ServerJob
+  class ServerContext;
+  
+  class CleaningInstancesJob : public SetOfInstancesJob
   {
-    friend class ServerScheduler;
-
   private:
-    std::list<ServerCommandInstance*> filters_;
-    std::list<IDynamicObject*> payloads_;
-    std::string jobId_;
-    bool submitted_;
-    std::string description_;
-
-    void CheckOrdering();
-
-    size_t Submit(SharedMessageQueue& target,
-                  ServerCommandInstance::IListener& listener);
-
+    ServerContext&  context_;
+    bool            keepSource_;
+    
+  protected:
+    virtual bool HandleTrailingStep();
+    
   public:
-    ServerJob();
-
-    ~ServerJob();
-
-    const std::string& GetId() const
+    CleaningInstancesJob(ServerContext& context,
+                         bool keepSource) :
+      context_(context),
+      keepSource_(keepSource)
     {
-      return jobId_;
     }
 
-    void SetDescription(const std::string& description)
+    CleaningInstancesJob(ServerContext& context,
+                         const Json::Value& serialized,
+                         bool defaultKeepSource);
+
+    ServerContext& GetContext() const
     {
-      description_ = description;
+      return context_;
     }
-
-    const std::string& GetDescription() const
+    
+    bool IsKeepSource() const
     {
-      return description_;
+      return keepSource_;
     }
+    
+    void SetKeepSource(bool keep);
 
-    ServerCommandInstance& AddCommand(IServerCommand* filter);
+    virtual bool Serialize(Json::Value& target);
 
-    // Take the ownership of a payload to a job. This payload will be
-    // automatically freed when the job succeeds or fails.
-    IDynamicObject& AddPayload(IDynamicObject* payload);
+    virtual void Start();
   };
 }

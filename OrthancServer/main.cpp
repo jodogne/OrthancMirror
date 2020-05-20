@@ -88,7 +88,7 @@ public:
       toStore.SetJson(dicomJson);
 
       std::string id;
-      context_.Store(id, toStore);
+      context_.Store(id, toStore, StoreInstanceMode_Default);
     }
   }
 };
@@ -1289,7 +1289,6 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     
     HttpClient::SetDefaultProxy(lock.GetConfiguration().GetStringParameter("HttpProxy", ""));
     
-    DicomUserConnection::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
     DicomAssociationParameters::SetDefaultTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScuTimeout", 10));
 
     maxCompletedJobs = lock.GetConfiguration().GetUnsignedIntegerParameter("JobsHistorySize", 10);
@@ -1309,7 +1308,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
     // New option in Orthanc 1.4.2
-    context.GetIndex().SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+    context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
 
     try
     {

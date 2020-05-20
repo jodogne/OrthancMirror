@@ -67,6 +67,12 @@ namespace Orthanc
   
   bool SplitStudyJob::HandleInstance(const std::string& instance)
   {
+    if (!HasTrailingStep())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called after AddSourceSeries()");
+    }
+    
     /**
      * Retrieve the DICOM instance to be modified
      **/
@@ -75,7 +81,7 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(context_, instance);
+      ServerContext::DicomCacheLocker locker(GetContext(), instance);
       modified.reset(locker.GetDicom().Clone(true));
     }
     catch (OrthancException&)
@@ -138,7 +144,8 @@ namespace Orthanc
     toStore.SetParsedDicomFile(*modified);
 
     std::string modifiedInstance;
-    if (context_.Store(modifiedInstance, toStore) != StoreStatus_Success)
+    if (GetContext().Store(modifiedInstance, toStore,
+                           StoreInstanceMode_Default) != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;
       return false;
@@ -148,27 +155,9 @@ namespace Orthanc
   }
 
   
-  bool SplitStudyJob::HandleTrailingStep()
-  {
-    if (!keepSource_)
-    {
-      const size_t n = GetInstancesCount();
-
-      for (size_t i = 0; i < n; i++)
-      {
-        Json::Value tmp;
-        context_.DeleteResource(tmp, GetInstance(i), ResourceType_Instance);
-      }
-    }
-
-    return true;
-  }
-
-  
   SplitStudyJob::SplitStudyJob(ServerContext& context,
                                const std::string& sourceStudy) :
-    context_(context),
-    keepSource_(false),
+    CleaningInstancesJob(context, false /* by default, remove source instances */),
     sourceStudy_(sourceStudy),
     targetStudyUid_(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study))
   {
@@ -176,7 +165,7 @@ namespace Orthanc
     
     ResourceType type;
     
-    if (!context_.GetIndex().LookupResourceType(type, sourceStudy) ||
+    if (!GetContext().GetIndex().LookupResourceType(type, sourceStudy) ||
         type != ResourceType_Study)
     {
       throw OrthancException(ErrorCode_UnknownResource,
@@ -212,7 +201,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!context_.GetIndex().LookupParent(parent, series, ResourceType_Study) ||
+    else if (!GetContext().GetIndex().LookupParent(parent, series, ResourceType_Study) ||
              parent != sourceStudy_)
     {
       throw OrthancException(ErrorCode_UnknownResource,
@@ -225,7 +214,7 @@ namespace Orthanc
 
       // Add all the instances of the series as to be processed
       std::list<std::string> instances;
-      context_.GetIndex().GetChildren(instances, series);
+      GetContext().GetIndex().GetChildren(instances, series);
 
       for (std::list<std::string>::const_iterator
              it = instances.begin(); it != instances.end(); ++it)
@@ -233,17 +222,6 @@ namespace Orthanc
         AddInstance(*it);
       }
     }    
-  }
-
-
-  void SplitStudyJob::SetKeepSource(bool keep)
-  {
-    if (IsStarted())
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-
-    keepSource_ = keep;
   }
 
 
@@ -308,7 +286,7 @@ namespace Orthanc
     
   void SplitStudyJob::GetPublicContent(Json::Value& value)
   {
-    SetOfInstancesJob::GetPublicContent(value);
+    CleaningInstancesJob::GetPublicContent(value);
 
     if (!targetStudy_.empty())
     {
@@ -319,7 +297,6 @@ namespace Orthanc
   }
 
 
-  static const char* KEEP_SOURCE = "KeepSource";
   static const char* SOURCE_STUDY = "SourceStudy";
   static const char* TARGET_STUDY = "TargetStudy";
   static const char* TARGET_STUDY_UID = "TargetStudyUID";
@@ -331,8 +308,8 @@ namespace Orthanc
 
   SplitStudyJob::SplitStudyJob(ServerContext& context,
                                const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),  // (*)
-    context_(context)
+    CleaningInstancesJob(context, serialized,
+                         false /* by default, remove source instances */)  // (*)
   {
     if (!HasTrailingStep())
     {
@@ -342,7 +319,6 @@ namespace Orthanc
 
     Setup();
 
-    keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
     sourceStudy_ = SerializationToolbox::ReadString(serialized, SOURCE_STUDY);
     targetStudy_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY);
     targetStudyUid_ = SerializationToolbox::ReadString(serialized, TARGET_STUDY_UID);
@@ -355,13 +331,12 @@ namespace Orthanc
   
   bool SplitStudyJob::Serialize(Json::Value& target)
   {
-    if (!SetOfInstancesJob::Serialize(target))
+    if (!CleaningInstancesJob::Serialize(target))
     {
       return false;
     }
     else
     {
-      target[KEEP_SOURCE] = keepSource_;
       target[SOURCE_STUDY] = sourceStudy_;
       target[TARGET_STUDY] = targetStudy_;
       target[TARGET_STUDY_UID] = targetStudyUid_;

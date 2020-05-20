@@ -92,5 +92,7 @@ namespace Orthanc
     DicomInstanceHasher& GetHasher();
 
     bool HasPixelData() const;
+
+    ParsedDicomFile& GetParsedDicomFile() const;
   };
 }

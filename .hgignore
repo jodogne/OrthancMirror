@@ -6,3 +6,10 @@ CMakeLists.txt.user
 .vs/
 .vscode/
 *~
+
+# when opening Orthanc in VSCode, it might find a java project and create files we wan't to ignore:
+.settings/
+.classpath
+.project
+Resources/Testing/Issue32/Java/bin
+Resources/Testing/Issue32/Java/target

@@ -37,6 +37,7 @@
 #include "../../Core/Cache/SharedArchive.h"
 #include "../../Core/Compression/HierarchicalZipWriter.h"
 #include "../../Core/DicomParsing/DicomDirWriter.h"
+#include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../../Core/Logging.h"
 #include "../../Core/OrthancException.h"
 #include "../OrthancConfiguration.h"
@@ -55,6 +56,7 @@ static const char* const MEDIA_IMAGES_FOLDER = "IMAGES";
 static const char* const KEY_DESCRIPTION = "Description";
 static const char* const KEY_INSTANCES_COUNT = "InstancesCount";
 static const char* const KEY_UNCOMPRESSED_SIZE_MB = "UncompressedSizeMB";
+static const char* const KEY_TRANSCODE = "Transcode";
 
 
 namespace Orthanc
@@ -399,7 +401,9 @@ namespace Orthanc
       void Apply(HierarchicalZipWriter& writer,
                  ServerContext& context,
                  DicomDirWriter* dicomDir,
-                 const std::string& dicomDirFolder) const
+                 const std::string& dicomDirFolder,
+                 bool transcode,
+                 DicomTransferSyntax transferSyntax) const
       {
         switch (type_)
         {
@@ -426,14 +430,54 @@ namespace Orthanc
             }
 
             //boost::this_thread::sleep(boost::posix_time::milliseconds(300));
-            
-            writer.OpenFile(filename_.c_str());
-            writer.Write(content);
 
-            if (dicomDir != NULL)
+            writer.OpenFile(filename_.c_str());
+
+            bool transcodeSuccess = false;
+
+            std::unique_ptr<ParsedDicomFile> parsed;
+            
+            if (transcode)
             {
-              ParsedDicomFile parsed(content);
-              dicomDir->Add(dicomDirFolder, filename_, parsed);
+              // New in Orthanc 1.7.0
+              std::set<DicomTransferSyntax> syntaxes;
+              syntaxes.insert(transferSyntax);
+
+              IDicomTranscoder::DicomImage source, transcoded;
+              source.SetExternalBuffer(content);
+
+              if (context.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+              {
+                writer.Write(transcoded.GetBufferData(), transcoded.GetBufferSize());
+
+                if (dicomDir != NULL)
+                {
+                  std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
+                  dicomDir->Add(dicomDirFolder, filename_, *tmp);
+                }
+                
+                transcodeSuccess = true;
+              }
+              else
+              {
+                LOG(INFO) << "Cannot transcode instance " << instanceId_
+                          << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax);
+              }
+            }
+
+            if (!transcodeSuccess)
+            {
+              writer.Write(content);
+
+              if (dicomDir != NULL)
+              {
+                if (parsed.get() == NULL)
+                {
+                  parsed.reset(new ParsedDicomFile(content));
+                }
+
+                dicomDir->Add(dicomDirFolder, filename_, *parsed);
+              }
             }
               
             break;
@@ -454,14 +498,16 @@ namespace Orthanc
                        ServerContext& context,
                        size_t index,
                        DicomDirWriter* dicomDir,
-                       const std::string& dicomDirFolder) const
+                       const std::string& dicomDirFolder,
+                       bool transcode,
+                       DicomTransferSyntax transferSyntax) const
     {
       if (index >= commands_.size())
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
 
-      commands_[index]->Apply(writer, context, dicomDir, dicomDirFolder);
+      commands_[index]->Apply(writer, context, dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
       
   public:
@@ -496,20 +542,26 @@ namespace Orthanc
       return uncompressedSize_;
     }
 
+    // "media" flavor (with DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
                ServerContext& context,
                size_t index,
                DicomDirWriter& dicomDir,
-               const std::string& dicomDirFolder) const
+               const std::string& dicomDirFolder,
+               bool transcode,
+               DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, index, &dicomDir, dicomDirFolder);
+      ApplyInternal(writer, context, index, &dicomDir, dicomDirFolder, transcode, transferSyntax);
     }
 
+    // "archive" flavor (without DICOMDIR)
     void Apply(HierarchicalZipWriter& writer,
                ServerContext& context,
-               size_t index) const
+               size_t index,
+               bool transcode,
+               DicomTransferSyntax transferSyntax) const
     {
-      ApplyInternal(writer, context, index, NULL, "");
+      ApplyInternal(writer, context, index, NULL, "", transcode, transferSyntax);
     }
       
     void AddOpenDirectory(const std::string& filename)
@@ -740,7 +792,9 @@ namespace Orthanc
       return commands_.GetSize() + 1;
     }
 
-    void RunStep(size_t index)
+    void RunStep(size_t index,
+                 bool transcode,
+                 DicomTransferSyntax transferSyntax)
     {
       if (index > commands_.GetSize())
       {
@@ -764,12 +818,13 @@ namespace Orthanc
         if (isMedia_)
         {
           assert(dicomDir_.get() != NULL);
-          commands_.Apply(*zip_, context_, index, *dicomDir_, MEDIA_IMAGES_FOLDER);
+          commands_.Apply(*zip_, context_, index, *dicomDir_,
+                          MEDIA_IMAGES_FOLDER, transcode, transferSyntax);
         }
         else
         {
           assert(dicomDir_.get() == NULL);
-          commands_.Apply(*zip_, context_, index);
+          commands_.Apply(*zip_, context_, index, transcode, transferSyntax);
         }
       }
     }
@@ -795,7 +850,9 @@ namespace Orthanc
     enableExtendedSopClass_(enableExtendedSopClass),
     currentStep_(0),
     instancesCount_(0),
-    uncompressedSize_(0)
+    uncompressedSize_(0),
+    transcode_(false),
+    transferSyntax_(DicomTransferSyntax_LittleEndianImplicit)
   {
   }
 
@@ -851,6 +908,20 @@ namespace Orthanc
     {
       ResourceIdentifiers resource(context_.GetIndex(), publicId);
       archive_->Add(context_.GetIndex(), resource);
+    }
+  }
+
+
+  void ArchiveJob::SetTranscode(DicomTransferSyntax transferSyntax)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = true;
+      transferSyntax_ = transferSyntax;
     }
   }
 
@@ -954,7 +1025,7 @@ namespace Orthanc
     }
     else
     {
-      writer_->RunStep(currentStep_);
+      writer_->RunStep(currentStep_, transcode_, transferSyntax_);
 
       currentStep_ ++;
 
@@ -1006,6 +1077,11 @@ namespace Orthanc
     value[KEY_INSTANCES_COUNT] = instancesCount_;
     value[KEY_UNCOMPRESSED_SIZE_MB] =
       static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
+
+    if (transcode_)
+    {
+      value[KEY_TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
+    }
   }
 
 

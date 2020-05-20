@@ -455,8 +455,8 @@ namespace Orthanc
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
                                       const UriComponents& uri)
   {
-    DcmItem* dicom = pimpl_->file_->getDataset();
-    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
+    DcmItem* dicom = GetDcmtkObject().getDataset();
+    E_TransferSyntax transferSyntax = GetDcmtkObject().getDataset()->getCurrentXfer();
 
     // Special case: Accessing the pixel data
     if (uri.size() == 1 || 
@@ -516,7 +516,7 @@ namespace Orthanc
     InvalidateCache();
 
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
-    DcmElement* element = pimpl_->file_->getDataset()->remove(key);
+    DcmElement* element = GetDcmtkObject().getDataset()->remove(key);
     if (element != NULL)
     {
       delete element;
@@ -536,7 +536,7 @@ namespace Orthanc
 
     InvalidateCache();
 
-    DcmItem* dicom = pimpl_->file_->getDataset();
+    DcmItem* dicom = GetDcmtkObject().getDataset();
     DcmTagKey key(tag.GetGroup(), tag.GetElement());
 
     if (onlyIfExists &&
@@ -558,7 +558,7 @@ namespace Orthanc
   {
     InvalidateCache();
 
-    DcmDataset& dataset = *pimpl_->file_->getDataset();
+    DcmDataset& dataset = *GetDcmtkObject().getDataset();
 
     // Loop over the dataset to detect its private tags
     typedef std::list<DcmElement*> Tags;
@@ -629,7 +629,7 @@ namespace Orthanc
       return;
     }
 
-    if (pimpl_->file_->getDataset()->tagExists(ToDcmtkBridge::Convert(tag)))
+    if (GetDcmtkObject().getDataset()->tagExists(ToDcmtkBridge::Convert(tag)))
     {
       throw OrthancException(ErrorCode_AlreadyExistingTag);
     }
@@ -650,7 +650,7 @@ namespace Orthanc
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions);
     std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
-    InsertInternal(*pimpl_->file_->getDataset(), element.release());
+    InsertInternal(*GetDcmtkObject().getDataset(), element.release());
   }
 
 
@@ -782,7 +782,7 @@ namespace Orthanc
 
     InvalidateCache();
 
-    DcmDataset& dicom = *pimpl_->file_->getDataset();
+    DcmDataset& dicom = *GetDcmtkObject().getDataset();
     if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
     {
       // Either the tag was previously existing (and now removed), or
@@ -828,7 +828,7 @@ namespace Orthanc
 
     InvalidateCache();
 
-    DcmDataset& dicom = *pimpl_->file_->getDataset();
+    DcmDataset& dicom = *GetDcmtkObject().getDataset();
     if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
     {
       // Either the tag was previously existing (and now removed), or
@@ -867,9 +867,9 @@ namespace Orthanc
   void ParsedDicomFile::Answer(RestApiOutput& output)
   {
     std::string serialized;
-    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *pimpl_->file_->getDataset()))
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *GetDcmtkObject().getDataset()))
     {
-      output.AnswerBuffer(serialized, MimeType_Binary);
+      output.AnswerBuffer(serialized, MimeType_Dicom);
     }
   }
 #endif
@@ -879,7 +879,7 @@ namespace Orthanc
                                     const DicomTag& tag)
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
-    DcmDataset& dataset = *pimpl_->file_->getDataset();
+    DcmDataset& dataset = *GetDcmtkObject().getDataset();
 
     if (tag.IsPrivate() ||
         FromDcmtkBridge::IsUnknownTag(tag) ||
@@ -970,7 +970,7 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    FromDcmtkBridge::SaveToMemoryBuffer(buffer, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDcmtkObject().getDataset());
   }
 
 
@@ -1004,6 +1004,7 @@ namespace Orthanc
                                            bool permissive)
   {
     pimpl_->file_.reset(new DcmFileFormat);
+    pimpl_->frameIndex_.reset(NULL);
 
     const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
 
@@ -1091,7 +1092,7 @@ namespace Orthanc
                                    bool keepSopInstanceUid) : 
     pimpl_(new PImpl)
   {
-    pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.pimpl_->file_->clone()));
+    pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.GetDcmtkObject().clone()));
 
     if (!keepSopInstanceUid)
     {
@@ -1113,9 +1114,38 @@ namespace Orthanc
   }
 
 
+  ParsedDicomFile::ParsedDicomFile(DcmFileFormat* dicom) : pimpl_(new PImpl)
+  {
+    pimpl_->file_.reset(dicom);  // No cloning
+  }
+
+
   DcmFileFormat& ParsedDicomFile::GetDcmtkObject() const
   {
-    return *pimpl_->file_.get();
+    if (pimpl_->file_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "ReleaseDcmtkObject() was called");
+    }
+    else
+    {
+      return *pimpl_->file_;
+    }
+  }
+
+
+  DcmFileFormat* ParsedDicomFile::ReleaseDcmtkObject()
+  {
+    if (pimpl_->file_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "ReleaseDcmtkObject() was called");
+    }
+    else
+    {
+      pimpl_->frameIndex_.reset(NULL);
+      return pimpl_->file_.release();
+    }
   }
 
 
@@ -1348,7 +1378,7 @@ namespace Orthanc
       }
     }
 
-    if (!pimpl_->file_->getDataset()->insert(pixels.release(), false, false).good())
+    if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
     {
       throw OrthancException(ErrorCode_InternalError);
     }    
@@ -1358,7 +1388,7 @@ namespace Orthanc
   Encoding ParsedDicomFile::DetectEncoding(bool& hasCodeExtensions) const
   {
     return FromDcmtkBridge::DetectEncoding(hasCodeExtensions,
-                                           *pimpl_->file_->getDataset(),
+                                           *GetDcmtkObject().getDataset(),
                                            GetDefaultDicomEncoding());
   }
 
@@ -1382,7 +1412,7 @@ namespace Orthanc
                                       unsigned int maxStringLength)
   {
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
                                         format, flags, maxStringLength,
                                         GetDefaultDicomEncoding(), ignoreTagLength);
   }
@@ -1394,7 +1424,7 @@ namespace Orthanc
                                       unsigned int maxStringLength,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(),
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
                                         format, flags, maxStringLength,
                                         GetDefaultDicomEncoding(), ignoreTagLength);
   }
@@ -1403,28 +1433,28 @@ namespace Orthanc
   void ParsedDicomFile::DatasetToJson(Json::Value& target,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(), ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(), ignoreTagLength);
   }
 
 
   void ParsedDicomFile::DatasetToJson(Json::Value& target)
   {
     const std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomAsJson(target, *pimpl_->file_->getDataset(), ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(), ignoreTagLength);
   }
 
 
   void ParsedDicomFile::HeaderToJson(Json::Value& target, 
                                      DicomToJsonFormat format)
   {
-    FromDcmtkBridge::ExtractHeaderAsJson(target, *pimpl_->file_->getMetaInfo(), format, DicomToJsonFlags_None, 0);
+    FromDcmtkBridge::ExtractHeaderAsJson(target, *GetDcmtkObject().getMetaInfo(), format, DicomToJsonFlags_None, 0);
   }
 
 
   bool ParsedDicomFile::HasTag(const DicomTag& tag) const
   {
     DcmTag key(tag.GetGroup(), tag.GetElement());
-    return pimpl_->file_->getDataset()->tagExists(key);
+    return GetDcmtkObject().getDataset()->tagExists(key);
   }
 
 
@@ -1466,7 +1496,7 @@ namespace Orthanc
     memcpy(bytes, pdf.c_str(), pdf.size());
       
     DcmPolymorphOBOW* obj = element.release();
-    result = pimpl_->file_->getDataset()->insert(obj);
+    result = GetDcmtkObject().getDataset()->insert(obj);
 
     if (!result.good())
     {
@@ -1558,13 +1588,13 @@ namespace Orthanc
     if (pimpl_->frameIndex_.get() == NULL)
     {
       assert(pimpl_->file_ != NULL &&
-             pimpl_->file_->getDataset() != NULL);
-      pimpl_->frameIndex_.reset(new DicomFrameIndex(*pimpl_->file_->getDataset()));
+             GetDcmtkObject().getDataset() != NULL);
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*GetDcmtkObject().getDataset()));
     }
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
 
-    E_TransferSyntax transferSyntax = pimpl_->file_->getDataset()->getOriginalXfer();
+    E_TransferSyntax transferSyntax = GetDcmtkObject().getDataset()->getCurrentXfer();
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
@@ -1592,8 +1622,8 @@ namespace Orthanc
   unsigned int ParsedDicomFile::GetFramesCount() const
   {
     assert(pimpl_->file_ != NULL &&
-           pimpl_->file_->getDataset() != NULL);
-    return DicomFrameIndex::GetFramesCount(*pimpl_->file_->getDataset());
+           GetDcmtkObject().getDataset() != NULL);
+    return DicomFrameIndex::GetFramesCount(*GetDcmtkObject().getDataset());
   }
 
 
@@ -1605,27 +1635,56 @@ namespace Orthanc
     if (source != target)  // Avoid unnecessary conversion
     {
       ReplacePlainString(DICOM_TAG_SPECIFIC_CHARACTER_SET, GetDicomSpecificCharacterSet(target));
-      FromDcmtkBridge::ChangeStringEncoding(*pimpl_->file_->getDataset(), source, hasCodeExtensions, target);
+      FromDcmtkBridge::ChangeStringEncoding(*GetDcmtkObject().getDataset(), source, hasCodeExtensions, target);
     }
   }
 
 
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
   {
-    FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset());
+    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset());
   }
 
 
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target,
                                             const std::set<DicomTag>& ignoreTagLength) const
   {
-    FromDcmtkBridge::ExtractDicomSummary(target, *pimpl_->file_->getDataset(), ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset(), ignoreTagLength);
   }
 
 
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
-    return FromDcmtkBridge::LookupTransferSyntax(result, *pimpl_->file_);
+#if 0
+    // This was the implementation in Orthanc <= 1.6.1
+
+    // TODO - Shouldn't "dataset.getCurrentXfer()" be used instead of
+    // using the meta header?
+    const char* value = NULL;
+
+    if (GetDcmtkObject().getMetaInfo() != NULL &&
+        GetDcmtkObject().getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
+        value != NULL)
+    {
+      result.assign(value);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+#else
+    DicomTransferSyntax s;
+    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, GetDcmtkObject()))
+    {
+      result.assign(GetTransferSyntaxUid(s));
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+#endif
   }
 
 
@@ -1634,7 +1693,7 @@ namespace Orthanc
     DcmTagKey k(DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetGroup(),
                 DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetElement());
 
-    DcmDataset& dataset = *pimpl_->file_->getDataset();
+    DcmDataset& dataset = *GetDcmtkObject().getDataset();
 
     const char *c = NULL;
     if (dataset.findAndGetString(k, c).good() &&
@@ -1652,6 +1711,6 @@ namespace Orthanc
 
   void ParsedDicomFile::Apply(ITagVisitor& visitor)
   {
-    FromDcmtkBridge::Apply(*pimpl_->file_->getDataset(), visitor, GetDefaultDicomEncoding());
+    FromDcmtkBridge::Apply(*GetDcmtkObject().getDataset(), visitor, GetDefaultDicomEncoding());
   }
 }

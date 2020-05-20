@@ -51,8 +51,7 @@ namespace Orthanc
     std::string              seriesId_;
     bool                     hasNormal_;
     Vector                   normal_;
-    std::vector<Instance*>   instances_;        // this vector owns the instances
-    std::vector<Instance*>   sortedInstances_;  // this vectore references the instances of instances_
+    std::vector<Instance*>   instances_;
     bool                     isVolume_;
 
     static bool ComputeNormal(Vector& normal,
@@ -78,14 +77,14 @@ namespace Orthanc
 
     ~SliceOrdering();
 
-    size_t  GetSortedInstancesCount() const
+    size_t  GetInstancesCount() const
     {
-      return sortedInstances_.size();
+      return instances_.size();
     }
 
-    const std::string& GetSortedInstanceId(size_t index) const;
+    const std::string& GetInstanceId(size_t index) const;
 
-    unsigned int GetSortedInstanceFramesCount(size_t index) const;
+    unsigned int GetFramesCount(size_t index) const;
 
     void Format(Json::Value& result) const;
   };

@@ -40,6 +40,7 @@
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
 #include "../Core/Cache/MemoryCache.h"
+#include "../Core/DicomParsing/IDicomTranscoder.h"
 
 
 namespace Orthanc
@@ -64,6 +65,7 @@ namespace Orthanc
    **/
   class ServerContext :
     public IStorageCommitmentFactory,
+    public IDicomTranscoder,
     private JobsRegistry::IObserver
   {
   public:
@@ -98,7 +100,7 @@ namespace Orthanc
       }
 
       virtual void SignalStoredInstance(const std::string& publicId,
-                                        DicomInstanceToStore& instance,
+                                        const DicomInstanceToStore& instance,
                                         const Json::Value& simplifiedTags)
       {
         context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);
@@ -201,7 +203,7 @@ namespace Orthanc
 #endif
 
     ServerListeners listeners_;
-    boost::recursive_mutex listenersMutex_;
+    boost::shared_mutex listenersMutex_;
 
     bool done_;
     bool haveJobsChanged_;
@@ -221,8 +223,19 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
+    bool overwriteInstances_;
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
+
+    bool transcodeDicomProtocol_;
+    std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
+    BuiltinDecoderTranscoderOrder builtinDecoderTranscoderOrder_;
+    bool isIngestTranscoding_;
+    DicomTransferSyntax ingestTransferSyntax_;
+
+    StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
+                                      DicomInstanceToStore& dicom,
+                                      StoreInstanceMode mode);
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -275,7 +288,8 @@ namespace Orthanc
                        size_t size);
 
     StoreStatus Store(std::string& resultPublicId,
-                      DicomInstanceToStore& dicom);
+                      DicomInstanceToStore& dicom,
+                      StoreInstanceMode mode);
 
     void AnswerAttachment(RestApiOutput& output,
                           const std::string& resourceId,
@@ -426,6 +440,16 @@ namespace Orthanc
       return isExecuteLuaEnabled_;
     }
 
+    void SetOverwriteInstances(bool overwrite)
+    {
+      overwriteInstances_ = overwrite;
+    }
+    
+    bool IsOverwriteInstances() const
+    {
+      return overwriteInstances_;
+    }
+    
     virtual IStorageCommitmentFactory::ILookupHandler*
     CreateStorageCommitment(const std::string& jobId,
                             const std::string& transactionUid,
@@ -438,5 +462,26 @@ namespace Orthanc
     {
       return *storageCommitmentReports_;
     }
+
+    ImageAccessor* DecodeDicomFrame(const std::string& publicId,
+                                    unsigned int frameIndex);
+
+    ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
+                                    unsigned int frameIndex);
+
+    void StoreWithTranscoding(std::string& sopClassUid,
+                              std::string& sopInstanceUid,
+                              DicomStoreUserConnection& connection,
+                              const std::string& dicom,
+                              bool hasMoveOriginator,
+                              const std::string& moveOriginatorAet,
+                              uint16_t moveOriginatorId);
+
+    // This method can be used even if the global option
+    // "TranscodeDicomProtocol" is set to "false"
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }
