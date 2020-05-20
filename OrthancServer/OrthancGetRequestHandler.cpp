@@ -86,21 +86,28 @@ namespace Orthanc
     // Determine the storage SOP class UID for this instance
     DIC_UI sopClass;
     DIC_UI sopInstance;
-    
+
+    {
+      bool ok;
+      
 #if DCMTK_VERSION_NUMBER >= 364
-    if (!DU_findSOPClassAndInstanceInDataSet(static_cast<DcmItem *> (parsed->getDataset()),
-                                             sopClass, sizeof(sopClass),
-                                             sopInstance, sizeof(sopInstance)))
+      ok = DU_findSOPClassAndInstanceInDataSet(static_cast<DcmItem *> (parsed->getDataset()),
+                                               sopClass, sizeof(sopClass),
+                                               sopInstance, sizeof(sopInstance));
 #else
-      if (!DU_findSOPClassAndInstanceInDataSet(parsed->getDataset(), sopClass, sopInstance))
+      ok = DU_findSOPClassAndInstanceInDataSet(parsed->getDataset(), sopClass, sopInstance);
 #endif
+
+      if (!ok)
       {
         throw OrthancException(ErrorCode_NoSopClassOrInstance,
                                "Unable to determine the SOP class/instance for C-STORE with AET " +
                                originatorAet_);
       }
+    }
     
-    OFCondition cond = performGetSubOp(assoc, sopClass, sopInstance, parsed->getDataset());
+    OFCondition cond = PerformGetSubOp(assoc, sopClass, sopInstance, parsed->getDataset());
+    
     if (getCancelled_)
     {
       LOG(INFO) << "Get SCP: Received C-Cancel RQ";
@@ -115,7 +122,7 @@ namespace Orthanc
   }
 
   
-  void OrthancGetRequestHandler::addFailedUIDInstance(const char *sopInstance)
+  void OrthancGetRequestHandler::AddFailedUIDInstance(const char *sopInstance)
   {
     if (failedUIDs_.empty())
     {
@@ -128,7 +135,7 @@ namespace Orthanc
   }
 
 
-  OFCondition OrthancGetRequestHandler::performGetSubOp(T_ASC_Association* assoc, 
+  OFCondition OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc, 
                                                         DIC_UI sopClass, 
                                                         DIC_UI sopInstance, 
                                                         DcmDataset *dataset)
@@ -148,7 +155,7 @@ namespace Orthanc
     if (presId == 0)
     {
       nFailed_++;
-      addFailedUIDInstance(sopInstance);
+      AddFailedUIDInstance(sopInstance);
       LOG(ERROR) << "Get SCP: storeSCU: No presentation context for: ("
                  << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
       return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
@@ -159,11 +166,12 @@ namespace Orthanc
       T_ASC_PresentationContext pc;
       ASC_findAcceptedPresentationContext(assoc->params, presId, &pc);
       // the acceptedRole is the association requestor role
-      if ((pc.acceptedRole != ASC_SC_ROLE_SCP) && (pc.acceptedRole != ASC_SC_ROLE_SCUSCP))
+      if ((pc.acceptedRole != ASC_SC_ROLE_SCP) &&
+          (pc.acceptedRole != ASC_SC_ROLE_SCUSCP))
       {
         // the role is not appropriate
         nFailed_++;
-        addFailedUIDInstance(sopInstance);
+        AddFailedUIDInstance(sopInstance);
         LOG(ERROR) <<"Get SCP: storeSCU: [No presentation context with requestor SCP role for: ("
                    << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
         return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
@@ -190,8 +198,8 @@ namespace Orthanc
     {
       if (cancelParameters.cancelEncountered)
       {
-        if (origPresId == cancelParameters.presId &&
-            origMsgId == cancelParameters.req.MessageIDBeingRespondedTo)
+        if (origPresId_ == cancelParameters.presId &&
+            origMsgId_ == cancelParameters.req.MessageIDBeingRespondedTo)
         {
           getCancelled_ = OFTrue;
         }
@@ -217,7 +225,7 @@ namespace Orthanc
       else
       {
         nFailed_++;
-        addFailedUIDInstance(sopInstance);
+        AddFailedUIDInstance(sopInstance);
         // print a status message
         LOG(ERROR) << "Get SCP: Store Failed: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
@@ -226,7 +234,7 @@ namespace Orthanc
     else
     {
       nFailed_++;
-      addFailedUIDInstance(sopInstance);
+      AddFailedUIDInstance(sopInstance);
       OFString temp_str;
       LOG(ERROR) << "Get SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
     }
@@ -338,7 +346,12 @@ namespace Orthanc
 
     std::vector<std::string> publicIds;
 
-    bool retVal = LookupIdentifiers(publicIds, level, input);
+    if (!LookupIdentifiers(publicIds, level, input))
+    {
+      LOG(ERROR) << "Cannot determine what resources are requested by C-GET";
+      return false; 
+    }
+    
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();
     position_ = 0;
     originatorAet_ = originatorAet;
@@ -350,8 +363,8 @@ namespace Orthanc
     
     for (size_t i = 0; i < publicIds.size(); i++)
     {
-      LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
-                << originatorAet << "\" in synchronous mode";
+      LOG(INFO) << "C-GET: Sending resource " << publicIds[i]
+                << " to modality \"" << originatorAet << "\"";
       
       std::list<std::string> tmp;
       context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
@@ -371,6 +384,6 @@ namespace Orthanc
     nFailed_ = 0;
     warningCount_ = 0;
 
-    return retVal;    
+    return true;
   }
 };

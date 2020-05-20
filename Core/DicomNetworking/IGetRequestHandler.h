@@ -43,7 +43,7 @@
 
 namespace Orthanc
 {
-  class IGetRequestHandler
+  class IGetRequestHandler : boost::noncopyable
   {
   public:
     enum Status
@@ -66,15 +66,14 @@ namespace Orthanc
     
     virtual Status DoNext(T_ASC_Association *) = 0;
     
-    virtual unsigned int nRemaining() const = 0;
+    virtual unsigned int GetRemainingCount() const = 0;
     
-    virtual unsigned int nCompleted() const = 0;
+    virtual unsigned int GetCompletedCount() const = 0;
     
-    virtual unsigned int warningCount() const = 0;
+    virtual unsigned int GetWarningCount() const = 0;
     
-    virtual const std::string& failedUids() const = 0;
+    virtual unsigned int GetFailedCount() const = 0;
     
-    virtual unsigned int nFailed() const = 0;
+    virtual const std::string& GetFailedUids() const = 0;
   };
-
 }

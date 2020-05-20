@@ -58,8 +58,8 @@ namespace Orthanc
     std::string failedUIDs_;
     
     T_DIMSE_Priority priority_;
-    DIC_US origMsgId;
-    T_ASC_PresentationContextID origPresId;
+    DIC_US origMsgId_;
+    T_ASC_PresentationContextID origPresId_;
     
     bool getCancelled_;
 
@@ -67,12 +67,12 @@ namespace Orthanc
                            ResourceType level,
                            const DicomMap& input);
     
-    OFCondition performGetSubOp(T_ASC_Association *assoc,
+    OFCondition PerformGetSubOp(T_ASC_Association *assoc,
                                 DIC_UI sopClass,
                                 DIC_UI sopInstance,
                                 DcmDataset *dataset);
     
-    void addFailedUIDInstance(const char *sopInstance);
+    void AddFailedUIDInstance(const char *sopInstance);
 
   public:
     OrthancGetRequestHandler(ServerContext& context);
@@ -82,34 +82,34 @@ namespace Orthanc
                 const std::string& originatorAet,
                 const std::string& calledAet);
     
-    virtual Status DoNext(T_ASC_Association *) ORTHANC_OVERRIDE;
+    virtual Status DoNext(T_ASC_Association *assoc) ORTHANC_OVERRIDE;
     
     virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
     {
-      return (unsigned int) instances_.size();
+      return static_cast<unsigned int>(instances_.size());
     }
     
-    virtual unsigned int nRemaining() const ORTHANC_OVERRIDE
+    virtual unsigned int GetRemainingCount() const ORTHANC_OVERRIDE
     {
       return nRemaining_;
     }
     
-    virtual unsigned int nCompleted() const ORTHANC_OVERRIDE
+    virtual unsigned int GetCompletedCount() const ORTHANC_OVERRIDE
     {
       return nCompleted_;
     }
     
-    virtual unsigned int warningCount() const ORTHANC_OVERRIDE
+    virtual unsigned int GetWarningCount() const ORTHANC_OVERRIDE
     {
       return warningCount_;
     }
     
-    virtual unsigned int nFailed() const ORTHANC_OVERRIDE
+    virtual unsigned int GetFailedCount() const ORTHANC_OVERRIDE
     {
       return nFailed_;
     }
     
-    virtual const std::string& failedUids() const ORTHANC_OVERRIDE
+    virtual const std::string& GetFailedUids() const ORTHANC_OVERRIDE
     {
       return failedUIDs_;
     }    
