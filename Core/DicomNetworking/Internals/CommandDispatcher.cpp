@@ -885,7 +885,7 @@ namespace Orthanc
                 
                 if (handler.get() != NULL)
                 {
-                  cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_);
+                  cond = Internals::getScp(assoc_, &msg, presID, *handler, remoteIp_, remoteAet_, calledAet_, associationTimeout_);
                 }
               }
               break;

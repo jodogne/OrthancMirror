@@ -66,15 +66,15 @@ namespace Orthanc
     
     virtual Status DoNext(T_ASC_Association *) = 0;
     
-    virtual unsigned int nRemaining() = 0;
+    virtual unsigned int nRemaining() const = 0;
     
-    virtual unsigned int nCompleted() = 0;
+    virtual unsigned int nCompleted() const = 0;
     
-    virtual unsigned int warningCount() = 0;
+    virtual unsigned int warningCount() const = 0;
     
-    virtual const char * failedUids() = 0;
+    virtual const std::string& failedUids() const = 0;
     
-    virtual unsigned int nFailed() = 0;
+    virtual unsigned int nFailed() const = 0;
   };
 
 }
