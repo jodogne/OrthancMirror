@@ -130,6 +130,28 @@ namespace OrthancPlugins
   }
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  MemoryBuffer::MemoryBuffer(const void* buffer,
+                             size_t size)
+  {
+    uint32_t s = static_cast<uint32_t>(size);
+    if (static_cast<size_t>(s) != size)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+    else if (OrthancPluginCreateMemoryBuffer(GetGlobalContext(), &buffer_, s) !=
+             OrthancPluginErrorCode_Success)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+    else
+    {
+      memcpy(buffer_.data, buffer, size);
+    }
+  }
+#endif
+
+
   void MemoryBuffer::Clear()
   {
     if (buffer_.data != NULL)
@@ -3364,7 +3386,9 @@ namespace OrthancPlugins
     }
     else
     {
-      return new DicomInstance(instance);
+      boost::movelib::unique_ptr<DicomInstance> result(new DicomInstance(instance));
+      result->toFree_ = true;
+      return result.release();
     }
   }
 #endif

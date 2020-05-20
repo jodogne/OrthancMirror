@@ -1549,6 +1549,30 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_EQ("username", tmp.GetPeer().GetUsername());
     ASSERT_EQ("password", tmp.GetPeer().GetPassword());
     ASSERT_TRUE(tmp.GetPeer().IsPkcs11Enabled());
+    ASSERT_FALSE(tmp.IsTranscode());
+    ASSERT_THROW(tmp.GetTransferSyntax(), OrthancException);
+  }
+
+  {
+    OrthancPeerStoreJob job(GetContext());
+    ASSERT_THROW(job.SetTranscode("nope"), OrthancException);
+    job.SetTranscode("1.2.840.10008.1.2.4.50");
+    
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::unique_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    OrthancPeerStoreJob& tmp = dynamic_cast<OrthancPeerStoreJob&>(*job);
+    ASSERT_EQ("http://127.0.0.1:8042/", tmp.GetPeer().GetUrl());
+    ASSERT_EQ("", tmp.GetPeer().GetUsername());
+    ASSERT_EQ("", tmp.GetPeer().GetPassword());
+    ASSERT_FALSE(tmp.GetPeer().IsPkcs11Enabled());
+    ASSERT_TRUE(tmp.IsTranscode());
+    ASSERT_EQ(DicomTransferSyntax_JPEGProcess1, tmp.GetTransferSyntax());
   }
 
   // ResourceModificationJob
@@ -1560,7 +1584,8 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ResourceModificationJob job(GetContext());
     job.SetModification(modification.release(), ResourceType_Patient, true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
-    
+
+    job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
@@ -1571,8 +1596,31 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
     ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
     ASSERT_TRUE(tmp.IsAnonymization());
+    ASSERT_FALSE(tmp.IsTranscode());
+    ASSERT_THROW(tmp.GetTransferSyntax(), OrthancException);
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+  }
+
+  {
+    ResourceModificationJob job(GetContext());
+    ASSERT_THROW(job.SetTranscode("nope"), OrthancException);
+    job.SetTranscode(DicomTransferSyntax_JPEGProcess1);
+
+    job.AddTrailingStep();  // Necessary since 1.7.0
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::unique_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+    ASSERT_FALSE(tmp.IsAnonymization());
+    ASSERT_TRUE(tmp.IsTranscode());
+    ASSERT_EQ(DicomTransferSyntax_JPEGProcess1, tmp.GetTransferSyntax());
+    ASSERT_EQ(RequestOrigin_Unknown, tmp.GetOrigin().GetRequestOrigin());
   }
 
   // SplitStudyJob

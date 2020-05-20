@@ -1,6 +1,0 @@
-This sample shows how to replace the decoder of DICOM images that is
-built in Orthanc, by the GDCM library.
-
-A production-ready version of this sample, is available in the
-offical Web viewer plugin:
-http://www.orthanc-server.com/static.php?page=web-viewer

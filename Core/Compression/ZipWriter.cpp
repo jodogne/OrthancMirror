@@ -227,7 +227,7 @@ namespace Orthanc
   }
 
 
-  void ZipWriter::Write(const char* data, size_t length)
+  void ZipWriter::Write(const void* data, size_t length)
   {
     if (!hasFileInZip_)
     {
@@ -236,17 +236,19 @@ namespace Orthanc
 
     const size_t maxBytesInAStep = std::numeric_limits<int32_t>::max();
 
+    const char* p = reinterpret_cast<const char*>(data);
+    
     while (length > 0)
     {
       int bytes = static_cast<int32_t>(length <= maxBytesInAStep ? length : maxBytesInAStep);
 
-      if (zipWriteInFileInZip(pimpl_->file_, data, bytes))
+      if (zipWriteInFileInZip(pimpl_->file_, p, bytes))
       {
         throw OrthancException(ErrorCode_CannotWriteFile,
                                "Cannot write data to ZIP archive: " + path_);
       }
       
-      data += bytes;
+      p += bytes;
       length -= bytes;
     }
   }

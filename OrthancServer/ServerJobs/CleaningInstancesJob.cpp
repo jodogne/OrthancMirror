@@ -31,81 +31,90 @@
  **/
 
 
-#pragma once
-
-#include "../../Core/DicomParsing/DicomModification.h"
-#include "../DicomInstanceOrigin.h"
 #include "CleaningInstancesJob.h"
+
+#include "../../Core/SerializationToolbox.h"
+#include "../ServerContext.h"
+
 
 namespace Orthanc
 {
-  class ServerContext;
-  
-  class ResourceModificationJob : public CleaningInstancesJob
+  bool CleaningInstancesJob::HandleTrailingStep()
   {
-  private:
-    class Output;
-    
-    std::unique_ptr<DicomModification>  modification_;
-    boost::shared_ptr<Output>           output_;
-    bool                                isAnonymization_;
-    DicomInstanceOrigin                 origin_;
-    bool                                transcode_;
-    DicomTransferSyntax                 transferSyntax_;
-
-  protected:
-    virtual bool HandleInstance(const std::string& instance);
-    
-  public:
-    ResourceModificationJob(ServerContext& context);
-
-    ResourceModificationJob(ServerContext& context,
-                            const Json::Value& serialized);
-
-    void SetModification(DicomModification* modification,   // Takes ownership
-                         ResourceType level,
-                         bool isAnonymization);
-
-    void SetOrigin(const DicomInstanceOrigin& origin);
-
-    void SetOrigin(const RestApiCall& call);
-
-    const DicomModification& GetModification() const;
-
-    bool IsAnonymization() const
+    if (!keepSource_)
     {
-      return isAnonymization_;
+      const size_t n = GetInstancesCount();
+
+      for (size_t i = 0; i < n; i++)
+      {
+        Json::Value tmp;
+        context_.DeleteResource(tmp, GetInstance(i), ResourceType_Instance);
+      }
     }
 
-    const DicomInstanceOrigin& GetOrigin() const
+    return true;
+  }
+
+  
+  void CleaningInstancesJob::SetKeepSource(bool keep)
+  {
+    if (IsStarted())
     {
-      return origin_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    bool IsTranscode() const
+    keepSource_ = keep;
+  }
+
+
+  static const char* KEEP_SOURCE = "KeepSource";
+
+
+  CleaningInstancesJob::CleaningInstancesJob(ServerContext& context,
+                                             const Json::Value& serialized,
+                                             bool defaultKeepSource) :
+    SetOfInstancesJob(serialized),  // (*)
+    context_(context)
+  {
+    if (!HasTrailingStep())
     {
-      return transcode_;
+      // Should have been set by (*)
+      throw OrthancException(ErrorCode_InternalError);
     }
 
-    DicomTransferSyntax GetTransferSyntax() const;
-
-    void SetTranscode(DicomTransferSyntax syntax);
-
-    void SetTranscode(const std::string& transferSyntaxUid);
-
-    void ClearTranscode();
-
-    virtual void Stop(JobStopReason reason)
+    if (serialized.isMember(KEEP_SOURCE))
     {
+      keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
+    }
+    else
+    {
+      keepSource_ = defaultKeepSource;
+    }
+  }
+
+  
+  bool CleaningInstancesJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[KEEP_SOURCE] = keepSource_;
+      return true;
+    }
+  }
+
+
+  void CleaningInstancesJob::Start()
+  {
+    if (!HasTrailingStep())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called before submitting the job");
     }
 
-    virtual void GetJobType(std::string& target)
-    {
-      target = "ResourceModification";
-    }
-
-    virtual void GetPublicContent(Json::Value& value);
-    
-    virtual bool Serialize(Json::Value& value);
-  };
+    SetOfInstancesJob::Start();
+  }
 }

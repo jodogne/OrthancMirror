@@ -65,6 +65,7 @@ namespace Orthanc
    **/
   class ServerContext :
     public IStorageCommitmentFactory,
+    public IDicomTranscoder,
     private JobsRegistry::IObserver
   {
   public:
@@ -202,7 +203,7 @@ namespace Orthanc
 #endif
 
     ServerListeners listeners_;
-    boost::recursive_mutex listenersMutex_;
+    boost::shared_mutex listenersMutex_;
 
     bool done_;
     bool haveJobsChanged_;
@@ -228,6 +229,9 @@ namespace Orthanc
 
     bool transcodeDicomProtocol_;
     std::unique_ptr<IDicomTranscoder>  dcmtkTranscoder_;
+    BuiltinDecoderTranscoderOrder builtinDecoderTranscoderOrder_;
+    bool isIngestTranscoding_;
+    DicomTransferSyntax ingestTransferSyntax_;
 
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -459,6 +463,12 @@ namespace Orthanc
       return *storageCommitmentReports_;
     }
 
+    ImageAccessor* DecodeDicomFrame(const std::string& publicId,
+                                    unsigned int frameIndex);
+
+    ImageAccessor* DecodeDicomFrame(const DicomInstanceToStore& dicom,
+                                    unsigned int frameIndex);
+
     void StoreWithTranscoding(std::string& sopClassUid,
                               std::string& sopInstanceUid,
                               DicomStoreUserConnection& connection,
@@ -467,8 +477,11 @@ namespace Orthanc
                               const std::string& moveOriginatorAet,
                               uint16_t moveOriginatorId);
 
-    // This accessor can be used even if the global option
+    // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"
-    IDicomTranscoder& GetTranscoder();
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

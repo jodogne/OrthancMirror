@@ -513,7 +513,8 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
   f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
   std::string s;
-  ASSERT_FALSE(f.LookupTransferSyntax(s));
+  ASSERT_TRUE(f.LookupTransferSyntax(s));
+  ASSERT_EQ(s, GetTransferSyntaxUid(DicomTransferSyntax_LittleEndianExplicit));
 
   ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
                          false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
@@ -1979,6 +1980,8 @@ TEST(Toto, DISABLED_Transcode4)
   Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
 
   std::unique_ptr<DcmFileFormat> toto(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
+  const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(*toto);
+  
   DicomTransferSyntax sourceSyntax;
   ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
 
@@ -1987,14 +1990,16 @@ TEST(Toto, DISABLED_Transcode4)
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {
     DicomTransferSyntax a = (DicomTransferSyntax) i;
+    
+    std::set<DicomTransferSyntax> s;
+    s.insert(a);
 
     std::string t;
 
-    bool hasSopInstanceUidChanged;
-    DicomTransferSyntax sourceSyntax2;
+    IDicomTranscoder::DicomImage source, target;
+    source.AcquireParsed(dynamic_cast<DcmFileFormat*>(toto->clone()));
 
-    std::unique_ptr<DcmFileFormat> cloned(dynamic_cast<DcmFileFormat*>(toto->clone()));
-    if (!transcoder.TranscodeParsedToBuffer(t, sourceSyntax2, hasSopInstanceUidChanged, *cloned, a, true))
+    if (!transcoder.Transcode(target, source, s, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
@@ -2002,22 +2007,21 @@ TEST(Toto, DISABLED_Transcode4)
     else
     {
       DicomTransferSyntax targetSyntax;
-      ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, *cloned));
+      ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(targetSyntax, target.GetParsed()));
       
       ASSERT_EQ(targetSyntax, a);
-      ASSERT_EQ(sourceSyntax, sourceSyntax2);
       bool lossy = (a == DicomTransferSyntax_JPEGProcess1 ||
                     a == DicomTransferSyntax_JPEGProcess2_4 ||
                     a == DicomTransferSyntax_JPEGLSLossy);
       
       printf("SIZE: %lu\n", t.size());
-      if (hasSopInstanceUidChanged)
+      if (sourceUid == IDicomTranscoder::GetSopInstanceUid(target.GetParsed()))
       {
-        ASSERT_TRUE(lossy);
+        ASSERT_FALSE(lossy);
       }
       else
       {
-        ASSERT_FALSE(lossy);
+        ASSERT_TRUE(lossy);
       }
     }
   }

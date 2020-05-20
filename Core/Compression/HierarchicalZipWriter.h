@@ -140,7 +140,7 @@ namespace Orthanc
       return indexer_.GetCurrentDirectoryPath();
     }
 
-    void Write(const char* data, size_t length)
+    void Write(const void* data, size_t length)
     {
       writer_.Write(data, length);
     }

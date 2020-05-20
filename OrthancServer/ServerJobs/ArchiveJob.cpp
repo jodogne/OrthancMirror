@@ -442,28 +442,17 @@ namespace Orthanc
               // New in Orthanc 1.7.0
               std::set<DicomTransferSyntax> syntaxes;
               syntaxes.insert(transferSyntax);
-              
-              parsed.reset(new ParsedDicomFile(content));
-              const char* data = content.empty() ? NULL : content.c_str();
-              
-              std::unique_ptr<IDicomTranscoder::TranscodedDicom> transcodedDicom(
-                context.GetTranscoder().TranscodeToParsed(
-                  parsed->GetDcmtkObject(), data, content.size(),
-                  syntaxes, true /* allow new SOP instance UID */));
 
-              if (transcodedDicom.get() != NULL &&
-                  transcodedDicom->GetDicom().getDataset() != NULL)
+              IDicomTranscoder::DicomImage source, transcoded;
+              source.SetExternalBuffer(content);
+
+              if (context.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
               {
-                std::string transcoded;
-                FromDcmtkBridge::SaveToMemoryBuffer(
-                  transcoded, *transcodedDicom->GetDicom().getDataset());
-              
-                writer.Write(transcoded);
+                writer.Write(transcoded.GetBufferData(), transcoded.GetBufferSize());
 
                 if (dicomDir != NULL)
                 {
-                  std::unique_ptr<ParsedDicomFile> tmp(
-                    ParsedDicomFile::AcquireDcmtkObject(transcodedDicom->ReleaseDicom()));
+                  std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
                   dicomDir->Add(dicomDirFolder, filename_, *tmp);
                 }
                 
