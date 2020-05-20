@@ -94,11 +94,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-/**
- * Macro specifying whether to apply the patch suggested in issue 66:
- * "Orthanc responses C-GET with zero Get Originator Message ID"
- * https://bitbucket.org/sjodogne/orthanc/issues/66/
- **/
 
 namespace Orthanc
 {
@@ -192,7 +187,7 @@ namespace Orthanc
         return;
       }
 
-      if (data.handler_->nRemaining() == 0)
+      if (data.handler_->GetRemainingCount() == 0)
       {
         response->DimseStatus = STATUS_Success;
       }
@@ -214,7 +209,7 @@ namespace Orthanc
         
         if (status == STATUS_Success)
         {
-          if (responseCount < static_cast<int>(data.handler_->nRemaining()))
+          if (responseCount < static_cast<int>(data.handler_->GetRemainingCount()))
           {
             response->DimseStatus = STATUS_Pending;
           }
@@ -227,31 +222,33 @@ namespace Orthanc
         {
           response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
           
-          if (data.handler_->nFailed() > 0 ||
-              data.handler_->warningCount() > 0) 
+          if (data.handler_->GetFailedCount() > 0 ||
+              data.handler_->GetWarningCount() > 0) 
           {
             response->DimseStatus = STATUS_GET_Warning_SubOperationsCompleteOneOrMoreFailures;
           }
+          
           /*
            * if all the sub-operations failed then we need to generate
            * a failed or refused status.  cf. DICOM part 4, C.4.3.3.1
            * we choose to generate a "Refused - Out of Resources -
            * Unable to perform suboperations" status.
            */
-          if ((data.handler_->nFailed() > 0) &&
-              ((data.handler_->nCompleted() + data.handler_->warningCount()) == 0)) 
+          if ((data.handler_->GetFailedCount() > 0) &&
+              ((data.handler_->GetCompletedCount() +
+                data.handler_->GetWarningCount()) == 0)) 
           {
             response->DimseStatus = STATUS_GET_Refused_OutOfResourcesSubOperations;
           }
           
-          *responseIdentifiers = BuildFailedInstanceList(data.handler_->failedUids());
+          *responseIdentifiers = BuildFailedInstanceList(data.handler_->GetFailedUids());
         }
       }
       
-      response->NumberOfRemainingSubOperations = data.handler_->nRemaining();
-      response->NumberOfCompletedSubOperations = data.handler_->nCompleted();
-      response->NumberOfFailedSubOperations = data.handler_->nFailed();
-      response->NumberOfWarningSubOperations = data.handler_->warningCount();
+      response->NumberOfRemainingSubOperations = data.handler_->GetRemainingCount();
+      response->NumberOfCompletedSubOperations = data.handler_->GetCompletedCount();
+      response->NumberOfFailedSubOperations = data.handler_->GetFailedCount();
+      response->NumberOfWarningSubOperations = data.handler_->GetWarningCount();
     }
   }
 
