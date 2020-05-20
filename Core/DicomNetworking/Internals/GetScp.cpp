@@ -109,6 +109,7 @@ namespace Orthanc
       std::string remoteIp_;
       std::string remoteAet_;
       std::string calledAet_;
+      int timeout_;
 
       GetScpData()
       {
@@ -162,8 +163,8 @@ namespace Orthanc
 
         try
         {
-          if(!data.handler_->Handle(input, data.remoteIp_, data.remoteAet_,
-                                    data.calledAet_))
+          if (!data.handler_->Handle(input, data.remoteIp_, data.remoteAet_, data.calledAet_,
+                                     data.timeout_ < 0 ? 0 : static_cast<uint32_t>(data.timeout_)))
           {
             response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
             return;
@@ -268,6 +269,7 @@ namespace Orthanc
     data.remoteIp_ = remoteIp;
     data.remoteAet_ = remoteAet;
     data.calledAet_ = calledAet;
+    data.timeout_ = timeout;
 
     OFCondition cond = DIMSE_getProvider(assoc, presID, &msg->msg.CGetRQ, 
                                          GetScpCallback, &data,

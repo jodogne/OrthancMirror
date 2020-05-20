@@ -37,6 +37,8 @@
 
 #include <dcmtk/dcmnet/dimse.h>
 
+#include <list>
+
 namespace Orthanc
 {
   class ServerContext;
@@ -57,30 +59,31 @@ namespace Orthanc
     unsigned int nFailed_;
     std::string failedUIDs_;
     
-    T_DIMSE_Priority priority_;
     DIC_US origMsgId_;
     T_ASC_PresentationContextID origPresId_;
     
     bool getCancelled_;
+    uint32_t timeout_;
 
-    bool LookupIdentifiers(std::vector<std::string>& publicIds,
+    bool LookupIdentifiers(std::list<std::string>& publicIds,
                            ResourceType level,
-                           const DicomMap& input);
+                           const DicomMap& input) const;
     
     OFCondition PerformGetSubOp(T_ASC_Association *assoc,
-                                DIC_UI sopClass,
-                                DIC_UI sopInstance,
-                                DcmDataset *dataset);
+                                const std::string& sopClassUid,
+                                const std::string& sopInstanceUid,
+                                DcmDataset& dataset);
     
-    void AddFailedUIDInstance(const char *sopInstance);
+    void AddFailedUIDInstance(const std::string& sopInstance);
 
   public:
     OrthancGetRequestHandler(ServerContext& context);
     
-    bool Handle(const DicomMap& input,
-                const std::string& originatorIp,
-                const std::string& originatorAet,
-                const std::string& calledAet);
+    virtual bool Handle(const DicomMap& input,
+                        const std::string& originatorIp,
+                        const std::string& originatorAet,
+                        const std::string& calledAet,
+                        uint32_t timeout) ORTHANC_OVERRIDE;
     
     virtual Status DoNext(T_ASC_Association *assoc) ORTHANC_OVERRIDE;
     

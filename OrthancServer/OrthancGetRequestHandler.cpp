@@ -55,9 +55,10 @@ namespace Orthanc
   {
     // Anonymous namespace to avoid clashes between compilation modules
     
-    static void getSubOpProgressCallback(void * /* callbackData */,
-                                         T_DIMSE_StoreProgress *progress,
-                                         T_DIMSE_C_StoreRQ * /*req*/)
+    static void GetSubOpProgressCallback(
+      void * /* callbackData == pointer to the "OrthancGetRequestHandler" object */,
+      T_DIMSE_StoreProgress *progress,
+      T_DIMSE_C_StoreRQ * /*req*/)
     {
       // SBL - no logging to be done here.
     }
@@ -80,33 +81,28 @@ namespace Orthanc
       return Status_Failure;
     }
 
-    std::unique_ptr<DcmFileFormat> parsed(
-      FromDcmtkBridge::LoadFromMemoryBuffer(dicom.c_str(), dicom.size()));
-    
-    // Determine the storage SOP class UID for this instance
-    DIC_UI sopClass;
-    DIC_UI sopInstance;
+    ParsedDicomFile parsed(dicom);
 
+    if (parsed.GetDcmtkObject().getDataset() == NULL)
     {
-      bool ok;
-      
-#if DCMTK_VERSION_NUMBER >= 364
-      ok = DU_findSOPClassAndInstanceInDataSet(static_cast<DcmItem *> (parsed->getDataset()),
-                                               sopClass, sizeof(sopClass),
-                                               sopInstance, sizeof(sopInstance));
-#else
-      ok = DU_findSOPClassAndInstanceInDataSet(parsed->getDataset(), sopClass, sopInstance);
-#endif
-
-      if (!ok)
-      {
-        throw OrthancException(ErrorCode_NoSopClassOrInstance,
-                               "Unable to determine the SOP class/instance for C-STORE with AET " +
-                               originatorAet_);
-      }
+      throw OrthancException(ErrorCode_InternalError);
     }
     
-    OFCondition cond = PerformGetSubOp(assoc, sopClass, sopInstance, parsed->getDataset());
+    DcmDataset& dataset = *parsed.GetDcmtkObject().getDataset();
+    
+    OFString a, b;
+    if (!dataset.findAndGetOFString(DCM_SOPClassUID, a).good() ||
+        !dataset.findAndGetOFString(DCM_SOPInstanceUID, b).good())
+    {
+      throw OrthancException(ErrorCode_NoSopClassOrInstance,
+                             "Unable to determine the SOP class/instance for C-STORE with AET " +
+                             originatorAet_);
+    }
+
+    std::string sopClassUid(a.c_str());
+    std::string sopInstanceUid(b.c_str());
+    
+    OFCondition cond = PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, dataset);
     
     if (getCancelled_)
     {
@@ -122,7 +118,7 @@ namespace Orthanc
   }
 
   
-  void OrthancGetRequestHandler::AddFailedUIDInstance(const char *sopInstance)
+  void OrthancGetRequestHandler::AddFailedUIDInstance(const std::string& sopInstance)
   {
     if (failedUIDs_.empty())
     {
@@ -130,34 +126,27 @@ namespace Orthanc
     }
     else
     {
-      failedUIDs_ += "\\" + std::string(sopInstance);
+      failedUIDs_ += "\\" + sopInstance;
     }
   }
 
 
-  OFCondition OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc, 
-                                                        DIC_UI sopClass, 
-                                                        DIC_UI sopInstance, 
-                                                        DcmDataset *dataset)
+  OFCondition OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
+                                                        const std::string& sopClassUid,
+                                                        const std::string& sopInstanceUid,
+                                                        DcmDataset& dataset)
   {
-    OFCondition cond = EC_Normal;
-    T_DIMSE_C_StoreRQ req;
-    T_DIMSE_C_StoreRSP rsp;
-    DIC_US msgId;
     T_ASC_PresentationContextID presId;
-    DcmDataset *stDetail = NULL;
-    
-    msgId = assoc->nextMsgID++;
     
     // which presentation context should be used
-    presId = ASC_findAcceptedPresentationContextID(assoc, sopClass);
+    presId = ASC_findAcceptedPresentationContextID(assoc, sopClassUid.c_str());
     
     if (presId == 0)
     {
       nFailed_++;
-      AddFailedUIDInstance(sopInstance);
+      AddFailedUIDInstance(sopInstanceUid);
       LOG(ERROR) << "Get SCP: storeSCU: No presentation context for: ("
-                 << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
+                 << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
       return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
     }
     else
@@ -171,28 +160,45 @@ namespace Orthanc
       {
         // the role is not appropriate
         nFailed_++;
-        AddFailedUIDInstance(sopInstance);
+        AddFailedUIDInstance(sopInstanceUid);
         LOG(ERROR) <<"Get SCP: storeSCU: [No presentation context with requestor SCP role for: ("
-                   << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
+                   << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
         return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
       }
     }
+
+    const DIC_US msgId = assoc->nextMsgID++;
     
+    T_DIMSE_C_StoreRQ req;
+    memset(&req, 0, sizeof(req));
     req.MessageID = msgId;
-    strcpy(req.AffectedSOPClassUID, sopClass);
-    strcpy(req.AffectedSOPInstanceUID, sopInstance);
+    strncpy(req.AffectedSOPClassUID, sopClassUid.c_str(), DIC_UI_LEN);
+    strncpy(req.AffectedSOPInstanceUID, sopInstanceUid.c_str(), DIC_UI_LEN);
     req.DataSetType = DIMSE_DATASET_PRESENT;
-    req.Priority = priority_;
+    req.Priority = DIMSE_PRIORITY_MEDIUM;
     req.opts = 0;
     
+    T_DIMSE_C_StoreRSP rsp;
+    memset(&rsp, 0, sizeof(rsp));
+
     LOG(INFO) << "Store SCU RQ: MsgID " << msgId << ", ("
-              << dcmSOPClassUIDToModality(sopClass, "OT") << ")";
+              << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ")";
     
     T_DIMSE_DetectedCancelParameters cancelParameters;
-    
-    cond = DIMSE_storeUser(assoc, presId, &req,
-                           NULL, dataset, getSubOpProgressCallback, this, DIMSE_BLOCKING, 0,
-                           &rsp, &stDetail, &cancelParameters);
+    memset(&cancelParameters, 0, sizeof(cancelParameters));
+
+    std::unique_ptr<DcmDataset> stDetail;
+
+    OFCondition cond;
+
+    {
+      DcmDataset *stDetailTmp = NULL;
+      cond = DIMSE_storeUser(assoc, presId, &req, NULL /* imageFileName */, &dataset,
+                             GetSubOpProgressCallback, this /* callbackData */,
+                             (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
+                             &rsp, &stDetailTmp, &cancelParameters);
+      stDetail.reset(stDetailTmp);
+    }
     
     if (cond.good())
     {
@@ -225,7 +231,7 @@ namespace Orthanc
       else
       {
         nFailed_++;
-        AddFailedUIDInstance(sopInstance);
+        AddFailedUIDInstance(sopInstanceUid);
         // print a status message
         LOG(ERROR) << "Get SCP: Store Failed: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
@@ -234,23 +240,22 @@ namespace Orthanc
     else
     {
       nFailed_++;
-      AddFailedUIDInstance(sopInstance);
+      AddFailedUIDInstance(sopInstanceUid);
       OFString temp_str;
       LOG(ERROR) << "Get SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
     }
     
-    if (stDetail)
+    if (stDetail.get() != NULL)
     {
       LOG(INFO) << "  Status Detail:" << OFendl << DcmObject::PrintHelper(*stDetail);
-      delete stDetail;
     }
     
     return cond;
   }
 
-  bool OrthancGetRequestHandler::LookupIdentifiers(std::vector<std::string>& publicIds,
+  bool OrthancGetRequestHandler::LookupIdentifiers(std::list<std::string>& publicIds,
                                                    ResourceType level,
-                                                   const DicomMap& input)
+                                                   const DicomMap& input) const
   {
     DicomTag tag(0, 0);   // Dummy initialization
 
@@ -290,28 +295,51 @@ namespace Orthanc
     }
     else
     {
-      const std::string& content = value.GetContent();
-      context_.GetIndex().LookupIdentifierExact(publicIds, level, tag, content);
-      return true;
+      std::vector<std::string> tokens;
+      Toolbox::TokenizeString(tokens, value.GetContent(), '\\');
+
+      for (size_t i = 0; i < tokens.size(); i++)
+      {
+        std::vector<std::string> tmp;
+        context_.GetIndex().LookupIdentifierExact(tmp, level, tag, tokens[i]);
+
+        if (tmp.empty())
+        {
+          LOG(ERROR) << "C-GET: Cannot locate resource \"" << tokens[i]
+                     << "\" at the " << EnumerationToString(level) << " level";
+          return false;
+        }
+        else
+        {
+          for (size_t i = 0; i < tmp.size(); i++)
+          {
+            publicIds.push_back(tmp[i]);
+          }
+        }
+      }
+
+      return true;      
     }
   }
 
 
-  OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
-    context_(context)
-  {
-    position_ = 0;
-    nRemaining_ = 0;
-    nCompleted_  = 0;
-    warningCount_ = 0;
-    nFailed_ = 0;
-  }
+    OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
+      context_(context)
+    {
+      position_ = 0;
+      nRemaining_ = 0;
+      nCompleted_  = 0;
+      warningCount_ = 0;
+      nFailed_ = 0;
+      timeout_ = 0;
+    }
 
 
   bool OrthancGetRequestHandler::Handle(const DicomMap& input,
                                         const std::string& originatorIp,
                                         const std::string& originatorAet,
-                                        const std::string& calledAet)
+                                        const std::string& calledAet,
+                                        uint32_t timeout)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_get_scp_duration_ms");
 
@@ -344,14 +372,14 @@ namespace Orthanc
      * Lookup for the resource to be sent.
      **/
 
-    std::vector<std::string> publicIds;
+    std::list<std::string> publicIds;
 
     if (!LookupIdentifiers(publicIds, level, input))
     {
       LOG(ERROR) << "Cannot determine what resources are requested by C-GET";
       return false; 
     }
-    
+
     localAet_ = context_.GetDefaultLocalApplicationEntityTitle();
     position_ = 0;
     originatorAet_ = originatorAet;
@@ -360,14 +388,15 @@ namespace Orthanc
       OrthancConfiguration::ReaderLock lock;
       remote_ = lock.GetConfiguration().GetModalityUsingAet(originatorAet);
     }
-    
-    for (size_t i = 0; i < publicIds.size(); i++)
+
+    for (std::list<std::string>::const_iterator
+           resource = publicIds.begin(); resource != publicIds.end(); ++resource)
     {
-      LOG(INFO) << "C-GET: Sending resource " << publicIds[i]
+      LOG(INFO) << "C-GET: Sending resource " << *resource
                 << " to modality \"" << originatorAet << "\"";
       
       std::list<std::string> tmp;
-      context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
+      context_.GetIndex().GetChildInstances(tmp, *resource);
       
       instances_.reserve(tmp.size());
       for (std::list<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
@@ -378,11 +407,12 @@ namespace Orthanc
 
     failedUIDs_.clear();
     getCancelled_ = OFFalse;
-    
+
     nRemaining_ = GetSubOperationCount();
     nCompleted_ = 0;
     nFailed_ = 0;
     warningCount_ = 0;
+    timeout_ = timeout;
 
     return true;
   }
