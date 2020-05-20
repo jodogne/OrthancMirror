@@ -37,7 +37,6 @@
 
 namespace Orthanc
 {
-  
   namespace Internals
   {
     OFCondition getScp(T_ASC_Association * assoc,
@@ -46,6 +45,7 @@ namespace Orthanc
                        IGetRequestHandler& handler,
                        std::string remoteIp,
                        std::string remoteAet,
-                       std::string calledAet);
+                       std::string calledAet,
+                       int timeout);
   }
 }

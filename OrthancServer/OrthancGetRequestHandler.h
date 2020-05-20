@@ -55,7 +55,7 @@ namespace Orthanc
     unsigned int nCompleted_;
     unsigned int warningCount_;
     unsigned int nFailed_;
-    char *failedUIDs_;
+    std::string failedUIDs_;
     
     T_DIMSE_Priority priority_;
     DIC_US origMsgId;
@@ -75,57 +75,43 @@ namespace Orthanc
     void addFailedUIDInstance(const char *sopInstance);
 
   public:
-    OrthancGetRequestHandler(ServerContext& context) :
-      context_(context)
-    {
-      position_ = 0;
-
-      nRemaining_ = 0;
-      nCompleted_  = 0;
-      warningCount_ = 0;
-      nFailed_ = 0;
-
-      failedUIDs_ = NULL;
-    }
-
+    OrthancGetRequestHandler(ServerContext& context);
+    
     bool Handle(const DicomMap& input,
                 const std::string& originatorIp,
                 const std::string& originatorAet,
                 const std::string& calledAet);
     
-    virtual Status DoNext(T_ASC_Association *);
+    virtual Status DoNext(T_ASC_Association *) ORTHANC_OVERRIDE;
     
-    virtual unsigned int GetSubOperationCount() const
+    virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
     {
       return (unsigned int) instances_.size();
     }
     
-    virtual unsigned int nRemaining()
+    virtual unsigned int nRemaining() const ORTHANC_OVERRIDE
     {
       return nRemaining_;
     }
     
-    virtual unsigned int nCompleted()
+    virtual unsigned int nCompleted() const ORTHANC_OVERRIDE
     {
       return nCompleted_;
     }
     
-    virtual unsigned int warningCount()
+    virtual unsigned int warningCount() const ORTHANC_OVERRIDE
     {
       return warningCount_;
     }
     
-    virtual unsigned int nFailed()
+    virtual unsigned int nFailed() const ORTHANC_OVERRIDE
     {
       return nFailed_;
     }
     
-    virtual const char * failedUids()
+    virtual const std::string& failedUids() const ORTHANC_OVERRIDE
     {
       return failedUIDs_;
-    }
-
-    
-    
+    }    
   };
 }

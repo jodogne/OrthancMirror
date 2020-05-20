@@ -40,44 +40,44 @@
   Program: DCMTK 3.6.0
   Module:  http://dicom.offis.de/dcmtk.php.en
 
-Copyright (C) 1994-2011, OFFIS e.V.
-All rights reserved.
+  Copyright (C) 1994-2011, OFFIS e.V.
+  All rights reserved.
 
-This software and supporting documentation were developed by
+  This software and supporting documentation were developed by
 
   OFFIS e.V.
   R&D Division Health
   Escherweg 2
   26121 Oldenburg, Germany
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
 
-- Redistributions of source code must retain the above copyright
+  - Redistributions of source code must retain the above copyright
   notice, this list of conditions and the following disclaimer.
 
-- Redistributions in binary form must reproduce the above copyright
+  - Redistributions in binary form must reproduce the above copyright
   notice, this list of conditions and the following disclaimer in the
   documentation and/or other materials provided with the distribution.
 
-- Neither the name of OFFIS nor the names of its contributors may be
+  - Neither the name of OFFIS nor the names of its contributors may be
   used to endorse or promote products derived from this software
   without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 #include "../../PrecompiledHeaders.h"
@@ -123,23 +123,27 @@ namespace Orthanc
       };
     };
       
-    void BuildFailedInstanceList(const char* failedUIDs, DcmDataset ** rspIds)
+    static DcmDataset *BuildFailedInstanceList(const std::string& failedUIDs)
     {
-      OFBool ok;
-      
-      if (failedUIDs != NULL) 
+      if (failedUIDs.empty())
       {
-        *rspIds = new DcmDataset();
-        ok = DU_putStringDOElement(*rspIds, DCM_FailedSOPInstanceUIDList, failedUIDs);
-        if (!ok) 
-        {
-          LOG (ERROR) << "getSCP: failed to build DCM_FailedSOPInstanceUIDList";
-        }
+        return NULL;
+      }
+      else
+      {
+        std::unique_ptr<DcmDataset> rspIds(new DcmDataset());
         
+        if (!DU_putStringDOElement(rspIds.get(), DCM_FailedSOPInstanceUIDList, failedUIDs.c_str()))
+        {
+          throw OrthancException(ErrorCode_InternalError,
+                                 "getSCP: failed to build DCM_FailedSOPInstanceUIDList");
+        }
+
+        return rspIds.release();
       }
     }
 
-    void GetScpCallback(
+    static void GetScpCallback(
       /* in */ 
       void *callbackData,  
       OFBool cancelled, 
@@ -164,7 +168,7 @@ namespace Orthanc
         try
         {
           if(!data.handler_->Handle(input, data.remoteIp_, data.remoteAet_,
-                                                     data.calledAet_))
+                                    data.calledAet_))
           {
             response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
             return;
@@ -223,21 +227,24 @@ namespace Orthanc
         {
           response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
           
-          if (data.handler_->nFailed() > 0 || data.handler_->warningCount() > 0) 
+          if (data.handler_->nFailed() > 0 ||
+              data.handler_->warningCount() > 0) 
           {
             response->DimseStatus = STATUS_GET_Warning_SubOperationsCompleteOneOrMoreFailures;
           }
           /*
-           * if all the sub-operations failed then we need to generate a failed or refused status.
-           * cf. DICOM part 4, C.4.3.3.1
-           * we choose to generate a "Refused - Out of Resources - Unable to perform suboperations" status.
+           * if all the sub-operations failed then we need to generate
+           * a failed or refused status.  cf. DICOM part 4, C.4.3.3.1
+           * we choose to generate a "Refused - Out of Resources -
+           * Unable to perform suboperations" status.
            */
-          if ((data.handler_->nFailed() > 0) && ((data.handler_->nCompleted() + data.handler_->warningCount()) == 0)) 
+          if ((data.handler_->nFailed() > 0) &&
+              ((data.handler_->nCompleted() + data.handler_->warningCount()) == 0)) 
           {
             response->DimseStatus = STATUS_GET_Refused_OutOfResourcesSubOperations;
           }
           
-          BuildFailedInstanceList(data.handler_->failedUids(), responseIdentifiers);
+          *responseIdentifiers = BuildFailedInstanceList(data.handler_->failedUids());
         }
       }
       
@@ -246,18 +253,17 @@ namespace Orthanc
       response->NumberOfFailedSubOperations = data.handler_->nFailed();
       response->NumberOfWarningSubOperations = data.handler_->warningCount();
     }
-    
   }
 
   OFCondition Internals::getScp(T_ASC_Association * assoc,
-                                 T_DIMSE_Message * msg, 
-                                 T_ASC_PresentationContextID presID,
-                                 IGetRequestHandler& handler,
-                                 std::string remoteIp,
-                                 std::string remoteAet,
-                                 std::string calledAet)
+                                T_DIMSE_Message * msg, 
+                                T_ASC_PresentationContextID presID,
+                                IGetRequestHandler& handler,
+                                std::string remoteIp,
+                                std::string remoteAet,
+                                std::string calledAet,
+                                int timeout)
   {
-    
     GetScpData data;
     data.lastRequest_ = NULL;
     data.handler_ = &handler;
@@ -266,12 +272,11 @@ namespace Orthanc
     data.remoteAet_ = remoteAet;
     data.calledAet_ = calledAet;
 
-
     OFCondition cond = DIMSE_getProvider(assoc, presID, &msg->msg.CGetRQ, 
-                                          GetScpCallback, &data,
-                                          /*opt_blockMode*/ DIMSE_BLOCKING, 
-                                          /*opt_dimse_timeout*/ 0);
-
+                                         GetScpCallback, &data,
+                                         /*opt_blockMode*/ (timeout ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                         /*opt_dimse_timeout*/ timeout);
+    
     // if some error occured, dump corresponding information and remove the outfile if necessary
     if (cond.bad())
     {

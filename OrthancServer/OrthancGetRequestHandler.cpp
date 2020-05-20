@@ -71,36 +71,28 @@ namespace Orthanc
     }
     
     const std::string& id = instances_[position_++];
-    
+
     std::string dicom;
     context_.ReadDicom(dicom, id);
     
-    if(dicom.size() <= 0)
+    if (dicom.size() <= 0)
     {
       return Status_Failure;
     }
-    
-    DcmInputBufferStream is;
-    is.setBuffer(&dicom[0], dicom.size());
-    is.setEos();
-    
-    DcmFileFormat dcmff;
-    OFCondition cond = dcmff.read(is, EXS_Unknown, EGL_noChange, DCM_MaxReadLength);
-    if(cond.bad())
-    {
-      return Status_Failure;
-    }
+
+    std::unique_ptr<DcmFileFormat> parsed(
+      FromDcmtkBridge::LoadFromMemoryBuffer(dicom.c_str(), dicom.size()));
     
     // Determine the storage SOP class UID for this instance
     DIC_UI sopClass;
     DIC_UI sopInstance;
     
 #if DCMTK_VERSION_NUMBER >= 364
-    if (!DU_findSOPClassAndInstanceInDataSet(static_cast<DcmItem *> (dcmff.getDataset()),
+    if (!DU_findSOPClassAndInstanceInDataSet(static_cast<DcmItem *> (parsed->getDataset()),
                                              sopClass, sizeof(sopClass),
                                              sopInstance, sizeof(sopInstance)))
 #else
-      if (!DU_findSOPClassAndInstanceInDataSet(dcmff.getDataset(), sopClass, sopInstance))
+      if (!DU_findSOPClassAndInstanceInDataSet(parsed->getDataset(), sopClass, sopInstance))
 #endif
       {
         throw OrthancException(ErrorCode_NoSopClassOrInstance,
@@ -108,42 +100,30 @@ namespace Orthanc
                                originatorAet_);
       }
     
-    
-    
-    
-    cond = performGetSubOp(assoc, sopClass, sopInstance, dcmff.getDataset());
-    if (getCancelled_) {
-      LOG (INFO) << "Get SCP: Received C-Cancel RQ";
+    OFCondition cond = performGetSubOp(assoc, sopClass, sopInstance, parsed->getDataset());
+    if (getCancelled_)
+    {
+      LOG(INFO) << "Get SCP: Received C-Cancel RQ";
     }
     
-    if(cond.bad() || getCancelled_)
+    if (cond.bad() || getCancelled_)
     {
       return Status_Failure;
     }
     
     return Status_Success;
   }
+
   
   void OrthancGetRequestHandler::addFailedUIDInstance(const char *sopInstance)
   {
-    size_t len;
-    
-    if (failedUIDs_ == NULL) {
-      if ((failedUIDs_ = (char*)malloc(DIC_UI_LEN+1)) == NULL) {
-        LOG (ERROR) << "malloc failure: addFailedUIDInstance";
-        return;
-      }
-      strcpy(failedUIDs_, sopInstance);
-    } else {
-      len = strlen(failedUIDs_);
-      if ((failedUIDs_ = (char*)realloc(failedUIDs_,
-                                        (len+strlen(sopInstance)+2))) == NULL) {
-        LOG (ERROR) << "realloc failure: addFailedUIDInstance";
-        return;
-      }
-      // tag sopInstance onto end of old with '\' between
-      strcat(failedUIDs_, "\\");
-      strcat(failedUIDs_, sopInstance);
+    if (failedUIDs_.empty())
+    {
+      failedUIDs_ = sopInstance;
+    }
+    else
+    {
+      failedUIDs_ += "\\" + std::string(sopInstance);
     }
   }
 
@@ -160,19 +140,21 @@ namespace Orthanc
     T_ASC_PresentationContextID presId;
     DcmDataset *stDetail = NULL;
     
-    
     msgId = assoc->nextMsgID++;
     
     // which presentation context should be used
-    presId = ASC_findAcceptedPresentationContextID(assoc,
-                                                   sopClass);
-    if (presId == 0) {
+    presId = ASC_findAcceptedPresentationContextID(assoc, sopClass);
+    
+    if (presId == 0)
+    {
       nFailed_++;
       addFailedUIDInstance(sopInstance);
-      LOG (ERROR) << "Get SCP: storeSCU: No presentation context for: ("
-      << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
+      LOG(ERROR) << "Get SCP: storeSCU: No presentation context for: ("
+                 << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
       return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
-    } else {
+    }
+    else
+    {
       // make sure that we can send images in this presentation context
       T_ASC_PresentationContext pc;
       ASC_findAcceptedPresentationContext(assoc->params, presId, &pc);
@@ -182,8 +164,8 @@ namespace Orthanc
         // the role is not appropriate
         nFailed_++;
         addFailedUIDInstance(sopInstance);
-        LOG (ERROR) <<"Get SCP: storeSCU: [No presentation context with requestor SCP role for: ("
-        << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
+        LOG(ERROR) <<"Get SCP: storeSCU: [No presentation context with requestor SCP role for: ("
+                   << dcmSOPClassUIDToModality(sopClass, "OT") << ") " << sopClass;
         return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
       }
     }
@@ -195,8 +177,8 @@ namespace Orthanc
     req.Priority = priority_;
     req.opts = 0;
     
-    LOG (INFO) << "Store SCU RQ: MsgID " << msgId << ", ("
-    << dcmSOPClassUIDToModality(sopClass, "OT") << ")";
+    LOG(INFO) << "Store SCU RQ: MsgID " << msgId << ", ("
+              << dcmSOPClassUIDToModality(sopClass, "OT") << ")";
     
     T_DIMSE_DetectedCancelParameters cancelParameters;
     
@@ -204,47 +186,63 @@ namespace Orthanc
                            NULL, dataset, getSubOpProgressCallback, this, DIMSE_BLOCKING, 0,
                            &rsp, &stDetail, &cancelParameters);
     
-    if (cond.good()) {
-      if (cancelParameters.cancelEncountered) {
+    if (cond.good())
+    {
+      if (cancelParameters.cancelEncountered)
+      {
         if (origPresId == cancelParameters.presId &&
-            origMsgId == cancelParameters.req.MessageIDBeingRespondedTo) {
+            origMsgId == cancelParameters.req.MessageIDBeingRespondedTo)
+        {
           getCancelled_ = OFTrue;
-        } else {
-          LOG (ERROR) << "Get SCP: Unexpected C-Cancel-RQ encountered: pid=" << (int)cancelParameters.presId
-          << ", mid=" << (int)cancelParameters.req.MessageIDBeingRespondedTo;
+        }
+        else
+        {
+          LOG(ERROR) << "Get SCP: Unexpected C-Cancel-RQ encountered: pid=" << (int)cancelParameters.presId
+                     << ", mid=" << (int)cancelParameters.req.MessageIDBeingRespondedTo;
         }
       }
       
-      if (rsp.DimseStatus == STATUS_Success) {
+      if (rsp.DimseStatus == STATUS_Success)
+      {
         // everything ok
         nCompleted_++;
-      } else if ((rsp.DimseStatus & 0xf000) == 0xb000) {
+      }
+      else if ((rsp.DimseStatus & 0xf000) == 0xb000)
+      {
         // a warning status message
         warningCount_++;
-        LOG (ERROR) << "Get SCP: Store Warning: Response Status: " << DU_cstoreStatusString(rsp.DimseStatus);
-      } else {
+        LOG(ERROR) << "Get SCP: Store Warning: Response Status: "
+                   << DU_cstoreStatusString(rsp.DimseStatus);
+      }
+      else
+      {
         nFailed_++;
         addFailedUIDInstance(sopInstance);
         // print a status message
-        LOG (ERROR) << "Get SCP: Store Failed: Response Status: "
-        << DU_cstoreStatusString(rsp.DimseStatus);
+        LOG(ERROR) << "Get SCP: Store Failed: Response Status: "
+                   << DU_cstoreStatusString(rsp.DimseStatus);
       }
-    } else {
+    }
+    else
+    {
       nFailed_++;
       addFailedUIDInstance(sopInstance);
       OFString temp_str;
-      LOG (ERROR) << "Get SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
+      LOG(ERROR) << "Get SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
     }
-    if (stDetail) {
-      LOG (INFO) << "  Status Detail:" << OFendl << DcmObject::PrintHelper(*stDetail);
+    
+    if (stDetail)
+    {
+      LOG(INFO) << "  Status Detail:" << OFendl << DcmObject::PrintHelper(*stDetail);
       delete stDetail;
     }
+    
     return cond;
   }
 
   bool OrthancGetRequestHandler::LookupIdentifiers(std::vector<std::string>& publicIds,
-                                                    ResourceType level,
-                                                    const DicomMap& input)
+                                                   ResourceType level,
+                                                   const DicomMap& input)
   {
     DicomTag tag(0, 0);   // Dummy initialization
 
@@ -288,6 +286,17 @@ namespace Orthanc
       context_.GetIndex().LookupIdentifierExact(publicIds, level, tag, content);
       return true;
     }
+  }
+
+
+  OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
+    context_(context)
+  {
+    position_ = 0;
+    nRemaining_ = 0;
+    nCompleted_  = 0;
+    warningCount_ = 0;
+    nFailed_ = 0;
   }
 
 
@@ -342,7 +351,7 @@ namespace Orthanc
     for (size_t i = 0; i < publicIds.size(); i++)
     {
       LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
-      << originatorAet << "\" in synchronous mode";
+                << originatorAet << "\" in synchronous mode";
       
       std::list<std::string> tmp;
       context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
@@ -353,7 +362,8 @@ namespace Orthanc
         instances_.push_back(*it);
       }
     }
-    failedUIDs_ = NULL;
+
+    failedUIDs_.clear();
     getCancelled_ = OFFalse;
     
     nRemaining_ = GetSubOperationCount();
@@ -361,8 +371,6 @@ namespace Orthanc
     nFailed_ = 0;
     warningCount_ = 0;
 
-    return retVal;
-
-    
+    return retVal;    
   }
 };
