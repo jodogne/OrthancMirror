@@ -557,6 +557,11 @@
     "Name": "NoStorageCommitmentHandler", 
     "Description": "No request handler factory for DICOM N-ACTION SCP (storage commitment)"
   },
+  {
+    "Code": 2044,
+    "Name": "NoCGetHandler", 
+    "Description": "No request handler factory for DICOM C-GET SCP"
+  }
 
 
 

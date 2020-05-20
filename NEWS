@@ -10,6 +10,7 @@ General
 * New configuration options related to transcoding:
   "TranscodeDicomProtocol", "BuiltinDecoderTranscoderOrder",
   "IngestTranscoding" and "DicomLossyTranscodingQuality"
+* Support of DICOM C-GET SCP (contribution by Varian)
 
 REST API
 --------
@@ -57,9 +58,9 @@ Maintenance
 * Moved the GDCM sample plugin out of the Orthanc repository as a separate plugin
 * Fix missing body in "OrthancPluginHttpPost()" and "OrthancPluginHttpPut()"
 * Fix issue #169 (TransferSyntaxUID change from Explicit to Implicit during C-STORE SCU)
+* Fix issue #179 (deadlock in Python plugins)
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 1.1.1g
-* Fix issue #179 (deadlock in Python plugins)
 
 
 Version 1.6.1 (2020-04-21)

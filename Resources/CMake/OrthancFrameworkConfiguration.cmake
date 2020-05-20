@@ -490,6 +490,7 @@ if (ENABLE_DCMTK)
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
+      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/GetScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/StoreScp.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
       ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
