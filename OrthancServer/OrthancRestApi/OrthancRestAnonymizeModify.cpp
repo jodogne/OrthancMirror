@@ -130,15 +130,18 @@ namespace Orthanc
 
     if (transcode)
     {
-      std::string transcoded;
-      DicomTransferSyntax sourceSyntax;
-      bool hasSopInstanceUidChanged;
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*modified);  // "modified" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
 
-      if (context.GetTranscoder().TranscodeParsedToBuffer(
-            transcoded, sourceSyntax, hasSopInstanceUidChanged,
-            modified->GetDcmtkObject(), targetSyntax, true))
+      std::set<DicomTransferSyntax> s;
+      s.insert(targetSyntax);
+      
+      if (context.Transcode(transcoded, source, s, true))
       {      
-        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
+        call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
+                                      transcoded.GetBufferSize(), MimeType_Dicom);
       }
       else
       {
@@ -179,9 +182,10 @@ namespace Orthanc
       modification.SetLevel(ResourceType_Instance);
     }
 
-    if (request.isMember("Transcode"))
+    static const char* TRANSCODE = "Transcode";
+    if (request.isMember(TRANSCODE))
     {
-      std::string s = SerializationToolbox::ReadString(request, "Transcode");
+      std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
       
       DicomTransferSyntax syntax;
       if (LookupTransferSyntax(syntax, s))
@@ -214,6 +218,17 @@ namespace Orthanc
   }
 
 
+  static void SetKeepSource(CleaningInstancesJob& job,
+                            const Json::Value& body)
+  {
+    static const char* KEEP_SOURCE = "KeepSource";
+    if (body.isMember(KEEP_SOURCE))
+    {
+      job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
+    }
+  }
+
+
   static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
                                     RestApiPostCall& call,
@@ -223,11 +238,19 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
-    
+
     job->SetModification(modification.release(), level, isAnonymization);
     job->SetOrigin(call);
+    SetKeepSource(*job, body);
+
+    static const char* TRANSCODE = "Transcode";
+    if (body.isMember(TRANSCODE))
+    {
+      job->SetTranscode(SerializationToolbox::ReadString(body, TRANSCODE));
+    }
     
     context.AddChildInstances(*job, call.GetUriComponent("id", ""));
+    job->AddTrailingStep();
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
@@ -723,14 +746,10 @@ namespace Orthanc
     {
       job->AddSourceSeries(series[i]);
     }
-
+    
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     static const char* REMOVE = "Remove";
     if (request.isMember(REMOVE))
@@ -809,11 +828,7 @@ namespace Orthanc
 
     job->AddTrailingStep();
 
-    static const char* KEEP_SOURCE = "KeepSource";
-    if (request.isMember(KEEP_SOURCE))
-    {
-      job->SetKeepSource(SerializationToolbox::ReadBoolean(request, KEEP_SOURCE));
-    }
+    SetKeepSource(*job, request);
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);

@@ -1299,9 +1299,9 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     {
       DicomTransferSyntax sourceSyntax;
       bool known = LookupOrthancTransferSyntax(sourceSyntax, dicom);
-
-      if (!dicom.getDataset()->chooseRepresentation(xfer, representation).good() ||
-          !dicom.getDataset()->canWriteXfer(xfer) ||
+      
+      if (!dicom.chooseRepresentation(xfer, representation).good() ||
+          !dicom.canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
       {
         return false;
@@ -1780,9 +1780,13 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     }
 
     DcmPixelData& pixelData = dynamic_cast<DcmPixelData&>(*element);
+
+    E_TransferSyntax repType;
+    const DcmRepresentationParameter *repParam = NULL;
+    pixelData.getCurrentRepresentationKey(repType, repParam);
+    
     DcmPixelSequence* pixelSequence = NULL;
-    if (!pixelData.getEncapsulatedRepresentation
-        (dataset.getCurrentXfer(), NULL, pixelSequence).good())
+    if (!pixelData.getEncapsulatedRepresentation(repType, repParam, pixelSequence).good())
     {
       return NULL;
     }

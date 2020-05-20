@@ -50,6 +50,11 @@ namespace Orthanc
   private:
     unsigned int  lossyQuality_;
     
+    bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
+                          DcmFileFormat& dicom,
+                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                          bool allowNewSopInstanceUid);
+    
   public:
     DcmtkTranscoder() :
       lossyQuality_(90)
@@ -63,25 +68,11 @@ namespace Orthanc
       return lossyQuality_;
     }
     
-    bool InplaceTranscode(bool& hasSopInstanceUidChanged /* out */,
-                          DcmFileFormat& dicom,
-                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                          bool allowNewSopInstanceUid);
-    
     static bool IsSupported(DicomTransferSyntax syntax);
 
-    virtual bool TranscodeParsedToBuffer(std::string& target /* out */,
-                                         DicomTransferSyntax& sourceSyntax /* out */,
-                                         bool& hasSopInstanceUidChanged /* out */,
-                                         DcmFileFormat& dicom /* in, possibly modified */,
-                                         DicomTransferSyntax targetSyntax,
-                                         bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
-
-    virtual TranscodedDicom* TranscodeToParsed(
-      DcmFileFormat& dicom /* in, possibly modified */,
-      const void* buffer /* in, same DICOM file as "dicom" */,
-      size_t size,
-      const std::set<DicomTransferSyntax>& allowedSyntaxes,
-      bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

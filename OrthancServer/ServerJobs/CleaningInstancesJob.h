@@ -33,21 +33,47 @@
 
 #pragma once
 
-#include "IDicomImageDecoder.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 
 namespace Orthanc
 {
-  class DefaultDicomImageDecoder : public IDicomImageDecoder
+  class ServerContext;
+  
+  class CleaningInstancesJob : public SetOfInstancesJob
   {
+  private:
+    ServerContext&  context_;
+    bool            keepSource_;
+    
+  protected:
+    virtual bool HandleTrailingStep();
+    
   public:
-    virtual ImageAccessor* Decode(const void* dicom,
-                                  size_t size,
-                                  unsigned int frame)
+    CleaningInstancesJob(ServerContext& context,
+                         bool keepSource) :
+      context_(context),
+      keepSource_(keepSource)
     {
-      ParsedDicomFile parsed(dicom, size);
-      return DicomImageDecoder::Decode(parsed, frame);
     }
+
+    CleaningInstancesJob(ServerContext& context,
+                         const Json::Value& serialized,
+                         bool defaultKeepSource);
+
+    ServerContext& GetContext() const
+    {
+      return context_;
+    }
+    
+    bool IsKeepSource() const
+    {
+      return keepSource_;
+    }
+    
+    void SetKeepSource(bool keep);
+
+    virtual bool Serialize(Json::Value& target);
+
+    virtual void Start();
   };
 }

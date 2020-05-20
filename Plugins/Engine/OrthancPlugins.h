@@ -124,6 +124,8 @@ namespace Orthanc
 
     void RegisterDecodeImageCallback(const void* parameters);
 
+    void RegisterTranscoderCallback(const void* parameters);
+
     void RegisterJobsUnserializer(const void* parameters);
 
     void RegisterIncomingHttpRequestFilter(const void* parameters);
@@ -237,14 +239,11 @@ namespace Orthanc
 
   protected:
     // From "MemoryBufferTranscoder"
-    virtual bool Transcode(std::string& target,
-                           DicomTransferSyntax& sourceSyntax /* out */,
-                           DicomTransferSyntax& targetSyntax /* out */,
-                           bool& hasSopInstanceUidChanged /* out */,
-                           const void* buffer,
-                           size_t size,
-                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    virtual bool TranscodeBuffer(std::string& target,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
   public:
     OrthancPlugins();
@@ -328,12 +327,7 @@ namespace Orthanc
 
     bool HasCustomImageDecoder();
 
-    // Contrarily to "Decode()", this method does not fallback to the
-    // builtin image decoder, if no installed custom decoder can
-    // handle the image (it returns NULL in this case).
-    ImageAccessor* DecodeUnsafe(const void* dicom,
-                                size_t size,
-                                unsigned int frame);
+    bool HasCustomTranscoder();
 
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,

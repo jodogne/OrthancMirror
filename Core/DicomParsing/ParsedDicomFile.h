@@ -127,6 +127,9 @@ namespace Orthanc
 
     DcmFileFormat& GetDcmtkObject() const;
 
+    // The "ParsedDicomFile" object cannot be used after calling this method
+    DcmFileFormat* ReleaseDcmtkObject();
+
     ParsedDicomFile* Clone(bool keepSopInstanceUid);
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1

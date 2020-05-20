@@ -34,22 +34,20 @@
 #pragma once
 
 #include "../../Core/DicomFormat/DicomMap.h"
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../DicomInstanceOrigin.h"
+#include "CleaningInstancesJob.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class MergeStudyJob : public SetOfInstancesJob
+  class MergeStudyJob : public CleaningInstancesJob
   {
   private:
     typedef std::map<std::string, std::string>  SeriesUidMap;
     typedef std::map<DicomTag, std::string>     Replacements;
     
     
-    ServerContext&         context_;
-    bool                   keepSource_;
     std::string            targetStudy_;
     Replacements           replacements_;
     std::set<DicomTag>     removals_;
@@ -61,12 +59,9 @@ namespace Orthanc
 
     void AddSourceStudyInternal(const std::string& study);
 
-
   protected:
     virtual bool HandleInstance(const std::string& instance);
 
-    virtual bool HandleTrailingStep();
-    
   public:
     MergeStudyJob(ServerContext& context,
                   const std::string& targetStudy);
@@ -84,13 +79,6 @@ namespace Orthanc
     void AddSourceStudy(const std::string& study);
 
     void AddSourceSeries(const std::string& series);
-
-    bool IsKeepSource() const
-    {
-      return keepSource_;
-    }
-    
-    void SetKeepSource(bool keep);
 
     void SetOrigin(const DicomInstanceOrigin& origin);
 

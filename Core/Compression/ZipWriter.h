@@ -101,7 +101,7 @@ namespace Orthanc
 
     void OpenFile(const char* path);
 
-    void Write(const char* data, size_t length);
+    void Write(const void* data, size_t length);
 
     void Write(const std::string& data);
   };

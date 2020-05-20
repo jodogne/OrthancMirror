@@ -38,6 +38,10 @@
 #include "../../Core/SerializationToolbox.h"
 #include "../ServerContext.h"
 
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <cassert>
+
 namespace Orthanc
 {
   class ResourceModificationJob::Output : public boost::noncopyable
@@ -152,7 +156,7 @@ namespace Orthanc
 
     try
     {
-      ServerContext::DicomCacheLocker locker(context_, instance);
+      ServerContext::DicomCacheLocker locker(GetContext(), instance);
       ParsedDicomFile& original = locker.GetDicom();
 
       originalHasher.reset(new DicomInstanceHasher(original.GetHasher()));
@@ -170,6 +174,41 @@ namespace Orthanc
      **/
 
     modification_->Apply(*modified);
+
+    const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
+    
+    if (transcode_)
+    {
+      std::set<DicomTransferSyntax> syntaxes;
+      syntaxes.insert(transferSyntax_);
+
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*modified);  // "modified" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
+      if (GetContext().Transcode(transcoded, source, syntaxes, true))
+      {
+        modified.reset(transcoded.ReleaseAsParsedDicomFile());
+
+        // Fix the SOP instance UID in order the preserve the
+        // references between instance UIDs in the DICOM hierarchy
+        // (the UID might have changed in the case of lossy transcoding)
+        if (modified.get() == NULL ||
+            modified->GetDcmtkObject().getDataset() == NULL ||
+            !modified->GetDcmtkObject().getDataset()->putAndInsertString(
+              DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else
+      {
+        LOG(WARNING) << "Cannot transcode instance, keeping original transfer syntax: " << instance;
+        modified.reset(source.ReleaseAsParsedDicomFile());
+      }
+    }
+
+    assert(modifiedUid == IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject()));
 
     DicomInstanceToStore toStore;
     toStore.SetOrigin(origin_);
@@ -211,24 +250,32 @@ namespace Orthanc
      **/
 
     std::string modifiedInstance;
-    if (context_.Store(modifiedInstance, toStore,
-                       StoreInstanceMode_Default) != StoreStatus_Success)
+    if (GetContext().Store(modifiedInstance, toStore,
+                           StoreInstanceMode_Default) != StoreStatus_Success)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);
     }
 
-    assert(modifiedInstance == modifiedHasher.HashInstance());
+    /**
+     * The assertion below will fail if automated transcoding to a
+     * lossy transfer syntax is enabled in the Orthanc core, and if
+     * the source instance is not in this transfer syntax.
+     **/
+    // assert(modifiedInstance == modifiedHasher.HashInstance());
 
     output_->Update(modifiedHasher);
 
     return true;
   }
 
-  
-  bool ResourceModificationJob::HandleTrailingStep()
+
+  ResourceModificationJob::ResourceModificationJob(ServerContext& context) :
+    CleaningInstancesJob(context, true /* by default, keep source */),
+    modification_(new DicomModification),
+    isAnonymization_(false),
+    transcode_(false)
   {
-    throw OrthancException(ErrorCode_InternalError);
   }
 
 
@@ -285,9 +332,64 @@ namespace Orthanc
   }
 
 
+  DicomTransferSyntax ResourceModificationJob::GetTransferSyntax() const
+  {
+    if (transcode_)
+    {
+      return transferSyntax_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+  
+
+  void ResourceModificationJob::SetTranscode(DicomTransferSyntax syntax)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = true;
+      transferSyntax_ = syntax;
+    }    
+  }
+
+
+  void ResourceModificationJob::SetTranscode(const std::string& transferSyntaxUid)
+  {
+    DicomTransferSyntax s;
+    if (LookupTransferSyntax(s, transferSyntaxUid))
+    {
+      SetTranscode(s);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "Unknown transfer syntax UID: " + transferSyntaxUid);
+    }
+  }
+
+
+  void ResourceModificationJob::ClearTranscode()
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      transcode_ = false;
+    }
+  }
+
+
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
-    SetOfInstancesJob::GetPublicContent(value);
+    CleaningInstancesJob::GetPublicContent(value);
 
     value["IsAnonymization"] = isAnonymization_;
 
@@ -295,33 +397,57 @@ namespace Orthanc
     {
       output_->Format(value);
     }
+
+    if (transcode_)
+    {
+      value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
+    }
   }
 
 
   static const char* MODIFICATION = "Modification";
   static const char* ORIGIN = "Origin";
   static const char* IS_ANONYMIZATION = "IsAnonymization";
+  static const char* TRANSCODE = "Transcode";
   
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    SetOfInstancesJob(serialized),
-    context_(context)
+    CleaningInstancesJob(context, serialized, true /* by default, keep source */)
   {
+    assert(serialized.type() == Json::objectValue);
+
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
     modification_.reset(new DicomModification(serialized[MODIFICATION]));
+
+    if (serialized.isMember(TRANSCODE))
+    {
+      SetTranscode(SerializationToolbox::ReadString(serialized, TRANSCODE));
+    }
+    else
+    {
+      transcode_ = false;
+    }
   }
   
   bool ResourceModificationJob::Serialize(Json::Value& value)
   {
-    if (!SetOfInstancesJob::Serialize(value))
+    if (!CleaningInstancesJob::Serialize(value))
     {
       return false;
     }
     else
     {
+      assert(value.type() == Json::objectValue);
+      
       value[IS_ANONYMIZATION] = isAnonymization_;
+
+      if (transcode_)
+      {
+        value[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
+      }
+      
       origin_.Serialize(value[ORIGIN]);
       
       Json::Value tmp;

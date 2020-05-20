@@ -91,6 +91,7 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/ServerEnumerations.cpp
   OrthancServer/ServerIndex.cpp
   OrthancServer/ServerJobs/ArchiveJob.cpp
+  OrthancServer/ServerJobs/CleaningInstancesJob.cpp
   OrthancServer/ServerJobs/DicomModalityStoreJob.cpp
   OrthancServer/ServerJobs/DicomMoveScuJob.cpp
   OrthancServer/ServerJobs/LuaJobManager.cpp

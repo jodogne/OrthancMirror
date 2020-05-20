@@ -163,6 +163,9 @@ namespace Orthanc
       fontRegistry_.AddFromResource(resource);
     }
 
+    bool LookupStringParameter(std::string& target,
+                               const std::string& parameter) const;
+
     std::string GetStringParameter(const std::string& parameter,
                                    const std::string& defaultValue) const;
     
