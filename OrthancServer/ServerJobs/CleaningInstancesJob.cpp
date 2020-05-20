@@ -31,69 +31,90 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
-#include "ServerCommandInstance.h"
+#include "CleaningInstancesJob.h"
 
-#include "../../Core/OrthancException.h"
+#include "../../Core/SerializationToolbox.h"
+#include "../ServerContext.h"
+
 
 namespace Orthanc
 {
-  bool ServerCommandInstance::Execute(IListener& listener)
+  bool CleaningInstancesJob::HandleTrailingStep()
   {
-    ListOfStrings outputs;
-
-    bool success = false;
-
-    try
+    if (!keepSource_)
     {
-      if (command_->Apply(outputs, inputs_))
+      const size_t n = GetInstancesCount();
+
+      for (size_t i = 0; i < n; i++)
       {
-        success = true;
-      }
-    }
-    catch (OrthancException&)
-    {
-    }
-
-    if (!success)
-    {
-      listener.SignalFailure(jobId_);
-      return true;
-    }
-
-    for (std::list<ServerCommandInstance*>::iterator
-           it = next_.begin(); it != next_.end(); ++it)
-    {
-      for (ListOfStrings::const_iterator
-             output = outputs.begin(); output != outputs.end(); ++output)
-      {
-        (*it)->AddInput(*output);
+        Json::Value tmp;
+        context_.DeleteResource(tmp, GetInstance(i), ResourceType_Instance);
       }
     }
 
-    listener.SignalSuccess(jobId_);
     return true;
   }
 
-
-  ServerCommandInstance::ServerCommandInstance(IServerCommand *command,
-                                               const std::string& jobId) : 
-    command_(command), 
-    jobId_(jobId),
-    connectedToSink_(false)
+  
+  void CleaningInstancesJob::SetKeepSource(bool keep)
   {
-    if (command_ == NULL)
+    if (IsStarted())
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    keepSource_ = keep;
+  }
+
+
+  static const char* KEEP_SOURCE = "KeepSource";
+
+
+  CleaningInstancesJob::CleaningInstancesJob(ServerContext& context,
+                                             const Json::Value& serialized,
+                                             bool defaultKeepSource) :
+    SetOfInstancesJob(serialized),  // (*)
+    context_(context)
+  {
+    if (!HasTrailingStep())
+    {
+      // Should have been set by (*)
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (serialized.isMember(KEEP_SOURCE))
+    {
+      keepSource_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOURCE);
+    }
+    else
+    {
+      keepSource_ = defaultKeepSource;
+    }
+  }
+
+  
+  bool CleaningInstancesJob::Serialize(Json::Value& target)
+  {
+    if (!SetOfInstancesJob::Serialize(target))
+    {
+      return false;
+    }
+    else
+    {
+      target[KEEP_SOURCE] = keepSource_;
+      return true;
     }
   }
 
 
-  ServerCommandInstance::~ServerCommandInstance()
+  void CleaningInstancesJob::Start()
   {
-    if (command_ != NULL)
+    if (!HasTrailingStep())
     {
-      delete command_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "AddTrailingStep() should have been called before submitting the job");
     }
+
+    SetOfInstancesJob::Start();
   }
 }

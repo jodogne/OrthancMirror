@@ -33,73 +33,24 @@
 
 #pragma once
 
-#include "../../Core/IDynamicObject.h"
-#include "IServerCommand.h"
+#include "IDicomTranscoder.h"
 
 namespace Orthanc
 {
-  class ServerCommandInstance : public IDynamicObject
+  // This is the basis class for transcoding plugins
+  class MemoryBufferTranscoder : public IDicomTranscoder
   {
-    friend class ServerScheduler;
-
+  protected:
+    virtual bool TranscodeBuffer(std::string& target,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid) = 0;
+    
   public:
-    class IListener
-    {
-    public:
-      virtual ~IListener()
-      {
-      }
-
-      virtual void SignalSuccess(const std::string& jobId) = 0;
-
-      virtual void SignalFailure(const std::string& jobId) = 0;
-    };
-
-  private:
-    typedef IServerCommand::ListOfStrings  ListOfStrings;
-
-    IServerCommand *command_;
-    std::string jobId_;
-    ListOfStrings inputs_;
-    std::list<ServerCommandInstance*> next_;
-    bool connectedToSink_;
-
-    bool Execute(IListener& listener);
-
-  public:
-    ServerCommandInstance(IServerCommand *command,
-                          const std::string& jobId);
-
-    virtual ~ServerCommandInstance();
-
-    const std::string& GetJobId() const
-    {
-      return jobId_;
-    }
-
-    void AddInput(const std::string& input)
-    {
-      inputs_.push_back(input);
-    }
-
-    void ConnectOutput(ServerCommandInstance& next)
-    {
-      next_.push_back(&next);
-    }
-
-    void SetConnectedToSink(bool connected = true)
-    {
-      connectedToSink_ = connected;
-    }
-
-    bool IsConnectedToSink() const
-    {
-      return connectedToSink_;
-    }
-
-    const std::list<ServerCommandInstance*>& GetNextCommands() const
-    {
-      return next_;
-    }
+    virtual bool Transcode(DicomImage& target /* out */,
+                           DicomImage& source,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

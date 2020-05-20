@@ -422,8 +422,8 @@ namespace Orthanc
   }
 
 
-  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter,
-                                                       const std::string& defaultValue) const
+  bool OrthancConfiguration::LookupStringParameter(std::string& target,
+                                                   const std::string& parameter) const
   {
     if (json_.isMember(parameter))
     {
@@ -434,8 +434,24 @@ namespace Orthanc
       }
       else
       {
-        return json_[parameter].asString();
+        target = json_[parameter].asString();
+        return true;
       }
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  std::string OrthancConfiguration::GetStringParameter(const std::string& parameter,
+                                                       const std::string& defaultValue) const
+  {
+    std::string value;
+    if (LookupStringParameter(value, parameter))
+    {
+      return value;
     }
     else
     {

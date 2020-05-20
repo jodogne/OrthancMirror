@@ -381,14 +381,14 @@ namespace Orthanc
     }
 
 
-    bool HasPixelData()
+    ParsedDicomFile& GetParsedDicomFile()
     {
       ComputeMissingInformation();
       ParseDicomFile();
       
       if (parsed_.HasContent())
       {
-        return parsed_.GetContent().HasTag(DICOM_TAG_PIXEL_DATA);
+        return parsed_.GetContent();
       }
       else
       {
@@ -498,6 +498,11 @@ namespace Orthanc
 
   bool DicomInstanceToStore::HasPixelData() const
   {
-    return const_cast<PImpl&>(*pimpl_).HasPixelData();
+    return const_cast<PImpl&>(*pimpl_).GetParsedDicomFile().HasTag(DICOM_TAG_PIXEL_DATA);
+  }
+
+  ParsedDicomFile& DicomInstanceToStore::GetParsedDicomFile() const
+  {
+    return const_cast<PImpl&>(*pimpl_).GetParsedDicomFile();
   }
 }

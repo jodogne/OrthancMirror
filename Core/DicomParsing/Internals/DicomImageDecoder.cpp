@@ -676,7 +676,7 @@ namespace Orthanc
   ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
                                            unsigned int frame)
   {
-    E_TransferSyntax syntax = dataset.getOriginalXfer();
+    E_TransferSyntax syntax = dataset.getCurrentXfer();
 
     /**
      * Deal with uncompressed, raw images.
@@ -810,7 +810,7 @@ namespace Orthanc
      **/
     
     {
-      LOG(INFO) << "Decoding a compressed image by converting its transfer syntax to Little Endian";
+      LOG(INFO) << "Trying to decode a compressed image by transcoding it to Little Endian Explicit";
 
       std::unique_ptr<DcmDataset> converted(dynamic_cast<DcmDataset*>(dataset.clone()));
       converted->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
@@ -821,8 +821,18 @@ namespace Orthanc
       }
     }
 
-    throw OrthancException(ErrorCode_BadFileFormat,
-                           "Cannot decode a DICOM image with the built-in decoder");
+    DicomTransferSyntax s;
+    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, dataset.getCurrentXfer()))
+    {
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "The built-in DCMTK decoder cannot decode some DICOM instance "
+                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)));
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented,
+                             "The built-in DCMTK decoder cannot decode some DICOM instance");
+    }
   }
 
 

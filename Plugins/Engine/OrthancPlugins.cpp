@@ -62,7 +62,6 @@
 #include "../../Core/OrthancException.h"
 #include "../../Core/SerializationToolbox.h"
 #include "../../Core/Toolbox.h"
-#include "../../OrthancServer/DefaultDicomImageDecoder.h"
 #include "../../OrthancServer/OrthancConfiguration.h"
 #include "../../OrthancServer/OrthancFindRequestHandler.h"
 #include "../../OrthancServer/Search/HierarchicalMatcher.h"
@@ -71,11 +70,12 @@
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
-#include <boost/regex.hpp> 
+#include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 
 #define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
+
 
 namespace Orthanc
 {
@@ -330,9 +330,11 @@ namespace Orthanc
     class DicomWebBinaryFormatter : public DicomWebJsonVisitor::IBinaryFormatter
     {
     private:
-      OrthancPluginDicomWebBinaryCallback  callback_;
-      DicomWebJsonVisitor::BinaryMode      currentMode_;
-      std::string                          currentBulkDataUri_;
+      OrthancPluginDicomWebBinaryCallback   oldCallback_;
+      OrthancPluginDicomWebBinaryCallback2  newCallback_;  // New in Orthanc 1.7.0
+      void*                                 newPayload_;   // New in Orthanc 1.7.0
+      DicomWebJsonVisitor::BinaryMode       currentMode_;
+      std::string                           currentBulkDataUri_;
 
       static void Setter(OrthancPluginDicomWebNode*       node,
                          OrthancPluginDicomWebBinaryMode  mode,
@@ -366,8 +368,18 @@ namespace Orthanc
       }
       
     public:
-      DicomWebBinaryFormatter(const _OrthancPluginEncodeDicomWeb& parameters) :
-        callback_(parameters.callback)
+      DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback callback) :
+        oldCallback_(callback),
+        newCallback_(NULL),
+        newPayload_(NULL)
+      {
+      }
+      
+      DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback2 callback,
+                              void* payload) :
+        oldCallback_(NULL),
+        newCallback_(callback),
+        newPayload_(payload)
       {
       }
       
@@ -377,7 +389,8 @@ namespace Orthanc
                                                      const DicomTag& tag,
                                                      ValueRepresentation vr)
       {
-        if (callback_ == NULL)
+        if (oldCallback_ == NULL &&
+            newCallback_ == NULL)
         {
           return DicomWebJsonVisitor::BinaryMode_InlineBinary;
         }
@@ -398,19 +411,69 @@ namespace Orthanc
 
           currentMode_ = DicomWebJsonVisitor::BinaryMode_Ignore;
 
-          callback_(reinterpret_cast<OrthancPluginDicomWebNode*>(this),
-                    DicomWebBinaryFormatter::Setter,
-                    static_cast<uint32_t>(parentTags.size()),
-                    (empty ? NULL : &groups[0]),
-                    (empty ? NULL : &elements[0]),
-                    (empty ? NULL : &indexes[0]),
-                    tag.GetGroup(),
-                    tag.GetElement(),
-                    Plugins::Convert(vr));
+          if (oldCallback_ != NULL)
+          {
+            oldCallback_(reinterpret_cast<OrthancPluginDicomWebNode*>(this),
+                         DicomWebBinaryFormatter::Setter,
+                         static_cast<uint32_t>(parentTags.size()),
+                         (empty ? NULL : &groups[0]),
+                         (empty ? NULL : &elements[0]),
+                         (empty ? NULL : &indexes[0]),
+                         tag.GetGroup(),
+                         tag.GetElement(),
+                         Plugins::Convert(vr));
+          }
+          else
+          {
+            assert(newCallback_ != NULL);
+            newCallback_(reinterpret_cast<OrthancPluginDicomWebNode*>(this),
+                         DicomWebBinaryFormatter::Setter,
+                         static_cast<uint32_t>(parentTags.size()),
+                         (empty ? NULL : &groups[0]),
+                         (empty ? NULL : &elements[0]),
+                         (empty ? NULL : &indexes[0]),
+                         tag.GetGroup(),
+                         tag.GetElement(),
+                         Plugins::Convert(vr),
+                         newPayload_);
+          }          
 
           bulkDataUri = currentBulkDataUri_;          
           return currentMode_;
         }
+      }
+
+      void Apply(char** target,
+                 bool isJson,
+                 ParsedDicomFile& dicom)
+      {
+        DicomWebJsonVisitor visitor;
+        visitor.SetFormatter(*this);
+
+        dicom.Apply(visitor);
+
+        std::string s;
+
+        if (isJson)
+        {
+          s = visitor.GetResult().toStyledString();
+        }
+        else
+        {
+          visitor.FormatXml(s);
+        }
+
+        *target = CopyString(s);
+      }
+
+  
+      void Apply(char** target,
+                 bool isJson,
+                 const void* dicom,
+                 size_t dicomSize) 
+      {
+        ParsedDicomFile parsed(dicom, dicomSize);
+        Apply(target, isJson, parsed);
       }
     };
   }
@@ -827,6 +890,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
+    typedef std::list<OrthancPluginTranscoderCallback>  TranscoderCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
     typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
@@ -841,6 +905,7 @@ namespace Orthanc
     OrthancPluginFindCallback  findCallback_;
     OrthancPluginWorklistCallback  worklistCallback_;
     DecodeImageCallbacks  decodeImageCallbacks_;
+    TranscoderCallbacks  transcoderCallbacks_;
     JobsUnserializers  jobsUnserializers_;
     _OrthancPluginMoveCallback moveCallbacks_;
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
@@ -855,7 +920,7 @@ namespace Orthanc
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
     boost::mutex worklistCallbackMutex_;
-    boost::mutex decodeImageCallbackMutex_;
+    boost::shared_mutex decoderTranscoderMutex_;  // Changed from "boost::mutex" in Orthanc 1.7.0
     boost::mutex jobsUnserializersMutex_;
     boost::mutex refreshMetricsMutex_;
     boost::mutex storageCommitmentScpMutex_;
@@ -1761,19 +1826,110 @@ namespace Orthanc
   }
 
 
+  class OrthancPlugins::IDicomInstance : public boost::noncopyable
+  {
+  public:
+    virtual ~IDicomInstance()
+    {
+    }
+
+    virtual bool CanBeFreed() const = 0;
+
+    virtual const DicomInstanceToStore& GetInstance() const = 0;
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromCallback : public IDicomInstance
+  {
+  private:
+    const DicomInstanceToStore&  instance_;
+
+  public:
+    DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
+      instance_(instance)
+    {
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
+  {
+  private:
+    std::string           buffer_;
+    DicomInstanceToStore  instance_;
+
+  public:
+    DicomInstanceFromBuffer(const void* buffer,
+                            size_t size)
+    {
+      buffer_.assign(reinterpret_cast<const char*>(buffer), size);
+      instance_.SetBuffer(buffer_.empty() ? NULL : buffer_.c_str(), buffer_.size());
+      instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
+  {
+  private:
+    std::unique_ptr<ParsedDicomFile>  parsed_;
+    DicomInstanceToStore              instance_;
+
+  public:
+    DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
+      parsed_(transcoded.ReleaseAsParsedDicomFile())
+    {
+      instance_.SetParsedDicomFile(*parsed_);
+      instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
   void OrthancPlugins::SignalStoredInstance(const std::string& instanceId,
-                                            DicomInstanceToStore& instance,
+                                            const DicomInstanceToStore& instance,
                                             const Json::Value& simplifiedTags)
   {
+    DicomInstanceFromCallback wrapped(instance);
+    
     boost::recursive_mutex::scoped_lock lock(pimpl_->storedCallbackMutex_);
 
     for (PImpl::OnStoredCallbacks::const_iterator
            callback = pimpl_->onStoredCallbacks_.begin(); 
          callback != pimpl_->onStoredCallbacks_.end(); ++callback)
     {
-      OrthancPluginErrorCode error = (*callback) 
-        (reinterpret_cast<OrthancPluginDicomInstance*>(&instance),
-         instanceId.c_str());
+      OrthancPluginErrorCode error = (*callback) (
+        reinterpret_cast<OrthancPluginDicomInstance*>(&wrapped),
+        instanceId.c_str());
 
       if (error != OrthancPluginErrorCode_Success)
       {
@@ -1787,14 +1943,15 @@ namespace Orthanc
   bool OrthancPlugins::FilterIncomingInstance(const DicomInstanceToStore& instance,
                                               const Json::Value& simplified)
   {
+    DicomInstanceFromCallback wrapped(instance);
+    
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     
     for (PImpl::IncomingDicomInstanceFilters::const_iterator
            filter = pimpl_->incomingDicomInstanceFilters_.begin();
          filter != pimpl_->incomingDicomInstanceFilters_.end(); ++filter)
     {
-      int32_t allowed = (*filter) (
-        reinterpret_cast<const OrthancPluginDicomInstance*>(&instance));
+      int32_t allowed = (*filter) (reinterpret_cast<const OrthancPluginDicomInstance*>(&wrapped));
 
       if (allowed == 0)
       {
@@ -1954,11 +2111,24 @@ namespace Orthanc
     const _OrthancPluginDecodeImageCallback& p = 
       *reinterpret_cast<const _OrthancPluginDecodeImageCallback*>(parameters);
 
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     pimpl_->decodeImageCallbacks_.push_back(p.callback);
     LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
               << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
+  }
+
+
+  void OrthancPlugins::RegisterTranscoderCallback(const void* parameters)
+  {
+    const _OrthancPluginTranscoderCallback& p = 
+      *reinterpret_cast<const _OrthancPluginTranscoderCallback*>(parameters);
+
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
+
+    pimpl_->transcoderCallbacks_.push_back(p.callback);
+    LOG(INFO) << "Plugin has registered a callback to transcode DICOM images (" 
+              << pimpl_->transcoderCallbacks_.size() << " transcoder(s) now active)";
   }
 
 
@@ -2451,14 +2621,19 @@ namespace Orthanc
   }
 
 
-  static void AccessDicomInstance(_OrthancPluginService service,
-                                  const void* parameters)
+  void OrthancPlugins::AccessDicomInstance(_OrthancPluginService service,
+                                           const void* parameters)
   {
     const _OrthancPluginAccessDicomInstance& p = 
       *reinterpret_cast<const _OrthancPluginAccessDicomInstance*>(parameters);
 
+    if (p.instance == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
     const DicomInstanceToStore& instance =
-      *reinterpret_cast<const DicomInstanceToStore*>(p.instance);
+      reinterpret_cast<const IDicomInstance*>(p.instance)->GetInstance();
 
     switch (service)
     {
@@ -2523,6 +2698,10 @@ namespace Orthanc
         *p.resultInt64 = instance.HasPixelData();
         return;
 
+      case _OrthancPluginService_GetInstanceFramesCount:  // New in Orthanc 1.7.0
+        *p.resultInt64 = instance.GetParsedDicomFile().GetFramesCount();
+        return;
+        
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
@@ -2592,6 +2771,11 @@ namespace Orthanc
     // Images returned to plugins are assumed to be writeable. If the
     // input image is read-only, we return a copy so that it can be modified.
 
+    if (image.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    
     if (image->IsReadOnly())
     {
       std::unique_ptr<Image> copy(new Image(image->GetFormat(), image->GetWidth(), image->GetHeight(), false));
@@ -2602,6 +2786,114 @@ namespace Orthanc
     else
     {
       return reinterpret_cast<OrthancPluginImage*>(image.release());
+    }
+  }
+
+
+  void OrthancPlugins::AccessDicomInstance2(_OrthancPluginService service,
+                                            const void* parameters)
+  {
+    const _OrthancPluginAccessDicomInstance2& p = 
+      *reinterpret_cast<const _OrthancPluginAccessDicomInstance2*>(parameters);
+
+    if (p.instance == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    const DicomInstanceToStore& instance =
+      reinterpret_cast<const IDicomInstance*>(p.instance)->GetInstance();
+
+    switch (service)
+    {
+      case _OrthancPluginService_GetInstanceFramesCount:
+        *p.targetUint32 = instance.GetParsedDicomFile().GetFramesCount();
+        return;
+        
+      case _OrthancPluginService_GetInstanceRawFrame:
+      {
+        if (p.targetBuffer == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        p.targetBuffer->data = NULL;
+        p.targetBuffer->size = 0;
+        
+        MimeType mime;
+        std::string frame;
+        instance.GetParsedDicomFile().GetRawFrame(frame, mime, p.frameIndex);
+        CopyToMemoryBuffer(*p.targetBuffer, frame);
+        return;
+      }
+        
+      case _OrthancPluginService_GetInstanceDecodedFrame:
+      {
+        if (p.targetImage == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        std::unique_ptr<ImageAccessor> decoded;
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          decoded.reset(lock.GetContext().DecodeDicomFrame(instance, p.frameIndex));
+        }
+        
+        *(p.targetImage) = ReturnImage(decoded);
+        return;
+      }
+        
+      case _OrthancPluginService_SerializeDicomInstance:
+      {
+        if (p.targetBuffer == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        p.targetBuffer->data = NULL;
+        p.targetBuffer->size = 0;
+        
+        std::string serialized;
+        instance.GetParsedDicomFile().SaveToMemoryBuffer(serialized);
+        CopyToMemoryBuffer(*p.targetBuffer, serialized);
+        return;
+      }
+
+      case _OrthancPluginService_GetInstanceAdvancedJson:
+      {
+        if (p.targetStringToFree == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+        
+        Json::Value json;
+        instance.GetParsedDicomFile().DatasetToJson(
+          json, Plugins::Convert(p.format), 
+          static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
+
+        Json::FastWriter writer;
+        *p.targetStringToFree = CopyString(writer.write(json));        
+        return;
+      }
+      
+      case _OrthancPluginService_GetInstanceDicomWebJson:
+      case _OrthancPluginService_GetInstanceDicomWebXml:
+      {
+        if (p.targetStringToFree == NULL)
+        {
+          throw OrthancException(ErrorCode_NullPointer);
+        }
+
+        DicomWebBinaryFormatter formatter(p.dicomWebCallback, p.dicomWebPayload);
+        formatter.Apply(p.targetStringToFree,
+                        (service == _OrthancPluginService_GetInstanceDicomWebJson),
+                        instance.GetParsedDicomFile());
+        return;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
   }
 
@@ -3481,6 +3773,16 @@ namespace Orthanc
         AccessDicomInstance(service, parameters);
         return true;
 
+      case _OrthancPluginService_GetInstanceFramesCount:
+      case _OrthancPluginService_GetInstanceRawFrame:
+      case _OrthancPluginService_GetInstanceDecodedFrame:
+      case _OrthancPluginService_SerializeDicomInstance:
+      case _OrthancPluginService_GetInstanceAdvancedJson:
+      case _OrthancPluginService_GetInstanceDicomWebJson:
+      case _OrthancPluginService_GetInstanceDicomWebXml:
+        AccessDicomInstance2(service, parameters);
+        return true;
+
       case _OrthancPluginService_SetGlobalProperty:
       {
         const _OrthancPluginGlobalProperty& p = 
@@ -3998,28 +4300,23 @@ namespace Orthanc
         const _OrthancPluginEncodeDicomWeb& p =
           *reinterpret_cast<const _OrthancPluginEncodeDicomWeb*>(parameters);
 
-        DicomWebBinaryFormatter formatter(p);
-        
-        DicomWebJsonVisitor visitor;
-        visitor.SetFormatter(formatter);
+        DicomWebBinaryFormatter formatter(p.callback);
+        formatter.Apply(p.target,
+                        (service == _OrthancPluginService_EncodeDicomWebJson),
+                        p.dicom, p.dicomSize);
+        return true;
+      }
 
-        {
-          ParsedDicomFile dicom(p.dicom, p.dicomSize);
-          dicom.Apply(visitor);
-        }
+      case _OrthancPluginService_EncodeDicomWebJson2:
+      case _OrthancPluginService_EncodeDicomWebXml2:
+      {
+        const _OrthancPluginEncodeDicomWeb2& p =
+          *reinterpret_cast<const _OrthancPluginEncodeDicomWeb2*>(parameters);
 
-        std::string s;
-
-        if (service == _OrthancPluginService_EncodeDicomWebJson)
-        {
-          s = visitor.GetResult().toStyledString();
-        }
-        else
-        {
-          visitor.FormatXml(s);
-        }
-
-        *p.target = CopyString(s);
+        DicomWebBinaryFormatter formatter(p.callback, p.payload);
+        formatter.Apply(p.target,
+                        (service == _OrthancPluginService_EncodeDicomWebJson2),
+                        p.dicom, p.dicomSize);
         return true;
       }
 
@@ -4027,6 +4324,98 @@ namespace Orthanc
         GetTagName(parameters);
         return true;
 
+      case _OrthancPluginService_CreateDicomInstance:
+      {
+        const _OrthancPluginCreateDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginCreateDicomInstance*>(parameters);
+        *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
+          new DicomInstanceFromBuffer(p.buffer, p.size));
+        return true;
+      }
+        
+      case _OrthancPluginService_FreeDicomInstance:
+      {
+        const _OrthancPluginFreeDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginFreeDicomInstance*>(parameters);
+
+        if (p.dicom != NULL)
+        {
+          IDicomInstance* obj = reinterpret_cast<IDicomInstance*>(p.dicom);
+          
+          if (obj->CanBeFreed())
+          {
+            delete obj;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_Plugin, "Cannot free a DICOM instance provided to a callback");
+          }
+        }
+
+        return true;
+      }
+
+      case _OrthancPluginService_TranscodeDicomInstance:
+      {
+        const _OrthancPluginCreateDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginCreateDicomInstance*>(parameters);
+
+        DicomTransferSyntax transferSyntax;
+        if (p.transferSyntax == NULL ||
+            !LookupTransferSyntax(transferSyntax, p.transferSyntax))
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange, "Unsupported transfer syntax: " +
+                                 std::string(p.transferSyntax == NULL ? "(null)" : p.transferSyntax));
+        }
+        else
+        {
+          std::set<DicomTransferSyntax> syntaxes;
+          syntaxes.insert(transferSyntax);
+
+          IDicomTranscoder::DicomImage source;
+          source.SetExternalBuffer(p.buffer, p.size);
+
+          IDicomTranscoder::DicomImage transcoded;
+          bool success;
+          
+          {
+            PImpl::ServerContextLock lock(*pimpl_);
+            success = lock.GetContext().Transcode(
+              transcoded, source, syntaxes, true /* allow new sop */);
+          }
+
+          if (success)
+          {
+            *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
+              new DicomInstanceFromTranscoded(transcoded));
+            return true;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode image");
+          }
+        }
+      }
+
+      case _OrthancPluginService_CreateMemoryBuffer:
+      {
+        const _OrthancPluginCreateMemoryBuffer& p =
+          *reinterpret_cast<const _OrthancPluginCreateMemoryBuffer*>(parameters);
+
+        p.target->size = p.size;
+        
+        if (p.size == 0)
+        {
+          p.target->data = NULL;
+        }
+        else
+        {
+          p.target->data = malloc(p.size);
+        }          
+        
+        return true;
+      }
+        
       default:
         return false;
     }
@@ -4078,6 +4467,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDecodeImageCallback:
         RegisterDecodeImageCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterTranscoderCallback:
+        RegisterTranscoderCallback(parameters);
         return true;
 
       case _OrthancPluginService_RegisterJobsUnserializer:
@@ -4464,16 +4857,23 @@ namespace Orthanc
 
   bool OrthancPlugins::HasCustomImageDecoder()
   {
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
     return !pimpl_->decodeImageCallbacks_.empty();
   }
 
 
-  ImageAccessor*  OrthancPlugins::DecodeUnsafe(const void* dicom,
-                                               size_t size,
-                                               unsigned int frame)
+  bool OrthancPlugins::HasCustomTranscoder()
   {
-    boost::mutex::scoped_lock lock(pimpl_->decodeImageCallbackMutex_);
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
+    return !pimpl_->transcoderCallbacks_.empty();
+  }
+
+
+  ImageAccessor* OrthancPlugins::Decode(const void* dicom,
+                                        size_t size,
+                                        unsigned int frame)
+  {
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     for (PImpl::DecodeImageCallbacks::const_iterator
            decoder = pimpl_->decodeImageCallbacks_.begin();
@@ -4488,25 +4888,6 @@ namespace Orthanc
     }
 
     return NULL;
-  }
-
-
-  ImageAccessor* OrthancPlugins::Decode(const void* dicom,
-                                        size_t size,
-                                        unsigned int frame)
-  {
-    ImageAccessor* result = DecodeUnsafe(dicom, size, frame);
-
-    if (result != NULL)
-    {
-      return result;
-    }
-    else
-    {
-      LOG(INFO) << "The installed image decoding plugins cannot handle an image, fallback to the built-in decoder";
-      DefaultDicomImageDecoder defaultDecoder;
-      return defaultDecoder.Decode(dicom, size, frame); 
-    }
   }
 
   
@@ -4792,5 +5173,82 @@ namespace Orthanc
     } 
     
     return NULL;
+  }
+
+
+  class MemoryBufferRaii : public boost::noncopyable
+  {
+  private:
+    OrthancPluginMemoryBuffer  buffer_;
+
+  public:
+    MemoryBufferRaii()
+    {
+      buffer_.size = 0;
+      buffer_.data = NULL;
+    }
+
+    ~MemoryBufferRaii()
+    {
+      if (buffer_.size != 0)
+      {
+        free(buffer_.data);
+      }
+    }
+
+    OrthancPluginMemoryBuffer* GetObject()
+    {
+      return &buffer_;
+    }
+
+    void ToString(std::string& target) const
+    {
+      target.resize(buffer_.size);
+
+      if (buffer_.size != 0)
+      {
+        memcpy(&target[0], buffer_.data, buffer_.size);
+      }
+    }
+  };
+  
+
+  bool OrthancPlugins::TranscodeBuffer(std::string& target,
+                                       const void* buffer,
+                                       size_t size,
+                                       const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                       bool allowNewSopInstanceUid)
+  {
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
+
+    if (pimpl_->transcoderCallbacks_.empty())
+    {
+      return NULL;
+    }
+
+    std::vector<const char*> uids;
+    uids.reserve(allowedSyntaxes.size());
+    for (std::set<DicomTransferSyntax>::const_iterator
+           it = allowedSyntaxes.begin(); it != allowedSyntaxes.end(); ++it)
+    {
+      uids.push_back(GetTransferSyntaxUid(*it));
+    }
+    
+    for (PImpl::TranscoderCallbacks::const_iterator
+           transcoder = pimpl_->transcoderCallbacks_.begin();
+         transcoder != pimpl_->transcoderCallbacks_.end(); ++transcoder)
+    {
+      MemoryBufferRaii a;
+
+      if ((*transcoder) (a.GetObject(), buffer, size, uids.empty() ? NULL : &uids[0],
+                         static_cast<uint32_t>(uids.size()), allowNewSopInstanceUid) ==
+          OrthancPluginErrorCode_Success)
+      {
+        a.ToString(target);
+        return true;
+      }
+    }
+
+    return false;
   }
 }

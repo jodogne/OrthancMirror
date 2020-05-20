@@ -200,11 +200,13 @@ namespace Orthanc
   }
 
 
-  size_t LuaJobManager::Lock::AddStoreScuOperation(const std::string& localAet,
+  size_t LuaJobManager::Lock::AddStoreScuOperation(ServerContext& context,
+                                                   const std::string& localAet,
                                                    const RemoteModalityParameters& modality)
   {
     assert(jobLock_.get() != NULL);
-    return jobLock_->AddOperation(new StoreScuOperation(that_.connectionManager_, localAet, modality));    
+    return jobLock_->AddOperation(new StoreScuOperation(
+                                    context, that_.connectionManager_, localAet, modality));    
   }
 
 

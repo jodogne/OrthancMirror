@@ -33,32 +33,46 @@
 
 #pragma once
 
-#include "IServerCommand.h"
-#include "../ServerContext.h"
-#include "../../Core/DicomParsing/DicomModification.h"
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error Macro ORTHANC_ENABLE_DCMTK_TRANSCODING must be defined to use this file
+#endif
+
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING != 1
+#  error Transcoding is disabled, cannot compile this file
+#endif
+
+#include "IDicomTranscoder.h"
 
 namespace Orthanc
 {
-  class ModifyInstanceCommand : public IServerCommand
+  class DcmtkTranscoder : public IDicomTranscoder
   {
   private:
-    ServerContext& context_;
-    RequestOrigin origin_;
-    DicomModification* modification_;
-
+    unsigned int  lossyQuality_;
+    
+    bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
+                          DcmFileFormat& dicom,
+                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                          bool allowNewSopInstanceUid);
+    
   public:
-    ModifyInstanceCommand(ServerContext& context,
-                          RequestOrigin origin,
-                          DicomModification* modification);  // takes the ownership
-
-    virtual ~ModifyInstanceCommand();
-
-    const DicomModification& GetModification() const
+    DcmtkTranscoder() :
+      lossyQuality_(90)
     {
-      return *modification_;
     }
 
-    virtual bool Apply(ListOfStrings& outputs,
-                       const ListOfStrings& inputs);
+    void SetLossyQuality(unsigned int quality);
+
+    unsigned int GetLossyQuality() const
+    {
+      return lossyQuality_;
+    }
+    
+    static bool IsSupported(DicomTransferSyntax syntax);
+
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
   };
 }

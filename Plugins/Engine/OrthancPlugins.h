@@ -56,6 +56,7 @@ namespace Orthanc
 #include "../../Core/DicomNetworking/IFindRequestHandlerFactory.h"
 #include "../../Core/DicomNetworking/IMoveRequestHandlerFactory.h"
 #include "../../Core/DicomNetworking/IWorklistRequestHandlerFactory.h"
+#include "../../Core/DicomParsing/MemoryBufferTranscoder.h"
 #include "../../Core/FileStorage/IStorageArea.h"
 #include "../../Core/HttpServer/IHttpHandler.h"
 #include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
@@ -82,7 +83,8 @@ namespace Orthanc
     public IIncomingHttpRequestFilter,
     public IFindRequestHandlerFactory,
     public IMoveRequestHandlerFactory,
-    public IStorageCommitmentFactory
+    public IStorageCommitmentFactory,
+    public MemoryBufferTranscoder
   {
   private:
     class PImpl;
@@ -94,6 +96,10 @@ namespace Orthanc
     class HttpClientChunkedRequest;
     class HttpClientChunkedAnswer;
     class HttpServerChunkedReader;
+    class IDicomInstance;
+    class DicomInstanceFromCallback;
+    class DicomInstanceFromBuffer;
+    class DicomInstanceFromTranscoded;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
@@ -117,6 +123,8 @@ namespace Orthanc
     void RegisterMoveCallback(const void* parameters);
 
     void RegisterDecodeImageCallback(const void* parameters);
+
+    void RegisterTranscoderCallback(const void* parameters);
 
     void RegisterJobsUnserializer(const void* parameters);
 
@@ -155,6 +163,12 @@ namespace Orthanc
     void LookupResource(_OrthancPluginService service,
                         const void* parameters);
 
+    void AccessDicomInstance(_OrthancPluginService service,
+                             const void* parameters);
+    
+    void AccessDicomInstance2(_OrthancPluginService service,
+                              const void* parameters);
+    
     void SendHttpStatusCode(const void* parameters);
 
     void SendHttpStatus(const void* parameters);
@@ -223,6 +237,14 @@ namespace Orthanc
                                 _OrthancPluginService service,
                                 const void* parameters);
 
+  protected:
+    // From "MemoryBufferTranscoder"
+    virtual bool TranscodeBuffer(std::string& target,
+                                 const void* buffer,
+                                 size_t size,
+                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                 bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    
   public:
     OrthancPlugins();
 
@@ -250,7 +272,7 @@ namespace Orthanc
     virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE;
     
     virtual void SignalStoredInstance(const std::string& instanceId,
-                                      DicomInstanceToStore& instance,
+                                      const DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags) ORTHANC_OVERRIDE;
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
@@ -305,12 +327,7 @@ namespace Orthanc
 
     bool HasCustomImageDecoder();
 
-    // Contrarily to "Decode()", this method does not fallback to the
-    // builtin image decoder, if no installed custom decoder can
-    // handle the image (it returns NULL in this case).
-    ImageAccessor* DecodeUnsafe(const void* dicom,
-                                size_t size,
-                                unsigned int frame);
+    bool HasCustomTranscoder();
 
     virtual ImageAccessor* Decode(const void* dicom,
                                   size_t size,

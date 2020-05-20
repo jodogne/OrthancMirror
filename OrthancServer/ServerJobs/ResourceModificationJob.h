@@ -33,36 +33,31 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/SetOfInstancesJob.h"
 #include "../../Core/DicomParsing/DicomModification.h"
 #include "../DicomInstanceOrigin.h"
+#include "CleaningInstancesJob.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class ResourceModificationJob : public SetOfInstancesJob
+  class ResourceModificationJob : public CleaningInstancesJob
   {
   private:
     class Output;
     
-    ServerContext&                      context_;
     std::unique_ptr<DicomModification>  modification_;
     boost::shared_ptr<Output>           output_;
     bool                                isAnonymization_;
     DicomInstanceOrigin                 origin_;
+    bool                                transcode_;
+    DicomTransferSyntax                 transferSyntax_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);
     
-    virtual bool HandleTrailingStep();
-
   public:
-    ResourceModificationJob(ServerContext& context) :
-      context_(context),
-      isAnonymization_(false)
-    {
-    }
+    ResourceModificationJob(ServerContext& context);
 
     ResourceModificationJob(ServerContext& context,
                             const Json::Value& serialized);
@@ -86,6 +81,19 @@ namespace Orthanc
     {
       return origin_;
     }
+
+    bool IsTranscode() const
+    {
+      return transcode_;
+    }
+
+    DicomTransferSyntax GetTransferSyntax() const;
+
+    void SetTranscode(DicomTransferSyntax syntax);
+
+    void SetTranscode(const std::string& transferSyntaxUid);
+
+    void ClearTranscode();
 
     virtual void Stop(JobStopReason reason)
     {
