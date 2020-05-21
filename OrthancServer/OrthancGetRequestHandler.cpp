@@ -33,13 +33,6 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancGetRequestHandler.h"
 
-#include <dcmtk/dcmdata/dcdeftag.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
-#include <dcmtk/dcmdata/dcistrmb.h>
-#include <dcmtk/dcmnet/assoc.h>
-#include <dcmtk/dcmnet/dimse.h>
-#include <dcmtk/dcmnet/diutil.h>
-
 #include "../../Core/DicomParsing/FromDcmtkBridge.h"
 #include "../Core/DicomFormat/DicomArray.h"
 #include "../Core/Logging.h"
@@ -48,8 +41,15 @@
 #include "ServerContext.h"
 #include "ServerJobs/DicomModalityStoreJob.h"
 
-#include <sstream>  // For std::stringstream
+#include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcistrmb.h>
+#include <dcmtk/dcmnet/assoc.h>
+#include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmnet/diutil.h>
+#include <dcmtk/ofstd/ofstring.h>
 
+#include <sstream>  // For std::stringstream
 
 namespace Orthanc
 {
@@ -397,9 +397,13 @@ namespace Orthanc
     
     if (stDetail.get() != NULL)
     {
+      // It is impossible to directly use the "<<" stream construct
+      // with "DcmObject::PrintHelper" using MSVC2008
       std::stringstream s;
-      s << DcmObject::PrintHelper(*stDetail);
-      LOG(INFO) << "  Status Detail:" << OFendl << s.str();
+      DcmObject::PrintHelper obj(*stDetail);
+      obj.dcmobj_.print(s);
+
+      LOG(INFO) << "  Status Detail: " << s.str();
     }
     
     return cond;

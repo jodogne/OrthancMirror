@@ -7696,7 +7696,7 @@ extern "C"
     }
     else
     {
-      return hasPixelData;
+      return (hasPixelData != 0);
     }
   }
 
