@@ -1181,7 +1181,7 @@ namespace OrthancPlugins
 
     size_t GetSize() const
     {
-      return OrthancPluginGetInstanceSize(GetGlobalContext(), instance_);
+      return static_cast<size_t>(OrthancPluginGetInstanceSize(GetGlobalContext(), instance_));
     }
 
     void GetJson(Json::Value& target) const;
