@@ -5223,7 +5223,7 @@ namespace Orthanc
 
     if (pimpl_->transcoderCallbacks_.empty())
     {
-      return NULL;
+      return false;
     }
 
     std::vector<const char*> uids;

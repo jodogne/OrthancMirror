@@ -880,7 +880,7 @@ namespace Orthanc
             case DicomRequestType_Get:
               if (server_.HasGetRequestHandlerFactory()) // Should always be true
               {
-                std::auto_ptr<IGetRequestHandler> handler
+                std::unique_ptr<IGetRequestHandler> handler
                   (server_.GetGetRequestHandlerFactory().ConstructGetRequestHandler());
                 
                 if (handler.get() != NULL)
