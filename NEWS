@@ -1,16 +1,21 @@
 Pending changes in the mainline
 ===============================
 
+
+
+Version 1.7.0 (2020-05-22)
+==========================
+
 General
 -------
 
+* Support of DICOM C-GET SCP (contribution by Varian)
 * DICOM transcoding over the REST API
 * Transcoding from compressed to uncompressed transfer syntaxes over DICOM
   C-STORE SCU (if the remote modality doesn't support compressed syntaxes)
 * New configuration options related to transcoding:
   "TranscodeDicomProtocol", "BuiltinDecoderTranscoderOrder",
   "IngestTranscoding" and "DicomLossyTranscodingQuality"
-* Support of DICOM C-GET SCP (contribution by Varian)
 
 REST API
 --------
