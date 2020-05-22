@@ -426,7 +426,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/JsonCppConfiguration.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
 
 # We put Boost as the last dependency, as it is the heaviest to
-# configure, which allows to quickly spot problems when configuring
+# configure, which allows one to quickly spot problems when configuring
 # static builds in other dependencies
 include(${CMAKE_CURRENT_LIST_DIR}/BoostConfiguration.cmake)
 

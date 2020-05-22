@@ -71,7 +71,7 @@ namespace Orthanc
     }
 
     /**
-     * This function allows to deal with chunked transfers (new in
+     * This function allows one to deal with chunked transfers (new in
      * Orthanc 1.5.7). It is only called if "method" is POST or PUT.
      **/
     virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,

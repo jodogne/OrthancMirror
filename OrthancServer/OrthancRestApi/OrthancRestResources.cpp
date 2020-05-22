@@ -338,7 +338,7 @@ namespace Orthanc
     }
     else
     {
-      // This path allows to avoid the JSON decoding if no
+      // This path allows one to avoid the JSON decoding if no
       // simplification is asked, and if no "ignore-length" argument
       // is present
       std::string full;

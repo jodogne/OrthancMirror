@@ -184,7 +184,7 @@
         },
 
         // Processes the files given as files property of the data parameter,
-        // returns a Promise object that allows to bind a done handler, which
+        // returns a Promise object that allows one to bind a done handler, which
         // will be invoked after processing all files (inplace) is done:
         process: function (data) {
             var that = this,

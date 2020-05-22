@@ -53,7 +53,7 @@
   // Open Slimbox with the specified parameters
   $.slimbox = function(_images, startImage, _options) {
     options = $.extend({
-      loop: false,				// Allows to navigate between first and last images
+      loop: false,				// Allows one to navigate between first and last images
       overlayOpacity: 0.8,			// 1 is opaque, 0 is completely transparent (change the color in the CSS file)
       overlayFadeDuration: 400,		// Duration of the overlay fade-in and fade-out animations (in milliseconds)
       resizeDuration: 400,			// Duration of each of the box resize animations (in milliseconds)

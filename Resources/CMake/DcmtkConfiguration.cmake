@@ -168,7 +168,7 @@ else()
     link_libraries(dcmdata dcmnet dcmjpeg oflog ofstd)
 
   else()
-    # The following line allows to manually add libraries at the
+    # The following line allows one to manually add libraries at the
     # command-line, which is necessary for Ubuntu/Debian packages
     set(tmp "${DCMTK_LIBRARIES}")
     include(FindDCMTK)
