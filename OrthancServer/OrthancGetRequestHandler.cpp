@@ -159,19 +159,21 @@ namespace Orthanc
       LST_Position(l, (LST_NODE*)pc);
       while (pc)
       {
+        DicomTransferSyntax transferSyntax;
         if (pc->result == ASC_P_ACCEPTANCE &&
-            std::string(pc->abstractSyntax) == sopClassUid)
+            LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
         {
-          DicomTransferSyntax transferSyntax;
-          if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
+          VLOG(0) << "C-GET SCP accepted: SOP class " << sopClassUid
+                  << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);
+          if (std::string(pc->abstractSyntax) == sopClassUid)
           {
             accepted[transferSyntax] = pc->presentationContextID;
           }
-          else
-          {
-            LOG(WARNING) << "C-GET: Unknown transfer syntax received: "
-                         << pc->acceptedTransferSyntax;
-          }
+        }
+        else
+        {
+          LOG(WARNING) << "C-GET: Unknown transfer syntax received: "
+                       << pc->acceptedTransferSyntax;
         }
             
         pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
@@ -216,7 +218,7 @@ namespace Orthanc
     
     for (std::list<DicomTransferSyntax>::const_iterator
            it = preferred.begin(); it != preferred.end(); ++it)
-    {    
+    {
       Accepted::const_iterator found = accepted.find(*it);
       if (found != accepted.end())
       {
@@ -266,12 +268,18 @@ namespace Orthanc
     }
     else
     {
+      LOG(INFO) << "C-GET SCP selected transfer syntax " << GetTransferSyntaxUid(selectedSyntax)
+                << ", for source instance with SOP class " << sopClassUid
+                << " and transfer syntax " << GetTransferSyntaxUid(sourceSyntax);
+
       // make sure that we can send images in this presentation context
       T_ASC_PresentationContext pc;
       ASC_findAcceptedPresentationContext(assoc->params, presId, &pc);
       // the acceptedRole is the association requestor role
-      if ((pc.acceptedRole != ASC_SC_ROLE_SCP) &&
-          (pc.acceptedRole != ASC_SC_ROLE_SCUSCP))
+
+      if (pc.acceptedRole != ASC_SC_ROLE_DEFAULT &&  // "DEFAULT" is necessary for GinkgoCADx
+          pc.acceptedRole != ASC_SC_ROLE_SCP &&
+          pc.acceptedRole != ASC_SC_ROLE_SCUSCP)
       {
         // the role is not appropriate
         nFailed_++;
