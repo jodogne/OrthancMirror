@@ -246,7 +246,7 @@ Orthanc Explorer
 ----------------
 
 * If performing a Query/Retrieve operation, the default value for the
-  tags is set to an empty string instead of '*', which allows to match
+  tags is set to an empty string instead of '*', which allows one to match
   even if the tag is not present. This allows malformed DICOM files to
   be matched, even though they lack required tags such as "PatientSex"
 
@@ -482,7 +482,7 @@ Version 1.4.2 (2018-09-20)
 General
 -------
 
-* "OrthancPeers" configuration option now allows to specify HTTP headers
+* "OrthancPeers" configuration option now allows one to specify HTTP headers
 * New main DICOM tag: "ImageOrientationPatient" at the instance level
 * New configuration options:
   - "HttpVerbose" to debug outgoing HTTP connections

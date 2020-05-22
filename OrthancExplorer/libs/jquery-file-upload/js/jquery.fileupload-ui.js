@@ -295,7 +295,7 @@
             }
         },
 
-        // Link handler, that allows to download files
+        // Link handler, that allows one to download files
         // by drag & drop of the links to the desktop:
         _enableDragToDesktop: function () {
             var link = $(this),

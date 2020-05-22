@@ -1998,7 +1998,7 @@ namespace Orthanc
      it removes the character set information from the byte stream.
 
      However, in the case where the encoding is unique, then suppressing
-     the escape sequences allows to provide us with a clean string after
+     the escape sequences allows one to provide us with a clean string after
      conversion to utf-8 with boost.
   **/
   void Toolbox::RemoveIso2022EscapeSequences(std::string& dest, const std::string& src)

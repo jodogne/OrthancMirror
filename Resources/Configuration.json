@@ -274,7 +274,7 @@
 
     /**
      * This is another, more advanced format to define Orthanc
-     * peers. It notably allows to specify HTTP headers, a HTTPS
+     * peers. It notably allows one to specify HTTP headers, a HTTPS
      * client certificate in the PEM format (as in the "--cert" option
      * of curl), or to enable PKCS#11 authentication for smart cards.
      **/
