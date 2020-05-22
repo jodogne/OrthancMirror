@@ -34,10 +34,10 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomServer.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/MultiThreading/RunnableWorkersPool.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/Toolbox.h"
+#include "../Logging.h"
+#include "../MultiThreading/RunnableWorkersPool.h"
+#include "../OrthancException.h"
+#include "../Toolbox.h"
 #include "Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>

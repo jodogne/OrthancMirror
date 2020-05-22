@@ -35,9 +35,8 @@
 
 #include <dcmtk/dcmnet/assoc.h>
 
-#include "../../Core/DicomFormat/DicomMap.h"
+#include "../DicomFormat/DicomMap.h"
 
-#include <vector>
 #include <string>
 
 

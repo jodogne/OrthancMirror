@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
+#include "../DicomFormat/DicomMap.h"
 
 #include <vector>
 #include <string>
