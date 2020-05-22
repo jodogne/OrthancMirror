@@ -103,7 +103,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 
-static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
+  static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
 
 
@@ -276,8 +276,6 @@ namespace Orthanc
       OFString sprofile;
       OFString temp_str;
 
-      
-
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
@@ -313,13 +311,13 @@ namespace Orthanc
 
         if (
 #if DCMTK_VERSION_NUMBER >= 364
-	    ASC_getAPTitles(assoc->params, remoteAet_C, sizeof(remoteAet_C), calledAet_C, sizeof(calledAet_C), NULL, 0).bad() ||
-            ASC_getPresentationAddresses(assoc->params, remoteIp_C, sizeof(remoteIp_C), calledIP_C, sizeof(calledIP_C)).bad()
+          ASC_getAPTitles(assoc->params, remoteAet_C, sizeof(remoteAet_C), calledAet_C, sizeof(calledAet_C), NULL, 0).bad() ||
+          ASC_getPresentationAddresses(assoc->params, remoteIp_C, sizeof(remoteIp_C), calledIP_C, sizeof(calledIP_C)).bad()
 #else
-	    ASC_getAPTitles(assoc->params, remoteAet_C, calledAet_C, NULL).bad() ||
-            ASC_getPresentationAddresses(assoc->params, remoteIp_C, calledIP_C).bad()
+          ASC_getAPTitles(assoc->params, remoteAet_C, calledAet_C, NULL).bad() ||
+          ASC_getPresentationAddresses(assoc->params, remoteIp_C, calledIP_C).bad()
 #endif
-	    )
+          )
         {
           T_ASC_RejectParameters rej =
             {
@@ -374,14 +372,13 @@ namespace Orthanc
           knownAbstractSyntaxes.push_back(UID_MOVEStudyRootQueryRetrieveInformationModel);
           knownAbstractSyntaxes.push_back(UID_MOVEPatientRootQueryRetrieveInformationModel);
         }
-        
+
         // For C-GET
         if (server.HasGetRequestHandlerFactory())
         {
           knownAbstractSyntaxes.push_back(UID_GETStudyRootQueryRetrieveInformationModel);
           knownAbstractSyntaxes.push_back(UID_GETPatientRootQueryRetrieveInformationModel);
         }
-
 
         cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
           assoc->params,
@@ -522,69 +519,67 @@ namespace Orthanc
         assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
-      // now that C-GET SCP is always enabled, the first branch of this if is useless
-      // TO BE ANALYZED by SJ
-      if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
-      {
-        cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-          assoc->params,
-          dcmAllStorageSOPClassUIDs, count,
-          &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
-        if (cond.bad())
+        if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
         {
-          LOG(INFO) << cond.text();
-          AssociationCleanup(assoc);
-          return NULL;
-        }
-      }
-      else                                         // see dcmqrsrv.cc lines 839 - 876
-      {
-        /* accept storage syntaxes with proposed role */
-        T_ASC_PresentationContext pc;
-        T_ASC_SC_ROLE role;
-        int npc = ASC_countPresentationContexts(assoc->params);
-        for (int i = 0; i < npc; i++)
-        {
-          ASC_getPresentationContext(assoc->params, i, &pc);
-          if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
+          // This branch exactly corresponds to Orthanc <= 1.6.1 (in
+          // which C-GET SCP was not supported)
+          cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+            assoc->params, dcmAllStorageSOPClassUIDs, count,
+            &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
+          if (cond.bad())
           {
-            /*
-             ** We are prepared to accept whatever role the caller proposes.
-             ** Normally we can be the SCP of the Storage Service Class.
-             ** When processing the C-GET operation we can be the SCU of the Storage Service Class.
-             */
-            role = pc.proposedRole;
-            
-            /*
-             ** Accept in the order "least wanted" to "most wanted" transfer
-             ** syntax.  Accepting a transfer syntax will override previously
-             ** accepted transfer syntaxes.
-             */
-            for (int k = (int) storageTransferSyntaxes.size() - 1; k >= 0; k--)
+            LOG(INFO) << cond.text();
+            AssociationCleanup(assoc);
+            return NULL;
+          }
+        }
+        else                                         // see dcmqrsrv.cc lines 839 - 876
+        {
+          /* accept storage syntaxes with proposed role */
+          int npc = ASC_countPresentationContexts(assoc->params);
+          for (int i = 0; i < npc; i++)
+          {
+            T_ASC_PresentationContext pc;
+            ASC_getPresentationContext(assoc->params, i, &pc);
+            if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
             {
-              for (int j = 0; j < (int)pc.transferSyntaxCount; j++)
+              /**
+               * We are prepared to accept whatever role the caller
+               * proposes.  Normally we can be the SCP of the Storage
+               * Service Class.  When processing the C-GET operation
+               * we can be the SCU of the Storage Service Class.
+               **/
+              const T_ASC_SC_ROLE role = pc.proposedRole;
+            
+              /**
+               * Accept in the order "least wanted" to "most wanted"
+               * transfer syntax.  Accepting a transfer syntax will
+               * override previously accepted transfer syntaxes.
+               **/
+              for (int k = static_cast<int>(storageTransferSyntaxes.size()) - 1; k >= 0; k--)
               {
-                /* if the transfer syntax was proposed then we can accept it
-                 * appears in our supported list of transfer syntaxes
-                 */
-                if (strcmp(pc.proposedTransferSyntaxes[j], storageTransferSyntaxes[k]) == 0)
+                for (int j = 0; j < static_cast<int>(pc.transferSyntaxCount); j++)
                 {
-                  cond = ASC_acceptPresentationContext(
-                                                       assoc->params, pc.presentationContextID, storageTransferSyntaxes[k], role);
-                  if (cond.bad())
+                  /**
+                   * If the transfer syntax was proposed then we can accept it
+                   * appears in our supported list of transfer syntaxes
+                   **/
+                  if (strcmp(pc.proposedTransferSyntaxes[j], storageTransferSyntaxes[k]) == 0)
                   {
-                    LOG(INFO) << cond.text();
-                    AssociationCleanup(assoc);
-                    return NULL;
+                    cond = ASC_acceptPresentationContext(
+                      assoc->params, pc.presentationContextID, storageTransferSyntaxes[k], role);
+                    if (cond.bad())
+                    {
+                      LOG(INFO) << cond.text();
+                      AssociationCleanup(assoc);
+                      return NULL;
+                    }
                   }
                 }
               }
             }
-          }
-        } /* for */
-        
-      }
-      
+          } /* for */
+        }
 
         if (!server.HasApplicationEntityFilter() ||
             server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
