@@ -254,7 +254,7 @@ namespace Orthanc
     bool allowTranscoding = (context_.IsTranscodeDicomProtocol() &&
                              remote_.IsTranscodingAllowed());
     
-    T_ASC_PresentationContextID presId;
+    T_ASC_PresentationContextID presId = 0;  // Unnecessary initialization, makes code clearer
     DicomTransferSyntax selectedSyntax;
     if (!SelectPresentationContext(presId, selectedSyntax, assoc, sopClassUid,
                                    sourceSyntax, allowTranscoding) ||
