@@ -734,8 +734,10 @@ TEST(ServerIndex, AttachmentRecycling)
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
 
-    // By default, an Explicit VR Little Endian is used by Orthanc
-    ASSERT_EQ("1.2.840.10008.1.2.1", instanceMetadata[MetadataType_Instance_TransferSyntax]);
+    // The default transfer syntax depends on the OS endianness
+    std::string s = instanceMetadata[MetadataType_Instance_TransferSyntax];
+    ASSERT_TRUE(s == "1.2.840.10008.1.2.1" ||
+                s == "1.2.840.10008.1.2.2");
 
     ASSERT_EQ("1.2.840.10008.5.1.4.1.1.1", instanceMetadata[MetadataType_Instance_SopClassUid]);
 
