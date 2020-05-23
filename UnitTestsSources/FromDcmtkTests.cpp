@@ -514,7 +514,9 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
 
   std::string s;
   ASSERT_TRUE(f.LookupTransferSyntax(s));
-  ASSERT_EQ(s, GetTransferSyntaxUid(DicomTransferSyntax_LittleEndianExplicit));
+  // The default transfer syntax depends on the OS endianness
+  ASSERT_TRUE(s == GetTransferSyntaxUid(DicomTransferSyntax_LittleEndianExplicit) ||
+              s == GetTransferSyntaxUid(DicomTransferSyntax_BigEndianExplicit));
 
   ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
                          false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
