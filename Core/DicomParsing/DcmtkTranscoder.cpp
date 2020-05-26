@@ -284,6 +284,28 @@ namespace Orthanc
       return false;
     }
 
+    {
+      std::string s;
+      for (std::set<DicomTransferSyntax>::const_iterator
+             it = allowedSyntaxes.begin(); it != allowedSyntaxes.end(); ++it)
+      {
+        if (!s.empty())
+        {
+          s += ", ";
+        }
+
+        s += GetTransferSyntaxUid(*it);
+      }
+
+      if (s.empty())
+      {
+        s = "<none>";
+      }
+      
+      LOG(INFO) << "DCMTK transcoding from " << GetTransferSyntaxUid(sourceSyntax)
+                << " to one of: " << s;
+    }
+
 #if !defined(NDEBUG)
     const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
 #endif
