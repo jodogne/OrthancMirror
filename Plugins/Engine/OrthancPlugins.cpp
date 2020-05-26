@@ -2922,7 +2922,8 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Dicom:
       {
-        image.reset(Decode(p.data, p.size, 0));
+        PImpl::ServerContextLock lock(*pimpl_);
+        image.reset(lock.GetContext().DecodeDicomFrame(p.data, p.size, 0));
         break;
       }
 
@@ -3485,7 +3486,8 @@ namespace Orthanc
 
       case _OrthancPluginService_DecodeDicomImage:
       {
-        result.reset(Decode(p.constBuffer, p.bufferSize, p.frameIndex));
+        PImpl::ServerContextLock lock(*pimpl_);
+        result.reset(lock.GetContext().DecodeDicomFrame(p.constBuffer, p.bufferSize, p.frameIndex));
         break;
       }
 
