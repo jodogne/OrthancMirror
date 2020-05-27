@@ -2,10 +2,11 @@ Pending changes in the mainline
 ===============================
 
 
-Maintenance
------------
+Version 1.7.1 (2020-05-27)
+==========================
 
-* Fix decoding of DICOM images for plugins
+* Fix decoding of DICOM images for plugins (for compatibility with
+  Orthanc Web Viewer 2.6)
 
 
 Version 1.7.0 (2020-05-22)
