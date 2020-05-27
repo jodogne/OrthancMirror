@@ -43,7 +43,7 @@ static bool ReadFile(std::string& result,
 }
 
 
-OrthancPluginErrorCode OnStoredCallback(OrthancPluginDicomInstance* instance,
+OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instance,
                                         const char* instanceId)
 {
   char buffer[1024];
