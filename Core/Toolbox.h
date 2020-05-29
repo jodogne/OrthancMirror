@@ -187,7 +187,6 @@ namespace Orthanc
 
     std::string WildcardToRegularExpression(const std::string& s);
 
-    //ORTHANC_PUBLIC
     void TokenizeString(std::vector<std::string>& result,
                         const std::string& source,
                         char separator);
