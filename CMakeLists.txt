@@ -117,6 +117,7 @@ set(ORTHANC_UNIT_TESTS_SOURCES
   UnitTestsSources/DatabaseLookupTests.cpp
   UnitTestsSources/DicomMapTests.cpp
   UnitTestsSources/FileStorageTests.cpp
+  UnitTestsSources/FrameworkTests.cpp
   UnitTestsSources/FromDcmtkTests.cpp
   UnitTestsSources/ImageProcessingTests.cpp
   UnitTestsSources/ImageTests.cpp
