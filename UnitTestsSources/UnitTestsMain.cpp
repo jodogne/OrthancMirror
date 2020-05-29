@@ -49,7 +49,7 @@ using namespace Orthanc;
 
 TEST(EnumerationDictionary, Simple)
 {
-  Toolbox::EnumerationDictionary<MetadataType>  d;
+  EnumerationDictionary<MetadataType>  d;
 
   ASSERT_THROW(d.Translate("ReceptionDate"), OrthancException);
   ASSERT_EQ(MetadataType_ModifiedFrom, d.Translate("5"));

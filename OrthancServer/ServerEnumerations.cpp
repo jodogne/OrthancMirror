@@ -46,8 +46,8 @@ namespace Orthanc
   typedef std::map<FileContentType, std::string>  MimeTypes;
 
   static boost::mutex enumerationsMutex_;
-  static Toolbox::EnumerationDictionary<MetadataType> dictMetadataType_;
-  static Toolbox::EnumerationDictionary<FileContentType> dictContentType_;
+  static EnumerationDictionary<MetadataType> dictMetadataType_;
+  static EnumerationDictionary<FileContentType> dictContentType_;
   static MimeTypes  mimeTypes_;
 
   void InitializeServerEnumerations()

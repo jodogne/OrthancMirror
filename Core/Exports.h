@@ -34,6 +34,9 @@
 #pragma once
 
 
+//#define ORTHANC_PUBLIC __attribute__ ((visibility ("default")))
+#define ORTHANC_PUBLIC
+
 #if 0   // Test for the shared library
 
 // https://gcc.gnu.org/wiki/Visibility

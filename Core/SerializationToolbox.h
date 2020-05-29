@@ -34,6 +34,7 @@
 #pragma once
 
 #include "DicomFormat/DicomTag.h"
+#include "Exports.h"
 
 #include <json/value.h>
 #include <list>
@@ -41,70 +42,71 @@
 
 namespace Orthanc
 {
-  namespace SerializationToolbox
+  class ORTHANC_PUBLIC SerializationToolbox
   {
-    std::string ReadString(const Json::Value& value,
+  public:
+    static std::string ReadString(const Json::Value& value,
+                                  const std::string& field);
+
+    static int ReadInteger(const Json::Value& value,
                            const std::string& field);
 
-    int ReadInteger(const Json::Value& value,
-                    const std::string& field);
+    static int ReadInteger(const Json::Value& value,
+                           const std::string& field,
+                           int defaultValue);
 
-    int ReadInteger(const Json::Value& value,
-                    const std::string& field,
-                    int defaultValue);
+    static unsigned int ReadUnsignedInteger(const Json::Value& value,
+                                            const std::string& field);
 
-    unsigned int ReadUnsignedInteger(const Json::Value& value,
-                                     const std::string& field);
-
-    bool ReadBoolean(const Json::Value& value,
-                     const std::string& field);
-
-    void ReadArrayOfStrings(std::vector<std::string>& target,
-                            const Json::Value& value,
+    static bool ReadBoolean(const Json::Value& value,
                             const std::string& field);
 
-    void ReadListOfStrings(std::list<std::string>& target,
-                           const Json::Value& value,
-                           const std::string& field);
+    static void ReadArrayOfStrings(std::vector<std::string>& target,
+                                   const Json::Value& value,
+                                   const std::string& field);
 
-    void ReadSetOfStrings(std::set<std::string>& target,
-                          const Json::Value& value,
-                          const std::string& field);
+    static void ReadListOfStrings(std::list<std::string>& target,
+                                  const Json::Value& value,
+                                  const std::string& field);
 
-    void ReadSetOfTags(std::set<DicomTag>& target,
-                       const Json::Value& value,
-                       const std::string& field);
+    static void ReadSetOfStrings(std::set<std::string>& target,
+                                 const Json::Value& value,
+                                 const std::string& field);
 
-    void ReadMapOfStrings(std::map<std::string, std::string>& values,
-                          const Json::Value& target,
-                          const std::string& field);
+    static void ReadSetOfTags(std::set<DicomTag>& target,
+                              const Json::Value& value,
+                              const std::string& field);
 
-    void ReadMapOfTags(std::map<DicomTag, std::string>& values,
-                       const Json::Value& target,
-                       const std::string& field);
+    static void ReadMapOfStrings(std::map<std::string, std::string>& values,
+                                 const Json::Value& target,
+                                 const std::string& field);
 
-    void WriteArrayOfStrings(Json::Value& target,
-                             const std::vector<std::string>& values,
-                             const std::string& field);
+    static void ReadMapOfTags(std::map<DicomTag, std::string>& values,
+                              const Json::Value& target,
+                              const std::string& field);
 
-    void WriteListOfStrings(Json::Value& target,
-                            const std::list<std::string>& values,
-                            const std::string& field);
+    static void WriteArrayOfStrings(Json::Value& target,
+                                    const std::vector<std::string>& values,
+                                    const std::string& field);
 
-    void WriteSetOfStrings(Json::Value& target,
-                           const std::set<std::string>& values,
-                           const std::string& field);
+    static void WriteListOfStrings(Json::Value& target,
+                                   const std::list<std::string>& values,
+                                   const std::string& field);
 
-    void WriteSetOfTags(Json::Value& target,
-                        const std::set<DicomTag>& tags,
-                        const std::string& field);
+    static void WriteSetOfStrings(Json::Value& target,
+                                  const std::set<std::string>& values,
+                                  const std::string& field);
 
-    void WriteMapOfStrings(Json::Value& target,
-                           const std::map<std::string, std::string>& values,
-                           const std::string& field);
+    static void WriteSetOfTags(Json::Value& target,
+                               const std::set<DicomTag>& tags,
+                               const std::string& field);
 
-    void WriteMapOfTags(Json::Value& target,
-                        const std::map<DicomTag, std::string>& values,
-                        const std::string& field);
-  }
+    static void WriteMapOfStrings(Json::Value& target,
+                                  const std::map<std::string, std::string>& values,
+                                  const std::string& field);
+
+    static void WriteMapOfTags(Json::Value& target,
+                               const std::map<DicomTag, std::string>& values,
+                               const std::string& field);
+  };
 }
