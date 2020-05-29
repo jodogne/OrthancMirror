@@ -82,8 +82,9 @@ namespace Orthanc
   {
   };
 
-  namespace Toolbox
+  class ORTHANC_PUBLIC Toolbox
   {
+  public:
     class LinesIterator
     {
     private:
@@ -101,169 +102,168 @@ namespace Orthanc
       void Next();
     };
     
-    
-    void ToUpperCase(std::string& s);  // Inplace version
+    static void ToUpperCase(std::string& s);  // Inplace version
 
-    void ToLowerCase(std::string& s);  // Inplace version
+    static void ToLowerCase(std::string& s);  // Inplace version
 
-    void ToUpperCase(std::string& result,
-                     const std::string& source);
+    static void ToUpperCase(std::string& result,
+                            const std::string& source);
 
-    void ToLowerCase(std::string& result,
-                     const std::string& source);
+    static void ToLowerCase(std::string& result,
+                            const std::string& source);
 
-    void SplitUriComponents(UriComponents& components,
-                            const std::string& uri);
+    static void SplitUriComponents(UriComponents& components,
+                                   const std::string& uri);
   
-    void TruncateUri(UriComponents& target,
-                     const UriComponents& source,
-                     size_t fromLevel);
+    static void TruncateUri(UriComponents& target,
+                            const UriComponents& source,
+                            size_t fromLevel);
   
-    bool IsChildUri(const UriComponents& baseUri,
-                    const UriComponents& testedUri);
+    static bool IsChildUri(const UriComponents& baseUri,
+                           const UriComponents& testedUri);
 
-    std::string FlattenUri(const UriComponents& components,
-                           size_t fromLevel = 0);
+    static std::string FlattenUri(const UriComponents& components,
+                                  size_t fromLevel = 0);
 
 #if ORTHANC_ENABLE_MD5 == 1
-    void ComputeMD5(std::string& result,
-                    const std::string& data);
+    static void ComputeMD5(std::string& result,
+                           const std::string& data);
 
-    void ComputeMD5(std::string& result,
-                    const void* data,
-                    size_t size);
+    static void ComputeMD5(std::string& result,
+                           const void* data,
+                           size_t size);
 #endif
 
-    void ComputeSHA1(std::string& result,
-                     const std::string& data);
+    static void ComputeSHA1(std::string& result,
+                            const std::string& data);
 
-    void ComputeSHA1(std::string& result,
-                     const void* data,
-                     size_t size);
+    static void ComputeSHA1(std::string& result,
+                            const void* data,
+                            size_t size);
 
-    bool IsSHA1(const void* str,
-                size_t size);
-
-    bool IsSHA1(const std::string& s);
-
-#if ORTHANC_ENABLE_BASE64 == 1
-    void DecodeBase64(std::string& result, 
-                      const std::string& data);
-
-    void EncodeBase64(std::string& result, 
-                      const std::string& data);
-
-    bool DecodeDataUriScheme(std::string& mime,
-                             std::string& content,
-                             const std::string& source);
-
-    void EncodeDataUriScheme(std::string& result,
-                             const std::string& mime,
-                             const std::string& content);
-#endif
-
-#if ORTHANC_ENABLE_LOCALE == 1
-    std::string ConvertToUtf8(const std::string& source,
-                              Encoding sourceEncoding,
-                              bool hasCodeExtensions);
-
-    std::string ConvertFromUtf8(const std::string& source,
-                                Encoding targetEncoding);
-#endif
-
-    bool IsAsciiString(const void* data,
+    static bool IsSHA1(const void* str,
                        size_t size);
 
-    bool IsAsciiString(const std::string& s);
+    static bool IsSHA1(const std::string& s);
 
-    std::string ConvertToAscii(const std::string& source);
+#if ORTHANC_ENABLE_BASE64 == 1
+    static void DecodeBase64(std::string& result, 
+                             const std::string& data);
 
-    std::string StripSpaces(const std::string& source);
+    static void EncodeBase64(std::string& result, 
+                             const std::string& data);
 
-    // In-place percent-decoding for URL
-    void UrlDecode(std::string& s);
+    static bool DecodeDataUriScheme(std::string& mime,
+                                    std::string& content,
+                                    const std::string& source);
 
-    Endianness DetectEndianness();
-
-    std::string WildcardToRegularExpression(const std::string& s);
-
-    void TokenizeString(std::vector<std::string>& result,
-                        const std::string& source,
-                        char separator);
-
-#if ORTHANC_ENABLE_PUGIXML == 1
-    void JsonToXml(std::string& target,
-                   const Json::Value& source,
-                   const std::string& rootElement = "root",
-                   const std::string& arrayElement = "item");
+    static void EncodeDataUriScheme(std::string& result,
+                                    const std::string& mime,
+                                    const std::string& content);
 #endif
-
-#if ORTHANC_ENABLE_PUGIXML == 1
-    void XmlToString(std::string& target,
-                     const pugi::xml_document& source);
-#endif
-
-    bool IsInteger(const std::string& str);
-
-    void CopyJsonWithoutComments(Json::Value& target,
-                                 const Json::Value& source);
-
-    bool StartsWith(const std::string& str,
-                    const std::string& prefix);
-
-    void UriEncode(std::string& target,
-                   const std::string& source);
-
-    std::string GetJsonStringField(const ::Json::Value& json,
-                                   const std::string& key,
-                                   const std::string& defaultValue);
-
-    bool GetJsonBooleanField(const ::Json::Value& json,
-                             const std::string& key,
-                             bool defaultValue);
-
-    int GetJsonIntegerField(const ::Json::Value& json,
-                            const std::string& key,
-                            int defaultValue);
-
-    unsigned int GetJsonUnsignedIntegerField(const ::Json::Value& json,
-                                             const std::string& key,
-                                             unsigned int defaultValue);
-
-    bool IsUuid(const std::string& str);
-
-    bool StartsWithUuid(const std::string& str);
 
 #if ORTHANC_ENABLE_LOCALE == 1
-    void InitializeGlobalLocale(const char* locale);
+    static std::string ConvertToUtf8(const std::string& source,
+                                     Encoding sourceEncoding,
+                                     bool hasCodeExtensions);
 
-    void FinalizeGlobalLocale();
-
-    std::string ToUpperCaseWithAccents(const std::string& source);
+    static std::string ConvertFromUtf8(const std::string& source,
+                                       Encoding targetEncoding);
 #endif
 
-    void InitializeOpenSsl();
+    static bool IsAsciiString(const void* data,
+                              size_t size);
+
+    static bool IsAsciiString(const std::string& s);
+
+    static std::string ConvertToAscii(const std::string& source);
+
+    static std::string StripSpaces(const std::string& source);
+
+    // In-place percent-decoding for URL
+    static void UrlDecode(std::string& s);
+
+    static Endianness DetectEndianness();
+
+    static std::string WildcardToRegularExpression(const std::string& s);
+
+    static void TokenizeString(std::vector<std::string>& result,
+                               const std::string& source,
+                               char separator);
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+    static void JsonToXml(std::string& target,
+                          const Json::Value& source,
+                          const std::string& rootElement = "root",
+                          const std::string& arrayElement = "item");
+#endif
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+    static void XmlToString(std::string& target,
+                            const pugi::xml_document& source);
+#endif
+
+    static bool IsInteger(const std::string& str);
+
+    static void CopyJsonWithoutComments(Json::Value& target,
+                                        const Json::Value& source);
+
+    static bool StartsWith(const std::string& str,
+                           const std::string& prefix);
+
+    static void UriEncode(std::string& target,
+                          const std::string& source);
+
+    static std::string GetJsonStringField(const ::Json::Value& json,
+                                          const std::string& key,
+                                          const std::string& defaultValue);
+
+    static bool GetJsonBooleanField(const ::Json::Value& json,
+                                    const std::string& key,
+                                    bool defaultValue);
+
+    static int GetJsonIntegerField(const ::Json::Value& json,
+                                   const std::string& key,
+                                   int defaultValue);
+
+    static unsigned int GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                                    const std::string& key,
+                                                    unsigned int defaultValue);
+
+    static bool IsUuid(const std::string& str);
+
+    static bool StartsWithUuid(const std::string& str);
+
+#if ORTHANC_ENABLE_LOCALE == 1
+    static void InitializeGlobalLocale(const char* locale);
+
+    static void FinalizeGlobalLocale();
+
+    static std::string ToUpperCaseWithAccents(const std::string& source);
+#endif
+
+    static void InitializeOpenSsl();
     
-    void FinalizeOpenSsl();
+    static void FinalizeOpenSsl();
 
-    std::string GenerateUuid();
+    static std::string GenerateUuid();
 
-    std::string SubstituteVariables(const std::string& source,
-                                    const std::map<std::string, std::string>& dictionary);
+    static std::string SubstituteVariables(const std::string& source,
+                                           const std::map<std::string, std::string>& dictionary);
 
-    void RemoveIso2022EscapeSequences(std::string& dest,
-                                      const std::string& src);
+    static void RemoveIso2022EscapeSequences(std::string& dest,
+                                             const std::string& src);
 
-    void Utf8ToUnicodeCharacter(uint32_t& unicode,
-                                size_t& utf8Length,
-                                const std::string& utf8,
-                                size_t position);
+    static void Utf8ToUnicodeCharacter(uint32_t& unicode,
+                                       size_t& utf8Length,
+                                       const std::string& utf8,
+                                       size_t position);
 
-    std::string LargeHexadecimalToDecimal(const std::string& hex);
+    static std::string LargeHexadecimalToDecimal(const std::string& hex);
 
     // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
-    std::string GenerateDicomPrivateUniqueIdentifier();
-  }
+    static std::string GenerateDicomPrivateUniqueIdentifier();
+  };
 }
 
 

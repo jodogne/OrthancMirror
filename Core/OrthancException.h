@@ -35,6 +35,7 @@
 
 #include "Compatibility.h"
 #include "Enumerations.h"
+#include "Exports.h"
 #include "Logging.h"
 
 #include <stdint.h>
@@ -43,7 +44,7 @@
 
 namespace Orthanc
 {
-  class OrthancException
+  class ORTHANC_PUBLIC OrthancException
   {
   private:
     OrthancException();  // Forbidden

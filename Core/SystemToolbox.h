@@ -42,6 +42,7 @@
 #endif
 
 #include "Enumerations.h"
+#include "Exports.h"
 
 #include <map>
 #include <vector>
@@ -50,64 +51,65 @@
 
 namespace Orthanc
 {
-  namespace SystemToolbox
+  class ORTHANC_PUBLIC SystemToolbox
   {
-    void USleep(uint64_t microSeconds);
+  public:
+    static void USleep(uint64_t microSeconds);
 
-    ServerBarrierEvent ServerBarrier(const bool& stopFlag);
+    static ServerBarrierEvent ServerBarrier(const bool& stopFlag);
 
-    ServerBarrierEvent ServerBarrier();
+    static ServerBarrierEvent ServerBarrier();
 
-    void ReadFile(std::string& content,
-                  const std::string& path,
-                  bool log = true);
+    static void ReadFile(std::string& content,
+                         const std::string& path,
+                         bool log = true);
 
-    bool ReadHeader(std::string& header,
-                    const std::string& path,
-                    size_t headerSize);
+    static bool ReadHeader(std::string& header,
+                           const std::string& path,
+                           size_t headerSize);
 
-    void WriteFile(const void* content,
-                   size_t size,
-                   const std::string& path);
+    static void WriteFile(const void* content,
+                          size_t size,
+                          const std::string& path);
 
-    void WriteFile(const std::string& content,
-                   const std::string& path);
+    static void WriteFile(const std::string& content,
+                          const std::string& path);
 
-    void RemoveFile(const std::string& path);
+    static void RemoveFile(const std::string& path);
 
-    uint64_t GetFileSize(const std::string& path);
+    static uint64_t GetFileSize(const std::string& path);
 
-    void MakeDirectory(const std::string& path);
+    static void MakeDirectory(const std::string& path);
 
-    bool IsExistingFile(const std::string& path);
+    static bool IsExistingFile(const std::string& path);
 
-    std::string GetPathToExecutable();
+    static std::string GetPathToExecutable();
 
-    std::string GetDirectoryOfExecutable();
+    static std::string GetDirectoryOfExecutable();
 
-    void ExecuteSystemCommand(const std::string& command,
-                              const std::vector<std::string>& arguments);
+    static void ExecuteSystemCommand(const std::string& command,
+                                     const std::vector<std::string>& arguments);
 
-    int GetProcessId();
+    static int GetProcessId();
 
-    bool IsRegularFile(const std::string& path);
+    static bool IsRegularFile(const std::string& path);
 
-    FILE* OpenFile(const std::string& path,
-                   FileMode mode);
+    static FILE* OpenFile(const std::string& path,
+                          FileMode mode);
 
-    std::string GetNowIsoString(bool utc);
+    static std::string GetNowIsoString(bool utc);
 
-    void GetNowDicom(std::string& date,
-                     std::string& time,
-                     bool utc);
+    static void GetNowDicom(std::string& date,
+                            std::string& time,
+                            bool utc);
 
-    unsigned int GetHardwareConcurrency();
+    static unsigned int GetHardwareConcurrency();
 
-    MimeType AutodetectMimeType(const std::string& path);
+    static MimeType AutodetectMimeType(const std::string& path);
 
-    void GetEnvironmentVariables(std::map<std::string, std::string>& env);
+    static void GetEnvironmentVariables(std::map<std::string, std::string>& env);
 
-    std::string InterpretRelativePath(const std::string& baseDirectory,
-                                      const std::string& relativePath);
-  }
+    static std::string InterpretRelativePath(const std::string& baseDirectory,
+                                             const std::string& relativePath);
+  };
 }

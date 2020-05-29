@@ -53,7 +53,7 @@
 
 namespace Orthanc
 {
-  class HttpClient : public boost::noncopyable
+  class ORTHANC_PUBLIC HttpClient : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;
