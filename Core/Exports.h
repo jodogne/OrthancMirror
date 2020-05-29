@@ -33,46 +33,24 @@
 
 #pragma once
 
-#if defined(_WIN32) && !defined(NOMINMAX)
-#define NOMINMAX
-#endif
 
-#if ORTHANC_USE_PRECOMPILED_HEADERS == 1
-
-//#include <boost/date_time/posix_time/posix_time.hpp>
-//#include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
-//#include <boost/locale.hpp>
-//#include <boost/regex.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/shared_mutex.hpp>
-
-#include <json/value.h>
-
-#if ORTHANC_ENABLE_PUGIXML == 1
-#  include <pugixml.hpp>
-#endif
-
-#include "Compatibility.h"
-#include "Enumerations.h"
-#include "Exports.h"
-#include "Logging.h"
-#include "OrthancException.h"
-#include "Toolbox.h"
-
-#if ORTHANC_ENABLE_DCMTK == 1
-// Headers from DCMTK used in Orthanc headers 
-#  include <dcmtk/dcmdata/dcdatset.h>
-#  include <dcmtk/dcmdata/dcfilefo.h>
-#  include <dcmtk/dcmdata/dcmetinf.h>
-#  include <dcmtk/dcmdata/dcpixseq.h>
-#endif
-
-#if ORTHANC_ENABLE_DCMTK_NETWORKING == 1
-#  include "DicomNetworking/DicomServer.h"
-
-// Headers from DCMTK used in Orthanc headers 
-#  include <dcmtk/dcmnet/dimse.h>
-#endif
-
+// https://gcc.gnu.org/wiki/Visibility
+#if defined(_WIN32) || defined (__CYGWIN__)
+#  if !defined(BUILDING_ORTHANC_FRAMEWORK)
+#    error Macro BUILDING_ORTHANC_FRAMEWORK must be defined
+#  elif BUILDING_ORTHANC_FRAMEWORK == 1
+#    define ORTHANC_PUBLIC __declspec(dllexport)
+#  else
+#    define ORTHANC_PUBLIC __declspec(dllimport)
+#  endif
+#  define ORTHANC_LOCAL
+#else
+#  if __GNUC__ >= 4
+#    define ORTHANC_PUBLIC __attribute__ ((visibility ("default")))
+#    define ORTHANC_LOCAL  __attribute__ ((visibility ("hidden")))
+#  else
+#    define ORTHANC_PUBLIC
+#    define ORTHANC_LOCAL
+#    pragma warning Unknown dynamic link import/export semantics
+#  endif
 #endif
