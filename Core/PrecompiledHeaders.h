@@ -53,7 +53,7 @@
 #  include <pugixml.hpp>
 #endif
 
-#include "../Core/Compatibility.h"
+#include "Compatibility.h"
 #include "Enumerations.h"
 #include "Logging.h"
 #include "OrthancException.h"
