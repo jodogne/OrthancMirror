@@ -35,6 +35,7 @@
 #include "DicomControlUserConnection.h"
 
 #include "../Compatibility.h"
+#include "../DicomFormat/DicomArray.h"
 #include "../DicomParsing/FromDcmtkBridge.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
