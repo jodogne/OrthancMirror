@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "Exports.h"
 #include "Enumerations.h"
 #include "WebServiceParameters.h"
 
@@ -122,11 +123,13 @@ namespace Orthanc
                        HttpHeaders* answerHeaders);
 
   public:
+    //ORTHANC_PUBLIC
     HttpClient();
 
     HttpClient(const WebServiceParameters& service,
                const std::string& uri);
 
+    //ORTHANC_PUBLIC
     ~HttpClient();
 
     void SetUrl(const char* url)
