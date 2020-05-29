@@ -34,6 +34,8 @@
 #pragma once
 
 
+#if 0   // Test for the shared library
+
 // https://gcc.gnu.org/wiki/Visibility
 #if defined(_WIN32) || defined (__CYGWIN__)
 #  if !defined(BUILDING_ORTHANC_FRAMEWORK)
@@ -53,4 +55,6 @@
 #    define ORTHANC_LOCAL
 #    pragma warning Unknown dynamic link import/export semantics
 #  endif
+#endif
+
 #endif
