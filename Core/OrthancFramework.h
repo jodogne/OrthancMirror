@@ -41,8 +41,8 @@
 #ifndef __ORTHANC_FRAMEWORK_H
 #define __ORTHANC_FRAMEWORK_H
 
-#if !defined(ORTHANC_FRAMEWORK_BUILDING_PLUGIN)
-#  error Macro ORTHANC_FRAMEWORK_BUILDING_PLUGIN must be defined
+#if !defined(ORTHANC_FRAMEWORK_BUILDING_LIBRARY)
+#  error Macro ORTHANC_FRAMEWORK_BUILDING_LIBRARY must be defined
 #endif
 
 /**
@@ -51,7 +51,7 @@
  * common "BUILDING_DLL"
  * construction. https://gcc.gnu.org/wiki/Visibility
  **/
-#if ORTHANC_FRAMEWORK_BUILDING_PLUGIN == 0
+#if ORTHANC_FRAMEWORK_BUILDING_LIBRARY == 1
 #  if defined(_WIN32) || defined (__CYGWIN__)
 #    define ORTHANC_PUBLIC __declspec(dllexport)
 #    define ORTHANC_LOCAL
