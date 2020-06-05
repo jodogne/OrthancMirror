@@ -44,7 +44,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class Transaction : public ITransaction
+    class ORTHANC_PUBLIC Transaction : public ITransaction
     {
     private:
       Connection& connection_;

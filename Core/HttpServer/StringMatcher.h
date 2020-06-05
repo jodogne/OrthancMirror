@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -40,7 +42,7 @@
 namespace Orthanc
 {
   // Convenience class that wraps a Boost algorithm for string matching
-  class StringMatcher : public boost::noncopyable
+  class ORTHANC_PUBLIC StringMatcher : public boost::noncopyable
   {
   public:
     typedef std::string::const_iterator Iterator;

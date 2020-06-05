@@ -34,7 +34,7 @@
 #pragma once
 
 #include "DicomFormat/DicomTag.h"
-#include "Exports.h"
+#include "OrthancFramework.h"
 
 #include <json/value.h>
 #include <list>

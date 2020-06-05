@@ -43,7 +43,7 @@
 
 namespace Orthanc
 {
-  class DicomMap : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomMap : public boost::noncopyable
   {
   public:
     typedef std::map<DicomTag, DicomValue*>  Content;

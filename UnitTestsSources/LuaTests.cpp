@@ -31,6 +31,10 @@
  **/
 
 
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework/OrthancFramework.h>
+#endif
+
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
@@ -48,13 +52,20 @@
 TEST(Lua, Json)
 {
   Orthanc::LuaContext lua;
+
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1
   lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+#endif
+  
   lua.Execute("a={}");
   lua.Execute("a['x'] = 10");
   lua.Execute("a['y'] = {}");
   lua.Execute("a['y'][1] = 20");
   lua.Execute("a['y'][2] = 20");
+
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1
   lua.Execute("PrintRecursive(a)");
+#endif
 
   lua.Execute("function f(a) print(a.bool) return a.bool,20,30,40,50,60 end");
 
@@ -72,11 +83,13 @@ TEST(Lua, Json)
   o["z"] = 20.5f;
   v.append(o);
 
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1
   {
     Orthanc::LuaFunctionCall f(lua, "PrintRecursive");
     f.PushJson(v);
     f.Execute();
   }
+#endif
 
   {
     Orthanc::LuaFunctionCall f(lua, "f");
@@ -114,6 +127,7 @@ TEST(Lua, Existing)
 }
 
 
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1
 TEST(Lua, Simple)
 {
   Orthanc::LuaContext lua;
@@ -143,6 +157,7 @@ TEST(Lua, Simple)
     f.Execute();
   }
 }
+#endif
 
 
 TEST(Lua, ReturnJson)

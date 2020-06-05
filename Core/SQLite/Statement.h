@@ -67,7 +67,7 @@ namespace Orthanc
       COLUMN_TYPE_NULL = 5
     };
 
-    class Statement : public NonCopyable
+    class ORTHANC_PUBLIC Statement : public NonCopyable
     {
       friend class Connection;
 

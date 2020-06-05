@@ -19,7 +19,7 @@ if (SQLITE_STATIC)
   SET(SQLITE_MD5 "16717b26358ba81f0bfdac07addc77da")
   SET(SQLITE_URL "http://orthanc.osimis.io/ThirdPartyDownloads/sqlite-amalgamation-3270100.zip")
 
-  add_definitions(-DORTHANC_SQLITE_VERSION=3027001)
+  set(ORTHANC_SQLITE_VERSION 3027001)
 
   DownloadPackage(${SQLITE_MD5} ${SQLITE_URL} "${SQLITE_SOURCES_DIR}")
 
@@ -59,16 +59,19 @@ else()
   string(REGEX REPLACE "#define SQLITE_VERSION_NUMBER(.*)$" "\\1" SQLITE_VERSION_NUMBER2 ${SQLITE_VERSION_NUMBER1})
 
   # Remove the trailing spaces to convert the string to a proper integer
-  string(STRIP ${SQLITE_VERSION_NUMBER2} SQLITE_VERSION_NUMBER)
+  string(STRIP ${SQLITE_VERSION_NUMBER2} ORTHANC_SQLITE_VERSION)
 
-  message("Detected version of SQLite: ${SQLITE_VERSION_NUMBER}")
+  message("Detected version of SQLite: ${ORTHANC_SQLITE_VERSION}")
 
-  IF (${SQLITE_VERSION_NUMBER} LESS 3007000)
+  IF (${ORTHANC_SQLITE_VERSION} LESS 3007000)
     # "sqlite3_create_function_v2" is not defined in SQLite < 3.7.0
     message(FATAL_ERROR "SQLite version must be above 3.7.0. Please set the CMake variable USE_SYSTEM_SQLITE to OFF.")
   ENDIF()
 
-  add_definitions(-DORTHANC_SQLITE_VERSION=${SQLITE_VERSION_NUMBER})
-
   link_libraries(sqlite3)
 endif()
+
+
+add_definitions(
+  -DORTHANC_SQLITE_VERSION=${ORTHANC_SQLITE_VERSION}
+  )

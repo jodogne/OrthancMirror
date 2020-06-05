@@ -42,7 +42,7 @@
 
 namespace Orthanc
 {
-  class RestApiHierarchy : public boost::noncopyable
+  class ORTHANC_PUBLIC RestApiHierarchy : public boost::noncopyable
   {
   public:
     class Resource : public boost::noncopyable

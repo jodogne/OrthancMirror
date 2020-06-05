@@ -264,12 +264,9 @@ if (ENABLE_WEB_SERVER)
       -DORTHANC_ENABLE_CIVETWEB=1
       -DORTHANC_ENABLE_MONGOOSE=0
       )
+    set(ORTHANC_ENABLE_CIVETWEB 1)
   else()
     include(${CMAKE_CURRENT_LIST_DIR}/MongooseConfiguration.cmake)
-    add_definitions(
-      -DORTHANC_ENABLE_CIVETWEB=0
-      -DORTHANC_ENABLE_MONGOOSE=1
-      )
   endif()
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
@@ -291,6 +288,19 @@ if (ENABLE_WEB_SERVER)
     ${ORTHANC_ROOT}/Core/RestApi/RestApiPath.cpp
     )
 endif()
+
+if (ORTHANC_ENABLE_CIVETWEB)
+  add_definitions(-DORTHANC_ENABLE_CIVETWEB=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_CIVETWEB=0)
+endif()
+
+if (ORTHANC_ENABLE_MONGOOSE)
+  add_definitions(-DORTHANC_ENABLE_MONGOOSE=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_MONGOOSE=0)
+endif()
+
 
 
 ##
@@ -534,24 +544,20 @@ add_definitions(
 if (ORTHANC_SANDBOXED)
   add_definitions(
     -DORTHANC_SANDBOXED=1
-    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    add_definitions(
-      -DORTHANC_ENABLE_LOGGING=1
-      -DORTHANC_ENABLE_LOGGING_STDIO=1
-      )
+    set(ORTHANC_ENABLE_LOGGING ON)
+    set(ORTHANC_ENABLE_LOGGING_STDIO ON)
   else()
-    add_definitions(
-      -DORTHANC_ENABLE_LOGGING=0
-      )
+    set(ORTHANC_ENABLE_LOGGING OFF)
   endif()
   
 else()
+  set(ORTHANC_ENABLE_LOGGING ON)
+  set(ORTHANC_ENABLE_LOGGING_STDIO OFF)
+
   add_definitions(
-    -DORTHANC_ENABLE_LOGGING=1
-    -DORTHANC_ENABLE_LOGGING_STDIO=0
     -DORTHANC_SANDBOXED=0
     )
 
@@ -577,6 +583,26 @@ else()
 endif()
 
 
+
+if (ORTHANC_ENABLE_LOGGING)
+  add_definitions(-DORTHANC_ENABLE_LOGGING=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOGGING=0)
+endif()
+
+if (ORTHANC_ENABLE_LOGGING_PLUGIN)
+  add_definitions(-DORTHANC_ENABLE_LOGGING_PLUGIN=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOGGING_PLUGIN=0)
+endif()
+
+if (ORTHANC_ENABLE_LOGGING_STDIO)
+  add_definitions(-DORTHANC_ENABLE_LOGGING_STDIO=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOGGING_STDIO=0)
+endif()
+
+      
 if (HAS_EMBEDDED_RESOURCES)
   add_definitions(-DORTHANC_HAS_EMBEDDED_RESOURCES=1)
 

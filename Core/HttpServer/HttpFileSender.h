@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class HttpFileSender : public IHttpStreamAnswer
+  class ORTHANC_PUBLIC HttpFileSender : public IHttpStreamAnswer
   {
   private:
     std::string contentType_;

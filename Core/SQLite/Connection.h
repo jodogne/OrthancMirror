@@ -50,7 +50,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class Connection : NonCopyable
+    class ORTHANC_PUBLIC Connection : NonCopyable
     {
       friend class Statement;
       friend class Transaction;

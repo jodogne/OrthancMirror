@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class FilesystemHttpSender : public HttpFileSender
+  class ORTHANC_PUBLIC FilesystemHttpSender : public HttpFileSender
   {
   private:
     std::ifstream    file_;

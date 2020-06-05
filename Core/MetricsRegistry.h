@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -55,7 +57,7 @@ namespace Orthanc
     MetricsType_MinOver1Minute
   };
   
-  class MetricsRegistry : public boost::noncopyable
+  class ORTHANC_PUBLIC MetricsRegistry : public boost::noncopyable
   {
   private:
     class Item;

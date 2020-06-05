@@ -37,6 +37,12 @@
 
 #pragma once
 
+#if ORTHANC_SQLITE_STANDALONE == 1
+#  define ORTHANC_PUBLIC
+#else
+#  include "../OrthancFramework.h"
+#endif
+
 #include "NonCopyable.h"
 #include "SQLiteTypes.h"
 
@@ -49,7 +55,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class StatementReference : NonCopyable
+    class ORTHANC_PUBLIC StatementReference : NonCopyable
     {
     private:
       StatementReference* root_;   // Only used for non-root nodes

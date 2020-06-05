@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class DicomArray : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomArray : public boost::noncopyable
   {
   private:
     typedef std::vector<DicomElement*>  Elements;

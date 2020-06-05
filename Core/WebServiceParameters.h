@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -44,7 +46,7 @@
 
 namespace Orthanc
 {
-  class WebServiceParameters
+  class ORTHANC_PUBLIC WebServiceParameters
   {
   public:
     typedef std::map<std::string, std::string>  Dictionary;

@@ -33,26 +33,26 @@
 
 #pragma once
 
+/**
+ * Besides the "pragma once" above that only protects this file,
+ * define a macro to prevent including different versions of
+ * "OrthancFramework.h"
+ **/
+#ifndef __ORTHANC_FRAMEWORK_H
+#define __ORTHANC_FRAMEWORK_H
 
-//#define ORTHANC_PUBLIC __attribute__ ((visibility ("default")))
-#define ORTHANC_PUBLIC
-
-#if 0   // Test for the shared library
-
-// https://gcc.gnu.org/wiki/Visibility
+/**
+ * It is implied that if this file is used, we're building the Orthanc
+ * framework (not using it): We don't use the common "BUILDING_DLL"
+ * construction. https://gcc.gnu.org/wiki/Visibility
+ **/
 #if defined(_WIN32) || defined (__CYGWIN__)
-#  if !defined(BUILDING_ORTHANC_FRAMEWORK)
-#    error Macro BUILDING_ORTHANC_FRAMEWORK must be defined
-#  elif BUILDING_ORTHANC_FRAMEWORK == 1
-#    define ORTHANC_PUBLIC __declspec(dllexport)
-#  else
-#    define ORTHANC_PUBLIC __declspec(dllimport)
-#  endif
+#  define ORTHANC_PUBLIC __declspec(dllexport)
 #  define ORTHANC_LOCAL
 #else
 #  if __GNUC__ >= 4
-#    define ORTHANC_PUBLIC __attribute__ ((visibility ("default")))
-#    define ORTHANC_LOCAL  __attribute__ ((visibility ("hidden")))
+#    define ORTHANC_PUBLIC __attribute__((visibility ("default")))
+#    define ORTHANC_LOCAL  __attribute__((visibility ("hidden")))
 #  else
 #    define ORTHANC_PUBLIC
 #    define ORTHANC_LOCAL
@@ -60,4 +60,4 @@
 #  endif
 #endif
 
-#endif
+#endif /* __ORTHANC_FRAMEWORK_H */

@@ -42,7 +42,7 @@
 #endif
 
 #include "Enumerations.h"
-#include "Exports.h"
+#include "OrthancFramework.h"
 
 #include <map>
 #include <vector>

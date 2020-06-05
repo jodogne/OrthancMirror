@@ -37,11 +37,17 @@
 
 #pragma once
 
+#if ORTHANC_SQLITE_STANDALONE == 1
+#  define ORTHANC_PUBLIC
+#else
+#  include "../OrthancFramework.h"
+#endif
+
 namespace Orthanc
 {
   namespace SQLite
   {
-    class StatementId
+    class ORTHANC_PUBLIC StatementId
     {
     private:
       const char* file_;

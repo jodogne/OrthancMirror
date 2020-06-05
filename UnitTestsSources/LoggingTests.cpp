@@ -30,6 +30,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework/OrthancFramework.h>
+#endif
+
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 #include <boost/regex.hpp>

@@ -34,7 +34,7 @@
 #pragma once
 
 #include "Enumerations.h"
-#include "Exports.h"
+#include "OrthancFramework.h"
 
 #include <stdint.h>
 #include <vector>

@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #include <string>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class IBufferCompressor : public boost::noncopyable
+  class ORTHANC_PUBLIC IBufferCompressor : public boost::noncopyable
   {
   public:
     virtual ~IBufferCompressor()

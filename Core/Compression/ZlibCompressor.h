@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class ZlibCompressor : public DeflateBaseCompressor
+  class ORTHANC_PUBLIC ZlibCompressor : public DeflateBaseCompressor
   {
   public:
     ZlibCompressor()

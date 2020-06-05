@@ -40,7 +40,7 @@ namespace Orthanc
 {
   namespace SQLite
   {
-    class FunctionContext : public NonCopyable
+    class ORTHANC_PUBLIC FunctionContext : public NonCopyable
     {
       friend class Connection;
 

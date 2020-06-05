@@ -43,14 +43,13 @@ class DcmFileFormat;
 
 namespace Orthanc
 {
+  class ParsedDicomFile;
+  
   /**
    * WARNING: This class might be called from several threads at
    * once. Make sure to implement proper locking.
    **/
-
-  class ParsedDicomFile;
-  
-  class IDicomTranscoder : public boost::noncopyable
+  class ORTHANC_PUBLIC IDicomTranscoder : public boost::noncopyable
   {
   public:
     class DicomImage : public boost::noncopyable

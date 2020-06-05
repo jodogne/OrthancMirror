@@ -31,6 +31,10 @@
  **/
 
 
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework/OrthancFramework.h>
+#endif
+
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 

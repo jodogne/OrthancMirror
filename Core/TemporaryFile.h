@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -41,11 +43,12 @@
 #  error The class TemporaryFile cannot be used in sandboxed environments
 #endif
 
+#include <boost/noncopyable.hpp>
 #include <string>
 
 namespace Orthanc
 {
-  class TemporaryFile
+  class ORTHANC_PUBLIC TemporaryFile : public boost::noncopyable
   {
   private:
     std::string path_;

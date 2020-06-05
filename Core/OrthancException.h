@@ -35,8 +35,8 @@
 
 #include "Compatibility.h"
 #include "Enumerations.h"
-#include "Exports.h"
 #include "Logging.h"
+#include "OrthancFramework.h"
 
 #include <stdint.h>
 #include <string>

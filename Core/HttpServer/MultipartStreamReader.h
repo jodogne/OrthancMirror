@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class MultipartStreamReader : public boost::noncopyable
+  class ORTHANC_PUBLIC MultipartStreamReader : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;

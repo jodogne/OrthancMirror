@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class DicomElement : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomElement : public boost::noncopyable
   {
   private:
     DicomTag tag_;

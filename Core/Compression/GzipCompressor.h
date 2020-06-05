@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class GzipCompressor : public DeflateBaseCompressor
+  class ORTHANC_PUBLIC GzipCompressor : public DeflateBaseCompressor
   {
   private:
     uint64_t GuessUncompressedSize(const void* compressed,

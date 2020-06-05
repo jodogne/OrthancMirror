@@ -33,6 +33,9 @@
 
 #pragma once
 
+// To have ORTHANC_ENABLE_LUA defined if using the shared library
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_ENABLE_LUA)
 #  error The macro ORTHANC_ENABLE_LUA must be defined
 #endif
@@ -60,7 +63,7 @@ extern "C"
 
 namespace Orthanc
 {
-  class LuaContext : public boost::noncopyable
+  class ORTHANC_PUBLIC LuaContext : public boost::noncopyable
   {
   private:
     friend class LuaFunctionCall;

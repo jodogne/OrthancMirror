@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_ENABLE_ZLIB)
 #  error The macro ORTHANC_ENABLE_ZLIB must be defined
 #endif
@@ -44,11 +46,12 @@
 
 #include <stdint.h>
 #include <string>
+#include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class ZipWriter
+  class ORTHANC_PUBLIC ZipWriter : public boost::noncopyable
   {
   private:
     struct PImpl;

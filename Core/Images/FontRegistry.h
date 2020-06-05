@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class FontRegistry : public boost::noncopyable
+  class ORTHANC_PUBLIC FontRegistry : public boost::noncopyable
   {
   private:
     typedef std::vector<Font*>  Fonts;

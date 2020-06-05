@@ -36,7 +36,7 @@
 
 namespace Orthanc
 {
-  class BufferHttpSender : public HttpFileSender
+  class ORTHANC_PUBLIC BufferHttpSender : public HttpFileSender
   {
   private:
     std::string  buffer_;
