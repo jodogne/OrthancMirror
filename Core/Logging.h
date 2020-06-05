@@ -64,6 +64,14 @@ namespace Orthanc
 {
   namespace Logging
   {
+    enum Level
+    {
+      Level_ERROR,
+      Level_WARNING,
+      Level_INFO,
+      Level_TRACE
+    };
+    
 #if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
     // "pluginContext" must be of type "OrthancPluginContext"
     ORTHANC_PUBLIC void Initialize(void* pluginContext);
@@ -124,30 +132,22 @@ namespace Orthanc
 
 #  include <boost/noncopyable.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger                \
-  (::Orthanc::Logging::InternalLevel_ ## level, __FILE__, __LINE__)
+  (::Orthanc::Logging::Level_ ## level, __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger        \
-  (::Orthanc::Logging::InternalLevel_TRACE, __FILE__, __LINE__)
+  (::Orthanc::Logging::Level_TRACE, __FILE__, __LINE__)
 
 namespace Orthanc
 {
   namespace Logging
   {
-    enum InternalLevel
-    {
-      InternalLevel_ERROR,
-      InternalLevel_WARNING,
-      InternalLevel_INFO,
-      InternalLevel_TRACE
-    };
-    
     class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
     {
     private:
-      InternalLevel       level_;
+      Level       level_;
       std::stringstream   messageStream_;
 
     public:
-      InternalLogger(InternalLevel level,
+      InternalLogger(Level level,
                      const char* file,
                      int line);
 
