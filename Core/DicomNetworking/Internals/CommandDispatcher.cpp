@@ -251,14 +251,14 @@ namespace Orthanc
       OFCondition cond = ASC_dropSCPAssociation(assoc);
       if (cond.bad())
       {
-        LOG(FATAL) << cond.text();
+        LOG(ERROR) << cond.text();
         return cond;
       }
 
       cond = ASC_destroyAssociation(&assoc);
       if (cond.bad())
       {
-        LOG(FATAL) << cond.text();
+        LOG(ERROR) << cond.text();
         return cond;
       }
 
