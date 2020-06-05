@@ -544,6 +544,7 @@ add_definitions(
 if (ORTHANC_SANDBOXED)
   add_definitions(
     -DORTHANC_SANDBOXED=1
+    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
@@ -588,12 +589,6 @@ if (ORTHANC_ENABLE_LOGGING)
   add_definitions(-DORTHANC_ENABLE_LOGGING=1)
 else()
   add_definitions(-DORTHANC_ENABLE_LOGGING=0)
-endif()
-
-if (ORTHANC_ENABLE_LOGGING_PLUGIN)
-  add_definitions(-DORTHANC_ENABLE_LOGGING_PLUGIN=1)
-else()
-  add_definitions(-DORTHANC_ENABLE_LOGGING_PLUGIN=0)
 endif()
 
 if (ORTHANC_ENABLE_LOGGING_STDIO)
