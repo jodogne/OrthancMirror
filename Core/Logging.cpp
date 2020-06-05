@@ -34,6 +34,62 @@
 #include "PrecompiledHeaders.h"
 #include "Logging.h"
 
+#include "OrthancException.h"
+
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    const char* EnumerationToString(LogLevel level)
+    {
+      switch (level)
+      {
+        case LogLevel_ERROR:
+          return "ERROR";
+
+        case LogLevel_WARNING:
+          return "WARNING";
+
+        case LogLevel_INFO:
+          return "INFO";
+
+        case LogLevel_TRACE:
+          return "TRACE";
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    LogLevel StringToLogLevel(const char *level)
+    {
+      if (strcmp(level, "ERROR") == 0)
+      {
+        return LogLevel_ERROR;
+      }
+      else if (strcmp(level, "WARNING") == 0)
+      {
+        return LogLevel_WARNING;
+      }
+      else if (strcmp(level, "INFO") == 0)
+      {
+        return LogLevel_INFO;
+      }
+      else if (strcmp(level, "TRACE") == 0)
+      {
+        return LogLevel_TRACE;
+      }
+      else 
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+}
+
+
 #if ORTHANC_ENABLE_LOGGING != 1
 
 namespace Orthanc
@@ -167,7 +223,7 @@ namespace Orthanc
       globalTraceLogFunc = traceLogFunc;
     }
 
-    InternalLogger::InternalLogger(Level level,
+    InternalLogger::InternalLogger(LogLevel level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -180,15 +236,15 @@ namespace Orthanc
 
       switch (level_)
       {
-        case Level_ERROR:
+        case LogLevel_ERROR:
           globalErrorLogFunc(message.c_str());
           break;
 
-        case Level_WARNING:
+        case LogLevel_WARNING:
           globalWarningLogFunc(message.c_str());
           break;
 
-        case Level_INFO:
+        case LogLevel_INFO:
           if (globalVerbose_)
           {
             globalInfoLogFunc(message.c_str());
@@ -196,7 +252,7 @@ namespace Orthanc
           }
           break;
 
-        case Level_TRACE:
+        case LogLevel_TRACE:
           if (globalTrace_)
           {
             globalTraceLogFunc(message.c_str());
@@ -310,7 +366,7 @@ namespace Orthanc
       context_ = reinterpret_cast<OrthancPluginContext*>(context);
     }
 
-    InternalLogger::InternalLogger(Level level,
+    InternalLogger::InternalLogger(LogLevel level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -324,19 +380,19 @@ namespace Orthanc
       {
         switch (level_)
         {
-          case Level_ERROR:
+          case LogLevel_ERROR:
             context_->InvokeService(context_, _OrthancPluginService_LogError, message.c_str());
             break;
 
-          case Level_WARNING:
+          case LogLevel_WARNING:
             context_->InvokeService(context_, _OrthancPluginService_LogWarning, message.c_str());
             break;
 
-          case Level_INFO:
+          case LogLevel_INFO:
             context_->InvokeService(context_, _OrthancPluginService_LogInfo, message.c_str());
             break;
 
-          case Level_TRACE:
+          case LogLevel_TRACE:
             // Not used by plugins
             break;
 
@@ -364,7 +420,6 @@ namespace Orthanc
  *********************************************************/
 
 #include "Compatibility.h"
-#include "OrthancException.h"
 #include "Enumerations.h"
 #include "Toolbox.h"
 
@@ -678,7 +733,7 @@ namespace Orthanc
     }
 
 
-    InternalLogger::InternalLogger(const char* level,
+    InternalLogger::InternalLogger(LogLevel level,
                                    const char* file,
                                    int line) : 
       lock_(loggingMutex_), 
@@ -692,10 +747,8 @@ namespace Orthanc
 
       try
       {
-        LogLevel l = StringToLogLevel(level);
-      
-        if ((l == LogLevel_Info  && !loggingContext_->infoEnabled_) ||
-            (l == LogLevel_Trace && !loggingContext_->traceEnabled_))
+        if ((level == LogLevel_INFO  && !loggingContext_->infoEnabled_) ||
+            (level == LogLevel_TRACE && !loggingContext_->traceEnabled_))
         {
           // This logging level is disabled, directly exit and unlock
           // the mutex to speed-up things. The stream is set to "/dev/null"
@@ -734,9 +787,32 @@ namespace Orthanc
              In this implementation, "threadid" is not printed.
           **/
 
+          char prefix;
+          switch (level)
+          {
+            case LogLevel_ERROR:
+              prefix = 'E';
+              break;
+
+            case LogLevel_WARNING:
+              prefix = 'W';
+              break;
+
+            case LogLevel_INFO:
+              prefix = 'I';
+              break;
+
+            case LogLevel_TRACE:
+              prefix = 'T';
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);            
+          }
+
           char date[64];
           sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
-                  level[0],
+                  prefix,
                   now.date().month().as_number(),
                   now.date().day().as_number(),
                   static_cast<int>(duration.hours()),
@@ -760,17 +836,17 @@ namespace Orthanc
           return;
         }
 
-        switch (l)
+        switch (level)
         {
-          case LogLevel_Error:
+          case LogLevel_ERROR:
             stream_ = loggingContext_->error_;
             break;
 
-          case LogLevel_Warning:
+          case LogLevel_WARNING:
             stream_ = loggingContext_->warning_;
             break;
 
-          case LogLevel_Info:
+          case LogLevel_INFO:
             if (loggingContext_->infoEnabled_)
             {
               stream_ = loggingContext_->info_;
@@ -778,7 +854,7 @@ namespace Orthanc
 
             break;
 
-          case LogLevel_Trace:
+          case LogLevel_TRACE:
             if (loggingContext_->traceEnabled_)
             {
               stream_ = loggingContext_->info_;

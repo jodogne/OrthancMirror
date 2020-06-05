@@ -296,14 +296,6 @@ namespace Orthanc
     DicomTransferSyntax_XML    /*!< XML Encoding */
   };
 
-  enum LogLevel
-  {
-    LogLevel_Error,
-    LogLevel_Warning,
-    LogLevel_Info,
-    LogLevel_Trace
-  };
-
 
   /**
    * {summary}{The memory layout of the pixels (resp. voxels) of a 2D (resp. 3D) image.}
@@ -829,9 +821,6 @@ namespace Orthanc
   const char* EnumerationToString(PhotometricInterpretation photometric);
 
   ORTHANC_PUBLIC
-  const char* EnumerationToString(LogLevel level);
-
-  ORTHANC_PUBLIC
   const char* EnumerationToString(RequestOrigin origin);
 
   ORTHANC_PUBLIC
@@ -872,9 +861,6 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   ImageFormat StringToImageFormat(const char* format);
-
-  ORTHANC_PUBLIC
-  LogLevel StringToLogLevel(const char* level);
 
   ORTHANC_PUBLIC
   ValueRepresentation StringToValueRepresentation(const std::string& vr,
