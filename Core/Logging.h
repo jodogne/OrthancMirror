@@ -151,8 +151,8 @@ namespace Orthanc
     class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
     {
     private:
-      LogLevel       level_;
-      std::stringstream   messageStream_;
+      LogLevel           level_;
+      std::stringstream  messageStream_;
 
     public:
       InternalLogger(LogLevel level,
@@ -162,10 +162,10 @@ namespace Orthanc
       ~InternalLogger();
       
       template <typename T>
-        InternalLogger& operator<< (const T& message)
+        std::ostream& operator<< (const T& message)
       {
         messageStream_ << message;
-        return *this;
+        return messageStream_;
       }
     };
   }
