@@ -85,70 +85,6 @@ namespace Orthanc
 }
 
 
-#elif ORTHANC_ENABLE_LOGGING_PLUGIN == 1
-
-/*********************************************************
- * Logger compatible with the Orthanc plugin SDK
- *********************************************************/
-
-#include <boost/lexical_cast.hpp>
-#include <sstream>
-
-namespace Orthanc
-{
-  namespace Logging
-  {
-    static OrthancPluginContext* context_ = NULL;
-
-    void Initialize(OrthancPluginContext* context)
-    {
-      context_ = context;
-    }
-
-    InternalLogger::InternalLogger(InternalLevel level,
-                                   const char* file  /* ignored */,
-                                   int line  /* ignored */) :
-      level_(level)
-    {
-    }
-
-    InternalLogger::~InternalLogger()
-    {
-      std::string message = messageStream_.str();
-      if (context_ != NULL)
-      {
-        switch (level_)
-        {
-          case InternalLevel_ERROR:
-            OrthancPluginLogError(context_, message.c_str());
-            break;
-
-          case InternalLevel_WARNING:
-            OrthancPluginLogWarning(context_, message.c_str());
-            break;
-
-          case InternalLevel_INFO:
-            OrthancPluginLogInfo(context_, message.c_str());
-            break;
-
-          case InternalLevel_TRACE:
-            // Not used by plugins
-            break;
-
-          default:
-          {
-            std::string s = ("Unknown log level (" + boost::lexical_cast<std::string>(level_) +
-                             ") for message: " + message);
-            OrthancPluginLogError(context_, s.c_str());
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
-
 #elif ORTHANC_ENABLE_LOGGING_STDIO == 1
 
 /*********************************************************
@@ -172,43 +108,43 @@ namespace Orthanc
     static bool globalTrace_ = false;
     
 #ifdef __EMSCRIPTEN__
-    void defaultErrorLogFunc(const char* msg)
+    static void defaultErrorLogFunc(const char* msg)
     {
       emscripten_console_error(msg);
     }
 
-    void defaultWarningLogFunc(const char* msg)
+    static void defaultWarningLogFunc(const char* msg)
     {
       emscripten_console_warn(msg);
     }
 
-    void defaultInfoLogFunc(const char* msg)
+    static void defaultInfoLogFunc(const char* msg)
     {
       emscripten_console_log(msg);
     }
 
-    void defaultTraceLogFunc(const char* msg)
+    static void defaultTraceLogFunc(const char* msg)
     {
       emscripten_console_log(msg);
     }
 #else
 // __EMSCRIPTEN__ not #defined
-    void defaultErrorLogFunc(const char* msg)
+    static void defaultErrorLogFunc(const char* msg)
     {
       fprintf(stderr, "E: %s\n", msg);
     }
 
-    void defaultWarningLogFunc(const char*)
+    static void defaultWarningLogFunc(const char*)
     {
       fprintf(stdout, "W: %s\n", msg);
     }
 
-    void defaultInfoLogFunc(const char*)
+    static void defaultInfoLogFunc(const char*)
     {
       fprintf(stdout, "I: %s\n", msg);
     }
 
-    void defaultTraceLogFunc(const char*)
+    static void defaultTraceLogFunc(const char*)
     {
       fprintf(stdout, "T: %s\n", msg);
     }
@@ -220,11 +156,10 @@ namespace Orthanc
     static LoggingFunction globalInfoLogFunc = defaultInfoLogFunc;
     static LoggingFunction globalTraceLogFunc = defaultTraceLogFunc;
 
-    void SetErrorWarnInfoTraceLoggingFunctions(
-      LoggingFunction errorLogFunc,
-      LoggingFunction warningLogfunc,
-      LoggingFunction infoLogFunc,
-      LoggingFunction traceLogFunc)
+    void SetErrorWarnInfoTraceLoggingFunctions(LoggingFunction errorLogFunc,
+                                               LoggingFunction warningLogfunc,
+                                               LoggingFunction infoLogFunc,
+                                               LoggingFunction traceLogFunc)
     {
       globalErrorLogFunc = errorLogFunc;
       globalWarningLogFunc = warningLogfunc;
@@ -282,6 +217,18 @@ namespace Orthanc
     {
     }
 
+    void Finalize()
+    {
+    }
+
+    void Reset()
+    {
+    }
+
+    void Flush()
+    {
+    }
+
     void EnableInfoLevel(bool enabled)
     {
       globalVerbose_ = enabled;
@@ -302,6 +249,107 @@ namespace Orthanc
       return globalTrace_;
     }
 
+    void SetTargetFile(const std::string& path)
+    {
+    }
+
+    void SetTargetFolder(const std::string& path)
+    {
+    }
+  }
+}
+
+
+#elif ORTHANC_ENABLE_LOGGING_PLUGIN == 1
+
+/*********************************************************
+ * Logger compatible with the Orthanc plugin SDK
+ *********************************************************/
+
+#include <cassert>
+
+namespace
+{
+  /**
+   * This is minimal implementation of the context for an Orthanc
+   * plugin, limited to the logging facilities, and that is binary
+   * compatible with the definitions of "OrthancCPlugin.h"
+   **/
+  typedef enum 
+  {
+    _OrthancPluginService_LogInfo = 1,
+    _OrthancPluginService_LogWarning = 2,
+    _OrthancPluginService_LogError = 3,
+    _OrthancPluginService_INTERNAL = 0x7fffffff
+  } _OrthancPluginService;
+
+  typedef struct _OrthancPluginContext_t
+  {
+    void*          pluginsManager;
+    const char*    orthancVersion;
+    void         (*Free) (void* buffer);
+    int32_t      (*InvokeService) (struct _OrthancPluginContext_t* context,
+                                   _OrthancPluginService service,
+                                   const void* params);
+  } OrthancPluginContext;
+}
+  
+
+#include <boost/lexical_cast.hpp>
+#include <sstream>
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    static OrthancPluginContext* context_ = NULL;
+
+    void Initialize(void* context)
+    {
+      assert(sizeof(_OrthancPluginService) == sizeof(int32_t));
+      context_ = reinterpret_cast<OrthancPluginContext*>(context);
+    }
+
+    InternalLogger::InternalLogger(InternalLevel level,
+                                   const char* file  /* ignored */,
+                                   int line  /* ignored */) :
+      level_(level)
+    {
+    }
+
+    InternalLogger::~InternalLogger()
+    {
+      std::string message = messageStream_.str();
+      if (context_ != NULL)
+      {
+        switch (level_)
+        {
+          case InternalLevel_ERROR:
+            context_->InvokeService(context_, _OrthancPluginService_LogError, message.c_str());
+            break;
+
+          case InternalLevel_WARNING:
+            context_->InvokeService(context_, _OrthancPluginService_LogWarning, message.c_str());
+            break;
+
+          case InternalLevel_INFO:
+            context_->InvokeService(context_, _OrthancPluginService_LogInfo, message.c_str());
+            break;
+
+          case InternalLevel_TRACE:
+            // Not used by plugins
+            break;
+
+          default:
+          {
+            std::string s = ("Unknown log level (" + boost::lexical_cast<std::string>(level_) +
+                             ") for message: " + message);
+            context_->InvokeService(context_, _OrthancPluginService_LogInfo, s.c_str());
+            break;
+          }
+        }
+      }
+    }
   }
 }
 
