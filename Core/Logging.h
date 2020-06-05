@@ -69,28 +69,28 @@ namespace Orthanc
   namespace Logging
   {
 #if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
-    void Initialize(OrthancPluginContext* context) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void Initialize(OrthancPluginContext* context);
 #else
-    void Initialize() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void Initialize();
 #endif
 
-    void Finalize() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void Finalize();
 
-    void Reset() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void Reset();
 
-    void Flush() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void Flush();
 
-    void EnableInfoLevel(bool enabled) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void EnableInfoLevel(bool enabled);
 
-    void EnableTraceLevel(bool enabled) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void EnableTraceLevel(bool enabled);
 
-    bool IsTraceLevelEnabled() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC bool IsTraceLevelEnabled();
 
-    bool IsInfoLevelEnabled() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC bool IsInfoLevelEnabled();
 
-    void SetTargetFile(const std::string& path) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void SetTargetFile(const std::string& path);
 
-    void SetTargetFolder(const std::string& path) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void SetTargetFolder(const std::string& path);
 
 #if ORTHANC_ENABLE_LOGGING_STDIO == 1
     typedef void (*LoggingFunction)(const char*);
@@ -128,9 +128,9 @@ namespace Orthanc
        ORTHANC_ENABLE_LOGGING_STDIO == 1)
 
 #  include <boost/noncopyable.hpp>
-#  define LOG(level)  ::Orthanc::Logging::InternalLogger \
+#  define LOG(level)  ::Orthanc::Logging::InternalLogger                \
   (::Orthanc::Logging::InternalLevel_ ## level, __FILE__, __LINE__)
-#  define VLOG(level) ::Orthanc::Logging::InternalLogger \
+#  define VLOG(level) ::Orthanc::Logging::InternalLogger        \
   (::Orthanc::Logging::InternalLevel_TRACE, __FILE__, __LINE__)
 
 namespace Orthanc
@@ -159,7 +159,7 @@ namespace Orthanc
       ~InternalLogger();
       
       template <typename T>
-      InternalLogger& operator<< (const T& message)
+        InternalLogger& operator<< (const T& message)
       {
         messageStream_ << message;
         return *this;
@@ -198,74 +198,74 @@ namespace Orthanc
       ~InternalLogger();
       
       template <typename T>
-      std::ostream& operator<< (const T& message)
+        std::ostream& operator<< (const T& message)
       {
         return (*stream_) << boost::lexical_cast<std::string>(message);
       }
     };
 
     /**
-    opaque pointer that represents the state of the logging configuration
+       opaque pointer that represents the state of the logging configuration
     */
     typedef void* LoggingMemento;
 
     /**
-    Returns an object that contains the logging configuration.
+       Returns an object that contains the logging configuration.
 
-    This function allocates resources that you must dispose of by
-    using either RestoreLoggingMemento or DiscardLoggingMemento.
+       This function allocates resources that you must dispose of by
+       using either RestoreLoggingMemento or DiscardLoggingMemento.
 
-    This function is only to be used by tests.
+       This function is only to be used by tests.
     */
-    LoggingMemento CreateLoggingMemento() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC LoggingMemento CreateLoggingMemento();
 
     /**
-    Restores the logging configuration. The logging system is restored in 
-    the state it was in when the memento object was created through 
-    GetLoggingMemento().
+       Restores the logging configuration. The logging system is restored in 
+       the state it was in when the memento object was created through 
+       GetLoggingMemento().
 
-    After calling this function, the memento object may not be used 
-    again
+       After calling this function, the memento object may not be used 
+       again
 
-    This function is only to be used by tests.
+       This function is only to be used by tests.
     */
-    void RestoreLoggingMemento(LoggingMemento memento) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void RestoreLoggingMemento(LoggingMemento memento);
 
     /**
-    Call this function if you do not plan on restoring the logging 
-    configuration state that you captured with CreateLoggingMemento
+       Call this function if you do not plan on restoring the logging 
+       configuration state that you captured with CreateLoggingMemento
 
-    This function is only to be used by tests.
+       This function is only to be used by tests.
     */
-    void DiscardLoggingMemento(LoggingMemento memento) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void DiscardLoggingMemento(LoggingMemento memento);
 
     /**
-      Set custom logging streams for the error, warning and info logs.
-      This function may not be called if a log file or folder has been 
-      set beforehand. All three pointers must be valid and cannot be NULL.
+       Set custom logging streams for the error, warning and info logs.
+       This function may not be called if a log file or folder has been 
+       set beforehand. All three pointers must be valid and cannot be NULL.
 
-      Please ensure the supplied streams remain alive and valid as long as
-      logging calls are performed.
+       Please ensure the supplied streams remain alive and valid as long as
+       logging calls are performed.
 
-      In order to prevent dangling pointer usage, it is recommended to call
-      Orthanc::Logging::Reset() before the stream objects are destroyed and 
-      the pointers become invalid.
+       In order to prevent dangling pointer usage, it is recommended to call
+       Orthanc::Logging::Reset() before the stream objects are destroyed and 
+       the pointers become invalid.
     */
-    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
-                                        std::ostream* warningStream, 
-                                        std::ostream* infoStream) ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
+                                                       std::ostream* warningStream, 
+                                                       std::ostream* infoStream);
 
 #ifdef __EMSCRIPTEN__
     /**
-      This function will change the logging streams so that the logging functions 
-      provided by emscripten html5.h API functions are used : it will change the 
-      error_, warning_ and info_  stream objects so that their operator<< writes 
-      into the browser console using emscripten_console_error(), 
-      emscripten_console_warn() and emscripten_console_log(). This will allow for
-      logging levels to be correctly handled by the browser when the code executes
-      in Web Assembly
+       This function will change the logging streams so that the logging functions 
+       provided by emscripten html5.h API functions are used : it will change the 
+       error_, warning_ and info_  stream objects so that their operator<< writes 
+       into the browser console using emscripten_console_error(), 
+       emscripten_console_warn() and emscripten_console_log(). This will allow for
+       logging levels to be correctly handled by the browser when the code executes
+       in Web Assembly
     */
-    void EnableEmscriptenLogging() ORTHANC_PUBLIC;
+    ORTHANC_PUBLIC void EnableEmscriptenLogging();
 #endif
   }
 }
