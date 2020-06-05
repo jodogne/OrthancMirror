@@ -41,23 +41,33 @@
 #ifndef __ORTHANC_FRAMEWORK_H
 #define __ORTHANC_FRAMEWORK_H
 
+#if !defined(ORTHANC_FRAMEWORK_BUILDING_PLUGIN)
+#  error Macro ORTHANC_FRAMEWORK_BUILDING_PLUGIN must be defined
+#endif
+
 /**
  * It is implied that if this file is used, we're building the Orthanc
- * framework (not using it): We don't use the common "BUILDING_DLL"
+ * framework (not using it as a shared library): We don't use the
+ * common "BUILDING_DLL"
  * construction. https://gcc.gnu.org/wiki/Visibility
  **/
-#if defined(_WIN32) || defined (__CYGWIN__)
-#  define ORTHANC_PUBLIC __declspec(dllexport)
-#  define ORTHANC_LOCAL
-#else
-#  if __GNUC__ >= 4
-#    define ORTHANC_PUBLIC __attribute__((visibility ("default")))
-#    define ORTHANC_LOCAL  __attribute__((visibility ("hidden")))
-#  else
-#    define ORTHANC_PUBLIC
+#if ORTHANC_FRAMEWORK_BUILDING_PLUGIN == 0
+#  if defined(_WIN32) || defined (__CYGWIN__)
+#    define ORTHANC_PUBLIC __declspec(dllexport)
 #    define ORTHANC_LOCAL
-#    pragma warning Unknown dynamic link import/export semantics
+#  else
+#    if __GNUC__ >= 4
+#      define ORTHANC_PUBLIC __attribute__((visibility ("default")))
+#      define ORTHANC_LOCAL  __attribute__((visibility ("hidden")))
+#    else
+#      define ORTHANC_PUBLIC
+#      define ORTHANC_LOCAL
+#      pragma warning Unknown dynamic link import/export semantics
+#    endif
 #  endif
+#else
+#  define ORTHANC_PUBLIC
+#  define ORTHANC_LOCAL
 #endif
 
 #endif /* __ORTHANC_FRAMEWORK_H */

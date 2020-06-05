@@ -167,7 +167,7 @@ namespace Orthanc
       globalTraceLogFunc = traceLogFunc;
     }
 
-    InternalLogger::InternalLogger(InternalLevel level,
+    InternalLogger::InternalLogger(Level level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -180,15 +180,15 @@ namespace Orthanc
 
       switch (level_)
       {
-        case InternalLevel_ERROR:
+        case Level_ERROR:
           globalErrorLogFunc(message.c_str());
           break;
 
-        case InternalLevel_WARNING:
+        case Level_WARNING:
           globalWarningLogFunc(message.c_str());
           break;
 
-        case InternalLevel_INFO:
+        case Level_INFO:
           if (globalVerbose_)
           {
             globalInfoLogFunc(message.c_str());
@@ -196,7 +196,7 @@ namespace Orthanc
           }
           break;
 
-        case InternalLevel_TRACE:
+        case Level_TRACE:
           if (globalTrace_)
           {
             globalTraceLogFunc(message.c_str());
@@ -310,7 +310,7 @@ namespace Orthanc
       context_ = reinterpret_cast<OrthancPluginContext*>(context);
     }
 
-    InternalLogger::InternalLogger(InternalLevel level,
+    InternalLogger::InternalLogger(Level level,
                                    const char* file  /* ignored */,
                                    int line  /* ignored */) :
       level_(level)
@@ -324,19 +324,19 @@ namespace Orthanc
       {
         switch (level_)
         {
-          case InternalLevel_ERROR:
+          case Level_ERROR:
             context_->InvokeService(context_, _OrthancPluginService_LogError, message.c_str());
             break;
 
-          case InternalLevel_WARNING:
+          case Level_WARNING:
             context_->InvokeService(context_, _OrthancPluginService_LogWarning, message.c_str());
             break;
 
-          case InternalLevel_INFO:
+          case Level_INFO:
             context_->InvokeService(context_, _OrthancPluginService_LogInfo, message.c_str());
             break;
 
-          case InternalLevel_TRACE:
+          case Level_TRACE:
             // Not used by plugins
             break;
 
