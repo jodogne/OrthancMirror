@@ -55,9 +55,9 @@
 
 #include "Compatibility.h"
 #include "Enumerations.h"
-#include "Exports.h"
 #include "Logging.h"
 #include "OrthancException.h"
+#include "OrthancFramework.h"
 #include "Toolbox.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
