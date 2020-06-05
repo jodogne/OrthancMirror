@@ -58,10 +58,6 @@
 #  endif
 #endif
 
-#if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
-#  include <orthanc/OrthancCPlugin.h>
-#endif
-
 #include <boost/lexical_cast.hpp>
 
 namespace Orthanc
@@ -69,7 +65,8 @@ namespace Orthanc
   namespace Logging
   {
 #if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
-    ORTHANC_PUBLIC void Initialize(OrthancPluginContext* context);
+    // "pluginContext" must be of type "OrthancPluginContext"
+    ORTHANC_PUBLIC void Initialize(void* pluginContext);
 #else
     ORTHANC_PUBLIC void Initialize();
 #endif
@@ -94,13 +91,11 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_LOGGING_STDIO == 1
     typedef void (*LoggingFunction)(const char*);
-    void SetErrorWarnInfoTraceLoggingFunctions(
-      LoggingFunction errorLogFunc,
-      LoggingFunction warningLogfunc,
-      LoggingFunction infoLogFunc,
-      LoggingFunction traceLogFunc);
+    ORTHANC_PUBLIC void SetErrorWarnInfoTraceLoggingFunctions(LoggingFunction errorLogFunc,
+                                                              LoggingFunction warningLogfunc,
+                                                              LoggingFunction infoLogFunc,
+                                                              LoggingFunction traceLogFunc);
 #endif
-
 
     struct NullStream : public std::ostream 
     {
@@ -178,6 +173,7 @@ namespace Orthanc
 #  include <boost/thread/mutex.hpp>
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger(#level,  __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger("TRACE", __FILE__, __LINE__)
+
 
 namespace Orthanc
 {
