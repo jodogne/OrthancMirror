@@ -33,12 +33,15 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
+#include <boost/noncopyable.hpp>
 #include <list>
 #include <string>
 
 namespace Orthanc
 {
-  class ChunkedBuffer
+  class ORTHANC_PUBLIC ChunkedBuffer : public boost::noncopyable
   {
   private:
     typedef std::list<std::string*>  Chunks;

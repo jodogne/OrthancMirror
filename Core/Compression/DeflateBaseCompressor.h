@@ -48,7 +48,7 @@
 
 namespace Orthanc
 {
-  class DeflateBaseCompressor : public IBufferCompressor
+  class ORTHANC_PUBLIC DeflateBaseCompressor : public IBufferCompressor
   {
   private:
     uint8_t compressionLevel_;

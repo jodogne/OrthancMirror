@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class ImageBuffer : public boost::noncopyable
+  class ORTHANC_PUBLIC ImageBuffer : public boost::noncopyable
   {
   private:
     bool changed_;

@@ -31,6 +31,10 @@
  **/
 
 
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework/OrthancFramework.h>
+#endif
+
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
@@ -53,7 +57,8 @@
 #  include <openssl/opensslv.h>
 #endif
 
-#if ORTHANC_ENABLE_CIVETWEB == 1
+#if (ORTHANC_ENABLE_CIVETWEB == 1 &&            \
+     ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1)
 #  include <civetweb.h>
 #endif
 
@@ -113,7 +118,8 @@ TEST(Versions, Lua)
 }
 
 
-#if ORTHANC_ENABLE_CIVETWEB == 1
+#if (ORTHANC_ENABLE_CIVETWEB == 1 &&            \
+     ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1)
 TEST(Version, CivetwebCompression)
 {
   ASSERT_TRUE(mg_check_feature(MG_FEATURES_COMPRESSION));

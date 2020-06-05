@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_ENABLE_JPEG)
 #  error Macro ORTHANC_ENABLE_JPEG must be defined to use this file
 #endif
@@ -79,7 +81,7 @@ class DcmFileFormat;
 
 namespace Orthanc
 {
-  class ParsedDicomFile : public IDynamicObject
+  class ORTHANC_PUBLIC ParsedDicomFile : public IDynamicObject
   {
   private:
     struct PImpl;

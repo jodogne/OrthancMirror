@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "Exports.h"
 #include "Enumerations.h"
+#include "OrthancFramework.h"
 #include "WebServiceParameters.h"
 
 #include <string>

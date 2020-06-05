@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class DcmtkTranscoder : public IDicomTranscoder
+  class ORTHANC_PUBLIC DcmtkTranscoder : public IDicomTranscoder
   {
   private:
     unsigned int  lossyQuality_;

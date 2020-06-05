@@ -33,6 +33,9 @@
 
 #pragma once
 
+// To have ORTHANC_ENABLE_xxx defined if using the shared library
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_ENABLE_MONGOOSE)
 #  error Macro ORTHANC_ENABLE_MONGOOSE must be defined to include this file
 #endif
@@ -74,7 +77,7 @@ namespace Orthanc
   };
 
 
-  class HttpServer
+  class ORTHANC_PUBLIC HttpServer : public boost::noncopyable
   {
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom

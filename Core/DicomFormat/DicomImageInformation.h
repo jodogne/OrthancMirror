@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class DicomImageInformation
+  class ORTHANC_PUBLIC DicomImageInformation
   {
   private:
     unsigned int width_;

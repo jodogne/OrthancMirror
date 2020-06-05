@@ -33,11 +33,12 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
 #include "IHttpHandler.h"
 
 namespace Orthanc
 {
-  class HttpToolbox
+  class ORTHANC_PUBLIC HttpToolbox : public boost::noncopyable
   {
   public:
     static void ParseGetArguments(IHttpHandler::GetArguments& result, 

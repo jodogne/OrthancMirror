@@ -33,6 +33,9 @@
 
 #pragma once
 
+// To have ORTHANC_HAS_EMBEDDED_RESOURCES defined if using the shared library
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_HAS_EMBEDDED_RESOURCES)
 #  error Macro ORTHANC_HAS_EMBEDDED_RESOURCES must be defined
 #endif
@@ -50,7 +53,7 @@
 
 namespace Orthanc
 {
-  class Font : public boost::noncopyable
+  class ORTHANC_PUBLIC Font : public boost::noncopyable
   {
   private:
     struct Character

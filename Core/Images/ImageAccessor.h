@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class ImageAccessor : public boost::noncopyable
+  class ORTHANC_PUBLIC ImageAccessor : public boost::noncopyable
   {
   private:
     template <Orthanc::PixelFormat Format>

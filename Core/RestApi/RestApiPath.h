@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class RestApiPath
+  class ORTHANC_PUBLIC RestApiPath : public boost::noncopyable
   {
   private:
     UriComponents uri_;

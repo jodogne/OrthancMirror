@@ -33,22 +33,26 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #include "ImageAccessor.h"
 #include <vector>
 
 #include <stdint.h>
 #include <algorithm>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  namespace ImageProcessing
+  class ORTHANC_PUBLIC ImageProcessing : public boost::noncopyable
   {
+  public:
     class ImagePoint
     {
       int32_t x_;
       int32_t y_;
       
-     public:
+    public:
       ImagePoint(int32_t x, int32_t y)
         : x_(x),
           y_(y)
@@ -76,117 +80,118 @@ namespace Orthanc
       double GetDistanceToLine(double a, double b, double c) const; // where ax + by + c = 0 is the equation of the line
     };
 
-    void Copy(ImageAccessor& target,
-              const ImageAccessor& source);
+    static void Copy(ImageAccessor& target,
+                     const ImageAccessor& source);
 
-    void Convert(ImageAccessor& target,
-                 const ImageAccessor& source);
+    static void Convert(ImageAccessor& target,
+                        const ImageAccessor& source);
 
-    void ApplyWindowing_Deprecated(ImageAccessor& target,
-                                   const ImageAccessor& source,
-                                   float windowCenter,
-                                   float windowWidth,
-                                   float rescaleSlope,
-                                   float rescaleIntercept,
-                                   bool invert);
+    static void ApplyWindowing_Deprecated(ImageAccessor& target,
+                                          const ImageAccessor& source,
+                                          float windowCenter,
+                                          float windowWidth,
+                                          float rescaleSlope,
+                                          float rescaleIntercept,
+                                          bool invert);
 
-    void Set(ImageAccessor& image,
-             int64_t value);
+    static void Set(ImageAccessor& image,
+                    int64_t value);
 
-    void Set(ImageAccessor& image,
-             uint8_t red,
-             uint8_t green,
-             uint8_t blue,
-             uint8_t alpha);
+    static void Set(ImageAccessor& image,
+                    uint8_t red,
+                    uint8_t green,
+                    uint8_t blue,
+                    uint8_t alpha);
 
-    void Set(ImageAccessor& image,
-             uint8_t red,
-             uint8_t green,
-             uint8_t blue,
-             ImageAccessor& alpha);
+    static void Set(ImageAccessor& image,
+                    uint8_t red,
+                    uint8_t green,
+                    uint8_t blue,
+                    ImageAccessor& alpha);
 
-    void ShiftRight(ImageAccessor& target,
-                    unsigned int shift);
+    static void ShiftRight(ImageAccessor& target,
+                           unsigned int shift);
 
-    void ShiftLeft(ImageAccessor& target,
-                   unsigned int shift);
+    static void ShiftLeft(ImageAccessor& target,
+                          unsigned int shift);
 
-    void GetMinMaxIntegerValue(int64_t& minValue,
-                               int64_t& maxValue,
-                               const ImageAccessor& image);
+    static void GetMinMaxIntegerValue(int64_t& minValue,
+                                      int64_t& maxValue,
+                                      const ImageAccessor& image);
 
-    void GetMinMaxFloatValue(float& minValue,
-                             float& maxValue,
-                             const ImageAccessor& image);
+    static void GetMinMaxFloatValue(float& minValue,
+                                    float& maxValue,
+                                    const ImageAccessor& image);
 
-    void AddConstant(ImageAccessor& image,
-                     int64_t value);
+    static void AddConstant(ImageAccessor& image,
+                            int64_t value);
 
     // "useRound" is expensive
-    void MultiplyConstant(ImageAccessor& image,
-                          float factor,
-                          bool useRound);
+    static void MultiplyConstant(ImageAccessor& image,
+                                 float factor,
+                                 bool useRound);
 
     // Computes "(x + offset) * scaling" inplace. "useRound" is expensive.
-    void ShiftScale(ImageAccessor& image,
-                    float offset,
-                    float scaling,
-                    bool useRound);
+    static void ShiftScale(ImageAccessor& image,
+                           float offset,
+                           float scaling,
+                           bool useRound);
 
-    void ShiftScale(ImageAccessor& target,
-                    const ImageAccessor& source,
-                    float offset,
-                    float scaling,
-                    bool useRound);
+    static void ShiftScale(ImageAccessor& target,
+                           const ImageAccessor& source,
+                           float offset,
+                           float scaling,
+                           bool useRound);
 
-    void Invert(ImageAccessor& image);
+    static void Invert(ImageAccessor& image);
 
-    void Invert(ImageAccessor& image, int64_t maxValue);
+    static void Invert(ImageAccessor& image, int64_t maxValue);
 
-    void DrawLineSegment(ImageAccessor& image,
-                         int x0,
-                         int y0,
-                         int x1,
-                         int y1,
-                         int64_t value);
+    static void DrawLineSegment(ImageAccessor& image,
+                                int x0,
+                                int y0,
+                                int x1,
+                                int y1,
+                                int64_t value);
 
-    void DrawLineSegment(ImageAccessor& image,
-                         int x0,
-                         int y0,
-                         int x1,
-                         int y1,
-                         uint8_t red,
-                         uint8_t green,
-                         uint8_t blue,
-                         uint8_t alpha);
+    static void DrawLineSegment(ImageAccessor& image,
+                                int x0,
+                                int y0,
+                                int x1,
+                                int y1,
+                                uint8_t red,
+                                uint8_t green,
+                                uint8_t blue,
+                                uint8_t alpha);
 
-    void FillPolygon(ImageAccessor& image,
-                     const std::vector<ImagePoint>& points,
-                     int64_t value);
+    static void FillPolygon(ImageAccessor& image,
+                            const std::vector<ImagePoint>& points,
+                            int64_t value);
 
-    void Resize(ImageAccessor& target,
-                const ImageAccessor& source);
+    static void Resize(ImageAccessor& target,
+                       const ImageAccessor& source);
 
-    ImageAccessor* Halve(const ImageAccessor& source,
-                         bool forceMinimalPitch);
+    static ImageAccessor* Halve(const ImageAccessor& source,
+                                bool forceMinimalPitch);
 
-    void FlipX(ImageAccessor& image);
+    static void FlipX(ImageAccessor& image);
 
-    void FlipY(ImageAccessor& image);
+    static void FlipY(ImageAccessor& image);
 
-    void SeparableConvolution(ImageAccessor& image /* inplace */,
-                              const std::vector<float>& horizontal,
-                              size_t horizontalAnchor,
-                              const std::vector<float>& vertical,
-                              size_t verticalAnchor);
+    static void SeparableConvolution(ImageAccessor& image /* inplace */,
+                                     const std::vector<float>& horizontal,
+                                     size_t horizontalAnchor,
+                                     const std::vector<float>& vertical,
+                                     size_t verticalAnchor);
 
-    void SmoothGaussian5x5(ImageAccessor& image);
+    static void SmoothGaussian5x5(ImageAccessor& image);
 
-    void FitSize(ImageAccessor& target,
-                 const ImageAccessor& source);
+    static void FitSize(ImageAccessor& target,
+                        const ImageAccessor& source);
     
-    ImageAccessor* FitSize(const ImageAccessor& source,
-                           unsigned int width,
-                           unsigned int height);
-  }
+    static ImageAccessor* FitSize(const ImageAccessor& source,
+                                  unsigned int width,
+                                  unsigned int height);
+  };
 }
+

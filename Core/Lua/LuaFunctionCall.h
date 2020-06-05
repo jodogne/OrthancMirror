@@ -42,7 +42,7 @@
 
 namespace Orthanc
 {
-  class LuaFunctionCall : public boost::noncopyable
+  class ORTHANC_PUBLIC LuaFunctionCall : public boost::noncopyable
   {
   private:
     LuaContext& context_;

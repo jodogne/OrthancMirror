@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -50,7 +52,7 @@
 
 namespace Orthanc
 {
-  class SharedLibrary : public boost::noncopyable
+  class ORTHANC_PUBLIC SharedLibrary : public boost::noncopyable
   {
   public:
 #if defined(_WIN32)

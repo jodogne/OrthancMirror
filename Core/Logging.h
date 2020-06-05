@@ -29,7 +29,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
+
+
 #pragma once
+
+// To have ORTHANC_ENABLE_LOGGING defined if using the shared library
+#include "OrthancFramework.h"
 
 #include <iostream>
 
@@ -64,28 +69,28 @@ namespace Orthanc
   namespace Logging
   {
 #if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
-    void Initialize(OrthancPluginContext* context);
+    void Initialize(OrthancPluginContext* context) ORTHANC_PUBLIC;
 #else
-    void Initialize();
+    void Initialize() ORTHANC_PUBLIC;
 #endif
 
-    void Finalize();
+    void Finalize() ORTHANC_PUBLIC;
 
-    void Reset();
+    void Reset() ORTHANC_PUBLIC;
 
-    void Flush();
+    void Flush() ORTHANC_PUBLIC;
 
-    void EnableInfoLevel(bool enabled);
+    void EnableInfoLevel(bool enabled) ORTHANC_PUBLIC;
 
-    void EnableTraceLevel(bool enabled);
+    void EnableTraceLevel(bool enabled) ORTHANC_PUBLIC;
 
-    bool IsTraceLevelEnabled();
+    bool IsTraceLevelEnabled() ORTHANC_PUBLIC;
 
-    bool IsInfoLevelEnabled();
+    bool IsInfoLevelEnabled() ORTHANC_PUBLIC;
 
-    void SetTargetFile(const std::string& path);
+    void SetTargetFile(const std::string& path) ORTHANC_PUBLIC;
 
-    void SetTargetFolder(const std::string& path);
+    void SetTargetFolder(const std::string& path) ORTHANC_PUBLIC;
 
 #if ORTHANC_ENABLE_LOGGING_STDIO == 1
     typedef void (*LoggingFunction)(const char*);
@@ -140,7 +145,7 @@ namespace Orthanc
       InternalLevel_TRACE
     };
     
-    class InternalLogger : public boost::noncopyable
+    class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
     {
     private:
       InternalLevel       level_;
@@ -178,7 +183,7 @@ namespace Orthanc
 {
   namespace Logging
   {
-    class InternalLogger
+    class ORTHANC_PUBLIC InternalLogger
     {
     private:
       boost::mutex::scoped_lock lock_;
@@ -212,7 +217,7 @@ namespace Orthanc
 
     This function is only to be used by tests.
     */
-    LoggingMemento CreateLoggingMemento();
+    LoggingMemento CreateLoggingMemento() ORTHANC_PUBLIC;
 
     /**
     Restores the logging configuration. The logging system is restored in 
@@ -224,7 +229,7 @@ namespace Orthanc
 
     This function is only to be used by tests.
     */
-    void RestoreLoggingMemento(LoggingMemento memento);
+    void RestoreLoggingMemento(LoggingMemento memento) ORTHANC_PUBLIC;
 
     /**
     Call this function if you do not plan on restoring the logging 
@@ -232,7 +237,7 @@ namespace Orthanc
 
     This function is only to be used by tests.
     */
-    void DiscardLoggingMemento(LoggingMemento memento);
+    void DiscardLoggingMemento(LoggingMemento memento) ORTHANC_PUBLIC;
 
     /**
       Set custom logging streams for the error, warning and info logs.
@@ -248,7 +253,7 @@ namespace Orthanc
     */
     void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
                                         std::ostream* warningStream, 
-                                        std::ostream* infoStream);
+                                        std::ostream* infoStream) ORTHANC_PUBLIC;
 
 #ifdef __EMSCRIPTEN__
     /**
@@ -260,7 +265,7 @@ namespace Orthanc
       logging levels to be correctly handled by the browser when the code executes
       in Web Assembly
     */
-    void EnableEmscriptenLogging();
+    void EnableEmscriptenLogging() ORTHANC_PUBLIC;
 #endif
   }
 }

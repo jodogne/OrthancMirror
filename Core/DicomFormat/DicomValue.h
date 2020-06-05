@@ -46,7 +46,7 @@
 
 namespace Orthanc
 {
-  class DicomValue : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomValue : public boost::noncopyable
   {
   private:
     enum Type

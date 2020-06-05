@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
 #include "../Compatibility.h"
 
 #include <memory>
@@ -45,7 +46,7 @@
 
 namespace Orthanc
 {
-  class HttpContentNegociation : public boost::noncopyable
+  class ORTHANC_PUBLIC HttpContentNegociation : public boost::noncopyable
   {
   public:
     typedef std::map<std::string, std::string>  HttpHeaders;

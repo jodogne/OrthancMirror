@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class HierarchicalZipWriter
+  class ORTHANC_PUBLIC HierarchicalZipWriter : public boost::noncopyable
   {
 #if ORTHANC_BUILD_UNIT_TESTS == 1
     FRIEND_TEST(HierarchicalZipWriter, Index);

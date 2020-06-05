@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class HttpStreamTranscoder : public IHttpStreamAnswer
+  class ORTHANC_PUBLIC HttpStreamTranscoder : public IHttpStreamAnswer
   {
   private:
     IHttpStreamAnswer& source_;

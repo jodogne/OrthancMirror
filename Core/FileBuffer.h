@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
 #if ORTHANC_SANDBOXED == 1
-#  error The namespace SystemToolbox cannot be used in sandboxed environments
+#  error The class FileBuffer cannot be used in sandboxed environments
 #endif
 
 #include <boost/noncopyable.hpp>
@@ -47,7 +49,7 @@
 
 namespace Orthanc
 {
-  class FileBuffer : public boost::noncopyable
+  class ORTHANC_PUBLIC FileBuffer : public boost::noncopyable
   {
   private:
     class PImpl;

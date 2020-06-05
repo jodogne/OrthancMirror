@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #include <string>
 
 
@@ -805,97 +807,97 @@ namespace Orthanc
   };
 
 
-  const char* EnumerationToString(ErrorCode code);
+  const char* EnumerationToString(ErrorCode code) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(HttpMethod method);
+  const char* EnumerationToString(HttpMethod method) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(HttpStatus status);
+  const char* EnumerationToString(HttpStatus status) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(ResourceType type);
+  const char* EnumerationToString(ResourceType type) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(ImageFormat format);
+  const char* EnumerationToString(ImageFormat format) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(Encoding encoding);
+  const char* EnumerationToString(Encoding encoding) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(PhotometricInterpretation photometric);
+  const char* EnumerationToString(PhotometricInterpretation photometric) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(LogLevel level);
+  const char* EnumerationToString(LogLevel level) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(RequestOrigin origin);
+  const char* EnumerationToString(RequestOrigin origin) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(PixelFormat format);
+  const char* EnumerationToString(PixelFormat format) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(ModalityManufacturer manufacturer);
+  const char* EnumerationToString(ModalityManufacturer manufacturer) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(DicomRequestType type);
+  const char* EnumerationToString(DicomRequestType type) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(TransferSyntax syntax);
+  const char* EnumerationToString(TransferSyntax syntax) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(DicomVersion version);
+  const char* EnumerationToString(DicomVersion version) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(ValueRepresentation vr);
+  const char* EnumerationToString(ValueRepresentation vr) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(JobState state);
+  const char* EnumerationToString(JobState state) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(MimeType mime);
+  const char* EnumerationToString(MimeType mime) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(Endianness endianness);
+  const char* EnumerationToString(Endianness endianness) ORTHANC_PUBLIC;
 
-  const char* EnumerationToString(StorageCommitmentFailureReason reason);
+  const char* EnumerationToString(StorageCommitmentFailureReason reason) ORTHANC_PUBLIC;
 
-  Encoding StringToEncoding(const char* encoding);
+  Encoding StringToEncoding(const char* encoding) ORTHANC_PUBLIC;
 
-  ResourceType StringToResourceType(const char* type);
+  ResourceType StringToResourceType(const char* type) ORTHANC_PUBLIC;
 
-  ImageFormat StringToImageFormat(const char* format);
+  ImageFormat StringToImageFormat(const char* format) ORTHANC_PUBLIC;
 
-  LogLevel StringToLogLevel(const char* level);
+  LogLevel StringToLogLevel(const char* level) ORTHANC_PUBLIC;
 
   ValueRepresentation StringToValueRepresentation(const std::string& vr,
-                                                  bool throwIfUnsupported);
+                                                  bool throwIfUnsupported) ORTHANC_PUBLIC;
 
-  PhotometricInterpretation StringToPhotometricInterpretation(const char* value);
+  PhotometricInterpretation StringToPhotometricInterpretation(const char* value) ORTHANC_PUBLIC;
 
-  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer);
+  ModalityManufacturer StringToModalityManufacturer(const std::string& manufacturer) ORTHANC_PUBLIC;
 
-  DicomVersion StringToDicomVersion(const std::string& version);
+  DicomVersion StringToDicomVersion(const std::string& version) ORTHANC_PUBLIC;
 
-  JobState StringToJobState(const std::string& state);
+  JobState StringToJobState(const std::string& state) ORTHANC_PUBLIC;
   
-  RequestOrigin StringToRequestOrigin(const std::string& origin);
+  RequestOrigin StringToRequestOrigin(const std::string& origin) ORTHANC_PUBLIC;
 
-  MimeType StringToMimeType(const std::string& mime);
+  MimeType StringToMimeType(const std::string& mime) ORTHANC_PUBLIC;
   
-  unsigned int GetBytesPerPixel(PixelFormat format);
+  unsigned int GetBytesPerPixel(PixelFormat format) ORTHANC_PUBLIC;
 
   bool GetDicomEncoding(Encoding& encoding,
-                        const char* specificCharacterSet);
+                        const char* specificCharacterSet) ORTHANC_PUBLIC;
 
-  ResourceType GetChildResourceType(ResourceType type);
+  ResourceType GetChildResourceType(ResourceType type) ORTHANC_PUBLIC;
 
-  ResourceType GetParentResourceType(ResourceType type);
+  ResourceType GetParentResourceType(ResourceType type) ORTHANC_PUBLIC;
 
   bool IsResourceLevelAboveOrEqual(ResourceType level,
-                                   ResourceType reference);
+                                   ResourceType reference) ORTHANC_PUBLIC;
 
-  DicomModule GetModule(ResourceType type);
+  DicomModule GetModule(ResourceType type) ORTHANC_PUBLIC;
 
-  const char* GetDicomSpecificCharacterSet(Encoding encoding);
+  const char* GetDicomSpecificCharacterSet(Encoding encoding) ORTHANC_PUBLIC;
 
-  HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error);
+  HttpStatus ConvertErrorCodeToHttpStatus(ErrorCode error) ORTHANC_PUBLIC;
 
-  bool IsUserContentType(FileContentType type);
+  bool IsUserContentType(FileContentType type) ORTHANC_PUBLIC;
 
-  bool IsBinaryValueRepresentation(ValueRepresentation vr);
+  bool IsBinaryValueRepresentation(ValueRepresentation vr) ORTHANC_PUBLIC;
   
-  Encoding GetDefaultDicomEncoding();
+  Encoding GetDefaultDicomEncoding() ORTHANC_PUBLIC;
 
-  void SetDefaultDicomEncoding(Encoding encoding);
+  void SetDefaultDicomEncoding(Encoding encoding) ORTHANC_PUBLIC;
 
-  const char* GetTransferSyntaxUid(DicomTransferSyntax syntax);
+  const char* GetTransferSyntaxUid(DicomTransferSyntax syntax) ORTHANC_PUBLIC;
 
-  bool IsRetiredTransferSyntax(DicomTransferSyntax syntax);
+  bool IsRetiredTransferSyntax(DicomTransferSyntax syntax) ORTHANC_PUBLIC;
 
   bool LookupTransferSyntax(DicomTransferSyntax& target,
-                            const std::string& uid);
+                            const std::string& uid) ORTHANC_PUBLIC;
 }

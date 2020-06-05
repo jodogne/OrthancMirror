@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class HttpOutput : public boost::noncopyable
+  class ORTHANC_PUBLIC HttpOutput : public boost::noncopyable
   {
   private:
     typedef std::list< std::pair<std::string, std::string> >  Header;

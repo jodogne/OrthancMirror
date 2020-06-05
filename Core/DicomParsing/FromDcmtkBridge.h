@@ -70,7 +70,7 @@
 
 namespace Orthanc
 {
-  class FromDcmtkBridge : public boost::noncopyable
+  class ORTHANC_PUBLIC FromDcmtkBridge : public boost::noncopyable
   {
 #if ORTHANC_BUILD_UNIT_TESTS == 1
     FRIEND_TEST(FromDcmtkBridge, FromJson);

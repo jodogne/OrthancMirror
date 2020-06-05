@@ -38,7 +38,7 @@
 
 namespace Orthanc
 {
-  class Image : public ImageAccessor
+  class ORTHANC_PUBLIC Image : public ImageAccessor
   {
   private:
     ImageBuffer  image_;
