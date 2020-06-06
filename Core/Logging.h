@@ -224,19 +224,6 @@ namespace Orthanc
     ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
                                                        std::ostream& warningStream, 
                                                        std::ostream& infoStream);
-
-#ifdef __EMSCRIPTEN__
-    /**
-       This function will change the logging streams so that the logging functions 
-       provided by emscripten html5.h API functions are used : it will change the 
-       error_, warning_ and info_  stream objects so that their operator<< writes 
-       into the browser console using emscripten_console_error(), 
-       emscripten_console_warn() and emscripten_console_log(). This will allow for
-       logging levels to be correctly handled by the browser when the code executes
-       in Web Assembly
-    */
-    ORTHANC_PUBLIC void EnableEmscriptenLogging();
-#endif
   }
 }
 
