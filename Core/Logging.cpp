@@ -459,19 +459,6 @@ namespace
     {
     }
   };
-
-  struct LoggingMementoImpl
-  {
-    bool valid_;
-    bool infoEnabled_;
-    bool traceEnabled_;
-    std::string  targetFile_;
-    std::string  targetFolder_;
-
-    std::ostream* error_;
-    std::ostream* warning_;
-    std::ostream* info_;
-  };
 }
 
 
@@ -593,59 +580,6 @@ namespace Orthanc
       }
     }
 
-
-    LoggingMemento CreateLoggingMemento()
-    {
-      LoggingMementoImpl* memento = new LoggingMementoImpl();
-
-      memento->valid_ = true;
-      {
-        boost::mutex::scoped_lock lock(loggingMutex_);
-        memento->infoEnabled_ = loggingContext_->infoEnabled_;
-        memento->traceEnabled_ = loggingContext_->traceEnabled_;
-        memento->targetFile_ = loggingContext_->targetFile_;
-        memento->targetFolder_ = loggingContext_->targetFolder_;
-
-        memento->error_ = loggingContext_->error_;
-        memento->warning_ = loggingContext_->warning_;
-        memento->info_ = loggingContext_->info_;
-      }
-      return reinterpret_cast<void*>(memento);
-    }
-    
-    void RestoreLoggingMemento(LoggingMemento mementoPtr)
-    {
-      LoggingMementoImpl* memento = 
-        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
-      if (!memento->valid_)
-        throw std::runtime_error("Memento already used");
-      memento->valid_ = false;
-      std::unique_ptr<LoggingMementoImpl> deleter(memento);
-      {
-        boost::mutex::scoped_lock lock(loggingMutex_);
-        loggingContext_.reset(new LoggingContext);
-        loggingContext_->error_ = memento->error_;
-        loggingContext_->warning_ = memento->warning_;
-        loggingContext_->info_ = memento->info_;
-      }
-      EnableInfoLevel(memento->infoEnabled_);
-      EnableTraceLevel(memento->traceEnabled_);
-      if (!memento->targetFolder_.empty())
-      {
-        SetTargetFolder(memento->targetFolder_);
-      }
-      else if (!memento->targetFile_.empty())
-      {
-        SetTargetFile(memento->targetFile_);
-      }
-    }
-
-    void DiscardLoggingMemento(LoggingMemento mementoPtr)
-    {
-      LoggingMementoImpl* memento =
-        reinterpret_cast<LoggingMementoImpl*>(mementoPtr);
-      delete memento;
-    }
 
     void EnableInfoLevel(bool enabled)
     {
