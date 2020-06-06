@@ -105,13 +105,14 @@ namespace
   class LoggingMementoScope
   {
   public:
-    LoggingMementoScope() : memento_(CreateLoggingMemento()) {}
+    LoggingMementoScope()
+    {
+    }
+    
     ~LoggingMementoScope()
     {
-      RestoreLoggingMemento(memento_);
+      Orthanc::Logging::Reset();
     }
-  private:
-    LoggingMemento memento_;
   };
 }
 

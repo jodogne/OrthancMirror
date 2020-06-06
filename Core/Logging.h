@@ -207,40 +207,6 @@ namespace Orthanc
       }
     };
 
-    /**
-       opaque pointer that represents the state of the logging configuration
-    */
-    typedef void* LoggingMemento;
-
-    /**
-       Returns an object that contains the logging configuration.
-
-       This function allocates resources that you must dispose of by
-       using either RestoreLoggingMemento or DiscardLoggingMemento.
-
-       This function is only to be used by tests.
-    */
-    ORTHANC_PUBLIC LoggingMemento CreateLoggingMemento();
-
-    /**
-       Restores the logging configuration. The logging system is restored in 
-       the state it was in when the memento object was created through 
-       GetLoggingMemento().
-
-       After calling this function, the memento object may not be used 
-       again
-
-       This function is only to be used by tests.
-    */
-    ORTHANC_PUBLIC void RestoreLoggingMemento(LoggingMemento memento);
-
-    /**
-       Call this function if you do not plan on restoring the logging 
-       configuration state that you captured with CreateLoggingMemento
-
-       This function is only to be used by tests.
-    */
-    ORTHANC_PUBLIC void DiscardLoggingMemento(LoggingMemento memento);
 
     /**
        Set custom logging streams for the error, warning and info logs.
