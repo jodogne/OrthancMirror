@@ -209,20 +209,21 @@ namespace Orthanc
 
 
     /**
-       Set custom logging streams for the error, warning and info logs.
-       This function may not be called if a log file or folder has been 
-       set beforehand. All three pointers must be valid and cannot be NULL.
-
-       Please ensure the supplied streams remain alive and valid as long as
-       logging calls are performed.
-
-       In order to prevent dangling pointer usage, it is recommended to call
-       Orthanc::Logging::Reset() before the stream objects are destroyed and 
-       the pointers become invalid.
-    */
-    ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
-                                                       std::ostream* warningStream, 
-                                                       std::ostream* infoStream);
+     * Set custom logging streams for the error, warning and info
+     * logs. This function may not be called if a log file or folder
+     * has been set beforehand. All three references must be valid.
+     *
+     * Please ensure the supplied streams remain alive and valid as
+     * long as logging calls are performed. In order to prevent
+     * dangling pointer usage, it is mandatory to call
+     * Orthanc::Logging::Reset() before the stream objects are
+     * destroyed and the references become invalid.
+     *
+     * This function must only be used by unit tests.
+     **/
+    ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
+                                                       std::ostream& warningStream, 
+                                                       std::ostream& infoStream);
 
 #ifdef __EMSCRIPTEN__
     /**
