@@ -122,7 +122,8 @@ namespace Orthanc
     // We use the permissive mode to be tolerant wrt. invalid DICOM
     // files that contain some tags with out-of-range values (such
     // tags are removed from the answers)
-    AddAnswerInternal(new ParsedDicomFile(map, encoding_, true /* permissive */));
+    AddAnswerInternal(new ParsedDicomFile(map, encoding_, true /* permissive */,
+                                          "" /* no private creator */));
   }
 
 

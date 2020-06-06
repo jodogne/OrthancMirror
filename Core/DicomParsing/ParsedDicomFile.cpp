@@ -1001,10 +1001,11 @@ namespace Orthanc
 
   void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
                                            Encoding defaultEncoding,
-                                           bool permissive)
+                                           bool permissive,
+                                           const std::string& privateCreator)
   {
     pimpl_->file_.reset(new DcmFileFormat);
-    pimpl_->frameIndex_.reset(NULL);
+    InvalidateCache();
 
     const DicomValue* tmp = source.TestAndGetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET);
 
@@ -1046,7 +1047,9 @@ namespace Orthanc
       {
         try
         {
-          ReplacePlainString(it->first, it->second->GetContent());
+          // Same as "ReplacePlainString()", but with support for private creator
+          const std::string& utf8Value = it->second->GetContent();
+          Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, privateCreator);
         }
         catch (OrthancException&)
         {
@@ -1062,10 +1065,11 @@ namespace Orthanc
 
   ParsedDicomFile::ParsedDicomFile(const DicomMap& map,
                                    Encoding defaultEncoding,
-                                   bool permissive) :
+                                   bool permissive,
+                                   const std::string& privateCreator) :
     pimpl_(new PImpl)
   {
-    CreateFromDicomMap(map, defaultEncoding, permissive);
+    CreateFromDicomMap(map, defaultEncoding, permissive, privateCreator);
   }
 
 
