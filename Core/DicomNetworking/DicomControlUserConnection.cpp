@@ -215,11 +215,13 @@ namespace Orthanc
           }
         }
 
-        return new ParsedDicomFile(*fix, GetDefaultDicomEncoding(), false /* be strict */);
+        return new ParsedDicomFile(*fix, GetDefaultDicomEncoding(),
+                                   false /* be strict */, "" /* no private creator */);
       }
 
       default:
-        return new ParsedDicomFile(fields, GetDefaultDicomEncoding(), false /* be strict */);
+        return new ParsedDicomFile(fields, GetDefaultDicomEncoding(),
+                                   false /* be strict */, "" /* no private creator */);
     }
   }
 
@@ -475,9 +477,8 @@ namespace Orthanc
     }
     else
     {
-      query.reset(new ParsedDicomFile(originalFields,
-                                      GetDefaultDicomEncoding(),
-                                      false /* be strict */));
+      query.reset(new ParsedDicomFile(originalFields, GetDefaultDicomEncoding(),
+                                      false /* be strict */, "" /* no private creator */));
     }
     
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();

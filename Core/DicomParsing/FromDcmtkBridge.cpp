@@ -1717,10 +1717,17 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
       case Json::arrayValue:
       {
-        DcmTag key(tag.GetGroup(), tag.GetElement());
+        const char* p = NULL;
+        if (!privateCreator.empty())
+        {
+          p = privateCreator.c_str();
+        }
+        
+        DcmTag key(tag.GetGroup(), tag.GetElement(), p);
         if (key.getEVR() != EVR_SQ)
         {
-          throw OrthancException(ErrorCode_BadParameterType, "Bad Parameter type for tag " + tag.Format());
+          throw OrthancException(ErrorCode_BadParameterType,
+                                 "Bad Parameter type for tag " + tag.Format());
         }
 
         DcmSequenceOfItems* sequence = new DcmSequenceOfItems(key);

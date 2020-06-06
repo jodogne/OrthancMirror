@@ -92,7 +92,8 @@ namespace Orthanc
 
     void CreateFromDicomMap(const DicomMap& source,
                             Encoding defaultEncoding,
-                            bool permissive);
+                            bool permissive,
+                            const std::string& privateCreator);
 
     void RemovePrivateTagsInternal(const std::set<DicomTag>* toKeep);
 
@@ -111,7 +112,8 @@ namespace Orthanc
 
     ParsedDicomFile(const DicomMap& map,
                     Encoding defaultEncoding,
-                    bool permissive);
+                    bool permissive,
+                    const std::string& privateCreator);
 
     ParsedDicomFile(const void* content,
                     size_t size);

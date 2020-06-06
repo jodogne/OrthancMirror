@@ -302,7 +302,8 @@ namespace Orthanc
                         const Json::Value* dicomAsJson,
                         const DicomArray& query,
                         const std::list<DicomTag>& sequencesToReturn,
-                        const DicomMap* counters)
+                        const DicomMap* counters,
+                        const std::string& privateCreator)
   {
     DicomMap match;
 
@@ -371,7 +372,8 @@ namespace Orthanc
     }
     else
     {
-      ParsedDicomFile dicom(result, GetDefaultDicomEncoding(), true /* be permissive, cf. issue #136 */);
+      ParsedDicomFile dicom(result, GetDefaultDicomEncoding(),
+                            true /* be permissive, cf. issue #136 */, privateCreator);
 
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)
@@ -394,8 +396,7 @@ namespace Orthanc
             content.append(item);
           }
 
-          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent,
-                        "" /* no private creator */);
+          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, privateCreator);
         }
       }
 
@@ -484,6 +485,7 @@ namespace Orthanc
     const DicomMap&             query_;
     DicomArray                  queryAsArray_;
     const std::list<DicomTag>&  sequencesToReturn_;
+    std::string                 privateCreator_;
 
   public:
     LookupVisitor(DicomFindAnswers&  answers,
@@ -499,6 +501,11 @@ namespace Orthanc
       sequencesToReturn_(sequencesToReturn)
     {
       answers_.SetComplete(false);
+
+      {
+        OrthancConfiguration::ReaderLock lock;
+        privateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
+      }
     }
 
     virtual bool IsDicomAsJsonNeeded() const
@@ -540,7 +547,7 @@ namespace Orthanc
       std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 
       AddAnswer(answers_, mainDicomTags, dicomAsJson,
-                queryAsArray_, sequencesToReturn_, counters.get());
+                queryAsArray_, sequencesToReturn_, counters.get(), privateCreator_);
     }
   };
 
