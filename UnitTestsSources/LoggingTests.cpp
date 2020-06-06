@@ -133,7 +133,7 @@ TEST(FuncStreamBuf, BasicTest)
   FuncStreamBuf<LoggingFunctionFunc> infoStreamBuf(TestInfo);
   std::ostream infoStream(&infoStreamBuf);
 
-  SetErrorWarnInfoLoggingStreams(&errorStream, &warningStream, &infoStream);
+  SetErrorWarnInfoLoggingStreams(errorStream, warningStream, infoStream);
 
   {
     const char* text = "E is the set of all sets that do not contain themselves. Does E contain itself?";
@@ -184,13 +184,3 @@ TEST(FuncStreamBuf, BasicTest)
     ASSERT_STREQ(payload.c_str(), text);
   }
 }
-
-
-
-
-
-
-
-
-
-

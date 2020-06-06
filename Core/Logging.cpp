@@ -841,24 +841,27 @@ namespace Orthanc
       }
     }
 
-    void SetErrorWarnInfoLoggingStreams(std::ostream* errorStream,
-                                        std::ostream* warningStream,
-                                        std::ostream* infoStream)
+    void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
+                                        std::ostream& warningStream,
+                                        std::ostream& infoStream)
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
       std::unique_ptr<LoggingContext> old;
 
+      {
+        boost::mutex::scoped_lock lock(loggingMutex_);
+
 #if __cplusplus < 201103L
-      old.reset(loggingContext_.release());
+        old.reset(loggingContext_.release());
 #else
-      old = std::move(loggingContext_);
+        old = std::move(loggingContext_);
 #endif
       
-      loggingContext_.reset(new LoggingContext);
-      loggingContext_->error_ = errorStream;
-      loggingContext_->warning_ = warningStream;
-      loggingContext_->info_ = infoStream;
-      lock.unlock();
+        loggingContext_.reset(new LoggingContext);
+        loggingContext_->error_ = &errorStream;
+        loggingContext_->warning_ = &warningStream;
+        loggingContext_->info_ = &infoStream;
+      }
+      
       EnableInfoLevel(old->infoEnabled_);
       EnableTraceLevel(old->traceEnabled_);
     }
