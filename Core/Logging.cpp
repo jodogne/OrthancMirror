@@ -865,32 +865,6 @@ namespace Orthanc
       EnableInfoLevel(old->infoEnabled_);
       EnableTraceLevel(old->traceEnabled_);
     }
-
-#ifdef __EMSCRIPTEN__
-
-    static FuncStreamBuf<decltype(emscripten_console_error)> 
-    globalEmscriptenErrorStreamBuf_(emscripten_console_error);
-    static std::unique_ptr<std::ostream> globalEmscriptenErrorStream_;
-
-    static FuncStreamBuf<decltype(emscripten_console_warn)>
-    globalEmscriptenWarningStreamBuf_(emscripten_console_warn);
-    static std::unique_ptr<std::ostream> globalEmscriptenWarningStream_;
-
-    static FuncStreamBuf<decltype(emscripten_console_log)>
-    globalEmscriptenInfoStreamBuf_(emscripten_console_log);
-    static std::unique_ptr<std::ostream> globalEmscriptenInfoStream_;
-
-    void EnableEmscriptenLogging()
-    {
-      globalEmscriptenErrorStream_.reset(new ostream(&globalEmscriptenErrorStreamBuf_));
-      globalEmscriptenWarningStream_.reset(new ostream(&globalEmscriptenWarningStreamBuf_));
-      globalEmscriptenInfoStream_.reset(new ostream(&globalEmscriptenInfoStreamBuf_));
-
-      SetErrorWarnInfoLoggingStreams(&globalEmscriptenErrorStream_,
-                                     &globalEmscriptenWarningStream_,
-                                     &globalEmscriptenInfoStream_);
-    }
-#endif
   }
 }
 
