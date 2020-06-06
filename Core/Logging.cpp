@@ -531,6 +531,84 @@ namespace Orthanc
     }
 
 
+    static void CheckFile(std::unique_ptr<std::ofstream>& f)
+    {
+      if (loggingContext_->file_.get() == NULL ||
+          !loggingContext_->file_->is_open())
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile);
+      }
+    }
+    
+
+    static void GetLinePrefix(std::string& prefix,
+                              LogLevel level,
+                              const char* file,
+                              int line)
+    {
+      boost::filesystem::path path(file);
+      boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+      boost::posix_time::time_duration duration = now.time_of_day();
+
+      /**
+         From Google Log documentation:
+
+         "Log lines have this form:
+
+         Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+
+         where the fields are defined as follows:
+
+         L                A single character, representing the log level (eg 'I' for INFO)
+         mm               The month (zero padded; ie May is '05')
+         dd               The day (zero padded)
+         hh:mm:ss.uuuuuu  Time in hours, minutes and fractional seconds
+         threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
+         file             The file name
+         line             The line number
+         msg              The user-supplied message"
+
+         In this implementation, "threadid" is not printed.
+      **/
+
+      char c;
+      switch (level)
+      {
+        case LogLevel_ERROR:
+          c = 'E';
+          break;
+
+        case LogLevel_WARNING:
+          c = 'W';
+          break;
+
+        case LogLevel_INFO:
+          c = 'I';
+          break;
+
+        case LogLevel_TRACE:
+          c = 'T';
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);            
+      }
+
+      char date[64];
+      sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
+              c,
+              now.date().month().as_number(),
+              now.date().day().as_number(),
+              static_cast<int>(duration.hours()),
+              static_cast<int>(duration.minutes()),
+              static_cast<int>(duration.seconds()),
+              static_cast<int>(duration.fractional_seconds()));
+
+      prefix = (std::string(date) + path.filename().string() + ":" +
+                boost::lexical_cast<std::string>(line) + "] ");
+    }
+    
+
     void Initialize()
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
@@ -626,15 +704,6 @@ namespace Orthanc
     }
 
 
-    static void CheckFile(std::unique_ptr<std::ofstream>& f)
-    {
-      if (loggingContext_->file_.get() == NULL ||
-          !loggingContext_->file_->is_open())
-      {
-        throw OrthancException(ErrorCode_CannotWriteFile);
-      }
-    }
-
     void SetTargetFolder(const std::string& path)
     {
       boost::mutex::scoped_lock lock(loggingMutex_);
@@ -690,75 +759,13 @@ namespace Orthanc
           return;
         }
 
-        // Compute the header of the line, temporary release the lock as
+        // Compute the prefix of the line, temporary release the lock as
         // this is a time-consuming operation
         lock_.unlock();
-        std::string header;
+        std::string prefix;
+        GetLinePrefix(prefix, level, file, line);
 
-        {
-          boost::filesystem::path path(file);
-          boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-          boost::posix_time::time_duration duration = now.time_of_day();
-
-          /**
-             From Google Log documentation:
-
-             "Log lines have this form:
-
-             Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
-
-             where the fields are defined as follows:
-
-             L                A single character, representing the log level (eg 'I' for INFO)
-             mm               The month (zero padded; ie May is '05')
-             dd               The day (zero padded)
-             hh:mm:ss.uuuuuu  Time in hours, minutes and fractional seconds
-             threadid         The space-padded thread ID as returned by GetTID() (this matches the PID on Linux)
-             file             The file name
-             line             The line number
-             msg              The user-supplied message"
-
-             In this implementation, "threadid" is not printed.
-          **/
-
-          char prefix;
-          switch (level)
-          {
-            case LogLevel_ERROR:
-              prefix = 'E';
-              break;
-
-            case LogLevel_WARNING:
-              prefix = 'W';
-              break;
-
-            case LogLevel_INFO:
-              prefix = 'I';
-              break;
-
-            case LogLevel_TRACE:
-              prefix = 'T';
-              break;
-
-            default:
-              throw OrthancException(ErrorCode_InternalError);            
-          }
-
-          char date[64];
-          sprintf(date, "%c%02d%02d %02d:%02d:%02d.%06d ",
-                  prefix,
-                  now.date().month().as_number(),
-                  now.date().day().as_number(),
-                  static_cast<int>(duration.hours()),
-                  static_cast<int>(duration.minutes()),
-                  static_cast<int>(duration.seconds()),
-                  static_cast<int>(duration.fractional_seconds()));
-
-          header = std::string(date) + path.filename().string() + ":" + boost::lexical_cast<std::string>(line) + "] ";
-        }
-
-
-        // The header is computed, we now re-lock the mutex to access
+        // The prefix is computed, we now re-lock the mutex to access
         // the stream objects. Pay attention that "loggingContext_",
         // "infoEnabled_" or "traceEnabled_" might have changed while
         // the mutex was unlocked.
@@ -808,7 +815,7 @@ namespace Orthanc
           lock_.unlock();
         }
 
-        (*stream_) << header;
+        (*stream_) << prefix;
       }
       catch (...)
       { 
