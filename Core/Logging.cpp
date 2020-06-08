@@ -164,64 +164,48 @@ namespace Orthanc
     static bool globalTrace_ = false;
     
 #ifdef __EMSCRIPTEN__
-    static void defaultErrorLogFunc(const char* msg)
+    static void ErrorLogFunc(const char* msg)
     {
       emscripten_console_error(msg);
     }
 
-    static void defaultWarningLogFunc(const char* msg)
+    static void WarningLogFunc(const char* msg)
     {
       emscripten_console_warn(msg);
     }
 
-    static void defaultInfoLogFunc(const char* msg)
+    static void InfoLogFunc(const char* msg)
     {
       emscripten_console_log(msg);
     }
 
-    static void defaultTraceLogFunc(const char* msg)
+    static void TraceLogFunc(const char* msg)
     {
       emscripten_console_log(msg);
     }
 #else
 // __EMSCRIPTEN__ not #defined
-    static void defaultErrorLogFunc(const char* msg)
+    static void ErrorLogFunc(const char* msg)
     {
       fprintf(stderr, "E: %s\n", msg);
     }
 
-    static void defaultWarningLogFunc(const char*)
+    static void WarningLogFunc(const char*)
     {
       fprintf(stdout, "W: %s\n", msg);
     }
 
-    static void defaultInfoLogFunc(const char*)
+    static void InfoLogFunc(const char*)
     {
       fprintf(stdout, "I: %s\n", msg);
     }
 
-    static void defaultTraceLogFunc(const char*)
+    static void TraceLogFunc(const char*)
     {
       fprintf(stdout, "T: %s\n", msg);
     }
 #endif 
 // __EMSCRIPTEN__
-
-    static LoggingFunction globalErrorLogFunc = defaultErrorLogFunc;
-    static LoggingFunction globalWarningLogFunc = defaultWarningLogFunc;
-    static LoggingFunction globalInfoLogFunc = defaultInfoLogFunc;
-    static LoggingFunction globalTraceLogFunc = defaultTraceLogFunc;
-
-    void SetErrorWarnInfoTraceLoggingFunctions(LoggingFunction errorLogFunc,
-                                               LoggingFunction warningLogfunc,
-                                               LoggingFunction infoLogFunc,
-                                               LoggingFunction traceLogFunc)
-    {
-      globalErrorLogFunc = errorLogFunc;
-      globalWarningLogFunc = warningLogfunc;
-      globalInfoLogFunc = infoLogFunc;
-      globalTraceLogFunc = traceLogFunc;
-    }
 
     InternalLogger::InternalLogger(LogLevel level,
                                    const char* file  /* ignored */,
@@ -739,9 +723,11 @@ namespace Orthanc
     InternalLogger::InternalLogger(LogLevel level,
                                    const char* file,
                                    int line) : 
-      lock_(loggingMutex_), 
+      lock_(loggingMutex_, boost::defer_lock_t()), 
       stream_(&null_)  // By default, logging to "/dev/null" is simulated
     {
+      lock_.lock();
+      
       if (loggingContext_.get() == NULL)
       {
         fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");

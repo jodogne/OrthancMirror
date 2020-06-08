@@ -41,7 +41,6 @@
 #include <sstream>
 
 #include "../Core/Logging.h"
-#include "../Core/LoggingUtils.h"
 
 using namespace Orthanc::Logging;
 
@@ -64,19 +63,19 @@ void TestInfo(const char* message)
 }
 
 /**
-Extracts the log line payload
+   Extracts the log line payload
 
-"E0423 16:55:43.001194 LoggingTests.cpp:102] Foo bar?\n"
--->
-"Foo bar"
+   "E0423 16:55:43.001194 LoggingTests.cpp:102] Foo bar?\n"
+   -->
+   "Foo bar"
 
-If the log line cannot be matched, the function returns false.
+   If the log line cannot be matched, the function returns false.
 */
 
 #define EOLSTRING "\n"
 
 static bool GetLogLinePayload(std::string& payload,
-  const std::string& logLine)
+                              const std::string& logLine)
 {
   const char* regexStr = "[A-Z][0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} "
     "[a-zA-Z\\.\\-_]+:[0-9]+\\] (.*)" EOLSTRING "$";
@@ -100,6 +99,7 @@ static bool GetLogLinePayload(std::string& payload,
   }
 }
 
+
 namespace
 {
   class LoggingMementoScope
@@ -114,7 +114,30 @@ namespace
       Orthanc::Logging::Reset();
     }
   };
+
+
+  /**
+   * std::streambuf subclass used in FunctionCallingStream
+   **/
+  template<typename T>
+  class FuncStreamBuf : public std::stringbuf
+  {
+  public:
+    FuncStreamBuf(T func) : func_(func) {}
+
+    virtual int sync()
+    {
+      std::string text = this->str();
+      const char* buf = text.c_str();
+      func_(buf);
+      this->str("");
+      return 0;
+    }
+  private:
+    T func_;
+  };
 }
+
 
 TEST(FuncStreamBuf, BasicTest)
 {
