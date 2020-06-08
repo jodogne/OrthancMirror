@@ -1718,7 +1718,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       case Json::arrayValue:
       {
         const char* p = NULL;
-        if (!privateCreator.empty())
+        if (tag.IsPrivate() &&
+            !privateCreator.empty())
         {
           p = privateCreator.c_str();
         }
