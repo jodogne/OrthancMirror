@@ -252,7 +252,6 @@ endif()
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1
-  -DORTHANC_ENABLE_LOGGING_PLUGIN=0
   
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0

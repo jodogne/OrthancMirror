@@ -544,7 +544,6 @@ add_definitions(
 if (ORTHANC_SANDBOXED)
   add_definitions(
     -DORTHANC_SANDBOXED=1
-    -DORTHANC_ENABLE_LOGGING_PLUGIN=0
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
