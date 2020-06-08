@@ -101,14 +101,6 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void SetTargetFolder(const std::string& path);
 
-#if ORTHANC_ENABLE_LOGGING_STDIO == 1
-    typedef void (*LoggingFunction)(const char*);
-    ORTHANC_PUBLIC void SetErrorWarnInfoTraceLoggingFunctions(LoggingFunction errorLogFunc,
-                                                              LoggingFunction warningLogfunc,
-                                                              LoggingFunction infoLogFunc,
-                                                              LoggingFunction traceLogFunc);
-#endif
-
     struct NullStream : public std::ostream 
     {
       NullStream() : 
