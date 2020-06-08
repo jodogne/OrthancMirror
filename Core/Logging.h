@@ -109,15 +109,60 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_LOGGING != 1
-#define LOG(level)   ::Orthanc::Logging::NullStream()
-#define VLOG(level)  ::Orthanc::Logging::NullStream()
-
+#  define LOG(level)   ::Orthanc::Logging::NullStream()
+#  define VLOG(level)  ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
-
-#define LOG(level)  ::Orthanc::Logging::InternalLogger          \
+#  define LOG(level)  ::Orthanc::Logging::InternalLogger        \
   (::Orthanc::Logging::LogLevel_ ## level, __FILE__, __LINE__)
-#define VLOG(level) ::Orthanc::Logging::InternalLogger          \
+#  define VLOG(level) ::Orthanc::Logging::InternalLogger        \
   (::Orthanc::Logging::LogLevel_TRACE, __FILE__, __LINE__)
+#endif
+
+
+
+#if (ORTHANC_ENABLE_LOGGING == 1 &&             \
+     ORTHANC_ENABLE_LOGGING_STDIO == 1)
+// This is notably for WebAssembly
+
+#include <boost/lexical_cast.hpp>
+#include <boost/noncopyable.hpp>
+#include <sstream>
+
+namespace Orthanc
+{
+  namespace Logging
+  {
+    class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
+    {
+    private:
+      LogLevel           level_;
+      std::stringstream  messageStream_;
+
+    public:
+      InternalLogger(LogLevel level,
+                     const char* file  /* ignored */,
+                     int line  /* ignored */) :
+        level_(level)
+      {
+      }
+
+      ~InternalLogger();
+      
+      template <typename T>
+        std::ostream& operator<< (const T& message)
+      {
+        return messageStream_ << boost::lexical_cast<std::string>(message);
+      }
+    };
+  }
+}
+
+#endif
+
+
+
+#if (ORTHANC_ENABLE_LOGGING == 1 &&             \
+     ORTHANC_ENABLE_LOGGING_STDIO == 0)
 
 #include "Compatibility.h"  // For std::unique_ptr<>
 
