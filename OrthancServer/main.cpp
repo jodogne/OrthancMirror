@@ -1624,6 +1624,37 @@ int main(int argc, char* argv[])
 
     LOG(WARNING) << "Orthanc version: " << version;
     assert(DisplayPerformanceWarning());
+
+    std::string s = "Architecture: ";
+    if (sizeof(void*) == 4)
+    {
+      s += "32-bit, ";
+    }
+    else if (sizeof(void*) == 8)
+    {
+      s += "64-bit, ";
+    }
+    else
+    {
+      s += "unsupported pointer size, ";
+    }
+
+    switch (Toolbox::DetectEndianness())
+    {
+      case Endianness_Little:
+        s += "little endian";
+        break;
+      
+      case Endianness_Big:
+        s += "big endian";
+        break;
+      
+      default:
+        s += "unsupported endianness";
+        break;
+    }
+    
+    LOG(INFO) << s;
   }
 
   int status = 0;
