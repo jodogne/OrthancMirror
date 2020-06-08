@@ -163,8 +163,8 @@ namespace Orthanc
 {
   namespace Logging
   {
-    static bool globalVerbose_ = false;
-    static bool globalTrace_ = false;
+    static bool infoEnabled_ = false;
+    static bool traceEnabled_ = false;
     
 #ifdef __EMSCRIPTEN__
     static void ErrorLogFunc(const char* msg)
@@ -208,12 +208,6 @@ namespace Orthanc
     }
 #endif  /* __EMSCRIPTEN__ */
 
-    InternalLogger::InternalLogger(LogLevel level,
-                                   const char* file  /* ignored */,
-                                   int line  /* ignored */) :
-      level_(level)
-    {
-    }
 
     InternalLogger::~InternalLogger()
     {
@@ -222,25 +216,25 @@ namespace Orthanc
       switch (level_)
       {
         case LogLevel_ERROR:
-          globalErrorLogFunc(message.c_str());
+          ErrorLogFunc(message.c_str());
           break;
 
         case LogLevel_WARNING:
-          globalWarningLogFunc(message.c_str());
+          WarningLogFunc(message.c_str());
           break;
 
         case LogLevel_INFO:
-          if (globalVerbose_)
+          if (infoEnabled_)
           {
-            globalInfoLogFunc(message.c_str());
+            InfoLogFunc(message.c_str());
             // TODO: stone_console_info(message_.c_str());
           }
           break;
 
         case LogLevel_TRACE:
-          if (globalTrace_)
+          if (traceEnabled_)
           {
-            globalTraceLogFunc(message.c_str());
+            TraceLogFunc(message.c_str());
           }
           break;
 
@@ -249,7 +243,7 @@ namespace Orthanc
           std::stringstream ss;
           ss << "Unknown log level (" << level_ << ") for message: " << message;
           std::string s = ss.str();
-          globalErrorLogFunc(s.c_str());
+          ErrorLogFunc(s.c_str());
         }
       }
     }
@@ -276,22 +270,28 @@ namespace Orthanc
 
     void EnableInfoLevel(bool enabled)
     {
-      globalVerbose_ = enabled;
+      infoEnabled_ = enabled;
+
+      if (!enabled)
+      {
+        // Also disable the "TRACE" level when info-level debugging is disabled
+        traceEnabled_ = false;
+      }
     }
 
     bool IsInfoLevelEnabled()
     {
-      return globalVerbose_;
+      return infoEnabled_;
     }
 
     void EnableTraceLevel(bool enabled)
     {
-      globalTrace_ = enabled;
+      traceEnabled_ = enabled;
     }
 
     bool IsTraceLevelEnabled()
     {
-      return globalTrace_;
+      return traceEnabled_;
     }
 
     void SetTargetFile(const std::string& path)
@@ -760,8 +760,6 @@ namespace Orthanc
               break;
 
             case LogLevel_WARNING:
-              printf("[%s]\n", message.c_str());
-        
               pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogWarning, message.c_str());
               break;
 
