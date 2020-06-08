@@ -162,7 +162,7 @@ namespace Orthanc
           (content.size() >= 4 && content[3].type() != Json::intValue) ||
           (content.size() >= 5 && content[4].type() != Json::stringValue))
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat, "The definition of the '" + tags[i] + "' dictionary entry is invalid.");
       }
 
       DicomTag tag(FromDcmtkBridge::ParseTag(tags[i]));

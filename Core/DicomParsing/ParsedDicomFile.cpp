@@ -657,6 +657,12 @@ namespace Orthanc
   void ParsedDicomFile::ReplacePlainString(const DicomTag& tag,
                                            const std::string& utf8Value)
   {
+//    if (tag.GetElement() == 4257 && tag.GetGroup() == 1031)
+//    {
+//      Replace(tag, utf8Value, false, DicomReplaceMode_InsertIfAbsent,
+//              "99CZM_CapeCod_OctGeneral");
+//    }
+//    else
     if (tag.IsPrivate())
     {
       throw OrthancException(ErrorCode_InternalError,

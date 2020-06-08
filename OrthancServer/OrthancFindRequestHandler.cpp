@@ -303,7 +303,7 @@ namespace Orthanc
                         const DicomArray& query,
                         const std::list<DicomTag>& sequencesToReturn,
                         const DicomMap* counters,
-                        const std::string& privateCreator)
+                        const std::string& defaultPrivateCreator)
   {
     DicomMap match;
 
@@ -373,7 +373,7 @@ namespace Orthanc
     else
     {
       ParsedDicomFile dicom(result, GetDefaultDicomEncoding(),
-                            true /* be permissive, cf. issue #136 */, privateCreator);
+                            true /* be permissive, cf. issue #136 */, defaultPrivateCreator);
 
       for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
            tag != sequencesToReturn.end(); ++tag)
@@ -396,7 +396,14 @@ namespace Orthanc
             content.append(item);
           }
 
-          dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, privateCreator);
+          if (tag->IsPrivate())
+          {
+            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator); // TODO: instead of taking the default private creator, we should get the private createor of the current "group"
+          }
+          else
+          {
+            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
+          }
         }
       }
 
@@ -485,7 +492,7 @@ namespace Orthanc
     const DicomMap&             query_;
     DicomArray                  queryAsArray_;
     const std::list<DicomTag>&  sequencesToReturn_;
-    std::string                 privateCreator_;
+    std::string                 defaultPrivateCreator_;
 
   public:
     LookupVisitor(DicomFindAnswers&  answers,
@@ -504,7 +511,7 @@ namespace Orthanc
 
       {
         OrthancConfiguration::ReaderLock lock;
-        privateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
+        defaultPrivateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
       }
     }
 
@@ -547,7 +554,7 @@ namespace Orthanc
       std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 
       AddAnswer(answers_, mainDicomTags, dicomAsJson,
-                queryAsArray_, sequencesToReturn_, counters.get(), privateCreator_);
+                queryAsArray_, sequencesToReturn_, counters.get(), defaultPrivateCreator_);
     }
   };
 
