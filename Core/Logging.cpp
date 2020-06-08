@@ -96,6 +96,10 @@ namespace Orthanc
 {
   namespace Logging
   {
+    void InitializePluginContext(void* pluginContext)
+    {
+    }
+
     void Initialize()
     {
     }
@@ -150,7 +154,6 @@ namespace Orthanc
  *********************************************************/
 
 #include <stdio.h>
-#include <boost/lexical_cast.hpp>
 
 #ifdef __EMSCRIPTEN__
 #  include <emscripten/html5.h>
@@ -183,8 +186,7 @@ namespace Orthanc
     {
       emscripten_console_log(msg);
     }
-#else
-// __EMSCRIPTEN__ not #defined
+#else  /* __EMSCRIPTEN__ not #defined */
     static void ErrorLogFunc(const char* msg)
     {
       fprintf(stderr, "E: %s\n", msg);
@@ -204,8 +206,7 @@ namespace Orthanc
     {
       fprintf(stdout, "T: %s\n", msg);
     }
-#endif 
-// __EMSCRIPTEN__
+#endif  /* __EMSCRIPTEN__ */
 
     InternalLogger::InternalLogger(LogLevel level,
                                    const char* file  /* ignored */,
@@ -251,6 +252,10 @@ namespace Orthanc
           globalErrorLogFunc(s.c_str());
         }
       }
+    }
+
+    void InitializePluginContext(void* pluginContext)
+    {
     }
 
     void Initialize()
@@ -300,10 +305,11 @@ namespace Orthanc
 }
 
 
-#elif ORTHANC_ENABLE_LOGGING_PLUGIN == 1
+#else
 
 /*********************************************************
- * Logger compatible with the Orthanc plugin SDK
+ * Logger compatible with the Orthanc plugin SDK, or that
+ * mimics behavior from Google Log.
  *********************************************************/
 
 #include <cassert>
@@ -335,83 +341,8 @@ namespace
 }
   
 
-#include <boost/lexical_cast.hpp>
-#include <sstream>
-
-namespace Orthanc
-{
-  namespace Logging
-  {
-    static OrthancPluginContext* context_ = NULL;
-
-    void Initialize(void* context)
-    {
-      assert(sizeof(_OrthancPluginService) == sizeof(int32_t));
-      context_ = reinterpret_cast<OrthancPluginContext*>(context);
-    }
-
-    InternalLogger::InternalLogger(LogLevel level,
-                                   const char* file  /* ignored */,
-                                   int line  /* ignored */) :
-      level_(level)
-    {
-    }
-
-    InternalLogger::~InternalLogger()
-    {
-      std::string message = messageStream_.str();
-      if (context_ != NULL)
-      {
-        switch (level_)
-        {
-          case LogLevel_ERROR:
-            context_->InvokeService(context_, _OrthancPluginService_LogError, message.c_str());
-            break;
-
-          case LogLevel_WARNING:
-            context_->InvokeService(context_, _OrthancPluginService_LogWarning, message.c_str());
-            break;
-
-          case LogLevel_INFO:
-            context_->InvokeService(context_, _OrthancPluginService_LogInfo, message.c_str());
-            break;
-
-          case LogLevel_TRACE:
-            // Not used by plugins
-            break;
-
-          default:
-          {
-            std::string s = ("Unknown log level (" + boost::lexical_cast<std::string>(level_) +
-                             ") for message: " + message);
-            context_->InvokeService(context_, _OrthancPluginService_LogInfo, s.c_str());
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
-
-#else  /* ORTHANC_ENABLE_LOGGING_PLUGIN == 0 && 
-          ORTHANC_ENABLE_LOGGING_STDIO == 0 && 
-          ORTHANC_ENABLE_LOGGING == 1 */
-
-/*********************************************************
- * Internal logger of Orthanc, that mimics some
- * behavior from Google Log.
- *********************************************************/
-
-#include "Compatibility.h"
 #include "Enumerations.h"
-#include "Toolbox.h"
-
-#if ORTHANC_SANDBOXED == 1
-#  include <stdio.h>
-#else
-#  include "SystemToolbox.h"
-#endif
+#include "SystemToolbox.h"
 
 #include <fstream>
 #include <boost/filesystem.hpp>
@@ -421,10 +352,8 @@ namespace Orthanc
 
 namespace
 {
-  struct LoggingContext
+  struct LoggingStreamsContext
   {
-    bool infoEnabled_;
-    bool traceEnabled_;
     std::string  targetFile_;
     std::string  targetFolder_;
 
@@ -434,9 +363,7 @@ namespace
 
     std::unique_ptr<std::ofstream> file_;
 
-    LoggingContext() : 
-      infoEnabled_(false),
-      traceEnabled_(false),
+    LoggingStreamsContext() : 
       error_(&std::cerr),
       warning_(&std::cerr),
       info_(&std::cerr)
@@ -447,9 +374,12 @@ namespace
 
 
 
-static std::unique_ptr<LoggingContext> loggingContext_;
-static boost::mutex  loggingMutex_;
-
+static std::unique_ptr<LoggingStreamsContext> loggingStreamsContext_;
+static boost::mutex                           loggingStreamsMutex_;
+static Orthanc::Logging::NullStream           nullStream_;
+static OrthancPluginContext*                  pluginContext_ = NULL;
+static bool                                   infoEnabled_ = false;
+static bool                                   traceEnabled_ = false;
 
 
 namespace Orthanc
@@ -515,10 +445,11 @@ namespace Orthanc
     }
 
 
+    // "loggingStreamsMutex_" must be locked
     static void CheckFile(std::unique_ptr<std::ofstream>& f)
     {
-      if (loggingContext_->file_.get() == NULL ||
-          !loggingContext_->file_->is_open())
+      if (loggingStreamsContext_->file_.get() == NULL ||
+          !loggingStreamsContext_->file_->is_open())
       {
         throw OrthancException(ErrorCode_CannotWriteFile);
       }
@@ -593,45 +524,52 @@ namespace Orthanc
     }
     
 
+    void InitializePluginContext(void* pluginContext)
+    {
+      assert(sizeof(_OrthancPluginService) == sizeof(int32_t));
+
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      loggingStreamsContext_.reset(NULL);
+      pluginContext_ = reinterpret_cast<OrthancPluginContext*>(pluginContext);
+    }
+
+
     void Initialize()
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      loggingContext_.reset(new LoggingContext);
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      loggingStreamsContext_.reset(new LoggingStreamsContext);
     }
 
     void Finalize()
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      loggingContext_.reset(NULL);
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      loggingStreamsContext_.reset(NULL);
     }
 
     void Reset()
     {
       // Recover the old logging context
-      std::unique_ptr<LoggingContext> old;
+      std::unique_ptr<LoggingStreamsContext> old;
 
       {
-        boost::mutex::scoped_lock lock(loggingMutex_);
-        if (loggingContext_.get() == NULL)
+        boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+        if (loggingStreamsContext_.get() == NULL)
         {
           return;
         }
         else
         {
 #if __cplusplus < 201103L
-          old.reset(loggingContext_.release());
+          old.reset(loggingStreamsContext_.release());
 #else
-          old = std::move(loggingContext_);
+          old = std::move(loggingStreamsContext_);
 #endif
 
           // Create a new logging context, 
-          loggingContext_.reset(new LoggingContext);
+          loggingStreamsContext_.reset(new LoggingStreamsContext);
         }
       }
       
-      EnableInfoLevel(old->infoEnabled_);
-      EnableTraceLevel(old->traceEnabled_);
-
       if (!old->targetFolder_.empty())
       {
         SetTargetFolder(old->targetFolder_);
@@ -645,177 +583,198 @@ namespace Orthanc
 
     void EnableInfoLevel(bool enabled)
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
-
-      loggingContext_->infoEnabled_ = enabled;
+      infoEnabled_ = enabled;
       
       if (!enabled)
       {
         // Also disable the "TRACE" level when info-level debugging is disabled
-        loggingContext_->traceEnabled_ = false;
+        traceEnabled_ = false;
       }
     }
 
     bool IsInfoLevelEnabled()
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
-
-      return loggingContext_->infoEnabled_;
+      return infoEnabled_;
     }
 
     void EnableTraceLevel(bool enabled)
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
-
-      loggingContext_->traceEnabled_ = enabled;
+      traceEnabled_ = enabled;
       
       if (enabled)
       {
         // Also enable the "INFO" level when trace-level debugging is enabled
-        loggingContext_->infoEnabled_ = true;
+        infoEnabled_ = true;
       }
     }
 
     bool IsTraceLevelEnabled()
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
-
-      return loggingContext_->traceEnabled_;
+      return traceEnabled_;
     }
 
 
     void SetTargetFolder(const std::string& path)
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      if (loggingStreamsContext_.get() != NULL)
+      {
+        PrepareLogFolder(loggingStreamsContext_->file_, "" /* no suffix */, path);
+        CheckFile(loggingStreamsContext_->file_);
 
-      PrepareLogFolder(loggingContext_->file_, "" /* no suffix */, path);
-      CheckFile(loggingContext_->file_);
-
-      loggingContext_->targetFile_.clear();
-      loggingContext_->targetFolder_ = path;
-      loggingContext_->warning_ = loggingContext_->file_.get();
-      loggingContext_->error_ = loggingContext_->file_.get();
-      loggingContext_->info_ = loggingContext_->file_.get();
+        loggingStreamsContext_->targetFile_.clear();
+        loggingStreamsContext_->targetFolder_ = path;
+        loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+      }
     }
 
 
     void SetTargetFile(const std::string& path)
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-      assert(loggingContext_.get() != NULL);
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
 
-      loggingContext_->file_.reset(new std::ofstream(path.c_str(), std::fstream::app));
-      CheckFile(loggingContext_->file_);
+      if (loggingStreamsContext_.get() != NULL)
+      {
+        loggingStreamsContext_->file_.reset(new std::ofstream(path.c_str(), std::fstream::app));
+        CheckFile(loggingStreamsContext_->file_);
 
-      loggingContext_->targetFile_ = path;
-      loggingContext_->targetFolder_.clear();
-      loggingContext_->warning_ = loggingContext_->file_.get();
-      loggingContext_->error_ = loggingContext_->file_.get();
-      loggingContext_->info_ = loggingContext_->file_.get();
+        loggingStreamsContext_->targetFile_ = path;
+        loggingStreamsContext_->targetFolder_.clear();
+        loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
+        loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+      }
     }
 
 
     InternalLogger::InternalLogger(LogLevel level,
                                    const char* file,
                                    int line) : 
-      lock_(loggingMutex_, boost::defer_lock_t()), 
-      stream_(&null_)  // By default, logging to "/dev/null" is simulated
+      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      level_(level),
+      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
     {
-      lock_.lock();
-      
-      if (loggingContext_.get() == NULL)
+      if (pluginContext_ != NULL)
       {
-        fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
-        return;
-      }
+        // We are logging using the Orthanc plugin SDK
 
-      try
-      {
-        if ((level == LogLevel_INFO  && !loggingContext_->infoEnabled_) ||
-            (level == LogLevel_TRACE && !loggingContext_->traceEnabled_))
+        if (level == LogLevel_TRACE)
         {
-          // This logging level is disabled, directly exit and unlock
-          // the mutex to speed-up things. The stream is set to "/dev/null"
-          lock_.unlock();
+          // No trace level in plugins, directly exit as the stream is
+          // set to "/dev/null"
+          return;
+        }
+        else
+        {
+          pluginStream_.reset(new std::stringstream);
+          stream_ = pluginStream_.get();
+        }
+      }
+      else
+      {
+        // We are logging in a standalone application, not inside an Orthanc plugin
+
+        if ((level == LogLevel_INFO  && !infoEnabled_) ||
+            (level == LogLevel_TRACE && !traceEnabled_))
+        {
+          // This logging level is disabled, directly exit as the
+          // stream is set to "/dev/null"
           return;
         }
 
-        // Compute the prefix of the line, temporary release the lock as
-        // this is a time-consuming operation
-        lock_.unlock();
         std::string prefix;
         GetLinePrefix(prefix, level, file, line);
 
-        // The prefix is computed, we now re-lock the mutex to access
-        // the stream objects. Pay attention that "loggingContext_",
-        // "infoEnabled_" or "traceEnabled_" might have changed while
-        // the mutex was unlocked.
-        lock_.lock();
-
-        if (loggingContext_.get() == NULL)
         {
-          fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
-          return;
-        }
+          // We lock the global mutex. The mutex is locked until the
+          // destructor is called: No change in the output can be done.
+          lock_.lock();
+      
+          if (loggingStreamsContext_.get() == NULL)
+          {
+            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+            lock_.unlock();
+            return;
+          }
 
-        switch (level)
-        {
-          case LogLevel_ERROR:
-            stream_ = loggingContext_->error_;
-            break;
+          switch (level)
+          {
+            case LogLevel_ERROR:
+              stream_ = loggingStreamsContext_->error_;
+              break;
+              
+            case LogLevel_WARNING:
+              stream_ = loggingStreamsContext_->warning_;
+              break;
+              
+            case LogLevel_INFO:
+            case LogLevel_TRACE:
+              stream_ = loggingStreamsContext_->info_;
+              break;
+              
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
 
-          case LogLevel_WARNING:
-            stream_ = loggingContext_->warning_;
-            break;
-
-          case LogLevel_INFO:
-            if (loggingContext_->infoEnabled_)
+          if (stream_ == &nullStream_)
+          {
+            // The logging is disabled for this level, we can release
+            // the global mutex.
+            lock_.unlock();
+          }
+          else
+          {
+            try
             {
-              stream_ = loggingContext_->info_;
+              (*stream_) << prefix;
             }
-
-            break;
-
-          case LogLevel_TRACE:
-            if (loggingContext_->traceEnabled_)
-            {
-              stream_ = loggingContext_->info_;
+            catch (...)
+            { 
+              // Something is going really wrong, probably running out of
+              // memory. Fallback to a degraded mode.
+              stream_ = loggingStreamsContext_->error_;
+              (*stream_) << "E???? ??:??:??.?????? ] ";
             }
-
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
+          }
         }
-
-        if (stream_ == &null_)
-        {
-          // The logging is disabled for this level. The stream is the
-          // "null_" member of this object, so we can release the global
-          // mutex.
-          lock_.unlock();
-        }
-
-        (*stream_) << prefix;
-      }
-      catch (...)
-      { 
-        // Something is going really wrong, probably running out of
-        // memory. Fallback to a degraded mode.
-        stream_ = loggingContext_->error_;
-        (*stream_) << "E???? ??:??:??.?????? ] ";
       }
     }
 
 
     InternalLogger::~InternalLogger()
     {
-      if (stream_ != &null_)
+      if (pluginStream_.get() != NULL)
+      {
+        // We are logging through the Orthanc SDK
+        
+        std::string message = pluginStream_->str();
+
+        if (pluginContext_ != NULL)
+        {
+          switch (level_)
+          {
+            case LogLevel_ERROR:
+              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogError, message.c_str());
+              break;
+
+            case LogLevel_WARNING:
+              printf("[%s]\n", message.c_str());
+        
+              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogWarning, message.c_str());
+              break;
+
+            case LogLevel_INFO:
+              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogInfo, message.c_str());
+              break;
+
+            default:
+              break;
+          }
+        }
+      }
+      else if (stream_ != &nullStream_)
       {
         *stream_ << "\n";
         stream_->flush();
@@ -825,38 +784,29 @@ namespace Orthanc
 
     void Flush()
     {
-      boost::mutex::scoped_lock lock(loggingMutex_);
-
-      if (loggingContext_.get() != NULL &&
-          loggingContext_->file_.get() != NULL)
+      if (pluginContext_ != NULL)
       {
-        loggingContext_->file_->flush();
+        boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+
+        if (loggingStreamsContext_.get() != NULL &&
+            loggingStreamsContext_->file_.get() != NULL)
+        {
+          loggingStreamsContext_->file_->flush();
+        }
       }
     }
+    
 
     void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
                                         std::ostream& warningStream,
                                         std::ostream& infoStream)
     {
-      std::unique_ptr<LoggingContext> old;
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
 
-      {
-        boost::mutex::scoped_lock lock(loggingMutex_);
-
-#if __cplusplus < 201103L
-        old.reset(loggingContext_.release());
-#else
-        old = std::move(loggingContext_);
-#endif
-      
-        loggingContext_.reset(new LoggingContext);
-        loggingContext_->error_ = &errorStream;
-        loggingContext_->warning_ = &warningStream;
-        loggingContext_->info_ = &infoStream;
-      }
-      
-      EnableInfoLevel(old->infoEnabled_);
-      EnableTraceLevel(old->traceEnabled_);
+      loggingStreamsContext_.reset(new LoggingStreamsContext);
+      loggingStreamsContext_->error_ = &errorStream;
+      loggingStreamsContext_->warning_ = &warningStream;
+      loggingStreamsContext_->info_ = &infoStream;
     }
   }
 }
