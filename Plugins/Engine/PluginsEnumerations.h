@@ -56,7 +56,7 @@ namespace Orthanc
 
   namespace Plugins
   {
-    OrthancPluginChangeType Convert(ChangeType type);
+    OrthancPluginChangeType Convert55(ChangeType type);
 
     OrthancPluginPixelFormat Convert(PixelFormat format);
 

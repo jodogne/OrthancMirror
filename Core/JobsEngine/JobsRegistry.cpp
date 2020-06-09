@@ -495,15 +495,20 @@ namespace Orthanc
       job.SetLastErrorCode(ErrorCode_CanceledJob);
     }
 
-    if (observer_ != NULL)
     {
-      if (reason == CompletedReason_Success)
+      boost::shared_lock<boost::shared_mutex> lock(observersMutex_);
+
+      for (Observers::iterator it = observers_.begin(); it != observers_.end(); ++it)
       {
-        observer_->SignalJobSuccess(job.GetId());
-      }
-      else
-      {
-        observer_->SignalJobFailure(job.GetId());
+        if (reason == CompletedReason_Success)
+        {
+          (*it)->SignalJobSuccess(job.GetId());
+        }
+        else
+        {
+          (*it)->SignalJobFailure(job.GetId());
+        }
+
       }
     }
 
@@ -711,9 +716,13 @@ namespace Orthanc
 
       LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
 
-      if (observer_ != NULL)
       {
-        observer_->SignalJobSubmitted(id);
+        boost::shared_lock<boost::shared_mutex> lock(observersMutex_);
+
+        for (Observers::iterator it = observers_.begin(); it != observers_.end(); ++it)
+        {
+          (*it)->SignalJobSubmitted(id);
+        }
       }
 
       // WARNING: The following call might make "handler" invalid if
@@ -1100,17 +1109,21 @@ namespace Orthanc
   }
 
 
-  void JobsRegistry::SetObserver(JobsRegistry::IObserver& observer)
+  void JobsRegistry::AddObserver(JobsRegistry::IObserver& observer)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    observer_ = &observer;
+    boost::unique_lock<boost::shared_mutex> lock(observersMutex_);
+    observers_.insert(&observer);
   }
 
   
-  void JobsRegistry::ResetObserver()
+  void JobsRegistry::ResetObserver(JobsRegistry::IObserver& observer)
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    observer_ = NULL;
+    boost::unique_lock<boost::shared_mutex> lock(observersMutex_);
+    Observers::iterator it = observers_.find(&observer);
+    if (it != observers_.end())
+    {
+      observers_.erase(it);
+    }
   }
 
   
@@ -1381,8 +1394,7 @@ namespace Orthanc
   JobsRegistry::JobsRegistry(IJobUnserializer& unserializer,
                              const Json::Value& s,
                              size_t maxCompletedJobs) :
-    maxCompletedJobs_(maxCompletedJobs),
-    observer_(NULL)
+    maxCompletedJobs_(maxCompletedJobs)
   {
     if (SerializationToolbox::ReadString(s, TYPE) != JOBS_REGISTRY ||
         !s.isMember(JOBS) ||
