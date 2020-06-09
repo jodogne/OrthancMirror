@@ -42,7 +42,7 @@
 #include "../Core/Toolbox.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
-#include <ServerResources.h>
+#include <OrthancServerResources.h>
 
 #include <boost/lexical_cast.hpp>
 

@@ -153,16 +153,6 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
-  void Font::LoadFromResource(EmbeddedResources::FileResourceId resource)
-  {
-    std::string content;
-    EmbeddedResources::GetFileResource(content, resource);
-    LoadFromMemory(content);
-  }
-#endif
-
-
   static unsigned int MyMin(unsigned int a, 
                             unsigned int b)
   {

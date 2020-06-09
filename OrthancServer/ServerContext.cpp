@@ -53,7 +53,6 @@
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 
-#include <OrthancEmbeddedResources.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 

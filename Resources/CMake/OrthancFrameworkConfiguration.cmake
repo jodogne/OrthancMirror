@@ -678,7 +678,8 @@ endif()
 
 
 EmbedResources(
-  --target=OrthancEmbeddedResources
+  --namespace=Orthanc.FrameworkResources
+  --target=OrthancFrameworkResources
   ${LIBICU_RESOURCES}
   ${DCMTK_DICTIONARIES}
   )

@@ -213,7 +213,7 @@ endif()
 
 EmbedResources(
   --namespace=Orthanc.ServerResources
-  --target=ServerResources
+  --target=OrthancServerResources
   ${ORTHANC_EMBEDDED_FILES}
   )
 
