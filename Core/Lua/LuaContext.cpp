@@ -167,6 +167,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::SetHttpCredentials(lua_State *state)
   {
     LuaContext& that = GetLuaContext(state);
@@ -189,8 +190,10 @@ namespace Orthanc
 
     return 0;
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CURL == 1
   bool LuaContext::AnswerHttpQuery(lua_State* state)
   {
     std::string str;
@@ -209,8 +212,10 @@ namespace Orthanc
 
     return true;
   }
+#endif
   
 
+#if ORTHANC_ENABLE_CURL == 1
   void LuaContext::SetHttpHeaders(int top)
   {
     std::map<std::string, std::string> headers;
@@ -223,9 +228,11 @@ namespace Orthanc
     {
       httpClient_.AddHeader(it->first, it->second);
     }
-  }  
+  }
+#endif
 
 
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpGet(lua_State *state)
   {
     LuaContext& that = GetLuaContext(state);
@@ -256,8 +263,10 @@ namespace Orthanc
 
     return 1;
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpPostOrPut(lua_State *state,
                                     HttpMethod method)
   {
@@ -308,20 +317,26 @@ namespace Orthanc
 
     return 1;
   }
+#endif
+  
 
-
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpPost(lua_State *state)
   {
     return CallHttpPostOrPut(state, HttpMethod_Post);
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpPut(lua_State *state)
   {
     return CallHttpPostOrPut(state, HttpMethod_Put);
   }
+#endif
 
 
+#if ORTHANC_ENABLE_CURL == 1
   int LuaContext::CallHttpDelete(lua_State *state)
   {
     LuaContext& that = GetLuaContext(state);
@@ -356,6 +371,7 @@ namespace Orthanc
 
     return 1;
   }
+#endif
 
 
   void LuaContext::PushJson(const Json::Value& value)
@@ -554,11 +570,14 @@ namespace Orthanc
     lua_register(lua_, "print", PrintToLog);
     lua_register(lua_, "ParseJson", ParseJson);
     lua_register(lua_, "DumpJson", DumpJson);
+    
+#if ORTHANC_ENABLE_CURL == 1
     lua_register(lua_, "HttpGet", CallHttpGet);
     lua_register(lua_, "HttpPost", CallHttpPost);
     lua_register(lua_, "HttpPut", CallHttpPut);
     lua_register(lua_, "HttpDelete", CallHttpDelete);
     lua_register(lua_, "SetHttpCredentials", SetHttpCredentials);
+#endif
 
     SetGlobalVariable("_LuaContext", this);
   }

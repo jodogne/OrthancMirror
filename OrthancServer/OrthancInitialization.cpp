@@ -225,22 +225,24 @@ namespace Orthanc
   {
     OrthancConfiguration::WriterLock lock;
 
-    Toolbox::InitializeOpenSsl();
-
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
     lock.GetConfiguration().Read(configurationFile);
 
-    if (lock.GetJson().isMember("Locale"))
     {
-      std::string locale = lock.GetConfiguration().GetStringParameter("Locale", "");
-      Toolbox::InitializeGlobalLocale(lock.GetJson()["Locale"].asCString());
+      std::string locale;
+      
+      if (lock.GetJson().isMember("Locale"))
+      {
+        locale = lock.GetConfiguration().GetStringParameter("Locale", "");
+      }
+      
+      bool loadPrivate = lock.GetConfiguration().GetBooleanParameter("LoadPrivateDictionary", true);
+      Orthanc::InitializeFramework(locale, loadPrivate);
     }
-    else
-    {
-      Toolbox::InitializeGlobalLocale(NULL);
-    }
+
+    // The Orthanc framework is now initialized
 
     if (lock.GetJson().isMember("DefaultEncoding"))
     {
@@ -257,21 +259,12 @@ namespace Orthanc
       ConfigurePkcs11(lock.GetJson()["Pkcs11"]);
     }
 
-    HttpClient::GlobalInitialize();
-
     RegisterUserMetadata(lock.GetJson());
     RegisterUserContentType(lock.GetJson());
 
-    bool loadPrivate = lock.GetConfiguration().GetBooleanParameter("LoadPrivateDictionary", true);
-    FromDcmtkBridge::InitializeDictionary(loadPrivate);
     LoadCustomDictionary(lock.GetJson());
 
-    FromDcmtkBridge::InitializeCodecs();
-
     lock.GetConfiguration().RegisterFont(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
-
-    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
-    dcmDisableGethostbyaddr.set(OFTrue);
   }
 
 
@@ -279,11 +272,7 @@ namespace Orthanc
   void OrthancFinalize()
   {
     OrthancConfiguration::WriterLock lock;
-
-    HttpClient::GlobalFinalize();
-    FromDcmtkBridge::FinalizeCodecs();
-    Toolbox::FinalizeOpenSsl();
-    Toolbox::FinalizeGlobalLocale();
+    Orthanc::FinalizeFramework();
   }
 
 
