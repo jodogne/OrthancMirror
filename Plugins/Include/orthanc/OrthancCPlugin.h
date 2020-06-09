@@ -716,7 +716,7 @@ extern "C"
 
 
   /**
-   * The supported types of changes that can happen to DICOM resources.
+   * The supported types of changes that can be signaled to the change callback.
    * @ingroup Callbacks
    **/
   typedef enum
@@ -737,6 +737,9 @@ extern "C"
     OrthancPluginChangeType_UpdatedMetadata = 13,   /*!< Some user-defined metadata has changed for this resource */
     OrthancPluginChangeType_UpdatedPeers = 14,      /*!< The list of Orthanc peers has changed */
     OrthancPluginChangeType_UpdatedModalities = 15, /*!< The list of DICOM modalities has changed */
+    OrthancPluginChangeType_JobSubmitted = 16,      /*!< New Job submitted */
+    OrthancPluginChangeType_JobSuccess = 17,        /*!< A Job has completed successfully */
+    OrthancPluginChangeType_JobFailure = 18,        /*!< A Job has failed */
 
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;

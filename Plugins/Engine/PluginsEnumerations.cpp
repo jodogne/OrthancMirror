@@ -92,7 +92,7 @@ namespace Orthanc
 
   namespace Plugins
   {
-    OrthancPluginChangeType Convert55(ChangeType type)
+    OrthancPluginChangeType Convert(ChangeType type)
     {
       switch (type)
       {

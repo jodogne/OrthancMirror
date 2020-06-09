@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -50,10 +50,10 @@ namespace Orthanc
   static const char* CREATION_TIME = "CreationTime";
   static const char* LAST_CHANGE_TIME = "LastChangeTime";
   static const char* RUNTIME = "Runtime";
-  
+
 
   class JobsRegistry::JobHandler : public boost::noncopyable
-  {   
+  {
   private:
     std::string                       id_;
     JobState                          state_;
@@ -80,7 +80,7 @@ namespace Orthanc
       lastStateChangeTime_ = now;
     }
 
-    void SetStateInternal(JobState state) 
+    void SetStateInternal(JobState state)
     {
       state_ = state;
       pauseScheduled_ = false;
@@ -139,7 +139,7 @@ namespace Orthanc
       return state_;
     }
 
-    void SetState(JobState state) 
+    void SetState(JobState state)
     {
       if (state == JobState_Retry)
       {
@@ -157,7 +157,7 @@ namespace Orthanc
       if (state_ == JobState_Running)
       {
         SetStateInternal(JobState_Retry);
-        retryTime_ = (boost::posix_time::microsec_clock::universal_time() + 
+        retryTime_ = (boost::posix_time::microsec_clock::universal_time() +
                       boost::posix_time::milliseconds(timeout));
       }
       else
@@ -275,7 +275,7 @@ namespace Orthanc
           ok = false;
         }
       }
-      else 
+      else
       {
         ok = job_->Serialize(target[JOB]);
       }
@@ -327,14 +327,14 @@ namespace Orthanc
                                                      JobHandler*& b) const
   {
     return a->GetPriority() < b->GetPriority();
-  }                       
+  }
 
 
 #if defined(NDEBUG)
   void JobsRegistry::CheckInvariants() const
   {
   }
-  
+
 #else
   bool JobsRegistry::IsPendingJob(const JobHandler& job) const
   {
@@ -409,16 +409,16 @@ namespace Orthanc
         case JobState_Pending:
           assert(!IsRetryJob(job) && IsPendingJob(job) && !IsCompletedJob(job));
           break;
-            
+
         case JobState_Success:
         case JobState_Failure:
           assert(!IsRetryJob(job) && !IsPendingJob(job) && IsCompletedJob(job));
           break;
-            
+
         case JobState_Retry:
           assert(IsRetryJob(job) && !IsPendingJob(job) && !IsCompletedJob(job));
           break;
-            
+
         case JobState_Running:
         case JobState_Paused:
           assert(!IsRetryJob(job) && !IsPendingJob(job) && !IsCompletedJob(job));
@@ -482,7 +482,7 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
-    
+
     LOG(INFO) << "Job has completed with " << tmp << ": " << job.GetId();
 
     CheckInvariants();
@@ -495,20 +495,15 @@ namespace Orthanc
       job.SetLastErrorCode(ErrorCode_CanceledJob);
     }
 
+    if (observer_ != NULL)
     {
-      boost::shared_lock<boost::shared_mutex> lock(observersMutex_);
-
-      for (Observers::iterator it = observers_.begin(); it != observers_.end(); ++it)
+      if (reason == CompletedReason_Success)
       {
-        if (reason == CompletedReason_Success)
-        {
-          (*it)->SignalJobSuccess(job.GetId());
-        }
-        else
-        {
-          (*it)->SignalJobFailure(job.GetId());
-        }
-
+        observer_->SignalJobSuccess(job.GetId());
+      }
+      else
+      {
+        observer_->SignalJobFailure(job.GetId());
       }
     }
 
@@ -565,7 +560,7 @@ namespace Orthanc
     }
   }
 
-  
+
   JobsRegistry::~JobsRegistry()
   {
     for (JobsIndex::iterator it = jobsIndex_.begin(); it != jobsIndex_.end(); ++it)
@@ -673,13 +668,13 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
-    
+
     std::unique_ptr<JobHandler>  protection(handler);
 
     {
       boost::mutex::scoped_lock lock(mutex_);
       CheckInvariants();
-      
+
       id = handler->GetId();
       int priority = handler->GetPriority();
 
@@ -694,18 +689,18 @@ namespace Orthanc
           pendingJobs_.push(handler);
           pendingJobAvailable_.notify_one();
           break;
- 
+
         case JobState_Success:
           SetCompletedJob(*handler, true);
           break;
-        
+
         case JobState_Failure:
           SetCompletedJob(*handler, false);
           break;
 
         case JobState_Paused:
           break;
-        
+
         default:
         {
           std::string details = ("A job should not be loaded from state: " +
@@ -716,13 +711,9 @@ namespace Orthanc
 
       LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
 
+      if (observer_ != NULL)
       {
-        boost::shared_lock<boost::shared_mutex> lock(observersMutex_);
-
-        for (Observers::iterator it = observers_.begin(); it != observers_.end(); ++it)
-        {
-          (*it)->SignalJobSubmitted(id);
-        }
+        observer_->SignalJobSubmitted(id);
       }
 
       // WARNING: The following call might make "handler" invalid if
@@ -807,7 +798,7 @@ namespace Orthanc
             const JobStatus& status = it->second->GetLastStatus();
             successContent = status.GetPublicContent();
           }
-          
+
           return;
         }
         else
@@ -884,7 +875,7 @@ namespace Orthanc
   void JobsRegistry::RemoveRetryJob(JobHandler* handler)
   {
     RetryJobs::iterator item = retryJobs_.find(handler);
-    assert(item != retryJobs_.end());            
+    assert(item != retryJobs_.end());
     retryJobs_.erase(item);
   }
 
@@ -971,7 +962,7 @@ namespace Orthanc
           SetCompletedJob(*found->second, false);
           found->second->SetLastErrorCode(ErrorCode_CanceledJob);
           break;
-        
+
         case JobState_Success:
         case JobState_Failure:
           // Nothing to be done
@@ -1019,7 +1010,7 @@ namespace Orthanc
       pendingJobs_.push(found->second);
       pendingJobAvailable_.notify_one();
       CheckInvariants();
-      return true;      
+      return true;
     }
   }
 
@@ -1046,9 +1037,9 @@ namespace Orthanc
     else
     {
       found->second->GetJob().Reset();
-      
+
       bool ok = false;
-      for (CompletedJobs::iterator it = completedJobs_.begin(); 
+      for (CompletedJobs::iterator it = completedJobs_.begin();
            it != completedJobs_.end(); ++it)
       {
         if (*it == found->second)
@@ -1109,24 +1100,20 @@ namespace Orthanc
   }
 
 
-  void JobsRegistry::AddObserver(JobsRegistry::IObserver& observer)
+  void JobsRegistry::SetObserver(JobsRegistry::IObserver& observer)
   {
-    boost::unique_lock<boost::shared_mutex> lock(observersMutex_);
-    observers_.insert(&observer);
+    boost::mutex::scoped_lock lock(mutex_);
+    observer_ = &observer;
   }
 
-  
-  void JobsRegistry::ResetObserver(JobsRegistry::IObserver& observer)
+
+  void JobsRegistry::ResetObserver()
   {
-    boost::unique_lock<boost::shared_mutex> lock(observersMutex_);
-    Observers::iterator it = observers_.find(&observer);
-    if (it != observers_.end())
-    {
-      observers_.erase(it);
-    }
+    boost::mutex::scoped_lock lock(mutex_);
+    observer_ = NULL;
   }
 
-  
+
   JobsRegistry::RunningJob::RunningJob(JobsRegistry& registry,
                                        unsigned int timeout) :
     registry_(registry),
@@ -1169,7 +1156,7 @@ namespace Orthanc
     }
   }
 
-      
+
   JobsRegistry::RunningJob::~RunningJob()
   {
     if (IsValid())
@@ -1189,26 +1176,26 @@ namespace Orthanc
 
         case JobState_Paused:
           registry_.MarkRunningAsPaused(*handler_);
-          break;            
+          break;
 
         case JobState_Retry:
           registry_.MarkRunningAsRetry(*handler_, targetRetryTimeout_);
           break;
-            
+
         default:
           assert(0);
       }
     }
   }
 
-      
+
   bool JobsRegistry::RunningJob::IsValid() const
   {
     return (handler_ != NULL &&
             job_ != NULL);
   }
 
-      
+
   const std::string& JobsRegistry::RunningJob::GetId() const
   {
     if (!IsValid())
@@ -1221,7 +1208,7 @@ namespace Orthanc
     }
   }
 
-      
+
   int JobsRegistry::RunningJob::GetPriority() const
   {
     if (!IsValid())
@@ -1233,7 +1220,7 @@ namespace Orthanc
       return priority_;
     }
   }
-      
+
 
   IJob& JobsRegistry::RunningJob::GetJob()
   {
@@ -1247,7 +1234,7 @@ namespace Orthanc
     }
   }
 
-      
+
   bool JobsRegistry::RunningJob::IsPauseScheduled()
   {
     if (!IsValid())
@@ -1259,12 +1246,12 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();
       assert(handler_->GetState() == JobState_Running);
-        
+
       return handler_->IsPauseScheduled();
     }
   }
 
-      
+
   bool JobsRegistry::RunningJob::IsCancelScheduled()
   {
     if (!IsValid())
@@ -1276,12 +1263,12 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();
       assert(handler_->GetState() == JobState_Running);
-        
+
       return handler_->IsCancelScheduled();
     }
   }
 
-      
+
   void JobsRegistry::RunningJob::MarkSuccess()
   {
     if (!IsValid())
@@ -1294,7 +1281,7 @@ namespace Orthanc
     }
   }
 
-      
+
   void JobsRegistry::RunningJob::MarkFailure()
   {
     if (!IsValid())
@@ -1307,7 +1294,7 @@ namespace Orthanc
     }
   }
 
-      
+
   void JobsRegistry::RunningJob::MarkCanceled()
   {
     if (!IsValid())
@@ -1321,7 +1308,7 @@ namespace Orthanc
     }
   }
 
-      
+
   void JobsRegistry::RunningJob::MarkPause()
   {
     if (!IsValid())
@@ -1334,7 +1321,7 @@ namespace Orthanc
     }
   }
 
-      
+
   void JobsRegistry::RunningJob::MarkRetry(unsigned int timeout)
   {
     if (!IsValid())
@@ -1347,7 +1334,7 @@ namespace Orthanc
       targetRetryTimeout_ = timeout;
     }
   }
-      
+
 
   void JobsRegistry::RunningJob::UpdateStatus(ErrorCode code,
                                               const std::string& details)
@@ -1359,11 +1346,11 @@ namespace Orthanc
     else
     {
       JobStatus status(code, details, *job_);
-          
+
       boost::mutex::scoped_lock lock(registry_.mutex_);
       registry_.CheckInvariants();
       assert(handler_->GetState() == JobState_Running);
-        
+
       handler_->SetLastStatus(status);
     }
   }
@@ -1378,8 +1365,8 @@ namespace Orthanc
     target = Json::objectValue;
     target[TYPE] = JOBS_REGISTRY;
     target[JOBS] = Json::objectValue;
-    
-    for (JobsIndex::const_iterator it = jobsIndex_.begin(); 
+
+    for (JobsIndex::const_iterator it = jobsIndex_.begin();
          it != jobsIndex_.end(); ++it)
     {
       Json::Value v;
@@ -1394,7 +1381,8 @@ namespace Orthanc
   JobsRegistry::JobsRegistry(IJobUnserializer& unserializer,
                              const Json::Value& s,
                              size_t maxCompletedJobs) :
-    maxCompletedJobs_(maxCompletedJobs)
+    maxCompletedJobs_(maxCompletedJobs),
+    observer_(NULL)
   {
     if (SerializationToolbox::ReadString(s, TYPE) != JOBS_REGISTRY ||
         !s.isMember(JOBS) ||
@@ -1452,7 +1440,7 @@ namespace Orthanc
     running = 0;
     success = 0;
     failed = 0;
-    
+
     for (JobsIndex::const_iterator it = jobsIndex_.begin();
          it != jobsIndex_.end(); ++it)
     {
@@ -1469,7 +1457,7 @@ namespace Orthanc
         case JobState_Running:
           running ++;
           break;
-          
+
         case JobState_Success:
           success ++;
           break;
@@ -1481,6 +1469,6 @@ namespace Orthanc
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
-    }    
+    }
   }
 }
