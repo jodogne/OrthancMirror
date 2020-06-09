@@ -112,6 +112,8 @@ set(HAS_EMBEDDED_RESOURCES OFF CACHE INTERNAL
 set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
   "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
 
+set(ORTHANC_BUILDING_FRAMEWORK_LIBRARY OFF CACHE INTERNAL
+  "Whether we are in the process of building the Orthanc Framework shared library")
 
 #
 # These options can be used to turn off some modules of the Orthanc

@@ -108,17 +108,29 @@ if (BOOST_STATIC)
     BEFORE ${BOOST_SOURCES_DIR}
     )
 
-  add_definitions(
-    # Static build of Boost
-    -DBOOST_ALL_NO_LIB 
-    -DBOOST_ALL_NOLIB 
-    -DBOOST_DATE_TIME_NO_LIB 
-    -DBOOST_THREAD_BUILD_LIB
-    -DBOOST_PROGRAM_OPTIONS_NO_LIB
-    -DBOOST_REGEX_NO_LIB
-    -DBOOST_SYSTEM_NO_LIB
-    -DBOOST_LOCALE_NO_LIB
+  if (ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
+    add_definitions(
+      # Packaging Boost inside the Orthanc Framework DLL
+      -DBOOST_ALL_DYN_LINK
+      -DBOOST_THREAD_BUILD_DLL
+      #-DBOOST_REGEX_BUILD_DLL
+      )
+  else()
+    add_definitions(
+      # Static build of Boost (this was the only possibility in
+      # Orthanc <= 1.7.1)
+      -DBOOST_ALL_NO_LIB 
+      -DBOOST_ALL_NOLIB 
+      -DBOOST_DATE_TIME_NO_LIB 
+      -DBOOST_THREAD_BUILD_LIB
+      -DBOOST_PROGRAM_OPTIONS_NO_LIB
+      -DBOOST_REGEX_NO_LIB
+      -DBOOST_SYSTEM_NO_LIB
+      -DBOOST_LOCALE_NO_LIB
+      )
+  endif()
 
+  add_definitions(
     # In static builds, explicitly prevent Boost from using the system
     # locale in lexical casts. This is notably important if
     # "boost::lexical_cast<double>()" is applied to strings containing

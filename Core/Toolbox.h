@@ -58,6 +58,10 @@
 #  error The macro ORTHANC_ENABLE_PUGIXML must be defined
 #endif
 
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
 
 /**
  * NOTE: GUID vs. UUID
@@ -85,7 +89,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC Toolbox
   {
   public:
-    class LinesIterator
+    class ORTHANC_PUBLIC LinesIterator
     {
     private:
       const std::string& content_;
@@ -243,7 +247,7 @@ namespace Orthanc
 #endif
 
     static void InitializeOpenSsl();
-    
+
     static void FinalizeOpenSsl();
 
     static std::string GenerateUuid();
@@ -272,8 +276,8 @@ namespace Orthanc
 /**
  * The plain C, opaque data structure "OrthancLinesIterator" is a thin
  * wrapper around Orthanc::Toolbox::LinesIterator, and is only used by
- * "../Resources/WebAssembly/dcdict.cc", in order to avoid code
- * duplication
+ * "../Resources/Patches/dcmtk-dcdict_orthanc.cc", in order to avoid
+ * code duplication
  **/
 
 struct OrthancLinesIterator;

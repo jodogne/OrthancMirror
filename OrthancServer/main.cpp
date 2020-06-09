@@ -1710,11 +1710,9 @@ int main(int argc, char* argv[])
     status = -1;
   }
 
-  OrthancFinalize();
-
   LOG(WARNING) << "Orthanc has stopped";
 
-  Logging::Finalize();
+  OrthancFinalize();
 
   return status;
 }

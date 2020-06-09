@@ -41,8 +41,8 @@
 #ifndef __ORTHANC_FRAMEWORK_H
 #define __ORTHANC_FRAMEWORK_H
 
-#if !defined(ORTHANC_FRAMEWORK_BUILDING_LIBRARY)
-#  define ORTHANC_FRAMEWORK_BUILDING_LIBRARY 0
+#if !defined(ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
+#  error The macro ORTHANC_BUILDING_FRAMEWORK_LIBRARY must be defined
 #endif
 
 /**
@@ -51,7 +51,7 @@
  * common "BUILDING_DLL"
  * construction. https://gcc.gnu.org/wiki/Visibility
  **/
-#if ORTHANC_FRAMEWORK_BUILDING_LIBRARY == 1
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
 #  if defined(_WIN32) || defined (__CYGWIN__)
 #    define ORTHANC_PUBLIC __declspec(dllexport)
 #    define ORTHANC_LOCAL
@@ -69,5 +69,17 @@
 #  define ORTHANC_PUBLIC
 #  define ORTHANC_LOCAL
 #endif
+
+
+#include <string>
+
+namespace Orthanc
+{
+  ORTHANC_PUBLIC void InitializeFramework(const std::string& locale,
+                                          bool loadPrivateDictionary);
+  
+  ORTHANC_PUBLIC void FinalizeFramework();
+}
+
 
 #endif /* __ORTHANC_FRAMEWORK_H */

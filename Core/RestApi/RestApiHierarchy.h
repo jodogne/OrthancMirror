@@ -45,7 +45,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC RestApiHierarchy : public boost::noncopyable
   {
   public:
-    class Resource : public boost::noncopyable
+    class ORTHANC_PUBLIC Resource : public boost::noncopyable
     {
     private:
       RestApiGetCall::Handler     getHandler_;

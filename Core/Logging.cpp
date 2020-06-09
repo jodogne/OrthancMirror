@@ -537,7 +537,11 @@ namespace Orthanc
     void Initialize()
     {
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
-      loggingStreamsContext_.reset(new LoggingStreamsContext);
+
+      if (loggingStreamsContext_.get() == NULL)
+      {
+        loggingStreamsContext_.reset(new LoggingStreamsContext);
+      }
     }
 
     void Finalize()

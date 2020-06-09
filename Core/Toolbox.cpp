@@ -2226,7 +2226,7 @@ OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content)
 
 
 bool OrthancLinesIterator_GetLine(std::string& target,
-                                         const OrthancLinesIterator* iterator)
+                                  const OrthancLinesIterator* iterator)
 {
   if (iterator != NULL)
   {

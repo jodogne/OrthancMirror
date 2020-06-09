@@ -137,6 +137,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${ORTHANC_ROOT}/Core/HttpServer/MultipartStreamReader.cpp
   ${ORTHANC_ROOT}/Core/HttpServer/StringMatcher.cpp
   ${ORTHANC_ROOT}/Core/Logging.cpp
+  ${ORTHANC_ROOT}/Core/OrthancFramework.cpp
   ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
   ${ORTHANC_ROOT}/Core/Toolbox.cpp
   ${ORTHANC_ROOT}/Core/WebServiceParameters.cpp
@@ -539,6 +540,13 @@ add_definitions(
   -DORTHANC_MAXIMUM_TAG_LENGTH=256
   -DORTHANC_VERSION="${ORTHANC_VERSION}"
   )
+
+
+if (ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
+  add_definitions(-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1)
+else()
+  add_definitions(-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0)
+endif()
 
 
 if (ORTHANC_SANDBOXED)
