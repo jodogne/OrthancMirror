@@ -42,14 +42,6 @@
 #  error The macro ORTHANC_ENABLE_LOGGING must be defined
 #endif
 
-#if !defined(ORTHANC_ENABLE_LOGGING_PLUGIN)
-#  if ORTHANC_ENABLE_LOGGING == 1
-#    error The macro ORTHANC_ENABLE_LOGGING_PLUGIN must be defined
-#  else
-#    define ORTHANC_ENABLE_LOGGING_PLUGIN 0
-#  endif
-#endif
-
 #if !defined(ORTHANC_ENABLE_LOGGING_STDIO)
 #  if ORTHANC_ENABLE_LOGGING == 1
 #    error The macro ORTHANC_ENABLE_LOGGING_STDIO must be defined
@@ -58,7 +50,6 @@
 #  endif
 #endif
 
-#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {
@@ -76,12 +67,10 @@ namespace Orthanc
 
     ORTHANC_PUBLIC LogLevel StringToLogLevel(const char* level);
 
-#if ORTHANC_ENABLE_LOGGING_PLUGIN == 1
     // "pluginContext" must be of type "OrthancPluginContext"
-    ORTHANC_PUBLIC void Initialize(void* pluginContext);
-#else
+    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext);
+
     ORTHANC_PUBLIC void Initialize();
-#endif
 
     ORTHANC_PUBLIC void Finalize();
 
@@ -122,7 +111,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_LOGGING != 1
 #  define LOG(level)   ::Orthanc::Logging::NullStream()
 #  define VLOG(level)  ::Orthanc::Logging::NullStream()
-#else
+#else /* ORTHANC_ENABLE_LOGGING == 1 */
 #  define LOG(level)  ::Orthanc::Logging::InternalLogger        \
   (::Orthanc::Logging::LogLevel_ ## level, __FILE__, __LINE__)
 #  define VLOG(level) ::Orthanc::Logging::InternalLogger        \
@@ -130,11 +119,14 @@ namespace Orthanc
 #endif
 
 
-#if (ORTHANC_ENABLE_LOGGING == 1 &&             \
-     (ORTHANC_ENABLE_LOGGING_PLUGIN == 1 ||     \
-      ORTHANC_ENABLE_LOGGING_STDIO == 1))
 
+#if (ORTHANC_ENABLE_LOGGING == 1 &&             \
+     ORTHANC_ENABLE_LOGGING_STDIO == 1)
+// This is notably for WebAssembly
+
+#include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
+#include <sstream>
 
 namespace Orthanc
 {
@@ -148,16 +140,18 @@ namespace Orthanc
 
     public:
       InternalLogger(LogLevel level,
-                     const char* file,
-                     int line);
+                     const char* file  /* ignored */,
+                     int line  /* ignored */) :
+        level_(level)
+      {
+      }
 
       ~InternalLogger();
       
       template <typename T>
         std::ostream& operator<< (const T& message)
       {
-        messageStream_ << message;
-        return messageStream_;
+        return messageStream_ << boost::lexical_cast<std::string>(message);
       }
     };
   }
@@ -167,23 +161,27 @@ namespace Orthanc
 
 
 
-
 #if (ORTHANC_ENABLE_LOGGING == 1 &&             \
-     ORTHANC_ENABLE_LOGGING_PLUGIN == 0 &&      \
      ORTHANC_ENABLE_LOGGING_STDIO == 0)
 
+#include "Compatibility.h"  // For std::unique_ptr<>
+
+#include <boost/lexical_cast.hpp>
+#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
+#include <sstream>
 
 namespace Orthanc
 {
   namespace Logging
   {
-    class ORTHANC_PUBLIC InternalLogger
+    class ORTHANC_PUBLIC InternalLogger : public boost::noncopyable
     {
     private:
-      boost::mutex::scoped_lock lock_;
-      NullStream                null_;
-      std::ostream*             stream_;
+      boost::mutex::scoped_lock           lock_;
+      LogLevel                            level_;
+      std::unique_ptr<std::stringstream>  pluginStream_;
+      std::ostream*                       stream_;
 
     public:
       InternalLogger(LogLevel level,
@@ -211,7 +209,8 @@ namespace Orthanc
      * Orthanc::Logging::Reset() before the stream objects are
      * destroyed and the references become invalid.
      *
-     * This function must only be used by unit tests.
+     * This function must only be used by unit tests. It is ignored if
+     * InitializePluginContext() was called.
      **/
     ORTHANC_PUBLIC void SetErrorWarnInfoLoggingStreams(std::ostream& errorStream,
                                                        std::ostream& warningStream, 
