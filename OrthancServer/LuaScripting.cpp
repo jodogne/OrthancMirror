@@ -42,7 +42,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
-#include <OrthancEmbeddedResources.h>
+#include <ServerResources.h>
 
 
 namespace Orthanc
@@ -907,7 +907,11 @@ namespace Orthanc
   {
     OrthancConfiguration::ReaderLock configLock;
 
-    lua_.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+    {
+      std::string command;
+      Orthanc::ServerResources::GetFileResource(command, Orthanc::ServerResources::LUA_TOOLBOX);
+      lua_.Execute(command);
+    }    
 
     std::list<std::string> luaScripts;
     configLock.GetConfiguration().GetListOfStringsParameter(luaScripts, "LuaScripts");

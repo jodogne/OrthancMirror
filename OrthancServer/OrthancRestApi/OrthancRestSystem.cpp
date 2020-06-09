@@ -176,7 +176,7 @@ namespace Orthanc
   static void GetDicomConformanceStatement(RestApiGetCall& call)
   {
     std::string statement;
-    GetFileResource(statement, EmbeddedResources::DICOM_CONFORMANCE_STATEMENT);
+    GetFileResource(statement, ServerResources::DICOM_CONFORMANCE_STATEMENT);
     call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
   }
 

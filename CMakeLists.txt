@@ -65,14 +65,15 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Database/SQLiteDatabaseWrapper.cpp
   OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
+  OrthancServer/EmbeddedResourceHttpHandler.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancConfiguration.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
+  OrthancServer/OrthancGetRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
   OrthancServer/OrthancInitialization.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
-  OrthancServer/OrthancGetRequestHandler.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
   OrthancServer/OrthancRestApi/OrthancRestArchive.cpp
@@ -165,6 +166,7 @@ if (CMAKE_COMPILER_IS_GNUCXX
     ${ORTHANC_DICOM_SOURCES_INTERNAL}
     ${ORTHANC_SERVER_SOURCES}
     ${ORTHANC_UNIT_TESTS_SOURCES}
+    ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
     Plugins/Samples/ServeFolders/Plugin.cpp
     Plugins/Samples/ModalityWorklists/Plugin.cpp
     OrthancServer/main.cpp
@@ -196,28 +198,25 @@ set(ORTHANC_EMBEDDED_FILES
 if (STANDALONE_BUILD)
   # We embed all the resources in the binaries for standalone builds
   add_definitions(
-    -DORTHANC_HAS_EMBEDDED_RESOURCES=1
     -DORTHANC_STANDALONE=1
     )
-  EmbedResources(
-    --target=OrthancEmbeddedResources
-    ${ORTHANC_EMBEDDED_FILES}
+
+  list(APPEND ORTHANC_EMBEDDED_FILES
     ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
-    ${DCMTK_DICTIONARIES}
-    ${LIBICU_RESOURCES}
     )
 else()
   add_definitions(
-    -DORTHANC_HAS_EMBEDDED_RESOURCES=1
     -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
     -DORTHANC_STANDALONE=0
     )
-  EmbedResources(
-    --target=OrthancEmbeddedResources
-    ${ORTHANC_EMBEDDED_FILES}
-    ${LIBICU_RESOURCES}
-    )
 endif()
+
+EmbedResources(
+  --namespace=Orthanc.ServerResources
+  --target=ServerResources
+  ${ORTHANC_EMBEDDED_FILES}
+  )
+
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   execute_process(

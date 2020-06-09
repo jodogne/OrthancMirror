@@ -37,7 +37,7 @@
 #include "../Core/WebServiceParameters.h"
 #include "../Core/DicomNetworking/RemoteModalityParameters.h"
 
-#include <OrthancEmbeddedResources.h>
+#include <ServerResources.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -158,10 +158,7 @@ namespace Orthanc
 
     void LoadModalitiesAndPeers();
     
-    void RegisterFont(EmbeddedResources::FileResourceId resource)
-    {
-      fontRegistry_.AddFromResource(resource);
-    }
+    void RegisterFont(ServerResources::FileResourceId resource);
 
     bool LookupStringParameter(std::string& target,
                                const std::string& parameter) const;

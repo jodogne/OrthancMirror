@@ -612,16 +612,6 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
-  void LuaContext::Execute(EmbeddedResources::FileResourceId resource)
-  {
-    std::string command;
-    EmbeddedResources::GetFileResource(command, resource);
-    ExecuteInternal(NULL, command);
-  }
-#endif
-
-
   bool LuaContext::IsExistingFunction(const char* name)
   {
     lua_settop(lua_, 0);

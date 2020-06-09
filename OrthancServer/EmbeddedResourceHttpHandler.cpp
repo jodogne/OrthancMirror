@@ -31,22 +31,20 @@
  **/
 
 
-#include "../PrecompiledHeaders.h"
+#include "PrecompiledHeadersServer.h"
 #include "EmbeddedResourceHttpHandler.h"
 
-#include "../Logging.h"
-#include "../OrthancException.h"
-#include "../SystemToolbox.h"
-#include "HttpOutput.h"
-
-#include <stdio.h>
+#include "../Core/HttpServer/HttpOutput.h"
+#include "../Core/Logging.h"
+#include "../Core/OrthancException.h"
+#include "../Core/SystemToolbox.h"
 
 
 namespace Orthanc
 {
   EmbeddedResourceHttpHandler::EmbeddedResourceHttpHandler(
     const std::string& baseUri,
-    EmbeddedResources::DirectoryResourceId resourceId)
+    ServerResources::DirectoryResourceId resourceId)
   {
     Toolbox::SplitUriComponents(baseUri_, baseUri);
     resourceId_ = resourceId;
@@ -82,8 +80,8 @@ namespace Orthanc
 
     try
     {
-      const void* buffer = EmbeddedResources::GetDirectoryResourceBuffer(resourceId_, resourcePath.c_str());
-      size_t size = EmbeddedResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
+      const void* buffer = ServerResources::GetDirectoryResourceBuffer(resourceId_, resourcePath.c_str());
+      size_t size = ServerResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
 
       output.SetContentType(contentType);
       output.Answer(buffer, size);
