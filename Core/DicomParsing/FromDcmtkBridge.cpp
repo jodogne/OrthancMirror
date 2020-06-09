@@ -103,7 +103,7 @@
 #endif
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-#  include <EmbeddedResources.h>
+#  include <OrthancEmbeddedResources.h>
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
@@ -171,7 +171,7 @@ namespace Orthanc
 
   namespace
   {
-    class DictionaryLocker
+    class DictionaryLocker : public boost::noncopyable
     {
     private:
       DcmDataDictionary& dictionary_;
