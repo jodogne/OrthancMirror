@@ -3,6 +3,12 @@ Pending changes in the mainline
 
 * Private tags returned by C-FIND SCP (cf. option "DefaultPrivateCreator")
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - new "changes": JobSubmitted, JobSuccess, JobFailure
+
 
 Version 1.7.1 (2020-05-27)
 ==========================

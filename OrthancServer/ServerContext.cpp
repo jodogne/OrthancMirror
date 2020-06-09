@@ -143,6 +143,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSubmitted(jobId);
+    plugins_->SignalJobSubmitted(jobId);
   }
   
 
@@ -150,6 +151,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSuccess(jobId);
+    plugins_->SignalJobSuccess(jobId);
   }
 
   
@@ -157,6 +159,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobFailure(jobId);
+    plugins_->SignalJobFailure(jobId);
   }
 
 
