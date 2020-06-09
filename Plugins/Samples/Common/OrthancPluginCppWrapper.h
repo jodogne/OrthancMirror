@@ -64,6 +64,16 @@
 #endif
 
 
+#if !defined(ORTHANC_FRAMEWORK_VERSION_IS_ABOVE)
+#define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
+  (ORTHANC_VERSION_MAJOR > major ||                                     \
+   (ORTHANC_VERSION_MAJOR == major &&                                   \
+    (ORTHANC_VERSION_MINOR > minor ||                                   \
+     (ORTHANC_VERSION_MINOR == minor &&                                 \
+      ORTHANC_VERSION_REVISION >= revision))))
+#endif
+
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
 // The "OrthancPluginFindMatcher()" primitive was introduced in Orthanc 1.2.0
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1

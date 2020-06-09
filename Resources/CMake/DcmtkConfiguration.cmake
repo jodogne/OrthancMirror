@@ -29,6 +29,13 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
     )
 
+  if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    message(${DCMTK_SOURCES_DIR})
+    list(REMOVE_ITEM DCMTK_SOURCES 
+      ${DCMTK_SOURCES_DIR}/ofstd/libsrc/offilsys.cc
+      )
+  endif()
+
   if (ENABLE_DCMTK_NETWORKING)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc DCMTK_SOURCES)
     include_directories(

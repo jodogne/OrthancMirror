@@ -303,7 +303,8 @@ namespace Orthanc
                         const DicomArray& query,
                         const std::list<DicomTag>& sequencesToReturn,
                         const DicomMap* counters,
-                        const std::string& defaultPrivateCreator)
+                        const std::string& defaultPrivateCreator,
+                        const std::map<uint16_t, std::string>& privateCreators)
   {
     DicomMap match;
 
@@ -398,7 +399,14 @@ namespace Orthanc
 
           if (tag->IsPrivate())
           {
-            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator); // TODO: instead of taking the default private creator, we should get the private createor of the current "group"
+            if (privateCreators.find(tag->GetGroup()) != privateCreators.end())
+            {
+              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, privateCreators.at(tag->GetGroup()).c_str());
+            }
+            else
+            {
+              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+            }
           }
           else
           {
@@ -492,20 +500,23 @@ namespace Orthanc
     const DicomMap&             query_;
     DicomArray                  queryAsArray_;
     const std::list<DicomTag>&  sequencesToReturn_;
-    std::string                 defaultPrivateCreator_;
+    std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
+    const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
 
   public:
     LookupVisitor(DicomFindAnswers&  answers,
                   ServerContext& context,
                   ResourceType level,
                   const DicomMap& query,
-                  const std::list<DicomTag>& sequencesToReturn) :
+                  const std::list<DicomTag>& sequencesToReturn,
+                  const std::map<uint16_t, std::string>& privateCreators) :
       answers_(answers),
       context_(context),
       level_(level),
       query_(query),
       queryAsArray_(query),
-      sequencesToReturn_(sequencesToReturn)
+      sequencesToReturn_(sequencesToReturn),
+      privateCreators_(privateCreators)
     {
       answers_.SetComplete(false);
 
@@ -554,7 +565,7 @@ namespace Orthanc
       std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 
       AddAnswer(answers_, mainDicomTags, dicomAsJson,
-                queryAsArray_, sequencesToReturn_, counters.get(), defaultPrivateCreator_);
+                queryAsArray_, sequencesToReturn_, counters.get(), defaultPrivateCreator_, privateCreators_);
     }
   };
 
@@ -628,6 +639,16 @@ namespace Orthanc
                 << " : sequence tag whose content will be copied";
     }
 
+    // collect the private creators from the query itself
+    std::map<uint16_t, std::string> privateCreators;
+    for (size_t i = 0; i < query.GetSize(); i++)
+    {
+      const DicomElement& element = query.GetElement(i);
+      if (element.GetTag().IsPrivate() && element.GetTag().GetElement() == 0x10)
+      {
+        privateCreators[element.GetTag().GetGroup()] = element.GetValue().GetContent();
+      }
+    }
 
     /**
      * Build up the query object.
@@ -690,7 +711,7 @@ namespace Orthanc
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
 
-    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn);
+    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators);
     context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
