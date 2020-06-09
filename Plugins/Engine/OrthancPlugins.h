@@ -311,6 +311,21 @@ namespace Orthanc
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
     }
 
+    void SignalJobSubmitted(const std::string& jobId)
+    {
+      SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, jobId.c_str());
+    }
+
+    void SignalJobSuccess(const std::string& jobId)
+    {
+      SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, jobId.c_str());
+    }
+
+    void SignalJobFailure(const std::string& jobId)
+    {
+      SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, jobId.c_str());
+    }
+
     void SignalUpdatedPeers()
     {
       SignalChangeInternal(OrthancPluginChangeType_UpdatedPeers, OrthancPluginResourceType_None, NULL);
