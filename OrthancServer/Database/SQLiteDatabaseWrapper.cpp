@@ -40,7 +40,7 @@
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
 
-#include <OrthancEmbeddedResources.h>
+#include <ServerResources.h>
 
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
@@ -394,7 +394,7 @@ namespace Orthanc
       {
         LOG(INFO) << "Creating the database";
         std::string query;
-        EmbeddedResources::GetFileResource(query, EmbeddedResources::PREPARE_DATABASE);
+        ServerResources::GetFileResource(query, ServerResources::PREPARE_DATABASE);
         db_.Execute(query);
       }
 
@@ -430,7 +430,7 @@ namespace Orthanc
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
           std::string query;
-          EmbeddedResources::GetFileResource(query, EmbeddedResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
           db_.Execute(query);
         }
       }
@@ -444,10 +444,10 @@ namespace Orthanc
 
 
   static void ExecuteUpgradeScript(SQLite::Connection& db,
-                                   EmbeddedResources::FileResourceId script)
+                                   ServerResources::FileResourceId script)
   {
     std::string upgrade;
-    EmbeddedResources::GetFileResource(upgrade, script);
+    ServerResources::GetFileResource(upgrade, script);
     db.BeginTransaction();
     db.Execute(upgrade);
     db.CommitTransaction();    
@@ -475,14 +475,14 @@ namespace Orthanc
     if (version_ == 3)
     {
       LOG(WARNING) << "Upgrading database version from 3 to 4";
-      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_3_TO_4);
+      ExecuteUpgradeScript(db_, ServerResources::UPGRADE_DATABASE_3_TO_4);
       version_ = 4;
     }
 
     if (version_ == 4)
     {
       LOG(WARNING) << "Upgrading database version from 4 to 5";
-      ExecuteUpgradeScript(db_, EmbeddedResources::UPGRADE_DATABASE_4_TO_5);
+      ExecuteUpgradeScript(db_, ServerResources::UPGRADE_DATABASE_4_TO_5);
       version_ = 5;
     }
 

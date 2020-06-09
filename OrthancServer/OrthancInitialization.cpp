@@ -48,6 +48,8 @@
 #include "Database/SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"
 
+#include <ServerResources.h>
+
 #include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
 
 
@@ -264,7 +266,7 @@ namespace Orthanc
 
     LoadCustomDictionary(lock.GetJson());
 
-    lock.GetConfiguration().RegisterFont(EmbeddedResources::FONT_UBUNTU_MONO_BOLD_16);
+    lock.GetConfiguration().RegisterFont(ServerResources::FONT_UBUNTU_MONO_BOLD_16);
   }
 
 
