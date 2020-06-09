@@ -190,7 +190,7 @@ namespace Orthanc
       LOG(INFO) << "Not reloading the jobs from the last execution of Orthanc";
     }
 
-    jobsEngine_.GetRegistry().SetObserver(*this);
+    jobsEngine_.GetRegistry().AddObserver(*this);
     jobsEngine_.Start();
     isJobsEngineUnserialized_ = true;
 
@@ -347,7 +347,7 @@ namespace Orthanc
         saveJobsThread_.join();
       }
 
-      jobsEngine_.GetRegistry().ResetObserver();
+      jobsEngine_.GetRegistry().ResetObserver(*this);
 
       if (isJobsEngineUnserialized_)
       {

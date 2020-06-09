@@ -86,6 +86,7 @@ namespace Orthanc
                        JobHandler*& b) const;
     };
 
+    typedef std::set<IObserver*>                            Observers;
     typedef std::map<std::string, JobHandler*>              JobsIndex;
     typedef std::list<JobHandler*>                          CompletedJobs;
     typedef std::set<JobHandler*>                           RetryJobs;
@@ -103,7 +104,8 @@ namespace Orthanc
     boost::condition_variable  someJobComplete_;
     size_t                     maxCompletedJobs_;
 
-    IObserver*                 observer_;
+    boost::shared_mutex        observersMutex_;
+    Observers                  observers_;
 
 
 #ifndef NDEBUG
@@ -141,8 +143,7 @@ namespace Orthanc
     
   public:
     JobsRegistry(size_t maxCompletedJobs) :
-      maxCompletedJobs_(maxCompletedJobs),
-      observer_(NULL)
+      maxCompletedJobs_(maxCompletedJobs)
     {
     }
 
@@ -195,9 +196,9 @@ namespace Orthanc
     bool GetState(JobState& state,
                   const std::string& id);
 
-    void SetObserver(IObserver& observer);
+    void AddObserver(IObserver& observer);
 
-    void ResetObserver();
+    void ResetObserver(IObserver& observer);
 
     void GetStatistics(unsigned int& pending,
                        unsigned int& running,
