@@ -40,7 +40,7 @@
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
 
-#include <EmbeddedResources.h>
+#include <OrthancEmbeddedResources.h>
 
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>

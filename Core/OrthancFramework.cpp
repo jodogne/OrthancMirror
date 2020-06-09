@@ -72,7 +72,7 @@ namespace Orthanc
   {
     Logging::Initialize();
 
-#if !defined(__EMSCRIPTEN__)  // No global locale in wasm/asm.js
+#if (ORTHANC_ENABLE_LOCALE == 1) && !defined(__EMSCRIPTEN__)  // No global locale in wasm/asm.js
     if (locale.empty())
     {
       Toolbox::InitializeGlobalLocale(NULL);
@@ -113,7 +113,11 @@ namespace Orthanc
 #endif
     
     Toolbox::FinalizeOpenSsl();
+
+#if (ORTHANC_ENABLE_LOCALE == 1) && !defined(__EMSCRIPTEN__)
     Toolbox::FinalizeGlobalLocale();
+#endif
+    
     Logging::Finalize();
   }
 }

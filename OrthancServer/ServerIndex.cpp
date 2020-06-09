@@ -46,7 +46,7 @@
 
 #include "Database/ResourcesContent.h"
 #include "DicomInstanceToStore.h"
-#include "EmbeddedResources.h"
+#include "OrthancEmbeddedResources.h"
 #include "OrthancConfiguration.h"
 #include "Search/DatabaseLookup.h"
 #include "Search/DicomTagConstraint.h"

@@ -37,7 +37,7 @@
 #include "../Core/WebServiceParameters.h"
 #include "../Core/DicomNetworking/RemoteModalityParameters.h"
 
-#include <EmbeddedResources.h>
+#include <OrthancEmbeddedResources.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/shared_mutex.hpp>

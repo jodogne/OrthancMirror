@@ -42,7 +42,7 @@
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
-#include <EmbeddedResources.h>
+#include <OrthancEmbeddedResources.h>
 
 
 namespace Orthanc

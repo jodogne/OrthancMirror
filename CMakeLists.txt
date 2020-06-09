@@ -26,8 +26,6 @@ set(ENABLE_WEB_CLIENT ON)
 set(ENABLE_WEB_SERVER ON)
 set(ENABLE_ZLIB ON)
 
-set(HAS_EMBEDDED_RESOURCES ON)
-
 
 #####################################################################
 ## CMake parameters tunable at the command line to configure the
@@ -35,6 +33,7 @@ set(HAS_EMBEDDED_RESOURCES ON)
 #####################################################################
 
 # Parameters of the build
+set(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
@@ -196,8 +195,12 @@ set(ORTHANC_EMBEDDED_FILES
 
 if (STANDALONE_BUILD)
   # We embed all the resources in the binaries for standalone builds
-  add_definitions(-DORTHANC_STANDALONE=1)
+  add_definitions(
+    -DORTHANC_HAS_EMBEDDED_RESOURCES=1
+    -DORTHANC_STANDALONE=1
+    )
   EmbedResources(
+    --target=OrthancEmbeddedResources
     ${ORTHANC_EMBEDDED_FILES}
     ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
     ${DCMTK_DICTIONARIES}
@@ -205,10 +208,12 @@ if (STANDALONE_BUILD)
     )
 else()
   add_definitions(
-    -DORTHANC_STANDALONE=0
+    -DORTHANC_HAS_EMBEDDED_RESOURCES=1
     -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
+    -DORTHANC_STANDALONE=0
     )
   EmbedResources(
+    --target=OrthancEmbeddedResources
     ${ORTHANC_EMBEDDED_FILES}
     ${LIBICU_RESOURCES}
     )
