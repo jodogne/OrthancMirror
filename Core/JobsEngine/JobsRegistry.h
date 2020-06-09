@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -69,7 +69,7 @@ namespace Orthanc
 
       virtual void SignalJobFailure(const std::string& jobId) = 0;
     };
-    
+
   private:
     enum CompletedReason
     {
@@ -77,7 +77,7 @@ namespace Orthanc
       CompletedReason_Failure,
       CompletedReason_Canceled
     };
-    
+
     class JobHandler;
 
     struct PriorityComparator
@@ -86,11 +86,10 @@ namespace Orthanc
                        JobHandler*& b) const;
     };
 
-    typedef std::set<IObserver*>                            Observers;
     typedef std::map<std::string, JobHandler*>              JobsIndex;
     typedef std::list<JobHandler*>                          CompletedJobs;
     typedef std::set<JobHandler*>                           RetryJobs;
-    typedef std::priority_queue<JobHandler*, 
+    typedef std::priority_queue<JobHandler*,
                                 std::vector<JobHandler*>,   // Could be a "std::deque"
                                 PriorityComparator>         PendingJobs;
 
@@ -104,15 +103,14 @@ namespace Orthanc
     boost::condition_variable  someJobComplete_;
     size_t                     maxCompletedJobs_;
 
-    boost::shared_mutex        observersMutex_;
-    Observers                  observers_;
+    IObserver*                 observer_;
 
 
 #ifndef NDEBUG
     bool IsPendingJob(const JobHandler& job) const;
 
     bool IsCompletedJob(JobHandler& job) const;
-    
+
     bool IsRetryJob(JobHandler& job) const;
 #endif
 
@@ -122,28 +120,29 @@ namespace Orthanc
 
     void SetCompletedJob(JobHandler& job,
                          bool success);
-    
+
     void MarkRunningAsCompleted(JobHandler& job,
                                 CompletedReason reason);
 
     void MarkRunningAsRetry(JobHandler& job,
                             unsigned int timeout);
-    
+
     void MarkRunningAsPaused(JobHandler& job);
-    
+
     bool GetStateInternal(JobState& state,
                           const std::string& id);
 
     void RemovePendingJob(const std::string& id);
-      
+
     void RemoveRetryJob(JobHandler* handler);
-      
+
     void SubmitInternal(std::string& id,
                         JobHandler* handler);
-    
+
   public:
     JobsRegistry(size_t maxCompletedJobs) :
-      maxCompletedJobs_(maxCompletedJobs)
+      maxCompletedJobs_(maxCompletedJobs),
+      observer_(NULL)
     {
     }
 
@@ -154,7 +153,7 @@ namespace Orthanc
     ~JobsRegistry();
 
     void SetMaxCompletedJobs(size_t i);
-    
+
     size_t GetMaxCompletedJobs();
 
     void ListJobs(std::set<std::string>& target);
@@ -168,37 +167,37 @@ namespace Orthanc
                       const std::string& key);
 
     void Serialize(Json::Value& target);
-    
+
     void Submit(std::string& id,
                 IJob* job,        // Takes ownership
                 int priority);
-    
+
     void Submit(IJob* job,        // Takes ownership
                 int priority);
 
     void SubmitAndWait(Json::Value& successContent,
                        IJob* job,        // Takes ownership
                        int priority);
-    
+
     bool SetPriority(const std::string& id,
                      int priority);
 
     bool Pause(const std::string& id);
-    
+
     bool Resume(const std::string& id);
 
     bool Resubmit(const std::string& id);
 
     bool Cancel(const std::string& id);
-    
+
     void ScheduleRetries();
-    
+
     bool GetState(JobState& state,
                   const std::string& id);
 
-    void AddObserver(IObserver& observer);
+    void SetObserver(IObserver& observer);
 
-    void ResetObserver(IObserver& observer);
+    void ResetObserver();
 
     void GetStatistics(unsigned int& pending,
                        unsigned int& running,
@@ -220,7 +219,7 @@ namespace Orthanc
       JobState       targetState_;
       unsigned int   targetRetryTimeout_;
       bool           canceled_;
-      
+
     public:
       RunningJob(JobsRegistry& registry,
                  unsigned int timeout);

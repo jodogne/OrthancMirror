@@ -143,6 +143,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSubmitted(jobId);
+    plugins_->SignalJobSubmitted(jobId);
   }
   
 
@@ -150,6 +151,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSuccess(jobId);
+    plugins_->SignalJobSuccess(jobId);
   }
 
   
@@ -157,6 +159,7 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobFailure(jobId);
+    plugins_->SignalJobFailure(jobId);
   }
 
 
@@ -190,7 +193,7 @@ namespace Orthanc
       LOG(INFO) << "Not reloading the jobs from the last execution of Orthanc";
     }
 
-    jobsEngine_.GetRegistry().AddObserver(*this);
+    jobsEngine_.GetRegistry().SetObserver(*this);
     jobsEngine_.Start();
     isJobsEngineUnserialized_ = true;
 
@@ -347,7 +350,7 @@ namespace Orthanc
         saveJobsThread_.join();
       }
 
-      jobsEngine_.GetRegistry().ResetObserver(*this);
+      jobsEngine_.GetRegistry().ResetObserver();
 
       if (isJobsEngineUnserialized_)
       {
