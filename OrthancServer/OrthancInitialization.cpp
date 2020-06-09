@@ -48,7 +48,7 @@
 #include "Database/SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"
 
-#include <ServerResources.h>
+#include <OrthancServerResources.h>
 
 #include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
 
