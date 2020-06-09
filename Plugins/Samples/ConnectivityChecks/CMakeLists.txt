@@ -6,7 +6,6 @@ SET(PLUGIN_NAME "connectivity-checks" CACHE STRING "Name of the plugin")
 SET(PLUGIN_VERSION "mainline" CACHE STRING "Version of the plugin")
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../../Resources/CMake/OrthancFrameworkParameters.cmake)
-set(HAS_EMBEDDED_RESOURCES ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../../Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
 include(JavaScriptLibraries.cmake)
