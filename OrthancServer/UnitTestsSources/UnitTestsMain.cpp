@@ -39,7 +39,10 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Toolbox.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/Images/Image.h"
+#include "../../OrthancFramework/Sources/Images/PngWriter.h"
 
+#include "../Sources/OrthancConfiguration.h"  // For the FontRegistry
 #include "../Sources/OrthancInitialization.h"
 #include "../Sources/ServerEnumerations.h"
 
@@ -115,6 +118,23 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
 }
 
+
+
+TEST(FontRegistry, Basic)
+{
+  Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480, false);
+  memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
+
+  {
+    Orthanc::OrthancConfiguration::ReaderLock lock;
+    ASSERT_GE(1u, lock.GetConfiguration().GetFontRegistry().GetSize());
+    lock.GetConfiguration().GetFontRegistry().GetFont(0).Draw
+      (s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
+  }
+
+  Orthanc::PngWriter w;
+  w.WriteToFile("UnitTestsResults/font.png", s);
+}
 
 
 int main(int argc, char **argv)

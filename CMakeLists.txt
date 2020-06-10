@@ -116,6 +116,7 @@ set(ORTHANC_SERVER_SOURCES
 set(ORTHANC_FRAMEWORK_UNIT_TESTS
   OrthancFramework/UnitTestsSources/FrameworkTests.cpp
   OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
+  OrthancFramework/UnitTestsSources/ImageTests.cpp
   OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
   OrthancFramework/UnitTestsSources/LoggingTests.cpp
   OrthancFramework/UnitTestsSources/RestApiTests.cpp
@@ -131,7 +132,6 @@ set(ORTHANC_SERVER_UNIT_TESTS
   OrthancServer/UnitTestsSources/DicomMapTests.cpp
   OrthancServer/UnitTestsSources/FileStorageTests.cpp
   OrthancServer/UnitTestsSources/FromDcmtkTests.cpp
-  OrthancServer/UnitTestsSources/ImageTests.cpp
   OrthancServer/UnitTestsSources/LuaTests.cpp
   OrthancServer/UnitTestsSources/MemoryCacheTests.cpp
   OrthancServer/UnitTestsSources/MultiThreadingTests.cpp
