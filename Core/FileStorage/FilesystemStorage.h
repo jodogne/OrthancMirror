@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif

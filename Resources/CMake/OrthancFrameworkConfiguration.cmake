@@ -679,6 +679,7 @@ endif()
 EmbedResources(
   --namespace=Orthanc.FrameworkResources
   --target=OrthancFrameworkResources
+  --framework-path=${ORTHANC_ROOT}/Core
   ${LIBICU_RESOURCES}
   ${DCMTK_DICTIONARIES}
   )

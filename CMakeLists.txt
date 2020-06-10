@@ -214,6 +214,7 @@ endif()
 EmbedResources(
   --namespace=Orthanc.ServerResources
   --target=OrthancServerResources
+  --framework-path=${CMAKE_SOURCE_DIR}/Core
   ${ORTHANC_EMBEDDED_FILES}
   )
 

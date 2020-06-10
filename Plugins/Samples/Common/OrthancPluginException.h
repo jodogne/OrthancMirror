@@ -39,7 +39,7 @@
 
 
 #if HAS_ORTHANC_EXCEPTION == 1
-#  include "../../../Core/OrthancException.h"
+#  include <OrthancException.h>
 #  define ORTHANC_PLUGINS_ERROR_ENUMERATION     ::Orthanc::ErrorCode
 #  define ORTHANC_PLUGINS_EXCEPTION_CLASS       ::Orthanc::OrthancException
 #  define ORTHANC_PLUGINS_GET_ERROR_CODE(code)  ::Orthanc::ErrorCode_ ## code
