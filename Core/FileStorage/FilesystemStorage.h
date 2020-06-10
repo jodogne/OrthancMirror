@@ -51,7 +51,7 @@
 
 namespace Orthanc
 {
-  class FilesystemStorage : public IStorageArea
+  class ORTHANC_PUBLIC FilesystemStorage : public IStorageArea
   {
     // TODO REMOVE THIS
     friend class FilesystemHttpSender;

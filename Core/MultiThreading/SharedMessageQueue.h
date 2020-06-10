@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class SharedMessageQueue : public boost::noncopyable
+  class ORTHANC_PUBLIC SharedMessageQueue : public boost::noncopyable
   {
   private:
     typedef std::list<IDynamicObject*>  Queue;
