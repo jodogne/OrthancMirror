@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class DicomTag
+  class ORTHANC_PUBLIC DicomTag
   {
     // This must stay a POD (plain old data structure) 
 
