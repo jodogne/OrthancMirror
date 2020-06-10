@@ -41,17 +41,17 @@
 #include "../Core/DicomNetworking/DicomAssociationParameters.h"
 #include "../Core/DicomNetworking/DicomServer.h"
 #include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/HttpServer/EmbeddedResourceHttpHandler.h"
 #include "../Core/HttpServer/FilesystemHttpHandler.h"
 #include "../Core/HttpServer/HttpServer.h"
 #include "../Core/Logging.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "EmbeddedResourceHttpHandler.h"
 #include "OrthancConfiguration.h"
 #include "OrthancFindRequestHandler.h"
+#include "OrthancGetRequestHandler.h"
 #include "OrthancInitialization.h"
 #include "OrthancMoveRequestHandler.h"
-#include "OrthancGetRequestHandler.h"
 #include "ServerContext.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
@@ -1152,7 +1152,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
   
   // Secondly, apply the "static resources" layer
 #if ORTHANC_STANDALONE == 1
-  EmbeddedResourceHttpHandler staticResources("/app", EmbeddedResources::ORTHANC_EXPLORER);
+  EmbeddedResourceHttpHandler staticResources("/app", ServerResources::ORTHANC_EXPLORER);
 #else
   FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
@@ -1566,7 +1566,7 @@ int main(int argc, char* argv[])
     {
       // TODO WHAT IS THE ENCODING?
       std::string configurationSample;
-      GetFileResource(configurationSample, EmbeddedResources::CONFIGURATION_SAMPLE);
+      GetFileResource(configurationSample, ServerResources::CONFIGURATION_SAMPLE);
 
 #if defined(_WIN32)
       // Replace UNIX newlines with DOS newlines 
@@ -1710,11 +1710,9 @@ int main(int argc, char* argv[])
     status = -1;
   }
 
-  OrthancFinalize();
-
   LOG(WARNING) << "Orthanc has stopped";
 
-  Logging::Finalize();
+  OrthancFinalize();
 
   return status;
 }

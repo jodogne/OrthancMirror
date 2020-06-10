@@ -26,8 +26,6 @@ set(ENABLE_WEB_CLIENT ON)
 set(ENABLE_WEB_SERVER ON)
 set(ENABLE_ZLIB ON)
 
-set(HAS_EMBEDDED_RESOURCES ON)
-
 
 #####################################################################
 ## CMake parameters tunable at the command line to configure the
@@ -35,6 +33,7 @@ set(HAS_EMBEDDED_RESOURCES ON)
 #####################################################################
 
 # Parameters of the build
+set(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 SET(BUILD_MODALITY_WORKLISTS ON CACHE BOOL "Whether to build the sample plugin to serve modality worklists")
 SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion tool to recover files compressed using Orthanc")
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
@@ -66,14 +65,15 @@ set(ORTHANC_SERVER_SOURCES
   OrthancServer/Database/SQLiteDatabaseWrapper.cpp
   OrthancServer/DicomInstanceOrigin.cpp
   OrthancServer/DicomInstanceToStore.cpp
+  OrthancServer/EmbeddedResourceHttpHandler.cpp
   OrthancServer/ExportedResource.cpp
   OrthancServer/LuaScripting.cpp
   OrthancServer/OrthancConfiguration.cpp
   OrthancServer/OrthancFindRequestHandler.cpp
+  OrthancServer/OrthancGetRequestHandler.cpp
   OrthancServer/OrthancHttpHandler.cpp
   OrthancServer/OrthancInitialization.cpp
   OrthancServer/OrthancMoveRequestHandler.cpp
-  OrthancServer/OrthancGetRequestHandler.cpp
   OrthancServer/OrthancRestApi/OrthancRestAnonymizeModify.cpp
   OrthancServer/OrthancRestApi/OrthancRestApi.cpp
   OrthancServer/OrthancRestApi/OrthancRestArchive.cpp
@@ -166,6 +166,7 @@ if (CMAKE_COMPILER_IS_GNUCXX
     ${ORTHANC_DICOM_SOURCES_INTERNAL}
     ${ORTHANC_SERVER_SOURCES}
     ${ORTHANC_UNIT_TESTS_SOURCES}
+    ${ORTHANC_ROOT}/Core/HttpServer/EmbeddedResourceHttpHandler.cpp
     Plugins/Samples/ServeFolders/Plugin.cpp
     Plugins/Samples/ModalityWorklists/Plugin.cpp
     OrthancServer/main.cpp
@@ -196,23 +197,27 @@ set(ORTHANC_EMBEDDED_FILES
 
 if (STANDALONE_BUILD)
   # We embed all the resources in the binaries for standalone builds
-  add_definitions(-DORTHANC_STANDALONE=1)
-  EmbedResources(
-    ${ORTHANC_EMBEDDED_FILES}
+  add_definitions(
+    -DORTHANC_STANDALONE=1
+    )
+
+  list(APPEND ORTHANC_EMBEDDED_FILES
     ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancExplorer
-    ${DCMTK_DICTIONARIES}
-    ${LIBICU_RESOURCES}
     )
 else()
   add_definitions(
-    -DORTHANC_STANDALONE=0
     -DORTHANC_PATH=\"${CMAKE_SOURCE_DIR}\"
-    )
-  EmbedResources(
-    ${ORTHANC_EMBEDDED_FILES}
-    ${LIBICU_RESOURCES}
+    -DORTHANC_STANDALONE=0
     )
 endif()
+
+EmbedResources(
+  --namespace=Orthanc.ServerResources
+  --target=OrthancServerResources
+  --framework-path=${CMAKE_SOURCE_DIR}/Core
+  ${ORTHANC_EMBEDDED_FILES}
+  )
+
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   execute_process(

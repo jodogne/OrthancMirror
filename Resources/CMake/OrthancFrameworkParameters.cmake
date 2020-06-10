@@ -27,7 +27,6 @@ set(ORTHANC_API_VERSION "7")
 # Support of static compilation
 set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
-set(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
 
 # Generic parameters of the build
 set(ENABLE_CIVETWEB ON CACHE BOOL "Use Civetweb instead of Mongoose (Mongoose was the default embedded HTTP server in Orthanc <= 1.5.1)")
@@ -106,12 +105,11 @@ set(ENABLE_DCMTK_NETWORKING OFF CACHE INTERNAL "Enable DICOM networking in DCMTK
 set(ENABLE_DCMTK_TRANSCODING OFF CACHE INTERNAL "Enable DICOM transcoding in DCMTK")
 set(ENABLE_OPENSSL_ENGINES OFF CACHE INTERNAL "Enable support of engines in OpenSSL")
 
-set(HAS_EMBEDDED_RESOURCES OFF CACHE INTERNAL
-  "Whether resources are auto-generated using EmbedResources.py")
-
 set(ORTHANC_SANDBOXED OFF CACHE INTERNAL
   "Whether Orthanc runs inside a sandboxed environment (such as Google NaCl or WebAssembly)")
 
+set(ORTHANC_BUILDING_FRAMEWORK_LIBRARY OFF CACHE INTERNAL
+  "Whether we are in the process of building the Orthanc Framework shared library")
 
 #
 # These options can be used to turn off some modules of the Orthanc

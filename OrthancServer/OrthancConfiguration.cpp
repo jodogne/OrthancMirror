@@ -584,6 +584,14 @@ namespace Orthanc
   }
 
 
+  void OrthancConfiguration::RegisterFont(ServerResources::FileResourceId resource)
+  {
+    std::string content;
+    ServerResources::GetFileResource(content, resource);
+    fontRegistry_.AddFromMemory(content);
+  }
+
+
   void OrthancConfiguration::GetDicomModalityUsingSymbolicName(
     RemoteModalityParameters& modality,
     const std::string& name) const

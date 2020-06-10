@@ -399,9 +399,11 @@ namespace Orthanc
 
           if (tag->IsPrivate())
           {
-            if (privateCreators.find(tag->GetGroup()) != privateCreators.end())
+            std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag->GetGroup());
+            
+            if (found != privateCreators.end())
             {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, privateCreators.at(tag->GetGroup()).c_str());
+              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
             }
             else
             {
