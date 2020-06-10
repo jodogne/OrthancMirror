@@ -1051,9 +1051,12 @@ namespace Orthanc
           // Same as "ReplacePlainString()", but with support for private creator
           const std::string& utf8Value = it->second->GetContent();
 
-          if (it->first.IsPrivate() && privateCreators.find(it->first.GetGroup()) != privateCreators.end())
+          std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(it->first.GetGroup());
+          
+          if (it->first.IsPrivate() &&
+              found != privateCreators.end())
           {
-            Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, privateCreators.at(it->first.GetGroup()));
+            Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, found->second);
           }
           else
           {
