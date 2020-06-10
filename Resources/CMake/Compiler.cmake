@@ -1,5 +1,7 @@
 # This file sets all the compiler-related flags
 
+include(CheckLibraryExists)
+
 if ((CMAKE_CROSSCOMPILING AND NOT
       "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg") OR    
     "${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
