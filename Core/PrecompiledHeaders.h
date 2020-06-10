@@ -39,6 +39,8 @@
 
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 
+#include "OrthancFramework.h"  // Must be the first one
+
 //#include <boost/date_time/posix_time/posix_time.hpp>
 //#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
