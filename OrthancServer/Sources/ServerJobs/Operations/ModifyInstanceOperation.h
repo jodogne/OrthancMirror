@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../../../Core/Compatibility.h"
-#include "../../../Core/DicomParsing/DicomModification.h"
-#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
 
 namespace Orthanc
 {

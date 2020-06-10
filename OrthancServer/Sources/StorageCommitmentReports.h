@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/Cache/LeastRecentlyUsedIndex.h"
+#include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"
 
 namespace Orthanc
 {

@@ -34,15 +34,15 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Compatibility.h"
-#include "../Core/OrthancException.h"
-#include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/DicomParsing/ToDcmtkBridge.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/DicomParsing/DicomWebJsonVisitor.h"
+#include "../../OrthancFramework/Sources/Compatibility.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 
-#include "../OrthancServer/DicomInstanceToStore.h"
+#include "../Sources/DicomInstanceToStore.h"
 
 #include <memory>
 #include <dcmtk/dcmdata/dcdeftag.h>

@@ -35,23 +35,22 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
 #include <algorithm>
 
-#include "../Core/ChunkedBuffer.h"
-#include "../Core/HttpClient.h"
-#include "../Core/Logging.h"
-#include "../Core/SystemToolbox.h"
-#include "../Core/RestApi/RestApi.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Compression/ZlibCompressor.h"
-#include "../Core/RestApi/RestApiHierarchy.h"
-#include "../Core/HttpServer/HttpContentNegociation.h"
-#include "../Core/HttpServer/MultipartStreamReader.h"
+#include "../Sources/ChunkedBuffer.h"
+#include "../Sources/HttpClient.h"
+#include "../Sources/Logging.h"
+#include "../Sources/SystemToolbox.h"
+#include "../Sources/RestApi/RestApi.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/Compression/ZlibCompressor.h"
+#include "../Sources/RestApi/RestApiHierarchy.h"
+#include "../Sources/HttpServer/HttpContentNegociation.h"
+#include "../Sources/HttpServer/MultipartStreamReader.h"
 
 
 using namespace Orthanc;

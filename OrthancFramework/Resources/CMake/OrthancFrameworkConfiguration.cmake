@@ -12,7 +12,7 @@
 #####################################################################
 
 # Path to the root folder of the Orthanc distribution
-set(ORTHANC_ROOT ${CMAKE_CURRENT_LIST_DIR}/../..)
+set(ORTHANC_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../..)
 
 # Some basic inclusions
 include(CMakePushCheckState)
@@ -126,59 +126,59 @@ endif()
 #####################################################################
 
 set(ORTHANC_CORE_SOURCES_INTERNAL
-  ${ORTHANC_ROOT}/Core/Cache/MemoryCache.cpp
-  ${ORTHANC_ROOT}/Core/Cache/MemoryObjectCache.cpp
-  ${ORTHANC_ROOT}/Core/Cache/MemoryStringCache.cpp
-  ${ORTHANC_ROOT}/Core/ChunkedBuffer.cpp
-  ${ORTHANC_ROOT}/Core/DicomFormat/DicomTag.cpp
-  ${ORTHANC_ROOT}/Core/EnumerationDictionary.h
-  ${ORTHANC_ROOT}/Core/Enumerations.cpp
-  ${ORTHANC_ROOT}/Core/FileStorage/MemoryStorageArea.cpp
-  ${ORTHANC_ROOT}/Core/HttpServer/MultipartStreamReader.cpp
-  ${ORTHANC_ROOT}/Core/HttpServer/StringMatcher.cpp
-  ${ORTHANC_ROOT}/Core/Logging.cpp
-  ${ORTHANC_ROOT}/Core/OrthancFramework.cpp
-  ${ORTHANC_ROOT}/Core/SerializationToolbox.cpp
-  ${ORTHANC_ROOT}/Core/Toolbox.cpp
-  ${ORTHANC_ROOT}/Core/WebServiceParameters.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryCache.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryObjectCache.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryStringCache.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/ChunkedBuffer.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomTag.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/EnumerationDictionary.h
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Enumerations.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/MemoryStorageArea.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/MultipartStreamReader.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/StringMatcher.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Logging.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/OrthancFramework.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/SerializationToolbox.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/Toolbox.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Sources/WebServiceParameters.cpp
   )
 
 if (ENABLE_MODULE_IMAGES)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Images/Font.cpp
-    ${ORTHANC_ROOT}/Core/Images/FontRegistry.cpp
-    ${ORTHANC_ROOT}/Core/Images/IImageWriter.cpp
-    ${ORTHANC_ROOT}/Core/Images/Image.cpp
-    ${ORTHANC_ROOT}/Core/Images/ImageAccessor.cpp
-    ${ORTHANC_ROOT}/Core/Images/ImageBuffer.cpp
-    ${ORTHANC_ROOT}/Core/Images/ImageProcessing.cpp
-    ${ORTHANC_ROOT}/Core/Images/PamReader.cpp
-    ${ORTHANC_ROOT}/Core/Images/PamWriter.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/Font.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/FontRegistry.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/IImageWriter.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/Image.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageAccessor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageBuffer.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageProcessing.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PamReader.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PamWriter.cpp
     )
 endif()
 
 if (ENABLE_MODULE_DICOM)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomArray.cpp
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomImageInformation.cpp
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomInstanceHasher.cpp
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomIntegerPixelAccessor.cpp
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomMap.cpp
-    ${ORTHANC_ROOT}/Core/DicomFormat/DicomValue.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomArray.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomImageInformation.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomIntegerPixelAccessor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomMap.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomValue.cpp
     )
 endif()
 
 if (ENABLE_MODULE_JOBS)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/JobsEngine/GenericJobUnserializer.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobInfo.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobStatus.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/JobStepResult.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/JobOperationValues.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/LogJobOperation.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/Operations/SequenceOfOperationsJob.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/SetOfCommandsJob.cpp
-    ${ORTHANC_ROOT}/Core/JobsEngine/SetOfInstancesJob.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/GenericJobUnserializer.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobInfo.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobStatus.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobStepResult.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/JobOperationValues.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.cpp
     )
 endif()
 
@@ -198,12 +198,12 @@ if (ENABLE_SQLITE)
   add_definitions(-DORTHANC_ENABLE_SQLITE=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/SQLite/Connection.cpp
-    ${ORTHANC_ROOT}/Core/SQLite/FunctionContext.cpp
-    ${ORTHANC_ROOT}/Core/SQLite/Statement.cpp
-    ${ORTHANC_ROOT}/Core/SQLite/StatementId.cpp
-    ${ORTHANC_ROOT}/Core/SQLite/StatementReference.cpp
-    ${ORTHANC_ROOT}/Core/SQLite/Transaction.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Connection.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/FunctionContext.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Statement.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/StatementId.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/StatementReference.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Transaction.cpp
     )
 endif()
 
@@ -229,7 +229,7 @@ if (ENABLE_CRYPTO_OPTIONS)
 
       add_definitions(-DORTHANC_ENABLE_PKCS11=1)
       list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-        ${ORTHANC_ROOT}/Core/Pkcs11.cpp
+        ${ORTHANC_ROOT}/OrthancFramework/Sources/Pkcs11.cpp
         )
     else()
       message(FATAL_ERROR "OpenSSL is required to enable PKCS#11 support")
@@ -249,7 +249,7 @@ if (ENABLE_WEB_CLIENT)
   add_definitions(-DORTHANC_ENABLE_CURL=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/HttpClient.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpClient.cpp
     )
 endif()
 
@@ -271,22 +271,22 @@ if (ENABLE_WEB_SERVER)
   endif()
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/HttpServer/BufferHttpSender.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/FilesystemHttpHandler.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/FilesystemHttpSender.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpContentNegociation.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpFileSender.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpOutput.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpServer.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpStreamTranscoder.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/HttpToolbox.cpp
-    ${ORTHANC_ROOT}/Core/HttpServer/StringHttpOutput.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApi.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApiCall.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApiGetCall.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApiHierarchy.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApiOutput.cpp
-    ${ORTHANC_ROOT}/Core/RestApi/RestApiPath.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/BufferHttpSender.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/FilesystemHttpSender.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpContentNegociation.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpFileSender.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpOutput.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpServer.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpToolbox.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/StringHttpOutput.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApi.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiCall.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiGetCall.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiHierarchy.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiOutput.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiPath.cpp
     )
 endif()
 
@@ -317,9 +317,9 @@ if (ENABLE_JPEG)
   add_definitions(-DORTHANC_ENABLE_JPEG=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Images/JpegErrorManager.cpp
-    ${ORTHANC_ROOT}/Core/Images/JpegReader.cpp
-    ${ORTHANC_ROOT}/Core/Images/JpegWriter.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegErrorManager.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegReader.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegWriter.cpp
     )
 endif()
 
@@ -333,16 +333,16 @@ if (ENABLE_ZLIB)
   add_definitions(-DORTHANC_ENABLE_ZLIB=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
-    ${ORTHANC_ROOT}/Core/Compression/GzipCompressor.cpp
-    ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/DeflateBaseCompressor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/GzipCompressor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/ZlibCompressor.cpp
     )
 
   if (NOT ORTHANC_SANDBOXED)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/Core/Compression/HierarchicalZipWriter.cpp
-      ${ORTHANC_ROOT}/Core/Compression/ZipWriter.cpp
-      ${ORTHANC_ROOT}/Core/FileStorage/StorageAccessor.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/HierarchicalZipWriter.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/ZipWriter.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
       )
   endif()
 endif()
@@ -365,8 +365,8 @@ if (ENABLE_PNG)
   add_definitions(-DORTHANC_ENABLE_PNG=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Images/PngReader.cpp
-    ${ORTHANC_ROOT}/Core/Images/PngWriter.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PngReader.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PngWriter.cpp
     )
 endif()
 
@@ -380,8 +380,8 @@ if (ENABLE_LUA)
   add_definitions(-DORTHANC_ENABLE_LUA=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Lua/LuaContext.cpp
-    ${ORTHANC_ROOT}/Core/Lua/LuaFunctionCall.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Lua/LuaContext.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Lua/LuaFunctionCall.cpp
     )
 endif()
 
@@ -475,39 +475,39 @@ if (ENABLE_DCMTK)
   endif()
 
   set(ORTHANC_DICOM_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/DicomParsing/DicomModification.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/DicomWebJsonVisitor.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/FromDcmtkBridge.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomDir.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/ParsedDicomFile.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/ToDcmtkBridge.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomModification.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ParsedDicomDir.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ParsedDicomFile.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.cpp
 
-    ${ORTHANC_ROOT}/Core/DicomParsing/Internals/DicomFrameIndex.cpp
-    ${ORTHANC_ROOT}/Core/DicomParsing/Internals/DicomImageDecoder.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/Internals/DicomFrameIndex.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp
     )
 
   if (NOT ORTHANC_SANDBOXED)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/Core/DicomParsing/DicomDirWriter.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomDirWriter.cpp
       )
   endif()
 
   if (ENABLE_DCMTK_NETWORKING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociation.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomAssociationParameters.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomControlUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomFindAnswers.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomServer.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/DicomStoreUserConnection.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/CommandDispatcher.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/FindScp.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/MoveScp.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/GetScp.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/Internals/StoreScp.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/RemoteModalityParameters.cpp
-      ${ORTHANC_ROOT}/Core/DicomNetworking/TimeoutDicomConnectionManager.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomAssociation.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomServer.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/FindScp.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/MoveScp.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/GetScp.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/TimeoutDicomConnectionManager.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
@@ -517,9 +517,9 @@ if (ENABLE_DCMTK)
   if (ENABLE_DCMTK_TRANSCODING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/Core/DicomParsing/DcmtkTranscoder.cpp
-      ${ORTHANC_ROOT}/Core/DicomParsing/IDicomTranscoder.cpp
-      ${ORTHANC_ROOT}/Core/DicomParsing/MemoryBufferTranscoder.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/IDicomTranscoder.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/MemoryBufferTranscoder.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
@@ -570,22 +570,22 @@ else()
     )
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/Core/Cache/SharedArchive.cpp
-    ${ORTHANC_ROOT}/Core/FileBuffer.cpp
-    ${ORTHANC_ROOT}/Core/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/Core/MetricsRegistry.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/RunnableWorkersPool.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/Semaphore.cpp
-    ${ORTHANC_ROOT}/Core/MultiThreading/SharedMessageQueue.cpp
-    ${ORTHANC_ROOT}/Core/SharedLibrary.cpp
-    ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
-    ${ORTHANC_ROOT}/Core/TemporaryFile.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/SharedArchive.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/FileBuffer.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/FilesystemStorage.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/MetricsRegistry.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/Semaphore.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/SharedMessageQueue.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SharedLibrary.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/SystemToolbox.cpp
+    ${ORTHANC_ROOT}/OrthancFramework/Sources/TemporaryFile.cpp
     )
 
   if (ENABLE_MODULE_JOBS)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/Core/JobsEngine/JobsEngine.cpp
-      ${ORTHANC_ROOT}/Core/JobsEngine/JobsRegistry.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobsEngine.cpp
+      ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp
       )
   endif()
 endif()
@@ -663,15 +663,15 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${UUID_SOURCES}
   ${ZLIB_SOURCES}
 
-  ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
-  ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
+  ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/md5/md5.c
+  ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/base64/base64.cpp
   )
 
 if (ENABLE_ZLIB AND NOT ORTHANC_SANDBOXED)
   list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
     # This is the minizip distribution to create ZIP files using zlib
-    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/ioapi.c
-    ${ORTHANC_ROOT}/Resources/ThirdParty/minizip/zip.c
+    ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/minizip/ioapi.c
+    ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/minizip/zip.c
     )
 endif()
 
@@ -681,7 +681,7 @@ if (NOT "${LIBICU_RESOURCES}" STREQUAL "" OR
   EmbedResources(
     --namespace=Orthanc.FrameworkResources
     --target=OrthancFrameworkResources
-    --framework-path=${ORTHANC_ROOT}/Core
+    --framework-path=${ORTHANC_ROOT}/OrthancFramework/Sources
     ${LIBICU_RESOURCES}
     ${DCMTK_DICTIONARIES}
     )

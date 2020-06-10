@@ -31,17 +31,17 @@
  **/
 
 
-#include "../../OrthancServer/PrecompiledHeadersServer.h"
+#include "../../Sources/PrecompiledHeadersServer.h"
 #include "PluginsManager.h"
 
 #if ORTHANC_ENABLE_PLUGINS != 1
 #error The plugin support is disabled
 #endif
 
-#include "../../Core/HttpServer/HttpOutput.h"
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/Toolbox.h"
+#include "../../../OrthancFramework/Sources/HttpServer/HttpOutput.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
 
 #include <cassert>
 #include <memory>

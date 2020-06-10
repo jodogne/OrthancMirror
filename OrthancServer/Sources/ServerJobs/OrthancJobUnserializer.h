@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../Core/JobsEngine/GenericJobUnserializer.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/GenericJobUnserializer.h"
 
 namespace Orthanc
 {

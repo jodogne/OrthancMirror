@@ -36,8 +36,8 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/SharedLibrary.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SharedLibrary.h"
 
 #include <map>
 #include <string>

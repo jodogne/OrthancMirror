@@ -35,13 +35,12 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/OrthancException.h"
-#include "../Core/Compression/ZipWriter.h"
-#include "../Core/Compression/HierarchicalZipWriter.h"
-#include "../Core/Toolbox.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/Compression/ZipWriter.h"
+#include "../Sources/Compression/HierarchicalZipWriter.h"
+#include "../Sources/Toolbox.h"
 
 
 using namespace Orthanc;

@@ -36,9 +36,9 @@
 
 #include "OrthancConfiguration.h"
 
-#include "../Core/DicomNetworking/DicomControlUserConnection.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/Logging.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/Logging.h"
 #include "LuaScripting.h"
 #include "ServerContext.h"
 

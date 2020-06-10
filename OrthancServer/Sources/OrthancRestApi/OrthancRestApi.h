@@ -33,10 +33,10 @@
 
 #pragma once
 
-#include "../../Core/DicomParsing/DicomModification.h"
-#include "../../Core/JobsEngine/SetOfCommandsJob.h"
-#include "../../Core/MetricsRegistry.h"
-#include "../../Core/RestApi/RestApi.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
+#include "../../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../../OrthancFramework/Sources/RestApi/RestApi.h"
 #include "../ServerEnumerations.h"
 
 #include <set>

@@ -34,9 +34,9 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/HttpServer/FilesystemHttpSender.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/ArchiveJob.h"

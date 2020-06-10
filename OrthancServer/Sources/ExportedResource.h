@@ -34,7 +34,7 @@
 #pragma once
 
 #include "ServerEnumerations.h"
-#include "../Core/Toolbox.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include <string>
 #include <json/value.h>

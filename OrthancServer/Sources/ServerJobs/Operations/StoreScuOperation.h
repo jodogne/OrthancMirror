@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
-#include "../../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
+#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
+#include "../../../../OrthancFramework/Sources/DicomNetworking/TimeoutDicomConnectionManager.h"
 
 namespace Orthanc
 {

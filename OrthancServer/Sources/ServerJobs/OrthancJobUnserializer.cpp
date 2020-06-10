@@ -34,9 +34,9 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancJobUnserializer.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
 #include "../ServerContext.h"
 

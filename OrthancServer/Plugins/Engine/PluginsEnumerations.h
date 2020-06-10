@@ -43,7 +43,7 @@
  **/
 
 #include "../Include/orthanc/OrthancCPlugin.h"
-#include "../../OrthancServer/Search/DatabaseConstraint.h"
+#include "../../Sources/Search/DatabaseConstraint.h"
 
 namespace Orthanc
 {

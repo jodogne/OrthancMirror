@@ -34,7 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancHttpHandler.h"
 
-#include "../Core/OrthancException.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
 
 
 namespace Orthanc

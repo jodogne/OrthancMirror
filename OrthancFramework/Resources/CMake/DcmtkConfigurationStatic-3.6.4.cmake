@@ -34,7 +34,7 @@ if (FirstRun)
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.4.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.4.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -44,7 +44,7 @@ if (FirstRun)
   endif()
 
   configure_file(
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-dcdict_orthanc.cc
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-dcdict_orthanc.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
     COPYONLY)
 else()
@@ -68,7 +68,7 @@ IF (CMAKE_CROSSCOMPILING)
     # Check out "../WebAssembly/ArithmeticTests/" to regenerate the
     # "arith.h" file
     configure_file(
-      ${ORTHANC_ROOT}/Resources/WebAssembly/arith.h
+      ${CMAKE_CURRENT_LIST_DIR}/WebAssembly/arith.h
       ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/arith.h
       COPYONLY)
 

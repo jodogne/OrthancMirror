@@ -35,17 +35,16 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/SystemToolbox.h"
-#include "../Core/Toolbox.h"
-#include "../Core/OrthancException.h"
-#include "../Core/HttpServer/BufferHttpSender.h"
-#include "../Core/HttpServer/FilesystemHttpSender.h"
-#include "../Core/HttpServer/HttpStreamTranscoder.h"
-#include "../Core/Compression/ZlibCompressor.h"
-#include "../Core/Compression/GzipCompressor.h"
+#include "../Sources/SystemToolbox.h"
+#include "../Sources/Toolbox.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/HttpServer/BufferHttpSender.h"
+#include "../Sources/HttpServer/FilesystemHttpSender.h"
+#include "../Sources/HttpServer/HttpStreamTranscoder.h"
+#include "../Sources/Compression/ZlibCompressor.h"
+#include "../Sources/Compression/GzipCompressor.h"
 
 
 using namespace Orthanc;

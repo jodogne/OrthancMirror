@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/Images/ImageAccessor.h"
+#include "../../OrthancFramework/Sources/Images/ImageAccessor.h"
 
 #include <boost/noncopyable.hpp>
 

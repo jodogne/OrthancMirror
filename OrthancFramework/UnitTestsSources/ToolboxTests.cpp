@@ -35,12 +35,11 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
-#include "../Core/Compatibility.h"
-#include "../Core/IDynamicObject.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Toolbox.h"
+#include "../Sources/Compatibility.h"
+#include "../Sources/IDynamicObject.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/Toolbox.h"
 
 using namespace Orthanc;
 

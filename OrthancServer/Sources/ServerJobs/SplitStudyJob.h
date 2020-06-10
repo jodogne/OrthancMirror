@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomTag.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
 #include "../DicomInstanceOrigin.h"
 #include "CleaningInstancesJob.h"
 

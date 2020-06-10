@@ -34,8 +34,8 @@
 #include "PrecompiledHeadersServer.h"
 #include "SliceOrdering.h"
 
-#include "../Core/Logging.h"
-#include "../Core/Toolbox.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 #include "ServerEnumerations.h"
 #include "ServerIndex.h"
 

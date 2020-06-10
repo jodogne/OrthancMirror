@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
 
 #define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 0

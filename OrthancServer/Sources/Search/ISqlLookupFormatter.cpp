@@ -34,7 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ISqlLookupFormatter.h"
 
-#include "../../Core/OrthancException.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "DatabaseConstraint.h"
 
 namespace Orthanc

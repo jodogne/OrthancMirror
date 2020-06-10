@@ -34,7 +34,7 @@
 #pragma once
 
 #include "../ServerEnumerations.h"
-#include "../../Core/DicomFormat/DicomMap.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "DatabaseConstraint.h"
 
 #include <boost/shared_ptr.hpp>

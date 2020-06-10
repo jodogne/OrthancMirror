@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../Core/DicomNetworking/IMoveRequestHandler.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/IMoveRequestHandler.h"
 
 namespace Orthanc
 {

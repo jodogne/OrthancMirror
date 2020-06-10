@@ -37,8 +37,8 @@
 #include "ServerIndexChange.h"
 #include "ServerJobs/LuaJobManager.h"
 
-#include "../Core/MultiThreading/SharedMessageQueue.h"
-#include "../Core/Lua/LuaContext.h"
+#include "../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
+#include "../../OrthancFramework/Sources/Lua/LuaContext.h"
 
 namespace Orthanc
 {

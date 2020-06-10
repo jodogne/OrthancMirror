@@ -19,7 +19,7 @@
  **/
 
 
-#include "../../../Core/Compatibility.h"
+#include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>

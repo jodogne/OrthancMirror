@@ -34,8 +34,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ResourceModificationJob.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>

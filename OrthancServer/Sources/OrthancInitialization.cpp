@@ -40,10 +40,10 @@
 
 #include "OrthancInitialization.h"
 
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/FileStorage/FilesystemStorage.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
 
 #include "Database/SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"

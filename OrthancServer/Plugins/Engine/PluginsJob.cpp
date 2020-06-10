@@ -31,7 +31,7 @@
  **/
 
 
-#include "../../OrthancServer/PrecompiledHeadersServer.h"
+#include "../../Sources/PrecompiledHeadersServer.h"
 #include "PluginsJob.h"
 
 #if ORTHANC_ENABLE_PLUGINS != 1
@@ -39,8 +39,8 @@
 #endif
 
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 
 #include <json/reader.h>
 #include <cassert>

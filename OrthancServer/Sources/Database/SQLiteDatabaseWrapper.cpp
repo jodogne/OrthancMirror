@@ -34,9 +34,9 @@
 #include "../PrecompiledHeadersServer.h"
 #include "SQLiteDatabaseWrapper.h"
 
-#include "../../Core/DicomFormat/DicomArray.h"
-#include "../../Core/Logging.h"
-#include "../../Core/SQLite/Transaction.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/SQLite/Transaction.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
 

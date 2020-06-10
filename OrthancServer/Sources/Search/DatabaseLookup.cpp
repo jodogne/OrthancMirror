@@ -35,10 +35,10 @@
 #include "DatabaseLookup.h"
 
 #include "../ServerToolbox.h"
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/DicomParsing/ToDcmtkBridge.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/Toolbox.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
 
 namespace Orthanc
 {

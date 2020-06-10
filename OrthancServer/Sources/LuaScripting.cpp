@@ -38,9 +38,9 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ServerContext.h"
 
-#include "../Core/HttpServer/StringHttpOutput.h"
-#include "../Core/Logging.h"
-#include "../Core/Lua/LuaFunctionCall.h"
+#include "../../OrthancFramework/Sources/HttpServer/StringHttpOutput.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 
 #include <OrthancServerResources.h>
 

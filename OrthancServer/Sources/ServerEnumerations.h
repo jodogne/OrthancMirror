@@ -35,8 +35,8 @@
 #include <string>
 #include <map>
 
-#include "../Core/Enumerations.h"
-#include "../Core/DicomFormat/DicomTag.h"
+#include "../../OrthancFramework/Sources/Enumerations.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
 
 namespace Orthanc
 {

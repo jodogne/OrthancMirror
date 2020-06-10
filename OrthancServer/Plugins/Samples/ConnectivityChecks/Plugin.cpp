@@ -34,8 +34,8 @@
 #include <EmbeddedResources.h>
 #include <orthanc/OrthancCPlugin.h>
 
-#include "../../../Core/OrthancException.h"
-#include "../../../Core/SystemToolbox.h"
+#include "../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.h"
 
 #define ROOT_URI "/connectivity-checks"
 

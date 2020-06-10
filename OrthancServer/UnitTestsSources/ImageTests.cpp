@@ -34,19 +34,19 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Images/Font.h"
-#include "../Core/Images/Image.h"
-#include "../Core/Images/ImageProcessing.h"
-#include "../Core/Images/JpegReader.h"
-#include "../Core/Images/JpegWriter.h"
-#include "../Core/Images/PngReader.h"
-#include "../Core/Images/PngWriter.h"
-#include "../Core/Images/PamReader.h"
-#include "../Core/Images/PamWriter.h"
-#include "../Core/SystemToolbox.h"
-#include "../Core/Toolbox.h"
-#include "../Core/TemporaryFile.h"
-#include "../OrthancServer/OrthancConfiguration.h"  // For the FontRegistry
+#include "../../OrthancFramework/Sources/Images/Font.h"
+#include "../../OrthancFramework/Sources/Images/Image.h"
+#include "../../OrthancFramework/Sources/Images/ImageProcessing.h"
+#include "../../OrthancFramework/Sources/Images/JpegReader.h"
+#include "../../OrthancFramework/Sources/Images/JpegWriter.h"
+#include "../../OrthancFramework/Sources/Images/PngReader.h"
+#include "../../OrthancFramework/Sources/Images/PngWriter.h"
+#include "../../OrthancFramework/Sources/Images/PamReader.h"
+#include "../../OrthancFramework/Sources/Images/PamWriter.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
+#include "../../OrthancFramework/Sources/TemporaryFile.h"
+#include "../Sources/OrthancConfiguration.h"  // For the FontRegistry
 
 #include <stdint.h>
 

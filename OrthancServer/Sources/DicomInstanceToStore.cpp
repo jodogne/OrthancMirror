@@ -34,10 +34,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcdeftag.h>

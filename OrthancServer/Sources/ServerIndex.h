@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "../Core/Cache/LeastRecentlyUsedIndex.h"
-#include "../Core/DicomFormat/DicomMap.h"
+#include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 #include "Database/IDatabaseWrapper.h"
 

@@ -75,7 +75,7 @@ elseif (MSVC)
     # compatibility header.
     # http://stackoverflow.com/a/70630/881731
     # https://en.wikibooks.org/wiki/C_Programming/C_Reference/stdint.h#External_links
-    include_directories(${ORTHANC_ROOT}/Resources/ThirdParty/VisualStudio)
+    include_directories(${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/VisualStudio)
   endif()
 
   link_libraries(netapi32)
@@ -109,7 +109,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
 
   if (NOT DEFINED ENABLE_PLUGINS_VERSION_SCRIPT OR 
       ENABLE_PLUGINS_VERSION_SCRIPT)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${ORTHANC_ROOT}/Plugins/Samples/Common/VersionScript.map")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${ORTHANC_ROOT}/OrthancFramework/Resources/VersionScriptPlugins.map")
   endif()
 
   # Remove the "-rdynamic" option

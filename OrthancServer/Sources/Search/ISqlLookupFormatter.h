@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../Core/Enumerations.h"
+#include "../../../OrthancFramework/Sources/Enumerations.h"
 
 #include <boost/noncopyable.hpp>
 #include <vector>

@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../OrthancServer/PrecompiledHeadersServer.h"
+#include "../Sources/PrecompiledHeadersServer.h"
 
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
-#include "../Core/EnumerationDictionary.h"
+#include "../../OrthancFramework/Sources/EnumerationDictionary.h"
 #include <gtest/gtest.h>
 #endif

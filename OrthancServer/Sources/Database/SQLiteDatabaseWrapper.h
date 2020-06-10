@@ -35,7 +35,7 @@
 
 #include "IDatabaseWrapper.h"
 
-#include "../../Core/SQLite/Connection.h"
+#include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
 #include "Compatibility/ILookupResourceAndParent.h"

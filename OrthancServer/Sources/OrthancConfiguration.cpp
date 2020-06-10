@@ -34,12 +34,12 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancConfiguration.h"
 
-#include "../Core/HttpServer/HttpServer.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
-#include "../Core/SystemToolbox.h"
-#include "../Core/TemporaryFile.h"
-#include "../Core/Toolbox.h"
+#include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
+#include "../../OrthancFramework/Sources/TemporaryFile.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include "ServerIndex.h"
 

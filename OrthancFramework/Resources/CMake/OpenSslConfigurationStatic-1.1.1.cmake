@@ -20,14 +20,14 @@ if (FirstRun)
   file(WRITE ${OPENSSL_SOURCES_DIR}/crypto/dso_conf.h "")
 
   configure_file(
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1-conf.h.in
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/openssl-1.1.1-conf.h.in
     ${OPENSSL_SOURCES_DIR}/include/openssl/opensslconf.h
     )
 
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/openssl-1.1.1g.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/openssl-1.1.1g.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

@@ -33,7 +33,7 @@
 
 #include "CleaningInstancesJob.h"
 
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 

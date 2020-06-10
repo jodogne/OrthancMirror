@@ -38,9 +38,9 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/OrthancException.h"
-#include "../Core/Toolbox.h"
-#include "../Core/Lua/LuaFunctionCall.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
+#include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 
 #include <OrthancServerResources.h>
 

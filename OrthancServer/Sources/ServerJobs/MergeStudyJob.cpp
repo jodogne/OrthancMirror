@@ -33,9 +33,9 @@
 
 #include "MergeStudyJob.h"
 
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/Logging.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 

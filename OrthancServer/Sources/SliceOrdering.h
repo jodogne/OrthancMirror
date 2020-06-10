@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 namespace Orthanc
 {

@@ -33,10 +33,10 @@
 
 #pragma once
 
-#include "../../Core/DicomFormat/DicomMap.h"
-#include "../../Core/FileStorage/FileInfo.h"
-#include "../../Core/FileStorage/IStorageArea.h"
-#include "../../Core/SQLite/ITransaction.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
+#include "../../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
+#include "../../../OrthancFramework/Sources/SQLite/ITransaction.h"
 
 #include "../ExportedResource.h"
 #include "IDatabaseListener.h"

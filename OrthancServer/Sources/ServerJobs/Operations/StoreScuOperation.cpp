@@ -37,9 +37,9 @@
 #include "DicomInstanceOperationValue.h"
 #include "../../ServerContext.h"
 
-#include "../../../Core/Logging.h"
-#include "../../../Core/OrthancException.h"
-#include "../../../Core/SerializationToolbox.h"
+#include "../../../../OrthancFramework/Sources/Logging.h"
+#include "../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 namespace Orthanc
 {
