@@ -676,13 +676,16 @@ if (ENABLE_ZLIB AND NOT ORTHANC_SANDBOXED)
 endif()
 
 
-EmbedResources(
-  --namespace=Orthanc.FrameworkResources
-  --target=OrthancFrameworkResources
-  --framework-path=${ORTHANC_ROOT}/Core
-  ${LIBICU_RESOURCES}
-  ${DCMTK_DICTIONARIES}
-  )
+if (NOT "${LIBICU_RESOURCES}" STREQUAL "" OR
+    NOT "${DCMTK_DICTIONARIES}" STREQUAL "")
+  EmbedResources(
+    --namespace=Orthanc.FrameworkResources
+    --target=OrthancFrameworkResources
+    --framework-path=${ORTHANC_ROOT}/Core
+    ${LIBICU_RESOURCES}
+    ${DCMTK_DICTIONARIES}
+    )
+endif()
 
 
 set(ORTHANC_CORE_SOURCES
