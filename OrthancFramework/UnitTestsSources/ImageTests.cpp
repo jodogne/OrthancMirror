@@ -31,22 +31,24 @@
  **/
 
 
-#include "PrecompiledHeadersUnitTests.h"
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework.h>
+#endif
+
 #include "gtest/gtest.h"
 
-#include "../../OrthancFramework/Sources/Images/Font.h"
-#include "../../OrthancFramework/Sources/Images/Image.h"
-#include "../../OrthancFramework/Sources/Images/ImageProcessing.h"
-#include "../../OrthancFramework/Sources/Images/JpegReader.h"
-#include "../../OrthancFramework/Sources/Images/JpegWriter.h"
-#include "../../OrthancFramework/Sources/Images/PngReader.h"
-#include "../../OrthancFramework/Sources/Images/PngWriter.h"
-#include "../../OrthancFramework/Sources/Images/PamReader.h"
-#include "../../OrthancFramework/Sources/Images/PamWriter.h"
-#include "../../OrthancFramework/Sources/SystemToolbox.h"
-#include "../../OrthancFramework/Sources/Toolbox.h"
-#include "../../OrthancFramework/Sources/TemporaryFile.h"
-#include "../Sources/OrthancConfiguration.h"  // For the FontRegistry
+#include "../Sources/Images/Font.h"
+#include "../Sources/Images/Image.h"
+#include "../Sources/Images/ImageProcessing.h"
+#include "../Sources/Images/JpegReader.h"
+#include "../Sources/Images/JpegWriter.h"
+#include "../Sources/Images/PngReader.h"
+#include "../Sources/Images/PngWriter.h"
+#include "../Sources/Images/PamReader.h"
+#include "../Sources/Images/PamWriter.h"
+#include "../Sources/SystemToolbox.h"
+#include "../Sources/Toolbox.h"
+#include "../Sources/TemporaryFile.h"
 
 #include <stdint.h>
 
@@ -259,22 +261,6 @@ TEST(JpegWriter, Basic)
   }
 }
 
-
-TEST(Font, Basic)
-{
-  Orthanc::Image s(Orthanc::PixelFormat_RGB24, 640, 480, false);
-  memset(s.GetBuffer(), 0, s.GetPitch() * s.GetHeight());
-
-  {
-    Orthanc::OrthancConfiguration::ReaderLock lock;
-    ASSERT_GE(1u, lock.GetConfiguration().GetFontRegistry().GetSize());
-    lock.GetConfiguration().GetFontRegistry().GetFont(0).Draw
-      (s, "Hello world É\n\rComment ça va ?\nq", 50, 60, 255, 0, 0);
-  }
-
-  Orthanc::PngWriter w;
-  w.WriteToFile("UnitTestsResults/font.png", s);
-}
 
 TEST(PamWriter, ColorPattern)
 {
