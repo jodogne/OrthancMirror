@@ -1002,7 +1002,8 @@ namespace Orthanc
   void ParsedDicomFile::CreateFromDicomMap(const DicomMap& source,
                                            Encoding defaultEncoding,
                                            bool permissive,
-                                           const std::string& privateCreator)
+                                           const std::string& defaultPrivateCreator,
+                                           const std::map<uint16_t, std::string>& privateCreators)
   {
     pimpl_->file_.reset(new DcmFileFormat);
     InvalidateCache();
@@ -1049,7 +1050,15 @@ namespace Orthanc
         {
           // Same as "ReplacePlainString()", but with support for private creator
           const std::string& utf8Value = it->second->GetContent();
-          Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, privateCreator);
+
+          if (it->first.IsPrivate() && privateCreators.find(it->first.GetGroup()) != privateCreators.end())
+          {
+            Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, privateCreators.at(it->first.GetGroup()));
+          }
+          else
+          {
+            Replace(it->first, utf8Value, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+          }
         }
         catch (OrthancException&)
         {
@@ -1062,14 +1071,24 @@ namespace Orthanc
     }
   }
 
+  ParsedDicomFile::ParsedDicomFile(const DicomMap& map,
+                                   Encoding defaultEncoding,
+                                   bool permissive) :
+    pimpl_(new PImpl)
+  {
+    std::map<uint16_t, std::string> noPrivateCreators;
+    CreateFromDicomMap(map, defaultEncoding, permissive, "" /* no default private creator */, noPrivateCreators);
+  }
+
 
   ParsedDicomFile::ParsedDicomFile(const DicomMap& map,
                                    Encoding defaultEncoding,
                                    bool permissive,
-                                   const std::string& privateCreator) :
+                                   const std::string& defaultPrivateCreator,
+                                   const std::map<uint16_t, std::string>& privateCreators) :
     pimpl_(new PImpl)
   {
-    CreateFromDicomMap(map, defaultEncoding, permissive, privateCreator);
+    CreateFromDicomMap(map, defaultEncoding, permissive, defaultPrivateCreator, privateCreators);
   }
 
 
