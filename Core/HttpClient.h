@@ -42,6 +42,14 @@
 #include <boost/shared_ptr.hpp>
 #include <json/json.h>
 
+#if !defined(ORTHANC_ENABLE_CURL)
+#  error The macro ORTHANC_ENABLE_CURL must be defined
+#endif
+
+#if ORTHANC_ENABLE_CURL != 1
+#  error Support for curl is disabled, cannot use this file
+#endif
+
 #if !defined(ORTHANC_ENABLE_SSL)
 #  error The macro ORTHANC_ENABLE_SSL must be defined
 #endif

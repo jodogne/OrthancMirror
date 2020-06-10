@@ -173,9 +173,3 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     endif()
   endif()
 endif()
-
-
-list(REMOVE_ITEM DCMTK_SOURCES 
-  ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdictbi.cc
-  ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/mkdeftag.cc
-  )

@@ -113,7 +113,7 @@ namespace Orthanc
     void ExportPrometheusText(std::string& s);
 
 
-    class SharedMetrics : public boost::noncopyable
+    class ORTHANC_PUBLIC SharedMetrics : public boost::noncopyable
     {
     private:
       boost::mutex      mutex_;
@@ -135,7 +135,7 @@ namespace Orthanc
     };
 
 
-    class ActiveCounter : public boost::noncopyable
+    class ORTHANC_PUBLIC ActiveCounter : public boost::noncopyable
     {
     private:
       SharedMetrics&   metrics_;
@@ -154,7 +154,7 @@ namespace Orthanc
     };
 
 
-    class Timer : public boost::noncopyable
+    class ORTHANC_PUBLIC Timer : public boost::noncopyable
     {
     private:
       MetricsRegistry&          registry_;

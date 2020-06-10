@@ -42,6 +42,8 @@
 #include "../Core/Toolbox.h"
 #include "../Core/Lua/LuaFunctionCall.h"
 
+#include <OrthancServerResources.h>
+
 #include <boost/lexical_cast.hpp>
 
 #if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
@@ -54,9 +56,13 @@ TEST(Lua, Json)
   Orthanc::LuaContext lua;
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK != 1
-  lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+  {
+    std::string command;
+    Orthanc::ServerResources::GetFileResource(command, Orthanc::ServerResources::LUA_TOOLBOX);
+    lua.Execute(command);
+  }
 #endif
-  
+
   lua.Execute("a={}");
   lua.Execute("a['x'] = 10");
   lua.Execute("a['y'] = {}");
@@ -131,7 +137,12 @@ TEST(Lua, Existing)
 TEST(Lua, Simple)
 {
   Orthanc::LuaContext lua;
-  lua.Execute(Orthanc::EmbeddedResources::LUA_TOOLBOX);
+
+  {
+    std::string command;
+    Orthanc::ServerResources::GetFileResource(command, Orthanc::ServerResources::LUA_TOOLBOX);
+    lua.Execute(command);
+  }
 
   {
     Orthanc::LuaFunctionCall f(lua, "PrintRecursive");

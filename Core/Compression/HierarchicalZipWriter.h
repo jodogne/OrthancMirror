@@ -53,7 +53,7 @@ namespace Orthanc
 #endif
 
   private:
-    class Index
+    class ORTHANC_PUBLIC Index
     {
     private:
       struct Directory

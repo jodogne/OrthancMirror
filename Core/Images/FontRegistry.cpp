@@ -67,16 +67,6 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_HAS_EMBEDDED_RESOURCES == 1
-  void FontRegistry::AddFromResource(EmbeddedResources::FileResourceId resource)
-  {
-    std::string content;
-    EmbeddedResources::GetFileResource(content, resource);
-    AddFromMemory(content);
-  }
-#endif
-
-
   const Font& FontRegistry::GetFont(size_t i) const
   {
     if (i >= fonts_.size())

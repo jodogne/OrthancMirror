@@ -42,7 +42,8 @@ USE_SYSTEM_EXCEPTION = False
 EXCEPTION_CLASS = 'OrthancException'
 OUT_OF_RANGE_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_ParameterOutOfRange)'
 INEXISTENT_PATH_EXCEPTION = '::Orthanc::OrthancException(::Orthanc::ErrorCode_InexistentItem)'
-NAMESPACE = 'Orthanc'
+NAMESPACE = 'Orthanc.EmbeddedResources'
+FRAMEWORK_PATH = None
 
 ARGS = []
 for i in range(len(sys.argv)):
@@ -57,6 +58,8 @@ for i in range(len(sys.argv)):
         INEXISTENT_PATH_EXCEPTION = '%s("Unknown path in a directory resource")' % EXCEPTION_CLASS
     elif sys.argv[i].startswith('--namespace='):
         NAMESPACE = sys.argv[i][sys.argv[i].find('=') + 1 : ]
+    elif sys.argv[i].startswith('--framework-path='):
+        FRAMEWORK_PATH = sys.argv[i][sys.argv[i].find('=') + 1 : ]
 
 if len(ARGS) < 2 or len(ARGS) % 2 != 0:
     print ('Usage:')
@@ -166,13 +169,17 @@ header.write("""
 #  pragma warning(disable: 4065)  // "Switch statement contains 'default' but no 'case' labels"
 #endif
 
-namespace %s
-{
-  namespace EmbeddedResources
-  {
+""")
+
+
+for ns in NAMESPACE.split('.'):
+    header.write('namespace %s {\n' % ns)
+    
+
+header.write("""
     enum FileResourceId
     {
-""" % NAMESPACE)
+""")
 
 isFirst = True
 for name in resources:
@@ -211,9 +218,13 @@ header.write("""
     void GetDirectoryResource(std::string& result, DirectoryResourceId id, const char* path);
 
     void ListResources(std::list<std::string>& result, DirectoryResourceId id);
-  }
-}
+
 """)
+
+
+for ns in NAMESPACE.split('.'):
+    header.write('}\n')
+
 header.close()
 
 
@@ -272,18 +283,19 @@ cpp.write('#include "%s.h"\n' % os.path.basename(TARGET_BASE_FILENAME))
 
 if USE_SYSTEM_EXCEPTION:
     cpp.write('#include <stdexcept>')
+elif FRAMEWORK_PATH != None:
+    cpp.write('#include "%s/OrthancException.h"' % FRAMEWORK_PATH)
 else:
-    cpp.write('#include "%s/Core/OrthancException.h"' % os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    cpp.write('#include <OrthancException.h>')
 
 cpp.write("""
 #include <stdint.h>
 #include <string.h>
 
-namespace %s
-{
-  namespace EmbeddedResources
-  {
-""" % NAMESPACE)
+""")
+
+for ns in NAMESPACE.split('.'):
+    cpp.write('namespace %s {\n' % ns)
 
 
 for name in resources:
@@ -434,7 +446,10 @@ cpp.write("""
       if (size > 0)
         memcpy(&result[0], GetDirectoryResourceBuffer(id, path), size);
     }
-  }
-}
 """)
+
+
+for ns in NAMESPACE.split('.'):
+    cpp.write('}\n')
+
 cpp.close()

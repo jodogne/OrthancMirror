@@ -118,7 +118,7 @@ extern "C"
 
 #if defined(ORTHANC_STATIC_ICU)
 #  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
-#    include <EmbeddedResources.h>
+#    include <OrthancFrameworkResources.h>
 #    include <unicode/udata.h>
 #    include <unicode/uloc.h>
 #    include "Compression/GzipCompressor.h"
@@ -1473,8 +1473,8 @@ namespace Orthanc
 
       GzipCompressor compressor;
       compressor.Uncompress(globalIcuData_,
-                            EmbeddedResources::GetFileResourceBuffer(EmbeddedResources::LIBICU_DATA),
-                            EmbeddedResources::GetFileResourceSize(EmbeddedResources::LIBICU_DATA));
+                            FrameworkResources::GetFileResourceBuffer(FrameworkResources::LIBICU_DATA),
+                            FrameworkResources::GetFileResourceSize(FrameworkResources::LIBICU_DATA));
 
       std::string md5;
       Toolbox::ComputeMD5(md5, globalIcuData_);
@@ -2226,7 +2226,7 @@ OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content)
 
 
 bool OrthancLinesIterator_GetLine(std::string& target,
-                                         const OrthancLinesIterator* iterator)
+                                  const OrthancLinesIterator* iterator)
 {
   if (iterator != NULL)
   {

@@ -103,7 +103,7 @@
 #endif
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-#  include <EmbeddedResources.h>
+#  include <OrthancFrameworkResources.h>
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
@@ -142,10 +142,10 @@ namespace Orthanc
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
   static void LoadEmbeddedDictionary(DcmDataDictionary& dictionary,
-                                     EmbeddedResources::FileResourceId resource)
+                                     FrameworkResources::FileResourceId resource)
   {
     std::string content;
-    EmbeddedResources::GetFileResource(content, resource);
+    FrameworkResources::GetFileResource(content, resource);
 
 #if ORTHANC_SANDBOXED == 0
     TemporaryFile tmp;
@@ -171,7 +171,7 @@ namespace Orthanc
 
   namespace
   {
-    class DictionaryLocker
+    class DictionaryLocker : public boost::noncopyable
     {
     private:
       DcmDataDictionary& dictionary_;
@@ -269,14 +269,14 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
        * dictionary is not loaded by storescu.
        **/
-      //LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICONDE);
+      //LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICONDE);
 
-      LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_DICOM);
+      LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICOM);
 
       if (loadPrivateDictionary)
       {
         LOG(INFO) << "Loading the embedded dictionary of private tags";
-        LoadEmbeddedDictionary(*locker, EmbeddedResources::DICTIONARY_PRIVATE);
+        LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_PRIVATE);
       }
       else
       {
