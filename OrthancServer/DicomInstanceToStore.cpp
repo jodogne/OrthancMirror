@@ -211,8 +211,7 @@ namespace Orthanc
           {
             parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent(),
                                                       GetDefaultDicomEncoding(),
-                                                      false /* be strict */,
-                                                      "" /* no private creator */));
+                                                      false /* be strict */));
           }                                
         }
 
