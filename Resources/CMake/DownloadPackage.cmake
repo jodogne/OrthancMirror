@@ -206,9 +206,6 @@ endmacro()
 
 
 macro(DownloadCompressedFile MD5 Url TargetFile)
-  message(${MD5})
-  message(${Url})
-  message(${TargetFile})
   if (NOT EXISTS "${TargetFile}")
     DownloadFile("${MD5}" "${Url}")
     
