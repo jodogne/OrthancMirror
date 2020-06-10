@@ -34,7 +34,7 @@
 #include "../../PrecompiledHeadersServer.h"
 #include "DatabaseLookup.h"
 
-#include "../../../Core/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../Search/DicomTagConstraint.h"
 #include "../../ServerToolbox.h"
 #include "SetOfResources.h"

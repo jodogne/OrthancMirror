@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomInstanceHasher.h"
-#include "../Core/DicomFormat/DicomMap.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "DicomInstanceOrigin.h"
 #include "ServerEnumerations.h"
 

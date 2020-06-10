@@ -34,8 +34,8 @@
 #pragma once
 
 #include "ServerEnumerations.h"
-#include "../Core/IDynamicObject.h"
-#include "../Core/SystemToolbox.h"
+#include "../../OrthancFramework/Sources/IDynamicObject.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
 
 #include <string>
 #include <json/value.h>

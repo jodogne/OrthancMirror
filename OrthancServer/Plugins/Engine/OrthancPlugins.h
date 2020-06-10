@@ -53,17 +53,17 @@ namespace Orthanc
 
 #else
 
-#include "../../Core/DicomNetworking/IFindRequestHandlerFactory.h"
-#include "../../Core/DicomNetworking/IMoveRequestHandlerFactory.h"
-#include "../../Core/DicomNetworking/IWorklistRequestHandlerFactory.h"
-#include "../../Core/DicomParsing/MemoryBufferTranscoder.h"
-#include "../../Core/FileStorage/IStorageArea.h"
-#include "../../Core/HttpServer/IHttpHandler.h"
-#include "../../Core/HttpServer/IIncomingHttpRequestFilter.h"
-#include "../../Core/JobsEngine/IJob.h"
-#include "../../OrthancServer/IDicomImageDecoder.h"
-#include "../../OrthancServer/IServerListener.h"
-#include "../../OrthancServer/ServerJobs/IStorageCommitmentFactory.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/IFindRequestHandlerFactory.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/IMoveRequestHandlerFactory.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/IWorklistRequestHandlerFactory.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/MemoryBufferTranscoder.h"
+#include "../../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
+#include "../../../OrthancFramework/Sources/HttpServer/IHttpHandler.h"
+#include "../../../OrthancFramework/Sources/HttpServer/IIncomingHttpRequestFilter.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
+#include "../../Sources/IDicomImageDecoder.h"
+#include "../../Sources/IServerListener.h"
+#include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
 #include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 

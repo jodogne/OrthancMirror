@@ -34,12 +34,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/Cache/SharedArchive.h"
-#include "../../Core/DicomNetworking/DicomAssociation.h"
-#include "../../Core/DicomNetworking/DicomControlUserConnection.h"
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/Logging.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../OrthancConfiguration.h"
 #include "../QueryRetrieveHandler.h"

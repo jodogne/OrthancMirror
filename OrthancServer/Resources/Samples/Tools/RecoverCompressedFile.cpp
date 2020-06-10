@@ -19,9 +19,9 @@
  **/
 
 
-#include "../../../Core/Compression/ZlibCompressor.h"
-#include "../../../Core/SystemToolbox.h"
-#include "../../../Core/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/Compression/ZlibCompressor.h"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.h"
+#include "../../../../OrthancFramework/Sources/OrthancException.h"
 
 #include <stdio.h>
 

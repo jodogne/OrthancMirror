@@ -34,12 +34,12 @@
 #include "../PrecompiledHeadersServer.h"
 #include "ArchiveJob.h"
 
-#include "../../Core/Cache/SharedArchive.h"
-#include "../../Core/Compression/HierarchicalZipWriter.h"
-#include "../../Core/DicomParsing/DicomDirWriter.h"
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../../OrthancFramework/Sources/Compression/HierarchicalZipWriter.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/DicomDirWriter.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 

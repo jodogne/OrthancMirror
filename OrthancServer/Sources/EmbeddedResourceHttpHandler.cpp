@@ -34,10 +34,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "EmbeddedResourceHttpHandler.h"
 
-#include "../Core/HttpServer/HttpOutput.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
-#include "../Core/SystemToolbox.h"
+#include "../../OrthancFramework/Sources/HttpServer/HttpOutput.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
 
 
 namespace Orthanc

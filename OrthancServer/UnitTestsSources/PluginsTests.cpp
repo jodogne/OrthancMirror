@@ -31,14 +31,10 @@
  **/
 
 
-#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
-#  include <OrthancFramework.h>
-#endif
-
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/OrthancException.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/PluginsManager.h"
 
 using namespace Orthanc;

@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "../Core/DicomNetworking/IGetRequestHandler.h"
-#include "../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
 #include <dcmtk/dcmnet/dimse.h>
 

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/RestApi/RestApiCall.h"
+#include "../../OrthancFramework/Sources/RestApi/RestApiCall.h"
 
 namespace Orthanc
 {

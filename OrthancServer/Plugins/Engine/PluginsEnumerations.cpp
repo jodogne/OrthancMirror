@@ -31,7 +31,7 @@
  **/
 
 
-#include "../../OrthancServer/PrecompiledHeadersServer.h"
+#include "../../Sources/PrecompiledHeadersServer.h"
 #include "PluginsEnumerations.h"
 
 #if ORTHANC_ENABLE_PLUGINS != 1
@@ -39,7 +39,7 @@
 #endif
 
 
-#include "../../Core/OrthancException.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 
 namespace Orthanc
 {

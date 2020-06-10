@@ -34,10 +34,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "DicomModalityStoreJob.h"
 
-#include "../../Core/Compatibility.h"
-#include "../../Core/DicomNetworking/DicomAssociation.h"
-#include "../../Core/Logging.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 #include "../StorageCommitmentReports.h"
 

@@ -35,12 +35,11 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 #include <boost/regex.hpp>
 #include <sstream>
 
-#include "../Core/Logging.h"
+#include "../Sources/Logging.h"
 
 using namespace Orthanc::Logging;
 

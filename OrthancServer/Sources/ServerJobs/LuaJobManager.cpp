@@ -35,17 +35,17 @@
 #include "LuaJobManager.h"
 
 #include "../OrthancConfiguration.h"
-#include "../../Core/Logging.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
 
-#include "../../Core/JobsEngine/Operations/LogJobOperation.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.h"
 #include "Operations/DeleteResourceOperation.h"
 #include "Operations/ModifyInstanceOperation.h"
 #include "Operations/StorePeerOperation.h"
 #include "Operations/StoreScuOperation.h"
 #include "Operations/SystemCallOperation.h"
 
-#include "../../Core/JobsEngine/Operations/NullOperationValue.h"
-#include "../../Core/JobsEngine/Operations/StringOperationValue.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/Operations/NullOperationValue.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/Operations/StringOperationValue.h"
 #include "Operations/DicomInstanceOperationValue.h"
 
 namespace Orthanc

@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../../Core/Compatibility.h"
-#include "../../Core/JobsEngine/IJob.h"
-#include "../../Core/TemporaryFile.h"
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
+#include "../../../OrthancFramework/Sources/TemporaryFile.h"
 
 #include <boost/shared_ptr.hpp>
 #include <stdint.h>

@@ -39,8 +39,8 @@
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
-#include "../Core/Cache/MemoryCache.h"
-#include "../Core/DicomParsing/IDicomTranscoder.h"
+#include "../../OrthancFramework/Sources/Cache/MemoryCache.h"
+#include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 
 
 namespace Orthanc

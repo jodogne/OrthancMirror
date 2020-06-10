@@ -33,11 +33,11 @@
 
 #pragma once
 
-#include "../../Core/DicomNetworking/TimeoutDicomConnectionManager.h"
-#include "../../Core/DicomParsing/DicomModification.h"
-#include "../../Core/JobsEngine/JobsEngine.h"
-#include "../../Core/JobsEngine/Operations/SequenceOfOperationsJob.h"
-#include "../../Core/WebServiceParameters.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/TimeoutDicomConnectionManager.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/JobsEngine.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.h"
+#include "../../../OrthancFramework/Sources/WebServiceParameters.h"
 
 namespace Orthanc
 {

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/HttpServer/IHttpHandler.h"
+#include "../../OrthancFramework/Sources/HttpServer/IHttpHandler.h"
 
 namespace Orthanc
 {

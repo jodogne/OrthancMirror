@@ -35,13 +35,12 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Toolbox.h"
-#include "../Core/SQLite/Connection.h"
-#include "../Core/SQLite/Statement.h"
-#include "../Core/SQLite/Transaction.h"
+#include "../Sources/Toolbox.h"
+#include "../Sources/SQLite/Connection.h"
+#include "../Sources/SQLite/Statement.h"
+#include "../Sources/SQLite/Transaction.h"
 
 #include <sqlite3.h>
 

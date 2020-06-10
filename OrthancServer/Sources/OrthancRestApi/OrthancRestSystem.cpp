@@ -34,8 +34,8 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/MetricsRegistry.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../Plugins/Engine/OrthancPlugins.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../OrthancConfiguration.h"

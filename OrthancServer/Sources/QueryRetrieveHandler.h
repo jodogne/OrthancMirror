@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "../Core/DicomNetworking/DicomFindAnswers.h"
-#include "../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
 namespace Orthanc
 {

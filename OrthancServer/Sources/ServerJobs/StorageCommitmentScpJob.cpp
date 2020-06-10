@@ -34,10 +34,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "StorageCommitmentScpJob.h"
 
-#include "../../Core/DicomNetworking/DicomAssociation.h"
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 

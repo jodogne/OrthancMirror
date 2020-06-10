@@ -34,7 +34,7 @@
 #pragma once
 
 #include "DatabaseLookup.h"
-#include "../../Core/DicomParsing/ParsedDicomFile.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 
 class DcmItem;
 

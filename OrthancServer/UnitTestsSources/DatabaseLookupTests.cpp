@@ -34,8 +34,8 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../OrthancServer/Search/DatabaseLookup.h"
-#include "../Core/OrthancException.h"
+#include "../Sources/Search/DatabaseLookup.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
 
 using namespace Orthanc;
 

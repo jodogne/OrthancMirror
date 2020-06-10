@@ -20,7 +20,7 @@ if (FirstRun)
   if (USE_DCMTK_362_PRIVATE_DIC)
     message("Using the dictionary of private tags from DCMTK 3.6.2")
     configure_file(
-      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-private.dic
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.2-private.dic
       ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
       COPYONLY)
   else()
@@ -31,7 +31,7 @@ if (FirstRun)
   message("Applying patch to solve vulnerability in DCMTK 3.6.0")
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.0-dulparse-vulnerability.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -46,7 +46,7 @@ if (FirstRun)
   message("Applying patch for speed in DCMTK 3.6.0")
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-speed.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.0-speed.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -70,7 +70,7 @@ IF (CMAKE_CROSSCOMPILING)
     # Check out "../WebAssembly/ArithmeticTests/" to regenerate the
     # "arith.h" file
     configure_file(
-      ${ORTHANC_ROOT}/Resources/WebAssembly/arith.h
+      ${CMAKE_CURRENT_LIST_DIR}/WebAssembly/arith.h
       ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/arith.h
       COPYONLY)
 
@@ -89,7 +89,7 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.2-linux-standard-base.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.2-linux-standard-base.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -163,7 +163,7 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     # This is a patch for DCMTK 3.6.0 and MinGW64
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/dcmtk-3.6.0-mingw64.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.0-mingw64.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )

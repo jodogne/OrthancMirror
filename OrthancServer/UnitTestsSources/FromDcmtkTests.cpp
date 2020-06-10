@@ -34,24 +34,24 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Compatibility.h"
-#include "../Core/DicomNetworking/DicomFindAnswers.h"
-#include "../Core/DicomParsing/DicomModification.h"
-#include "../Core/DicomParsing/DicomWebJsonVisitor.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
-#include "../Core/DicomParsing/ToDcmtkBridge.h"
-#include "../Core/Endianness.h"
-#include "../Core/Images/Image.h"
-#include "../Core/Images/ImageBuffer.h"
-#include "../Core/Images/ImageProcessing.h"
-#include "../Core/Images/PngReader.h"
-#include "../Core/Images/PngWriter.h"
-#include "../Core/OrthancException.h"
-#include "../Core/SystemToolbox.h"
-#include "../OrthancServer/ServerToolbox.h"
+#include "../../OrthancFramework/Sources/Compatibility.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/Endianness.h"
+#include "../../OrthancFramework/Sources/Images/Image.h"
+#include "../../OrthancFramework/Sources/Images/ImageBuffer.h"
+#include "../../OrthancFramework/Sources/Images/ImageProcessing.h"
+#include "../../OrthancFramework/Sources/Images/PngReader.h"
+#include "../../OrthancFramework/Sources/Images/PngWriter.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/SystemToolbox.h"
+#include "../Sources/ServerToolbox.h"
 #include "../Plugins/Engine/PluginsEnumerations.h"
-#include "../Resources/EncodingTests.h"
+#include "../../OrthancFramework/Resources/CodeGeneration/EncodingTests.h"
 
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -1929,8 +1929,8 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
 
-#include "../Core/DicomNetworking/DicomStoreUserConnection.h"
-#include "../Core/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
 
 TEST(Toto, DISABLED_Transcode3)
 {

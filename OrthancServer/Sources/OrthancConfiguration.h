@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../Core/Images/FontRegistry.h"
-#include "../Core/WebServiceParameters.h"
-#include "../Core/DicomNetworking/RemoteModalityParameters.h"
+#include "../../OrthancFramework/Sources/Images/FontRegistry.h"
+#include "../../OrthancFramework/Sources/WebServiceParameters.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
 #include <OrthancServerResources.h>
 

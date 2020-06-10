@@ -36,13 +36,13 @@
 
 #include "DicomInstanceOperationValue.h"
 
-#include "../../../Core/JobsEngine/Operations/StringOperationValue.h"
-#include "../../../Core/Logging.h"
-#include "../../../Core/OrthancException.h"
-#include "../../../Core/SerializationToolbox.h"
-#include "../../../Core/TemporaryFile.h"
-#include "../../../Core/Toolbox.h"
-#include "../../../Core/SystemToolbox.h"
+#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/StringOperationValue.h"
+#include "../../../../OrthancFramework/Sources/Logging.h"
+#include "../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../../OrthancFramework/Sources/TemporaryFile.h"
+#include "../../../../OrthancFramework/Sources/Toolbox.h"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.h"
 #include "../../OrthancConfiguration.h"
 
 namespace Orthanc

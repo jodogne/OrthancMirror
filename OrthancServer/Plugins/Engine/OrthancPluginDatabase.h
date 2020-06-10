@@ -35,12 +35,12 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
-#include "../../Core/SharedLibrary.h"
-#include "../../OrthancServer/Database/Compatibility/ICreateInstance.h"
-#include "../../OrthancServer/Database/Compatibility/IGetChildrenMetadata.h"
-#include "../../OrthancServer/Database/Compatibility/ILookupResources.h"
-#include "../../OrthancServer/Database/Compatibility/ILookupResourceAndParent.h"
-#include "../../OrthancServer/Database/Compatibility/ISetResourcesContent.h"
+#include "../../../OrthancFramework/Sources/SharedLibrary.h"
+#include "../../Sources/Database/Compatibility/ICreateInstance.h"
+#include "../../Sources/Database/Compatibility/IGetChildrenMetadata.h"
+#include "../../Sources/Database/Compatibility/ILookupResources.h"
+#include "../../Sources/Database/Compatibility/ILookupResourceAndParent.h"
+#include "../../Sources/Database/Compatibility/ISetResourcesContent.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 

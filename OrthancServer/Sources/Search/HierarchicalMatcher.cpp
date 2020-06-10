@@ -34,10 +34,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "HierarchicalMatcher.h"
 
-#include "../../Core/Logging.h"
-#include "../../Core/OrthancException.h"
-#include "../../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../../Core/DicomParsing/ToDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
 #include "../OrthancConfiguration.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>

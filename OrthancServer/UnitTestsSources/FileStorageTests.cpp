@@ -36,14 +36,14 @@
 
 #include <ctype.h>
 
-#include "../Core/FileStorage/FilesystemStorage.h"
-#include "../Core/FileStorage/StorageAccessor.h"
-#include "../Core/HttpServer/BufferHttpSender.h"
-#include "../Core/HttpServer/FilesystemHttpSender.h"
-#include "../Core/Logging.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Toolbox.h"
-#include "../OrthancServer/ServerIndex.h"
+#include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
+#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+#include "../../OrthancFramework/Sources/HttpServer/BufferHttpSender.h"
+#include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
+#include "../Sources/ServerIndex.h"
 
 using namespace Orthanc;
 

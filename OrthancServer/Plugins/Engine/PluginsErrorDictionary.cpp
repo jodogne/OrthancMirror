@@ -31,7 +31,7 @@
  **/
 
 
-#include "../../OrthancServer/PrecompiledHeadersServer.h"
+#include "../../Sources/PrecompiledHeadersServer.h"
 #include "PluginsErrorDictionary.h"
 
 #if ORTHANC_ENABLE_PLUGINS != 1
@@ -42,7 +42,7 @@
 
 #include "PluginsEnumerations.h"
 #include "PluginsManager.h"
-#include "../../Core/Logging.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
 
 #include <memory>
 

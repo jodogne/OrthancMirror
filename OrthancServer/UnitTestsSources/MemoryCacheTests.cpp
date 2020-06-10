@@ -39,12 +39,12 @@
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "../Core/Cache/MemoryCache.h"
-#include "../Core/Cache/MemoryStringCache.h"
-#include "../Core/Cache/SharedArchive.h"
-#include "../Core/IDynamicObject.h"
-#include "../Core/Logging.h"
-#include "../OrthancServer/StorageCommitmentReports.h"
+#include "../../OrthancFramework/Sources/Cache/MemoryCache.h"
+#include "../../OrthancFramework/Sources/Cache/MemoryStringCache.h"
+#include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/IDynamicObject.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../Sources/StorageCommitmentReports.h"
 
 
 TEST(LRU, Basic)

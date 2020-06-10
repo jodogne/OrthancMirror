@@ -33,7 +33,7 @@
 
 #include "DicomMoveScuJob.h"
 
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 static const char* const LOCAL_AET = "LocalAet";

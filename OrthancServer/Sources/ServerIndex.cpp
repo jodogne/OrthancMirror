@@ -38,11 +38,11 @@
 #define NOMINMAX
 #endif
 
-#include "../Core/DicomFormat/DicomArray.h"
-#include "../Core/DicomParsing/FromDcmtkBridge.h"
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/Logging.h"
-#include "../Core/Toolbox.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include "Database/ResourcesContent.h"
 #include "DicomInstanceToStore.h"

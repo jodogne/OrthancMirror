@@ -35,22 +35,21 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
-#include "../Core/EnumerationDictionary.h"
+#include "../Sources/EnumerationDictionary.h"
 
 #include "gtest/gtest.h"
 
 #include <ctype.h>
 
-#include "../Core/DicomFormat/DicomTag.h"
-#include "../Core/FileBuffer.h"
-#include "../Core/HttpServer/HttpToolbox.h"
-#include "../Core/Logging.h"
-#include "../Core/MetricsRegistry.h"
-#include "../Core/OrthancException.h"
-#include "../Core/SystemToolbox.h"
-#include "../Core/TemporaryFile.h"
-#include "../Core/Toolbox.h"
+#include "../Sources/DicomFormat/DicomTag.h"
+#include "../Sources/FileBuffer.h"
+#include "../Sources/HttpServer/HttpToolbox.h"
+#include "../Sources/Logging.h"
+#include "../Sources/MetricsRegistry.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/SystemToolbox.h"
+#include "../Sources/TemporaryFile.h"
+#include "../Sources/Toolbox.h"
 
 
 using namespace Orthanc;
@@ -824,7 +823,7 @@ TEST(Toolbox, Endianness)
 }
 
 
-#include "../Core/Endianness.h"
+#include "../Sources/Endianness.h"
 
 static void ASSERT_EQ16(uint16_t a, uint16_t b)
 {

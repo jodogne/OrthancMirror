@@ -37,7 +37,7 @@
 
 #include "../Include/orthanc/OrthancCPlugin.h"
 
-#include "../../Core/SharedLibrary.h"
+#include "../../../OrthancFramework/Sources/SharedLibrary.h"
 
 namespace Orthanc
 {

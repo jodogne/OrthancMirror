@@ -26,7 +26,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/civetweb-1.12.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.12.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

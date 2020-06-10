@@ -38,8 +38,8 @@
 #  include "../ServerToolbox.h"
 #endif
 
-#include "../../Core/OrthancException.h"
-#include "../../Core/Toolbox.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "DatabaseConstraint.h"
 
 #include <boost/regex.hpp>

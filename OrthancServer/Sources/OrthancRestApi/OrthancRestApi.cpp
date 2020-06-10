@@ -34,10 +34,10 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
-#include "../../Core/Compression/GzipCompressor.h"
-#include "../../Core/Logging.h"
-#include "../../Core/MetricsRegistry.h"
-#include "../../Core/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/MetricsRegistry.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 #include <boost/algorithm/string/predicate.hpp>

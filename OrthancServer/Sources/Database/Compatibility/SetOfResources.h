@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../../Core/Compatibility.h"
+#include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../IDatabaseWrapper.h"
 #include "ILookupResources.h"
 

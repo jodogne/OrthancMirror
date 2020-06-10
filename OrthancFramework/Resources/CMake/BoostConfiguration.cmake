@@ -86,7 +86,7 @@ if (BOOST_STATIC)
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${ORTHANC_ROOT}/Resources/Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

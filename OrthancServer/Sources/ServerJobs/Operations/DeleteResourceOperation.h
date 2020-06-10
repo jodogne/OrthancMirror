@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../../Core/JobsEngine/Operations/IJobOperation.h"
+#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
 
 namespace Orthanc
 {

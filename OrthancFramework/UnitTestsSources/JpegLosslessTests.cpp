@@ -35,19 +35,18 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/DicomParsing/Internals/DicomImageDecoder.h"
+#include "../Sources/DicomParsing/Internals/DicomImageDecoder.h"
 
 #if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 
-#include "../Core/DicomParsing/ParsedDicomFile.h"
-#include "../Core/OrthancException.h"
-#include "../Core/Images/ImageBuffer.h"
-#include "../Core/Images/PngWriter.h"
+#include "../Sources/DicomParsing/ParsedDicomFile.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/Images/ImageBuffer.h"
+#include "../Sources/Images/PngWriter.h"
 
 using namespace Orthanc;
 

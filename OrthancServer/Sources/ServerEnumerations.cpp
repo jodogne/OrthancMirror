@@ -34,10 +34,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerEnumerations.h"
 
-#include "../Core/OrthancException.h"
-#include "../Core/EnumerationDictionary.h"
-#include "../Core/Logging.h"
-#include "../Core/Toolbox.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/EnumerationDictionary.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include <boost/thread.hpp>
 

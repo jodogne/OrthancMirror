@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../../Core/Compatibility.h"
-#include "../../Core/DicomNetworking/DicomControlUserConnection.h"
-#include "../../Core/JobsEngine/SetOfCommandsJob.h"
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
+#include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
 
 #include "../QueryRetrieveHandler.h"
 

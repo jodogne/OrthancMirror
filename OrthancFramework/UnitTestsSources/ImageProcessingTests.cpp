@@ -35,15 +35,14 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "PrecompiledHeadersUnitTests.h"
 #include "gtest/gtest.h"
 
-#include "../Core/Compatibility.h"
-#include "../Core/DicomFormat/DicomImageInformation.h"
-#include "../Core/Images/Image.h"
-#include "../Core/Images/ImageProcessing.h"
-#include "../Core/Images/ImageTraits.h"
-#include "../Core/OrthancException.h"
+#include "../Sources/Compatibility.h"
+#include "../Sources/DicomFormat/DicomImageInformation.h"
+#include "../Sources/Images/Image.h"
+#include "../Sources/Images/ImageProcessing.h"
+#include "../Sources/Images/ImageTraits.h"
+#include "../Sources/OrthancException.h"
 
 #include <memory>
 

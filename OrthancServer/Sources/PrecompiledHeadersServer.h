@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../Core/PrecompiledHeaders.h"
+#include "../../OrthancFramework/Sources/PrecompiledHeaders.h"
 
 #if ORTHANC_USE_PRECOMPILED_HEADERS == 1
 

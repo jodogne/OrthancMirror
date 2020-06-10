@@ -20,7 +20,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${ORTHANC_ROOT}/Resources/Patches/e2fsprogs-1.44.5-apple.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/e2fsprogs-1.44.5-apple.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
