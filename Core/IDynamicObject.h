@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"
+
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
@@ -43,7 +45,7 @@ namespace Orthanc
    * Being a child of IDynamicObject only implies the existence of a
    * virtual destructor.
    **/
-  class IDynamicObject : public boost::noncopyable
+  class ORTHANC_PUBLIC IDynamicObject : public boost::noncopyable
   {
   public:
     virtual ~IDynamicObject()

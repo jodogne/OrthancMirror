@@ -27,6 +27,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 endif()  
 
 EmbedResources(
+  --framework-path=${CMAKE_CURRENT_SOURCE_DIR}/../../../Core
   WEB_RESOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/WebResources
   LIBRARIES      ${JAVASCRIPT_LIBS_DIR}
   )
