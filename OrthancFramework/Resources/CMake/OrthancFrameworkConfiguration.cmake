@@ -11,9 +11,6 @@
 ## Configuration of the components
 #####################################################################
 
-# Path to the root folder of the Orthanc distribution
-set(ORTHANC_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../..)
-
 # Some basic inclusions
 include(CMakePushCheckState)
 include(CheckFunctionExists)
