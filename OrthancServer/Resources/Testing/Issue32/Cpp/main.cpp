@@ -1,7 +1,7 @@
-#include <Core/HttpClient.h>
-#include <Core/Logging.h>
-#include <Core/OrthancException.h>
-#include <Core/SystemToolbox.h>
+#include "../../../../../OrthancFramework/Sources/HttpClient.h"
+#include "../../../../../OrthancFramework/Sources/Logging.h"
+#include "../../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../../OrthancFramework/Sources/SystemToolbox.h"
 
 #include <iostream>
 #include <boost/thread.hpp>
