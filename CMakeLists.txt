@@ -120,6 +120,7 @@ set(ORTHANC_FRAMEWORK_UNIT_TESTS
   OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
   OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
   OrthancFramework/UnitTestsSources/ImageTests.cpp
+  OrthancFramework/UnitTestsSources/JobsTests.cpp
   OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
   OrthancFramework/UnitTestsSources/LoggingTests.cpp
   OrthancFramework/UnitTestsSources/LuaTests.cpp
@@ -135,9 +136,9 @@ set(ORTHANC_FRAMEWORK_UNIT_TESTS
 set(ORTHANC_SERVER_UNIT_TESTS
   OrthancServer/UnitTestsSources/DatabaseLookupTests.cpp
   OrthancServer/UnitTestsSources/LuaServerTests.cpp
-  OrthancServer/UnitTestsSources/MultiThreadingTests.cpp
   OrthancServer/UnitTestsSources/PluginsTests.cpp
   OrthancServer/UnitTestsSources/ServerIndexTests.cpp
+  OrthancServer/UnitTestsSources/ServerJobsTests.cpp
   OrthancServer/UnitTestsSources/UnitTestsMain.cpp
   OrthancServer/UnitTestsSources/VersionsTests.cpp
   )
