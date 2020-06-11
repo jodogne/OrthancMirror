@@ -284,7 +284,7 @@ if (MSVC)
     )
   
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeaders.h" "Core/PrecompiledHeaders.cpp"
+    "PrecompiledHeaders.h" "OrthancFramework/Sources/PrecompiledHeaders.cpp"
     TMP ORTHANC_CORE_PCH)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
@@ -292,7 +292,7 @@ if (MSVC)
     ORTHANC_SERVER_SOURCES ORTHANC_SERVER_PCH)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeadersUnitTests.h" "UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
+    "PrecompiledHeadersUnitTests.h" "OrthancServer/UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
     ORTHANC_SERVER_UNIT_TESTS ORTHANC_UNIT_TESTS_PCH)
 endif()
 
