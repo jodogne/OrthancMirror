@@ -38,8 +38,8 @@
 /**
  * NB: Conversions to/from "OrthancPluginConstraintType" and
  * "OrthancPluginResourceType" are located in file
- * "../../OrthancServer/Search/DatabaseConstraint.h" to be shared with
- * the "orthanc-databases" project.
+ * "../../Sources/Search/DatabaseConstraint.h" to be shared with the
+ * "orthanc-databases" project.
  **/
 
 #include "../Include/orthanc/OrthancCPlugin.h"
