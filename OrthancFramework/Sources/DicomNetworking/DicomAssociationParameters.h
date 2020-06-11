@@ -41,7 +41,7 @@ class OFCondition;  // From DCMTK
 
 namespace Orthanc
 {
-  class DicomAssociationParameters
+  class ORTHANC_PUBLIC DicomAssociationParameters
   {
   private:
     std::string               localAet_;

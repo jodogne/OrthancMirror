@@ -39,7 +39,7 @@ namespace Orthanc
 {
   class OrthancException;
   
-  class JobStepResult
+  class ORTHANC_PUBLIC JobStepResult
   {
   private:
     JobStepCode   code_;

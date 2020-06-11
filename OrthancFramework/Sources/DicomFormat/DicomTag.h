@@ -91,7 +91,7 @@ namespace Orthanc
     static bool ParseHexadecimal(DicomTag& tag,
                                  const char* value);
 
-    friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
+    ORTHANC_PUBLIC friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
     static void AddTagsForModule(std::set<DicomTag>& target,
                                  DicomModule module);

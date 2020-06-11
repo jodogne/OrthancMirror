@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class LogJobOperation : public IJobOperation
+  class ORTHANC_PUBLIC LogJobOperation : public IJobOperation
   {
   public:
     virtual void Apply(JobOperationValues& outputs,

@@ -52,7 +52,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC IDicomTranscoder : public boost::noncopyable
   {
   public:
-    class DicomImage : public boost::noncopyable
+    class ORTHANC_PUBLIC DicomImage : public boost::noncopyable
     {
     private:
       std::unique_ptr<DcmFileFormat>  parsed_;

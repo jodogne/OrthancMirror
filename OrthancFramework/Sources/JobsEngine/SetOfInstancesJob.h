@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class SetOfInstancesJob : public SetOfCommandsJob
+  class ORTHANC_PUBLIC SetOfInstancesJob : public SetOfCommandsJob
   {
   private:
     class InstanceCommand;

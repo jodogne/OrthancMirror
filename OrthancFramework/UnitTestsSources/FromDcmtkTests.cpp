@@ -32,7 +32,16 @@
 
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
 #  include <OrthancFramework.h>
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_TRANSCODING)
+#  error ORTHANC_ENABLE_DCMTK_TRANSCODING is not defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error ORTHANC_ENABLE_PUGIXML is not defined
 #endif
 
 #include <gtest/gtest.h>
@@ -54,12 +63,17 @@
 #include "../Sources/SystemToolbox.h"
 #include "../Resources/CodeGeneration/EncodingTests.h"
 
-#include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcelem.h>
+#include <dcmtk/dcmdata/dcvrat.h>
+
 #include <boost/algorithm/string/predicate.hpp>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include <pugixml.hpp>
+#  if !defined(PUGIXML_VERSION)
+#    error PUGIXML_VERSION is not available
+#  endif
 #endif
 
 using namespace Orthanc;
@@ -1773,6 +1787,302 @@ TEST(Toolbox, EncodingsSimplifiedChinese3)
   ASSERT_EQ(std::string(reinterpret_cast<const char*>(line2), sizeof(line2)), lines[1]);
   ASSERT_EQ(std::string(reinterpret_cast<const char*>(line3), sizeof(line3)), lines[2]);
   ASSERT_TRUE(lines[3].empty());
+}
+
+
+static void SetTagKey(ParsedDicomFile& dicom,
+                      const DicomTag& tag,
+                      const DicomTag& value)
+{
+  // This function emulates a call to function
+  // "dicom.GetDcmtkObject().getDataset()->putAndInsertTagKey(tag,
+  // value)" that was not available in DCMTK 3.6.0
+
+  std::unique_ptr<DcmAttributeTag> element(new DcmAttributeTag(ToDcmtkBridge::Convert(tag)));
+
+  DcmTagKey v = ToDcmtkBridge::Convert(value);
+  if (!element->putTagVal(v).good())
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+
+  dicom.GetDcmtkObject().getDataset()->insert(element.release());
+}
+
+
+TEST(DicomWebJson, ValueRepresentation)
+{
+  // http://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
+
+  ParsedDicomFile dicom(false);
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0241), "AE");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x1010), "AS");
+  SetTagKey(dicom, DicomTag(0x0020, 0x9165), DicomTag(0x0010, 0x0020));
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0052), "CS");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0012), "DA");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x1020), "42");  // DS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x002a), "DT");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x9431), "43");  // FL
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1163), "44");  // FD
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1160), "45");  // IS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0070), "LO");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x4000), "LT");
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x2000), "OB");
+  dicom.ReplacePlainString(DicomTag(0x7fe0, 0x0009), "3.14159");  // OD (other double)
+  dicom.ReplacePlainString(DicomTag(0x0064, 0x0009), "2.71828");  // OF (other float)
+  dicom.ReplacePlainString(DicomTag(0x0066, 0x0040), "46");  // OL (other long)
+  ASSERT_THROW(dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "O"), OrthancException);
+  dicom.ReplacePlainString(DicomTag(0x0028, 0x1201), "OWOW");
+  dicom.ReplacePlainString(DicomTag(0x0010, 0x0010), "PN");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0050), "SH");
+  dicom.ReplacePlainString(DicomTag(0x0018, 0x6020), "-15");  // SL
+  dicom.ReplacePlainString(DicomTag(0x0018, 0x9219), "-16");  // SS
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0081), "ST");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0013), "TM");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0119), "UC");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0016), "UI");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x1161), "128");  // UL
+  dicom.ReplacePlainString(DicomTag(0x4342, 0x1234), "UN");   // Inexistent tag
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0120), "UR");
+  dicom.ReplacePlainString(DicomTag(0x0008, 0x0301), "17");   // US
+  dicom.ReplacePlainString(DicomTag(0x0040, 0x0031), "UT");  
+
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  std::string s;
+
+  // The tag (0002,0002) is "Media Storage SOP Class UID" and is
+  // automatically copied by DCMTK from tag (0008,0016)
+  ASSERT_EQ("UI", visitor.GetResult() ["00020002"]["vr"].asString());
+  ASSERT_EQ("UI", visitor.GetResult() ["00020002"]["Value"][0].asString());
+  ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["vr"].asString());
+  ASSERT_EQ("AE", visitor.GetResult() ["00400241"]["Value"][0].asString());
+  ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["vr"].asString());
+  ASSERT_EQ("AS", visitor.GetResult() ["00101010"]["Value"][0].asString());
+  ASSERT_EQ("AT", visitor.GetResult() ["00209165"]["vr"].asString());
+  ASSERT_EQ("00100020", visitor.GetResult() ["00209165"]["Value"][0].asString());
+  ASSERT_EQ("CS", visitor.GetResult() ["00080052"]["vr"].asString());
+  ASSERT_EQ("CS", visitor.GetResult() ["00080052"]["Value"][0].asString());
+  ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["vr"].asString());
+  ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["Value"][0].asString());
+  ASSERT_EQ("DS", visitor.GetResult() ["00101020"]["vr"].asString());
+  ASSERT_FLOAT_EQ(42.0f, visitor.GetResult() ["00101020"]["Value"][0].asFloat());
+  ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["vr"].asString());
+  ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["Value"][0].asString());
+  ASSERT_EQ("FL", visitor.GetResult() ["00109431"]["vr"].asString());
+  ASSERT_FLOAT_EQ(43.0f, visitor.GetResult() ["00109431"]["Value"][0].asFloat());
+  ASSERT_EQ("FD", visitor.GetResult() ["00081163"]["vr"].asString());
+  ASSERT_FLOAT_EQ(44.0f, visitor.GetResult() ["00081163"]["Value"][0].asFloat());
+  ASSERT_EQ("IS", visitor.GetResult() ["00081160"]["vr"].asString());
+  ASSERT_FLOAT_EQ(45.0f, visitor.GetResult() ["00081160"]["Value"][0].asFloat());
+  ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["vr"].asString());
+  ASSERT_EQ("LO", visitor.GetResult() ["00080070"]["Value"][0].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00104000"]["vr"].asString());
+  ASSERT_EQ("LT", visitor.GetResult() ["00104000"]["Value"][0].asString());
+
+  ASSERT_EQ("OB", visitor.GetResult() ["00282000"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00282000"]["InlineBinary"].asString());
+  ASSERT_EQ("OB", s);
+
+#if DCMTK_VERSION_NUMBER >= 361
+  ASSERT_EQ("OD", visitor.GetResult() ["7FE00009"]["vr"].asString());
+  ASSERT_FLOAT_EQ(3.14159f, boost::lexical_cast<float>(visitor.GetResult() ["7FE00009"]["Value"][0].asString()));
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["7FE00009"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["7FE00009"]["InlineBinary"].asString());
+  ASSERT_EQ(8u, s.size()); // Because of padding
+  ASSERT_EQ(0, s[7]);
+  ASSERT_EQ("3.14159", s.substr(0, 7));
+#endif
+
+  ASSERT_EQ("OF", visitor.GetResult() ["00640009"]["vr"].asString());
+  ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(visitor.GetResult() ["00640009"]["Value"][0].asString()));
+
+#if DCMTK_VERSION_NUMBER < 361
+  ASSERT_EQ("UN", visitor.GetResult() ["00660040"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00660040"]["InlineBinary"].asString());
+  ASSERT_EQ("46", s);
+#elif DCMTK_VERSION_NUMBER == 361
+  ASSERT_EQ("UL", visitor.GetResult() ["00660040"]["vr"].asString());
+  ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
+#else
+  ASSERT_EQ("OL", visitor.GetResult() ["00660040"]["vr"].asString());
+  ASSERT_EQ(46, visitor.GetResult() ["00660040"]["Value"][0].asInt());
+#endif
+
+  ASSERT_EQ("OW", visitor.GetResult() ["00281201"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00281201"]["InlineBinary"].asString());
+  ASSERT_EQ("OWOW", s);
+
+  ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["vr"].asString());
+  ASSERT_EQ("PN", visitor.GetResult() ["00100010"]["Value"][0]["Alphabetic"].asString());
+
+  ASSERT_EQ("SH", visitor.GetResult() ["00080050"]["vr"].asString());
+  ASSERT_EQ("SH", visitor.GetResult() ["00080050"]["Value"][0].asString());
+
+  ASSERT_EQ("SL", visitor.GetResult() ["00186020"]["vr"].asString());
+  ASSERT_EQ(-15, visitor.GetResult() ["00186020"]["Value"][0].asInt());
+
+  ASSERT_EQ("SS", visitor.GetResult() ["00189219"]["vr"].asString());
+  ASSERT_EQ(-16, visitor.GetResult() ["00189219"]["Value"][0].asInt());
+
+  ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["vr"].asString());
+  ASSERT_EQ("ST", visitor.GetResult() ["00080081"]["Value"][0].asString());
+
+  ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["vr"].asString());
+  ASSERT_EQ("TM", visitor.GetResult() ["00080013"]["Value"][0].asString());
+
+#if DCMTK_VERSION_NUMBER >= 361
+  ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["vr"].asString());
+  ASSERT_EQ("UC", visitor.GetResult() ["00080119"]["Value"][0].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080119"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080119"]["InlineBinary"].asString());
+  ASSERT_EQ("UC", s);
+#endif
+
+  ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["vr"].asString());
+  ASSERT_EQ("UI", visitor.GetResult() ["00080016"]["Value"][0].asString());
+
+  ASSERT_EQ("UL", visitor.GetResult() ["00081161"]["vr"].asString());
+  ASSERT_EQ(128u, visitor.GetResult() ["00081161"]["Value"][0].asUInt());
+
+  ASSERT_EQ("UN", visitor.GetResult() ["43421234"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["43421234"]["InlineBinary"].asString());
+  ASSERT_EQ("UN", s);
+
+#if DCMTK_VERSION_NUMBER >= 361
+  ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["vr"].asString());
+  ASSERT_EQ("UR", visitor.GetResult() ["00080120"]["Value"][0].asString());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080120"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080120"]["InlineBinary"].asString());
+  ASSERT_EQ("UR", s);
+#endif
+
+#if DCMTK_VERSION_NUMBER >= 361
+  ASSERT_EQ("US", visitor.GetResult() ["00080301"]["vr"].asString());
+  ASSERT_EQ(17u, visitor.GetResult() ["00080301"]["Value"][0].asUInt());
+#else
+  ASSERT_EQ("UN", visitor.GetResult() ["00080301"]["vr"].asString());
+  Toolbox::DecodeBase64(s, visitor.GetResult() ["00080301"]["InlineBinary"].asString());
+  ASSERT_EQ("17", s);
+#endif
+
+  ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["vr"].asString());
+  ASSERT_EQ("UT", visitor.GetResult() ["00400031"]["Value"][0].asString());
+
+  std::string xml;
+  visitor.FormatXml(xml);
+  
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(31u, m.GetSize());
+
+    std::string s;
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0020, 0x9165), false));  ASSERT_EQ("00100020", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0052), false));  ASSERT_EQ("CS", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0012), false));  ASSERT_EQ("DA", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1020), false));  ASSERT_EQ("42", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x002a), false));  ASSERT_EQ("DT", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x9431), false));  ASSERT_EQ("43", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1163), false));  ASSERT_EQ("44", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1160), false));  ASSERT_EQ("45", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0070), false));  ASSERT_EQ("LO", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x4000), false));  ASSERT_EQ("LT", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x2000), true));   ASSERT_EQ("OB", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x7fe0, 0x0009), true));
+
+#if DCMTK_VERSION_NUMBER >= 361
+    ASSERT_FLOAT_EQ(3.14159f, boost::lexical_cast<float>(s));
+#else
+    ASSERT_EQ(8u, s.size()); // Because of padding
+    ASSERT_EQ(0, s[7]);
+    ASSERT_EQ("3.14159", s.substr(0, 7));
+#endif
+
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0064, 0x0009), true));
+    ASSERT_FLOAT_EQ(2.71828f, boost::lexical_cast<float>(s));
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0028, 0x1201), true));   ASSERT_EQ("OWOW", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x0010), false));  ASSERT_EQ("PN", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0050), false));  ASSERT_EQ("SH", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x6020), false));  ASSERT_EQ("-15", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0018, 0x9219), false));  ASSERT_EQ("-16", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0081), false));  ASSERT_EQ("ST", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0013), false));  ASSERT_EQ("TM", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0016), false));  ASSERT_EQ("UI", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x1161), false));  ASSERT_EQ("128", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x4342, 0x1234), true));   ASSERT_EQ("UN", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0031), false));  ASSERT_EQ("UT", s);
+
+#if DCMTK_VERSION_NUMBER >= 361
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), false));  ASSERT_EQ("46", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), false));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), false));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), false));  ASSERT_EQ("17", s);
+#else
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0066, 0x0040), true));  ASSERT_EQ("46", s);  // OL
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), true));  ASSERT_EQ("UC", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
+    ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
+#endif
+    
+  }
+}
+
+
+TEST(DicomWebJson, Sequence)
+{
+  ParsedDicomFile dicom(false);
+  
+  {
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
+
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      std::unique_ptr<DcmItem> item(new DcmItem);
+      std::string s = "item" + boost::lexical_cast<std::string>(i);
+      item->putAndInsertString(DCM_ReferencedSOPInstanceUID, s.c_str(), OFFalse);
+      ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
+    }
+
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
+  }
+
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);
+
+  ASSERT_EQ("SQ", visitor.GetResult() ["00081115"]["vr"].asString());
+  ASSERT_EQ(3u, visitor.GetResult() ["00081115"]["Value"].size());
+
+  std::set<std::string> items;
+  
+  for (Json::Value::ArrayIndex i = 0; i < 3; i++)
+  {
+    ASSERT_EQ(1u, visitor.GetResult() ["00081115"]["Value"][i].size());
+    ASSERT_EQ(1u, visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["Value"].size());
+    ASSERT_EQ("UI", visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["vr"].asString());
+    items.insert(visitor.GetResult() ["00081115"]["Value"][i]["00081155"]["Value"][0].asString());
+  }
+
+  ASSERT_EQ(3u, items.size());
+  ASSERT_TRUE(items.find("item0") != items.end());
+  ASSERT_TRUE(items.find("item1") != items.end());
+  ASSERT_TRUE(items.find("item2") != items.end());
+
+  std::string xml;
+  visitor.FormatXml(xml);
+
+  {
+    DicomMap m;
+    m.FromDicomWeb(visitor.GetResult());
+    ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by DicomMap
+  }
 }
 
 

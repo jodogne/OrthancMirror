@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class SetOfCommandsJob : public IJob
+  class ORTHANC_PUBLIC SetOfCommandsJob : public IJob
   {
   public:
     class ICommand : public boost::noncopyable

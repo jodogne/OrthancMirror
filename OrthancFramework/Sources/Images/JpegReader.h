@@ -51,7 +51,7 @@
 
 namespace Orthanc
 {
-  class JpegReader : public ImageAccessor
+  class ORTHANC_PUBLIC JpegReader : public ImageAccessor
   {
   private:
     std::string  content_;

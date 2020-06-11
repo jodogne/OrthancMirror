@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class DicomFindAnswers : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomFindAnswers : public boost::noncopyable
   {
   private:
     Encoding                      encoding_;

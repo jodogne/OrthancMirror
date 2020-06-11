@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class StringOperationValue : public JobOperationValue
+  class ORTHANC_PUBLIC StringOperationValue : public JobOperationValue
   {
   private:
     std::string  content_;

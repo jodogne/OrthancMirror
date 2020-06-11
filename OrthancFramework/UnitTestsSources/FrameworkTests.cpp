@@ -32,7 +32,12 @@
 
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
 #  include <OrthancFramework.h>
+#endif
+
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error ORTHANC_ENABLE_PUGIXML is not defined
 #endif
 
 #include "../Sources/EnumerationDictionary.h"

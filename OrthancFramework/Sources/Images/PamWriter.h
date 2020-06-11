@@ -38,7 +38,7 @@
 namespace Orthanc
 {
   // https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format
-  class PamWriter : public IImageWriter
+  class ORTHANC_PUBLIC PamWriter : public IImageWriter
   {
   protected:
     virtual void WriteToMemoryInternal(std::string& target,

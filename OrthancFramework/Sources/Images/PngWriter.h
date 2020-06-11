@@ -47,7 +47,7 @@
 
 namespace Orthanc
 {
-  class PngWriter : public IImageWriter
+  class ORTHANC_PUBLIC PngWriter : public IImageWriter
   {
   protected:
 #if ORTHANC_SANDBOXED == 0

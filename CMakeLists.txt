@@ -248,6 +248,13 @@ endif()
 ## Configuration of the C/C++ macros
 #####################################################################
 
+if (STATIC_BUILD)
+  add_definitions(-DORTHANC_STATIC=1)
+else()
+  add_definitions(-DORTHANC_STATIC=0)
+endif()
+
+
 if (ENABLE_PLUGINS)
   add_definitions(-DORTHANC_ENABLE_PLUGINS=1)
 else()

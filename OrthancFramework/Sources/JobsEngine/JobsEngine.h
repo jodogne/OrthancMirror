@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class JobsEngine : public boost::noncopyable
+  class ORTHANC_PUBLIC JobsEngine : public boost::noncopyable
   {
   private:
     enum State

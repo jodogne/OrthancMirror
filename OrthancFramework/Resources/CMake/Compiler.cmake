@@ -1,5 +1,11 @@
 # This file sets all the compiler-related flags
 
+
+# Save the current compiler flags to the cache every time cmake configures the project
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "compiler flags" FORCE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" CACHE STRING "compiler flags" FORCE)
+
+
 include(CheckLibraryExists)
 
 if ((CMAKE_CROSSCOMPILING AND NOT
@@ -206,19 +212,7 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   message("Building using Emscripten (for WebAssembly or asm.js targets)")
-
-  # The BINARYEN_TRAP_MODE specifies what to do when divisions per
-  # zero (and similar conditions like integer overflows) are
-  # encountered: The "clamp" mode avoids throwing errors, as they
-  # cannot be properly catched by "try {} catch (...)" constructions.
-  # Setting this option to "ON" fixes error: "shared:ERROR:
-  # BINARYEN_TRAP_MODE is not supported by the LLVM wasm backend" if
-  # using the "upstream" backend of Emscripten.
-  if (NOT EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"clamp\"'")
-  endif()
-
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
+  include(EmscriptenParameters.cmake)
   
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
 
@@ -253,11 +247,4 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   # objects, and using "r" would overwrite symbols defined in
   # preceding batches. https://cmake.org/Bug/view.php?id=14874
   set(CMAKE_CXX_ARCHIVE_APPEND "<CMAKE_AR> <LINK_FLAGS> q <TARGET> <OBJECTS>")
-endif()
-
-
-if (STATIC_BUILD)
-  add_definitions(-DORTHANC_STATIC=1)
-else()
-  add_definitions(-DORTHANC_STATIC=0)
 endif()

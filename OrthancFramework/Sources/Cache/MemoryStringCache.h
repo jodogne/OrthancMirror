@@ -41,7 +41,7 @@ namespace Orthanc
    * Facade object around "MemoryObjectCache" that caches a dictionary
    * of strings, using the "fetch/add" paradigm of memcached.
    **/
-  class MemoryStringCache : public boost::noncopyable
+  class ORTHANC_PUBLIC MemoryStringCache : public boost::noncopyable
   {
   private:
     class StringValue;

@@ -120,8 +120,7 @@ namespace Orthanc
                     Encoding defaultEncoding,
                     bool permissive,
                     const std::string& defaultPrivateCreator,
-                    const std::map<uint16_t, std::string>& privateCreators
-                    );
+                    const std::map<uint16_t, std::string>& privateCreators);
 
     ParsedDicomFile(const void* content,
                     size_t size);
