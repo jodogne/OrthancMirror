@@ -2,13 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Orthanc)
 
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../../../Resources/CMake)
+set(Resources/CMake)
 
-include(${ORTHANC_ROOT}/OrthancFrameworkParameters.cmake)
+include(${CMAKE_SOURCE_DIR}/../../../../../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
 set(ENABLE_WEB_CLIENT ON)
-include(${ORTHANC_ROOT}/OrthancFrameworkConfiguration.cmake)
-
-include_directories(${ORTHANC_ROOT})
+include(${CMAKE_SOURCE_DIR}/../../../../../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
 add_executable(Sample
   main.cpp

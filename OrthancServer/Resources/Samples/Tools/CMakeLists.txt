@@ -8,29 +8,28 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   link_libraries(pthread dl)
 endif()
 
-include(${CMAKE_SOURCE_DIR}/../../CMake/OrthancFrameworkParameters.cmake)
+include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
 
+set(ENABLE_ZLIB ON)
 set(STATIC_BUILD ON)
 set(ALLOW_DOWNLOADS ON)
 
-include(${CMAKE_SOURCE_DIR}/../../CMake/OrthancFrameworkConfiguration.cmake)
-
-add_library(CommonLibraries
-  ${BOOST_SOURCES}
-  ${JSONCPP_SOURCES}
-  ${ORTHANC_ROOT}/Core/Enumerations.cpp
-  ${ORTHANC_ROOT}/Core/Logging.cpp
-  ${ORTHANC_ROOT}/Core/SystemToolbox.cpp
-  ${ORTHANC_ROOT}/Core/Toolbox.cpp
-  ${ORTHANC_ROOT}/Resources/ThirdParty/md5/md5.c
-  ${ORTHANC_ROOT}/Resources/ThirdParty/base64/base64.cpp
-  )
+include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
 add_executable(RecoverCompressedFile
   RecoverCompressedFile.cpp
-  ${ORTHANC_ROOT}/Core/Compression/DeflateBaseCompressor.cpp
-  ${ORTHANC_ROOT}/Core/Compression/ZlibCompressor.cpp
+
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/ThirdParty/base64/base64.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/ThirdParty/md5/md5.c
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Compression/DeflateBaseCompressor.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Compression/ZlibCompressor.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Enumerations.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Logging.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/SystemToolbox.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Toolbox.cpp
+
+  ${BOOST_SOURCES}
+  ${JSONCPP_SOURCES}
+  ${UUID_SOURCES}
   ${ZLIB_SOURCES}
   )
-
-target_link_libraries(RecoverCompressedFile CommonLibraries)

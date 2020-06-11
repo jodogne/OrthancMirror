@@ -9,14 +9,13 @@ SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of boost")
 
-set(SAMPLES_ROOT ${CMAKE_SOURCE_DIR}/..)
-include(${SAMPLES_ROOT}/Common/OrthancPlugins.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
+include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/JsonCppConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/BoostConfiguration.cmake)
 
 add_library(ModalityWorklists SHARED 
   Plugin.cpp
-  ../Common/OrthancPluginCppWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/../Common/OrthancPluginCppWrapper.cpp
   ${JSONCPP_SOURCES}
   ${BOOST_SOURCES}
   )

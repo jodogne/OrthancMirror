@@ -33,12 +33,12 @@
 
 #pragma once
 
-#include <orthanc/OrthancCppDatabasePlugin.h>
+#include "OrthancCppDatabasePlugin.h"
 
-#include "../../../Core/SQLite/Connection.h"
-#include "../../../Core/SQLite/Transaction.h"
-#include "../../../OrthancServer/DatabaseWrapperBase.h"
-#include "../../Engine/PluginsEnumerations.h"
+#include "../../../../OrthancFramework/Sources/SQLite/Connection.h"
+#include "../../../../OrthancFramework/Sources/SQLite/Transaction.h"
+#include "../../../Plugins/Engine/PluginsEnumerations.h"
+#include "DatabaseWrapperBase.h"
 
 #include <memory>
 

@@ -33,7 +33,7 @@
 
 #include "Database.h"
 
-#include "../../../Core/DicomFormat/DicomArray.h"
+#include "../../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 
 #include <EmbeddedResources.h>
 #include <boost/lexical_cast.hpp>

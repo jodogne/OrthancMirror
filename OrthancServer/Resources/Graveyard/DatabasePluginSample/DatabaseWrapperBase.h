@@ -33,14 +33,14 @@
 
 #pragma once
 
-#include "../Core/DicomFormat/DicomMap.h"
-#include "../Core/DicomFormat/DicomTag.h"
-#include "../Core/Enumerations.h"
-#include "../Core/FileStorage/FileInfo.h"
-#include "../Core/SQLite/Connection.h"
-#include "../OrthancServer/ExportedResource.h"
-#include "../OrthancServer/ServerIndexChange.h"
-#include "ServerEnumerations.h"
+#include "../../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
+#include "../../../../OrthancFramework/Sources/Enumerations.h"
+#include "../../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
+#include "../../../../OrthancFramework/Sources/SQLite/Connection.h"
+#include "../../../Sources/ExportedResource.h"
+#include "../../../Sources/ServerIndexChange.h"
+#include "../../../Sources/ServerEnumerations.h"
 
 #include <list>
 

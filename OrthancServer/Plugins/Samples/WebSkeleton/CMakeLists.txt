@@ -3,11 +3,10 @@ cmake_minimum_required(VERSION 2.8)
 project(WebSkeleton)
 
 SET(STANDALONE_BUILD ON CACHE BOOL "Standalone build (all the resources are embedded, necessary for releases)")
+
+include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
+
 SET(RESOURCES_ROOT ${CMAKE_SOURCE_DIR}/StaticResources)
-
-set(SAMPLES_ROOT ${CMAKE_SOURCE_DIR}/..)
-include(${SAMPLES_ROOT}/Common/OrthancPlugins.cmake)
-
 include(Framework/Framework.cmake)
 
 add_library(WebSkeleton SHARED 
