@@ -31,7 +31,10 @@
  **/
 
 
-#include "PrecompiledHeadersUnitTests.h"
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework.h>
+#endif
+
 #include "gtest/gtest.h"
 
 #include <memory>
@@ -39,12 +42,11 @@
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "../../OrthancFramework/Sources/Cache/MemoryCache.h"
-#include "../../OrthancFramework/Sources/Cache/MemoryStringCache.h"
-#include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
-#include "../../OrthancFramework/Sources/IDynamicObject.h"
-#include "../../OrthancFramework/Sources/Logging.h"
-#include "../Sources/StorageCommitmentReports.h"
+#include "../Sources/Cache/MemoryCache.h"
+#include "../Sources/Cache/MemoryStringCache.h"
+#include "../Sources/Cache/SharedArchive.h"
+#include "../Sources/IDynamicObject.h"
+#include "../Sources/Logging.h"
 
 
 TEST(LRU, Basic)
@@ -366,95 +368,4 @@ TEST(MemoryStringCache, Invalidate)
   c.Invalidate("hello");
   ASSERT_FALSE(c.Fetch(v, "hello"));
   ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
-}
-
-
-TEST(StorageCommitmentReports, Basic)
-{
-  Orthanc::StorageCommitmentReports reports(2);
-  ASSERT_EQ(2u, reports.GetMaxSize());
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "nope");
-    ASSERT_EQ("nope", accessor.GetTransactionUid());
-    ASSERT_FALSE(accessor.IsValid());
-    ASSERT_THROW(accessor.GetReport(), Orthanc::OrthancException);
-  }
-
-  reports.Store("a", new Orthanc::StorageCommitmentReports::Report("aet_a"));
-  reports.Store("b", new Orthanc::StorageCommitmentReports::Report("aet_b"));
-  reports.Store("c", new Orthanc::StorageCommitmentReports::Report("aet_c"));
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
-    ASSERT_FALSE(accessor.IsValid());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
-    ASSERT_TRUE(accessor.IsValid());
-    ASSERT_EQ("aet_b", accessor.GetReport().GetRemoteAet());
-    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Pending,
-              accessor.GetReport().GetStatus());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
-    ASSERT_EQ("aet_c", accessor.GetReport().GetRemoteAet());
-    ASSERT_TRUE(accessor.IsValid());
-  }
-
-  {
-    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
-      (new Orthanc::StorageCommitmentReports::Report("aet"));
-    report->AddSuccess("class1", "instance1");
-    report->AddFailure("class2", "instance2",
-                       Orthanc::StorageCommitmentFailureReason_ReferencedSOPClassNotSupported);
-    report->MarkAsComplete();
-    reports.Store("a", report.release());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
-    ASSERT_TRUE(accessor.IsValid());
-    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
-    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Failure,
-              accessor.GetReport().GetStatus());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
-    ASSERT_FALSE(accessor.IsValid());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
-    ASSERT_TRUE(accessor.IsValid());
-  }
-
-  {
-    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
-      (new Orthanc::StorageCommitmentReports::Report("aet"));
-    report->AddSuccess("class1", "instance1");
-    report->MarkAsComplete();
-    reports.Store("a", report.release());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
-    ASSERT_TRUE(accessor.IsValid());
-    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
-    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Success,
-              accessor.GetReport().GetStatus());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
-    ASSERT_FALSE(accessor.IsValid());
-  }
-
-  {
-    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
-    ASSERT_TRUE(accessor.IsValid());
-  }
 }
