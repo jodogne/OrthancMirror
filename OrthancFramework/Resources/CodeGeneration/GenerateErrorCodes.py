@@ -37,7 +37,7 @@ import re
 import sys
 
 START_PLUGINS = 1000000
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 
 
@@ -45,7 +45,7 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ## Read all the available error codes and HTTP status
 ##
 
-with open(os.path.join(BASE, 'Resources', 'ErrorCodes.json'), 'r') as f:
+with open(os.path.join(BASE, 'OrthancFramework', 'Resources', 'CodeGeneration', 'ErrorCodes.json'), 'r') as f:
     ERRORS = json.loads(re.sub('/\*.*?\*/', '', f.read()))
 
 for error in ERRORS:
@@ -53,7 +53,7 @@ for error in ERRORS:
         print('ERROR: Error code must be below %d, but "%s" is set to %d' % (START_PLUGINS, error['Name'], error['Code']))
         sys.exit(-1)
 
-with open(os.path.join(BASE, 'Core', 'Enumerations.h'), 'r') as f:
+with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.h'), 'r') as f:
     a = f.read()
 
 HTTP = {}
@@ -66,7 +66,7 @@ for i in re.findall('(HttpStatus_([0-9]+)_\w+)', a):
 ## Generate the "ErrorCode" enumeration in "Enumerations.h"
 ##
 
-path = os.path.join(BASE, 'Core', 'Enumerations.h')
+path = os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.h')
 with open(path, 'r') as f:
     a = f.read()
 
@@ -84,7 +84,7 @@ with open(path, 'w') as f:
 ## Generate the "OrthancPluginErrorCode" enumeration in "OrthancCPlugin.h"
 ##
 
-path = os.path.join(BASE, 'Plugins', 'Include', 'orthanc', 'OrthancCPlugin.h')
+path = os.path.join(BASE, 'OrthancServer', 'Plugins', 'Include', 'orthanc', 'OrthancCPlugin.h')
 with open(path, 'r') as f:
     a = f.read()
 
@@ -103,7 +103,7 @@ with open(path, 'w') as f:
 ## "Enumerations.cpp"
 ##
 
-path = os.path.join(BASE, 'Core', 'Enumerations.cpp')
+path = os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.cpp')
 with open(path, 'r') as f:
     a = f.read()
 
@@ -128,7 +128,7 @@ with open(path, 'w') as f:
 ## Generate the "ErrorCode" enumeration in "OrthancSQLiteException.h"
 ##
 
-path = os.path.join(BASE, 'Core', 'SQLite', 'OrthancSQLiteException.h')
+path = os.path.join(BASE, 'OrthancFramework', 'Sources', 'SQLite', 'OrthancSQLiteException.h')
 with open(path, 'r') as f:
     a = f.read()
 
@@ -149,7 +149,7 @@ with open(path, 'w') as f:
 ## Generate the "PrintErrors" function in "main.cpp"
 ##
 
-path = os.path.join(BASE, 'OrthancServer', 'main.cpp')
+path = os.path.join(BASE, 'OrthancServer', 'Sources', 'main.cpp')
 with open(path, 'r') as f:
     a = f.read()
 
