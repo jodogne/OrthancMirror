@@ -32,7 +32,7 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/Toolbox.h"

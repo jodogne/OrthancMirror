@@ -35,7 +35,8 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include "../Sources/Compatibility.h"
 #include "../Sources/IDynamicObject.h"
 #include "../Sources/OrthancException.h"

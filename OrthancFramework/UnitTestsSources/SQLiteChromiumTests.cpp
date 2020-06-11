@@ -35,7 +35,7 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../Sources/Toolbox.h"
 #include "../Sources/SQLite/Connection.h"

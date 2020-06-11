@@ -35,7 +35,7 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../Sources/OrthancException.h"
 #include "../Sources/Compression/ZipWriter.h"

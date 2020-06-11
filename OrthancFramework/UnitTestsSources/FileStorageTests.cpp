@@ -35,9 +35,7 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
-
-#include <ctype.h>
+#include <gtest/gtest.h>
 
 #include "../Sources/FileStorage/FilesystemStorage.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
@@ -46,6 +44,9 @@
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
+
+#include <ctype.h>
+
 
 using namespace Orthanc;
 

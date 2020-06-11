@@ -35,18 +35,18 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
-
-#include <memory>
-#include <algorithm>
-#include <boost/thread.hpp>
-#include <boost/lexical_cast.hpp>
+#include <gtest/gtest.h>
 
 #include "../Sources/Cache/MemoryCache.h"
 #include "../Sources/Cache/MemoryStringCache.h"
 #include "../Sources/Cache/SharedArchive.h"
 #include "../Sources/IDynamicObject.h"
 #include "../Sources/Logging.h"
+
+#include <memory>
+#include <algorithm>
+#include <boost/thread.hpp>
+#include <boost/lexical_cast.hpp>
 
 
 TEST(LRU, Basic)

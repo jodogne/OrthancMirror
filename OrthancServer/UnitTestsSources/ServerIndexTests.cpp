@@ -32,12 +32,13 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
 #include "../Sources/Search/DatabaseLookup.h"
 #include "../Sources/ServerContext.h"
