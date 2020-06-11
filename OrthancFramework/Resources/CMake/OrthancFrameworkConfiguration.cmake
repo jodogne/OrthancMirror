@@ -126,59 +126,59 @@ endif()
 #####################################################################
 
 set(ORTHANC_CORE_SOURCES_INTERNAL
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryCache.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryObjectCache.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/MemoryStringCache.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/ChunkedBuffer.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomTag.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/EnumerationDictionary.h
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Enumerations.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/MemoryStorageArea.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/MultipartStreamReader.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/StringMatcher.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Logging.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/OrthancFramework.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/SerializationToolbox.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/Toolbox.cpp
-  ${ORTHANC_ROOT}/OrthancFramework/Sources/WebServiceParameters.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryCache.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/EnumerationDictionary.h
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/MemoryStorageArea.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SerializationToolbox.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/WebServiceParameters.cpp
   )
 
 if (ENABLE_MODULE_IMAGES)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/Font.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/FontRegistry.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/IImageWriter.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/Image.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageAccessor.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageBuffer.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/ImageProcessing.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PamReader.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PamWriter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/Font.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/FontRegistry.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/IImageWriter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/Image.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageAccessor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageBuffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageProcessing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamWriter.cpp
     )
 endif()
 
 if (ENABLE_MODULE_DICOM)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomArray.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomImageInformation.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomIntegerPixelAccessor.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomMap.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomFormat/DicomValue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomArray.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomImageInformation.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomInstanceHasher.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomIntegerPixelAccessor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomMap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomValue.cpp
     )
 endif()
 
 if (ENABLE_MODULE_JOBS)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/GenericJobUnserializer.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobInfo.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobStatus.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobStepResult.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/JobOperationValues.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/GenericJobUnserializer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobInfo.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobStatus.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobStepResult.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/JobOperationValues.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/LogJobOperation.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/SetOfCommandsJob.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/SetOfInstancesJob.cpp
     )
 endif()
 
@@ -198,12 +198,12 @@ if (ENABLE_SQLITE)
   add_definitions(-DORTHANC_ENABLE_SQLITE=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Connection.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/FunctionContext.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Statement.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/StatementId.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/StatementReference.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SQLite/Transaction.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/Connection.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/FunctionContext.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/Statement.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/StatementId.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/StatementReference.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/Transaction.cpp
     )
 endif()
 
@@ -229,7 +229,7 @@ if (ENABLE_CRYPTO_OPTIONS)
 
       add_definitions(-DORTHANC_ENABLE_PKCS11=1)
       list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-        ${ORTHANC_ROOT}/OrthancFramework/Sources/Pkcs11.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Pkcs11.cpp
         )
     else()
       message(FATAL_ERROR "OpenSSL is required to enable PKCS#11 support")
@@ -249,7 +249,7 @@ if (ENABLE_WEB_CLIENT)
   add_definitions(-DORTHANC_ENABLE_CURL=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpClient.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpClient.cpp
     )
 endif()
 
@@ -271,22 +271,22 @@ if (ENABLE_WEB_SERVER)
   endif()
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/BufferHttpSender.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/FilesystemHttpSender.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpContentNegociation.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpFileSender.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpOutput.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpServer.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/HttpToolbox.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/HttpServer/StringHttpOutput.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApi.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiCall.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiGetCall.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiHierarchy.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiOutput.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/RestApi/RestApiPath.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/BufferHttpSender.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/FilesystemHttpHandler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/FilesystemHttpSender.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpContentNegociation.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpFileSender.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpOutput.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpServer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpStreamTranscoder.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringHttpOutput.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiCall.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiGetCall.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiOutput.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
     )
 endif()
 
@@ -317,9 +317,9 @@ if (ENABLE_JPEG)
   add_definitions(-DORTHANC_ENABLE_JPEG=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegErrorManager.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegReader.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/JpegWriter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/JpegErrorManager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/JpegReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/JpegWriter.cpp
     )
 endif()
 
@@ -333,16 +333,16 @@ if (ENABLE_ZLIB)
   add_definitions(-DORTHANC_ENABLE_ZLIB=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/DeflateBaseCompressor.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/GzipCompressor.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/ZlibCompressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/DeflateBaseCompressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/GzipCompressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZlibCompressor.cpp
     )
 
   if (NOT ORTHANC_SANDBOXED)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/HierarchicalZipWriter.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/Compression/ZipWriter.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/HierarchicalZipWriter.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZipWriter.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/StorageAccessor.cpp
       )
   endif()
 endif()
@@ -365,8 +365,8 @@ if (ENABLE_PNG)
   add_definitions(-DORTHANC_ENABLE_PNG=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PngReader.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Images/PngWriter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PngReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PngWriter.cpp
     )
 endif()
 
@@ -380,8 +380,8 @@ if (ENABLE_LUA)
   add_definitions(-DORTHANC_ENABLE_LUA=1)
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Lua/LuaContext.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Lua/LuaFunctionCall.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Lua/LuaContext.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Lua/LuaFunctionCall.cpp
     )
 endif()
 
@@ -475,39 +475,39 @@ if (ENABLE_DCMTK)
   endif()
 
   set(ORTHANC_DICOM_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomModification.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ParsedDicomDir.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ParsedDicomFile.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomModification.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomWebJsonVisitor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/FromDcmtkBridge.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomDir.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ToDcmtkBridge.cpp
 
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/Internals/DicomFrameIndex.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/DicomFrameIndex.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/Internals/DicomImageDecoder.cpp
     )
 
   if (NOT ORTHANC_SANDBOXED)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DicomDirWriter.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomDirWriter.cpp
       )
   endif()
 
   if (ENABLE_DCMTK_NETWORKING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomAssociation.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomServer.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/FindScp.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/MoveScp.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/GetScp.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomNetworking/TimeoutDicomConnectionManager.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociation.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociationParameters.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomControlUserConnection.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomFindAnswers.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomServer.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomStoreUserConnection.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/CommandDispatcher.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/FindScp.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/MoveScp.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/GetScp.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/StoreScp.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/RemoteModalityParameters.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/TimeoutDicomConnectionManager.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
@@ -517,9 +517,9 @@ if (ENABLE_DCMTK)
   if (ENABLE_DCMTK_TRANSCODING)
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=1)
     list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/IDicomTranscoder.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/DicomParsing/MemoryBufferTranscoder.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DcmtkTranscoder.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/IDicomTranscoder.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/MemoryBufferTranscoder.cpp
       )
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_TRANSCODING=0)
@@ -570,22 +570,22 @@ else()
     )
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/Cache/SharedArchive.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/FileBuffer.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/FileStorage/FilesystemStorage.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/MetricsRegistry.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/Semaphore.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/MultiThreading/SharedMessageQueue.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SharedLibrary.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/SystemToolbox.cpp
-    ${ORTHANC_ROOT}/OrthancFramework/Sources/TemporaryFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MetricsRegistry.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/RunnableWorkersPool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/Semaphore.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MultiThreading/SharedMessageQueue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SharedLibrary.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SystemToolbox.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/TemporaryFile.cpp
     )
 
   if (ENABLE_MODULE_JOBS)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobsEngine.cpp
-      ${ORTHANC_ROOT}/OrthancFramework/Sources/JobsEngine/JobsRegistry.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsEngine.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobsRegistry.cpp
       )
   endif()
 endif()
@@ -663,15 +663,15 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${UUID_SOURCES}
   ${ZLIB_SOURCES}
 
-  ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/md5/md5.c
-  ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/base64/base64.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/md5/md5.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/base64/base64.cpp
   )
 
 if (ENABLE_ZLIB AND NOT ORTHANC_SANDBOXED)
   list(APPEND ORTHANC_CORE_SOURCES_DEPENDENCIES
     # This is the minizip distribution to create ZIP files using zlib
-    ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/minizip/ioapi.c
-    ${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/minizip/zip.c
+    ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/ioapi.c
+    ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/minizip/zip.c
     )
 endif()
 
@@ -681,7 +681,7 @@ if (NOT "${LIBICU_RESOURCES}" STREQUAL "" OR
   EmbedResources(
     --namespace=Orthanc.FrameworkResources
     --target=OrthancFrameworkResources
-    --framework-path=${ORTHANC_ROOT}/OrthancFramework/Sources
+    --framework-path=${CMAKE_CURRENT_LIST_DIR}/../../Sources
     ${LIBICU_RESOURCES}
     ${DCMTK_DICTIONARIES}
     )

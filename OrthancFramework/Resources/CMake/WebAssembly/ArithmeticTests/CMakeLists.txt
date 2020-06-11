@@ -1,9 +1,9 @@
-# source ~/Downloads/emsdk-portable/emsdk_env.sh
-# cmake .. -DCMAKE_TOOLCHAIN_FILE=${EMSCRIPTEN}/cmake/Modules/Platform/Emscripten.cmake \
-#       -DCMAKE_BUILD_TYPE=Debug \
-#       -DCMAKE_INSTALL_PREFIX=/tmp/wasm-install/
+# source ~/Downloads/emsdk/emsdk_env.sh
+# cmake .. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug -DEMSCRIPTEN_SET_LLVM_WASM_BACKEND=ON -DCMAKE_INSTALL_PREFIX=/tmp/wasm-install/
 # make install
-# -> Open the "/tmp/wasm-install/" with Firefox by serving it through Apache
+# cd /tmp/wasm-install
+# python -m SimpleHTTPServer 8000
+# firefox http://localhost:8000/
 # -> Copy the result as "../arith.h"
 
 
@@ -26,9 +26,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s DISABLE_EXCEPTION_CATCH
 ## Prepare DCMTK 3.6.2
 #####################################################################
 
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../..)
-include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
+include(${CMAKE_SOURCE_DIR}/../../Compiler.cmake)
+include(${CMAKE_SOURCE_DIR}/../../DownloadPackage.cmake)
 
 set(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.2)
 set(DCMTK_URL "http://orthanc.osimis.io/ThirdPartyDownloads/dcmtk-3.6.2.tar.gz")

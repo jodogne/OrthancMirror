@@ -1,12 +1,11 @@
-#   $ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../Resources/LinuxStandardBaseToolchain.cmake -G Ninja
+#   $ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../Resources/Toolchains/LinuxStandardBaseToolchain.cmake -G Ninja
 
 cmake_minimum_required(VERSION 2.8)
 
 project(DcmtkTools)
 
-set(ORTHANC_ROOT ${CMAKE_SOURCE_DIR}/../../)
-include(${ORTHANC_ROOT}/Resources/CMake/Compiler.cmake)
-include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
+include(${CMAKE_SOURCE_DIR}/../../Resources/CMake/Compiler.cmake)
+include(${CMAKE_SOURCE_DIR}/../../Resources/CMake/DownloadPackage.cmake)
 
 set(STATIC_BUILD ON CACHE BOOL "")
 set(ALLOW_DOWNLOADS ON CACHE BOOL "")
@@ -18,7 +17,7 @@ set(ENABLE_DCMTK_LOG ON CACHE BOOL "")
 set(ENABLE_DCMTK_NETWORKING ON CACHE BOOL "")
 set(ENABLE_DCMTK_TRANSCODING ON CACHE BOOL "")
 
-include(${ORTHANC_ROOT}/Resources/CMake/DcmtkConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/../../Resources/CMake/DcmtkConfiguration.cmake)
 
 add_library(dcmtk STATIC
   ${CMAKE_SOURCE_DIR}/dummy.cpp
