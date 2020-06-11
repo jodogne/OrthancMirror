@@ -40,7 +40,7 @@
 
 namespace Orthanc
 {
-  class IJob : public boost::noncopyable
+  class ORTHANC_PUBLIC IJob : public boost::noncopyable
   {
   public:
     virtual ~IJob()

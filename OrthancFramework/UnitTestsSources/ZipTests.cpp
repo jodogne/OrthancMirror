@@ -32,6 +32,7 @@
 
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
 #  include <OrthancFramework.h>
 #endif
 

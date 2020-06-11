@@ -71,13 +71,16 @@ set(USE_PUGIXML ON CACHE BOOL "Use the Pugixml parser (turn off only for debug)"
 set(USE_LEGACY_JSONCPP OFF CACHE BOOL "Use the old branch 0.x.y of JsonCpp, that does not require a C++11 compiler (for LSB and old versions of Visual Studio)")
 set(USE_LEGACY_LIBICU OFF CACHE BOOL "Use icu icu4c-58_2, latest version not requiring a C++11 compiler (for LSB and old versions of Visual Studio)")
 set(MSVC_MULTIPLE_PROCESSES OFF CACHE BOOL "Add the /MP option to build with multiple processes if using Visual Studio")
-set(EMSCRIPTEN_SET_LLVM_WASM_BACKEND OFF CACHE BOOL "Sets the compiler flags required to use the LLVM Web Assembly backend in emscripten")
+set(EMSCRIPTEN_TARGET_MODE "wasm" CACHE STRING "Sets the target mode for Emscripten (can be \"wasm\" or \"asm.js\")")
+set(EMSCRIPTEN_TRAP_MODE "" CACHE STRING "Sets the trap mode for Emscripten for numeric errors (can notably be empty, or \"clamp\")")
 set(OPENSSL_STATIC_VERSION "1.1.1" CACHE STRING "Version of OpenSSL to be used in static builds (can be \"1.0.2\", or \"1.1.1\")")
 
-mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
+mark_as_advanced(EMSCRIPTEN_TARGET_MODE)
+mark_as_advanced(EMSCRIPTEN_TRAP_MODE)
 mark_as_advanced(SYSTEM_MONGOOSE_USE_CALLBACKS)
-mark_as_advanced(USE_PUGIXML)
 mark_as_advanced(USE_DCMTK_362_PRIVATE_DIC)
+mark_as_advanced(USE_GOOGLE_TEST_DEBIAN_PACKAGE)
+mark_as_advanced(USE_PUGIXML)
 
 
 #####################################################################

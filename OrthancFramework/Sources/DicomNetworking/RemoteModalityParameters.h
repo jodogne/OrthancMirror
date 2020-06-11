@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class RemoteModalityParameters
+  class ORTHANC_PUBLIC RemoteModalityParameters
   {
   private:
     std::string           aet_;

@@ -71,7 +71,7 @@ namespace Orthanc
    * contained in the storage area, and monitors timing metrics (if
    * enabled).
    **/
-  class StorageAccessor : boost::noncopyable
+  class ORTHANC_PUBLIC StorageAccessor : boost::noncopyable
   {
   private:
     class MetricsTimer;

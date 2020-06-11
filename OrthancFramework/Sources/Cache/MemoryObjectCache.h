@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
 #include "ICacheable.h"
 #include "LeastRecentlyUsedIndex.h"
 
@@ -47,7 +48,7 @@
 
 namespace Orthanc
 {
-  class MemoryObjectCache : public boost::noncopyable
+  class ORTHANC_PUBLIC MemoryObjectCache : public boost::noncopyable
   {
   private:
     class Item;

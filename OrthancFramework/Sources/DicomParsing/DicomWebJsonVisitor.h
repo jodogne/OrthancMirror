@@ -44,7 +44,7 @@
 
 namespace Orthanc
 {
-  class DicomWebJsonVisitor : public ITagVisitor
+  class ORTHANC_PUBLIC DicomWebJsonVisitor : public ITagVisitor
   {
   public:
     enum BinaryMode

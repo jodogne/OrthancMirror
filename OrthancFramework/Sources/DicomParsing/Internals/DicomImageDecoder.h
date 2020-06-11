@@ -64,7 +64,7 @@ namespace Orthanc
 {
   class ParsedDicomFile;
   
-  class DicomImageDecoder : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomImageDecoder : public boost::noncopyable
   {
   private:
     class ImageSource;

@@ -49,7 +49,7 @@
 
 namespace Orthanc
 {
-  class SharedArchive : public boost::noncopyable
+  class ORTHANC_PUBLIC SharedArchive : public boost::noncopyable
   {
   private:
     typedef std::map<std::string, IDynamicObject*>  Archive;
@@ -62,7 +62,7 @@ namespace Orthanc
     void RemoveInternal(const std::string& id);
 
   public:
-    class Accessor : public boost::noncopyable
+    class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
       boost::mutex::scoped_lock  lock_;

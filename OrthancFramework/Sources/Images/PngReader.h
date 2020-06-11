@@ -55,7 +55,7 @@
 
 namespace Orthanc
 {
-  class PngReader : public ImageAccessor
+  class ORTHANC_PUBLIC PngReader : public ImageAccessor
   {
   private:
     struct PngRabi;

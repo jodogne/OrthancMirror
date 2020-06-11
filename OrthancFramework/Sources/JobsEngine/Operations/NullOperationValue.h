@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class NullOperationValue : public JobOperationValue
+  class ORTHANC_PUBLIC NullOperationValue : public JobOperationValue
   {
   public:
     NullOperationValue() :

@@ -31,59 +31,33 @@
  **/
 
 
-#pragma once
+// This file is meant to be used only by ../SharedLibrary/CMakeLists.txt
 
-#include "JobOperationValue.h"
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
+#  include <OrthancFramework.h>
+#else
+#  error This file must only be used if testing the Orthanc framework shared library
+#endif
 
-#include <vector>
+#include "../Sources/Logging.h"
+#include "../Sources/Toolbox.h"
+#include "../Sources/SystemToolbox.h"
 
-namespace Orthanc
+#include <gtest/gtest.h>
+
+int main(int argc, char **argv)
 {
-  class IJobUnserializer;
+  Orthanc::InitializeFramework("", true);
+  
+  Orthanc::Logging::EnableInfoLevel(true);
+  Orthanc::Toolbox::DetectEndianness();
+  Orthanc::SystemToolbox::MakeDirectory("UnitTestsResults");
+  
+  ::testing::InitGoogleTest(&argc, argv);
+  int result = RUN_ALL_TESTS();
 
-  class ORTHANC_PUBLIC JobOperationValues : public boost::noncopyable
-  {
-  private:
-    std::vector<JobOperationValue*>   values_;
-
-    void Append(JobOperationValues& target,
-                bool clear);
-
-  public:
-    ~JobOperationValues()
-    {
-      Clear();
-    }
-
-    void Move(JobOperationValues& target)
-    {
-      return Append(target, true);
-    }
-
-    void Copy(JobOperationValues& target)
-    {
-      return Append(target, false);
-    }
-
-    void Clear();
-
-    void Reserve(size_t count)
-    {
-      values_.reserve(count);
-    }
-
-    void Append(JobOperationValue* value);  // Takes ownership
-
-    size_t GetSize() const
-    {
-      return values_.size();
-    }
-
-    JobOperationValue& GetValue(size_t index) const;
-
-    void Serialize(Json::Value& target) const;
-
-    static JobOperationValues* Unserialize(IJobUnserializer& unserializer,
-                                           const Json::Value& source);
-  };
+  Orthanc::FinalizeFramework();
+  
+  return result;
 }

@@ -53,10 +53,10 @@
 namespace Orthanc
 {
   // This class handles the state machine of the jobs engine
-  class JobsRegistry : public boost::noncopyable
+  class ORTHANC_PUBLIC JobsRegistry : public boost::noncopyable
   {
   public:
-    class IObserver : public boost::noncopyable
+    class ORTHANC_PUBLIC IObserver : public boost::noncopyable
     {
     public:
       virtual ~IObserver()
@@ -204,7 +204,7 @@ namespace Orthanc
                        unsigned int& success,
                        unsigned int& errors);
 
-    class RunningJob : public boost::noncopyable
+    class ORTHANC_PUBLIC RunningJob : public boost::noncopyable
     {
     private:
       JobsRegistry&  registry_;

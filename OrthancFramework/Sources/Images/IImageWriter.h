@@ -43,7 +43,7 @@
 
 namespace Orthanc
 {
-  class IImageWriter : public boost::noncopyable
+  class ORTHANC_PUBLIC IImageWriter : public boost::noncopyable
   {
   protected:
     virtual void WriteToMemoryInternal(std::string& compressed,

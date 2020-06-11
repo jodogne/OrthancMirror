@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class GenericJobUnserializer : public IJobUnserializer
+  class ORTHANC_PUBLIC GenericJobUnserializer : public IJobUnserializer
   {
   public:
     virtual IJob* UnserializeJob(const Json::Value& value);

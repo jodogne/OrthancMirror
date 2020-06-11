@@ -32,6 +32,7 @@
 
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
 #  include <OrthancFramework.h>
 #endif
 
@@ -56,7 +57,11 @@
 using namespace Orthanc;
 
 #if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
-#error "Please set UNIT_TESTS_WITH_HTTP_CONNEXIONS"
+#  error UNIT_TESTS_WITH_HTTP_CONNEXIONS is not defined
+#endif
+
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error ORTHANC_ENABLE_SSL is not defined
 #endif
 
 

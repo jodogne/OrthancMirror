@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class PamReader : public ImageAccessor
+  class ORTHANC_PUBLIC PamReader : public ImageAccessor
   {
   private:
     void ParseContent();

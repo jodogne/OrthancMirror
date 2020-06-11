@@ -73,7 +73,7 @@ namespace Orthanc
 
   class DicomAssociation;  // Forward declaration for PImpl design pattern
 
-  class DicomStoreUserConnection : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomStoreUserConnection : public boost::noncopyable
   {
   private:
     typedef std::map<std::string, std::set<DicomTransferSyntax> > RegisteredClasses;

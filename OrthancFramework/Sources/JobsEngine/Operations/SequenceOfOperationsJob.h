@@ -43,10 +43,10 @@
 
 namespace Orthanc
 {
-  class SequenceOfOperationsJob : public IJob
+  class ORTHANC_PUBLIC SequenceOfOperationsJob : public IJob
   {
   public:
-    class IObserver : public boost::noncopyable
+    class ORTHANC_PUBLIC IObserver : public boost::noncopyable
     {
     public:
       virtual ~IObserver()
@@ -87,7 +87,7 @@ namespace Orthanc
     // This lock allows adding new operations to the end of the job,
     // from another thread than the worker thread, after the job has
     // been submitted for processing
-    class Lock : public boost::noncopyable
+    class ORTHANC_PUBLIC Lock : public boost::noncopyable
     {
     private:
       SequenceOfOperationsJob&   that_;

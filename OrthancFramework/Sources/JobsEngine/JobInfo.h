@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class JobInfo
+  class ORTHANC_PUBLIC JobInfo
   {
   private:
     std::string                       id_;

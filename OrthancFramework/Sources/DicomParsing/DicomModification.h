@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class DicomModification : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomModification : public boost::noncopyable
   {
     /**
      * Process:

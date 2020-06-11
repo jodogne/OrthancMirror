@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include "../../OrthancFramework.h"
+
 #include <json/value.h>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class JobOperationValue : public boost::noncopyable
+  class ORTHANC_PUBLIC JobOperationValue : public boost::noncopyable
   {
   public:
     enum Type

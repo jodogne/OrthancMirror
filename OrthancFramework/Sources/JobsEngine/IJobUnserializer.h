@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class IJobUnserializer : public boost::noncopyable
+  class ORTHANC_PUBLIC IJobUnserializer : public boost::noncopyable
   {
   public:
     virtual ~IJobUnserializer()

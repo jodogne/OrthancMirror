@@ -32,12 +32,17 @@
 
 
 #if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+// Must be the first to be sure to use the Orthanc framework shared library
 #  include <OrthancFramework.h>
+#endif
+
+#if !defined(ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS is not defined
 #endif
 
 #include <gtest/gtest.h>
 
-#if ORTHANC_ENABLE_JPEG_LOSSLESS == 1
+#if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
 
 #include "../Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../Sources/DicomParsing/ParsedDicomFile.h"
