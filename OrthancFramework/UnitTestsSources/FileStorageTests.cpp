@@ -31,19 +31,21 @@
  **/
 
 
-#include "PrecompiledHeadersUnitTests.h"
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework.h>
+#endif
+
 #include "gtest/gtest.h"
 
 #include <ctype.h>
 
-#include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
-#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
-#include "../../OrthancFramework/Sources/HttpServer/BufferHttpSender.h"
-#include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
-#include "../../OrthancFramework/Sources/Logging.h"
-#include "../../OrthancFramework/Sources/OrthancException.h"
-#include "../../OrthancFramework/Sources/Toolbox.h"
-#include "../Sources/ServerIndex.h"
+#include "../Sources/FileStorage/FilesystemStorage.h"
+#include "../Sources/FileStorage/StorageAccessor.h"
+#include "../Sources/HttpServer/BufferHttpSender.h"
+#include "../Sources/HttpServer/FilesystemHttpSender.h"
+#include "../Sources/Logging.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/Toolbox.h"
 
 using namespace Orthanc;
 
