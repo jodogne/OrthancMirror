@@ -60,6 +60,12 @@
 
 namespace Orthanc
 {
+  void ImageProcessing::ImagePoint::ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY)
+  {
+    x_ = std::max(minX, std::min(maxX, x_));
+    y_ = std::max(minY, std::min(maxY, y_));
+  }
+
   double ImageProcessing::ImagePoint::GetDistanceTo(const ImagePoint& other) const
   {
     double dx = (double)(other.GetX() - GetX());
