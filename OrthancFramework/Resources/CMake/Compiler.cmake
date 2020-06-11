@@ -212,7 +212,7 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   message("Building using Emscripten (for WebAssembly or asm.js targets)")
-  include(EmscriptenParameters.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/EmscriptenParameters.cmake)
   
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Android")
 
