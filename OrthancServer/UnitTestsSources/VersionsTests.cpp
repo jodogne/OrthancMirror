@@ -32,7 +32,7 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <stdint.h>
 #include <math.h>

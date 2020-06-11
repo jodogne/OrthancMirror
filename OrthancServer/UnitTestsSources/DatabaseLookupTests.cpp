@@ -32,10 +32,11 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include "../../OrthancFramework/Sources/OrthancException.h"
 
 #include "../Sources/Search/DatabaseLookup.h"
-#include "../../OrthancFramework/Sources/OrthancException.h"
 
 using namespace Orthanc;
 

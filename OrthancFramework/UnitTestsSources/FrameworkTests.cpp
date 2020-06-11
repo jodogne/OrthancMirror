@@ -37,9 +37,7 @@
 
 #include "../Sources/EnumerationDictionary.h"
 
-#include "gtest/gtest.h"
-
-#include <ctype.h>
+#include <gtest/gtest.h>
 
 #include "../Sources/DicomFormat/DicomTag.h"
 #include "../Sources/FileBuffer.h"
@@ -50,6 +48,8 @@
 #include "../Sources/SystemToolbox.h"
 #include "../Sources/TemporaryFile.h"
 #include "../Sources/Toolbox.h"
+
+#include <ctype.h>
 
 
 using namespace Orthanc;

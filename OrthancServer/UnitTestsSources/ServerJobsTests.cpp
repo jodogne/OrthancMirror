@@ -32,10 +32,11 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
@@ -43,9 +44,8 @@
 #include "../Sources/ServerJobs/LuaJobManager.h"
 #include "../Sources/ServerJobs/OrthancJobUnserializer.h"
 
-#include "../../OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.h"
-#include "../Sources/ServerJobs/Operations/DicomInstanceOperationValue.h"
 #include "../Sources/ServerJobs/Operations/DeleteResourceOperation.h"
+#include "../Sources/ServerJobs/Operations/DicomInstanceOperationValue.h"
 #include "../Sources/ServerJobs/Operations/ModifyInstanceOperation.h"
 #include "../Sources/ServerJobs/Operations/StorePeerOperation.h"
 #include "../Sources/ServerJobs/Operations/StoreScuOperation.h"

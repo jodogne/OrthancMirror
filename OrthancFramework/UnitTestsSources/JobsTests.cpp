@@ -35,7 +35,7 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"

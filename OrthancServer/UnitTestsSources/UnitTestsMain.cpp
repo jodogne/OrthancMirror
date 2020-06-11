@@ -32,10 +32,7 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-
-#include "gtest/gtest.h"
-
-#include <OrthancServerResources.h>
+#include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
@@ -54,6 +51,8 @@
 #include "../Sources/ServerEnumerations.h"
 #include "../Sources/ServerToolbox.h"
 #include "../Sources/StorageCommitmentReports.h"
+
+#include <OrthancServerResources.h>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 

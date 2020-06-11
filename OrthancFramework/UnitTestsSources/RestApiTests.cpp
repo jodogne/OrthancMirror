@@ -35,11 +35,7 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
-
-#include <ctype.h>
-#include <boost/lexical_cast.hpp>
-#include <algorithm>
+#include <gtest/gtest.h>
 
 #include "../Sources/ChunkedBuffer.h"
 #include "../Sources/HttpClient.h"
@@ -51,6 +47,10 @@
 #include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/HttpServer/HttpContentNegociation.h"
 #include "../Sources/HttpServer/MultipartStreamReader.h"
+
+#include <ctype.h>
+#include <boost/lexical_cast.hpp>
+#include <algorithm>
 
 
 using namespace Orthanc;

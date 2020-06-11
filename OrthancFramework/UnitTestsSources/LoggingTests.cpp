@@ -35,11 +35,12 @@
 #  include <OrthancFramework.h>
 #endif
 
-#include "gtest/gtest.h"
-#include <boost/regex.hpp>
-#include <sstream>
+#include <gtest/gtest.h>
 
 #include "../Sources/Logging.h"
+
+#include <boost/regex.hpp>
+#include <sstream>
 
 using namespace Orthanc::Logging;
 
