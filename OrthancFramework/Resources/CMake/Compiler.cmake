@@ -75,7 +75,7 @@ elseif (MSVC)
     # compatibility header.
     # http://stackoverflow.com/a/70630/881731
     # https://en.wikibooks.org/wiki/C_Programming/C_Reference/stdint.h#External_links
-    include_directories(${ORTHANC_ROOT}/OrthancFramework/Resources/ThirdParty/VisualStudio)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/VisualStudio)
   endif()
 
   link_libraries(netapi32)
@@ -109,7 +109,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
 
   if (NOT DEFINED ENABLE_PLUGINS_VERSION_SCRIPT OR 
       ENABLE_PLUGINS_VERSION_SCRIPT)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${ORTHANC_ROOT}/OrthancFramework/Resources/VersionScriptPlugins.map")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${CMAKE_CURRENT_LIST_DIR}/../VersionScriptPlugins.map")
   endif()
 
   # Remove the "-rdynamic" option
@@ -197,7 +197,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -exported_symbols_list ${ORTHANC_ROOT}/Plugins/Samples/Common/ExportedSymbols.list")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -exported_symbols_list ${CMAKE_CURRENT_SOURCE_DIR}/../ExportedSymbolsPlugins.list")
 
   add_definitions(
     -D_XOPEN_SOURCE=1

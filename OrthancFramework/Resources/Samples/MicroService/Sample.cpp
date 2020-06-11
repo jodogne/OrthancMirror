@@ -1,9 +1,9 @@
 #include <stdio.h>
 
-#include <HttpServer/MongooseServer.h>
-#include <Logging.h>
-#include <RestApi/RestApi.h>
-#include <SystemToolbox.h>
+#include "../../../Sources/HttpServer/HttpServer.h"
+#include "../../../Sources/Logging.h"
+#include "../../../Sources/RestApi/RestApi.h"
+#include "../../../Sources/SystemToolbox.h"
 
 class MicroService : public Orthanc::RestApi
 {
@@ -43,7 +43,7 @@ int main()
   MicroService rest;
   
   {
-    Orthanc::MongooseServer httpServer;
+    Orthanc::HttpServer httpServer;
     httpServer.SetPortNumber(8000);
     httpServer.Register(rest);
     httpServer.SetRemoteAccessAllowed(true);
