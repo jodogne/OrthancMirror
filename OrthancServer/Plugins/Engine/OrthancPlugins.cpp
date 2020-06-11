@@ -2296,7 +2296,7 @@ namespace Orthanc
 
     PImpl::PluginHttpOutput* output =
       reinterpret_cast<PImpl::PluginHttpOutput*>(p.output);
-    output->SetErrorDetails(p.details, p.log);
+    output->SetErrorDetails(p.details, (p.log != 0));
   }
 
 

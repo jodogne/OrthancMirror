@@ -972,7 +972,7 @@ TEST(ImageProcessing, ShiftScaleGrayscale8)
   SetGrayscale8Pixel(image, 3, 0, 10);
   SetGrayscale8Pixel(image, 4, 0, 255);
 
-  ImageProcessing::ShiftScale(image, -1.1, 1.5, true);
+  ImageProcessing::ShiftScale(image, -1.1f, 1.5f, true);
   ASSERT_TRUE(TestGrayscale8Pixel(image, 0, 0, 0));
   ASSERT_TRUE(TestGrayscale8Pixel(image, 1, 0, 1));
   ASSERT_TRUE(TestGrayscale8Pixel(image, 2, 0, 6));
@@ -990,7 +990,7 @@ TEST(ImageProcessing, ShiftScaleGrayscale16)
   SetGrayscale16Pixel(image, 3, 0, 10);
   SetGrayscale16Pixel(image, 4, 0, 255);
 
-  ImageProcessing::ShiftScale(image, -1.1, 1.5, true);
+  ImageProcessing::ShiftScale(image, -1.1f, 1.5f, true);
   ASSERT_TRUE(TestGrayscale16Pixel(image, 0, 0, 0));
   ASSERT_TRUE(TestGrayscale16Pixel(image, 1, 0, 1));
   ASSERT_TRUE(TestGrayscale16Pixel(image, 2, 0, 6));
@@ -1008,7 +1008,7 @@ TEST(ImageProcessing, ShiftScaleSignedGrayscale16)
   SetSignedGrayscale16Pixel(image, 3, 0, 10);
   SetSignedGrayscale16Pixel(image, 4, 0, 255);
 
-  ImageProcessing::ShiftScale(image, -17.1, 11.5, true);
+  ImageProcessing::ShiftScale(image, -17.1f, 11.5f, true);
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 0, 0, -197));
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 1, 0, -174));
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 2, 0, -139));

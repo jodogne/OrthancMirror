@@ -36,10 +36,9 @@
 #include "../OrthancFramework.h"
 
 #include "ImageAccessor.h"
-#include <vector>
 
+#include <vector>
 #include <stdint.h>
-#include <algorithm>
 #include <boost/noncopyable.hpp>
 
 namespace Orthanc
@@ -47,21 +46,28 @@ namespace Orthanc
   class ORTHANC_PUBLIC ImageProcessing : public boost::noncopyable
   {
   public:
-    class ImagePoint
+    class ORTHANC_PUBLIC ImagePoint
     {
       int32_t x_;
       int32_t y_;
       
     public:
-      ImagePoint(int32_t x, int32_t y)
-        : x_(x),
-          y_(y)
+      ImagePoint(int32_t x, 
+        int32_t y) : 
+        x_(x),
+        y_(y)
       {
       }
 
-      int32_t GetX() const {return x_;}
+      int32_t GetX() const
+      {
+        return x_;
+      }
 
-      int32_t GetY() const {return y_;}
+      int32_t GetY() const
+      {
+        return y_;
+      }
 
       void Set(int32_t x, int32_t y)
       {
@@ -69,11 +75,7 @@ namespace Orthanc
         y_ = y;
       }
 
-      void ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY)
-      {
-        x_ = std::max(minX, std::min(maxX, x_));
-        y_ = std::max(minY, std::min(maxY, y_));
-      }
+      void ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY);
 
       double GetDistanceTo(const ImagePoint& other) const;
 
