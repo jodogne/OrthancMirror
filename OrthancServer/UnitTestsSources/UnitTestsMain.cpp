@@ -41,10 +41,14 @@
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/Images/Image.h"
 #include "../../OrthancFramework/Sources/Images/PngWriter.h"
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
 
 #include "../Sources/OrthancConfiguration.h"  // For the FontRegistry
 #include "../Sources/OrthancInitialization.h"
 #include "../Sources/ServerEnumerations.h"
+#include "../Sources/ServerToolbox.h"
+#include "../Plugins/Engine/PluginsEnumerations.h"
 
 
 using namespace Orthanc;
@@ -134,6 +138,180 @@ TEST(FontRegistry, Basic)
 
   Orthanc::PngWriter w;
   w.WriteToFile("UnitTestsResults/font.png", s);
+}
+
+
+TEST(FromDcmtkBridge, ValueRepresentationConversions)
+{
+#if ORTHANC_ENABLE_PLUGINS == 1
+  ASSERT_EQ(1, ValueRepresentation_ApplicationEntity);
+  ASSERT_EQ(1, OrthancPluginValueRepresentation_AE);
+
+  for (int i = ValueRepresentation_ApplicationEntity;
+       i <= ValueRepresentation_NotSupported; i++)
+  {
+    ValueRepresentation vr = static_cast<ValueRepresentation>(i);
+
+    if (vr == ValueRepresentation_NotSupported)
+    {
+      ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
+      ASSERT_THROW(Plugins::Convert(vr), OrthancException);
+    }
+    else if (vr == ValueRepresentation_OtherDouble || 
+             vr == ValueRepresentation_OtherLong ||
+             vr == ValueRepresentation_UniversalResource ||
+             vr == ValueRepresentation_UnlimitedCharacters)
+    {
+      // These VR are not supported as of DCMTK 3.6.0
+      ASSERT_THROW(ToDcmtkBridge::Convert(vr), OrthancException);
+      ASSERT_EQ(OrthancPluginValueRepresentation_UN, Plugins::Convert(vr));
+    }
+    else
+    {
+      ASSERT_EQ(vr, FromDcmtkBridge::Convert(ToDcmtkBridge::Convert(vr)));
+
+      OrthancPluginValueRepresentation plugins = Plugins::Convert(vr);
+      ASSERT_EQ(vr, Plugins::Convert(plugins));
+    }
+  }
+
+  for (int i = OrthancPluginValueRepresentation_AE;
+       i <= OrthancPluginValueRepresentation_UT; i++)
+  {
+    OrthancPluginValueRepresentation plugins = static_cast<OrthancPluginValueRepresentation>(i);
+    ValueRepresentation orthanc = Plugins::Convert(plugins);
+    ASSERT_EQ(plugins, Plugins::Convert(orthanc));
+  }
+#endif
+}
+
+
+
+namespace Orthanc
+{
+  // Namespace for the "FRIEND_TEST()" directive in "FromDcmtkBridge" to apply:
+  // https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md#private-class-members
+
+  static const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
+  static const DicomTag REFERENCED_PATIENT_SEQUENCE(0x0008, 0x1120);
+
+  static void CreateSampleJson(Json::Value& a)
+  {
+    {
+      Json::Value b = Json::objectValue;
+      b["PatientName"] = "Hello";
+      b["PatientID"] = "World";
+      b["StudyDescription"] = "Toto";
+      a.append(b);
+    }
+
+    {
+      Json::Value b = Json::objectValue;
+      b["PatientName"] = "data:application/octet-stream;base64,SGVsbG8y";  // echo -n "Hello2" | base64
+      b["PatientID"] = "World2";
+      a.append(b);
+    }
+  }
+  
+  TEST(FromDcmtkBridge, FromJson)
+  {
+    std::unique_ptr<DcmElement> element;
+
+    {
+      Json::Value a;
+      a = "Hello";
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8, ""));
+
+      Json::Value b;
+      std::set<DicomTag> ignoreTagLength;
+      ignoreTagLength.insert(DICOM_TAG_PATIENT_ID);
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 0, Encoding_Ascii, false, ignoreTagLength);
+      ASSERT_TRUE(b.isMember("0010,0010"));
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, false, ignoreTagLength);
+      ASSERT_TRUE(b["0010,0010"].isNull()); // "Hello" has more than 3 characters
+
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, false, ignoreTagLength);
+      ASSERT_TRUE(b["0010,0010"].isObject());
+      ASSERT_EQ("PatientName", b["0010,0010"]["Name"].asString());
+      ASSERT_EQ("TooLong", b["0010,0010"]["Type"].asString());
+      ASSERT_TRUE(b["0010,0010"]["Value"].isNull());
+
+      ignoreTagLength.insert(DICOM_TAG_PATIENT_NAME);
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 3, Encoding_Ascii, false, ignoreTagLength);
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
+    }
+
+    {
+      Json::Value a;
+      a = "Hello";
+      // Cannot assign a string to a sequence
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, false, Encoding_Utf8, "")), OrthancException);
+    }
+
+    {
+      Json::Value a = Json::arrayValue;
+      a.append("Hello");
+      // Cannot assign an array to a string
+      ASSERT_THROW(element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, false, Encoding_Utf8, "")), OrthancException);
+    }
+
+    {
+      Json::Value a;
+      a = "data:application/octet-stream;base64,SGVsbG8=";  // echo -n "Hello" | base64
+      element.reset(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_NAME, a, true, Encoding_Utf8, ""));
+
+      Json::Value b;
+      std::set<DicomTag> ignoreTagLength;
+      FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                     DicomToJsonFlags_Default, 0, Encoding_Ascii, false, ignoreTagLength);
+      ASSERT_EQ("Hello", b["0010,0010"].asString());
+    }
+
+    {
+      Json::Value a = Json::arrayValue;
+      CreateSampleJson(a);
+      element.reset(FromDcmtkBridge::FromJson(REFERENCED_STUDY_SEQUENCE, a, true, Encoding_Utf8, ""));
+
+      {
+        Json::Value b;
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Short,
+                                       DicomToJsonFlags_Default, 0, Encoding_Ascii, false, ignoreTagLength);
+        ASSERT_EQ(Json::arrayValue, b["0008,1110"].type());
+        ASSERT_EQ(2u, b["0008,1110"].size());
+      
+        Json::Value::ArrayIndex i = (b["0008,1110"][0]["0010,0010"].asString() == "Hello") ? 0 : 1;
+
+        ASSERT_EQ(3u, b["0008,1110"][i].size());
+        ASSERT_EQ(2u, b["0008,1110"][1 - i].size());
+        ASSERT_EQ(b["0008,1110"][i]["0010,0010"].asString(), "Hello");
+        ASSERT_EQ(b["0008,1110"][i]["0010,0020"].asString(), "World");
+        ASSERT_EQ(b["0008,1110"][i]["0008,1030"].asString(), "Toto");
+        ASSERT_EQ(b["0008,1110"][1 - i]["0010,0010"].asString(), "Hello2");
+        ASSERT_EQ(b["0008,1110"][1 - i]["0010,0020"].asString(), "World2");
+      }
+
+      {
+        Json::Value b;
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ElementToJson(b, *element, DicomToJsonFormat_Full,
+                                       DicomToJsonFlags_Default, 0, Encoding_Ascii, false, ignoreTagLength);
+
+        Json::Value c;
+        Toolbox::SimplifyDicomAsJson(c, b, DicomToJsonFormat_Human);
+
+        a[1]["PatientName"] = "Hello2";  // To remove the Data URI Scheme encoding
+        ASSERT_EQ(0, c["ReferencedStudySequence"].compare(a));
+      }
+    }
+  }
 }
 
 

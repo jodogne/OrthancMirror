@@ -2215,6 +2215,70 @@ namespace Orthanc
 
     return "2.25." + LargeHexadecimalToDecimal(hex);
   }
+
+
+  void Toolbox::SimplifyDicomAsJson(Json::Value& target,
+                                    const Json::Value& source,
+                                    DicomToJsonFormat format)
+  {
+    if (!source.isObject())
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+    }
+
+    target = Json::objectValue;
+    Json::Value::Members members = source.getMemberNames();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const Json::Value& v = source[members[i]];
+      const std::string& type = v["Type"].asString();
+
+      std::string name;
+      switch (format)
+      {
+        case DicomToJsonFormat_Human:
+          name = v["Name"].asString();
+          break;
+
+        case DicomToJsonFormat_Short:
+          name = members[i];
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      if (type == "String")
+      {
+        target[name] = v["Value"].asString();
+      }
+      else if (type == "TooLong" ||
+               type == "Null")
+      {
+        target[name] = Json::nullValue;
+      }
+      else if (type == "Sequence")
+      {
+        const Json::Value& array = v["Value"];
+        assert(array.isArray());
+
+        Json::Value children = Json::arrayValue;
+        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+        {
+          Json::Value c;
+          SimplifyDicomAsJson(c, array[i], format);
+          children.append(c);
+        }
+
+        target[name] = children;
+      }
+      else
+      {
+        assert(0);
+      }
+    }
+  }
 }
 
 

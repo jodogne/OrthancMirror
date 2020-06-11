@@ -2670,7 +2670,7 @@ namespace Orthanc
         else
         {
           Json::Value simplified;
-          ServerToolbox::SimplifyTags(simplified, instance.GetJson(), DicomToJsonFormat_Human);
+          Toolbox::SimplifyDicomAsJson(simplified, instance.GetJson(), DicomToJsonFormat_Human);
           s = writer.write(simplified);
         }
 

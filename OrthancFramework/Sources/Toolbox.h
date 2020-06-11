@@ -267,6 +267,10 @@ namespace Orthanc
 
     // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
     static std::string GenerateDicomPrivateUniqueIdentifier();
+
+    static void SimplifyDicomAsJson(Json::Value& target,
+                                    const Json::Value& source,
+                                    DicomToJsonFormat format);
   };
 }
 

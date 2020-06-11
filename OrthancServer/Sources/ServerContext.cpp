@@ -414,7 +414,7 @@ namespace Orthanc
       resultPublicId = dicom.GetHasher().HashInstance();
 
       Json::Value simplifiedTags;
-      ServerToolbox::SimplifyTags(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
+      Toolbox::SimplifyDicomAsJson(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
       bool accepted = true;

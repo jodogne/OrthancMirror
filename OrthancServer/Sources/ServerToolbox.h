@@ -47,10 +47,6 @@ namespace Orthanc
 
   namespace ServerToolbox
   {
-    void SimplifyTags(Json::Value& target,
-                      const Json::Value& source,
-                      DicomToJsonFormat format);
-
     bool FindOneChildInstance(int64_t& result,
                               IDatabaseWrapper& database,
                               int64_t resource,
