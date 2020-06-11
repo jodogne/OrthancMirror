@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -48,36 +48,36 @@ namespace Orthanc
     }
   }
 
-  void Semaphore::Release()
+  void Semaphore::Release(unsigned int resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    availableResources_++;
-    condition_.notify_one(); 
+    availableResources_ += resourceCount;
+    condition_.notify_one();
   }
 
-  void Semaphore::Acquire()
+  void Semaphore::Acquire(unsigned int resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    while (availableResources_ == 0)
+    while (availableResources_ < resourceCount)
     {
       condition_.wait(lock);
     }
 
-    availableResources_--;
+    availableResources_ -= resourceCount;
   }
 
-  bool Semaphore::TryAcquire()
+  bool Semaphore::TryAcquire(unsigned int resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    if (availableResources_ == 0)
+    if (availableResources_ < resourceCount)
     {
       return false;
     }
 
-    availableResources_--;
+    availableResources_ -= resourceCount;
     return true;
   }
 }

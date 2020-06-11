@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -44,12 +44,12 @@ namespace Orthanc
     unsigned int availableResources_;
     boost::mutex mutex_;
     boost::condition_variable condition_;
-    
-    void Release();
 
-    void Acquire();
+    void Release(unsigned int resourceCount = 1);
 
-    bool TryAcquire();
+    void Acquire(unsigned int resourceCount = 1);
+
+    bool TryAcquire(unsigned int resourceCount = 1);
   public:
     explicit Semaphore(unsigned int availableResources);
 
@@ -63,38 +63,42 @@ namespace Orthanc
     {
     private:
       Semaphore&  that_;
+      unsigned int resourceCount_;
 
     public:
-      explicit Locker(Semaphore& that) :
-        that_(that)
+      explicit Locker(Semaphore& that, unsigned int resourceCount = 1) :
+        that_(that),
+        resourceCount_(resourceCount)
       {
-        that_.Acquire();
+        that_.Acquire(resourceCount_);
       }
 
       ~Locker()
       {
-        that_.Release();
+        that_.Release(resourceCount_);
       }
     };
 
     class TryLocker : public boost::noncopyable
     {
     private:
-      Semaphore&  that_;
-      bool        isAcquired_;
+      Semaphore&    that_;
+      unsigned int  resourceCount_;
+      bool          isAcquired_;
 
     public:
-      explicit TryLocker(Semaphore& that) :
-        that_(that)
+      explicit TryLocker(Semaphore& that, unsigned int resourceCount = 1) :
+        that_(that),
+        resourceCount_(resourceCount)
       {
-        isAcquired_ = that_.TryAcquire();
+        isAcquired_ = that_.TryAcquire(resourceCount_);
       }
 
       ~TryLocker()
       {
         if (isAcquired_)
         {
-          that_.Release();
+          that_.Release(resourceCount_);
         }
       }
 
