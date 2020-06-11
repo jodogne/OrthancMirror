@@ -860,7 +860,7 @@ namespace Orthanc
                 (targetWidth < decoded->GetWidth() ||
                  targetHeight < decoded->GetHeight()))
             {
-              ImageProcessing::SmoothGaussian5x5(*decoded);
+              ImageProcessing::SmoothGaussian5x5(*decoded, false /* be fast, don't round */);
             }
             
             ImageProcessing::Resize(*resized, *decoded);
@@ -906,7 +906,7 @@ namespace Orthanc
                 (targetWidth < decoded->GetWidth() ||
                  targetHeight < decoded->GetHeight()))
             {
-              ImageProcessing::SmoothGaussian5x5(*rescaled);
+              ImageProcessing::SmoothGaussian5x5(*rescaled, false /* be fast, don't round */);
             }
             
             ImageProcessing::Resize(*resized, *rescaled);

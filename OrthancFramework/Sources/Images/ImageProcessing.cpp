@@ -366,6 +366,7 @@ namespace Orthanc
         int64_t v;
         if (UseRound)
         {
+          assert(sizeof(long long) == sizeof(int64_t));
           // The "round" operation is very costly
           v = boost::math::llround(static_cast<float>(*p) * factor);
         }
@@ -442,8 +443,9 @@ namespace Orthanc
           *p = minPixelValue;
         }
         else if (UseRound)
-        {
+        {         
           // The "round" operation is very costly
+          assert(sizeof(TargetType) < sizeof(int));
           *p = static_cast<TargetType>(boost::math::iround(v));
         }
         else
@@ -2197,7 +2199,7 @@ namespace Orthanc
   // floating-point arithmetics, and an intermediate Float32
   // image. The out-of-image values are taken as the border
   // value. Further optimization is possible.
-  template <typename RawPixel, unsigned int ChannelsCount>
+  template <typename RawPixel, unsigned int ChannelsCount, bool UseRound>
   static void SeparableConvolutionFloat(ImageAccessor& image /* inplace */,
                                         const std::vector<float>& horizontal,
                                         size_t horizontalAnchor,
@@ -2335,7 +2337,15 @@ namespace Orthanc
           }
           else
           {
-            *p = static_cast<RawPixel>(accumulator);
+            if (UseRound)
+            {
+              assert(sizeof(RawPixel) < sizeof(int));
+              *p = static_cast<RawPixel>(boost::math::iround(accumulator));
+            }
+            else
+            {
+              *p = static_cast<RawPixel>(accumulator);
+            }
           }
         }
       }
@@ -2347,7 +2357,8 @@ namespace Orthanc
                                              const std::vector<float>& horizontal,
                                              size_t horizontalAnchor,
                                              const std::vector<float>& vertical,
-                                             size_t verticalAnchor)
+                                             size_t verticalAnchor,
+                                             bool useRound)
   {
     if (horizontal.size() == 0 ||
         vertical.size() == 0 ||
@@ -2390,13 +2401,29 @@ namespace Orthanc
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        SeparableConvolutionFloat<uint8_t, 1u>
-          (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        if (useRound)
+        {
+          SeparableConvolutionFloat<uint8_t, 1u, true>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
+        else
+        {
+          SeparableConvolutionFloat<uint8_t, 1u, false>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
         break;
 
       case PixelFormat_RGB24:
-        SeparableConvolutionFloat<uint8_t, 3u>
-          (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        if (useRound)
+        {
+          SeparableConvolutionFloat<uint8_t, 3u, true>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
+        else
+        {
+          SeparableConvolutionFloat<uint8_t, 3u, false>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
         break;
 
       default:
@@ -2405,7 +2432,8 @@ namespace Orthanc
   }
 
 
-  void ImageProcessing::SmoothGaussian5x5(ImageAccessor& image)
+  void ImageProcessing::SmoothGaussian5x5(ImageAccessor& image,
+                                          bool useRound)
   {
     std::vector<float> kernel(5);
     kernel[0] = 1;
@@ -2414,7 +2442,7 @@ namespace Orthanc
     kernel[3] = 4;
     kernel[4] = 1;
 
-    SeparableConvolution(image, kernel, 2, kernel, 2);
+    SeparableConvolution(image, kernel, 2, kernel, 2, useRound);
   }
 
 
@@ -2445,6 +2473,7 @@ namespace Orthanc
 
     unsigned int sw = std::min(static_cast<unsigned int>(boost::math::iround(cw * r)), target.GetWidth());  
     unsigned int sh = std::min(static_cast<unsigned int>(boost::math::iround(ch * r)), target.GetHeight());
+
     Image resized(target.GetFormat(), sw, sh, false);
   
     //ImageProcessing::SmoothGaussian5x5(source);

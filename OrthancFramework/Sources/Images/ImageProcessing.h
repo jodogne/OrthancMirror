@@ -184,9 +184,11 @@ namespace Orthanc
                                      const std::vector<float>& horizontal,
                                      size_t horizontalAnchor,
                                      const std::vector<float>& vertical,
-                                     size_t verticalAnchor);
+                                     size_t verticalAnchor,
+                                     bool useRound /* this is expensive */);
 
-    static void SmoothGaussian5x5(ImageAccessor& image);
+    static void SmoothGaussian5x5(ImageAccessor& image,
+                                  bool useRound /* this is expensive */);
 
     static void FitSize(ImageAccessor& target,
                         const ImageAccessor& source);
