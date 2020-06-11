@@ -369,11 +369,11 @@ namespace Orthanc
       case ErrorCode_AlreadyExistingTag:
         return "Cannot override the value of a tag that already exists";
 
-      case ErrorCode_NoCGetHandler:
-        return "No request handler factory for DICOM C-GET SCP";
-
       case ErrorCode_NoStorageCommitmentHandler:
         return "No request handler factory for DICOM N-ACTION SCP (storage commitment)";
+
+      case ErrorCode_NoCGetHandler:
+        return "No request handler factory for DICOM C-GET SCP";
 
       case ErrorCode_UnsupportedMediaType:
         return "Unsupported media type";
