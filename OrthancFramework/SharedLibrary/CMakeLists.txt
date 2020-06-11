@@ -53,6 +53,9 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(BOOST_LOCALE_BACKEND "libiconv")
   set(ORTHANC_SANDBOXED ON)
 
+  # Will be used by "../Resources/CMake/EmscriptenParameters.cmake"
+  set(WASM_FLAGS "-s SIDE_MODULE=1 -s EXPORT_ALL=1")
+
 else()
   # Enable all the remaining modules for other targets
   set(ENABLE_CRYPTO_OPTIONS ON)
