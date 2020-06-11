@@ -74,7 +74,7 @@ namespace Orthanc
     if (mode != DicomToJsonFormat_Full)
     {
       Json::Value simplified;
-      ServerToolbox::SimplifyTags(simplified, dicom, mode);
+      Toolbox::SimplifyDicomAsJson(simplified, dicom, mode);
       call.GetOutput().AnswerJson(simplified);
     }
     else
@@ -1905,7 +1905,7 @@ namespace Orthanc
       if (format != DicomToJsonFormat_Full)
       {
         Json::Value simplified;
-        ServerToolbox::SimplifyTags(simplified, full, format);
+        Toolbox::SimplifyDicomAsJson(simplified, full, format);
         result[*it] = simplified;
       }
       else
