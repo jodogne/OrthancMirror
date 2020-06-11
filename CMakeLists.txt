@@ -122,6 +122,8 @@ set(ORTHANC_FRAMEWORK_UNIT_TESTS
   OrthancFramework/UnitTestsSources/ImageTests.cpp
   OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
   OrthancFramework/UnitTestsSources/LoggingTests.cpp
+  OrthancFramework/UnitTestsSources/LuaTests.cpp
+  OrthancFramework/UnitTestsSources/MemoryCacheTests.cpp
   OrthancFramework/UnitTestsSources/RestApiTests.cpp
   OrthancFramework/UnitTestsSources/SQLiteChromiumTests.cpp
   OrthancFramework/UnitTestsSources/SQLiteTests.cpp
@@ -132,9 +134,9 @@ set(ORTHANC_FRAMEWORK_UNIT_TESTS
 
 set(ORTHANC_SERVER_UNIT_TESTS
   OrthancServer/UnitTestsSources/DatabaseLookupTests.cpp
-  OrthancServer/UnitTestsSources/LuaTests.cpp
-  OrthancServer/UnitTestsSources/MemoryCacheTests.cpp
+  OrthancServer/UnitTestsSources/LuaServerTests.cpp
   OrthancServer/UnitTestsSources/MultiThreadingTests.cpp
+  OrthancServer/UnitTestsSources/PluginsTests.cpp
   OrthancServer/UnitTestsSources/ServerIndexTests.cpp
   OrthancServer/UnitTestsSources/UnitTestsMain.cpp
   OrthancServer/UnitTestsSources/VersionsTests.cpp

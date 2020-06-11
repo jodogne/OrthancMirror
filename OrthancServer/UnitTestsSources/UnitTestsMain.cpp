@@ -32,18 +32,20 @@
 
 
 #include "PrecompiledHeadersUnitTests.h"
-#include "../../OrthancFramework/Sources/EnumerationDictionary.h"
 
 #include "gtest/gtest.h"
 
-#include "../../OrthancFramework/Sources/Logging.h"
-#include "../../OrthancFramework/Sources/Toolbox.h"
-#include "../../OrthancFramework/Sources/OrthancException.h"
+#include <OrthancServerResources.h>
+
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/EnumerationDictionary.h"
 #include "../../OrthancFramework/Sources/Images/Image.h"
 #include "../../OrthancFramework/Sources/Images/PngWriter.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
-#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include "../Plugins/Engine/PluginsEnumerations.h"
 #include "../Sources/DicomInstanceToStore.h"
@@ -51,6 +53,7 @@
 #include "../Sources/OrthancInitialization.h"
 #include "../Sources/ServerEnumerations.h"
 #include "../Sources/ServerToolbox.h"
+#include "../Sources/StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 
@@ -409,6 +412,98 @@ namespace Orthanc
     }
   }
 }
+
+
+TEST(StorageCommitmentReports, Basic)
+{
+  Orthanc::StorageCommitmentReports reports(2);
+  ASSERT_EQ(2u, reports.GetMaxSize());
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "nope");
+    ASSERT_EQ("nope", accessor.GetTransactionUid());
+    ASSERT_FALSE(accessor.IsValid());
+    ASSERT_THROW(accessor.GetReport(), Orthanc::OrthancException);
+  }
+
+  reports.Store("a", new Orthanc::StorageCommitmentReports::Report("aet_a"));
+  reports.Store("b", new Orthanc::StorageCommitmentReports::Report("aet_b"));
+  reports.Store("c", new Orthanc::StorageCommitmentReports::Report("aet_c"));
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet_b", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Pending,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_EQ("aet_c", accessor.GetReport().GetRemoteAet());
+    ASSERT_TRUE(accessor.IsValid());
+  }
+
+  {
+    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
+      (new Orthanc::StorageCommitmentReports::Report("aet"));
+    report->AddSuccess("class1", "instance1");
+    report->AddFailure("class2", "instance2",
+                       Orthanc::StorageCommitmentFailureReason_ReferencedSOPClassNotSupported);
+    report->MarkAsComplete();
+    reports.Store("a", report.release());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Failure,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_TRUE(accessor.IsValid());
+  }
+
+  {
+    std::unique_ptr<Orthanc::StorageCommitmentReports::Report> report
+      (new Orthanc::StorageCommitmentReports::Report("aet"));
+    report->AddSuccess("class1", "instance1");
+    report->MarkAsComplete();
+    reports.Store("a", report.release());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "a");
+    ASSERT_TRUE(accessor.IsValid());
+    ASSERT_EQ("aet", accessor.GetReport().GetRemoteAet());
+    ASSERT_EQ(Orthanc::StorageCommitmentReports::Report::Status_Success,
+              accessor.GetReport().GetStatus());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "b");
+    ASSERT_FALSE(accessor.IsValid());
+  }
+
+  {
+    Orthanc::StorageCommitmentReports::Accessor accessor(reports, "c");
+    ASSERT_TRUE(accessor.IsValid());
+  }
+}
+
 
 
 int main(int argc, char **argv)
