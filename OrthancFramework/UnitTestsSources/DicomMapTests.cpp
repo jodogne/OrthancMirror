@@ -31,18 +31,19 @@
  **/
 
 
-#include "PrecompiledHeadersUnitTests.h"
+#if ORTHANC_UNIT_TESTS_LINK_FRAMEWORK == 1
+#  include <OrthancFramework.h>
+#endif
+
 #include "gtest/gtest.h"
 
-#include "../../OrthancFramework/Sources/Compatibility.h"
-#include "../../OrthancFramework/Sources/OrthancException.h"
-#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
-#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
-#include "../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
-
-#include "../Sources/DicomInstanceToStore.h"
+#include "../Sources/Compatibility.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/DicomFormat/DicomMap.h"
+#include "../Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../Sources/DicomParsing/ParsedDicomFile.h"
+#include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 
 #include <memory>
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -426,98 +427,6 @@ TEST(DicomMap, Serialize)
     ASSERT_FALSE(v->IsBinary());
     ASSERT_THROW(v->GetContent(), OrthancException);
   }
-}
-
-
-
-TEST(DicomMap, DicomAsJson)
-{
-  // This is a Latin-1 test string: "crane" with a circumflex accent
-  const unsigned char raw[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
-  std::string latin1((char*) &raw[0], sizeof(raw) / sizeof(char));
-
-  std::string utf8 = Toolbox::ConvertToUtf8(latin1, Encoding_Latin1, false);
-
-  ParsedDicomFile dicom(false);
-  dicom.SetEncoding(Encoding_Latin1);
-  dicom.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "Hello");
-  dicom.ReplacePlainString(DICOM_TAG_STUDY_DESCRIPTION, utf8);
-  dicom.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, std::string(ORTHANC_MAXIMUM_TAG_LENGTH, 'a'));
-  dicom.ReplacePlainString(DICOM_TAG_MANUFACTURER, std::string(ORTHANC_MAXIMUM_TAG_LENGTH + 1, 'a'));
-  dicom.ReplacePlainString(DICOM_TAG_PIXEL_DATA, "binary");
-  dicom.ReplacePlainString(DICOM_TAG_ROWS, "512");
-
-  DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
-  dataset.insertEmptyElement(DCM_StudyID, OFFalse);
-
-  {
-    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_ReferencedSeriesSequence));
-
-    {
-      std::unique_ptr<DcmItem> item(new DcmItem);
-      item->putAndInsertString(DCM_ReferencedSOPInstanceUID, "nope", OFFalse);
-      ASSERT_TRUE(sequence->insert(item.release(), false, false).good());
-    }
-
-    ASSERT_TRUE(dataset.insert(sequence.release(), false, false).good());
-  }
-  
-                          
-  // Check re-encoding
-  DcmElement* element = NULL;
-  ASSERT_TRUE(dataset.findAndGetElement(DCM_StudyDescription, element).good() &&
-              element != NULL);
-
-  char* c = NULL;
-  ASSERT_TRUE(element != NULL &&
-              element->isLeaf() &&
-              element->isaString() &&
-              element->getString(c).good());
-  ASSERT_EQ(0, memcmp(c, raw, latin1.length()));
-
-  ASSERT_TRUE(dataset.findAndGetElement(DCM_Rows, element).good() &&
-              element != NULL &&
-              element->getTag().getEVR() == EVR_US);
-
-  DicomInstanceToStore toStore;
-  toStore.SetParsedDicomFile(dicom);
-
-  DicomMap m;
-  m.FromDicomAsJson(toStore.GetJson());
-
-  ASSERT_EQ("ISO_IR 100", m.GetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET).GetContent());
-  
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).IsBinary());
-  ASSERT_EQ("Hello", m.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
-  
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).IsBinary());
-  ASSERT_EQ(utf8, m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
-
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_MANUFACTURER));                // Too long
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));                  // Pixel data
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_REFERENCED_SERIES_SEQUENCE));  // Sequence
-  ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetGroup(), DCM_ReferencedSeriesSequence.getGroup());
-  ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetElement(), DCM_ReferencedSeriesSequence.getElement());
-
-  ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_DESCRIPTION));  // Maximum length
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).IsBinary());
-  ASSERT_EQ(ORTHANC_MAXIMUM_TAG_LENGTH,
-            static_cast<int>(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent().length()));
-
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_ROWS).IsBinary());
-  ASSERT_EQ("512", m.GetValue(DICOM_TAG_ROWS).GetContent());
-
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsNull());
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsBinary());
-  ASSERT_EQ("", m.GetValue(DICOM_TAG_STUDY_ID).GetContent());
-
-  DicomArray a(m);
-  ASSERT_EQ(6u, a.GetSize());
-
-  
-  //dicom.SaveToFile("/tmp/test.dcm"); 
-  //std::cout << toStore.GetJson() << std::endl;
-  //a.Print(stdout);
 }
 
 
