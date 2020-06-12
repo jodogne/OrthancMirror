@@ -44,7 +44,7 @@ WebAssembly (for the "upstream" version of emscripten)
 
 $ cd wasm
 $ source ~/Downloads/emsdk/emsdk_env.sh
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja \
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DALLOW_DOWNLOADS=ON -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 $ ninja -j4
 
