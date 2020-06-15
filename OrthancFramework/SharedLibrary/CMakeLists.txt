@@ -52,6 +52,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # WebAssembly or asm.js
   set(BOOST_LOCALE_BACKEND "libiconv")
   set(ORTHANC_SANDBOXED ON)
+  set(STANDALONE_BUILD ON)
 
   # Will be used by "../Resources/CMake/EmscriptenParameters.cmake"
   set(WASM_FLAGS "-s SIDE_MODULE=1 -s EXPORT_ALL=1")

@@ -195,10 +195,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "path")
   endif()
   
   if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing the source code of Orthanc: ${ORTHANC_FRAMEWORK_ROOT}")
+    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_FRAMEWORK_ROOT}")
   endif()
-  
-  set(ORTHANC_ROOT ${ORTHANC_FRAMEWORK_ROOT})
 endif()
 
 
@@ -245,6 +243,16 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg")
   if (Failure)
     message(FATAL_ERROR "Error while running Mercurial")
   endif()
+
+  unset(ORTHANC_FRAMEWORK_ROOT CACHE)
+  set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/OrthancFramework" CACHE
+    STRING "Path to the Orthanc framework source directory")
+
+  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
+    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_ROOT}")
+  endif()
+
+  unset(ORTHANC_ROOT)
 endif()
 
 
@@ -372,6 +380,16 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
       message(FATAL_ERROR "The Orthanc framework was not uncompressed at the proper location. Check the CMake instructions.")
     endif()
   endif()
+
+  unset(ORTHANC_FRAMEWORK_ROOT CACHE)
+  set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/OrthancFramework" CACHE
+    STRING "Path to the Orthanc framework source directory")
+
+  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
+    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_ROOT}")
+  endif()
+
+  unset(ORTHANC_ROOT)
 endif()
 
 
