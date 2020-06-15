@@ -873,3 +873,19 @@ TEST(MultipartStreamReader, BytePerByte)
     }
   }
 }
+
+
+TEST(WebServiceParameters, Url)
+{
+  WebServiceParameters w;
+  
+  ASSERT_THROW(w.SetUrl("ssh://coucou"), OrthancException);
+  w.SetUrl("http://coucou");
+  w.SetUrl("https://coucou");
+  ASSERT_THROW(w.SetUrl("httpss://coucou"), OrthancException);
+  ASSERT_THROW(w.SetUrl(""), OrthancException);
+
+  // New in Orthanc 1.7.2: Allow relative URLs (for DICOMweb in Stone)
+  w.SetUrl("coucou");
+  w.SetUrl("/coucou");
+}

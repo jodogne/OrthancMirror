@@ -43,6 +43,7 @@
 #  include "SystemToolbox.h"
 #endif
 
+#include <boost/algorithm/string/find.hpp>
 #include <cassert>
 
 namespace Orthanc
@@ -89,10 +90,19 @@ namespace Orthanc
 
   void WebServiceParameters::SetUrl(const std::string& url)
   {
-    if (!Toolbox::StartsWith(url, "http://") &&
-        !Toolbox::StartsWith(url, "https://"))
+    if (boost::find_first(url, "://"))
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Bad URL: " + url);
+      // Only allow the HTTP and HTTPS protocols
+      if (!Toolbox::StartsWith(url, "http://") &&
+          !Toolbox::StartsWith(url, "https://"))
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Bad URL: " + url);
+      }
+    }
+
+    if (url.empty())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Empty URL");
     }
 
     // Add trailing slash if needed
