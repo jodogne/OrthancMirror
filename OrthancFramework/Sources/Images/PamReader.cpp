@@ -242,7 +242,7 @@ namespace Orthanc
         
         for (unsigned int w = 0; w < GetWidth(); ++w, ++pixel)
         {
-#if ORTHANC_ENABLE_WASM == 1
+#if defined(__EMSCRIPTEN__)  // For WebAssembly
           /* 
           
           crash (2019-08-05):
