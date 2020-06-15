@@ -885,6 +885,10 @@ namespace Orthanc
   MimeType StringToMimeType(const std::string& mime);
   
   ORTHANC_PUBLIC
+  bool LookupMimeType(MimeType& target,
+                      const std::string& source);
+  
+  ORTHANC_PUBLIC
   unsigned int GetBytesPerPixel(PixelFormat format);
 
   ORTHANC_PUBLIC

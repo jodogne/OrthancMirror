@@ -1687,104 +1687,144 @@ namespace Orthanc
   }
 
 
+  bool LookupMimeType(MimeType& target,
+                      const std::string& source)
+  {
+    if (source == MIME_BINARY)
+    {
+      target = MimeType_Binary;
+      return true;
+    }
+    else if (source == MIME_DICOM)
+    {
+      target = MimeType_Dicom;
+      return true;
+    }
+    else if (source == MIME_JPEG)
+    {
+      target = MimeType_Jpeg;
+      return true;
+    }
+    else if (source == MIME_JPEG2000)
+    {
+      target = MimeType_Jpeg2000;
+      return true;
+    }
+    else if (source == MIME_JSON)
+    {
+      target = MimeType_Json;
+      return true;
+    }
+    else if (source == MIME_PDF)
+    {
+      target = MimeType_Pdf;
+      return true;
+    }
+    else if (source == MIME_PNG)
+    {
+      target = MimeType_Png;
+      return true;
+    }
+    else if (source == MIME_XML ||
+             source == MIME_XML_2)
+    {
+      target = MimeType_Xml;
+      return true;
+    }
+    else if (source == MIME_PLAIN_TEXT)
+    {
+      target = MimeType_PlainText;
+      return true;
+    }
+    else if (source == MIME_PAM)
+    {
+      target = MimeType_Pam;
+      return true;
+    }
+    else if (source == MIME_HTML)
+    {
+      target = MimeType_Html;
+      return true;
+    }
+    else if (source == MIME_GZIP)
+    {
+      target = MimeType_Gzip;
+      return true;
+    }
+    else if (source == MIME_JAVASCRIPT)
+    {
+      target = MimeType_JavaScript;
+      return true;
+    }
+    else if (source == MIME_CSS)
+    {
+      target = MimeType_Css;
+      return true;
+    }
+    else if (source == MIME_WEB_ASSEMBLY)
+    {
+      target = MimeType_WebAssembly;
+      return true;
+    }
+    else if (source == MIME_GIF)
+    {
+      target = MimeType_Gif;
+      return true;
+    }
+    else if (source == MIME_ZIP)
+    {
+      target = MimeType_Zip;
+      return true;
+    }
+    else if (source == MIME_NACL)
+    {
+      target = MimeType_NaCl;
+      return true;
+    }
+    else if (source == MIME_PNACL)
+    {
+      target = MimeType_PNaCl;
+      return true;
+    }
+    else if (source == MIME_SVG)
+    {
+      target = MimeType_Svg;
+      return true;
+    }
+    else if (source == MIME_WOFF)
+    {
+      target = MimeType_Woff;
+      return true;
+    }
+    else if (source == MIME_WOFF2)
+    {
+      target = MimeType_Woff2;
+      return true;
+    }
+    else if (source == MIME_DICOM_WEB_JSON)
+    {
+      target = MimeType_DicomWebJson;
+      return true;
+    }
+    else if (source == MIME_DICOM_WEB_XML)
+    {
+      target = MimeType_DicomWebXml;
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  
   MimeType StringToMimeType(const std::string& mime)
   {
-    if (mime == MIME_BINARY)
+    MimeType result;
+    if (LookupMimeType(result, mime))
     {
-      return MimeType_Binary;
-    }
-    else if (mime == MIME_DICOM)
-    {
-      return MimeType_Dicom;
-    }
-    else if (mime == MIME_JPEG)
-    {
-      return MimeType_Jpeg;
-    }
-    else if (mime == MIME_JPEG2000)
-    {
-      return MimeType_Jpeg2000;
-    }
-    else if (mime == MIME_JSON)
-    {
-      return MimeType_Json;
-    }
-    else if (mime == MIME_PDF)
-    {
-      return MimeType_Pdf;
-    }
-    else if (mime == MIME_PNG)
-    {
-      return MimeType_Png;
-    }
-    else if (mime == MIME_XML ||
-             mime == MIME_XML_2)
-    {
-      return MimeType_Xml;
-    }
-    else if (mime == MIME_PLAIN_TEXT)
-    {
-      return MimeType_PlainText;
-    }
-    else if (mime == MIME_PAM)
-    {
-      return MimeType_Pam;
-    }
-    else if (mime == MIME_HTML)
-    {
-      return MimeType_Html;
-    }
-    else if (mime == MIME_GZIP)
-    {
-      return MimeType_Gzip;
-    }
-    else if (mime == MIME_JAVASCRIPT)
-    {
-      return MimeType_JavaScript;
-    }
-    else if (mime == MIME_CSS)
-    {
-      return MimeType_Css;
-    }
-    else if (mime == MIME_WEB_ASSEMBLY)
-    {
-      return MimeType_WebAssembly;
-    }
-    else if (mime == MIME_GIF)
-    {
-      return MimeType_Gif;
-    }
-    else if (mime == MIME_ZIP)
-    {
-      return MimeType_Zip;
-    }
-    else if (mime == MIME_NACL)
-    {
-      return MimeType_NaCl;
-    }
-    else if (mime == MIME_PNACL)
-    {
-      return MimeType_PNaCl;
-    }
-    else if (mime == MIME_SVG)
-    {
-      return MimeType_Svg;
-    }
-    else if (mime == MIME_WOFF)
-    {
-      return MimeType_Woff;
-    }
-    else if (mime == MIME_WOFF2)
-    {
-      return MimeType_Woff2;
-    }
-    else if (mime == MIME_DICOM_WEB_JSON)
-    {
-      return MimeType_DicomWebJson;
-    }
-    else if (mime == MIME_DICOM_WEB_XML)
-    {
-      return MimeType_DicomWebXml;
+      return result;
     }
     else
     {
