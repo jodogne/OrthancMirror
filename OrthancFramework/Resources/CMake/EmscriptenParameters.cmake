@@ -1,8 +1,14 @@
+# https://github.com/emscripten-core/emscripten/blob/master/src/settings.js
+
 if (NOT "${EMSCRIPTEN_TRAP_MODE}" STREQUAL "")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"${EMSCRIPTEN_TRAP_MODE}\"'")
 endif()
 
+# "DISABLE_EXCEPTION_CATCHING" is a "compile+link" option. HOWEVER,
+# setting it inside "WASM_FLAGS" creates link errors, at least with
+# side modules. TODO: Understand why
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
+#set(WASM_FLAGS "${WASM_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
 
 if (EMSCRIPTEN_TARGET_MODE STREQUAL "wasm")
   # WebAssembly
