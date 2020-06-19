@@ -45,15 +45,15 @@ namespace Orthanc
     unsigned int width_;
     unsigned int height_;
     unsigned int samplesPerPixel_;
-    unsigned int numberOfFrames_;
+    uint32_t numberOfFrames_;
 
     bool isPlanar_;
     bool isSigned_;
     size_t bytesPerValue_;
 
-    unsigned int bitsAllocated_;
-    unsigned int bitsStored_;
-    unsigned int highBit_;
+    uint32_t bitsAllocated_;
+    uint32_t bitsStored_;
+    uint32_t highBit_;
 
     PhotometricInterpretation  photometric_;
 

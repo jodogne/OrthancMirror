@@ -52,8 +52,8 @@ namespace Orthanc
 {
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
   {
-    unsigned int pixelRepresentation;
-    unsigned int planarConfiguration = 0;
+    uint32_t pixelRepresentation = 0;
+    uint32_t planarConfiguration = 0;
 
     try
     {
@@ -120,40 +120,27 @@ namespace Orthanc
       values.GetValue(DICOM_TAG_COLUMNS).ParseFirstUnsignedInteger(width_); // in some US images, we've seen tag values of "800\0"; that's why we parse the 'first' value
       values.GetValue(DICOM_TAG_ROWS).ParseFirstUnsignedInteger(height_);
 
-      bitsAllocated_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_ALLOCATED).GetContent());
-
-      try
+      if (!values.ParseUnsignedInteger32(bitsAllocated_, DICOM_TAG_BITS_ALLOCATED))
       {
-        samplesPerPixel_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_SAMPLES_PER_PIXEL).GetContent());
+        throw OrthancException(ErrorCode_BadFileFormat);
       }
-      catch (OrthancException&)
+
+      if (!values.ParseUnsignedInteger32(samplesPerPixel_, DICOM_TAG_SAMPLES_PER_PIXEL))
       {
         samplesPerPixel_ = 1;  // Assume 1 color channel
       }
 
-      try
-      {
-        bitsStored_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_BITS_STORED).GetContent());
-      }
-      catch (OrthancException&)
+      if (!values.ParseUnsignedInteger32(bitsStored_, DICOM_TAG_BITS_STORED))
       {
         bitsStored_ = bitsAllocated_;
       }
 
-      try
-      {
-        highBit_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_HIGH_BIT).GetContent());
-      }
-      catch (OrthancException&)
+      if (!values.ParseUnsignedInteger32(highBit_, DICOM_TAG_HIGH_BIT))
       {
         highBit_ = bitsStored_ - 1;
       }
 
-      try
-      {
-        pixelRepresentation = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PIXEL_REPRESENTATION).GetContent());
-      }
-      catch (OrthancException&)
+      if (!values.ParseUnsignedInteger32(pixelRepresentation, DICOM_TAG_PIXEL_REPRESENTATION))
       {
         pixelRepresentation = 0;  // Assume unsigned pixels
       }
@@ -162,11 +149,8 @@ namespace Orthanc
       {
         // The "Planar Configuration" is only set when "Samples per Pixels" is greater than 1
         // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
-        try
-        {
-          planarConfiguration = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_PLANAR_CONFIGURATION).GetContent());
-        }
-        catch (OrthancException&)
+
+        if (!values.ParseUnsignedInteger32(planarConfiguration, DICOM_TAG_PLANAR_CONFIGURATION))
         {
           planarConfiguration = 0;  // Assume interleaved color channels
         }
@@ -181,13 +165,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
+    
     if (values.HasTag(DICOM_TAG_NUMBER_OF_FRAMES))
     {
-      try
-      {
-        numberOfFrames_ = boost::lexical_cast<unsigned int>(values.GetValue(DICOM_TAG_NUMBER_OF_FRAMES).GetContent());
-      }
-      catch (boost::bad_lexical_cast&)
+      if (!values.ParseUnsignedInteger32(numberOfFrames_, DICOM_TAG_NUMBER_OF_FRAMES))
       {
         throw OrthancException(ErrorCode_NotImplemented);
       }
