@@ -1016,3 +1016,38 @@ TEST(ImageProcessing, ShiftScaleSignedGrayscale16)
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 3, 0, -82));
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 4, 0, 2736));
 }
+
+
+TEST(ImageProcessing, ShiftScale2)
+{
+  std::vector<float> va;
+  va.push_back(0);
+  va.push_back(-10);
+  va.push_back(5);
+  
+  std::vector<float> vb;
+  vb.push_back(0);
+  vb.push_back(-42);
+  vb.push_back(42);
+
+  Image source(PixelFormat_Float32, 1, 1, false);
+  ImageTraits<PixelFormat_Float32>::SetFloatPixel(source, 10, 0, 0);
+  
+  for (std::vector<float>::const_iterator a = va.begin(); a != va.end(); ++a)
+  {
+    for (std::vector<float>::const_iterator b = vb.begin(); b != vb.end(); ++b)
+    {
+      Image target(PixelFormat_Float32, 1, 1, false);
+
+      ImageProcessing::Copy(target, source);
+      ImageProcessing::ShiftScale2(target, *b, *a, false);
+      ASSERT_FLOAT_EQ((*a) * 10.0f + (*b),
+                      ImageTraits<PixelFormat_Float32>::GetFloatPixel(target, 0, 0));
+
+      ImageProcessing::Copy(target, source);
+      ImageProcessing::ShiftScale(target, *b, *a, false);
+      ASSERT_FLOAT_EQ((*a) * (10.0f + (*b)),
+                      ImageTraits<PixelFormat_Float32>::GetFloatPixel(target, 0, 0));
+    }
+  }
+}
