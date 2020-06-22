@@ -3537,7 +3537,7 @@ extern "C"
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
-    const char*              answer,
+    const void*              answer,
     uint32_t                 answerSize)
   {
     _OrthancPluginAnswerBuffer params;
@@ -5527,7 +5527,7 @@ extern "C"
   typedef struct
   {
     OrthancPluginRestOutput* output;
-    const char*              answer;
+    const void*              answer;
     uint32_t                 answerSize;
     uint32_t                 headersCount;
     const char* const*       headersKeys;
@@ -5557,7 +5557,7 @@ extern "C"
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendMultipartItem2(
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
-    const char*              answer,
+    const void*              answer,
     uint32_t                 answerSize,
     uint32_t                 headersCount,
     const char* const*       headersKeys,
