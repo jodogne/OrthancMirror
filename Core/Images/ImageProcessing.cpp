@@ -1470,6 +1470,40 @@ namespace Orthanc
   }
 
 
+  void ImageProcessing::ShiftScale2(ImageAccessor& image,
+                                    float offset,
+                                    float scaling,
+                                    bool useRound)
+  {
+    if (std::abs(scaling) < 0.001f)
+    {
+      Set(image, offset);
+    }
+    else
+    {
+      ShiftScale(image, offset / scaling, scaling, useRound);
+    }
+  }
+
+
+  void ImageProcessing::ShiftScale2(ImageAccessor& target,
+                                    const ImageAccessor& source,
+                                    float offset,
+                                    float scaling,
+                                    bool useRound)
+  {
+    if (std::abs(scaling) < 0.0001f)
+    {
+      Set(target, offset);
+    }
+    else
+    {
+      ShiftScale(target, source, offset / scaling, scaling, useRound);
+    }
+  }
+
+
+
   void ImageProcessing::Invert(ImageAccessor& image, int64_t maxValue)
   {
     const unsigned int width = image.GetWidth();

@@ -143,6 +143,18 @@ namespace Orthanc
                            float scaling,
                            bool useRound);
 
+    // Computes "x * scaling + offset" inplace. "useRound" is expensive.
+    static void ShiftScale2(ImageAccessor& image,
+                            float offset,
+                            float scaling,
+                            bool useRound);
+
+    static void ShiftScale2(ImageAccessor& target,
+                            const ImageAccessor& source,
+                            float offset,
+                            float scaling,
+                            bool useRound);
+
     static void Invert(ImageAccessor& image);
 
     static void Invert(ImageAccessor& image, int64_t maxValue);
