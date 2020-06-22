@@ -393,7 +393,8 @@ namespace Orthanc
 
 
   // Computes "a * x + b" at each pixel => Note that this is not the
-  // same convention as in "ShiftScale()"
+  // same convention as in "ShiftScale()", but it is the convention of
+  // "ShiftScale2()"
   template <typename TargetType,
             typename SourceType,
             bool UseRound,
@@ -1375,15 +1376,14 @@ namespace Orthanc
   }
 
 
-  void ImageProcessing::ShiftScale(ImageAccessor& image,
-                                   float offset,
-                                   float scaling,
-                                   bool useRound)
+  void ImageProcessing::ShiftScale2(ImageAccessor& image,
+                                    float offset,
+                                    float scaling,
+                                    bool useRound)
   {
-    // Rewrite "(x + offset) * scaling" as "a * x + b"
-
+    // We compute "a * x + b"
     const float a = scaling;
-    const float b = offset * scaling;
+    const float b = offset;
     
     switch (image.GetFormat())
     {
@@ -1438,16 +1438,15 @@ namespace Orthanc
   }
 
 
-  void ImageProcessing::ShiftScale(ImageAccessor& target,
-                                   const ImageAccessor& source,
-                                   float offset,
-                                   float scaling,
-                                   bool useRound)
+  void ImageProcessing::ShiftScale2(ImageAccessor& target,
+                                    const ImageAccessor& source,
+                                    float offset,
+                                    float scaling,
+                                    bool useRound)
   {
-    // Rewrite "(x + offset) * scaling" as "a * x + b"
-
+    // We compute "a * x + b"
     const float a = scaling;
-    const float b = offset * scaling;
+    const float b = offset;
     
     switch (target.GetFormat())
     {
@@ -1476,6 +1475,34 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+  void ImageProcessing::ShiftScale(ImageAccessor& image,
+                                   float offset,
+                                   float scaling,
+                                   bool useRound)
+  {
+    // Rewrite "(x + offset) * scaling" as "a * x + b"
+
+    const float a = scaling;
+    const float b = offset * scaling;
+    ShiftScale2(image, b, a, useRound);
+  }
+
+
+  void ImageProcessing::ShiftScale(ImageAccessor& target,
+                                   const ImageAccessor& source,
+                                   float offset,
+                                   float scaling,
+                                   bool useRound)
+  {
+    // Rewrite "(x + offset) * scaling" as "a * x + b"
+
+    const float a = scaling;
+    const float b = offset * scaling;
+    ShiftScale2(target, source, b, a, useRound);
+  }
+
 
 
   void ImageProcessing::Invert(ImageAccessor& image, int64_t maxValue)
