@@ -2525,4 +2525,37 @@ namespace Orthanc
     FitSize(*target, source);
     return target.release();
   }
+
+    
+  ImageAccessor* ImageProcessing::FitSizeKeepAspectRatio(const ImageAccessor& source,
+                                                         unsigned int width,
+                                                         unsigned int height)
+  {
+    std::unique_ptr<ImageAccessor> target(new Image(source.GetFormat(), width, height, false));
+    Set(*target, 0);
+
+    if (width != 0 &&
+        height != 0 &&
+        source.GetWidth() != 0 &&
+        source.GetHeight() != 0)
+    {
+      float ratio = std::min(static_cast<float>(width) / static_cast<float>(source.GetWidth()),
+                             static_cast<float>(height) / static_cast<float>(source.GetHeight()));
+
+      unsigned int resizedWidth = static_cast<unsigned int>(
+        boost::math::iround(ratio * static_cast<float>(source.GetWidth())));
+
+      unsigned int resizedHeight = static_cast<unsigned int>(
+        boost::math::iround(ratio * static_cast<float>(source.GetHeight())));
+
+      std::unique_ptr<ImageAccessor> resized(FitSize(source, resizedWidth, resizedHeight));
+
+      ImageAccessor region;
+      target->GetRegion(region, (width - resizedWidth) / 2,
+                        (height - resizedHeight) / 2, resizedWidth, resizedHeight);
+      Copy(region, *resized);
+    }
+
+    return target.release();
+  }
 }

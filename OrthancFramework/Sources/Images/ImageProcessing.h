@@ -204,10 +204,17 @@ namespace Orthanc
 
     static void FitSize(ImageAccessor& target,
                         const ImageAccessor& source);
-    
+
+    // Resize the image to the given width/height. The resized image
+    // occupies the entire canvas (aspect ratio is not preserved).
     static ImageAccessor* FitSize(const ImageAccessor& source,
                                   unsigned int width,
                                   unsigned int height);
+
+    // Resize an image, but keeps its original aspect ratio. Zeros are
+    // added around the image to reach the specified size.
+    static ImageAccessor* FitSizeKeepAspectRatio(const ImageAccessor& source,
+                                                 unsigned int width,
+                                                 unsigned int height);
   };
 }
-
