@@ -10,6 +10,11 @@ Plugins
 * New functions in the SDK:
   - new "changes": JobSubmitted, JobSuccess, JobFailure
 
+Maintenance
+-----------
+
+* Issue #182: Better handling of errors in plugins reading chunked HTTP body
+
 
 Version 1.7.1 (2020-05-27)
 ==========================
