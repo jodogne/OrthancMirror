@@ -5131,14 +5131,14 @@ namespace Orthanc
         OrthancPluginErrorCode errorCode = handler(
           &reader, matcher.GetFlatUri().c_str(), &converter.GetRequest());
     
-        if (reader == NULL)
+        if (errorCode != OrthancPluginErrorCode_Success)
+        {
+          throw OrthancException(static_cast<ErrorCode>(errorCode));
+        }
+        else if (reader == NULL)
         {
           // The plugin has not created a reader for chunked body
           return false;
-        }
-        else if (errorCode != OrthancPluginErrorCode_Success)
-        {
-          throw OrthancException(static_cast<ErrorCode>(errorCode));
         }
         else
         {
