@@ -13,7 +13,8 @@ Plugins
 Maintenance
 -----------
 
-* Issue #182: Better handling of errors in plugins reading chunked HTTP body
+* Issue #182: Better reporting of errors in plugins reading chunked HTTP body
+* Fix issue #183 (C-ECHO always fails in Orthanc Explorer, regression from 1.6.1 to 1.7.0)
 
 
 Version 1.7.1 (2020-05-27)

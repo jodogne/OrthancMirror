@@ -55,6 +55,7 @@ $('#qr-echo').live('click', function() {
 
   $.ajax({
     url: '../modalities/' + server + '/echo',
+    data: '{}',  // Fix for issue #183 (regression from Orthanc 1.6.1 to 1.7.0)
     type: 'POST', 
     cache: false,
     async: false,
