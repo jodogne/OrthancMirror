@@ -62,7 +62,15 @@ for studyId in RestToolbox.DoGet('%s/studies' % URL):
     study = RestToolbox.DoGet('%s/studies/%s' % (URL, studyId))['MainDicomTags']
 
     # Retrieve the DICOM tags of the parent patient of this study
+
+    # Case 1: Baseline version
     patient = RestToolbox.DoGet('%s/studies/%s/patient' % (URL, studyId))['MainDicomTags']
+
+    # Case 2: Tweaked version that can be used if several patients
+    # share the same "Patient ID", but have different "Patient Name"
+    # (which is invalid according to the DICOM standard).
+    # https://groups.google.com/d/msg/orthanc-users/58AxIkxFbZs/N6Knub8MAgAJ
+    # patient = RestToolbox.DoGet('%s/studies/%s' % (URL, studyId)) ['PatientMainDicomTags']
 
     # Check that the StudyDate tag lies within the given range
     studyDate = study['StudyDate'][:8]
