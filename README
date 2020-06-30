@@ -71,31 +71,33 @@ Licensing of special directories
 
 The following directories have separate licensing terms:
 
-* The file of the "Core/SQLite/" directory are licensed under the
-  3-clause BSD license, as they are derived from the Chromium project.
+* The files of the "OrthancFramework/Sources/SQLite/" directory are
+  licensed under the 3-clause BSD license, as they are derived from
+  the Chromium project.
 
 
 Content
 -------
 
-This archive contains the following directories:
+This archive contains the following important directories:
 
-* Core/               - The core C++ classes (independent of DCMTK)
-* OrthancExplorer/    - Code of the Web application (HTML5/Javascript)
-* OrthancServer/      - Code of the Orthanc server (depends on DCMTK)
-* Plugins/            - Code of the plugin framework
-* Resources/          - Scripts, resources for building third-party code
-* UnitTestsSources/   - Unit tests
+* OrthancFramework/Sources/          - The sources of the Orthanc framework
+* OrthancFramework/UnitTestsSources/ - Unit tests of the Orthanc framework
+* OrthancServer/OrthancExplorer/     - Code of the Orthanc Explorer (HTML5/Javascript)
+* OrthancServer/Plugins/             - Code of the plugin framework
+* OrthancServer/Resources/Samples/   - Samples
+* OrthancServer/Sources/             - Code of the Orthanc server (depends on DCMTK)
+* OrthancServer/UnitTestsSources/    - Unit tests of the Orthanc server
 
-This archive contains the following files:
+This archive contains the following important files:
 
-* AUTHORS             - The list of the authors
-* CMakeLists.txt      - The main build script
-* COPYING             - The GPLv3 license
-* INSTALL             - How to build Orthanc
-* README              - This file
-* THANKS              - The list of the contributors
-* NEWS                - The history of main changes between versions
+* AUTHORS                       - The list of the authors
+* INSTALL                       - How to build Orthanc
+* NEWS                          - The history of main changes between versions
+* OrthancFramework/COPYING      - The GPLv3 license
+* OrthancServer/CMakeLists.txt  - The main build script of the Orthanc server
+* OrthancServer/COPYING         - The GPLv3 license
+* README                        - This file
 
 We have decided not to maintain a separate "ChangeLog" file. Each
 commit to the official Orthanc Mercurial repository should be

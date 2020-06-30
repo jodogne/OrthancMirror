@@ -19,18 +19,18 @@ package for libuuid ("uuid-dev" in Debian) are installed.
 
 We now make the assumption that Orthanc source code is placed in the
 folder "~/Orthanc" and that the binaries will be compiled to
-"~/OrthancBuild". To build binaries with debug information:
+"~/Orthanc/Build". To build binaries with debug information:
 
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cd ./Build
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ../OrthancServer/
 # make
 # make doc
 
 
 To build a release version:
 
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ~/Orthanc
+# cd ./Build
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ../OrthancServer/
 # make
 # make doc
 
@@ -41,7 +41,7 @@ Internet.
 
 Note 2- If the development package of libuuid was not installed when
 first invoking cmake, you will have to manually remove the build
-directory ("rm -rf ~/OrthancBuild") after installing this package,
+directory ("rm -rf ~/Orthanc/Build") after installing this package,
 then run cmake again.
 
 Note 3- To build the documentation, you will have to install doxygen.
@@ -56,8 +56,8 @@ libraries of your system (the "STATIC_BUILD" option is set to
 when building packages for GNU/Linux distributions. Because using
 system libraries is the default behavior, you just have to use:
 
-# cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cd ./Build
+# cmake -DCMAKE_BUILD_TYPE=Debug ../OrthancServer
 # make
 
 Note that to build the documentation, you will have to install doxygen.
@@ -89,7 +89,8 @@ SUPPORTED - Debian Jessie/Sid
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
+	../OrthancServer/
+# make
 
 Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
@@ -111,7 +112,7 @@ SUPPORTED - Ubuntu 14.04 LTS
         -DUSE_SYSTEM_LUA=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+        ../OrthancServer/
 # make
 
 
@@ -129,7 +130,7 @@ SUPPORTED - Ubuntu 16.04 LTS
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+        ../OrthancServer/
 # make
 
 
@@ -142,7 +143,7 @@ NB: Instructions to use clang and ninja:
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+        ../OrthancServer/
 # ninja
 
 
@@ -160,7 +161,7 @@ SUPPORTED - Ubuntu 18.04 LTS
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+        ../OrthancServer/
 # make
 
 
@@ -187,7 +188,8 @@ You will also have to install "gflags-devel" on Fedora 21&22:
          -DENABLE_CIVETWEB=OFF \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
          -DCMAKE_BUILD_TYPE=Release \
-         ~/Orthanc
+         ../OrthancServer/
+# make
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
@@ -204,7 +206,8 @@ SUPPORTED - FreeBSD 10.1
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
         -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
+	../OrthancServer/
+# make
 
 
 
@@ -247,4 +250,4 @@ dramatically decrease the compilation time when rebuilding
 Orthanc. This is especially useful for developers. To this end, you
 would use:
 
-# CC="ccache gcc" CXX="ccache g++" cmake ~/Orthanc [Other Options]
+# CC="ccache gcc" CXX="ccache g++" cmake ../OrthancServer/ [Other Options]
