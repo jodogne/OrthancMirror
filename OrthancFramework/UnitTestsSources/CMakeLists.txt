@@ -5,7 +5,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(UnitTestsProject)
 
-SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
+set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
+set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
+set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
+set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+set(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
@@ -22,6 +27,8 @@ endif()
   
 set(ENABLE_GOOGLE_TEST ON)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/DownloadOrthancFramework.cmake)
+include(${CMAKE_SOURCE_DIR}/../Resources/CMake/GoogleTestConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/../Resources/CMake/JsonCppConfiguration.cmake)
 
 add_definitions(
   -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1
