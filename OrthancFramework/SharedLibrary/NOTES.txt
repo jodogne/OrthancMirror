@@ -1,0 +1,50 @@
+
+
+NB: CMake option "ORTHANC_INSTALL_DIR" can be used to specify an
+installation directory (to be used with "ninja install").
+
+
+Dynamic linking under Ubuntu 18.04
+==================================
+
+$ cd i
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DALLOW_DOWNLOADS=ON \
+           -DUSE_SYSTEM_CIVETWEB=OFF -DUSE_SYSTEM_GOOGLE_TEST=OFF -G Ninja
+$ ninja -j4
+$ ./UnitTests
+
+
+
+Static linking under GNU/Linux
+==============================
+
+$ cd s
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -G Ninja
+$ ninja -j4
+$ ./UnitTests
+
+
+
+Cross-compilation to Windows 32 (using MinGW)
+===============================
+
+$ cd w32
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DSTATIC_BUILD=ON -DUSE_LEGACY_LIBICU=ON -G Ninja \
+        -DCMAKE_TOOLCHAIN_FILE=/home/jodogne/Subversion/orthanc/Resources/MinGW-W64-Toolchain32.cmake
+$ ninja -j4
+
+$ cp /usr/i686-w64-mingw32/lib/libwinpthread-1.dll .
+$ cp /usr/lib/gcc/i686-w64-mingw32/7.3-win32/libgcc_s_sjlj-1.dll .
+$ wine ./UnitTests.exe
+
+
+
+WebAssembly (for the "upstream" version of emscripten)
+===========
+
+$ cd wasm
+$ source ~/Downloads/emsdk/emsdk_env.sh
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DALLOW_DOWNLOADS=ON -G Ninja \
+        -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+$ ninja -j4
+
