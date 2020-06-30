@@ -382,37 +382,134 @@ namespace Orthanc
         assert(dicomAsJson != NULL);
         const Json::Value& source = (*dicomAsJson) [tag->Format()];
 
-        if (source.type() == Json::objectValue &&
+        // the options below were introduced during an investigation with Zeiss Cirrus software
+        // in order to reproduce exactly the same "weird" answers as a Zeiss server.
+        // Of course, this code should not remain as is.  The Zeiss Cirrus Patch
+        // shall be implemented in a "lua callback" that would modify the response before it is sent.
+        // Note that, during these investigations, DefaultEncoding was set to "Utf8" and
+        // this line was modified in dimse.cc (DCMTK):
+        // E_EncodingType sequenceType_encoding = EET_UndefinedLength; //   g_dimse_send_sequenceType_encoding;
+        // and the following dictionnary was declared:
+        // "Dictionary" : { 
+	      //   "0407,10a1" : ["SQ", "OCT Cube Sequence", 1,1,"99CZM_CapeCod_OctGeneral" ], 
+        //   "0407,1005" : ["SQ", "OCT Cube Sequence2", 1, 1, "99CZM_CapeCod_OctGeneral" ], 
+        //   "0407,0010" : ["LO", "OCT Cube Sequence3", 1, 1, "99CZM_CapeCod_OctGeneral" ],
+        //   "0407,1001" : ["US", "Undefined Private Tag 1001", 1, 1, "99CZM_CapeCod_OctGeneral" ], 
+        //   "0407,1002" : ["US", "Undefined Private Tag 1002", 1, 1, "99CZM_CapeCod_OctGeneral" ], 
+        //   "0407,1003" : ["US", "Undefined Private Tag 1003", 1, 1, "99CZM_CapeCod_OctGeneral" ], 
+        //   "0405,1001" : ["SH", "PatternType", 1, 1, "99CZM_CapeCod_OctSettings" ],
+        //   "0405,101a" : ["FL", "SignalStrength", 1, 1, "99CZM_CapeCod_OctSettings" ]
+        // }
+        bool addEmptySequences = false;   // this could go into a "Manufacturer" option
+        bool zeissCirrusMinimumPatch = true; // investigations we tried and that are necessary for Cirrus to accept the response
+        if (zeissCirrusMinimumPatch)
+        {
+          addEmptySequences = true;
+        }
+        bool zeissCirrusMaximumPatch = false; // investigations we tried but that finally do not seem necessary for Cirrus to accept the response (but that are required to get the same response as the Zeiss Server)
+
+        if ((source.type() == Json::objectValue &&
             source.isMember("Type") &&
             source.isMember("Value") &&
             source["Type"].asString() == "Sequence" &&
-            source["Value"].type() == Json::arrayValue)
+            source["Value"].type() == Json::arrayValue) ||
+            (addEmptySequences && source.type() == Json::nullValue))
         {
           Json::Value content = Json::arrayValue;
+          bool replace = true;
 
-          for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
+          if (source.type() == Json::objectValue)
           {
-            Json::Value item;
-            ServerToolbox::SimplifyTags(item, source["Value"][i], DicomToJsonFormat_Short);
-            content.append(item);
-          }
-
-          if (tag->IsPrivate())
-          {
-            std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag->GetGroup());
-            
-            if (found != privateCreators.end())
+            for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
             {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
-            }
-            else
-            {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+              Json::Value item;
+              ServerToolbox::SimplifyTags(item, source["Value"][i], DicomToJsonFormat_Short);
+              content.append(item);
             }
           }
           else
           {
-            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
+            LOG(INFO) << "inserting empty sequence for " << tag->Format();
+
+            DcmDataset& dataset = *dicom.GetDcmtkObject().getDataset();
+
+            {
+              std::unique_ptr<DcmSequenceOfItems> sequence;
+
+              if (zeissCirrusMinimumPatch && tag->GetGroup() == 1031 && tag->GetElement() == 4257)
+              {
+                sequence.reset(new DcmSequenceOfItems(DcmTag(tag->GetGroup(), tag->GetElement(), "99CZM_CapeCod_OctGeneral")));
+
+                LOG(INFO) << "inserting first 4 empty elements into " << tag->Format();
+                std::unique_ptr<DcmItem> item(new DcmItem(DcmTag(0xfffe, 0xe000)));
+                bool ok = false;
+                ok = item->putAndInsertString(DcmTag(0x0407, 0x0010), "99CZM_CapeCod_OctGeneral").good();
+                ok = item->insertEmptyElement(DcmTag(0x0407, 0x1001, "99CZM_CapeCod_OctGeneral")).good();
+                ok = item->insertEmptyElement(DcmTag(0x0407, 0x1002, "99CZM_CapeCod_OctGeneral")).good();
+                ok = item->insertEmptyElement(DcmTag(0x0407, 0x1003, "99CZM_CapeCod_OctGeneral")).good();
+                ok = sequence->insert(item.release(), false, false).good();
+                // LOG(INFO) << ok;
+              }
+              else
+              {
+                sequence.reset(new DcmSequenceOfItems(DcmTagKey(tag->GetGroup(), tag->GetElement())));
+                std::unique_ptr<DcmItem> item;
+                if (zeissCirrusMaximumPatch)
+                {
+                  item.reset(new DcmItem(DcmTag(0xfffe, 0xe000)));
+                }
+                else
+                {
+                  item.reset(new DcmItem);
+                }
+                bool ok = sequence->insert(item.release(), false, false).good();
+                // LOG(INFO) << ok;
+              }
+
+              bool ok3 = dataset.insert(sequence.release(), false, false).good();
+              replace = false;
+              // LOG(INFO) << ok3;
+            }
+          }
+
+          if (zeissCirrusMaximumPatch && tag->GetGroup() == 1031 && tag->GetElement() == 4257 && content.size() > 0 && content[0].size() >= 4)
+          {
+            LOG(INFO) << "keeping only the first elements from " << tag->Format();
+            Json::Value cloneContent = Json::Value();
+
+            Json::Value::Members members = content[0].getMemberNames();
+            for (size_t i = 0; i < members.size(); i++)
+            {
+              const std::string& member = members[i];
+              cloneContent[0][member] = content[0][member];
+              Json::Value& v = cloneContent[0][member];
+              if (i == 3)
+              {
+                break;
+              }
+            }
+            content = cloneContent;
+          }
+
+          if (replace)
+          {
+            if (tag->IsPrivate())
+            {
+              std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag->GetGroup());
+
+              if (found != privateCreators.end())
+              {
+                dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
+              }
+              else
+              {
+                dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+              }
+            }
+            else
+            {
+              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
+            }
           }
         }
       }
