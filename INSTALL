@@ -36,12 +36,12 @@ To build Orthanc, you must:
    directory is "~/Orthanc".
 
 2) Create a build directory. For the examples below, we assume the
-   build directory is "~/OrthancBuild".
+   build directory is "~/Orthanc/Build".
 
 3) Depending on your platform, follow the build instructions below.
 
 
-WARNING 1: If you do not create a fresh "~/OrthancBuild" directory
+WARNING 1: If you do not create a fresh "~/Orthanc/Build" directory
 after upgrading the source code (i.e. if you reuse the build directory
 that was used to build a different version of Orthanc), the build
 might fail because of changes in the compilation/linking flags. Always
@@ -74,11 +74,11 @@ See the file "DarwinCompilation.txt".
 Native Windows build with Microsoft Visual Studio 2008
 ------------------------------------------------------
 
-# cd [...]\OrthancBuild
+# cd [...]\Orthanc\Build
 # cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON \
-  -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\Orthanc
+  -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\OrthancServer
 
-Then open the "[...]/OrthancBuild/Orthanc.sln" with Visual Studio.
+Then open the "[...]\Orthanc\Build\Orthanc.sln" with Visual Studio.
 
 NOTES:
 * More recent versions of Visual Studio than 2008 should also
@@ -107,37 +107,40 @@ Native Windows build with Microsoft Visual Studio 2015, Ninja and QtCreator
 
 Open a Visual Studio 2015 x64 Command Prompt.
 
-# cd [...]\OrthancBuild
-# cmake -G Ninja -DSTATIC_BUILD=ON [...]\Orthanc
+# cd [...]\Orthanc\Build
+# cmake -G Ninja -DSTATIC_BUILD=ON [...]\OrthancServer
 # ninja
 
 Then, you can open an existing project in QtCreator:
-* Select the CMakeLists.txt in [...]\Orthanc
-* Import build from [...]\OrthancBuild
+* Select the CMakeLists.txt in [...]\OrthancServer
+* Import build from [...]\Build
 
 
 Instructions to include support for Asian encodings:
 
-# cmake -G Ninja -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu [...]\Orthanc
+# cmake -G Ninja -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu [...]\OrthancServer
 
 The option "-T host=x64" is necessary to prevent error "C1060:
 compiler is out of heap space" when compiling Orthanc with ICU.
 
+
 Native 64-bit Windows build with Microsoft Visual Studio 2017 (msbuild)
 -----------------------------------------------------------------------
-# cd [...]\OrthancBuild
-# cmake -G "Visual Studio 15 2017 Win64" -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+# cd [...]\Build
+# cmake -G "Visual Studio 15 2017 Win64" -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\OrthancServer
 
 Instructions to include support for Asian encodings:
-# cmake -G "Visual Studio 15 2017 Win64" -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+# cmake -G "Visual Studio 15 2017 Win64" -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\OrthancServer
+
 
 Native 64-bit Windows build with Microsoft Visual Studio 2019 (msbuild)
 -----------------------------------------------------------------------
-# cd [...]\OrthancBuild
-# cmake -G "Visual Studio 16 2019" -A x64 -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+# cd [...]\Build
+# cmake -G "Visual Studio 16 2019" -A x64 -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\OrthancServer
 
 Instructions to include support for Asian encodings:
-# cmake -G "Visual Studio 16 2019" -A x64 -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\Orthanc
+# cmake -G "Visual Studio 16 2019" -A x64 -T host=x64 -DSTATIC_BUILD=ON -DBOOST_LOCALE_BACKEND=icu -DMSVC_MULTIPLE_PROCESSES=ON -DSTATIC_BUILD=ON -DOPENSSL_NO_CAPIENG=ON -DALLOW_DOWNLOADS=ON [...]\OrthancServer
+
 
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------
@@ -146,8 +149,8 @@ Some versions of MinGW-W64 might have problems with C++11 (notably
 those shipped in Ubuntu 16.04 LTS, in the "mingw-w64" package). Use
 the following command to disable C++11:
 
-# cd ~/OrthancBuild
-# cmake ~/Orthanc \
+# cd ~/Orthanc/Build
+# cmake ../OrthancServer \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake \
         -DSTANDALONE_BUILD=ON \
@@ -165,8 +168,8 @@ in the "mingw32" package) are incompatible with DCMTK 3.6.2 and
 C++11. Use the following command to force using DCMTK 3.6.0 and
 disable C++11:
 
-# cd ~/OrthancBuild
-# cmake ~/Orthanc \
+# cd ~/Orthanc/Build
+# cmake ../OrthancServer \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake \
         -DSTANDALONE_BUILD=ON \

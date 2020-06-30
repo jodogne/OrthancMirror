@@ -21,14 +21,14 @@ Prerequisites
 
 3) It is assumed that Orthanc source code is placed in the folder
    "~/Orthanc" and that the binaries will be compiled to
-   "~/OrthancBuild".
+   "~/Orthanc/Build".
 
 
 Prepare the build with CMake
 ----------------------------
 
-# cd ~/OrthancBuild
-# cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON ~/Orthanc
+# cd ./Build
+# cmake -GXcode -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON ../OrthancServer
 
 NB: Adapt the value of "CMAKE_OSX_DEPLOYMENT_TARGET" with respect to
 your version of OS X. This version can obtained by typing:
@@ -42,7 +42,7 @@ Build the Debug version of Orthanc
 # xcodebuild
 # ./Debug/UnitTests
 
-The binaries of Orthanc are located at "~/OrthancBuild/Debug/Orthanc".
+The binaries of Orthanc are located at "~/Orthanc/Build/Debug/Orthanc".
 
 
 Build the Release version of Orthanc
@@ -51,4 +51,4 @@ Build the Release version of Orthanc
 # xcodebuild -configuration Release
 # ./Release/UnitTests
 
-The binaries of Orthanc are located at "~/OrthancBuild/Release/Orthanc".
+The binaries of Orthanc are located at "~/Orthanc/Build/Release/Orthanc".

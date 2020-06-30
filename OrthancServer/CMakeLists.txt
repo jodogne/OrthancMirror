@@ -7,7 +7,7 @@ project(Orthanc)
 ## Generic parameters of the Orthanc framework
 #####################################################################
 
-include(${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
+include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
 
 # Enable all the optional components of the Orthanc framework
 set(ENABLE_CRYPTO_OPTIONS ON)
@@ -46,8 +46,8 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 ## Configuration of the Orthanc framework
 #####################################################################
 
-include(${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
-include(${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
+include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
 
 #####################################################################
@@ -55,109 +55,109 @@ include(${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/CMake/OrthancFrameworkCon
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
-  OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp
-  OrthancServer/Sources/Database/Compatibility/ICreateInstance.cpp
-  OrthancServer/Sources/Database/Compatibility/IGetChildrenMetadata.cpp
-  OrthancServer/Sources/Database/Compatibility/ILookupResourceAndParent.cpp
-  OrthancServer/Sources/Database/Compatibility/ILookupResources.cpp
-  OrthancServer/Sources/Database/Compatibility/SetOfResources.cpp
-  OrthancServer/Sources/Database/ResourcesContent.cpp
-  OrthancServer/Sources/Database/SQLiteDatabaseWrapper.cpp
-  OrthancServer/Sources/DicomInstanceOrigin.cpp
-  OrthancServer/Sources/DicomInstanceToStore.cpp
-  OrthancServer/Sources/EmbeddedResourceHttpHandler.cpp
-  OrthancServer/Sources/ExportedResource.cpp
-  OrthancServer/Sources/LuaScripting.cpp
-  OrthancServer/Sources/OrthancConfiguration.cpp
-  OrthancServer/Sources/OrthancFindRequestHandler.cpp
-  OrthancServer/Sources/OrthancGetRequestHandler.cpp
-  OrthancServer/Sources/OrthancHttpHandler.cpp
-  OrthancServer/Sources/OrthancInitialization.cpp
-  OrthancServer/Sources/OrthancMoveRequestHandler.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestAnonymizeModify.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestApi.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestArchive.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestChanges.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestResources.cpp
-  OrthancServer/Sources/OrthancRestApi/OrthancRestSystem.cpp
-  OrthancServer/Sources/QueryRetrieveHandler.cpp
-  OrthancServer/Sources/Search/DatabaseConstraint.cpp
-  OrthancServer/Sources/Search/DatabaseLookup.cpp
-  OrthancServer/Sources/Search/DicomTagConstraint.cpp
-  OrthancServer/Sources/Search/HierarchicalMatcher.cpp
-  OrthancServer/Sources/Search/ISqlLookupFormatter.cpp
-  OrthancServer/Sources/ServerContext.cpp
-  OrthancServer/Sources/ServerEnumerations.cpp
-  OrthancServer/Sources/ServerIndex.cpp
-  OrthancServer/Sources/ServerJobs/ArchiveJob.cpp
-  OrthancServer/Sources/ServerJobs/CleaningInstancesJob.cpp
-  OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp
-  OrthancServer/Sources/ServerJobs/DicomMoveScuJob.cpp
-  OrthancServer/Sources/ServerJobs/LuaJobManager.cpp
-  OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp
-  OrthancServer/Sources/ServerJobs/Operations/DeleteResourceOperation.cpp
-  OrthancServer/Sources/ServerJobs/Operations/DicomInstanceOperationValue.cpp
-  OrthancServer/Sources/ServerJobs/Operations/ModifyInstanceOperation.cpp
-  OrthancServer/Sources/ServerJobs/Operations/StorePeerOperation.cpp
-  OrthancServer/Sources/ServerJobs/Operations/StoreScuOperation.cpp
-  OrthancServer/Sources/ServerJobs/Operations/SystemCallOperation.cpp
-  OrthancServer/Sources/ServerJobs/OrthancJobUnserializer.cpp
-  OrthancServer/Sources/ServerJobs/OrthancPeerStoreJob.cpp
-  OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp
-  OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp
-  OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp
-  OrthancServer/Sources/ServerToolbox.cpp
-  OrthancServer/Sources/SliceOrdering.cpp
-  OrthancServer/Sources/StorageCommitmentReports.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/DatabaseLookup.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ICreateInstance.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/IGetChildrenMetadata.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ILookupResourceAndParent.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ILookupResources.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/SetOfResources.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/ResourcesContent.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceOrigin.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceToStore.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/EmbeddedResourceHttpHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ExportedResource.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/LuaScripting.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancConfiguration.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancFindRequestHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancGetRequestHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancHttpHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancInitialization.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancMoveRequestHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestAnonymizeModify.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestApi.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestArchive.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestChanges.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestModalities.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestResources.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/OrthancRestApi/OrthancRestSystem.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/QueryRetrieveHandler.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseConstraint.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseLookup.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DicomTagConstraint.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/HierarchicalMatcher.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/ISqlLookupFormatter.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerContext.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerEnumerations.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerIndex.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ArchiveJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/CleaningInstancesJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomMoveScuJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/LuaJobManager.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/MergeStudyJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/DeleteResourceOperation.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/DicomInstanceOperationValue.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/ModifyInstanceOperation.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/StorePeerOperation.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/StoreScuOperation.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/Operations/SystemCallOperation.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/OrthancJobUnserializer.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/OrthancPeerStoreJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ResourceModificationJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/SplitStudyJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/SliceOrdering.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/StorageCommitmentReports.cpp
   )
 
 
 set(ORTHANC_FRAMEWORK_UNIT_TESTS
-  OrthancFramework/UnitTestsSources/DicomMapTests.cpp
-  OrthancFramework/UnitTestsSources/FileStorageTests.cpp
-  OrthancFramework/UnitTestsSources/FrameworkTests.cpp
-  OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
-  OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
-  OrthancFramework/UnitTestsSources/ImageTests.cpp
-  OrthancFramework/UnitTestsSources/JobsTests.cpp
-  OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
-  OrthancFramework/UnitTestsSources/LoggingTests.cpp
-  OrthancFramework/UnitTestsSources/LuaTests.cpp
-  OrthancFramework/UnitTestsSources/MemoryCacheTests.cpp
-  OrthancFramework/UnitTestsSources/RestApiTests.cpp
-  OrthancFramework/UnitTestsSources/SQLiteChromiumTests.cpp
-  OrthancFramework/UnitTestsSources/SQLiteTests.cpp
-  OrthancFramework/UnitTestsSources/StreamTests.cpp
-  OrthancFramework/UnitTestsSources/ToolboxTests.cpp
-  OrthancFramework/UnitTestsSources/ZipTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FileStorageTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FrameworkTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JobsTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LoggingTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LuaTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/MemoryCacheTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/RestApiTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteChromiumTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/StreamTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ToolboxTests.cpp
+  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ZipTests.cpp
   )
 
 set(ORTHANC_SERVER_UNIT_TESTS
-  OrthancServer/UnitTestsSources/DatabaseLookupTests.cpp
-  OrthancServer/UnitTestsSources/LuaServerTests.cpp
-  OrthancServer/UnitTestsSources/PluginsTests.cpp
-  OrthancServer/UnitTestsSources/ServerIndexTests.cpp
-  OrthancServer/UnitTestsSources/ServerJobsTests.cpp
-  OrthancServer/UnitTestsSources/UnitTestsMain.cpp
-  OrthancServer/UnitTestsSources/VersionsTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/DatabaseLookupTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/LuaServerTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/UnitTestsMain.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/VersionsTests.cpp
   )
 
 
 if (ENABLE_PLUGINS)
-  include_directories(${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Include)
+  include_directories(${CMAKE_SOURCE_DIR}/Plugins/Include)
 
   list(APPEND ORTHANC_SERVER_SOURCES
-    OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp
-    OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-    OrthancServer/Plugins/Engine/PluginsEnumerations.cpp
-    OrthancServer/Plugins/Engine/PluginsErrorDictionary.cpp
-    OrthancServer/Plugins/Engine/PluginsJob.cpp
-    OrthancServer/Plugins/Engine/PluginsManager.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabase.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPlugins.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsEnumerations.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsErrorDictionary.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsJob.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsManager.cpp
     )
 
   list(APPEND ORTHANC_SERVER_UNIT_TESTS
-    OrthancServer/UnitTestsSources/PluginsTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
     )
 endif()
 
@@ -173,10 +173,10 @@ if (CMAKE_COMPILER_IS_GNUCXX
     ${ORTHANC_SERVER_SOURCES}
     ${ORTHANC_FRAMEWORK_UNIT_TESTS}
     ${ORTHANC_SERVER_UNIT_TESTS}
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Samples/ModalityWorklists/Plugin.cpp
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Samples/ServeFolders/Plugin.cpp
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Sources/EmbeddedResourceHttpHandler.cpp
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Sources/main.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ModalityWorklists/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Sources/EmbeddedResourceHttpHandler.cpp
+    ${CMAKE_SOURCE_DIR}/Sources/main.cpp
     )
 
   set_source_files_properties(${ORTHANC_ALL_SOURCES}
@@ -190,16 +190,16 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  CONFIGURATION_SAMPLE         ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Resources/Configuration.json
-  DICOM_CONFORMANCE_STATEMENT  ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Resources/DicomConformanceStatement.txt
-  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_CURRENT_SOURCE_DIR}/OrthancFramework/Resources/Fonts/UbuntuMonoBold-16.json
-  LUA_TOOLBOX                  ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Resources/Toolbox.lua
-  PREPARE_DATABASE             ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Sources/Database/PrepareDatabase.sql
-  UPGRADE_DATABASE_3_TO_4      ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Sources/Database/Upgrade3To4.sql
-  UPGRADE_DATABASE_4_TO_5      ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Sources/Database/Upgrade4To5.sql
+  CONFIGURATION_SAMPLE         ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
+  DICOM_CONFORMANCE_STATEMENT  ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/Fonts/UbuntuMonoBold-16.json
+  LUA_TOOLBOX                  ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
+  PREPARE_DATABASE             ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
+  UPGRADE_DATABASE_4_TO_5      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
 
   INSTALL_TRACK_ATTACHMENTS_SIZE
-  ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/Sources/Database/InstallTrackAttachmentsSize.sql
+  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
   )
 
 if (STANDALONE_BUILD)
@@ -209,7 +209,7 @@ if (STANDALONE_BUILD)
     )
 
   list(APPEND ORTHANC_EMBEDDED_FILES
-    ORTHANC_EXPLORER ${CMAKE_CURRENT_SOURCE_DIR}/OrthancServer/OrthancExplorer
+    ORTHANC_EXPLORER ${CMAKE_SOURCE_DIR}/OrthancExplorer
     )
 else()
   add_definitions(
@@ -221,7 +221,7 @@ endif()
 EmbedResources(
   --namespace=Orthanc.ServerResources
   --target=OrthancServerResources
-  --framework-path=${CMAKE_SOURCE_DIR}/OrthancFramework/Sources
+  --framework-path=${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources
   ${ORTHANC_EMBEDDED_FILES}
   )
 
@@ -229,7 +229,7 @@ EmbedResources(
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   execute_process(
     COMMAND 
-    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/WindowsResources.py
+    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
     ${ORTHANC_VERSION} Orthanc Orthanc.exe "Lightweight, RESTful DICOM server for medical imaging"
     ERROR_VARIABLE Failure
     OUTPUT_FILE ${AUTOGENERATED_DIR}/Orthanc.rc
@@ -294,15 +294,15 @@ if (MSVC)
     )
   
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeaders.h" "OrthancFramework/Sources/PrecompiledHeaders.cpp"
+    "PrecompiledHeaders.h" "${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/PrecompiledHeaders.cpp"
     TMP ORTHANC_CORE_PCH)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeadersServer.h" "OrthancServer/Sources/PrecompiledHeadersServer.cpp"
+    "PrecompiledHeadersServer.h" "${CMAKE_SOURCE_DIR}/Sources/PrecompiledHeadersServer.cpp"
     ORTHANC_SERVER_SOURCES ORTHANC_SERVER_PCH)
 
   ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeadersUnitTests.h" "OrthancServer/UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
+    "PrecompiledHeadersUnitTests.h" "${CMAKE_SOURCE_DIR}/UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
     ORTHANC_SERVER_UNIT_TESTS ORTHANC_UNIT_TESTS_PCH)
 endif()
 
@@ -341,7 +341,7 @@ add_library(ServerLibrary
 add_dependencies(ServerLibrary CoreLibrary)
 
 add_executable(Orthanc
-  OrthancServer/Sources/main.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/main.cpp
   ${ORTHANC_RESOURCES}
   )
 
@@ -384,7 +384,7 @@ if (ENABLE_PLUGINS AND
     ${JSONCPP_SOURCES}
     ${LIBICONV_SOURCES}
     ${LIBICU_SOURCES}
-    OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
+    Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     )
 
   if (LIBICU_LIBRARIES)
@@ -408,7 +408,7 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     execute_process(
       COMMAND 
-      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/WindowsResources.py
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
       ${ORTHANC_VERSION} ServeFolders ServeFolders.dll "Orthanc plugin to serve additional folders"
       ERROR_VARIABLE Failure
       OUTPUT_FILE ${AUTOGENERATED_DIR}/ServeFolders.rc
@@ -422,7 +422,7 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
   endif()  
 
   add_library(ServeFolders SHARED 
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Samples/ServeFolders/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/Plugin.cpp
     ${SERVE_FOLDERS_RESOURCES}
     )
 
@@ -451,7 +451,7 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     execute_process(
       COMMAND 
-      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/WindowsResources.py
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
       ${ORTHANC_VERSION} ModalityWorklists ModalityWorklists.dll "Sample Orthanc plugin to serve modality worklists"
       ERROR_VARIABLE Failure
       OUTPUT_FILE ${AUTOGENERATED_DIR}/ModalityWorklists.rc
@@ -465,7 +465,7 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
   endif()
 
   add_library(ModalityWorklists SHARED 
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Samples/ModalityWorklists/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ModalityWorklists/Plugin.cpp
     ${MODALITY_WORKLISTS_RESOURCES}
     )
 
@@ -509,7 +509,7 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
   endif()
 
   externalproject_add(ConnectivityChecks
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/OrthancServer/Plugins/Samples/ConnectivityChecks"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks"
 
     # We explicitly provide a build directory, in order to avoid paths
     # that are too long on our Visual Studio 2008 CIS
@@ -553,13 +553,13 @@ endif()
 
 if (BUILD_RECOVER_COMPRESSED_FILE)
   set(RECOVER_COMPRESSED_SOURCES
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Resources/Samples/Tools/RecoverCompressedFile.cpp
+    ${CMAKE_SOURCE_DIR}/Resources/Samples/Tools/RecoverCompressedFile.cpp
     )
 
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     execute_process(
       COMMAND 
-      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/OrthancFramework/Resources/WindowsResources.py
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
       ${ORTHANC_VERSION} OrthancRecoverCompressedFile OrthancRecoverCompressedFile.exe
       "Lightweight, RESTful DICOM server for medical imaging"
       ERROR_VARIABLE Failure
@@ -594,12 +594,12 @@ endif()
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
   configure_file(
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Resources/Orthanc.doxygen
+    ${CMAKE_SOURCE_DIR}/Resources/Orthanc.doxygen
     ${CMAKE_CURRENT_BINARY_DIR}/Orthanc.doxygen
     @ONLY)
 
   configure_file(
-    ${CMAKE_SOURCE_DIR}/OrthancServer/Resources/OrthancPlugin.doxygen
+    ${CMAKE_SOURCE_DIR}/Resources/OrthancPlugin.doxygen
     ${CMAKE_CURRENT_BINARY_DIR}/OrthancPlugin.doxygen
     @ONLY)
 
@@ -632,8 +632,8 @@ endif()
 if (ENABLE_PLUGINS)
   install(
     FILES
-    OrthancServer/Plugins/Include/orthanc/OrthancCPlugin.h 
-    OrthancServer/Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCPlugin.h 
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
     DESTINATION include/orthanc
     )
 endif()
@@ -646,7 +646,7 @@ endif()
 #####################################################################
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/OrthancFramework/Resources/CMake/Uninstall.cmake.in"
+    "${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/Uninstall.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
     IMMEDIATE @ONLY)
 
