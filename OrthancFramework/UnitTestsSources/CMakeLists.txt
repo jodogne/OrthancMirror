@@ -9,8 +9,6 @@ set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
-set(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
@@ -23,12 +21,15 @@ if (NOT ORTHANC_FRAMEWORK_STATIC)
   set(ENABLE_LUA ON)
   set(ENABLE_PUGIXML ON)
   set(ENABLE_SQLITE ON)
+
+  set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+else()
+  set(USE_SYSTEM_GOOGLE_TEST OFF CACHE INTERNAL "")
 endif()
   
 set(ENABLE_GOOGLE_TEST ON)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/DownloadOrthancFramework.cmake)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/GoogleTestConfiguration.cmake)
-include(${CMAKE_SOURCE_DIR}/../Resources/CMake/JsonCppConfiguration.cmake)
 
 add_definitions(
   -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1
@@ -60,9 +61,7 @@ add_executable(UnitTests
   ${GOOGLE_TEST_SOURCES}
   )
 
-target_link_libraries(UnitTests OrthancFramework)
-set_target_properties(UnitTests PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
-set_target_properties(UnitTests PROPERTIES INSTALL_RPATH ${ORTHANC_FRAMEWORK_LIBDIR})
+target_link_libraries(UnitTests ${ORTHANC_FRAMEWORK_LIBRARIES})
 
 install(TARGETS UnitTests
   DESTINATION ${ORTHANC_FRAMEWORK_LIBDIR}
