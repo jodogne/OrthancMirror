@@ -505,28 +505,36 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
       ${ORTHANC_FRAMEWORK_ROOT}
       )
   endif()
+
+  if (${ORTHANC_FRAMEWORK_INCLUDE_DIR} STREQUAL "ORTHANC_FRAMEWORK_INCLUDE_DIR-NOTFOUND")
+    message(FATAL_ERROR "Cannot locate the OrthancFramework.h header")
+  endif()
   
   message("Orthanc framework include dir: ${ORTHANC_FRAMEWORK_INCLUDE_DIR}")
   include_directories(${ORTHANC_FRAMEWORK_INCLUDE_DIR})
   
-  set(CMAKE_REQUIRED_INCLUDES "${ORTHANC_FRAMEWORK_INCLUDE_DIR}")
-
-  if (NOT "${ORTHANC_FRAMEWORK_LIBDIR}" STREQUAL "")
-    set(CMAKE_REQUIRED_LIBRARIES "-L${ORTHANC_FRAMEWORK_LIBDIR} -lOrthancFramework")
+  if ("${ORTHANC_FRAMEWORK_LIBDIR}" STREQUAL "")
+    set(ORTHANC_FRAMEWORK_LIBRARIES OrthancFramework)
   else()
-    set(CMAKE_REQUIRED_LIBRARIES "OrthancFramework")
+    if (MSVC)
+      set(Suffix ".lib")
+      set(Prefix "")
+    else()
+      list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
+      list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
+    endif()
+    set(ORTHANC_FRAMEWORK_LIBRARIES ${ORTHANC_FRAMEWORK_LIBDIR}/${Prefix}OrthancFramework${Suffix})
   endif()
+
+  set(CMAKE_REQUIRED_INCLUDES "${ORTHANC_FRAMEWORK_INCLUDE_DIR}")
+  set(CMAKE_REQUIRED_LIBRARIES "${ORTHANC_FRAMEWORK_LIBRARIES}")
   
   check_cxx_symbol_exists("Orthanc::InitializeFramework" "OrthancFramework.h" HAVE_ORTHANC_FRAMEWORK)
-  if(NOT HAVE_ORTHANC_FRAMEWORK)
+  if (NOT HAVE_ORTHANC_FRAMEWORK)
     message(FATAL_ERROR "Cannot find the Orthanc framework")
   endif()
 
   if (NOT "${ORTHANC_FRAMEWORK_ROOT}" STREQUAL "")
     include_directories(${ORTHANC_FRAMEWORK_ROOT})
-  endif()
-
-  if (NOT "${ORTHANC_FRAMEWORK_LIBDIR}" STREQUAL "")
-    link_directories(${ORTHANC_FRAMEWORK_LIBDIR})
   endif()
 endif()

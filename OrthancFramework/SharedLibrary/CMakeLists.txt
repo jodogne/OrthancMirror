@@ -462,7 +462,11 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   if (CMAKE_TOOLCHAIN_FILE)
     # Take absolute path to the toolchain
     get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR}/..)
-    list(APPEND Flags -DCMAKE_TOOLCHAIN_FILE=${TMP})
+    list(APPEND Flags
+      -DCMAKE_TOOLCHAIN_FILE=${TMP}
+      -DLSB_CC=${LSB_CC}
+      -DLSB_CXX=${LSB_CXX}
+      )
   endif()
 
   # Build the unit tests, linking them against the just-created
