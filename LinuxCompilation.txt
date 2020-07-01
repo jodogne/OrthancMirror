@@ -84,6 +84,7 @@ SUPPORTED - Debian Jessie/Sid
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_CIVETWEB=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
@@ -105,6 +106,7 @@ SUPPORTED - Ubuntu 14.04 LTS
 		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
                        libcharls-dev libjsoncpp-dev libpugixml-dev
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
@@ -125,6 +127,7 @@ SUPPORTED - Ubuntu 16.04 LTS
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
                        libcharls-dev libjsoncpp-dev libpugixml-dev tzdata
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
@@ -137,6 +140,7 @@ SUPPORTED - Ubuntu 16.04 LTS
 NB: Instructions to use clang and ninja:
 
 # sudo apt-get install ninja-build
+# cd ./Build
 # CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -G Ninja \
         -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
@@ -156,6 +160,7 @@ SUPPORTED - Ubuntu 18.04 LTS
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
                        libcharls-dev libjsoncpp-dev libpugixml-dev locales
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
@@ -184,6 +189,7 @@ You will also have to install "gflags-devel" on Fedora 21&22:
 
 # sudo yum install gflags-devel
 
+# cd ./Build
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
          -DENABLE_CIVETWEB=OFF \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
@@ -202,6 +208,7 @@ SUPPORTED - FreeBSD 10.1
 # pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake jpeg \
               e2fsprogs-libuuid boost-libs sqlite3 python libiconv
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \

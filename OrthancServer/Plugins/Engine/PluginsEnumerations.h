@@ -42,8 +42,9 @@
  * "orthanc-databases" project.
  **/
 
-#include "../Include/orthanc/OrthancCPlugin.h"
 #include "../../Sources/Search/DatabaseConstraint.h"
+#include "../../Sources/ServerEnumerations.h"
+#include "../Include/orthanc/OrthancCPlugin.h"
 
 namespace Orthanc
 {

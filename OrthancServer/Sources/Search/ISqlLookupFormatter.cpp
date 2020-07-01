@@ -31,10 +31,22 @@
  **/
 
 
-#include "../PrecompiledHeadersServer.h"
+#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
+#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
+#endif
+
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+#  include "../PrecompiledHeadersServer.h"
+#endif
+
 #include "ISqlLookupFormatter.h"
 
-#include "../../../OrthancFramework/Sources/OrthancException.h"
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+#  include "../../../OrthancFramework/Sources/OrthancException.h"
+#else
+#  include <OrthancException.h>
+#endif
+
 #include "DatabaseConstraint.h"
 
 namespace Orthanc

@@ -63,15 +63,6 @@ namespace Orthanc
     DicomTagType_Generic       // Tag that is only stored in the JSON files
   };
 
-  enum ConstraintType
-  {
-    ConstraintType_Equal,
-    ConstraintType_SmallerOrEqual,
-    ConstraintType_GreaterOrEqual,
-    ConstraintType_Wildcard,
-    ConstraintType_List
-  };
-
   namespace Compatibility
   {
     enum IdentifierConstraintType
