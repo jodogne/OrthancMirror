@@ -33,7 +33,11 @@
 
 #pragma once
 
-#include "../../../OrthancFramework/Sources/Enumerations.h"
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+#  include "../../../OrthancFramework/Sources/Enumerations.h"
+#else
+#  include <Enumerations.h>
+#endif
 
 #include <boost/noncopyable.hpp>
 #include <vector>

@@ -33,8 +33,16 @@
 
 #pragma once
 
-#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
-#include "../ServerEnumerations.h"
+#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
+#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
+#endif
+
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+#  include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#else
+// This is for the "orthanc-databases" project to reuse this file
+#  include <DicomFormat/DicomMap.h>
+#endif
 
 #define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 0
 
@@ -50,6 +58,15 @@
 
 namespace Orthanc
 {
+  enum ConstraintType
+  {
+    ConstraintType_Equal,
+    ConstraintType_SmallerOrEqual,
+    ConstraintType_GreaterOrEqual,
+    ConstraintType_Wildcard,
+    ConstraintType_List
+  };
+
   namespace Plugins
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
