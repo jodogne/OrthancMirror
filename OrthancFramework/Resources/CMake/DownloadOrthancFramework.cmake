@@ -526,6 +526,9 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     message(FATAL_ERROR "Cannot find the Orthanc framework")
   endif()
 
+  unset(CMAKE_REQUIRED_INCLUDES)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  
   if (NOT "${ORTHANC_FRAMEWORK_ROOT}" STREQUAL "")
     include_directories(${ORTHANC_FRAMEWORK_ROOT})
   endif()
