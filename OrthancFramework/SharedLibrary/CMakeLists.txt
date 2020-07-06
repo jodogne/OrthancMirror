@@ -20,7 +20,7 @@ project(OrthancFramework)
 # *Do not* use CMAKE_INSTALL_PREFIX, otherwise CMake automatically
 # adds CMAKE_INSTALL_PREFIX to the include_directories(), which causes
 # issues if re-building the shared library after install!
-set(ORTHANC_INSTALL_DIR "/tmp/install" CACHE PATH "")
+set(ORTHANC_INSTALL_PREFIX "/tmp/install" CACHE PATH "")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 
@@ -431,20 +431,20 @@ endif()
 
 install(
   TARGETS OrthancFramework
-  RUNTIME DESTINATION ${ORTHANC_INSTALL_DIR}/lib    # Destination for Windows
-  LIBRARY DESTINATION ${ORTHANC_INSTALL_DIR}/lib    # Destination for Linux
+  RUNTIME DESTINATION ${ORTHANC_INSTALL_PREFIX}/lib    # Destination for Windows
+  LIBRARY DESTINATION ${ORTHANC_INSTALL_PREFIX}/lib    # Destination for Linux
   )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/OrthancFramework.wasm
-    DESTINATION ${ORTHANC_INSTALL_DIR}/lib
+    DESTINATION ${ORTHANC_INSTALL_PREFIX}/lib
     )
 endif()
 
 install(
   DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Include/
-  DESTINATION ${ORTHANC_INSTALL_DIR}/include/
+  DESTINATION ${ORTHANC_INSTALL_PREFIX}/include/
   )
 
 
