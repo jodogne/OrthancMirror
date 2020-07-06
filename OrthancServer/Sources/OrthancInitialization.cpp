@@ -42,6 +42,7 @@
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
+#include "../../OrthancFramework/Sources/HttpClient.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 

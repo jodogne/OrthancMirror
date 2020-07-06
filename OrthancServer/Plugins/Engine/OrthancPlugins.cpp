@@ -58,6 +58,7 @@
 #include "../../../OrthancFramework/Sources/Images/PngReader.h"
 #include "../../../OrthancFramework/Sources/Images/PngWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"

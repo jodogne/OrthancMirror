@@ -43,20 +43,12 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <json/json.h>
 
-#if !defined(ORTHANC_ENABLE_LUA)
-#  error The macro ORTHANC_ENABLE_LUA must be defined
-#endif
-
 #if ORTHANC_ENABLE_DCMTK != 1
 #  error The macro ORTHANC_ENABLE_DCMTK must be set to 1
 #endif
 
 #if ORTHANC_BUILD_UNIT_TESTS == 1
 #  include <gtest/gtest_prod.h>
-#endif
-
-#if ORTHANC_ENABLE_LUA == 1
-#  include "../Lua/LuaFunctionCall.h"
 #endif
 
 #if !defined(ORTHANC_ENABLE_DCMTK_JPEG)
@@ -243,11 +235,6 @@ namespace Orthanc
 
     static void FromJson(DicomMap& values,
                          const Json::Value& result);
-
-#if ORTHANC_ENABLE_LUA == 1
-    static void ExecuteToDicom(DicomMap& target,
-                               LuaFunctionCall& call);
-#endif
 
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset,

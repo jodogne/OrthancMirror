@@ -33,6 +33,10 @@
 
 #pragma once
 
+#if !defined(ORTHANC_ENABLE_DCMTK)
+#  error The macro ORTHANC_ENABLE_DCMTK must be defined
+#endif
+
 #include "LuaContext.h"
 
 #include "../DicomFormat/DicomArray.h"
@@ -89,5 +93,9 @@ namespace Orthanc
                        bool keepStrings);
 
     void ExecuteToString(std::string& result);
+
+#if ORTHANC_ENABLE_DCMTK == 1
+    void ExecuteToDicom(DicomMap& target);
+#endif
   };
 }

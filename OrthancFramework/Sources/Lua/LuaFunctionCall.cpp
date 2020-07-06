@@ -37,6 +37,10 @@
 #include "../OrthancException.h"
 #include "../Logging.h"
 
+#if ORTHANC_ENABLE_DCMTK == 1
+#  include "../DicomParsing/FromDcmtkBridge.h"
+#endif
+
 #include <cassert>
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
@@ -188,4 +192,43 @@ namespace Orthanc
 
     PushJson(value);
   }
+
+
+#if ORTHANC_ENABLE_DCMTK == 1
+  void LuaFunctionCall::ExecuteToDicom(DicomMap& target)
+  {
+    Json::Value output;
+    ExecuteToJson(output, true /* keep strings */);
+    
+    target.Clear();
+
+    if (output.type() == Json::arrayValue &&
+        output.size() == 0)
+    {
+      // This case happens for empty tables
+      return;
+    }
+
+    if (output.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_LuaBadOutput,
+                             "Lua: The script must return a table");
+    }
+    
+    Json::Value::Members members = output.getMemberNames();
+    
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      if (output[members[i]].type() != Json::stringValue)
+      {
+        throw OrthancException(ErrorCode_LuaBadOutput,
+                               "Lua: The script must return a table "
+                               "mapping names of DICOM tags to strings");
+      }
+
+      DicomTag tag(FromDcmtkBridge::ParseTag(members[i]));
+      target.SetValue(tag, output[members[i]].asString(), false);
+    }
+  }
+#endif
 }

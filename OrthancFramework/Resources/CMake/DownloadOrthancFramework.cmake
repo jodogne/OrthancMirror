@@ -438,7 +438,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
 
     # Look for mandatory dependency Boost (cf. BoostConfiguration.cmake)
     include(FindBoost)
-    find_package(Boost COMPONENTS filesystem thread system date_time regex)
+    find_package(Boost COMPONENTS filesystem thread system date_time regex ${ORTHANC_BOOST_COMPONENTS})
 
     if (NOT Boost_FOUND)
       message(FATAL_ERROR "Unable to locate Boost on this system")
