@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"
+
 #include <boost/noncopyable.hpp>
 #include <boost/thread.hpp>
 
 namespace Orthanc
 {
-  class Semaphore : public boost::noncopyable
+  class ORTHANC_PUBLIC Semaphore : public boost::noncopyable
   {
   private:
     unsigned int availableResources_;
