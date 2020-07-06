@@ -2047,46 +2047,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-#if ORTHANC_ENABLE_LUA == 1
-  void FromDcmtkBridge::ExecuteToDicom(DicomMap& target,
-                                       LuaFunctionCall& call)
-  {
-    Json::Value output;
-    call.ExecuteToJson(output, true /* keep strings */);
-
-    target.Clear();
-
-    if (output.type() == Json::arrayValue &&
-        output.size() == 0)
-    {
-      // This case happens for empty tables
-      return;
-    }
-
-    if (output.type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_LuaBadOutput,
-                             "Lua: The script must return a table");
-    }
-
-    Json::Value::Members members = output.getMemberNames();
-
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      if (output[members[i]].type() != Json::stringValue)
-      {
-        throw OrthancException(ErrorCode_LuaBadOutput,
-                               "Lua: The script must return a table "
-                               "mapping names of DICOM tags to strings");
-      }
-
-      DicomTag tag(ParseTag(members[i]));
-      target.SetValue(tag, output[members[i]].asString(), false);
-    }
-  }
-#endif
-
-
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
                                             DcmItem& dataset,
                                             const std::set<DicomTag>& ignoreTagLength)

@@ -39,6 +39,7 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "LuaScripting.h"
 #include "ServerContext.h"
 
@@ -58,7 +59,7 @@ namespace Orthanc
       LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(query);
       call.PushJson(modality);
-      FromDcmtkBridge::ExecuteToDicom(query, call);
+      call.ExecuteToDicom(query);
     }
   }
 

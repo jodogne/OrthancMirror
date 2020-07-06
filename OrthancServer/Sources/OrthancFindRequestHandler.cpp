@@ -478,7 +478,7 @@ namespace Orthanc
       LuaFunctionCall call(lock.GetLua(), LUA_CALLBACK);
       call.PushDicom(source);
       call.PushJson(origin);
-      FromDcmtkBridge::ExecuteToDicom(target, call);
+      call.ExecuteToDicom(target);
 
       return true;
     }

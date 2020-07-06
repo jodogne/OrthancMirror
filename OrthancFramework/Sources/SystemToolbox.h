@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "OrthancFramework.h"  // Must be before "ORTHANC_SANDBOXED"
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -42,7 +44,6 @@
 #endif
 
 #include "Enumerations.h"
-#include "OrthancFramework.h"
 
 #include <map>
 #include <vector>

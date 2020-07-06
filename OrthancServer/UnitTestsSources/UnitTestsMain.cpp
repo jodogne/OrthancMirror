@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include <gtest/gtest.h>
 
+#include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
