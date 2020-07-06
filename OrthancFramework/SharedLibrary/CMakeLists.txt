@@ -78,9 +78,6 @@ endif()
 
 set(ORTHANC_BUILDING_FRAMEWORK_LIBRARY ON)
 
-# Don't use the version script that is reserved for plugins
-set(ENABLE_PLUGINS_VERSION_SCRIPT OFF)
-
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
 
