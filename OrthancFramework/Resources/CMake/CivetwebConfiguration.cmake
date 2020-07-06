@@ -84,6 +84,7 @@ else()
   endif()
 
   link_libraries(civetweb)
+  unset(CMAKE_REQUIRED_LIBRARIES)
 
   add_definitions(
     -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0
