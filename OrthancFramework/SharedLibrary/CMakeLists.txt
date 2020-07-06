@@ -488,3 +488,18 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 
   add_dependencies(UnitTests OrthancFramework)
 endif()
+
+
+
+#####################################################################
+## Prepare the "uninstall" target
+## http://www.cmake.org/Wiki/CMake_FAQ#Can_I_do_.22make_uninstall.22_with_CMake.3F
+#####################################################################
+
+configure_file(
+  "${CMAKE_SOURCE_DIR}/../Resources/CMake/Uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
+
+add_custom_target(uninstall
+  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
