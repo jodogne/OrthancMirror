@@ -113,11 +113,6 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
   endif()
 
-  if (NOT DEFINED ENABLE_PLUGINS_VERSION_SCRIPT OR 
-      ENABLE_PLUGINS_VERSION_SCRIPT)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${CMAKE_CURRENT_LIST_DIR}/../VersionScriptPlugins.map")
-  endif()
-
   # Remove the "-rdynamic" option
   # http://www.mail-archive.com/cmake@cmake.org/msg08837.html
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
@@ -203,8 +198,6 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -exported_symbols_list ${CMAKE_CURRENT_LIST_DIR}/../ExportedSymbolsPlugins.list")
-
   add_definitions(
     -D_XOPEN_SOURCE=1
     )
