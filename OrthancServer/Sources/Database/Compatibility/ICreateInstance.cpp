@@ -83,6 +83,7 @@ namespace Orthanc
 
           bool ok = (database.LookupResource(result.patientId_, dummy, hashPatient) &&
                      database.LookupResource(result.studyId_, dummy, hashStudy));
+          (void) ok;  // Remove warning about unused variable in release builds
           assert(ok);
         }
         else if (database.LookupResource(result.studyId_, dummy, hashStudy))
@@ -93,6 +94,7 @@ namespace Orthanc
           result.isNewSeries_ = true;
 
           bool ok = database.LookupResource(result.patientId_, dummy, hashPatient);
+          (void) ok;  // Remove warning about unused variable in release builds
           assert(ok);
         }
         else if (database.LookupResource(result.patientId_, dummy, hashPatient))

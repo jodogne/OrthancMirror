@@ -1506,6 +1506,7 @@ namespace Orthanc
       if (!done)
       {
         bool ok = db_.LookupParent(currentId, currentId);
+        (void) ok;  // Remove warning about unused variable in release builds
         assert(ok);
       }
     }
