@@ -9,6 +9,7 @@ set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+set(USE_CXX11 OFF CACHE BOOL "Whether to enable compiler support for C++11")
 
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
@@ -30,6 +31,14 @@ endif()
 set(ENABLE_GOOGLE_TEST ON)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/DownloadOrthancFramework.cmake)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/GoogleTestConfiguration.cmake)
+
+if (USE_CXX11)
+  if (CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  endif()
+endif()
 
 add_definitions(
   -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1

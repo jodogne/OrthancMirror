@@ -466,6 +466,10 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       )
   endif()
 
+  if (JSONCPP_CXX11)
+    list(APPEND Flags -DUSE_CXX11=1)
+  endif()
+  
   # Build the unit tests, linking them against the just-created
   # "OrthancFramework" library
   externalproject_add(UnitTests
