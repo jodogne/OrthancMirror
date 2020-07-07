@@ -47,7 +47,7 @@ namespace Orthanc
    * collision attacks than MD5. <a
    * href="http://en.wikipedia.org/wiki/SHA-256#Comparison_of_SHA_functions">[Reference]</a>
    **/
-  class DicomInstanceHasher
+  class ORTHANC_PUBLIC DicomInstanceHasher
   {
   private:
     std::string patientId_;

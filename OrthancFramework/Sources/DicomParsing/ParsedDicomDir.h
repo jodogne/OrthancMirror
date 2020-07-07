@@ -41,7 +41,7 @@
 
 namespace Orthanc
 {
-  class ParsedDicomDir : public boost::noncopyable
+  class ORTHANC_PUBLIC ParsedDicomDir : public boost::noncopyable
   {
   private:
     typedef std::map<uint32_t, size_t>  OffsetToIndex;
