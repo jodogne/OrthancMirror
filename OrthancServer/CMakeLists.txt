@@ -1,3 +1,34 @@
+# Orthanc - A Lightweight, RESTful DICOM Store
+# Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+# Department, University Hospital of Liege, Belgium
+# Copyright (C) 2017-2020 Osimis S.A., Belgium
+#
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# In addition, as a special exception, the copyright holders of this
+# program give permission to link the code of its release with the
+# OpenSSL project's "OpenSSL" library (or with modified versions of it
+# that use the same license as the "OpenSSL" library), and distribute
+# the linked executables. You must obey the GNU General Public License
+# in all respects for all of the code used other than "OpenSSL". If you
+# modify file(s) with this exception, you may extend this exception to
+# your version of the file(s), but you are not obligated to do so. If
+# you do not wish to do so, delete this exception statement from your
+# version. If you delete this exception statement from all source files
+# in the program, then also delete it here.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 cmake_minimum_required(VERSION 2.8)
 
 project(Orthanc)
@@ -195,7 +226,7 @@ endif()
 set(ORTHANC_EMBEDDED_FILES
   CONFIGURATION_SAMPLE         ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
   DICOM_CONFORMANCE_STATEMENT  ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
-  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/Fonts/UbuntuMonoBold-16.json
+  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
   LUA_TOOLBOX                  ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
   PREPARE_DATABASE             ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
   UPGRADE_DATABASE_3_TO_4      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
