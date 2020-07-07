@@ -1039,6 +1039,7 @@ namespace Orthanc
         }
       }
 
+      (void) ok;  // Remove warning about unused variable in release builds
       assert(ok);
 
       found->second->SetState(JobState_Pending);
