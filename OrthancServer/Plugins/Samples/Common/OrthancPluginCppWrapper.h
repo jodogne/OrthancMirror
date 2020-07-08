@@ -1158,9 +1158,9 @@ namespace OrthancPlugins
     
   public:
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 6, 1)    
-    DicomInstance(const OrthancPluginDicomInstance* instance);
+    explicit DicomInstance(const OrthancPluginDicomInstance* instance);
 #else
-    DicomInstance(OrthancPluginDicomInstance* instance);
+    explicit DicomInstance(OrthancPluginDicomInstance* instance);
 #endif
 
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
