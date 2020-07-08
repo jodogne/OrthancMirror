@@ -142,7 +142,13 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSubmitted(jobId);
-    plugins_->SignalJobSubmitted(jobId);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalJobSubmitted(jobId);
+    }
+#endif
   }
   
 
@@ -150,7 +156,13 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobSuccess(jobId);
-    plugins_->SignalJobSuccess(jobId);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalJobSuccess(jobId);
+    }
+#endif
   }
 
   
@@ -158,7 +170,13 @@ namespace Orthanc
   {
     haveJobsChanged_ = true;
     mainLua_.SignalJobFailure(jobId);
-    plugins_->SignalJobFailure(jobId);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      GetPlugins().SignalJobFailure(jobId);
+    }
+#endif
   }
 
 
