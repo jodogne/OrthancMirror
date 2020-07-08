@@ -1,14 +1,20 @@
 Pending changes in the mainline
 ===============================
 
-* Private tags returned by C-FIND SCP (cf. option "DefaultPrivateCreator")
-* Packaging of the Orthanc framework library
+
+Version 1.7.2 (2020-07-08)
+==========================
+
+General
+-------
+
+* C-FIND SCP now returns private tags (cf. option "DefaultPrivateCreator")
+* Packaging of the Orthanc framework as a shared library
 
 Plugins
 -------
 
-* New functions in the SDK:
-  - new "changes": JobSubmitted, JobSuccess, JobFailure
+* New change types in the SDK: JobSubmitted, JobSuccess, JobFailure
 
 Maintenance
 -----------
