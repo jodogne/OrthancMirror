@@ -6,10 +6,11 @@ General Information
 -------------------
 
 General information about this software can be found on its official
-Website:
+Website, and in the Orthanc Book:
 http://www.orthanc-server.com/
+http://book.orthanc-server.com/
 
-The instructions for building Orthanc can be found in the "INSTALL"
+The instructions for building Orthanc can be found in the "./INSTALL"
 file.
 
 
@@ -71,7 +72,11 @@ Licensing of special directories
 
 The following directories have separate licensing terms:
 
-* The files of the "OrthancFramework/Sources/SQLite/" directory are
+* The files of the "./OrthancFramework/Sources/" directory are
+  licensed under the LGPLv3 (Lesser GPL) since Orthanc 1.7.2. The
+  related COPYING file can be found in "./OrthancFramework".
+
+* The files of the "./OrthancFramework/Sources/SQLite/" directory are
   licensed under the 3-clause BSD license, as they are derived from
   the Chromium project.
 
@@ -81,23 +86,22 @@ Content
 
 This archive contains the following important directories:
 
-* OrthancFramework/Sources/          - The sources of the Orthanc framework
-* OrthancFramework/UnitTestsSources/ - Unit tests of the Orthanc framework
-* OrthancServer/OrthancExplorer/     - Code of the Orthanc Explorer (HTML5/Javascript)
-* OrthancServer/Plugins/             - Code of the plugin framework
-* OrthancServer/Resources/Samples/   - Samples
-* OrthancServer/Sources/             - Code of the Orthanc server (depends on DCMTK)
-* OrthancServer/UnitTestsSources/    - Unit tests of the Orthanc server
+* ./OrthancFramework/Sources/          - The sources of the Orthanc framework
+* ./OrthancFramework/UnitTestsSources/ - Unit tests of the Orthanc framework
+* ./OrthancServer/OrthancExplorer/     - Code of the Orthanc Explorer (HTML5/Javascript)
+* ./OrthancServer/Plugins/             - Code of the plugin framework
+* ./OrthancServer/Resources/Samples/   - Samples
+* ./OrthancServer/Sources/             - Code of the Orthanc server (depends on DCMTK)
+* ./OrthancServer/UnitTestsSources/    - Unit tests of the Orthanc server
 
 This archive contains the following important files:
 
-* AUTHORS                       - The list of the authors
-* INSTALL                       - How to build Orthanc
-* NEWS                          - The history of main changes between versions
-* OrthancFramework/COPYING      - The GPLv3 license
-* OrthancServer/CMakeLists.txt  - The main build script of the Orthanc server
-* OrthancServer/COPYING         - The GPLv3 license
-* README                        - This file
+* ./AUTHORS                       - The list of the authors
+* ./COPYING                       - The main GPLv3 license
+* ./INSTALL                       - How to build Orthanc
+* ./NEWS                          - The history of main changes between versions
+* ./OrthancServer/CMakeLists.txt  - The main build script of the Orthanc server
+* ./README                        - This file
 
 We have decided not to maintain a separate "ChangeLog" file. Each
 commit to the official Orthanc Mercurial repository should be
