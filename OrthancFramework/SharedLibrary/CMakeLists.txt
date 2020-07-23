@@ -58,6 +58,9 @@ endif()
 
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/OrthancFrameworkParameters.cmake)
 
+# "ORTHANC_VERSION" is initialized by "OrthancFrameworkParameters.cmake"
+set(ORTHANC_FRAMEWORK_SOVERSION "${ORTHANC_VERSION}" CACHE STRING "On GNU/Linux, the SOVERSION to be used for the shared library")
+
 if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   set(STANDALONE_BUILD ON)
 else()
@@ -271,7 +274,7 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set_target_properties(
     OrthancFramework PROPERTIES 
     VERSION ${ORTHANC_VERSION} 
-    SOVERSION ${ORTHANC_VERSION}
+    SOVERSION ${ORTHANC_FRAMEWORK_SOVERSION}
     )
 endif()
 
