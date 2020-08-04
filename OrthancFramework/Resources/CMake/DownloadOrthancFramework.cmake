@@ -127,7 +127,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
     endif()
   endif()
 
-elseif (NOT ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
+elseif (ORTHANC_FRAMEWORK_SOURCE STREQUAL "path")
   message("Using the Orthanc framework from a path of the filesystem. Assuming mainline version.")
   set(ORTHANC_FRAMEWORK_MAJOR 999)
   set(ORTHANC_FRAMEWORK_MINOR 999)
@@ -177,16 +177,13 @@ endif()
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "path")
-  if (NOT DEFINED ORTHANC_FRAMEWORK_ROOT)
+  if (NOT DEFINED ORTHANC_FRAMEWORK_ROOT OR
+      ORTHANC_FRAMEWORK_ROOT STREQUAL "")
     message(FATAL_ERROR "The variable ORTHANC_FRAMEWORK_ROOT must provide the path to the sources of Orthanc")
   endif()
   
   if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT})
     message(FATAL_ERROR "Non-existing directory: ${ORTHANC_FRAMEWORK_ROOT}")
-  endif()
-  
-  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_FRAMEWORK_ROOT}")
   endif()
 endif()
 
@@ -234,16 +231,6 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg")
   if (Failure)
     message(FATAL_ERROR "Error while running Mercurial")
   endif()
-
-  unset(ORTHANC_FRAMEWORK_ROOT CACHE)
-  set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/OrthancFramework" CACHE
-    STRING "Path to the Orthanc framework source directory")
-
-  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_ROOT}")
-  endif()
-
-  unset(ORTHANC_ROOT)
 endif()
 
 
@@ -254,7 +241,8 @@ endif()
 ##
 
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive")
-  if (NOT DEFINED ORTHANC_FRAMEWORK_ARCHIVE)
+  if (NOT DEFINED ORTHANC_FRAMEWORK_ARCHIVE OR
+      ORTHANC_FRAMEWORK_ARCHIVE STREQUAL "")
     message(FATAL_ERROR "The variable ORTHANC_FRAMEWORK_ARCHIVE must provide the path to the sources of Orthanc")
   endif()
 endif()
@@ -371,16 +359,43 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
       message(FATAL_ERROR "The Orthanc framework was not uncompressed at the proper location. Check the CMake instructions.")
     endif()
   endif()
+endif()
+
+
+
+##
+## Determine the path to the sources of the Orthanc framework
+##
+
+if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "archive" OR
+    ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
+    ORTHANC_FRAMEWORK_SOURCE STREQUAL "web")
+  if (NOT DEFINED ORTHANC_ROOT OR
+      NOT DEFINED ORTHANC_FRAMEWORK_MAJOR OR
+      NOT DEFINED ORTHANC_FRAMEWORK_MINOR OR
+      NOT DEFINED ORTHANC_FRAMEWORK_REVISION)
+    message(FATAL_ERROR "Internal error in the DownloadOrthancFramework.cmake file")
+  endif()
 
   unset(ORTHANC_FRAMEWORK_ROOT CACHE)
-  set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/OrthancFramework" CACHE
-    STRING "Path to the Orthanc framework source directory")
 
-  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_ROOT}")
+  if ("${ORTHANC_FRAMEWORK_MAJOR}.${ORTHANC_FRAMEWORK_MINOR}.${ORTHANC_FRAMEWORK_REVISION}" VERSION_LESS "1.7.2")
+    set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/Core" CACHE
+      STRING "Path to the Orthanc framework source directory")
+    set(ENABLE_PLUGINS_VERSION_SCRIPT OFF)
+  else()
+    set(ORTHANC_FRAMEWORK_ROOT "${ORTHANC_ROOT}/OrthancFramework/Sources" CACHE
+      STRING "Path to the Orthanc framework source directory")
   endif()
 
   unset(ORTHANC_ROOT)
+endif()
+
+if (NOT ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
+  if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/OrthancException.h OR
+      NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/../Resources/CMake/OrthancFrameworkParameters.cmake)
+    message(FATAL_ERROR "Directory not containing the source code of the Orthanc framework: ${ORTHANC_FRAMEWORK_ROOT}")
+  endif()
 endif()
 
 
@@ -425,6 +440,35 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     CHECK_INCLUDE_FILE_CXX(${JSONCPP_INCLUDE_DIR}/json/reader.h HAVE_JSONCPP_H)
     if (NOT HAVE_JSONCPP_H)
       message(FATAL_ERROR "Please install the libjsoncpp-dev package")
+    endif()
+
+    # Switch to the C++11 standard if the version of JsonCpp is 1.y.z
+    # (same as variable JSONCPP_CXX11 in the source code of Orthanc)
+    if (EXISTS ${JSONCPP_INCLUDE_DIR}/json/version.h)
+      file(STRINGS
+        "${JSONCPP_INCLUDE_DIR}/json/version.h" 
+        JSONCPP_VERSION_MAJOR1 REGEX
+        ".*define JSONCPP_VERSION_MAJOR.*")
+
+      if (NOT JSONCPP_VERSION_MAJOR1)
+        message(FATAL_ERROR "Unable to extract the major version of JsonCpp")
+      endif()
+      
+      string(REGEX REPLACE
+        ".*JSONCPP_VERSION_MAJOR.*([0-9]+)$" "\\1" 
+        JSONCPP_VERSION_MAJOR ${JSONCPP_VERSION_MAJOR1})
+      message("JsonCpp major version: ${JSONCPP_VERSION_MAJOR}")
+
+      if (JSONCPP_VERSION_MAJOR GREATER 0)
+        message("Switching to C++11 standard, as version of JsonCpp is >= 1.0.0")
+        if (CMAKE_COMPILER_IS_GNUCXX)
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+        elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+        endif()
+      endif()
+    else()
+      message("Unable to detect the major version of JsonCpp, assuming < 1.0.0")
     endif()
 
     # Look for mandatory dependency Boost (cf. BoostConfiguration.cmake)
@@ -519,8 +563,4 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
 
   unset(CMAKE_REQUIRED_INCLUDES)
   unset(CMAKE_REQUIRED_LIBRARIES)
-  
-  if (NOT "${ORTHANC_FRAMEWORK_ROOT}" STREQUAL "")
-    include_directories(${ORTHANC_FRAMEWORK_ROOT})
-  endif()
 endif()

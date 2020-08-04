@@ -40,7 +40,7 @@ project(OrthancFramework)
 # *Do not* use CMAKE_INSTALL_PREFIX, otherwise CMake automatically
 # adds CMAKE_INSTALL_PREFIX to the include_directories(), which causes
 # issues if re-building the shared library after install!
-set(ORTHANC_INSTALL_PREFIX "/tmp/install" CACHE PATH "")
+set(ORTHANC_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 
