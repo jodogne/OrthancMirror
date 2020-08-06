@@ -250,7 +250,8 @@ namespace Orthanc
       // See also: http://support.dcmtk.org/wiki/dcmtk/howto/accessing-compressed-data
 
       DicomMap m;
-      FromDcmtkBridge::ExtractDicomSummary(m, dataset, 0 /* don't truncate tags */);
+      std::set<DicomTag> ignoreTagLength;
+      FromDcmtkBridge::ExtractDicomSummary(m, dataset, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
 
       /**
        * Create an accessor to the raw values of the DICOM image.
@@ -322,7 +323,8 @@ namespace Orthanc
                                                 bool ignorePhotometricInterpretation)
   {
     DicomMap m;
-    FromDcmtkBridge::ExtractDicomSummary(m, dataset, 0 /* don't truncate tags */);
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
 
     DicomImageInformation info(m);
     PixelFormat format;
@@ -602,7 +604,8 @@ namespace Orthanc
     }
 
     DicomMap m;
-    FromDcmtkBridge::ExtractDicomSummary(m, dataset, 0 /* don't truncate tags */);
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
     DicomImageInformation info(m);
 
     std::unique_ptr<ImageAccessor> target(CreateImage(dataset, true));

@@ -62,12 +62,6 @@ namespace Orthanc
   private:
     FromDcmtkBridge();  // Pure static class
 
-    static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset,
-                                    unsigned int maxStringLength,
-                                    Encoding defaultEncoding,
-                                    const std::set<DicomTag>& ignoreTagLength);
-
     static void DatasetToJson(Json::Value& parent,
                               DcmItem& item,
                               DicomToJsonFormat format,
@@ -229,14 +223,6 @@ namespace Orthanc
                                     DcmItem& dataset,
                                     unsigned int maxStringLength,
                                     const std::set<DicomTag>& ignoreTagLength);
-
-    static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset,
-                                    unsigned int maxStringLength)
-    {
-      std::set<DicomTag> none;
-      ExtractDicomSummary(target, dataset, maxStringLength, none);
-    }
 
     static void ExtractDicomAsJson(Json::Value& target, 
                                    DcmDataset& dataset,
