@@ -82,7 +82,7 @@ namespace Orthanc
       else
       {
         DicomMap m;
-        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers);
+        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers, 0 /* don't truncate tags */);
         
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {

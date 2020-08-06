@@ -2038,10 +2038,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
   void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
                                             DcmItem& dataset,
+                                            unsigned int maxStringLength,
                                             const std::set<DicomTag>& ignoreTagLength)
   {
-    ExtractDicomSummary(target, dataset,
-                        ORTHANC_MAXIMUM_TAG_LENGTH,
+    ExtractDicomSummary(target, dataset, maxStringLength,
                         GetDefaultDicomEncoding(), ignoreTagLength);
   }
 

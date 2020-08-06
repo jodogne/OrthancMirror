@@ -227,13 +227,15 @@ namespace Orthanc
 
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset,
+                                    unsigned int maxStringLength,
                                     const std::set<DicomTag>& ignoreTagLength);
 
     static void ExtractDicomSummary(DicomMap& target, 
-                                    DcmItem& dataset)
+                                    DcmItem& dataset,
+                                    unsigned int maxStringLength)
     {
       std::set<DicomTag> none;
-      ExtractDicomSummary(target, dataset, none);
+      ExtractDicomSummary(target, dataset, maxStringLength, none);
     }
 
     static void ExtractDicomAsJson(Json::Value& target, 

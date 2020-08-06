@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Fix DICOM SCP filters if some query tag has more than 256 characters
+
 
 Version 1.7.2 (2020-07-08)
 ==========================

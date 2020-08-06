@@ -265,7 +265,7 @@ namespace Orthanc
               }
 
               DicomMap input;
-              FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers);
+              FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */);
 
               DicomMap filtered;
               FixFindQuery(filtered, input);

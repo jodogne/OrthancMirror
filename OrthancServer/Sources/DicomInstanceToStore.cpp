@@ -246,7 +246,8 @@ namespace Orthanc
       {
         summary_.Allocate();
         FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
-                                             *parsed_.GetContent().GetDcmtkObject().getDataset());
+                                             *parsed_.GetContent().GetDcmtkObject().getDataset(),
+                                             ORTHANC_MAXIMUM_TAG_LENGTH);
       }
     
       if (!json_.HasContent())
