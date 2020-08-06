@@ -37,7 +37,6 @@
 #include "OrthancConfiguration.h"
 
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
-#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "LuaScripting.h"
@@ -160,7 +159,7 @@ namespace Orthanc
                                        size_t i)
   {
     Run();
-    answers_.GetAnswer(i).ExtractDicomSummary(target);
+    answers_.GetAnswer(i).ExtractDicomSummary(target, 0 /* don't truncate tags */);
   }
 
   

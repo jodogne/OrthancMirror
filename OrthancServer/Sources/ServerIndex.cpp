@@ -2468,7 +2468,7 @@ namespace Orthanc
   void ServerIndex::ReconstructInstance(ParsedDicomFile& dicom)
   {
     DicomMap summary;
-    dicom.ExtractDicomSummary(summary);
+    dicom.ExtractDicomSummary(summary, ORTHANC_MAXIMUM_TAG_LENGTH);
 
     DicomInstanceHasher hasher(summary);
 

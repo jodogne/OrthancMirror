@@ -244,9 +244,21 @@ namespace Orthanc
 
     void ChangeEncoding(Encoding target);
 
-    void ExtractDicomSummary(DicomMap& target) const;
-
+    /**
+     * The DICOM tags with a string whose size is greater than
+     * "maxTagLength", are replaced by a DicomValue whose type is
+     * "DicomValue_Null". If "maxTagLength" is zero, all the leaf tags
+     * are included, independently of their length.
+     **/
     void ExtractDicomSummary(DicomMap& target,
+                             unsigned int maxTagLength) const;
+
+    /**
+     * This flavor can be used to bypass the "maxTagLength" limitation
+     * on a selected set of DICOM tags.
+     **/
+    void ExtractDicomSummary(DicomMap& target,
+                             unsigned int maxTagLength,
                              const std::set<DicomTag>& ignoreTagLength) const;
 
     bool LookupTransferSyntax(std::string& result);
