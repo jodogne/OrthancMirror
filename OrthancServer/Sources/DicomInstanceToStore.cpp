@@ -241,20 +241,19 @@ namespace Orthanc
       assert(parsed_.HasContent());
 
       // At this point, we have parsed the DICOM file
+      std::set<DicomTag> ignoreTagLength;
     
       if (!summary_.HasContent())
       {
         summary_.Allocate();
         FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
                                              *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                                             ORTHANC_MAXIMUM_TAG_LENGTH);
+                                             ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
       }
     
       if (!json_.HasContent())
       {
         json_.Allocate();
-
-        std::set<DicomTag> ignoreTagLength;
         FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
                                             *parsed_.GetContent().GetDcmtkObject().getDataset(),
                                             ignoreTagLength);

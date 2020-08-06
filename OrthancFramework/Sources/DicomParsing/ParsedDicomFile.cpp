@@ -1657,7 +1657,9 @@ namespace Orthanc
 
   void ParsedDicomFile::ExtractDicomSummary(DicomMap& target) const
   {
-    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset(), ORTHANC_MAXIMUM_TAG_LENGTH);
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset(),
+                                         ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
   }
 
 

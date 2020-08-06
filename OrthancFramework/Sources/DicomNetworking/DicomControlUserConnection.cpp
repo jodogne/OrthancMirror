@@ -82,7 +82,8 @@ namespace Orthanc
       else
       {
         DicomMap m;
-        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers, 0 /* don't truncate tags */);
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ExtractDicomSummary(m, *responseIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);
         
         if (!m.HasTag(DICOM_TAG_QUERY_RETRIEVE_LEVEL))
         {

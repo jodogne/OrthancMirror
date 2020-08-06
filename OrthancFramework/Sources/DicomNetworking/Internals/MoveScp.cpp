@@ -166,7 +166,8 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         DicomMap input;
-        FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */);
+        std::set<DicomTag> ignoreTagLength;
+        FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);
 
         try
         {
