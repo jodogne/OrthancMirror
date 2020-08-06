@@ -30,6 +30,17 @@ namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomImageInformation
   {
+  public:
+    /**
+     * This constant gives a bound on the maximum tag length that is
+     * useful to class "DicomImageInformation", in order to avoid
+     * using too much memory when copying DICOM tags from "DcmDataset"
+     * to "DicomMap" using "ExtractDicomSummary()". The value 256
+     * corresponds to ORTHANC_MAXIMUM_TAG_LENGTH that was implicitly
+     * used in Orthanc <= 1.7.2.
+     **/
+    static const unsigned int USEFUL_TAG_LENGTH = 256;
+  
   private:
     unsigned int width_;
     unsigned int height_;
