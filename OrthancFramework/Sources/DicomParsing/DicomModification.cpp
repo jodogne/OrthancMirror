@@ -1006,7 +1006,7 @@ namespace Orthanc
     // is provided
     if (identifierGenerator_ != NULL)
     {
-      toModify.ExtractDicomSummary(currentSource_);
+      toModify.ExtractDicomSummary(currentSource_, ORTHANC_MAXIMUM_TAG_LENGTH);
     }
 
     // (1) Make sure the relationships are updated with the ids that we force too

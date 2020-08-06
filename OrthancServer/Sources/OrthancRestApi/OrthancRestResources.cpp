@@ -572,7 +572,7 @@ namespace Orthanc
              * interpretation, and with windowing parameters.
              **/ 
             ServerContext::DicomCacheLocker locker(context, publicId);
-            locker.GetDicom().ExtractDicomSummary(dicom);
+            locker.GetDicom().ExtractDicomSummary(dicom, ORTHANC_MAXIMUM_TAG_LENGTH);
           }
         }
         catch (OrthancException& e)

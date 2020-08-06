@@ -201,7 +201,7 @@ namespace Orthanc
 
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instances.front());
-      locker.GetDicom().ExtractDicomSummary(dicom);
+      locker.GetDicom().ExtractDicomSummary(dicom, ORTHANC_MAXIMUM_TAG_LENGTH);
     }
 
     const std::set<DicomTag> moduleTags = removals_;

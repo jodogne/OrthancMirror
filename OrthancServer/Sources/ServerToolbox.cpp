@@ -269,7 +269,7 @@ namespace Orthanc
 
           // Update the tags of this resource
           DicomMap dicomSummary;
-          dicom.ExtractDicomSummary(dicomSummary);
+          dicom.ExtractDicomSummary(dicomSummary, ORTHANC_MAXIMUM_TAG_LENGTH);
 
           database.ClearMainDicomTags(resource);
 
