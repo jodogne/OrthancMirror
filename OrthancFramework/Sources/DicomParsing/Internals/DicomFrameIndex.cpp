@@ -357,7 +357,7 @@ namespace Orthanc
 
     // Extract information about the image structure
     DicomMap tags;
-    FromDcmtkBridge::ExtractDicomSummary(tags, dicom);
+    FromDcmtkBridge::ExtractDicomSummary(tags, dicom, 0 /* don't truncate tags */);
 
     DicomImageInformation information(tags);
 

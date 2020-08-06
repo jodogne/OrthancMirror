@@ -110,7 +110,7 @@ namespace Orthanc
       lowerOffsets_[i] = lower;
 
       std::unique_ptr<DicomMap> entry(new DicomMap);
-      FromDcmtkBridge::ExtractDicomSummary(*entry, *item);
+      FromDcmtkBridge::ExtractDicomSummary(*entry, *item, 0 /* don't truncate tags */);
 
       if (next != 0)
       {
