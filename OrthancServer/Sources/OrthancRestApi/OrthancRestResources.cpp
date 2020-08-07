@@ -572,7 +572,7 @@ namespace Orthanc
              * interpretation, and with windowing parameters.
              **/ 
             ServerContext::DicomCacheLocker locker(context, publicId);
-            locker.GetDicom().ExtractDicomSummary(dicom, ORTHANC_MAXIMUM_TAG_LENGTH);
+            OrthancConfiguration::DefaultExtractDicomSummary(dicom, locker.GetDicom());
           }
         }
         catch (OrthancException& e)
@@ -1996,7 +1996,7 @@ namespace Orthanc
     ParsedDicomFile dicom(dicomContent);
 
     Json::Value header;
-    dicom.HeaderToJson(header, DicomToJsonFormat_Full);
+    OrthancConfiguration::DefaultDicomHeaderToJson(header, dicom);
 
     AnswerDicomAsJson(call, header);
   }

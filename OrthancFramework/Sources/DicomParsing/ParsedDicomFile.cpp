@@ -1428,8 +1428,7 @@ namespace Orthanc
   {
     std::set<DicomTag> ignoreTagLength;
     FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
-                                        format, flags, maxStringLength,
-                                        GetDefaultDicomEncoding(), ignoreTagLength);
+                                        format, flags, maxStringLength, ignoreTagLength);
   }
 
 
@@ -1440,22 +1439,7 @@ namespace Orthanc
                                       const std::set<DicomTag>& ignoreTagLength)
   {
     FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
-                                        format, flags, maxStringLength,
-                                        GetDefaultDicomEncoding(), ignoreTagLength);
-  }
-
-
-  void ParsedDicomFile::DatasetToJson(Json::Value& target,
-                                      const std::set<DicomTag>& ignoreTagLength)
-  {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(), ignoreTagLength);
-  }
-
-
-  void ParsedDicomFile::DatasetToJson(Json::Value& target)
-  {
-    const std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(), ignoreTagLength);
+                                        format, flags, maxStringLength, ignoreTagLength);
   }
 
 

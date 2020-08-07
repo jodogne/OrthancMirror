@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancConfiguration.h"
 
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
@@ -895,5 +896,38 @@ namespace Orthanc
   {
     // New configuration option in Orthanc 1.6.0
     return GetStringParameter("DefaultPrivateCreator", "");
+  }
+
+
+  void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
+                                                        ParsedDicomFile& dicom)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    dicom.ExtractDicomSummary(target, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+  }
+  
+    
+  void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
+                                                       ParsedDicomFile& dicom)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    DefaultDicomDatasetToJson(target, dicom, ignoreTagLength);
+  }
+  
+    
+  void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
+                                                       ParsedDicomFile& dicom,
+                                                       const std::set<DicomTag>& ignoreTagLength)
+  {
+    dicom.DatasetToJson(target, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
+                        ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+  }
+  
+
+  void OrthancConfiguration::DefaultDicomHeaderToJson(Json::Value& target,
+                                                      ParsedDicomFile& dicom)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    dicom.HeaderToJson(target, DicomToJsonFormat_Full);
   }
 }

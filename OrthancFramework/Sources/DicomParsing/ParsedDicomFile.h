@@ -216,13 +216,6 @@ namespace Orthanc
                        unsigned int maxStringLength,
                        const std::set<DicomTag>& ignoreTagLength);
       
-    // This version uses the default parameters for
-    // FileContentType_DicomAsJson
-    void DatasetToJson(Json::Value& target,
-                       const std::set<DicomTag>& ignoreTagLength);
-
-    void DatasetToJson(Json::Value& target);
-
     void HeaderToJson(Json::Value& target, 
                       DicomToJsonFormat format);
 

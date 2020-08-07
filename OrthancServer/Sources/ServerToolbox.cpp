@@ -41,6 +41,7 @@
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "Database/IDatabaseWrapper.h"
 #include "Database/ResourcesContent.h"
+#include "OrthancConfiguration.h"
 #include "ServerContext.h"
 
 #include <cassert>
@@ -269,7 +270,7 @@ namespace Orthanc
 
           // Update the tags of this resource
           DicomMap dicomSummary;
-          dicom.ExtractDicomSummary(dicomSummary, ORTHANC_MAXIMUM_TAG_LENGTH);
+          OrthancConfiguration::DefaultExtractDicomSummary(dicomSummary, dicom);
 
           database.ClearMainDicomTags(resource);
 
@@ -379,7 +380,7 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(context, *it);
 
         Json::Value dicomAsJson;
-        locker.GetDicom().DatasetToJson(dicomAsJson);
+        OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, locker.GetDicom());
 
         std::string s = dicomAsJson.toStyledString();
         context.AddAttachment(*it, FileContentType_DicomAsJson, s.c_str(), s.size());

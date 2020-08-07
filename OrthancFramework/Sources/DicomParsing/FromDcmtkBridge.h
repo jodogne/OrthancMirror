@@ -80,14 +80,6 @@ namespace Orthanc
                               bool hasCodeExtensions,
                               const std::set<DicomTag>& ignoreTagLength);
 
-    static void ExtractDicomAsJson(Json::Value& target, 
-                                   DcmDataset& dataset,
-                                   DicomToJsonFormat format,
-                                   DicomToJsonFlags flags,
-                                   unsigned int maxStringLength,
-                                   Encoding defaultEncoding,
-                                   const std::set<DicomTag>& ignoreTagLength);
-
     static void ChangeStringEncoding(DcmItem& dataset,
                                      Encoding source,
                                      bool hasSourceCodeExtensions,
@@ -226,6 +218,9 @@ namespace Orthanc
 
     static void ExtractDicomAsJson(Json::Value& target, 
                                    DcmDataset& dataset,
+                                   DicomToJsonFormat format,
+                                   DicomToJsonFlags flags,
+                                   unsigned int maxStringLength,
                                    const std::set<DicomTag>& ignoreTagLength);
 
     static void InitializeCodecs();

@@ -34,6 +34,8 @@
 #include "PrecompiledHeadersServer.h"
 #include "DicomInstanceToStore.h"
 
+#include "OrthancConfiguration.h"
+
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -241,22 +243,17 @@ namespace Orthanc
       assert(parsed_.HasContent());
 
       // At this point, we have parsed the DICOM file
-      std::set<DicomTag> ignoreTagLength;
     
       if (!summary_.HasContent())
       {
         summary_.Allocate();
-        FromDcmtkBridge::ExtractDicomSummary(summary_.GetContent(), 
-                                             *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                                             ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+        OrthancConfiguration::DefaultExtractDicomSummary(summary_.GetContent(), parsed_.GetContent());
       }
     
       if (!json_.HasContent())
       {
         json_.Allocate();
-        FromDcmtkBridge::ExtractDicomAsJson(json_.GetContent(), 
-                                            *parsed_.GetContent().GetDcmtkObject().getDataset(),
-                                            ignoreTagLength);
+        OrthancConfiguration::DefaultDicomDatasetToJson(json_.GetContent(), parsed_.GetContent());
       }
     }
 
