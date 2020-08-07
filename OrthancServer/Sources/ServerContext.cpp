@@ -694,7 +694,7 @@ namespace Orthanc
       ParsedDicomFile parsed(dicom);
 
       Json::Value summary;
-      parsed.DatasetToJson(summary);
+      OrthancConfiguration::DefaultDicomDatasetToJson(summary, parsed);
 
       result = summary.toStyledString();
 
@@ -748,7 +748,7 @@ namespace Orthanc
       ReadDicom(dicom, instancePublicId);
 
       ParsedDicomFile parsed(dicom);
-      parsed.DatasetToJson(result, ignoreTagLength);
+      OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
     }
   }
 

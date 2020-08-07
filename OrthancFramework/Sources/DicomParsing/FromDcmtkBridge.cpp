@@ -980,9 +980,10 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                            DicomToJsonFormat format,
                                            DicomToJsonFlags flags,
                                            unsigned int maxStringLength,
-                                           Encoding defaultEncoding,
                                            const std::set<DicomTag>& ignoreTagLength)
   {
+    const Encoding defaultEncoding = GetDefaultDicomEncoding();
+    
     bool hasCodeExtensions;
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
@@ -2034,19 +2035,6 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
       }
     }
-  }
-
-
-  void FromDcmtkBridge::ExtractDicomAsJson(Json::Value& target, 
-                                           DcmDataset& dataset,
-                                           const std::set<DicomTag>& ignoreTagLength)
-  {
-    ExtractDicomAsJson(target, dataset, 
-                       DicomToJsonFormat_Full,
-                       DicomToJsonFlags_Default, 
-                       ORTHANC_MAXIMUM_TAG_LENGTH,
-                       GetDefaultDicomEncoding(),
-                       ignoreTagLength);
   }
 
 

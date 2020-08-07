@@ -36,6 +36,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 
 
@@ -201,7 +202,7 @@ namespace Orthanc
 
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instances.front());
-      locker.GetDicom().ExtractDicomSummary(dicom, ORTHANC_MAXIMUM_TAG_LENGTH);
+      OrthancConfiguration::DefaultExtractDicomSummary(dicom, locker.GetDicom());
     }
 
     const std::set<DicomTag> moduleTags = removals_;

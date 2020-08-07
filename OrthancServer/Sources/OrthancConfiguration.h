@@ -45,7 +45,10 @@
 
 namespace Orthanc
 {
+  class DicomMap;
+  class DicomTag;
   class HttpServer;
+  class ParsedDicomFile;
   class ServerIndex;
   class TemporaryFile;
   
@@ -233,5 +236,18 @@ namespace Orthanc
     TemporaryFile* CreateTemporaryFile() const;
 
     std::string GetDefaultPrivateCreator() const;
+
+    static void DefaultExtractDicomSummary(DicomMap& target,
+                                           ParsedDicomFile& dicom);
+    
+    static void DefaultDicomDatasetToJson(Json::Value& target,
+                                          ParsedDicomFile& dicom);
+    
+    static void DefaultDicomDatasetToJson(Json::Value& target,
+                                          ParsedDicomFile& dicom,
+                                          const std::set<DicomTag>& ignoreTagLength);
+    
+    static void DefaultDicomHeaderToJson(Json::Value& target,
+                                         ParsedDicomFile& dicom);
   };
 }

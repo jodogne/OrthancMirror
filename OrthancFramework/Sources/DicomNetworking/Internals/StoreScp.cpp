@@ -161,9 +161,11 @@ namespace Orthanc
           try
           {
             std::set<DicomTag> ignoreTagLength;
-            
+
+            // TODO => Parameters in class "DicomServer"
             FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
-            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet, ignoreTagLength);
+            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet, DicomToJsonFormat_Full,
+                                                DicomToJsonFlags_Default, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {
