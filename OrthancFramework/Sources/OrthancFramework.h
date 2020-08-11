@@ -60,6 +60,14 @@
 #endif
 
 
+#define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
+  (ORTHANC_VERSION_MAJOR > major ||                                     \
+   (ORTHANC_VERSION_MAJOR == major &&                                   \
+    (ORTHANC_VERSION_MINOR > minor ||                                   \
+     (ORTHANC_VERSION_MINOR == minor &&                                 \
+      ORTHANC_VERSION_REVISION >= revision))))
+
+
 #include <string>
 
 namespace Orthanc
