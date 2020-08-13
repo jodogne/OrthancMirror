@@ -64,7 +64,8 @@ namespace Orthanc
     {
       try
       {
-        result[i] = boost::lexical_cast<float>(tokens[i]);
+        const std::string token = Toolbox::StripSpaces(tokens[i]);
+        result[i] = boost::lexical_cast<float>(token);
       }
       catch (boost::bad_lexical_cast&)
       {
@@ -182,7 +183,8 @@ namespace Orthanc
       {
         try
         {
-          framesCount_ = boost::lexical_cast<unsigned int>(frames->GetContent());
+          const std::string token = Toolbox::StripSpaces(frames->GetContent());
+          framesCount_ = boost::lexical_cast<unsigned int>(token);
         }
         catch (boost::bad_lexical_cast&)
         {
