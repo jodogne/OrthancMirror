@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * Fix DICOM SCP filters if some query tag has more than 256 characters
+* "/series/.../ordered-slices" supports spaces in Image Position/Orientation Patient tags
 
 
 Version 1.7.2 (2020-07-08)
