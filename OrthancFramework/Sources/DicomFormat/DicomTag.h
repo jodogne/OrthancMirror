@@ -125,6 +125,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SPECIFIC_CHARACTER_SET(0x0008, 0x0005);
   static const DicomTag DICOM_TAG_QUERY_RETRIEVE_LEVEL(0x0008, 0x0052);
   static const DicomTag DICOM_TAG_MODALITIES_IN_STUDY(0x0008, 0x0061);
+  static const DicomTag DICOM_TAG_RETRIEVE_AE_TITLE(0x0008, 0x0054);
 
   // Tags for images
   static const DicomTag DICOM_TAG_COLUMNS(0x0028, 0x0011);

@@ -280,7 +280,7 @@ namespace Orthanc
           new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("QueryRetrieveSize", 100)));
         mediaArchive_.reset(
           new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
-        defaultLocalAet_ = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+        defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
         jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
         saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
         metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
