@@ -70,6 +70,7 @@ static void RegisterDefaultExtensions()
   extensions_["wasm"] = "application/wasm";
   extensions_["woff"] = "application/x-font-woff";
   extensions_["xml"]  = "application/xml";
+  extensions_["pdf"]  = "application/pdf";
 }
 
 

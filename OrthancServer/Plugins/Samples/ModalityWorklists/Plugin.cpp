@@ -31,6 +31,7 @@
 
 static std::string folder_;
 static bool filterIssuerAet_ = false;
+static unsigned int limitAnswers_ = 0;
 
 /**
  * This is the main function for matching a DICOM worklist against a query.
@@ -150,8 +151,8 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
     fs::path source(folder_);
     fs::directory_iterator end;
-    int parsedFilesCount = 0;
-    int matchedWorklistCount = 0;
+    unsigned int parsedFilesCount = 0;
+    unsigned int matchedWorklistCount = 0;
 
     try
     {
@@ -171,6 +172,16 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
             // We found a worklist (i.e. a DICOM find with extension ".wl"), match it against the query
             if (MatchWorklist(answers, query, *matcher, it->path().string()))
             {
+              if (limitAnswers_ != 0 &&
+                  matchedWorklistCount >= limitAnswers_)
+              {
+                // Too many answers are to be returned wrt. the
+                // "LimitAnswers" configuration parameter. Mark the
+                // C-FIND result as incomplete.
+                OrthancPluginWorklistMarkIncomplete(OrthancPlugins::GetGlobalContext(), answers);
+                return OrthancPluginErrorCode_Success;
+              }
+              
               OrthancPlugins::LogInfo("Worklist matched: " + it->path().string());
               matchedWorklistCount++;
             }
@@ -179,18 +190,15 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
       }
 
       std::ostringstream message;
-      message << "Worklist C-Find: parsed " << parsedFilesCount << " files, found " << matchedWorklistCount << " match(es)";
+      message << "Worklist C-Find: parsed " << parsedFilesCount
+              << " files, found " << matchedWorklistCount << " match(es)";
       OrthancPlugins::LogInfo(message.str());
-
     }
     catch (fs::filesystem_error&)
     {
       OrthancPlugins::LogError("Inexistent folder while scanning for worklists: " + source.string());
       return OrthancPluginErrorCode_DirectoryExpected;
     }
-
-    // Uncomment the following line if too many answers are to be returned
-    // OrthancPluginMarkWorklistAnswersIncomplete(OrthancPlugins::GetGlobalContext(), answers);
 
     return OrthancPluginErrorCode_Success;
   }
@@ -239,6 +247,7 @@ extern "C"
       }
 
       filterIssuerAet_ = worklists.GetBooleanValue("FilterIssuerAet", false);
+      limitAnswers_ = worklists.GetUnsignedIntegerValue("LimitAnswers", 0);
     }
     else
     {
