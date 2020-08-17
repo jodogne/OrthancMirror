@@ -71,6 +71,7 @@ static void RegisterDefaultExtensions()
   extensions_["woff"] = "application/x-font-woff";
   extensions_["xml"]  = "application/xml";
   extensions_["pdf"]  = "application/pdf";
+  extensions_["woff2"] = "font/woff2";
 }
 
 
