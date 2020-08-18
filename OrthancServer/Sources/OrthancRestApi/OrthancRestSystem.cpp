@@ -69,7 +69,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      result["DicomAet"] = lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC");
+      result["DicomAet"] = lock.GetConfiguration().GetOrthancAET();
       result["DicomPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242);
       result["HttpPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042);
       result["Name"] = lock.GetConfiguration().GetStringParameter("Name", "");

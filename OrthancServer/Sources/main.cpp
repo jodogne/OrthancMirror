@@ -1073,7 +1073,7 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
-      dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetStringParameter("DicomAet", "ORTHANC"));
+      dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
     }
 
 #if ORTHANC_ENABLE_PLUGINS == 1

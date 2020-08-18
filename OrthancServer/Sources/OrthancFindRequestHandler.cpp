@@ -304,7 +304,8 @@ namespace Orthanc
                         const std::list<DicomTag>& sequencesToReturn,
                         const DicomMap* counters,
                         const std::string& defaultPrivateCreator,
-                        const std::map<uint16_t, std::string>& privateCreators)
+                        const std::map<uint16_t, std::string>& privateCreators,
+                        const std::string& retrieveAet)
   {
     DicomMap match;
 
@@ -318,6 +319,13 @@ namespace Orthanc
     }
     
     DicomMap result;
+
+    /**
+     * Add the mandatory "Retrieve AE Title (0008,0054)" tag, which was missing in Orthanc <= 1.7.2.
+     * http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_C.4.1.1.3.2
+     * https://groups.google.com/g/orthanc-users/c/-7zNTKR_PMU/m/kfjwzEVNAgAJ
+     **/
+    result.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet, false /* not binary */);
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
@@ -504,6 +512,7 @@ namespace Orthanc
     const std::list<DicomTag>&  sequencesToReturn_;
     std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
     const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
+    std::string                 retrieveAet_;
 
   public:
     LookupVisitor(DicomFindAnswers&  answers,
@@ -525,6 +534,7 @@ namespace Orthanc
       {
         OrthancConfiguration::ReaderLock lock;
         defaultPrivateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
+        retrieveAet_ = lock.GetConfiguration().GetOrthancAET();
       }
     }
 
@@ -566,8 +576,8 @@ namespace Orthanc
     {
       std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 
-      AddAnswer(answers_, mainDicomTags, dicomAsJson,
-                queryAsArray_, sequencesToReturn_, counters.get(), defaultPrivateCreator_, privateCreators_);
+      AddAnswer(answers_, mainDicomTags, dicomAsJson, queryAsArray_, sequencesToReturn_,
+                counters.get(), defaultPrivateCreator_, privateCreators_, retrieveAet_);
     }
   };
 

@@ -237,6 +237,11 @@ namespace Orthanc
 
     std::string GetDefaultPrivateCreator() const;
 
+    std::string GetOrthancAET() const
+    {
+      return GetStringParameter("DicomAet", "ORTHANC");
+    }
+
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            ParsedDicomFile& dicom);
     
