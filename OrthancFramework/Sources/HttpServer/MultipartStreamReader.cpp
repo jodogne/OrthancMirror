@@ -126,8 +126,7 @@ namespace Orthanc
       else
       {
         // We have not seen the end of the unused area yet
-        std::string reminder(current, corpusEnd);
-        buffer_.AddChunkDestructive(reminder);
+        buffer_.AddChunk(current, corpusEnd);
         return;
       }          
     } 
@@ -206,8 +205,7 @@ namespace Orthanc
 
     if (current != corpusEnd)
     {
-      std::string reminder(current, corpusEnd);
-      buffer_.AddChunkDestructive(reminder);
+      buffer_.AddChunk(current, corpusEnd);
     }
   }
 

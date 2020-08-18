@@ -146,6 +146,8 @@ TEST(HttpClient, SslNoVerification)
 TEST(RestApi, ChunkedBuffer)
 {
   ChunkedBuffer b;
+  //b.SetTrailingBufferSize(0);   // TODO
+  
   ASSERT_EQ(0u, b.GetNumBytes());
 
   b.AddChunk("hello", 5);
@@ -158,6 +160,7 @@ TEST(RestApi, ChunkedBuffer)
   b.Flatten(s);
   ASSERT_EQ("helloworld", s);
 }
+
 
 TEST(RestApi, ParseCookies)
 {
@@ -877,4 +880,144 @@ TEST(WebServiceParameters, Url)
   // New in Orthanc 1.7.2: Allow relative URLs (for DICOMweb in Stone)
   w.SetUrl("coucou");
   w.SetUrl("/coucou");
+}
+
+
+
+
+namespace
+{
+  class TotoBody : public HttpClient::IRequestBody
+  {
+  private:
+    size_t size_;
+    size_t chunkSize_;
+    size_t pos_;
+      
+  public:
+    TotoBody(size_t size,
+             size_t chunkSize) :
+      size_(size),
+      chunkSize_(chunkSize),
+      pos_(0)
+    {
+    }
+      
+    virtual bool ReadNextChunk(std::string& chunk)
+    {
+      if (pos_ == size_)
+      {
+        return false;
+      }
+
+      chunk.clear();
+      chunk.resize(chunkSize_);
+
+      size_t i = 0;
+      while (pos_ < size_ &&
+             i < chunkSize_)
+      {
+        chunk[i] = '0' + (pos_ % 7);
+        pos_++;
+        i++;
+      }
+
+      if (i < chunk.size())
+      {
+        chunk.erase(i, chunk.size());
+      }
+      
+      return true;
+    }
+  };
+
+  class TotoServer : public IHttpHandler
+  {
+  public:
+    virtual bool CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
+                                            RequestOrigin origin,
+                                            const char* remoteIp,
+                                            const char* username,
+                                            HttpMethod method,
+                                            const UriComponents& uri,
+                                            const Arguments& headers)
+    {
+      return false;
+    }
+
+    virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
+                        HttpMethod method,
+                        const UriComponents& uri,
+                        const Arguments& headers,
+                        const GetArguments& getArguments,
+                        const void* bodyData,
+                        size_t bodySize)
+    {
+      printf("received %llu\n", bodySize);
+
+      const uint8_t* b = reinterpret_cast<const uint8_t*>(bodyData);
+      
+      for (size_t i = 0; i < bodySize; i++)
+      {
+        if (b[i] != ('0' + i % 7))
+        {
+          throw;
+        }
+      }
+      
+      output.Answer("ok");
+      return true;
+    }
+  };
+}
+
+
+#include "../Sources/HttpServer/HttpServer.h"
+
+TEST(Toto, DISABLED_Toto)
+{
+  TotoServer handler;
+  HttpServer server;
+  server.SetPortNumber(5000);
+  server.Register(handler);
+  server.Start();
+  
+  WebServiceParameters w;
+  w.SetUrl("http://localhost:5000");
+
+  TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
+  //TotoBody body(600 * 1024 * 1024, 1);
+  
+  HttpClient c(w, "toto");
+  c.SetMethod(HttpMethod_Post);
+  c.AddHeader("Expect", "");
+  c.AddHeader("Transfer-Encoding", "chunked");
+  c.SetBody(body);
+
+  std::string s;
+  ASSERT_TRUE(c.Apply(s));
+
+  printf(">> [%s]\n", s.c_str());
+
+  server.Stop();
+}
+
+
+
+TEST(Toto, DISABLED_Tata)
+{
+  boost::posix_time::ptime start = boost::posix_time::microsec_clock::local_time();
+  
+  ChunkedBuffer b;
+  for (unsigned int i = 0; i < 600 * 1024 * 1024; i++)
+  {
+    b.AddChunk("a", 1);
+  }
+
+  boost::posix_time::ptime end = boost::posix_time::microsec_clock::local_time();
+
+  printf("time: %d\n", (end-start).total_microseconds());
 }
