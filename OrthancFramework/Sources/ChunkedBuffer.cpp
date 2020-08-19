@@ -32,6 +32,7 @@ namespace Orthanc
   void ChunkedBuffer::Clear()
   {
     numBytes_ = 0;
+    pendingPos_ = 0;
 
     for (Chunks::iterator it = chunks_.begin(); 
          it != chunks_.end(); ++it)
@@ -41,8 +42,8 @@ namespace Orthanc
   }
 
 
-  void ChunkedBuffer::AddChunk(const void* chunkData,
-                               size_t chunkSize)
+  void ChunkedBuffer::AddChunkInternal(const void* chunkData,
+                                       size_t chunkSize)
   {
     if (chunkSize == 0)
     {
@@ -53,6 +54,76 @@ namespace Orthanc
       assert(chunkData != NULL);
       chunks_.push_back(new std::string(reinterpret_cast<const char*>(chunkData), chunkSize));
       numBytes_ += chunkSize;
+    }
+  }
+
+
+  void ChunkedBuffer::FlushPendingBuffer()
+  {
+    assert(pendingPos_ <= pendingBuffer_.size());
+    
+    if (!pendingBuffer_.empty())
+    {
+      AddChunkInternal(pendingBuffer_.c_str(), pendingPos_);
+    }
+    else
+    {
+      assert(pendingPos_ == 0);
+    }
+
+    pendingPos_ = 0;
+  }
+
+
+  ChunkedBuffer::ChunkedBuffer() :
+    numBytes_(0),
+    pendingPos_(0)
+  {
+    pendingBuffer_.resize(16 * 1024);  // Default size of the pending buffer: 16KB
+  }
+
+
+  void ChunkedBuffer::SetPendingBufferSize(size_t size)
+  {
+    FlushPendingBuffer();
+    pendingBuffer_.resize(size);
+  }
+  
+
+  void ChunkedBuffer::AddChunk(const void* chunkData,
+                               size_t chunkSize)
+  {
+    if (chunkSize > 0)
+    {
+#if 1
+      assert(sizeof(char) == 1);
+      
+      // Optimization if Orthanc >= 1.7.3, to speed up in the presence of many small chunks
+      if (pendingPos_ + chunkSize <= pendingBuffer_.size())
+      {
+        // There remain enough place in the pending buffer
+        memcpy(&pendingBuffer_[pendingPos_], chunkData, chunkSize);
+        pendingPos_ += chunkSize;
+      }
+      else
+      {
+        FlushPendingBuffer();
+
+        if (!pendingBuffer_.empty() &&
+            chunkSize < pendingBuffer_.size())
+        {
+          memcpy(&pendingBuffer_[0], chunkData, chunkSize);
+          pendingPos_ = chunkSize;
+        }
+        else
+        {
+          AddChunkInternal(chunkData, chunkSize);
+        }
+      }
+#else
+      // Non-optimized implementation in Orthanc <= 1.7.2
+      AddChunkInternal(chunkData, chunkSize);
+#endif
     }
   }
 
@@ -80,6 +151,7 @@ namespace Orthanc
 
   void ChunkedBuffer::Flatten(std::string& result)
   {
+    FlushPendingBuffer();
     result.resize(numBytes_);
 
     size_t pos = 0;

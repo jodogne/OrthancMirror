@@ -143,22 +143,34 @@ TEST(HttpClient, SslNoVerification)
 #endif
 
 
-TEST(RestApi, ChunkedBuffer)
+TEST(ChunkedBuffer, Basic)
 {
-  ChunkedBuffer b;
-  //b.SetTrailingBufferSize(0);   // TODO
+  for (unsigned int i = 0; i < 2; i++)
+  {
+    ChunkedBuffer b;
+
+    if (i == 0)
+    {
+      b.SetPendingBufferSize(0);
+      ASSERT_EQ(0u, b.GetPendingBufferSize());
+    }
+    else
+    {
+      ASSERT_EQ(16u * 1024u, b.GetPendingBufferSize());
+    }
   
-  ASSERT_EQ(0u, b.GetNumBytes());
+    ASSERT_EQ(0u, b.GetNumBytes());
 
-  b.AddChunk("hello", 5);
-  ASSERT_EQ(5u, b.GetNumBytes());
+    b.AddChunk("hello", 5);
+    ASSERT_EQ(5u, b.GetNumBytes());
 
-  b.AddChunk("world", 5);
-  ASSERT_EQ(10u, b.GetNumBytes());
+    b.AddChunk("world", 5);
+    ASSERT_EQ(10u, b.GetNumBytes());
 
-  std::string s;
-  b.Flatten(s);
-  ASSERT_EQ("helloworld", s);
+    std::string s;
+    b.Flatten(s);
+    ASSERT_EQ("helloworld", s);
+  }
 }
 
 
@@ -883,6 +895,72 @@ TEST(WebServiceParameters, Url)
 }
 
 
+TEST(ChunkedBuffer, DISABLED_Large)
+{
+  const size_t LARGE = 60 * 1024 * 1024;
+  
+  ChunkedBuffer b;
+  for (size_t i = 0; i < LARGE; i++)
+  {
+    b.AddChunk(boost::lexical_cast<std::string>(i % 10));
+  }
+
+  std::string s;
+  b.Flatten(s);
+  ASSERT_EQ(LARGE, s.size());
+  ASSERT_EQ(0, b.GetNumBytes());
+  
+  for (size_t i = 0; i < LARGE; i++)
+  {
+    ASSERT_EQ('0' + (i % 10), s[i]);
+  }
+
+  b.Flatten(s);
+  ASSERT_EQ(0u, s.size());
+}
+
+
+TEST(ChunkedBuffer, Pending)
+{
+  ChunkedBuffer b;
+    
+  for (size_t pendingSize = 0; pendingSize < 16; pendingSize++)
+  {
+    b.SetPendingBufferSize(pendingSize);
+    ASSERT_EQ(pendingSize, b.GetPendingBufferSize());
+
+    unsigned int pos = 0;
+    unsigned int iteration = 0;
+    
+    while (pos < 1024)
+    {
+      size_t chunkSize = (iteration % 17);
+
+      std::string chunk;
+      chunk.resize(chunkSize);
+      for (size_t i = 0; i < chunkSize; i++)
+      {
+        chunk[i] = '0' + (pos % 10);
+        pos++;
+      }
+
+      b.AddChunk(chunk);
+      
+      iteration ++;
+    }
+
+    std::string s;
+    b.Flatten(s);
+    ASSERT_EQ(0u, b.GetNumBytes());
+    ASSERT_EQ(pos, s.size());
+    
+    for (size_t i = 0; i < s.size(); i++)
+    {
+      ASSERT_EQ('0' + (i % 10), s[i]);
+    }  
+  }
+}
+
 
 
 namespace
@@ -915,7 +993,7 @@ namespace
 
       size_t i = 0;
       while (pos_ < size_ &&
-             i < chunkSize_)
+             i < chunk.size())
       {
         chunk[i] = '0' + (pos_ % 7);
         pos_++;
@@ -987,9 +1065,9 @@ TEST(Toto, DISABLED_Toto)
   
   WebServiceParameters w;
   w.SetUrl("http://localhost:5000");
-
-  TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
-  //TotoBody body(600 * 1024 * 1024, 1);
+  
+  //TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
+  TotoBody body(32 * 1024, 1);  // This crashes Orthanc 1.6.0 to 1.7.2 
   
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);
@@ -1003,21 +1081,4 @@ TEST(Toto, DISABLED_Toto)
   printf(">> [%s]\n", s.c_str());
 
   server.Stop();
-}
-
-
-
-TEST(Toto, DISABLED_Tata)
-{
-  boost::posix_time::ptime start = boost::posix_time::microsec_clock::local_time();
-  
-  ChunkedBuffer b;
-  for (unsigned int i = 0; i < 600 * 1024 * 1024; i++)
-  {
-    b.AddChunk("a", 1);
-  }
-
-  boost::posix_time::ptime end = boost::posix_time::microsec_clock::local_time();
-
-  printf("time: %d\n", (end-start).total_microseconds());
 }
