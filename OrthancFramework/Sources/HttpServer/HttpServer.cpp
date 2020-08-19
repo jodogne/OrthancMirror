@@ -297,10 +297,10 @@ namespace Orthanc
                                                   struct mg_connection *connection,
                                                   const std::string& contentLength)
   {
-    int length;
+    size_t length;
     try
     {
-      length = boost::lexical_cast<int>(contentLength);
+      length = boost::lexical_cast<size_t>(contentLength);
     }
     catch (boost::bad_lexical_cast&)
     {
@@ -323,7 +323,7 @@ namespace Orthanc
         return PostDataStatus_Failure;
       }
 
-      assert(r <= length);
+      assert(static_cast<size_t>(r) <= length);
       length -= r;
       pos += r;
     }
