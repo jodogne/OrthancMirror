@@ -101,7 +101,7 @@ namespace Orthanc
       // Optimization if Orthanc >= 1.7.3, to speed up in the presence of many small chunks
       if (pendingPos_ + chunkSize <= pendingBuffer_.size())
       {
-        // There remain enough place in the pending buffer
+        // There remains enough place in the pending buffer
         memcpy(&pendingBuffer_[pendingPos_], chunkData, chunkSize);
         pendingPos_ += chunkSize;
       }

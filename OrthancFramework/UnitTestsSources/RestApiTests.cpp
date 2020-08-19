@@ -1034,7 +1034,7 @@ namespace
                         const void* bodyData,
                         size_t bodySize)
     {
-      printf("received %llu\n", bodySize);
+      printf("received %lu\n", bodySize);
 
       const uint8_t* b = reinterpret_cast<const uint8_t*>(bodyData);
       
@@ -1055,7 +1055,37 @@ namespace
 
 #include "../Sources/HttpServer/HttpServer.h"
 
-TEST(Toto, DISABLED_Toto)
+TEST(HttpClient, DISABLED_Issue156_Slow)
+{
+  // https://bugs.orthanc-server.com/show_bug.cgi?id=156
+  
+  TotoServer handler;
+  HttpServer server;
+  server.SetPortNumber(5000);
+  server.Register(handler);
+  server.Start();
+  
+  WebServiceParameters w;
+  w.SetUrl("http://localhost:5000");
+
+  // This is slow in Orthanc <= 1.5.8 (issue 156)
+  TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
+  
+  HttpClient c(w, "toto");
+  c.SetMethod(HttpMethod_Post);
+  c.AddHeader("Expect", "");
+  c.AddHeader("Transfer-Encoding", "chunked");
+  c.SetBody(body);
+  
+  std::string s;
+  ASSERT_TRUE(c.Apply(s));
+  ASSERT_EQ("ok", s);
+
+  server.Stop();
+}
+
+
+TEST(HttpClient, DISABLED_Issue156_Crash)
 {
   TotoServer handler;
   HttpServer server;
@@ -1065,20 +1095,19 @@ TEST(Toto, DISABLED_Toto)
   
   WebServiceParameters w;
   w.SetUrl("http://localhost:5000");
-  
-  //TotoBody body(600 * 1024 * 1024, 6 * 1024 * 1024 - 17);
-  TotoBody body(32 * 1024, 1);  // This crashes Orthanc 1.6.0 to 1.7.2 
+
+  // This crashes Orthanc 1.6.0 to 1.7.2 
+  TotoBody body(32 * 1024, 1);  
   
   HttpClient c(w, "toto");
   c.SetMethod(HttpMethod_Post);
   c.AddHeader("Expect", "");
   c.AddHeader("Transfer-Encoding", "chunked");
   c.SetBody(body);
-
+  
   std::string s;
   ASSERT_TRUE(c.Apply(s));
-
-  printf(">> [%s]\n", s.c_str());
+  ASSERT_EQ("ok", s);
 
   server.Stop();
 }

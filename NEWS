@@ -1,10 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+Plugins
+-------
+
+* New config option "Worklist.LimitAnswers" for the sample modality worklist plugin
+
+Maintenance
+-----------
+
 * Add missing tag "Retrieve AE Title (0008,0054)" in C-FIND SCP responses
 * Fix DICOM SCP filters if some query tag has more than 256 characters
 * "/series/.../ordered-slices" supports spaces in Image Position/Orientation Patient tags
-* New config option "Worklist.LimitAnswers" for the sample modality worklist plugin
+* Fix possible crash in HttpClient if sending multipart body (can occur in STOW-RS)
 
 
 Version 1.7.2 (2020-07-08)
