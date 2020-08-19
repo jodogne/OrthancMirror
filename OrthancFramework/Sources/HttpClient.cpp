@@ -197,8 +197,8 @@ namespace Orthanc
   {
   private:
     HttpClient::IRequestBody*  body_;
-    std::string                sourceBuffer_;
-    size_t                     sourceBufferTransmittedSize_;
+    std::string                pending_;
+    size_t                     pendingPos_;
 
     size_t CallbackInternal(char* curlBuffer,
                             size_t curlBufferSize)
@@ -213,65 +213,63 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      // Read chunks from the body stream so as to fill the target buffer
-      size_t curlBufferFilledSize = 0;
-      size_t sourceRemainingSize = sourceBuffer_.size() - sourceBufferTransmittedSize_;
-      bool hasMore = true;
-      
-      while (sourceRemainingSize < curlBufferSize && hasMore)
+      if (pendingPos_ + curlBufferSize <= pending_.size())
       {
-        if (sourceRemainingSize > 0)
-        {
-          // transmit the end of current source buffer
-          memcpy(curlBuffer + curlBufferFilledSize,
-                 sourceBuffer_.data() + sourceBufferTransmittedSize_, sourceRemainingSize);
+        assert(sizeof(char) == 1);
+        memcpy(curlBuffer, &pending_[pendingPos_], curlBufferSize);
+        pendingPos_ += curlBufferSize;
+        return curlBufferSize;
+      }
+      else
+      {
+        ChunkedBuffer buffer;
+        buffer.SetPendingBufferSize(curlBufferSize);
 
-          curlBufferFilledSize += sourceRemainingSize;
+        if (pendingPos_ < pending_.size())
+        {
+          buffer.AddChunk(&pending_[pendingPos_], pending_.size() - pendingPos_);
+        }
+        
+        // Read chunks from the body stream so as to fill the target buffer
+        std::string chunk;
+        
+        while (buffer.GetNumBytes() < curlBufferSize &&
+               body_->ReadNextChunk(chunk))
+        {
+          buffer.AddChunk(chunk);
         }
 
-        // start filling a new source buffer
-        sourceBufferTransmittedSize_ = 0;
-        sourceBuffer_.clear();
+        buffer.Flatten(pending_);
+        pendingPos_ = std::min(pending_.size(), curlBufferSize);
 
-        hasMore = body_->ReadNextChunk(sourceBuffer_);
+        if (pendingPos_ != 0)
+        {
+          memcpy(curlBuffer, pending_.c_str(), pendingPos_);
+        }
 
-        sourceRemainingSize = sourceBuffer_.size();
+        return pendingPos_;
       }
-
-      if (sourceRemainingSize > 0 &&
-          curlBufferSize > curlBufferFilledSize)
-      {
-        size_t s = std::min(sourceRemainingSize, curlBufferSize - curlBufferFilledSize);
-
-        memcpy(curlBuffer + curlBufferFilledSize,
-               sourceBuffer_.data() + sourceBufferTransmittedSize_, s);
-
-        sourceBufferTransmittedSize_ += s;
-        curlBufferFilledSize += s;
-      }
-
-      return curlBufferFilledSize;
     }
     
   public:
     CurlRequestBody() :
       body_(NULL),
-      sourceBufferTransmittedSize_(0)
+      pendingPos_(0)
     {
     }
 
     void SetBody(HttpClient::IRequestBody& body)
     {
       body_ = &body;
-      sourceBufferTransmittedSize_ = 0;
-      sourceBuffer_.clear();
+      pending_.clear();
+      pendingPos_ = 0;
     }
 
     void Clear()
     {
       body_ = NULL;
-      sourceBufferTransmittedSize_ = 0;
-      sourceBuffer_.clear();
+      pending_.clear();
+      pendingPos_ = 0;
     }
 
     bool IsValid() const
