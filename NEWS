@@ -1,9 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.7.2 (2020-08-24)
+==========================
+
 REST API
 --------
 
+* API version upgraded to 8
 * "/peers/{id}/store": New option "Compress" to compress DICOM data using gzip
 * "OrthancPeerStore" jobs now report the transmitted size in their public content
 

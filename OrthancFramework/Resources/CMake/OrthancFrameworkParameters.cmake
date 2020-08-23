@@ -23,7 +23,7 @@
 #####################################################################
 
 # Version of the build, should always be "mainline" except in release branches
-set(ORTHANC_VERSION "mainline")
+set(ORTHANC_VERSION "1.7.3")
 
 # Version of the database schema. History:
 #   * Orthanc 0.1.0 -> Orthanc 0.3.0 = no versioning
@@ -37,7 +37,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "7")
+set(ORTHANC_API_VERSION "8")
 
 
 #####################################################################
