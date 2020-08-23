@@ -908,11 +908,11 @@ TEST(ChunkedBuffer, DISABLED_Large)
   std::string s;
   b.Flatten(s);
   ASSERT_EQ(LARGE, s.size());
-  ASSERT_EQ(0, b.GetNumBytes());
+  ASSERT_EQ(0u, b.GetNumBytes());
   
   for (size_t i = 0; i < LARGE; i++)
   {
-    ASSERT_EQ('0' + (i % 10), s[i]);
+    ASSERT_EQ(static_cast<char>('0' + (i % 10)), s[i]);
   }
 
   b.Flatten(s);
@@ -956,7 +956,7 @@ TEST(ChunkedBuffer, Pending)
     
     for (size_t i = 0; i < s.size(); i++)
     {
-      ASSERT_EQ('0' + (i % 10), s[i]);
+      ASSERT_EQ(static_cast<char>('0' + (i % 10)), s[i]);
     }  
   }
 }
