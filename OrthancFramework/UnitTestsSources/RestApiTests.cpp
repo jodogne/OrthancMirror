@@ -1034,7 +1034,7 @@ namespace
                         const void* bodyData,
                         size_t bodySize)
     {
-      printf("received %lu\n", bodySize);
+      printf("received %d\n", static_cast<int>(bodySize));
 
       const uint8_t* b = reinterpret_cast<const uint8_t*>(bodyData);
       
