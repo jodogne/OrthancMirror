@@ -2168,7 +2168,7 @@ TEST(Toto, DISABLED_Transcode4)
                     a == DicomTransferSyntax_JPEGProcess2_4 ||
                     a == DicomTransferSyntax_JPEGLSLossy);
       
-      printf("SIZE: %lu\n", t.size());
+      printf("SIZE: %d\n", static_cast<int>(t.size()));
       if (sourceUid == IDicomTranscoder::GetSopInstanceUid(target.GetParsed()))
       {
         ASSERT_FALSE(lossy);
