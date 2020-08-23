@@ -119,6 +119,13 @@ namespace Orthanc
     }
     else
     {
+      if (compress_)
+      {
+        LOG(ERROR) << "Cannot send DICOM over HTTP using \"gzip\" as "
+                   << "\"Content-Encoding\": Make sure that the version "
+                   << "of the remote Orthanc server is >= 1.6.0";
+      }
+
       throw OrthancException(ErrorCode_NetworkProtocol);
     }
   }
