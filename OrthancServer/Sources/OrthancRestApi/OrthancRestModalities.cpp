@@ -1143,6 +1143,13 @@ namespace Orthanc
     {
       job->SetTranscode(SerializationToolbox::ReadString(request, TRANSCODE));
     }
+
+    static const char* COMPRESS = "Compress";
+    if (request.type() == Json::objectValue &&
+        request.isMember(COMPRESS))
+    {
+      job->SetCompress(SerializationToolbox::ReadBoolean(request, COMPRESS));
+    }
     
     {
       OrthancConfiguration::ReaderLock lock;

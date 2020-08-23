@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* "/peers/{id}/store": New option "Compress" to compress DICOM data using gzip
+* "OrthancPeerStore" jobs now report the transmitted size in their public content
+
 Plugins
 -------
 
