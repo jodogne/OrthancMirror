@@ -37,6 +37,8 @@
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 #include "../../../OrthancFramework/Sources/HttpClient.h"
 
+#include <stdint.h>
+
 
 namespace Orthanc
 {
