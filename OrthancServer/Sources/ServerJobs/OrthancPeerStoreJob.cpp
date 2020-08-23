@@ -34,6 +34,7 @@
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancPeerStoreJob.h"
 
+#include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
@@ -51,10 +52,18 @@ namespace Orthanc
     {
       client_.reset(new HttpClient(peer_, "instances"));
       client_->SetMethod(HttpMethod_Post);
+
+      if (compress_)
+      {
+        client_->AddHeader("Expect", "");
+        client_->AddHeader("Content-Encoding", "gzip");
+      }
     }
       
     LOG(INFO) << "Sending instance " << instance << " to peer \"" 
               << peer_.GetUrl() << "\"";
+
+    std::string body;
 
     try
     {
@@ -71,17 +80,17 @@ namespace Orthanc
 
         if (context_.Transcode(transcoded, source, syntaxes, true))
         {
-          client_->GetBody().assign(reinterpret_cast<const char*>(transcoded.GetBufferData()),
-                                    transcoded.GetBufferSize());
+          body.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()),
+                      transcoded.GetBufferSize());
         }
         else
         {
-          client_->GetBody().swap(dicom);
+          body.swap(dicom);
         }
       }
       else
       {
-        context_.ReadDicom(client_->GetBody(), instance);
+        context_.ReadDicom(body, instance);
       }
     }
     catch (OrthancException& e)
@@ -89,6 +98,19 @@ namespace Orthanc
       LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
       return false;
     }
+
+    if (compress_)
+    {
+      GzipCompressor compressor;
+      compressor.SetCompressionLevel(9);  // Max compression level
+      IBufferCompressor::Compress(client_->GetBody(), compressor, body);
+    }
+    else
+    {
+      client_->GetBody().swap(body);
+    }
+
+    size_ += client_->GetBody().size();
 
     std::string answer;
     if (client_->Apply(answer))
@@ -176,6 +198,19 @@ namespace Orthanc
   }
 
 
+  void OrthancPeerStoreJob::SetCompress(bool compress)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      compress_ = compress;
+    }    
+  }
+
+
   void OrthancPeerStoreJob::Stop(JobStopReason reason)   // For pausing jobs
   {
     client_.reset(NULL);
@@ -191,16 +226,23 @@ namespace Orthanc
                     false /* allow simple format if possible */,
                     false /* don't include passwords */);
     value["Peer"] = v;
+    value["Compress"] = compress_;
     
     if (transcode_)
     {
       value["Transcode"] = GetTransferSyntaxUid(transferSyntax_);
     }
+
+    static const uint64_t MEGA_BYTES = 1024 * 1024;
+    value["Size"] = boost::lexical_cast<std::string>(size_);
+    value["SizeMB"] = static_cast<unsigned int>(size_ / MEGA_BYTES);
   }
 
 
   static const char* PEER = "Peer";
   static const char* TRANSCODE = "Transcode";
+  static const char* COMPRESS = "Compress";
+  static const char* SIZE = "Size";
 
   OrthancPeerStoreJob::OrthancPeerStoreJob(ServerContext& context,
                                            const Json::Value& serialized) :
@@ -217,6 +259,25 @@ namespace Orthanc
     else
     {
       transcode_ = false;
+      transferSyntax_ = DicomTransferSyntax_LittleEndianExplicit;  // Dummy value
+    }
+
+    if (serialized.isMember(COMPRESS))
+    {
+      SetCompress(SerializationToolbox::ReadBoolean(serialized, COMPRESS));
+    }
+    else
+    {
+      compress_ = false;
+    }
+
+    if (serialized.isMember(SIZE))
+    {
+      size_ = boost::lexical_cast<uint64_t>(SerializationToolbox::ReadString(serialized, SIZE));
+    }
+    else
+    {
+      size_ = 0;
     }
   }
 
@@ -238,6 +299,9 @@ namespace Orthanc
       {
         target[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
       }
+
+      target[COMPRESS] = compress_;
+      target[SIZE] = boost::lexical_cast<std::string>(size_);
       
       return true;
     }

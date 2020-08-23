@@ -50,6 +50,8 @@ namespace Orthanc
     std::unique_ptr<HttpClient>  client_;
     bool                         transcode_;
     DicomTransferSyntax          transferSyntax_;
+    bool                         compress_;
+    uint64_t                     size_;
 
   protected:
     virtual bool HandleInstance(const std::string& instance);
@@ -59,7 +61,10 @@ namespace Orthanc
   public:
     OrthancPeerStoreJob(ServerContext& context) :
       context_(context),
-      transcode_(false)
+      transcode_(false),
+      transferSyntax_(DicomTransferSyntax_LittleEndianExplicit),  // Dummy value
+      compress_(false),
+      size_(0)
     {
     }
 
@@ -78,6 +83,11 @@ namespace Orthanc
       return transcode_;
     }
 
+    bool IsCompress() const
+    {
+      return compress_;
+    }
+
     DicomTransferSyntax GetTransferSyntax() const;
 
     void SetTranscode(DicomTransferSyntax syntax);
@@ -85,6 +95,8 @@ namespace Orthanc
     void SetTranscode(const std::string& transferSyntaxUid);
 
     void ClearTranscode();
+
+    void SetCompress(bool compress);
 
     virtual void Stop(JobStopReason reason);   // For pausing jobs
 
