@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* underscores are now allowed in peers/modalities symbolic names
+
 
 Version 1.7.3 (2020-08-24)
 ==========================
