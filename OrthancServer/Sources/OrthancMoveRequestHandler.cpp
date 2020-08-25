@@ -205,6 +205,23 @@ namespace Orthanc
   }
 
 
+  static bool IsNonEmptyTag(const DicomMap& dicom,
+                            const DicomTag& tag)
+  {
+    const DicomValue* value = dicom.TestAndGetValue(tag);
+    if (value == NULL ||
+        value->IsNull() ||
+        value->IsBinary())
+    {
+      return false;
+    }
+    else
+    {
+      return !value->GetContent().empty();
+    }
+  }
+
+
   bool OrthancMoveRequestHandler::LookupIdentifiers(std::vector<std::string>& publicIds,
                                                     ResourceType level,
                                                     const DicomMap& input)
@@ -218,8 +235,17 @@ namespace Orthanc
         break;
 
       case ResourceType_Study:
-        tag = (input.HasTag(DICOM_TAG_ACCESSION_NUMBER) ? 
-               DICOM_TAG_ACCESSION_NUMBER : DICOM_TAG_STUDY_INSTANCE_UID);
+        // The test below using "IsNonEmptyTag()" fixes compatibility
+        // with Ambra C-FIND SCU:
+        // https://groups.google.com/g/orthanc-users/c/yIUnZ9v9-Zs/m/GQPXiAOiCQAJ
+        if (IsNonEmptyTag(input, DICOM_TAG_ACCESSION_NUMBER))
+        {
+          tag = DICOM_TAG_ACCESSION_NUMBER;
+        }
+        else
+        {
+          tag = DICOM_TAG_STUDY_INSTANCE_UID;
+        }
         break;
         
       case ResourceType_Series:
@@ -373,7 +399,7 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_BadRequest, "Invalid fields in a C-MOVE request");
+      throw OrthancException(ErrorCode_BadRequest, "No DICOM identifier provided in the C-MOVE request for this query retrieve level");
     }
   }
 }
