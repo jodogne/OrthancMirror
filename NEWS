@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Underscores are now allowed in peers/modalities symbolic names
+* Fix compatibility with C-MOVE SCU requests issued by Ambra
+
 
 Version 1.7.3 (2020-08-24)
 ==========================
