@@ -181,10 +181,10 @@ namespace Orthanc
     for (size_t j = 0; j < s.size(); j++)
     {
       if (!isalnum(s[j]) && 
-          s[j] != '-')
+          s[j] != '-' && s[j] != '_')
       {
         throw OrthancException(ErrorCode_BadFileFormat,
-                               "Only alphanumeric and dash characters are allowed "
+                               "Only alphanumeric, dash characters and underscores are allowed "
                                "in the names of modalities/peers, but found: " + s);
       }
     }
