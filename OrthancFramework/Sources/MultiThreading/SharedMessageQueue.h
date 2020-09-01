@@ -70,5 +70,7 @@ namespace Orthanc
     void SetLifoPolicy();
 
     void Clear();
+
+    size_t GetSize();
   };
 }

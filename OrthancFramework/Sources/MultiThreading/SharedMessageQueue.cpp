@@ -197,4 +197,10 @@ namespace Orthanc
       emptied_.notify_all();
     }
   }
+
+  size_t SharedMessageQueue::GetSize()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    return queue_.size();
+  }
 }
