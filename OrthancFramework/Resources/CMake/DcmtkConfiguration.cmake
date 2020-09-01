@@ -169,16 +169,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       DICTIONARY_PRIVATE ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
       DICTIONARY_DICONDE ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
       )
-    
-    # Fix CMake Policy CMP0058 (related to ninja) by creating a phony
-    # target for files coming from downloaded packages
-    add_custom_command(
-      OUTPUT
-      ${DCMTK_SOURCES_DIR}/dcmdata/data/dicom.dic
-      ${DCMTK_SOURCES_DIR}/dcmdata/data/private.dic
-      ${DCMTK_SOURCES_DIR}/dcmdata/data/diconde.dic
-      COMMAND ${CMAKE_COMMAND} -E echo_append ""
-      )
   else()
     set(DCMTK_USE_EMBEDDED_DICTIONARIES 0)
   endif()
