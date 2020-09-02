@@ -119,10 +119,8 @@ namespace Orthanc
         }
 
         std::string sopClassUid, sopInstanceUid;  // Unused
-
-        const void* data = dicom.empty() ? NULL : dicom.c_str();
-        connection_->Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                           true, originatorAet_, originatorId_);
+        context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
+                                      true, originatorAet_, originatorId_);
 
         return Status_Success;
       }

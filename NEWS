@@ -6,6 +6,7 @@ Maintenance
 
 * Underscores are now allowed in peers/modalities symbolic names
 * Fix compatibility with C-MOVE SCU requests issued by Ambra
+* Fix transcoding in C-MOVE SCP, in the case where "SynchronousCMove" is "true"
 
 
 Version 1.7.3 (2020-08-24)
