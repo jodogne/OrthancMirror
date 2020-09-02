@@ -78,7 +78,7 @@ Orthanc users.
 SUPPORTED - Debian Jessie/Sid
 -----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgtest-dev libpng-dev libjpeg-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
@@ -100,7 +100,7 @@ http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 SUPPORTED - Ubuntu 14.04 LTS
 ----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
        	       	       uuid-dev libcurl4-openssl-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
@@ -122,7 +122,7 @@ SUPPORTED - Ubuntu 14.04 LTS
 SUPPORTED - Ubuntu 16.04 LTS
 ----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
@@ -155,7 +155,7 @@ NB: Instructions to use clang and ninja:
 SUPPORTED - Ubuntu 18.04 LTS
 ----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
