@@ -618,7 +618,7 @@ TEST_F(OrthancJobsSerialization, Operations)
       modality.SetApplicationEntityTitle("REMOTE");
       modality.SetHost("192.168.1.1");
       modality.SetPortNumber(1000);
-      modality.SetManufacturer(ModalityManufacturer_StoreScp);
+      modality.SetManufacturer(ModalityManufacturer_GE);
 
       StoreScuOperation operation(GetContext(), luaManager, "TEST", modality);
 
@@ -633,7 +633,7 @@ TEST_F(OrthancJobsSerialization, Operations)
       ASSERT_EQ("REMOTE", tmp.GetRemoteModality().GetApplicationEntityTitle());
       ASSERT_EQ("192.168.1.1", tmp.GetRemoteModality().GetHost());
       ASSERT_EQ(1000, tmp.GetRemoteModality().GetPortNumber());
-      ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetRemoteModality().GetManufacturer());
+      ASSERT_EQ(ModalityManufacturer_GE, tmp.GetRemoteModality().GetManufacturer());
       ASSERT_EQ("TEST", tmp.GetLocalAet());
     }
   }
@@ -704,7 +704,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     modality.SetApplicationEntityTitle("REMOTE");
     modality.SetHost("192.168.1.1");
     modality.SetPortNumber(1000);
-    modality.SetManufacturer(ModalityManufacturer_StoreScp);
+    modality.SetManufacturer(ModalityManufacturer_GE);
 
     DicomModalityStoreJob job(GetContext());
     job.SetLocalAet("LOCAL");
@@ -724,7 +724,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_EQ("REMOTE", tmp.GetParameters().GetRemoteModality().GetApplicationEntityTitle());
     ASSERT_EQ("192.168.1.1", tmp.GetParameters().GetRemoteModality().GetHost());
     ASSERT_EQ(1000, tmp.GetParameters().GetRemoteModality().GetPortNumber());
-    ASSERT_EQ(ModalityManufacturer_StoreScp, tmp.GetParameters().GetRemoteModality().GetManufacturer());
+    ASSERT_EQ(ModalityManufacturer_GE, tmp.GetParameters().GetRemoteModality().GetManufacturer());
     ASSERT_TRUE(tmp.HasMoveOriginator());
     ASSERT_EQ("MOVESCU", tmp.GetMoveOriginatorAet());
     ASSERT_EQ(42, tmp.GetMoveOriginatorId());

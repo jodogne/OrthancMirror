@@ -797,9 +797,6 @@ namespace Orthanc
       case ModalityManufacturer_GenericNoUniversalWildcard:
         return "GenericNoUniversalWildcard";
 
-      case ModalityManufacturer_StoreScp:
-        return "StoreScp";
-      
       case ModalityManufacturer_Vitrea:
         return "Vitrea";
       
@@ -1550,10 +1547,6 @@ namespace Orthanc
     else if (manufacturer == "GenericNoUniversalWildcard")
     {
       return ModalityManufacturer_GenericNoUniversalWildcard;
-    }
-    else if (manufacturer == "StoreScp")
-    {
-      return ModalityManufacturer_StoreScp;
     }
     else if (manufacturer == "Vitrea")
     {
