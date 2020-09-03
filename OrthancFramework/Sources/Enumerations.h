@@ -645,7 +645,6 @@ namespace Orthanc
     ModalityManufacturer_Generic,
     ModalityManufacturer_GenericNoWildcardInDates,
     ModalityManufacturer_GenericNoUniversalWildcard,
-    ModalityManufacturer_StoreScp,
     ModalityManufacturer_Vitrea,
     ModalityManufacturer_GE
   };

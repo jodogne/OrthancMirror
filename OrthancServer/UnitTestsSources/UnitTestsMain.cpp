@@ -117,7 +117,6 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Generic")));
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("GenericNoWildcardInDates")));
   ASSERT_STREQ("GenericNoUniversalWildcard", EnumerationToString(StringToModalityManufacturer("GenericNoUniversalWildcard")));
-  ASSERT_STREQ("StoreScp", EnumerationToString(StringToModalityManufacturer("StoreScp")));
   ASSERT_STREQ("Vitrea", EnumerationToString(StringToModalityManufacturer("Vitrea")));
   ASSERT_STREQ("GE", EnumerationToString(StringToModalityManufacturer("GE")));
   // backward compatibility tests (to remove once we make these manufacturer really obsolete)
