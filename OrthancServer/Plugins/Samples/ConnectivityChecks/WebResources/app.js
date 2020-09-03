@@ -42,7 +42,7 @@ new Vue({
             this.dicomNodes[alias]['alias'] = alias;
             this.dicomNodes[alias]['status'] = 'testing';
             axios
-              .post('../../modalities/' + alias + '/echo')
+              .post('../../modalities/' + alias + '/echo', {})
               .then(response => {
                 this.dicomNodes[alias]['status'] = 'ok';
                 this.$forceUpdate();
