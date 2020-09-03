@@ -220,6 +220,8 @@
      * the remote modality doesn't support compressed transfer
      * syntaxes. This option only has an effect if global option
      * "EnableTranscoding" is set to "true".
+     *
+     * By default, all "Allow*" options are true.
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
