@@ -221,6 +221,8 @@
      * "EnableTranscoding" is set to "true".
      *
      * By default, all "Allow*" options are true.
+     * "AllowStorageCommitment" is actually an alias for 
+     * "AllowNAction" & "AllowEventReport".
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
