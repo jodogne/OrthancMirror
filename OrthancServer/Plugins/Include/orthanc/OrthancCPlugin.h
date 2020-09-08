@@ -1996,6 +1996,11 @@ extern "C"
    *
    * This function registers a callback function that is called
    * whenever a new DICOM instance is stored into the Orthanc core.
+   *
+   * @warning If your callback has to call the REST API of Orthanc,
+   * you should make these calls in a separate thread (with the events
+   * passing through a message queue). Otherwise, this could result in
+   * deadlocks in the presence of other plugins or Lua scripts.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
@@ -7597,11 +7602,17 @@ extern "C"
   } _OrthancPluginIncomingDicomInstanceFilter;
 
   /**
-   * @brief Register a callback to filter incoming DICOM instance.
+   * @brief Register a callback to filter incoming DICOM instances.
    *
    * This function registers a custom callback to filter incoming
    * DICOM instances received by Orthanc (either through the REST API
    * or through the DICOM protocol).
+   *
+   * @warning If your filter callback has to call the REST API of
+   * Orthanc, you should make these calls in a separate thread (with
+   * the events passing through a message queue). Otherwise, this
+   * could result in deadlocks in the presence of other plugins or Lua
+   * scripts.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback.
