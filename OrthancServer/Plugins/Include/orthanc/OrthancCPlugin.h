@@ -1996,6 +1996,16 @@ extern "C"
    *
    * This function registers a callback function that is called
    * whenever a new DICOM instance is stored into the Orthanc core.
+   *
+   * @warning Your callback function will be called synchronously with
+   * the core of Orthanc. This implies that deadlocks might emerge if
+   * you call other core primitives of Orthanc in your callback (such
+   * deadlocks are particular visible in the presence of other plugins
+   * or Lua scripts). It is thus strongly advised to avoid any call to
+   * the REST API of Orthanc in the callback. If you have to call
+   * other primitives of Orthanc, you should make these calls in a
+   * separate thread, passing the pending events to be processed
+   * through a message queue.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
@@ -3164,11 +3174,15 @@ extern "C"
    * This function registers a callback function that is called
    * whenever a change happens to some DICOM resource.
    *
-   * @warning If your change callback has to call the REST API of
-   * Orthanc, you should make these calls in a separate thread (with
-   * the events passing through a message queue). Otherwise, this
-   * could result in deadlocks in the presence of other plugins or Lua
-   * scripts.
+   * @warning Your callback function will be called synchronously with
+   * the core of Orthanc. This implies that deadlocks might emerge if
+   * you call other core primitives of Orthanc in your callback (such
+   * deadlocks are particular visible in the presence of other plugins
+   * or Lua scripts). It is thus strongly advised to avoid any call to
+   * the REST API of Orthanc in the callback. If you have to call
+   * other primitives of Orthanc, you should make these calls in a
+   * separate thread, passing the pending events to be processed
+   * through a message queue.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function.
@@ -7597,12 +7611,22 @@ extern "C"
   } _OrthancPluginIncomingDicomInstanceFilter;
 
   /**
-   * @brief Register a callback to filter incoming DICOM instance.
+   * @brief Register a callback to filter incoming DICOM instances.
    *
    * This function registers a custom callback to filter incoming
    * DICOM instances received by Orthanc (either through the REST API
    * or through the DICOM protocol).
    *
+   * @warning Your callback function will be called synchronously with
+   * the core of Orthanc. This implies that deadlocks might emerge if
+   * you call other core primitives of Orthanc in your callback (such
+   * deadlocks are particular visible in the presence of other plugins
+   * or Lua scripts). It is thus strongly advised to avoid any call to
+   * the REST API of Orthanc in the callback. If you have to call
+   * other primitives of Orthanc, you should make these calls in a
+   * separate thread, passing the pending events to be processed
+   * through a message queue.
+   * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback.
    * @return 0 if success, other value if error.
