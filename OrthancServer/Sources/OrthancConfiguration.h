@@ -202,6 +202,9 @@ namespace Orthanc
     bool IsSameAETitle(const std::string& aet1,
                        const std::string& aet2) const;
 
+    bool LookupDicomModalitiesUsingAETitle(std::list<RemoteModalityParameters>& modalities,
+                                           const std::string& aet) const;
+
     bool LookupDicomModalityUsingAETitle(RemoteModalityParameters& modality,
                                          const std::string& aet) const;
 

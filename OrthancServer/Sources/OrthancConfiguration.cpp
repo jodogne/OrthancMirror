@@ -746,6 +746,23 @@ namespace Orthanc
     return false;
   }
 
+  bool OrthancConfiguration::LookupDicomModalitiesUsingAETitle(std::list<RemoteModalityParameters>& modalities,
+                                                               const std::string& aet) const
+  {
+    modalities.clear();
+
+    for (Modalities::const_iterator it = modalities_.begin(); it != modalities_.end(); ++it)
+    {
+      if (IsSameAETitle(aet, it->second.GetApplicationEntityTitle()))
+      {
+        modalities.push_back(it->second);
+      }
+    }
+
+    return modalities.size() > 0;
+  }
+
+
 
   bool OrthancConfiguration::IsKnownAETitle(const std::string& aet,
                                             const std::string& ip) const

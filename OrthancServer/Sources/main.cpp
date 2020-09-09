@@ -323,10 +323,28 @@ public:
     {
       OrthancConfiguration::ReaderLock lock;
 
-      RemoteModalityParameters modality;
-      if (lock.GetConfiguration().LookupDicomModalityUsingAETitle(modality, remoteAet))
+      std::list<RemoteModalityParameters> modalities;
+      if (lock.GetConfiguration().LookupDicomModalitiesUsingAETitle(modalities, remoteAet))
       {
-        return modality.IsRequestAllowed(type);
+        if (modalities.size() == 1) // don't check the IP if there's only one modality with this AET
+        {
+          return modalities.front().IsRequestAllowed(type);
+        }
+        else // if there are multiple modalities with the same AET, check the one matching this IP
+        {
+          for (std::list<RemoteModalityParameters>::const_iterator it = modalities.begin(); it != modalities.end(); ++it)
+          {
+            if (it->GetHost() == remoteIp)
+            {
+              return it->IsRequestAllowed(type);
+            }
+          }
+
+          LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+                       << " on IP " << remoteIp << ", " << modalities.size()
+                       << " modalites found with this AET but none of them matching the IP";
+        }
+        return false;
       }
       else
       {
