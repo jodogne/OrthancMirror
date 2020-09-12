@@ -347,14 +347,6 @@ namespace Orthanc
       return;
     }
 
-    // Test whether this image is composed of a sequence of fragments
-    DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dicom);
-    if (pixelSequence != NULL)
-    {
-      index_.reset(new FragmentIndex(pixelSequence, countFrames_));
-      return;
-    }
-
     // Extract information about the image structure
     DicomMap tags;
     std::set<DicomTag> ignoreTagLength;
@@ -362,14 +354,23 @@ namespace Orthanc
 
     DicomImageInformation information(tags);
 
-    // Access to the raw pixel data
-    if (DicomImageDecoder::IsPsmctRle1(dicom))
+    // Test whether this image is composed of a sequence of fragments
+    if (dicom.tagExistsWithValue(DCM_PixelData))
+    {
+      DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dicom);
+      if (pixelSequence != NULL)
+      {
+        index_.reset(new FragmentIndex(pixelSequence, countFrames_));
+      }
+      else
+      {
+        // Access to the raw pixel data
+        index_.reset(new UncompressedIndex(dicom, countFrames_, information.GetFrameSize()));
+      }
+    }
+    else if (DicomImageDecoder::IsPsmctRle1(dicom))
     {
       index_.reset(new PsmctRle1Index(dicom, countFrames_, information.GetFrameSize()));
-    }
-    else
-    {
-      index_.reset(new UncompressedIndex(dicom, countFrames_, information.GetFrameSize()));
     }
   }
 
@@ -387,7 +388,7 @@ namespace Orthanc
     }
     else
     {
-      frame.clear();
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot access a raw frame");
     }
   }
 }

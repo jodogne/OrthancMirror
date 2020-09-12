@@ -134,6 +134,7 @@ namespace Orthanc
     // Check whether the DICOM instance contains an image encoded with
     // the PMSCT_RLE1 scheme.
     if (!dataset.findAndGetElement(ToDcmtkBridge::Convert(DICOM_TAG_COMPRESSION_TYPE), e).good() ||
+        !dataset.tagExistsWithValue(ToDcmtkBridge::Convert(DICOM_TAG_CONTENT)) ||  // New in Orthanc 1.7.4
         e == NULL ||
         !e->isaString() ||
         !e->getString(c).good() ||
