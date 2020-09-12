@@ -9,6 +9,8 @@ Maintenance
 * Fix transcoding in C-MOVE SCP, in the case where "SynchronousCMove" is "true"
 * When checking DICOM allowed methods, if there are multiple modalities with the same AET, 
   differentiate them from the calling IP
+* Enable the access to raw frames in Philips ELSCINT1 proprietary compression
+
 
 Version 1.7.3 (2020-08-24)
 ==========================
