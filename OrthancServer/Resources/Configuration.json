@@ -580,7 +580,8 @@
   // Whether "fsync()" is called after each write to the storage area
   // (new in Orthanc 1.7.4). If this option is set to "true", Orthanc
   // will run more slowly, but the DICOM are guaranteed to be
-  // immediately written to the disk. This option defaults to "false"
-  // in Orthanc <= 1.7.3, and to "true" in Orthanc >= 1.7.4.
+  // immediately written to the disk. This option only makes sense if
+  // the builtin filesystem storage area is used. It defaults to
+  // "false" in Orthanc <= 1.7.3, and to "true" in Orthanc >= 1.7.4.
   "SyncStorageArea" : true
 }
