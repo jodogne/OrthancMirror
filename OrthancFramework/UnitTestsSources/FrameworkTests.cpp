@@ -603,6 +603,15 @@ TEST(Toolbox, WriteFile)
 
   std::string u;
   ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
+
+  {
+    TemporaryFile tmp;
+    std::string s = "Hello";
+    SystemToolbox::WriteFile(s, tmp.GetPath(), true /* call fsync() */);
+    std::string t;
+    SystemToolbox::ReadFile(t, tmp.GetPath());
+    ASSERT_EQ(s, t);
+  }
 }
 
 
