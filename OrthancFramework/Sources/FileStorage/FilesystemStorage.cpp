@@ -68,7 +68,7 @@ namespace Orthanc
     return path;
   }
 
-  FilesystemStorage::FilesystemStorage(std::string root)
+  void FilesystemStorage::Setup(const std::string& root)
   {
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
@@ -133,7 +133,7 @@ namespace Orthanc
       }
     }
 
-    SystemToolbox::WriteFile(content, size, path.string());
+    SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
   }
 
 

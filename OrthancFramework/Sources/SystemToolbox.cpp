@@ -56,6 +56,8 @@
 #include "OrthancException.h"
 #include "Toolbox.h"
 
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/stream.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -278,9 +280,12 @@ namespace Orthanc
 
   void SystemToolbox::WriteFile(const void* content,
                                 size_t size,
-                                const std::string& path)
+                                const std::string& path,
+                                bool callFsync)
   {
-    boost::filesystem::ofstream f;
+    //boost::filesystem::ofstream f;
+    boost::iostreams::stream<boost::iostreams::file_descriptor_sink> f;
+    
     f.open(path, std::ofstream::out | std::ofstream::binary);
     if (!f.good())
     {
@@ -298,15 +303,23 @@ namespace Orthanc
       }
     }
 
+    if (callFsync)
+    {
+      // https://stackoverflow.com/a/23826489/881731
+      f.flush();
+      ::fdatasync(f->handle());
+    }
+
     f.close();
   }
 
 
   void SystemToolbox::WriteFile(const std::string& content,
-                                const std::string& path)
+                                const std::string& path,
+                                bool callFsync)
   {
     WriteFile(content.size() > 0 ? content.c_str() : NULL,
-              content.size(), path);
+              content.size(), path, callFsync);
   }
 
 

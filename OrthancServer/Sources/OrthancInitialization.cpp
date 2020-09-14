@@ -314,7 +314,9 @@ namespace Orthanc
       FilesystemStorage storage_;
 
     public:
-      FilesystemStorageWithoutDicom(const std::string& path) : storage_(path)
+      FilesystemStorageWithoutDicom(const std::string& path,
+                                    bool fsyncOnWrite) :
+        storage_(path, fsyncOnWrite)
       {
       }
 
@@ -367,14 +369,17 @@ namespace Orthanc
 
     LOG(WARNING) << "Storage directory: " << storageDirectory;
 
+    // New in Orthanc 1.7.4
+    bool fsyncOnWrite = lock.GetConfiguration().GetBooleanParameter("SyncStorageArea", true);
+
     if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true))
     {
-      return new FilesystemStorage(storageDirectory.string());
+      return new FilesystemStorage(storageDirectory.string(), fsyncOnWrite);
     }
     else
     {
       LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
-      return new FilesystemStorageWithoutDicom(storageDirectory.string());
+      return new FilesystemStorageWithoutDicom(storageDirectory.string(), fsyncOnWrite);
     }
   }
 
