@@ -26,7 +26,6 @@
 
 #if defined(_WIN32)
 #  include <windows.h>
-#  include <fileapi.h>   // For "FlushFileBuffers()"
 #  include <process.h>   // For "_spawnvp()" and "_getpid()"
 #  include <stdlib.h>    // For "environ"
 #else
