@@ -26,6 +26,7 @@
 
 #if defined(_WIN32)
 #  include <windows.h>
+#  include <fileapi.h>   // For "FlushFileBuffers()"
 #  include <process.h>   // For "_spawnvp()" and "_getpid()"
 #  include <stdlib.h>    // For "environ"
 #else
@@ -307,7 +308,29 @@ namespace Orthanc
     {
       // https://stackoverflow.com/a/23826489/881731
       f.flush();
-      ::fdatasync(f->handle());
+
+      bool success = false;
+
+      /**
+       * "f->handle()" corresponds to "FILE*" (aka "HANDLE") on
+       * Microsoft Windows, and to "int" (file descriptor) on other
+       * systems:
+       * https://github.com/boostorg/iostreams/blob/develop/include/boost/iostreams/detail/file_handle.hpp
+       **/
+      
+#if defined(_WIN32)
+      // https://docs.microsoft.com/fr-fr/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
+      success = (::FlushFileBuffers(f->handle()) != 0);
+#elif (_POSIX_C_SOURCE >= 199309L || _XOPEN_SOURCE >= 500)
+      success = (::fdatasync(f->handle()) == 0);
+#else
+      success = (::fsync(f->handle()) == 0);
+#endif
+
+      if (!success)
+      {
+        throw OrthancException(ErrorCode_FileStorageCannotWrite, "Cannot force flush to disk");
+      }
     }
 
     f.close();

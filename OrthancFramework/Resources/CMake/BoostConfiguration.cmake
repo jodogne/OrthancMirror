@@ -240,7 +240,7 @@ if (BOOST_STATIC)
 
 
   ##
-  ## Configuration of boost::filesystem
+  ## Configuration of boost::filesystem and boost::iostreams
   ## 
 
   if (CMAKE_SYSTEM_NAME STREQUAL "PNaCl" OR
@@ -277,6 +277,10 @@ if (BOOST_STATIC)
     endif()
   endif()
 
+  list(APPEND BOOST_SOURCES
+    ${BOOST_NAME}/libs/iostreams/src/file_descriptor.cpp
+    )
+  
 
   ##
   ## Configuration of boost::locale
