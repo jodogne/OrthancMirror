@@ -48,11 +48,25 @@ namespace Orthanc
 
   private:
     boost::filesystem::path root_;
+    bool                    fsyncOnWrite_;
 
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
+    void Setup(const std::string& root);
+    
   public:
-    explicit FilesystemStorage(std::string root);
+    explicit FilesystemStorage(const std::string& root) :
+      fsyncOnWrite_(false)
+    {
+      Setup(root);
+    }
+
+    FilesystemStorage(const std::string& root,
+                      bool fsyncOnWrite) :
+      fsyncOnWrite_(fsyncOnWrite)
+    {
+      Setup(root);
+    }
 
     virtual void Create(const std::string& uuid,
                         const void* content, 
