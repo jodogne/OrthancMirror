@@ -1060,6 +1060,7 @@ namespace Orthanc
     remoteAllowed_ = false;
     authentication_ = false;
     ssl_ = false;
+    sslVerifyPeers_ = false;
     port_ = 8000;
     filter_ = NULL;
     keepAlive_ = false;
@@ -1149,6 +1150,11 @@ namespace Orthanc
         
         // Set the timeout for the HTTP server
         "request_timeout_ms", requestTimeoutMilliseconds.c_str(),
+
+        // Set the client authentication
+        "ssl_verify_peer", (sslVerifyPeers_ ? "yes" : "no"),
+        // Set the trusted client certificates (for X509 mutual authentication)
+        sslVerifyPeers_ ? "ssl_ca_file" : NULL, trustedClientCertificates_.c_str(),
 
         // Set the SSL certificate, if any. This must be the last option.
         ssl_ ? "ssl_certificate" : NULL,
@@ -1257,6 +1263,23 @@ namespace Orthanc
 #endif
   }
 
+  void HttpServer::SetSslVerifyPeers(bool enabled)
+  {
+    Stop();
+
+#if ORTHANC_ENABLE_SSL == 0
+    if (enabled)
+    {
+      throw OrthancException(ErrorCode_SslDisabled);
+    }
+    else
+    {
+      sslVerifyPeers_ = false;
+    }
+#else
+    sslVerifyPeers_ = enabled;
+#endif
+  }
 
   void HttpServer::SetKeepAliveEnabled(bool enabled)
   {
@@ -1283,6 +1306,12 @@ namespace Orthanc
   {
     Stop();
     certificate_ = path;
+  }
+
+  void HttpServer::SetSslTrustedClientCertificates(const char* path)
+  {
+    Stop();
+    trustedClientCertificates_ = path;
   }
 
   void HttpServer::SetRemoteAccessAllowed(bool allowed)

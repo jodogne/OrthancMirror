@@ -80,6 +80,8 @@ namespace Orthanc
 
     bool remoteAllowed_;
     bool authentication_;
+    bool sslVerifyPeers_;
+    std::string trustedClientCertificates_;
     bool ssl_;
     std::string certificate_;
     uint16_t port_;
@@ -128,6 +130,10 @@ namespace Orthanc
     }
 
     void SetSslEnabled(bool enabled);
+
+    void SetSslVerifyPeers(bool enabled);
+
+    void SetSslTrustedClientCertificates(const char* path);
 
     bool IsKeepAliveEnabled() const
     {
