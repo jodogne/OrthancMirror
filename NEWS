@@ -1,6 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration options to enable HTTP peers identification through certificates:
+  "SslVerifyPeers" & "SslTrustedClientCertificates"
+* New configuration option "SyncStorageArea" to commit the files on disk "inside" the DB
+  transaction and avoid DB - File system discrepencies in case of hard shutdown 
+  of the machine running Orthanc.  This comes with a cost: DICOM file ingestion is slower.
+
 Maintenance
 -----------
 
@@ -10,7 +19,7 @@ Maintenance
 * When checking DICOM allowed methods, if there are multiple modalities with the same AET, 
   differentiate them from the calling IP
 * Enable the access to raw frames in Philips ELSCINT1 proprietary compression
-* New configuration option "SyncStorageArea"
+
 
 
 Version 1.7.3 (2020-08-24)
