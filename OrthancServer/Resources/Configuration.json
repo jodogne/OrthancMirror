@@ -147,10 +147,22 @@
   // Whether or not SSL is enabled
   "SslEnabled" : false,
 
-  // Path to the SSL certificate in the PEM format (meaningful only if
-  // SSL is enabled)
+  // Path to the SSL certificate used by the HTTP server.
+  // Certifcate must be stored in the PEM format.
+  // meaningful only if SslEnabled is true. 
+  // The file must contain both the certificate and the private key.
   "SslCertificate" : "certificate.pem",
 
+  // Whether or not peer client certificates shall be checked.
+  // meaningfull only if SslEnabled is true
+  "SslVerifyPeers" : false,
+
+  // Path to the SSL certificate(s) that are trusted to verify
+  // peers identify. 
+  // Certifcate(s) must be stored in the PEM format.
+  // meaningfull only if SslVerifyPeers is true
+  "SslTrustedClientCertificates" : "trustedClientCertificates.pem",
+  
   // Whether or not the password protection is enabled (using HTTP
   // basic access authentication). Starting with Orthanc 1.5.8, if
   // "AuthenticationEnabled" is not explicitly set, authentication is
