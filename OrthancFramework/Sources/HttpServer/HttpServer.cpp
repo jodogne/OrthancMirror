@@ -1124,52 +1124,69 @@ namespace Orthanc
         port += "s";
       }
 
-      const char *options[] = {
-        // Set the TCP port for the HTTP server
-        "listening_ports", port.c_str(), 
+      std::vector<const char*> options;
+
+      // Set the TCP port for the HTTP server
+      options.push_back("listening_ports");
+      options.push_back(port.c_str());
         
-        // Optimization reported by Chris Hafey
-        // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
-        "enable_keep_alive", (keepAlive_ ? "yes" : "no"),
+      // Optimization reported by Chris Hafey
+      // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
+      options.push_back("enable_keep_alive");
+      options.push_back(keepAlive_ ? "yes" : "no");
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
-        // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
-        "keep_alive_timeout_ms", (keepAlive_ ? "500" : "0"),
+      // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
+      options.push_back("keep_alive_timeout_ms");
+      options.push_back(keepAlive_ ? "500" : "0");
 #endif
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
-        // Disable TCP Nagle's algorithm to maximize speed (this
-        // option is not available in Mongoose).
-        // https://groups.google.com/d/topic/civetweb/35HBR9seFjU/discussion
-        // https://eklitzke.org/the-caveats-of-tcp-nodelay
-        "tcp_nodelay", (tcpNoDelay_ ? "1" : "0"),
+      // Disable TCP Nagle's algorithm to maximize speed (this
+      // option is not available in Mongoose).
+      // https://groups.google.com/d/topic/civetweb/35HBR9seFjU/discussion
+      // https://eklitzke.org/the-caveats-of-tcp-nodelay
+      options.push_back("tcp_nodelay");
+      options.push_back(tcpNoDelay_ ? "1" : "0");
 #endif
 
-        // Set the number of threads
-        "num_threads", numThreads.c_str(),
+      // Set the number of threads
+      options.push_back("num_threads");
+      options.push_back(numThreads.c_str());
         
-        // Set the timeout for the HTTP server
-        "request_timeout_ms", requestTimeoutMilliseconds.c_str(),
+      // Set the timeout for the HTTP server
+      options.push_back("request_timeout_ms");
+      options.push_back(requestTimeoutMilliseconds.c_str());
 
-        // Set the client authentication
-        "ssl_verify_peer", (sslVerifyPeers_ ? "yes" : "no"),
+      // Set the client authentication
+      options.push_back("ssl_verify_peer");
+      options.push_back(sslVerifyPeers_ ? "yes" : "no");
+
+      if (sslVerifyPeers_)
+      {
         // Set the trusted client certificates (for X509 mutual authentication)
-        sslVerifyPeers_ ? "ssl_ca_file" : NULL, trustedClientCertificates_.c_str(),
+        options.push_back("ssl_ca_file");
+        options.push_back(trustedClientCertificates_.c_str());
+      }
 
-        // Set the SSL certificate, if any. This must be the last option.
-        ssl_ ? "ssl_certificate" : NULL,
-        certificate_.c_str(),
-        NULL
+      if (ssl_)
+      {
+        // Set the SSL certificate, if any
+        options.push_back("ssl_certificate");
+        options.push_back(certificate_.c_str());
       };
 
+      assert(options.size() % 2 == 0);
+      options.push_back(NULL);
+      
 #if MONGOOSE_USE_CALLBACKS == 0
-      pimpl_->context_ = mg_start(&Callback, this, options);
+      pimpl_->context_ = mg_start(&Callback, this, &options[0]);
 
 #elif MONGOOSE_USE_CALLBACKS == 1
       struct mg_callbacks callbacks;
       memset(&callbacks, 0, sizeof(callbacks));
       callbacks.begin_request = Callback;
-      pimpl_->context_ = mg_start(&callbacks, this, options);
+      pimpl_->context_ = mg_start(&callbacks, this, &options[0]);
 
 #else
 #  error Please set MONGOOSE_USE_CALLBACKS
