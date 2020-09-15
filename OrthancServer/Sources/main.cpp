@@ -1017,6 +1017,18 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslEnabled(false);
       }
 
+      if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers", false))
+      {
+        std::string trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
+          lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates", "trustedCertificates.pem"));
+        httpServer.SetSslVerifyPeers(true);
+        httpServer.SetSslTrustedClientCertificates(trustedClientCertificates.c_str());
+      }
+      else
+      {
+        httpServer.SetSslVerifyPeers(false);
+      }
+
       if (lock.GetConfiguration().GetBooleanParameter("ExecuteLuaEnabled", false))
       {
         context.SetExecuteLuaEnabled(true);
