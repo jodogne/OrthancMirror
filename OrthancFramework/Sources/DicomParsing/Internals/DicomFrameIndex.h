@@ -56,7 +56,7 @@ namespace Orthanc
     unsigned int             countFrames_;
 
   public:
-    DicomFrameIndex(DcmDataset& dicom);
+    explicit DicomFrameIndex(DcmDataset& dicom);
 
     unsigned int GetFramesCount() const
     {

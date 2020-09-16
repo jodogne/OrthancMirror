@@ -110,7 +110,7 @@ namespace Orthanc
   public:
     DicomModification();
 
-    DicomModification(const Json::Value& serialized);
+    explicit DicomModification(const Json::Value& serialized);
 
     ~DicomModification();
 

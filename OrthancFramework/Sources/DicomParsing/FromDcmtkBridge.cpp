@@ -1889,9 +1889,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
         std::unique_ptr<DcmElement> element(FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
-        const DcmTagKey& tag = element->getTag();
 
-        result->findAndDeleteElement(tag);
+        result->findAndDeleteElement(element->getTag());
 
         DcmElement* tmp = element.release();
         if (!result->insert(tmp, false, false).good())

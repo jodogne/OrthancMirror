@@ -137,14 +137,22 @@ namespace Orthanc
       const std::string* remoteAet_;
       const std::string* calledAet_;
 
-      FindScpData() : answers_(false)
+      FindScpData() :
+        modalities_(NULL),
+        findHandler_(NULL),
+        worklistHandler_(NULL),
+        answers_(false),
+        lastRequest_(NULL),
+        remoteIp_(NULL),
+        remoteAet_(NULL),
+        calledAet_(NULL)
       {
       }
     };
 
 
 
-    static void FixWorklistQuery(ParsedDicomFile& query)
+    static void FixWorklistQuery(const ParsedDicomFile& query)
     {
       // TODO: Check out
       // WlmDataSourceFileSystem::HandleExistentButEmptyDescriptionAndCodeSequenceAttributes()"

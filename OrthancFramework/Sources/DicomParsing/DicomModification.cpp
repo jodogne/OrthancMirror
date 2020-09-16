@@ -64,8 +64,8 @@ namespace Orthanc
                          
 
   public:
-    RelationshipsVisitor(DicomModification&  that) :
-    that_(that)
+    explicit RelationshipsVisitor(DicomModification& that) :
+      that_(that)
     {
     }
 
@@ -1401,32 +1401,32 @@ namespace Orthanc
 
     for (UidMap::const_iterator it = uidMap_.begin(); it != uidMap_.end(); ++it)
     {
-      Json::Value* tmp = NULL;
+      Json::Value* tmp2 = NULL;
 
       switch (it->first.first)
       {
         case ResourceType_Patient:
-          tmp = &mapPatients;
+          tmp2 = &mapPatients;
           break;
 
         case ResourceType_Study:
-          tmp = &mapStudies;
+          tmp2 = &mapStudies;
           break;
 
         case ResourceType_Series:
-          tmp = &mapSeries;
+          tmp2 = &mapSeries;
           break;
 
         case ResourceType_Instance:
-          tmp = &mapInstances;
+          tmp2 = &mapInstances;
           break;
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      assert(tmp != NULL);
-      (*tmp) [it->first.second] = it->second;
+      assert(tmp2 != NULL);
+      (*tmp2) [it->first.second] = it->second;
     }
   }
 

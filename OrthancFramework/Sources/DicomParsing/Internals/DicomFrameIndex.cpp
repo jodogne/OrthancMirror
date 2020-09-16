@@ -190,7 +190,7 @@ namespace Orthanc
 
 
     virtual void GetRawFrame(std::string& frame,
-                             unsigned int index) const
+                             unsigned int index) const ORTHANC_OVERRIDE
     {
       if (index >= startFragment_.size())
       {
@@ -267,7 +267,7 @@ namespace Orthanc
     }
 
     virtual void GetRawFrame(std::string& frame,
-                             unsigned int index) const
+                             unsigned int index) const ORTHANC_OVERRIDE
     {
       frame.resize(frameSize_);
       if (frameSize_ > 0)
@@ -298,7 +298,7 @@ namespace Orthanc
     }
 
     virtual void GetRawFrame(std::string& frame,
-                             unsigned int index) const
+                             unsigned int index) const ORTHANC_OVERRIDE
     {
       frame.resize(frameSize_);
       if (frameSize_ > 0)

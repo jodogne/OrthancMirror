@@ -346,7 +346,7 @@ namespace Orthanc
 
 
   template <typename PixelType>
-  static void CopyPixels(ImageAccessor& target,
+  static void CopyPixels(const ImageAccessor& target,
                          const DicomIntegerPixelAccessor& source)
   {
     // WARNING - "::min()" should be replaced by "::lowest()" if
@@ -652,7 +652,7 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* DicomImageDecoder::Decode(ParsedDicomFile& dicom,
+  ImageAccessor* DicomImageDecoder::Decode(const ParsedDicomFile& dicom,
                                            unsigned int frame)
   {
     if (dicom.GetDcmtkObject().getDataset() == NULL)

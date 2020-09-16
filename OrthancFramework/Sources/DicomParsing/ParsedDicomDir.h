@@ -46,7 +46,7 @@ namespace Orthanc
                              unsigned int offset) const;
 
   public:
-    ParsedDicomDir(const std::string content);
+    explicit ParsedDicomDir(const std::string& content);
 
     ~ParsedDicomDir()
     {

@@ -53,7 +53,7 @@ namespace Orthanc
   
   void DcmtkTranscoder::SetLossyQuality(unsigned int quality)
   {
-    if (quality <= 0 ||
+    if (quality == 0 ||
         quality > 100)
     {
       throw OrthancException(
@@ -88,8 +88,6 @@ namespace Orthanc
 
     uint16_t bitsStored;
     bool hasBitsStored = GetBitsStored(bitsStored, *dicom.getDataset());
-    
-    std::string sourceSopInstanceUid = IDicomTranscoder::GetSopInstanceUid(dicom);
     
     if (allowedSyntaxes.find(syntax) != allowedSyntaxes.end())
     {
