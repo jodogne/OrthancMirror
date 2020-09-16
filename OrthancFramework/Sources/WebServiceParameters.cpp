@@ -140,9 +140,7 @@ namespace Orthanc
 
     if (certificateKeyPassword.empty())
     {
-      throw OrthancException(
-        ErrorCode_BadFileFormat,
-        "The password for the HTTPS certificate is not provided: " + certificateFile);
+      LOG(WARNING) << "No password specified for certificate key file: " << certificateKeyFile;
     }
 
     certificateFile_ = certificateFile;
