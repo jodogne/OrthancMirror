@@ -84,7 +84,7 @@ namespace Orthanc
     ZipWriter writer_;
 
   public:
-    HierarchicalZipWriter(const char* path);
+    explicit HierarchicalZipWriter(const char* path);
 
     ~HierarchicalZipWriter();
 

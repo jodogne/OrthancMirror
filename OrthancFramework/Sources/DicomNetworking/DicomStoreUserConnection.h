@@ -96,7 +96,7 @@ namespace Orthanc
                            DicomTransferSyntax sourceSyntax);
 
   public:
-    DicomStoreUserConnection(const DicomAssociationParameters& params);
+    explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
     
     const DicomAssociationParameters& GetParameters() const
     {

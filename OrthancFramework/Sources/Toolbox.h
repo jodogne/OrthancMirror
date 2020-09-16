@@ -88,7 +88,7 @@ namespace Orthanc
       void FindEndOfLine();
   
     public:
-      LinesIterator(const std::string& content);
+      explicit LinesIterator(const std::string& content);
   
       bool GetLine(std::string& target) const;
 

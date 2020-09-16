@@ -61,13 +61,13 @@ namespace Orthanc
      **/
 
     virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/, 
-                                                 bool /*deflateAllowed*/)
+                                                 bool /*deflateAllowed*/) ORTHANC_OVERRIDE
     {
       return HttpCompression_None;
     }
 
-    virtual bool HasContentFilename(std::string& filename);
+    virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE;
     
-    virtual std::string GetContentType();
+    virtual std::string GetContentType() ORTHANC_OVERRIDE;
   };
 }

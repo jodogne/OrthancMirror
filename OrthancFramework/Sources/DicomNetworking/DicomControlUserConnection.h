@@ -54,7 +54,7 @@ namespace Orthanc
                       const DicomMap& fields);
     
   public:
-    DicomControlUserConnection(const DicomAssociationParameters& params);
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params);
     
     const DicomAssociationParameters& GetParameters() const
     {
@@ -93,6 +93,6 @@ namespace Orthanc
                       const std::string& instanceUid);
 
     void FindWorklist(DicomFindAnswers& result,
-                      ParsedDicomFile& query);
+                      const ParsedDicomFile& query);
   };
 }

@@ -190,7 +190,7 @@ namespace Orthanc
       {
       }
 
-      DicomTag2(const DicomTag& tag) :
+      explicit DicomTag2(const DicomTag& tag) :
         DicomTag(tag)
       {
       }
@@ -212,7 +212,7 @@ namespace Orthanc
     {
       assert(target.find(tags[i].name_) == target.end());
       
-      target[tags[i].name_] = tags[i].tag_;
+      target[tags[i].name_] = DicomTag2(tags[i].tag_);
     }
   }
 
@@ -1230,43 +1230,43 @@ namespace Orthanc
           bool supported = true;
           
           std::string s;
-          for (Json::Value::ArrayIndex i = 0; i < value.size() && supported; i++)
+          for (Json::Value::ArrayIndex j = 0; j < value.size() && supported; j++)
           {
             if (!s.empty())
             {
               s += '\\';
             }
 
-            switch (value[i].type())
+            switch (value[j].type())
             {
               case Json::objectValue:
                 if (vr == ValueRepresentation_PersonName &&
-                    value[i].type() == Json::objectValue)
+                    value[j].type() == Json::objectValue)
                 {
-                  if (value[i].isMember(ALPHABETIC) &&
-                      value[i][ALPHABETIC].type() == Json::stringValue)
+                  if (value[j].isMember(ALPHABETIC) &&
+                      value[j][ALPHABETIC].type() == Json::stringValue)
                   {
-                    s += value[i][ALPHABETIC].asString();
+                    s += value[j][ALPHABETIC].asString();
                   }
 
                   bool hasIdeographic = false;
                   
-                  if (value[i].isMember(IDEOGRAPHIC) &&
-                      value[i][IDEOGRAPHIC].type() == Json::stringValue)
+                  if (value[j].isMember(IDEOGRAPHIC) &&
+                      value[j][IDEOGRAPHIC].type() == Json::stringValue)
                   {
-                    s += '=' + value[i][IDEOGRAPHIC].asString();
+                    s += '=' + value[j][IDEOGRAPHIC].asString();
                     hasIdeographic = true;
                   }
                   
-                  if (value[i].isMember(PHONETIC) &&
-                      value[i][PHONETIC].type() == Json::stringValue)
+                  if (value[j].isMember(PHONETIC) &&
+                      value[j][PHONETIC].type() == Json::stringValue)
                   {
                     if (!hasIdeographic)
                     {
                       s += '=';
                     }
                       
-                    s += '=' + value[i][PHONETIC].asString();
+                    s += '=' + value[j][PHONETIC].asString();
                   }
                 }
                 else
@@ -1278,19 +1278,19 @@ namespace Orthanc
                 break;
             
               case Json::stringValue:
-                s += value[i].asString();
+                s += value[j].asString();
                 break;
               
               case Json::intValue:
-                s += boost::lexical_cast<std::string>(value[i].asInt());
+                s += boost::lexical_cast<std::string>(value[j].asInt());
                 break;
               
               case Json::uintValue:
-                s += boost::lexical_cast<std::string>(value[i].asUInt());
+                s += boost::lexical_cast<std::string>(value[j].asUInt());
                 break;
               
               case Json::realValue:
-                s += boost::lexical_cast<std::string>(value[i].asDouble());
+                s += boost::lexical_cast<std::string>(value[j].asDouble());
                 break;
               
               default:

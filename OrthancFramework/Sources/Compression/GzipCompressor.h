@@ -23,6 +23,7 @@
 #pragma once
 
 #include "DeflateBaseCompressor.h"
+#include "../Enumerations.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {
@@ -40,10 +41,10 @@ namespace Orthanc
 
     virtual void Compress(std::string& compressed,
                           const void* uncompressed,
-                          size_t uncompressedSize);
+                          size_t uncompressedSize) ORTHANC_OVERRIDE;
 
     virtual void Uncompress(std::string& uncompressed,
                             const void* compressed,
-                            size_t compressedSize);
+                            size_t compressedSize) ORTHANC_OVERRIDE;
   };
 }

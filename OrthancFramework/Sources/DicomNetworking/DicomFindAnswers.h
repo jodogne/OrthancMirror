@@ -37,7 +37,7 @@ namespace Orthanc
     void AddAnswerInternal(ParsedDicomFile* answer);
 
   public:
-    DicomFindAnswers(bool isWorklist);
+    explicit DicomFindAnswers(bool isWorklist);
 
     ~DicomFindAnswers()
     {

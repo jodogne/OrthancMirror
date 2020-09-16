@@ -58,7 +58,7 @@ namespace Orthanc
       Clear();
     }
 
-    RemoteModalityParameters(const Json::Value& serialized)
+    explicit RemoteModalityParameters(const Json::Value& serialized)
     {
       Unserialize(serialized);
     }

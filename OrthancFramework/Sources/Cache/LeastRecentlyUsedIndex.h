@@ -146,12 +146,11 @@ namespace Orthanc
     {
       keys.clear();
       keys.reserve(GetSize());
-      for (typename Index::const_iterator it = index_.begin(); it != index_.end(); it++)
+      for (typename Index::const_iterator it = index_.begin(); it != index_.end(); ++it)
       {
         keys.push_back(it->first);
       }
     }
-
   };
 
 
@@ -168,7 +167,7 @@ namespace Orthanc
     assert(index_.size() == queue_.size());
 
     for (typename Index::const_iterator 
-           it = index_.begin(); it != index_.end(); it++)
+           it = index_.begin(); it != index_.end(); ++it)
     {
       assert(it->second != queue_.end());
       assert(it->second->first == it->first);

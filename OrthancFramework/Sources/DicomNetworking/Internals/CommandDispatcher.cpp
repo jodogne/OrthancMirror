@@ -137,20 +137,17 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
   const char* transferSyntax,
   T_ASC_SC_ROLE acceptedRole)
 {
-  OFCondition cond = EC_Normal;
   int n, i, k;
   DUL_PRESENTATIONCONTEXT *dpc;
   T_ASC_PresentationContext pc;
-  OFBool accepted = OFFalse;
-  OFBool abstractOK = OFFalse;
 
   n = ASC_countPresentationContexts(params);
   for (i = 0; i < n; i++)
   {
-    cond = ASC_getPresentationContext(params, i, &pc);
+    OFCondition cond = ASC_getPresentationContext(params, i, &pc);
     if (cond.bad()) return cond;
-    abstractOK = OFFalse;
-    accepted = OFFalse;
+    OFBool abstractOK = OFFalse;
+    OFBool accepted = OFFalse;
 
     if (dcmFindNameOfUID(pc.abstractSyntax) == NULL)
     {
@@ -178,7 +175,7 @@ static OFCondition acceptUnknownContextsWithTransferSyntax(
       /* do not refuse if already accepted */
       dpc = findPresentationContextID(params->DULparams.acceptedPresentationContext,
                                       pc.presentationContextID);
-      if ((dpc == NULL) || ((dpc != NULL) && (dpc->result != ASC_P_ACCEPTANCE)))
+      if (dpc == NULL || dpc->result != ASC_P_ACCEPTANCE)
       {
 
         if (abstractOK) {
