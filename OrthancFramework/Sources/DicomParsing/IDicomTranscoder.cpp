@@ -227,7 +227,9 @@ namespace Orthanc
 
   
   IDicomTranscoder::DicomImage::DicomImage() :
-    isExternalBuffer_(false)
+    isExternalBuffer_(false),
+    externalBuffer_(NULL),
+    externalSize_(0)
   {
   }
 

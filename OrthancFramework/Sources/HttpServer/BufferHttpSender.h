@@ -58,15 +58,15 @@ namespace Orthanc
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual uint64_t GetContentLength()
+    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE
     {
       return buffer_.size();
     }
 
-    virtual bool ReadNextChunk();
+    virtual bool ReadNextChunk() ORTHANC_OVERRIDE;
 
-    virtual const char* GetChunkContent();
+    virtual const char* GetChunkContent() ORTHANC_OVERRIDE;
 
-    virtual size_t GetChunkSize();
+    virtual size_t GetChunkSize() ORTHANC_OVERRIDE;
   };
 }

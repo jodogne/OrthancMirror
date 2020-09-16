@@ -1103,7 +1103,7 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile::ParsedDicomFile(ParsedDicomFile& other,
+  ParsedDicomFile::ParsedDicomFile(const ParsedDicomFile& other,
                                    bool keepSopInstanceUid) : 
     pimpl_(new PImpl)
   {

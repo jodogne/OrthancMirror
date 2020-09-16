@@ -561,7 +561,7 @@ namespace Orthanc
               {
                 case ValueRepresentation_PersonName:
                 {
-                  Json::Value value = Json::objectValue;
+                  Json::Value tmp = Json::objectValue;
                   if (!tokens[i].empty())
                   {
                     std::vector<std::string> components;
@@ -569,21 +569,21 @@ namespace Orthanc
 
                     if (components.size() >= 1)
                     {
-                      value[KEY_ALPHABETIC] = components[0];
+                      tmp[KEY_ALPHABETIC] = components[0];
                     }
 
                     if (components.size() >= 2)
                     {
-                      value[KEY_IDEOGRAPHIC] = components[1];
+                      tmp[KEY_IDEOGRAPHIC] = components[1];
                     }
 
                     if (components.size() >= 3)
                     {
-                      value[KEY_PHONETIC] = components[2];
+                      tmp[KEY_PHONETIC] = components[2];
                     }
                   }
                   
-                  node[KEY_VALUE].append(value);
+                  node[KEY_VALUE].append(tmp);
                   break;
                 }
                   
@@ -604,8 +604,8 @@ namespace Orthanc
                   }
                   else
                   {
-                    int64_t value = boost::lexical_cast<int64_t>(t);
-                    node[KEY_VALUE].append(FormatInteger(value));
+                    int64_t tmp = boost::lexical_cast<int64_t>(t);
+                    node[KEY_VALUE].append(FormatInteger(tmp));
                   }
                  
                   break;
@@ -620,8 +620,8 @@ namespace Orthanc
                   }
                   else
                   {
-                    double value = boost::lexical_cast<double>(t);
-                    node[KEY_VALUE].append(FormatDouble(value));
+                    double tmp = boost::lexical_cast<double>(t);
+                    node[KEY_VALUE].append(FormatDouble(tmp));
                   }
 
                   break;

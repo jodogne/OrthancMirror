@@ -65,7 +65,7 @@ namespace Orthanc
   }
 
 
-  ParsedDicomDir::ParsedDicomDir(const std::string content)
+  ParsedDicomDir::ParsedDicomDir(const std::string& content)
   {
     ParsedDicomFile dicom(content);
 

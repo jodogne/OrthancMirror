@@ -32,9 +32,9 @@ namespace Orthanc
                        T_DIMSE_Message * msg, 
                        T_ASC_PresentationContextID presID,
                        IGetRequestHandler& handler,
-                       std::string remoteIp,
-                       std::string remoteAet,
-                       std::string calledAet,
+                       const std::string& remoteIp,
+                       const std::string& remoteAet,
+                       const std::string& calledAet,
                        int timeout);
   }
 }

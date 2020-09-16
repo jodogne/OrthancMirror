@@ -130,7 +130,7 @@ namespace Orthanc
       SharedMetrics&   metrics_;
 
     public:
-      ActiveCounter(SharedMetrics& metrics) :
+      explicit ActiveCounter(SharedMetrics& metrics) :
         metrics_(metrics)
       {
         metrics_.Add(1);

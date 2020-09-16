@@ -75,7 +75,7 @@ namespace Orthanc
 #endif
 
   public:
-    StorageAccessor(IStorageArea& area) : 
+    explicit StorageAccessor(IStorageArea& area) : 
       area_(area),
       metrics_(NULL)
     {

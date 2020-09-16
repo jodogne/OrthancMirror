@@ -396,7 +396,7 @@ namespace Orthanc
 
     bool CreateResource(DcmDirectoryRecord*& target,
                         ResourceType level,
-                        ParsedDicomFile& dicom,
+                        const ParsedDicomFile& dicom,
                         const char* filename,
                         const char* path)
     {

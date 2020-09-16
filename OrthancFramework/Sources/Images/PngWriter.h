@@ -45,7 +45,7 @@ namespace Orthanc
                                      unsigned int height,
                                      unsigned int pitch,
                                      PixelFormat format,
-                                     const void* buffer);
+                                     const void* buffer) ORTHANC_OVERRIDE;
 #endif
 
     virtual void WriteToMemoryInternal(std::string& png,
@@ -53,7 +53,7 @@ namespace Orthanc
                                        unsigned int height,
                                        unsigned int pitch,
                                        PixelFormat format,
-                                       const void* buffer);
+                                       const void* buffer) ORTHANC_OVERRIDE;
 
   private:
     struct PImpl;

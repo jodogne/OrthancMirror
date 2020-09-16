@@ -43,13 +43,13 @@ namespace Orthanc
     virtual void Create(const std::string& uuid,
                         const void* content,
                         size_t size,
-                        FileContentType type);
+                        FileContentType type) ORTHANC_OVERRIDE;
 
     virtual void Read(std::string& content,
                       const std::string& uuid,
-                      FileContentType type);
+                      FileContentType type) ORTHANC_OVERRIDE;
 
     virtual void Remove(const std::string& uuid,
-                        FileContentType type);
+                        FileContentType type) ORTHANC_OVERRIDE;
   };
 }

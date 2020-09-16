@@ -76,7 +76,7 @@ namespace Orthanc
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    ParsedDicomFile(ParsedDicomFile& other,
+    ParsedDicomFile(const ParsedDicomFile& other,
                     bool keepSopInstanceUid);
 
     void CreateFromDicomMap(const DicomMap& source,
@@ -95,7 +95,7 @@ namespace Orthanc
 
     bool EmbedContentInternal(const std::string& dataUriScheme);
 
-    ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
+    explicit ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
 
   public:
     explicit ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
