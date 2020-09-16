@@ -232,7 +232,7 @@ TEST(DatabaseLookup, FromDicom)
     lookup.AddDicomConstraint(DICOM_TAG_MODALITIES_IN_STUDY, "CT\\MR", false, true);
 
     ASSERT_EQ(1u, lookup.GetConstraintsCount());
-    ASSERT_EQ(DICOM_TAG_MODALITY,  lookup.GetConstraint(0).GetTag());
+    ASSERT_EQ(DICOM_TAG_MODALITIES_IN_STUDY,  lookup.GetConstraint(0).GetTag());
     ASSERT_EQ(ConstraintType_List, lookup.GetConstraint(0).GetConstraintType());
 
     const std::set<std::string>& values = lookup.GetConstraint(0).GetValues();
