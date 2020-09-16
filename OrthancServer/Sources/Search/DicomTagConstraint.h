@@ -70,11 +70,18 @@ namespace Orthanc
                        bool caseSensitive,
                        bool mandatory);
 
+    DicomTagConstraint(const DicomTagConstraint& other);
+    
     DicomTagConstraint(const DatabaseConstraint& constraint);
 
     const DicomTag& GetTag() const
     {
       return tag_;
+    }
+
+    void SetTag(const DicomTag& tag)
+    {
+      tag_ = tag;
     }
 
     ConstraintType GetConstraintType() const

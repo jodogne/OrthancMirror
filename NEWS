@@ -19,7 +19,7 @@ Maintenance
 * When checking DICOM allowed methods, if there are multiple modalities with the same AET, 
   differentiate them from the calling IP
 * Enable the access to raw frames in Philips ELSCINT1 proprietary compression
-
+* Fix handling of "ModalitiesInStudy" (0008,0061) in C-FIND and "/tools/find"
 
 
 Version 1.7.3 (2020-08-24)

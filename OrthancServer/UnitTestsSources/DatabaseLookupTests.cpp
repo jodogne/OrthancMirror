@@ -154,6 +154,9 @@ TEST(DatabaseLookup, FromDicom)
     ASSERT_EQ(ConstraintType_Equal, lookup.GetConstraint(0).GetConstraintType());
     ASSERT_EQ("HELLO", lookup.GetConstraint(0).GetValue());
     ASSERT_TRUE(lookup.GetConstraint(0).IsCaseSensitive());
+
+    ASSERT_TRUE(lookup.HasTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_FALSE(lookup.HasTag(DICOM_TAG_PATIENT_NAME));
   }
 
   {
