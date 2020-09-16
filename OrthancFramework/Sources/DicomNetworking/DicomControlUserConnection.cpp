@@ -70,10 +70,10 @@ namespace Orthanc
     DcmDataset *responseIdentifiers /* pending response identifiers */
     )
   {
-    FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
-
     if (responseIdentifiers != NULL)
     {
+      FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
+
       if (payload.isWorklist)
       {
         ParsedDicomFile answer(*responseIdentifiers);
@@ -654,7 +654,7 @@ namespace Orthanc
 
 
   void DicomControlUserConnection::FindWorklist(DicomFindAnswers& result,
-                                                ParsedDicomFile& query)
+                                                const ParsedDicomFile& query)
   {
     DcmDataset* dataset = query.GetDcmtkObject().getDataset();
     const char* sopClass = UID_FINDModalityWorklistInformationModel;

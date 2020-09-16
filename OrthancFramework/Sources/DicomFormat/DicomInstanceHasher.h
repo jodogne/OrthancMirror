@@ -55,7 +55,7 @@ namespace Orthanc
                const std::string& instanceUid);
 
   public:
-    DicomInstanceHasher(const DicomMap& instance);
+    explicit DicomInstanceHasher(const DicomMap& instance);
 
     DicomInstanceHasher(const std::string& patientId,
                         const std::string& studyUid,

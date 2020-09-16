@@ -31,7 +31,7 @@ namespace Orthanc
     std::string  content_;
 
   public:
-    StringValue(const std::string& content) :
+    explicit StringValue(const std::string& content) :
       content_(content)
     {
     }

@@ -70,7 +70,7 @@ namespace Orthanc
     };
 
 
-    SharedArchive(size_t maxSize);
+    explicit SharedArchive(size_t maxSize);
 
     ~SharedArchive();
 

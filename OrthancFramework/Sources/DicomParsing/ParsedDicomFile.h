@@ -98,12 +98,11 @@ namespace Orthanc
     ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
 
   public:
-    ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
+    explicit ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 
     ParsedDicomFile(const DicomMap& map,
                     Encoding defaultEncoding,
-                    bool permissive
-                    );
+                    bool permissive);
 
     ParsedDicomFile(const DicomMap& map,
                     Encoding defaultEncoding,
@@ -114,11 +113,11 @@ namespace Orthanc
     ParsedDicomFile(const void* content,
                     size_t size);
 
-    ParsedDicomFile(const std::string& content);
+    explicit ParsedDicomFile(const std::string& content);
 
-    ParsedDicomFile(DcmDataset& dicom);  // This clones the DCMTK object
+    explicit ParsedDicomFile(DcmDataset& dicom);  // This clones the DCMTK object
 
-    ParsedDicomFile(DcmFileFormat& dicom);  // This clones the DCMTK object
+    explicit ParsedDicomFile(DcmFileFormat& dicom);  // This clones the DCMTK object
 
     static ParsedDicomFile* AcquireDcmtkObject(DcmFileFormat* dicom)  // No clone here
     {
