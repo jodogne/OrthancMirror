@@ -147,20 +147,21 @@
   // Whether or not SSL is enabled
   "SslEnabled" : false,
 
-  // Path to the SSL certificate used by the HTTP server.
-  // Certifcate must be stored in the PEM format.
-  // meaningful only if SslEnabled is true. 
-  // The file must contain both the certificate and the private key.
+  // Path to the SSL certificate used by the HTTP server. The file
+  // must be stored in the PEM format, and must contain both the
+  // certificate and the private key. This option is only meaningful
+  // if "SslEnabled" is true.
   "SslCertificate" : "certificate.pem",
 
-  // Whether or not peer client certificates shall be checked.
-  // meaningfull only if SslEnabled is true
+  // Whether or not peer client certificates shall be checked. This
+  // option is only meaningfull if "SslEnabled" is true.
   "SslVerifyPeers" : false,
 
-  // Path to the SSL certificate(s) that are trusted to verify
-  // peers identify. 
-  // Certifcate(s) must be stored in the PEM format.
-  // meaningfull only if SslVerifyPeers is true
+  // Path to a file containing the concatenation of the client SSL
+  // certificate(s) that are trusted to verify the identify of remote
+  // HTTP clients. The individual certificate(s) must be stored in the
+  // PEM format. This option is only meaningfull if "SslVerifyPeers"
+  // is true.
   "SslTrustedClientCertificates" : "trustedClientCertificates.pem",
   
   // Whether or not the password protection is enabled (using HTTP

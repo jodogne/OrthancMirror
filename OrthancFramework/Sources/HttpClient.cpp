@@ -788,11 +788,7 @@ namespace Orthanc
 #if ORTHANC_ENABLE_SSL == 1
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERTTYPE, "PEM"));
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSLCERT, clientCertificateFile_.c_str()));
-
-      if (!clientCertificateKeyPassword_.empty())
-      {
-        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_KEYPASSWD, clientCertificateKeyPassword_.c_str()));
-      }
+      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_KEYPASSWD, clientCertificateKeyPassword_.c_str()));
 
       // NB: If no "clientKeyFile_" is provided, the key must be
       // prepended to the certificate file

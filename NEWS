@@ -5,10 +5,10 @@ General
 -------
 
 * New configuration options to enable HTTP peers identification through certificates:
-  "SslVerifyPeers" & "SslTrustedClientCertificates"
-* New configuration option "SyncStorageArea" to commit the files on disk "inside" the DB
-  transaction and avoid DB - File system discrepencies in case of hard shutdown 
-  of the machine running Orthanc.  This comes with a cost: DICOM file ingestion is slower.
+  "SslVerifyPeers" and "SslTrustedClientCertificates"
+* New configuration option "SyncStorageArea" to immediately commit the files onto the disk
+  (through fsync()), so as to avoid discrepencies between DB and filesystem in case of hard
+  shutdown of the machine running Orthanc. This slows down adding new files into Orthanc.
 
 Maintenance
 -----------
@@ -19,6 +19,7 @@ Maintenance
 * When checking DICOM allowed methods, if there are multiple modalities with the same AET, 
   differentiate them from the calling IP
 * Enable the access to raw frames in Philips ELSCINT1 proprietary compression
+* Support empty key passwords when using HTTP client certificates
 * Fix handling of "ModalitiesInStudy" (0008,0061) in C-FIND and "/tools/find"
 
 
