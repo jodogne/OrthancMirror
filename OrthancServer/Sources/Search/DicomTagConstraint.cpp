@@ -154,6 +154,16 @@ namespace Orthanc
   }
 
 
+  DicomTagConstraint::DicomTagConstraint(const DicomTagConstraint& other) :
+    tag_(other.tag_),
+    constraintType_(other.constraintType_),
+    values_(other.values_),
+    caseSensitive_(other.caseSensitive_),
+    mandatory_(other.mandatory_)
+  {
+  }
+    
+
   DicomTagConstraint::DicomTagConstraint(const DatabaseConstraint& constraint) :
     tag_(constraint.GetTag()),
     constraintType_(constraint.GetConstraintType()),
@@ -333,7 +343,7 @@ namespace Orthanc
           s += *it;
         }
 
-        return s + "]";
+        return s + " ]";
       }
 
       default:

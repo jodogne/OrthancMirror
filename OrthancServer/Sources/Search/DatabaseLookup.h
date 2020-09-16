@@ -50,7 +50,7 @@ namespace Orthanc
                                     bool caseSensitive,
                                     bool mandatoryTag);
 
-    void AddConstraint(DicomTagConstraint* constraint);  // Takes ownership
+    void AddConstraintInternal(DicomTagConstraint* constraint);  // Takes ownership
 
   public:
     DatabaseLookup()
@@ -87,6 +87,15 @@ namespace Orthanc
                            bool caseSensitive,
                            bool mandatoryTag);
 
+    void AddConstraint(const DicomTagConstraint& constraint)
+    {
+      AddConstraintInternal(new DicomTagConstraint(constraint));
+    }
+
     bool HasOnlyMainDicomTags() const;
+
+    std::string Format() const;
+
+    bool HasTag(const DicomTag& tag) const;
   };
 }

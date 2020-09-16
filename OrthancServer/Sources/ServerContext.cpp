@@ -34,10 +34,10 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerContext.h"
 
-#include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpSender.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
@@ -936,12 +936,12 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(ILookupVisitor& visitor,
-                            const DatabaseLookup& lookup,
-                            ResourceType queryLevel,
-                            size_t since,
-                            size_t limit)
-  {
+  void ServerContext::ApplyInternal(ILookupVisitor& visitor,
+                                    const DatabaseLookup& lookup,
+                                    ResourceType queryLevel,
+                                    size_t since,
+                                    size_t limit)
+  {    
     unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
                                   limitFindInstances_ : limitFindResults_);
       
@@ -994,7 +994,6 @@ namespace Orthanc
           continue;
         }
 
-#if 1
         // New in Orthanc 1.6.0: Only keep the main DICOM tags at the
         // level of interest for the query
         switch (queryLevel)
@@ -1016,17 +1015,6 @@ namespace Orthanc
           default:
             throw OrthancException(ErrorCode_InternalError);
         }
-
-        // Special case of the "Modality" at the study level, in order
-        // to deal with C-FIND on "ModalitiesInStudy" (0008,0061).
-        // Check out integration test "test_rest_modalities_in_study".
-        if (queryLevel == ResourceType_Study)
-        {
-          dicom.CopyTagIfExists(tmp, DICOM_TAG_MODALITY);
-        }
-#else
-        dicom.Assign(tmp);  // This emulates Orthanc <= 1.5.8
-#endif
         
         hasOnlyMainDicomTags = true;
       }
@@ -1095,6 +1083,225 @@ namespace Orthanc
     LOG(INFO) << "Number of matching resources: " << countResults;
   }
 
+
+
+  namespace
+  {
+    class ModalitiesInStudyVisitor : public ServerContext::ILookupVisitor
+    {
+    private:
+      class Study : public boost::noncopyable
+      {
+      private:
+        std::string            orthancId_;
+        std::string            instanceId_;
+        DicomMap               mainDicomTags_;
+        Json::Value            dicomAsJson_;
+        std::set<std::string>  modalitiesInStudy_;
+
+      public:
+        Study(const std::string& instanceId,
+              const DicomMap& seriesTags) :
+          instanceId_(instanceId),
+          dicomAsJson_(Json::nullValue)
+        {
+          {
+            DicomMap tmp;
+            tmp.Assign(seriesTags);
+            tmp.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "dummy", false);
+            DicomInstanceHasher hasher(tmp);
+            orthancId_ = hasher.HashStudy();
+          }
+          
+          mainDicomTags_.MergeMainDicomTags(seriesTags, ResourceType_Study);
+          mainDicomTags_.MergeMainDicomTags(seriesTags, ResourceType_Patient);
+          AddModality(seriesTags);
+        }
+
+        void AddModality(const DicomMap& seriesTags)
+        {
+          std::string modality;
+          if (seriesTags.LookupStringValue(modality, DICOM_TAG_MODALITY, false) &&
+              !modality.empty())
+          {
+            modalitiesInStudy_.insert(modality);
+          }
+        }
+
+        void SetDicomAsJson(const Json::Value& dicomAsJson)
+        {
+          dicomAsJson_ = dicomAsJson;
+        }
+
+        const std::string& GetOrthancId() const
+        {
+          return orthancId_;
+        }
+
+        const std::string& GetInstanceId() const
+        {
+          return instanceId_;
+        }
+
+        const DicomMap& GetMainDicomTags() const
+        {
+          return mainDicomTags_;
+        }
+
+        const Json::Value* GetDicomAsJson() const
+        {
+          if (dicomAsJson_.type() == Json::nullValue)
+          {
+            return NULL;
+          }
+          else
+          {
+            return &dicomAsJson_;
+          }
+        } 
+      };
+      
+      typedef std::map<std::string, Study*>  Studies;
+      
+      bool     isDicomAsJsonNeeded_;
+      bool     complete_;
+      Studies  studies_;
+      
+    public:
+      ModalitiesInStudyVisitor(bool isDicomAsJsonNeeded) :
+        isDicomAsJsonNeeded_(isDicomAsJsonNeeded)
+      {
+      }
+
+      ~ModalitiesInStudyVisitor()
+      {
+        for (Studies::const_iterator it = studies_.begin(); it != studies_.end(); ++it)
+        {
+          assert(it->second != NULL);
+          delete it->second;
+        }
+
+        studies_.clear();
+      }
+      
+      virtual bool IsDicomAsJsonNeeded() const
+      {
+        return isDicomAsJsonNeeded_;
+      }
+      
+      virtual void MarkAsComplete()
+      {
+        complete_ = true;
+      }
+      
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId,
+                         const DicomMap& seriesTags,
+                         const Json::Value* dicomAsJson)
+      {
+        std::string studyInstanceUid;
+        if (seriesTags.LookupStringValue(studyInstanceUid, DICOM_TAG_STUDY_INSTANCE_UID, false))
+        {
+          Studies::iterator found = studies_.find(studyInstanceUid);
+          if (found == studies_.end())
+          {
+            // New study
+            std::unique_ptr<Study> study(new Study(instanceId, seriesTags));
+            
+            if (dicomAsJson != NULL)
+            {
+              study->SetDicomAsJson(*dicomAsJson);
+            }
+            
+            studies_[studyInstanceUid] = study.release();
+          }
+          else
+          {
+            // Already existing study
+            found->second->AddModality(seriesTags);
+          }
+        }
+      }
+
+      void Forward(ILookupVisitor& callerVisitor,
+                   size_t since,
+                   size_t limit) const
+     {
+        size_t index = 0;
+        size_t countForwarded = 0;
+        
+        for (Studies::const_iterator it = studies_.begin(); it != studies_.end(); ++it, index++)
+        {
+          if (limit == 0 ||
+              (index >= since &&
+               index < limit))
+          {
+            assert(it->second != NULL);
+            const Study& study = *it->second;
+
+            countForwarded++;
+            callerVisitor.Visit(study.GetOrthancId(), study.GetInstanceId(),
+                                study.GetMainDicomTags(), study.GetDicomAsJson());
+          }
+        }
+
+        if (countForwarded == studies_.size())
+        {
+          callerVisitor.MarkAsComplete();
+        }
+      }
+    };
+  }
+  
+
+  void ServerContext::Apply(ILookupVisitor& visitor,
+                            const DatabaseLookup& lookup,
+                            ResourceType queryLevel,
+                            size_t since,
+                            size_t limit)
+  {
+    if (queryLevel == ResourceType_Study &&
+        lookup.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
+    {
+      // Convert the study-level query, into a series-level query,
+      // where "ModalitiesInStudy" is replaced by "Modality"
+      DatabaseLookup seriesLookup;
+
+      for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
+      {
+        const DicomTagConstraint& constraint = lookup.GetConstraint(i);
+        if (constraint.GetTag() == DICOM_TAG_MODALITIES_IN_STUDY)
+        {
+          if ((constraint.GetConstraintType() == ConstraintType_Equal && constraint.GetValue().empty()) ||
+              (constraint.GetConstraintType() == ConstraintType_List && constraint.GetValues().empty()))
+          {
+            // Ignore universal lookup on "ModalitiesInStudy" (0008,0061),
+            // this should have been handled by the caller
+            return ApplyInternal(visitor, lookup, queryLevel, since, limit);
+          }
+          else
+          {
+            DicomTagConstraint modality(constraint);
+            modality.SetTag(DICOM_TAG_MODALITY);
+            seriesLookup.AddConstraint(modality);
+          }
+        }
+        else
+        {
+          seriesLookup.AddConstraint(constraint);
+        }
+      }
+
+      ModalitiesInStudyVisitor seriesVisitor(visitor.IsDicomAsJsonNeeded());
+      ApplyInternal(seriesVisitor, seriesLookup, ResourceType_Series, 0, 0);
+      seriesVisitor.Forward(visitor, since, limit);
+    }
+    else
+    {
+      ApplyInternal(visitor, lookup, queryLevel, since, limit);
+    }
+  }
+  
 
   bool ServerContext::LookupOrReconstructMetadata(std::string& target,
                                                   const std::string& publicId,

@@ -80,6 +80,8 @@ namespace Orthanc
       
       virtual void MarkAsComplete() = 0;
 
+      // NB: "dicomAsJson" must *not* be deleted, and can be NULL if
+      // "!IsDicomAsJsonNeeded()"
       virtual void Visit(const std::string& publicId,
                          const std::string& instanceId,
                          const DicomMap& mainDicomTags,
@@ -236,6 +238,12 @@ namespace Orthanc
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode);
+
+    void ApplyInternal(ILookupVisitor& visitor,
+                       const DatabaseLookup& lookup,
+                       ResourceType queryLevel,
+                       size_t since,
+                       size_t limit);
 
   public:
     class DicomCacheLocker : public boost::noncopyable

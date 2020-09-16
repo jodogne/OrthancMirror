@@ -66,7 +66,7 @@ namespace Orthanc
   }
 
 
-  void DatabaseLookup::AddConstraint(DicomTagConstraint* constraint)
+  void DatabaseLookup::AddConstraintInternal(DicomTagConstraint* constraint)
   {
     if (constraint == NULL)
     {
@@ -163,27 +163,19 @@ namespace Orthanc
 
       if (!lower.empty())
       {
-        AddConstraint(new DicomTagConstraint
-                      (tag, ConstraintType_GreaterOrEqual, lower, caseSensitive, mandatoryTag));
+        AddConstraintInternal(new DicomTagConstraint
+                              (tag, ConstraintType_GreaterOrEqual, lower, caseSensitive, mandatoryTag));
       }
 
       if (!upper.empty())
       {
-        AddConstraint(new DicomTagConstraint
-                      (tag, ConstraintType_SmallerOrEqual, upper, caseSensitive, mandatoryTag));
+        AddConstraintInternal(new DicomTagConstraint
+                              (tag, ConstraintType_SmallerOrEqual, upper, caseSensitive, mandatoryTag));
       }
     }
-    else if (tag == DICOM_TAG_MODALITIES_IN_STUDY ||
-             dicomQuery.find('\\') != std::string::npos)
+    else if (dicomQuery.find('\\') != std::string::npos)
     {
       DicomTag fixedTag(tag);
-
-      if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
-      {
-        // http://www.itk.org/Wiki/DICOM_QueryRetrieve_Explained
-        // http://dicomiseasy.blogspot.be/2012/01/dicom-queryretrieve-part-i.html  
-        fixedTag = DICOM_TAG_MODALITY;
-      }
 
       std::unique_ptr<DicomTagConstraint> constraint
         (new DicomTagConstraint(fixedTag, ConstraintType_List, caseSensitive, mandatoryTag));
@@ -196,7 +188,7 @@ namespace Orthanc
         constraint->AddValue(items[i]);
       }
 
-      AddConstraint(constraint.release());
+      AddConstraintInternal(constraint.release());
     }
     else if (
       /**
@@ -219,13 +211,13 @@ namespace Orthanc
       (dicomQuery.find('*') != std::string::npos ||
        dicomQuery.find('?') != std::string::npos))
     {
-      AddConstraint(new DicomTagConstraint
-                    (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive, mandatoryTag));
+      AddConstraintInternal(new DicomTagConstraint
+                            (tag, ConstraintType_Wildcard, dicomQuery, caseSensitive, mandatoryTag));
     }
     else
     {
-      AddConstraint(new DicomTagConstraint
-                    (tag, ConstraintType_Equal, dicomQuery, caseSensitive, mandatoryTag));
+      AddConstraintInternal(new DicomTagConstraint
+                            (tag, ConstraintType_Equal, dicomQuery, caseSensitive, mandatoryTag));
     }
   }
 
@@ -312,5 +304,35 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+
+  std::string DatabaseLookup::Format() const
+  {
+    std::string s;
+    
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      s += ("Contraint " + boost::lexical_cast<std::string>(i) + ": " +
+            constraints_[i]->Format() + "\n");
+    }
+
+    return s;
+  }
+
+  
+  bool DatabaseLookup::HasTag(const DicomTag& tag) const
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      if (constraints_[i]->GetTag() == tag)
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
