@@ -54,7 +54,7 @@ namespace Orthanc
     DicomTransferSyntax                 transferSyntax_;
 
   protected:
-    virtual bool HandleInstance(const std::string& instance);
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
     
   public:
     explicit ResourceModificationJob(ServerContext& context);
@@ -95,17 +95,17 @@ namespace Orthanc
 
     void ClearTranscode();
 
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "ResourceModification";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
     
-    virtual bool Serialize(Json::Value& value);
+    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
   };
 }

@@ -60,7 +60,7 @@ namespace Orthanc
     void AddSourceStudyInternal(const std::string& study);
 
   protected:
-    virtual bool HandleInstance(const std::string& instance);
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
 
   public:
     MergeStudyJob(ServerContext& context,
@@ -89,17 +89,17 @@ namespace Orthanc
       return origin_;
     }
 
-    virtual void Stop(JobStopReason reason)
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "MergeStudy";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }

@@ -272,7 +272,7 @@ namespace Orthanc
     const Vector&  normal_;
 
   public:
-    PositionComparator(const Vector& normal) : normal_(normal)
+    explicit PositionComparator(const Vector& normal) : normal_(normal)
     {
     }
     

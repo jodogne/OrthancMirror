@@ -53,7 +53,7 @@ namespace Orthanc
     std::string   patientId_;
 
   public:
-    Output(ResourceType level) :
+    explicit Output(ResourceType level) :
       level_(level),
       isFirst_(true)
     {

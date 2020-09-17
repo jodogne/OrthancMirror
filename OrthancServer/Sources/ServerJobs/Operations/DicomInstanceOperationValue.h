@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../../../OrthancFramework/Sources/JobsEngine/Operations/JobOperationValue.h"
 
 namespace Orthanc
@@ -66,12 +67,12 @@ namespace Orthanc
 
     void ReadDicom(std::string& dicom) const;
 
-    virtual JobOperationValue* Clone() const
+    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
     {
       return new DicomInstanceOperationValue(context_, id_);
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target["Type"] = "DicomInstance";

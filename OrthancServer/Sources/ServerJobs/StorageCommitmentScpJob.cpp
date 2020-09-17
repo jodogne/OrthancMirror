@@ -70,7 +70,7 @@ namespace Orthanc
     StorageCommitmentScpJob&  that_;
 
   public:
-    SetupCommand(StorageCommitmentScpJob& that) :
+    explicit SetupCommand(StorageCommitmentScpJob& that) :
       that_(that)
     {
     }
@@ -155,7 +155,7 @@ namespace Orthanc
     StorageCommitmentScpJob&  that_;
 
   public:
-    AnswerCommand(StorageCommitmentScpJob& that) :
+    explicit AnswerCommand(StorageCommitmentScpJob& that) :
       that_(that)
     {
       if (that_.ready_)
@@ -193,13 +193,13 @@ namespace Orthanc
     StorageCommitmentScpJob&  that_;
 
   public:
-    Unserializer(StorageCommitmentScpJob& that) :
+    explicit Unserializer(StorageCommitmentScpJob& that) :
       that_(that)
     {
       that_.ready_ = false;
     }
 
-    virtual ICommand* Unserialize(const Json::Value& source) const
+    virtual ICommand* Unserialize(const Json::Value& source) const ORTHANC_OVERRIDE
     {
       const std::string type = SerializationToolbox::ReadString(source, TYPE);
 

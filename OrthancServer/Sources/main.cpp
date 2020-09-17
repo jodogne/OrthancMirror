@@ -66,7 +66,7 @@ private:
   ServerContext& context_;
 
 public:
-  OrthancStoreRequestHandler(ServerContext& context) :
+  explicit OrthancStoreRequestHandler(ServerContext& context) :
     context_(context)
   {
   }
@@ -77,7 +77,7 @@ public:
                       const Json::Value& dicomJson,
                       const std::string& remoteIp,
                       const std::string& remoteAet,
-                      const std::string& calledAet) 
+                      const std::string& calledAet) ORTHANC_OVERRIDE 
   {
     if (dicomFile.size() > 0)
     {
@@ -102,7 +102,7 @@ private:
   ServerContext& context_;
   
 public:
-  OrthancStorageCommitmentRequestHandler(ServerContext& context) :
+  explicit OrthancStorageCommitmentRequestHandler(ServerContext& context) :
     context_(context)
   {
   }
@@ -112,7 +112,7 @@ public:
                              const std::vector<std::string>& referencedSopInstanceUids,
                              const std::string& remoteIp,
                              const std::string& remoteAet,
-                             const std::string& calledAet)
+                             const std::string& calledAet) ORTHANC_OVERRIDE
   {
     if (referencedSopClassUids.size() != referencedSopInstanceUids.size())
     {
@@ -140,7 +140,7 @@ public:
                             const std::vector<StorageCommitmentFailureReason>& failureReasons,
                             const std::string& remoteIp,
                             const std::string& remoteAet,
-                            const std::string& calledAet)
+                            const std::string& calledAet) ORTHANC_OVERRIDE
   {
     if (successSopClassUids.size() != successSopInstanceUids.size() ||
         failedSopClassUids.size() != failedSopInstanceUids.size() ||
@@ -174,14 +174,14 @@ class ModalitiesFromConfiguration : public DicomServer::IRemoteModalities
 {
 public:
   virtual bool IsSameAETitle(const std::string& aet1,
-                             const std::string& aet2) 
+                             const std::string& aet2) ORTHANC_OVERRIDE
   {
     OrthancConfiguration::ReaderLock lock;
     return lock.GetConfiguration().IsSameAETitle(aet1, aet2);
   }
 
   virtual bool LookupAETitle(RemoteModalityParameters& modality,
-                             const std::string& aet) 
+                             const std::string& aet) ORTHANC_OVERRIDE
   {
     OrthancConfiguration::ReaderLock lock;
     return lock.GetConfiguration().LookupDicomModalityUsingAETitle(modality, aet);
@@ -200,16 +200,16 @@ private:
   ServerContext& context_;
 
 public:
-  MyDicomServerFactory(ServerContext& context) : context_(context)
+  explicit MyDicomServerFactory(ServerContext& context) : context_(context)
   {
   }
 
-  virtual IStoreRequestHandler* ConstructStoreRequestHandler()
+  virtual IStoreRequestHandler* ConstructStoreRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancStoreRequestHandler(context_);
   }
 
-  virtual IFindRequestHandler* ConstructFindRequestHandler()
+  virtual IFindRequestHandler* ConstructFindRequestHandler() ORTHANC_OVERRIDE
   {
     std::unique_ptr<OrthancFindRequestHandler> result(new OrthancFindRequestHandler(context_));
 
@@ -242,17 +242,17 @@ public:
     return result.release();
   }
 
-  virtual IMoveRequestHandler* ConstructMoveRequestHandler()
+  virtual IMoveRequestHandler* ConstructMoveRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancMoveRequestHandler(context_);
   }
   
-  virtual IGetRequestHandler* ConstructGetRequestHandler()
+  virtual IGetRequestHandler* ConstructGetRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancGetRequestHandler(context_);
   }
   
-  virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler()
+  virtual IStorageCommitmentRequestHandler* ConstructStorageCommitmentRequestHandler() ORTHANC_OVERRIDE
   {
     return new OrthancStorageCommitmentRequestHandler(context_);
   }
@@ -272,7 +272,7 @@ private:
   bool            alwaysAllowStore_;
 
 public:
-  OrthancApplicationEntityFilter(ServerContext& context) :
+  explicit OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
   {
     OrthancConfiguration::ReaderLock lock;
@@ -282,7 +282,7 @@ public:
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
                                    const std::string& remoteAet,
-                                   const std::string& calledAet)
+                                   const std::string& calledAet) ORTHANC_OVERRIDE
   {
     LOG(INFO) << "Incoming connection from AET " << remoteAet
               << " on IP " << remoteIp << ", calling AET " << calledAet;
@@ -302,7 +302,7 @@ public:
   virtual bool IsAllowedRequest(const std::string& remoteIp,
                                 const std::string& remoteAet,
                                 const std::string& calledAet,
-                                DicomRequestType type)
+                                DicomRequestType type) ORTHANC_OVERRIDE
   {
     LOG(INFO) << "Incoming " << EnumerationToString(type) << " request from AET "
               << remoteAet << " on IP " << remoteIp << ", calling AET " << calledAet;
@@ -356,7 +356,7 @@ public:
   virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
                                        const std::string& remoteAet,
                                        const std::string& calledAet,
-                                       TransferSyntax syntax)
+                                       TransferSyntax syntax) ORTHANC_OVERRIDE
   {
     std::string configuration;
 
@@ -422,7 +422,7 @@ public:
 
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
-                                         const std::string& calledAet)
+                                         const std::string& calledAet) ORTHANC_OVERRIDE
   {
     static const char* configuration = "UnknownSopClassAccepted";
 
@@ -468,7 +468,7 @@ public:
                          const char* ip,
                          const char* username,
                          const IHttpHandler::Arguments& httpHeaders,
-                         const IHttpHandler::GetArguments& getArguments)
+                         const IHttpHandler::GetArguments& getArguments) ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&
@@ -544,7 +544,7 @@ public:
   virtual void Format(HttpOutput& output,
                       const OrthancException& exception,
                       HttpMethod method,
-                      const char* uri)
+                      const char* uri) ORTHANC_OVERRIDE
   {
     {
       bool isPlugin = false;
@@ -800,15 +800,15 @@ static void PrintErrors(const char* path)
 #if ORTHANC_ENABLE_PLUGINS == 1
 static void LoadPlugins(OrthancPlugins& plugins)
 {
-  std::list<std::string> path;
+  std::list<std::string> pathList;
 
   {
     OrthancConfiguration::ReaderLock lock;
-    lock.GetConfiguration().GetListOfStringsParameter(path, "Plugins");
+    lock.GetConfiguration().GetListOfStringsParameter(pathList, "Plugins");
   }
 
   for (std::list<std::string>::const_iterator
-         it = path.begin(); it != path.end(); ++it)
+         it = pathList.begin(); it != pathList.end(); ++it)
   {
     std::string path;
 
@@ -827,7 +827,7 @@ static void LoadPlugins(OrthancPlugins& plugins)
 
 // Returns "true" if restart is required
 static bool WaitForExit(ServerContext& context,
-                        OrthancRestApi& restApi)
+                        const OrthancRestApi& restApi)
 {
   LOG(WARNING) << "Orthanc has started";
 
@@ -899,7 +899,7 @@ static bool WaitForExit(ServerContext& context,
 
 
 static bool StartHttpServer(ServerContext& context,
-                            OrthancRestApi& restApi,
+                            const OrthancRestApi& restApi,
                             OrthancPlugins* plugins)
 {
   bool httpServerEnabled;
@@ -1068,7 +1068,7 @@ static bool StartHttpServer(ServerContext& context,
 
 
 static bool StartDicomServer(ServerContext& context,
-                             OrthancRestApi& restApi,
+                             const OrthancRestApi& restApi,
                              OrthancPlugins* plugins)
 {
   bool dicomServerEnabled;

@@ -103,18 +103,18 @@ namespace Orthanc
 
       virtual void SignalStoredInstance(const std::string& publicId,
                                         const DicomInstanceToStore& instance,
-                                        const Json::Value& simplifiedTags)
+                                        const Json::Value& simplifiedTags) ORTHANC_OVERRIDE
       {
         context_.mainLua_.SignalStoredInstance(publicId, instance, simplifiedTags);
       }
     
-      virtual void SignalChange(const ServerIndexChange& change)
+      virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
       {
         context_.mainLua_.SignalChange(change);
       }
 
       virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
-                                          const Json::Value& simplified)
+                                          const Json::Value& simplified) ORTHANC_OVERRIDE
       {
         return context_.filterLua_.FilterIncomingInstance(instance, simplified);
       }

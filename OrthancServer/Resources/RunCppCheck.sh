@@ -15,10 +15,13 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:309
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1070
+stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:398
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:129
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:714
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:285
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \

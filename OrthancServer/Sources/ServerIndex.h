@@ -274,7 +274,7 @@ namespace Orthanc
                       const std::string& publicId,
                       ResourceType parentType);
 
-    void ReconstructInstance(ParsedDicomFile& dicom);
+    void ReconstructInstance(const ParsedDicomFile& dicom);
 
     void ApplyLookupResources(std::vector<std::string>& resourcesId,
                               std::vector<std::string>* instancesId,  // Can be NULL if not needed

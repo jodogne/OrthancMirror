@@ -86,8 +86,9 @@ namespace Orthanc
       FileContentType  type_;
 
     public:
-      FileToRemove(const FileInfo& info) : uuid_(info.GetUuid()), 
-                                           type_(info.GetContentType())
+      explicit FileToRemove(const FileInfo& info) :
+        uuid_(info.GetUuid()), 
+        type_(info.GetContentType())
       {
       }
 
@@ -120,8 +121,9 @@ namespace Orthanc
     }
 
   public:
-    Listener(ServerContext& context) : context_(context),
-                                       insideTransaction_(false)      
+    explicit Listener(ServerContext& context) :
+      context_(context),
+      insideTransaction_(false)      
     {
       Reset();
       assert(ResourceType_Patient < ResourceType_Study &&
@@ -242,9 +244,9 @@ namespace Orthanc
     ServerIndex& index_;
     std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
-
+    
   public:
-    Transaction(ServerIndex& index) : 
+    explicit Transaction(ServerIndex& index) : 
       index_(index),
       isCommitted_(false)
     {
@@ -302,9 +304,9 @@ namespace Orthanc
     UnstableResourcePayload(Orthanc::ResourceType type,
                             const std::string& publicId) : 
       type_(type),
-      publicId_(publicId)
+      publicId_(publicId),
+      time_(boost::posix_time::second_clock::local_time())
     {
-      time_ = boost::posix_time::second_clock::local_time();
     }
 
     unsigned int GetAge() const
@@ -451,13 +453,13 @@ namespace Orthanc
 
     if (listener_->HasRemainingLevel())
     {
-      ResourceType type = listener_->GetRemainingType();
-      const std::string& uuid = listener_->GetRemainingPublicId();
+      ResourceType remainingType = listener_->GetRemainingType();
+      const std::string& remainingUuid = listener_->GetRemainingPublicId();
 
       target["RemainingAncestor"] = Json::Value(Json::objectValue);
-      target["RemainingAncestor"]["Path"] = GetBasePath(type, uuid);
-      target["RemainingAncestor"]["Type"] = EnumerationToString(type);
-      target["RemainingAncestor"]["ID"] = uuid;
+      target["RemainingAncestor"]["Path"] = GetBasePath(remainingType, remainingUuid);
+      target["RemainingAncestor"]["Type"] = EnumerationToString(remainingType);
+      target["RemainingAncestor"]["ID"] = remainingUuid;
     }
     else
     {
@@ -644,11 +646,9 @@ namespace Orthanc
 
     if (db_.LookupGlobalProperty(oldValue, property))
     {
-      uint64_t oldNumber;
-
       try
       {
-        oldNumber = boost::lexical_cast<uint64_t>(oldValue);
+        uint64_t oldNumber = boost::lexical_cast<uint64_t>(oldValue);
         db_.SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
         return oldNumber + 1;
       }
@@ -2465,7 +2465,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ReconstructInstance(ParsedDicomFile& dicom)
+  void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
   {
     DicomMap summary;
     OrthancConfiguration::DefaultExtractDicomSummary(summary, dicom);

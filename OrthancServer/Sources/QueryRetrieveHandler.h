@@ -56,7 +56,7 @@ namespace Orthanc
     void Invalidate();
 
   public:
-    QueryRetrieveHandler(ServerContext& context);
+    explicit QueryRetrieveHandler(ServerContext& context);
 
     void SetModality(const std::string& symbolicName);
 

@@ -56,12 +56,12 @@ namespace Orthanc
     uint64_t                     size_;
 
   protected:
-    virtual bool HandleInstance(const std::string& instance);
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
     
-    virtual bool HandleTrailingStep();
+    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
   public:
-    OrthancPeerStoreJob(ServerContext& context) :
+    explicit OrthancPeerStoreJob(ServerContext& context) :
       context_(context),
       transcode_(false),
       transferSyntax_(DicomTransferSyntax_LittleEndianExplicit),  // Dummy value
@@ -100,15 +100,15 @@ namespace Orthanc
 
     void SetCompress(bool compress);
 
-    virtual void Stop(JobStopReason reason);   // For pausing jobs
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;   // For pausing jobs
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "OrthancPeerStore";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }
