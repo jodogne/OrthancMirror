@@ -240,7 +240,7 @@ namespace Orthanc
 
 
   public:
-    ArchiveIndex(ResourceType level) :
+    explicit ArchiveIndex(ResourceType level) :
       level_(level)
     {
     }
@@ -631,7 +631,7 @@ namespace Orthanc
     }
 
     virtual void Open(ResourceType level,
-                      const std::string& publicId)
+                      const std::string& publicId) ORTHANC_OVERRIDE
     {
       std::string path;
 
@@ -688,13 +688,13 @@ namespace Orthanc
       commands_.AddOpenDirectory(path.c_str());
     }
 
-    virtual void Close()
+    virtual void Close() ORTHANC_OVERRIDE
     {
       commands_.AddCloseDirectory();
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             const FileInfo& dicom)
+                             const FileInfo& dicom) ORTHANC_OVERRIDE
     {
       char filename[24];
       snprintf(filename, sizeof(filename) - 1, instanceFormat_, counter_);
@@ -722,16 +722,16 @@ namespace Orthanc
     }
 
     virtual void Open(ResourceType level,
-                      const std::string& publicId)
+                      const std::string& publicId) ORTHANC_OVERRIDE
     {
     }
 
-    virtual void Close()
+    virtual void Close() ORTHANC_OVERRIDE
     {
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             const FileInfo& dicom)
+                             const FileInfo& dicom) ORTHANC_OVERRIDE
     {
       // "DICOM restricts the filenames on DICOM media to 8
       // characters (some systems wrongly use 8.3, but this does not
@@ -976,7 +976,7 @@ namespace Orthanc
       std::unique_ptr<TemporaryFile>   file_;
 
     public:
-      DynamicTemporaryFile(TemporaryFile* f) : file_(f)
+      explicit DynamicTemporaryFile(TemporaryFile* f) : file_(f)
       {
         if (f == NULL)
         {

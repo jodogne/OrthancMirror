@@ -45,15 +45,15 @@ namespace Orthanc
     ServerContext&  context_;
 
   public:
-    OrthancJobUnserializer(ServerContext& context) :
+    explicit OrthancJobUnserializer(ServerContext& context) :
       context_(context)
     {
     }
 
-    virtual IJob* UnserializeJob(const Json::Value& value);
+    virtual IJob* UnserializeJob(const Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual IJobOperation* UnserializeOperation(const Json::Value& value);
+    virtual IJobOperation* UnserializeOperation(const Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& value);
+    virtual JobOperationValue* UnserializeValue(const Json::Value& value) ORTHANC_OVERRIDE;
   };
 }

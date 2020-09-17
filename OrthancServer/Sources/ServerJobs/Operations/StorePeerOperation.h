@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
 #include "../../../../OrthancFramework/Sources/WebServiceParameters.h"
 
@@ -44,12 +45,12 @@ namespace Orthanc
     WebServiceParameters peer_;
 
   public:
-    StorePeerOperation(const WebServiceParameters& peer) :
-    peer_(peer)
+    explicit StorePeerOperation(const WebServiceParameters& peer) :
+      peer_(peer)
     {
     }
 
-    StorePeerOperation(const Json::Value& serialized);
+    explicit StorePeerOperation(const Json::Value& serialized);
 
     const WebServiceParameters& GetPeer() const
     {
@@ -57,9 +58,9 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input) ORTHANC_OVERRIDE;
 
-    virtual void Serialize(Json::Value& result) const;
+    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }
 

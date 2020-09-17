@@ -59,7 +59,7 @@ namespace Orthanc
     void Retrieve(const DicomMap& findAnswer);
     
   public:
-    DicomMoveScuJob(ServerContext& context) :
+    explicit DicomMoveScuJob(ServerContext& context) :
       context_(context),
       query_(Json::arrayValue)
     {
@@ -91,15 +91,15 @@ namespace Orthanc
     
     void SetTargetAet(const std::string& aet);
 
-    virtual void Stop(JobStopReason reason);
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target)
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "DicomMoveScu";
     }
 
-    virtual void GetPublicContent(Json::Value& value);
+    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }

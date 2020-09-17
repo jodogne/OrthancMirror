@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/TimeoutDicomConnectionManager.h"
 
@@ -75,9 +76,9 @@ namespace Orthanc
     }
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input) ORTHANC_OVERRIDE;
 
-    virtual void Serialize(Json::Value& result) const;
+    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }
 

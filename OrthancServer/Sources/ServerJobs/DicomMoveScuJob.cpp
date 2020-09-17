@@ -78,12 +78,12 @@ namespace Orthanc
     DicomMoveScuJob&   that_;
 
   public:
-    Unserializer(DicomMoveScuJob&  that) :
+    explicit Unserializer(DicomMoveScuJob&  that) :
       that_(that)
     {
     }
 
-    virtual ICommand* Unserialize(const Json::Value& source) const
+    virtual ICommand* Unserialize(const Json::Value& source) const ORTHANC_OVERRIDE
     {
       DicomMap findAnswer;
       findAnswer.Unserialize(source);

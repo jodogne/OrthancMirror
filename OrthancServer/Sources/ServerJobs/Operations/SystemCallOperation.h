@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "../../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperation.h"
 
 #include <string>
@@ -47,12 +48,12 @@ namespace Orthanc
     std::vector<std::string>  postArguments_;
     
   public:
-    SystemCallOperation(const std::string& command) :
+    explicit SystemCallOperation(const std::string& command) :
       command_(command)
     {
     }
 
-    SystemCallOperation(const Json::Value& serialized);
+    explicit SystemCallOperation(const Json::Value& serialized);
 
     SystemCallOperation(const std::string& command,
                         const std::vector<std::string>& preArguments,
@@ -93,9 +94,9 @@ namespace Orthanc
     const std::string& GetPostArgument(size_t i) const;
 
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input) ORTHANC_OVERRIDE;
 
-    virtual void Serialize(Json::Value& result) const;
+    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }
 

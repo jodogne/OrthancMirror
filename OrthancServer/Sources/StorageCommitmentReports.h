@@ -37,7 +37,7 @@
 
 namespace Orthanc
 {
-  class StorageCommitmentReports
+  class StorageCommitmentReports : public boost::noncopyable
   {
   public:
     class Report : public boost::noncopyable
@@ -70,7 +70,7 @@ namespace Orthanc
       std::string         remoteAet_;
 
     public:
-      Report(const std::string& remoteAet) :
+      explicit Report(const std::string& remoteAet) :
         isComplete_(false),
         remoteAet_(remoteAet)
       {
@@ -105,7 +105,7 @@ namespace Orthanc
     size_t         maxSize_;
 
   public:
-    StorageCommitmentReports(size_t maxSize) :
+    explicit StorageCommitmentReports(size_t maxSize) :
       maxSize_(maxSize)
     {
     }

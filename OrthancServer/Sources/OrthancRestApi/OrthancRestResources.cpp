@@ -409,7 +409,8 @@ namespace Orthanc
                     bool invert) :
         image_(image),
         mode_(mode),
-        invert_(invert)
+        invert_(invert),
+        format_(MimeType_Binary)
       {
       }
 
@@ -443,12 +444,12 @@ namespace Orthanc
       ImageToEncode&  image_;
 
     public:
-      EncodePng(ImageToEncode& image) : image_(image)
+      explicit EncodePng(ImageToEncode& image) : image_(image)
       {
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype)
+                          const std::string& subtype) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "png");
@@ -462,12 +463,12 @@ namespace Orthanc
       ImageToEncode&  image_;
 
     public:
-      EncodePam(ImageToEncode& image) : image_(image)
+      explicit EncodePam(ImageToEncode& image) : image_(image)
       {
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype)
+                          const std::string& subtype) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "x-portable-arbitrarymap");
@@ -507,7 +508,7 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype)
+                          const std::string& subtype) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "jpeg");
@@ -631,7 +632,7 @@ namespace Orthanc
       ImageExtractionMode mode_;
 
     public:
-      GetImageHandler(ImageExtractionMode mode) :
+      explicit GetImageHandler(ImageExtractionMode mode) :
         mode_(mode)
       {
       }
@@ -698,7 +699,7 @@ namespace Orthanc
                                    unsigned int& argWidth,
                                    unsigned int& argHeight,
                                    bool& smooth,
-                                   RestApiGetCall& call)
+                                   const RestApiGetCall& call)
       {
         static const char* ARG_WINDOW_CENTER = "window-center";
         static const char* ARG_WINDOW_WIDTH = "window-width";
@@ -1063,7 +1064,7 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  static void CheckValidResourceType(RestApiCall& call)
+  static void CheckValidResourceType(const RestApiCall& call)
   {
     std::string resourceType = call.GetUriComponent("resourceType", "");
     StringToResourceType(resourceType.c_str());
@@ -1685,13 +1686,13 @@ namespace Orthanc
         isComplete_(false)
       {
       }
-
-      virtual bool IsDicomAsJsonNeeded() const
+      
+      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
       {
         return false;   // (*)
       }
       
-      virtual void MarkAsComplete()
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
       {
         isComplete_ = true;  // Unused information as of Orthanc 1.5.0
       }
@@ -1699,7 +1700,7 @@ namespace Orthanc
       virtual void Visit(const std::string& publicId,
                          const std::string& instanceId   /* unused     */,
                          const DicomMap& mainDicomTags   /* unused     */,
-                         const Json::Value* dicomAsJson  /* unused (*) */) 
+                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
       {
         resources_.push_back(publicId);
       }

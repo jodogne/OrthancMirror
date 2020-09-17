@@ -189,10 +189,10 @@ namespace Orthanc
       if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
       {
         LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
-        OrthancJobUnserializer unserializer(*this);
 
         try
         {
+          OrthancJobUnserializer unserializer(*this);
           jobsEngine_.LoadRegistryFromString(unserializer, serialized);
         }
         catch (OrthancException& e)
@@ -1168,8 +1168,9 @@ namespace Orthanc
       Studies  studies_;
       
     public:
-      ModalitiesInStudyVisitor(bool isDicomAsJsonNeeded) :
-        isDicomAsJsonNeeded_(isDicomAsJsonNeeded)
+      explicit ModalitiesInStudyVisitor(bool isDicomAsJsonNeeded) :
+        isDicomAsJsonNeeded_(isDicomAsJsonNeeded),
+        complete_(false)
       {
       }
 
@@ -1184,12 +1185,12 @@ namespace Orthanc
         studies_.clear();
       }
       
-      virtual bool IsDicomAsJsonNeeded() const
+      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
       {
         return isDicomAsJsonNeeded_;
       }
       
-      virtual void MarkAsComplete()
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
       {
         complete_ = true;
       }
@@ -1197,7 +1198,7 @@ namespace Orthanc
       virtual void Visit(const std::string& publicId,
                          const std::string& instanceId,
                          const DicomMap& seriesTags,
-                         const Json::Value* dicomAsJson)
+                         const Json::Value* dicomAsJson) ORTHANC_OVERRIDE
       {
         std::string studyInstanceUid;
         if (seriesTags.LookupStringValue(studyInstanceUid, DICOM_TAG_STUDY_INSTANCE_UID, false))
@@ -1226,7 +1227,7 @@ namespace Orthanc
       void Forward(ILookupVisitor& callerVisitor,
                    size_t since,
                    size_t limit) const
-     {
+      {
         size_t index = 0;
         size_t countForwarded = 0;
         

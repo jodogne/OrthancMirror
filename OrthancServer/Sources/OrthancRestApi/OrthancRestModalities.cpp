@@ -329,7 +329,7 @@ namespace Orthanc
 
 
   static void CopyTagIfExists(DicomMap& target,
-                              ParsedDicomFile& source,
+                              const ParsedDicomFile& source,
                               const DicomTag& tag)
   {
     std::string tmp;
@@ -524,7 +524,7 @@ namespace Orthanc
       QueryRetrieveHandler*     handler_;
 
     public:
-      QueryAccessor(RestApiCall& call) :
+      explicit QueryAccessor(RestApiCall& call) :
         context_(OrthancRestApi::GetContext(call)),
         accessor_(context_.GetQueryRetrieveArchive(), call.GetUriComponent("id", "")),
         handler_(NULL)
@@ -1021,7 +1021,7 @@ namespace Orthanc
   
   static void DicomMove(RestApiPostCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    const ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
 
