@@ -25,6 +25,7 @@
 #include "IHttpOutputStream.h"
 
 #include "../ChunkedBuffer.h"
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {

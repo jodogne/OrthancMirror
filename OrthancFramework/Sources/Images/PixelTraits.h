@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"  // For ORTHANC_FORCE_INLINE
 #include "../Enumerations.h"
 
 #include <limits>

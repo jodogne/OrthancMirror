@@ -24,15 +24,17 @@
 
 #include "IJobUnserializer.h"
 
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC GenericJobUnserializer : public IJobUnserializer
   {
   public:
-    virtual IJob* UnserializeJob(const Json::Value& value);
+    virtual IJob* UnserializeJob(const Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual IJobOperation* UnserializeOperation(const Json::Value& value);
+    virtual IJobOperation* UnserializeOperation(const Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& value);
+    virtual JobOperationValue* UnserializeValue(const Json::Value& value) ORTHANC_OVERRIDE;
   };
 }

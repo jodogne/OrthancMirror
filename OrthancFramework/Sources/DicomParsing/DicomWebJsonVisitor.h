@@ -27,6 +27,7 @@
 #endif
 
 #include "ITagVisitor.h"
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 #include <json/value.h>
 

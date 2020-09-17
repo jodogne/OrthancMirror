@@ -24,6 +24,8 @@
 
 #include "IJob.h"
 
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 #include <set>
 
 namespace Orthanc

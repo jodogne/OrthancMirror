@@ -35,6 +35,7 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
+#include "../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
 #include "../Include/orthanc/OrthancCPlugin.h"
 

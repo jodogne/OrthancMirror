@@ -51,7 +51,7 @@ namespace Orthanc
   public:
     SetOfInstancesJob();
 
-    SetOfInstancesJob(const Json::Value& source);  // Unserialization
+    explicit SetOfInstancesJob(const Json::Value& source);  // Unserialization
 
     // Only used for reporting in the public content
     // https://groups.google.com/d/msg/orthanc-users/9GCV88GLEzw/6wAgP_PRAgAJ
@@ -83,12 +83,12 @@ namespace Orthanc
       return failedInstances_.find(instance) != failedInstances_.end();
     }
 
-    virtual void Start();
+    virtual void Start() ORTHANC_OVERRIDE;
 
-    virtual void Reset();
+    virtual void Reset() ORTHANC_OVERRIDE;
 
-    virtual void GetPublicContent(Json::Value& target);
+    virtual void GetPublicContent(Json::Value& target) ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target);
+    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }

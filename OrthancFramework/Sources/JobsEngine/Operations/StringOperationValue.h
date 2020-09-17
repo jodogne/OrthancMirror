@@ -24,6 +24,8 @@
 
 #include "JobOperationValue.h"
 
+#include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 #include <string>
 
 namespace Orthanc
@@ -40,7 +42,7 @@ namespace Orthanc
     {
     }
 
-    virtual JobOperationValue* Clone() const
+    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
     {
       return new StringOperationValue(content_);
     }
@@ -50,7 +52,7 @@ namespace Orthanc
       return content_;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target["Type"] = "String";

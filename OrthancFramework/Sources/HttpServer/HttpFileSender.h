@@ -23,6 +23,7 @@
 #pragma once
 
 #include "HttpOutput.h"
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {

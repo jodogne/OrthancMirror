@@ -59,7 +59,7 @@ namespace Orthanc
                        size_t workerIndex);
 
   public:
-    JobsEngine(size_t maxCompletedJobs);
+    explicit JobsEngine(size_t maxCompletedJobs);
 
     ~JobsEngine();
 

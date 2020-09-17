@@ -129,7 +129,7 @@ namespace Orthanc
                         JobHandler* handler);
 
   public:
-    JobsRegistry(size_t maxCompletedJobs) :
+    explicit JobsRegistry(size_t maxCompletedJobs) :
       maxCompletedJobs_(maxCompletedJobs),
       observer_(NULL)
     {

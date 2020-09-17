@@ -24,6 +24,8 @@
 
 #include "IImageWriter.h"
 
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 namespace Orthanc
 {
   // https://en.wikipedia.org/wiki/Netpbm#PAM_graphics_format
