@@ -24,6 +24,8 @@
 
 #include "IStorageArea.h"
 
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 #include <boost/thread/mutex.hpp>
 #include <map>
 

@@ -24,15 +24,17 @@
 
 #include "IJobOperation.h"
 
+#include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC LogJobOperation : public IJobOperation
   {
   public:
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input);
+                       const JobOperationValue& input) ORTHANC_OVERRIDE;
 
-    virtual void Serialize(Json::Value& result) const
+    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE
     {
       result = Json::objectValue;
       result["Type"] = "Log";

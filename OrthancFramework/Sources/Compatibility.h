@@ -22,6 +22,50 @@
 
 #pragma once
 
+
+// Macro "ORTHANC_FORCE_INLINE" forces a function/method to be inlined
+#if defined(_MSC_VER)
+#  define ORTHANC_FORCE_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__) || defined(__EMSCRIPTEN__)
+#  define ORTHANC_FORCE_INLINE inline __attribute((always_inline))
+#else
+#  error Please support your compiler here
+#endif
+
+
+// Macros "ORTHANC_OVERRIDE" and "ORTHANC_FINAL" wrap the "override"
+// and "final" keywords introduced in C++11, to do compile-time
+// checking of virtual methods
+// The __cplusplus macro is broken in Visual Studio up to 15.6 and, in
+// later versions, require the usage of the /Zc:__cplusplus flag
+// We thus use an alternate way of checking for 'override' support
+#ifdef ORTHANC_OVERRIDE_SUPPORTED
+#  error ORTHANC_OVERRIDE_SUPPORTED cannot be defined at this point
+#endif 
+
+#if __cplusplus >= 201103L
+#  define ORTHANC_OVERRIDE_SUPPORTED 1
+#else
+#  ifdef _MSC_VER
+#    if _MSC_VER >= 1600
+#      define ORTHANC_OVERRIDE_SUPPORTED 1
+#    endif
+#  endif
+#endif
+
+
+#if ORTHANC_OVERRIDE_SUPPORTED
+// The override keyword (C++11) is enabled
+#  define ORTHANC_OVERRIDE  override 
+#  define ORTHANC_FINAL     final
+#else
+// The override keyword (C++11) is not available
+#  define ORTHANC_OVERRIDE
+#  define ORTHANC_FINAL
+#endif
+
+
+
 //#define Orthanc_Compatibility_h_STR2(x) #x
 //#define Orthanc_Compatibility_h_STR1(x) Orthanc_Compatibility_h_STR2(x)
 

@@ -25,6 +25,8 @@
 #include "../IJob.h"
 #include "IJobOperation.h"
 
+#include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 

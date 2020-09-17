@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../OrthancFramework/Sources/DicomNetworking/IGetRequestHandler.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 

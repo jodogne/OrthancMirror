@@ -33,6 +33,7 @@
 #endif
 
 #include "IStorageArea.h"
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 #include <stdint.h>
 #include <boost/filesystem.hpp>

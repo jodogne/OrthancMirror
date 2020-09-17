@@ -23,7 +23,7 @@
 #pragma once
 
 #include "DeflateBaseCompressor.h"
-#include "../Enumerations.h"  // For ORTHANC_OVERRIDE
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {

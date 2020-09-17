@@ -34,12 +34,12 @@ namespace Orthanc
     {
     }
 
-    virtual JobOperationValue* Clone() const
+    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
     {
       return new NullOperationValue;
     }
 
-    virtual void Serialize(Json::Value& target) const
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
     {
       target = Json::objectValue;
       target["Type"] = "Null";

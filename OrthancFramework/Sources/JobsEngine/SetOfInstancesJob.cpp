@@ -75,7 +75,7 @@ namespace Orthanc
     SetOfInstancesJob& that_;
 
   public:
-    TrailingStepCommand(SetOfInstancesJob& that) :
+    explicit TrailingStepCommand(SetOfInstancesJob& that) :
       that_(that)
     {
     }       
@@ -99,7 +99,7 @@ namespace Orthanc
     SetOfInstancesJob& that_;
 
   public:
-    InstanceUnserializer(SetOfInstancesJob& that) :
+    explicit InstanceUnserializer(SetOfInstancesJob& that) :
       that_(that)
     {
     }
