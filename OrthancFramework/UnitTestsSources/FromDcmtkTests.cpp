@@ -40,7 +40,6 @@
 #include "../Sources/DicomParsing/DicomModification.h"
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../Sources/DicomParsing/ToDcmtkBridge.h"
 #include "../Sources/Endianness.h"
 #include "../Sources/Images/Image.h"
@@ -781,7 +780,7 @@ TEST(TestImages, PatternGrayscale8)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale8, decoded->GetFormat());
@@ -843,7 +842,7 @@ TEST(TestImages, PatternRGB)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(384u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_RGB24, decoded->GetFormat());
@@ -900,7 +899,7 @@ TEST(TestImages, PatternUint16)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_Grayscale16, decoded->GetFormat());
@@ -956,7 +955,7 @@ TEST(TestImages, PatternInt16)
     Orthanc::SystemToolbox::ReadFile(s, PATH);
     Orthanc::ParsedDicomFile f(s);
     
-    std::unique_ptr<Orthanc::ImageAccessor> decoded(Orthanc::DicomImageDecoder::Decode(f, 0));
+    std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
     ASSERT_EQ(256u, decoded->GetHeight());
     ASSERT_EQ(Orthanc::PixelFormat_SignedGrayscale16, decoded->GetFormat());
@@ -972,7 +971,7 @@ TEST(TestImages, PatternInt16)
 
 
 
-static void CheckEncoding(const ParsedDicomFile& dicom,
+static void CheckEncoding(ParsedDicomFile& dicom,
                           Encoding expected)
 {
   const char* value = NULL;
@@ -1052,8 +1051,9 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
           // A specific source string is used in "EncodingTests.py" to
           // test against Chinese, it is normal that it does not correspond to UTF8
 
-          std::string encoded = Toolbox::ConvertToUtf8(Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false);
-          ASSERT_STREQ(testEncodingsExpected[i], encoded.c_str());
+          const std::string tmp = Toolbox::ConvertToUtf8(
+            Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false);
+          ASSERT_STREQ(testEncodingsExpected[i], tmp.c_str());
         }
       }
 
@@ -1969,8 +1969,7 @@ TEST(DicomWebJson, ValueRepresentation)
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
     ASSERT_EQ(31u, m.GetSize());
-
-    std::string s;
+    
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0002, 0x0002), false));  ASSERT_EQ("UI", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0040, 0x0241), false));  ASSERT_EQ("AE", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0010, 0x1010), false));  ASSERT_EQ("AS", s);
@@ -2019,8 +2018,7 @@ TEST(DicomWebJson, ValueRepresentation)
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0119), true));  ASSERT_EQ("UC", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0120), true));  ASSERT_EQ("UR", s);
     ASSERT_TRUE(m.LookupStringValue(s, DicomTag(0x0008, 0x0301), true));  ASSERT_EQ("17", s);  // US (but tag unknown to DCMTK 3.6.0)
-#endif
-    
+#endif    
   }
 }
 
@@ -2107,10 +2105,10 @@ TEST(Toto, DISABLED_Transcode3)
         std::string source;
         Orthanc::SystemToolbox::ReadFile(source, path);
 
-        std::string c, i;
+        std::string c, k;
         try
         {
-          scu.Transcode(c, i, transcoder, source.c_str(), source.size(), false, "", 0);
+          scu.Transcode(c, k, transcoder, source.c_str(), source.size(), false, "", 0);
         }
         catch (OrthancException& e)
         {
@@ -2120,7 +2118,7 @@ TEST(Toto, DISABLED_Transcode3)
           }
           else
           {
-            throw e;
+            throw;
           }
         }
       }
@@ -2130,10 +2128,14 @@ TEST(Toto, DISABLED_Transcode3)
 
 TEST(Toto, DISABLED_Transcode4)
 {
-  std::string source;
-  Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
+  std::unique_ptr<DcmFileFormat> toto;
 
-  std::unique_ptr<DcmFileFormat> toto(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
+  {
+    std::string source;
+    Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
+    toto.reset(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
+  }
+  
   const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(*toto);
   
   DicomTransferSyntax sourceSyntax;

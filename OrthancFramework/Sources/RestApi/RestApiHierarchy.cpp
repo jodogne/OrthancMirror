@@ -411,7 +411,8 @@ namespace Orthanc
       std::set<HttpMethod>& methods_;
 
     public:
-      AcceptedMethodsVisitor(std::set<HttpMethod>& methods) : methods_(methods)
+      explicit AcceptedMethodsVisitor(std::set<HttpMethod>& methods) :
+        methods_(methods)
       {
       }
 

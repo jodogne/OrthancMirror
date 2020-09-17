@@ -95,6 +95,10 @@ namespace Orthanc
 
     bool EmbedContentInternal(const std::string& dataUriScheme);
 
+    // For internal use only, in order to provide const-correctness on
+    // the top of DCMTK API
+    DcmFileFormat& GetDcmtkObjectConst() const;
+
     explicit ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
 
   public:
@@ -124,18 +128,21 @@ namespace Orthanc
       return new ParsedDicomFile(dicom);
     }
 
-    DcmFileFormat& GetDcmtkObject() const;
+    DcmFileFormat& GetDcmtkObject()
+    {
+      return GetDcmtkObjectConst();
+    }
 
     // The "ParsedDicomFile" object cannot be used after calling this method
     DcmFileFormat* ReleaseDcmtkObject();
 
-    ParsedDicomFile* Clone(bool keepSopInstanceUid);
+    ParsedDicomFile* Clone(bool keepSopInstanceUid) const;
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void SendPathValue(RestApiOutput& output,
-                       const UriComponents& uri);
+                       const UriComponents& uri) const;
 
-    void Answer(RestApiOutput& output);
+    void Answer(RestApiOutput& output) const;
 #endif
 
     void Remove(const DicomTag& tag);
@@ -181,10 +188,12 @@ namespace Orthanc
 
     // WARNING: This function handles the decoding of strings to UTF8
     bool GetTagValue(std::string& value,
-                     const DicomTag& tag);
+                     const DicomTag& tag) const;
 
-    DicomInstanceHasher GetHasher();
+    DicomInstanceHasher GetHasher() const;
 
+    // The "Save" methods are not tagged as "const", as the internal
+    // representation might be changed after serialization
     void SaveToMemoryBuffer(std::string& buffer);
 
 #if ORTHANC_SANDBOXED == 0
@@ -207,26 +216,26 @@ namespace Orthanc
     void DatasetToJson(Json::Value& target, 
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
-                       unsigned int maxStringLength);
+                       unsigned int maxStringLength) const;
 
     void DatasetToJson(Json::Value& target, 
                        DicomToJsonFormat format,
                        DicomToJsonFlags flags,
                        unsigned int maxStringLength,
-                       const std::set<DicomTag>& ignoreTagLength);
+                       const std::set<DicomTag>& ignoreTagLength) const;
       
     void HeaderToJson(Json::Value& target, 
-                      DicomToJsonFormat format);
+                      DicomToJsonFormat format) const;
 
     bool HasTag(const DicomTag& tag) const;
 
     void EmbedPdf(const std::string& pdf);
 
-    bool ExtractPdf(std::string& pdf);
+    bool ExtractPdf(std::string& pdf) const;
 
     void GetRawFrame(std::string& target, // OUT
                      MimeType& mime,   // OUT
-                     unsigned int frameId);  // IN
+                     unsigned int frameId) const;  // IN
 
     unsigned int GetFramesCount() const;
 
@@ -253,10 +262,13 @@ namespace Orthanc
                              unsigned int maxTagLength,
                              const std::set<DicomTag>& ignoreTagLength) const;
 
-    bool LookupTransferSyntax(std::string& result);
+    bool LookupTransferSyntax(std::string& result) const;
 
     bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;
 
-    void Apply(ITagVisitor& visitor);
+    void Apply(ITagVisitor& visitor) const;
+
+    // Decode the given frame, using the built-in DICOM decoder of Orthanc
+    ImageAccessor* DecodeFrame(unsigned int frame) const;
   };
 }

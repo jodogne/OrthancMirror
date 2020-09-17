@@ -90,9 +90,6 @@ namespace Orthanc
     static bool DecodePsmctRle1(std::string& output,
                                 DcmDataset& dataset);
 
-    static ImageAccessor *Decode(const ParsedDicomFile& dicom,
-                                 unsigned int frame);
-
     static ImageAccessor *Decode(DcmDataset& dataset,
                                  unsigned int frame);
 

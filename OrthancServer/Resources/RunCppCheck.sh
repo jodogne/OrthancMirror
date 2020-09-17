@@ -8,7 +8,17 @@ if [ $# -ge 1 ]; then
     CPPCHECK=$1
 fi
 
+cat <<EOF > /tmp/cppcheck-suppressions.txt
+constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
+nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp
+unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp
+syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
+EOF
+
 ${CPPCHECK} --enable=all --quiet --std=c++11 \
+            --suppressions-list=/tmp/cppcheck-suppressions.txt \
             -DBOOST_HAS_DATE_TIME=1 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
             -DBOOST_HAS_REGEX=1 \

@@ -654,7 +654,7 @@ namespace Orthanc
 
 
   void DicomControlUserConnection::FindWorklist(DicomFindAnswers& result,
-                                                const ParsedDicomFile& query)
+                                                ParsedDicomFile& query)
   {
     DcmDataset* dataset = query.GetDcmtkObject().getDataset();
     const char* sopClass = UID_FINDModalityWorklistInformationModel;

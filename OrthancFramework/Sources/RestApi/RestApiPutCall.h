@@ -68,7 +68,7 @@ namespace Orthanc
       result.assign(reinterpret_cast<const char*>(bodyData_), bodySize_);
     }
 
-    virtual bool ParseJsonRequest(Json::Value& result) const
+    virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE
     {
       return ParseJsonRequestInternal(result, reinterpret_cast<const char*>(bodyData_), bodySize_);
     }      

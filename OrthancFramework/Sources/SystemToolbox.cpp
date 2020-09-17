@@ -637,7 +637,7 @@ namespace Orthanc
     // CPUs or cores or hyperthreading units)
     unsigned int threads = boost::thread::hardware_concurrency();
     
-    if (threads <= 0)
+    if (threads == 0)
     {
       return 1;
     }

@@ -1440,8 +1440,7 @@ namespace Orthanc
       // Use Orthanc's built-in decoder, using the cache to speed-up
       // things on multi-frame images
       ServerContext::DicomCacheLocker locker(*this, publicId);        
-      std::unique_ptr<ImageAccessor> decoded(
-        DicomImageDecoder::Decode(locker.GetDicom(), frameIndex));
+      std::unique_ptr<ImageAccessor> decoded(locker.GetDicom().DecodeFrame(frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -1472,7 +1471,7 @@ namespace Orthanc
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
       ServerContext::DicomCacheLocker locker(*this, publicId);        
-      return DicomImageDecoder::Decode(locker.GetDicom(), frameIndex);
+      return locker.GetDicom().DecodeFrame(frameIndex);
     }
     else
     {
@@ -1486,8 +1485,7 @@ namespace Orthanc
   {
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      std::unique_ptr<ImageAccessor> decoded(
-        DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex));
+      std::unique_ptr<ImageAccessor> decoded(dicom.GetParsedDicomFile().DecodeFrame(frameIndex));
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -1514,7 +1512,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      return DicomImageDecoder::Decode(dicom.GetParsedDicomFile(), frameIndex);
+      return dicom.GetParsedDicomFile().DecodeFrame(frameIndex);
     }
     else
     {
