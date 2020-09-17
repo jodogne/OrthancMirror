@@ -75,7 +75,7 @@ namespace Orthanc
     static void ShutdownOrthanc(RestApiPostCall& call);
 
   public:
-    OrthancRestApi(ServerContext& context);
+    explicit OrthancRestApi(ServerContext& context);
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,

@@ -369,10 +369,11 @@ namespace Orthanc
       }
       
     public:
-      DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback callback) :
+      explicit DicomWebBinaryFormatter(OrthancPluginDicomWebBinaryCallback callback) :
         oldCallback_(callback),
         newCallback_(NULL),
-        newPayload_(NULL)
+        newPayload_(NULL),
+        currentMode_(DicomWebJsonVisitor::BinaryMode_Ignore)
       {
       }
       
@@ -380,7 +381,8 @@ namespace Orthanc
                               void* payload) :
         oldCallback_(NULL),
         newCallback_(callback),
-        newPayload_(payload)
+        newPayload_(payload),
+        currentMode_(DicomWebJsonVisitor::BinaryMode_Ignore)
       {
       }
       
@@ -388,7 +390,7 @@ namespace Orthanc
                                                      const std::vector<DicomTag>& parentTags,
                                                      const std::vector<size_t>& parentIndexes,
                                                      const DicomTag& tag,
-                                                     ValueRepresentation vr)
+                                                     ValueRepresentation vr) ORTHANC_OVERRIDE
       {
         if (oldCallback_ == NULL &&
             newCallback_ == NULL)
@@ -446,7 +448,7 @@ namespace Orthanc
 
       void Apply(char** target,
                  bool isJson,
-                 ParsedDicomFile& dicom)
+                 const ParsedDicomFile& dicom)
       {
         DicomWebJsonVisitor visitor;
         visitor.SetFormatter(*this);
@@ -506,9 +508,9 @@ namespace Orthanc
       std::string                 multipartContentType_;
       std::string                 multipartFirstPart_;
       std::map<std::string, std::string>  multipartFirstHeaders_;
-
+      
     public:
-      PluginHttpOutput(HttpOutput& output) :
+      explicit PluginHttpOutput(HttpOutput& output) :
         output_(output),
         logDetails_(false),
         multipartState_(MultipartState_None)
@@ -728,7 +730,7 @@ namespace Orthanc
       boost::regex                      regex_;
 
     public:
-      ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
+      explicit ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
         parameters_(parameters),
         regex_(parameters.pathRegularExpression)
       {
@@ -775,8 +777,9 @@ namespace Orthanc
           handler_ = NULL;
         }
 
-        virtual StorageCommitmentFailureReason Lookup(const std::string& sopClassUid,
-                                                      const std::string& sopInstanceUid)
+        virtual StorageCommitmentFailureReason Lookup(
+          const std::string& sopClassUid,
+          const std::string& sopInstanceUid) ORTHANC_OVERRIDE
         {
           assert(handler_ != NULL);
           OrthancPluginStorageCommitmentFailureReason reason =
@@ -797,7 +800,7 @@ namespace Orthanc
       _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
 
     public:
-      StorageCommitmentScp(_OrthancPluginRegisterStorageCommitmentScpCallback parameters) :
+      explicit StorageCommitmentScp(_OrthancPluginRegisterStorageCommitmentScpCallback parameters) :
         parameters_(parameters)
       {
       }
@@ -857,7 +860,7 @@ namespace Orthanc
       ServerContext* context_;
 
     public:
-      ServerContextLock(PImpl& that) : 
+      explicit ServerContextLock(PImpl& that) : 
         lock_(that.contextMutex_),
         context_(that.context_)
       {
@@ -962,7 +965,7 @@ namespace Orthanc
     }
 
   public:
-    WorklistHandler(OrthancPlugins& that) : that_(that)
+    explicit WorklistHandler(OrthancPlugins& that) : that_(that)
     {
       Reset();
     }
@@ -974,9 +977,9 @@ namespace Orthanc
                         const std::string& calledAet,
                         ModalityManufacturer manufacturer)
     {
-      static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
-
       {
+        static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
+
         PImpl::ServerContextLock lock(*that_.pimpl_);
         LuaScripting::Lock lua(lock.GetContext().GetLuaScripting());
 
@@ -1082,7 +1085,7 @@ namespace Orthanc
     }
 
   public:
-    FindHandler(OrthancPlugins& that) : that_(that)
+    explicit FindHandler(OrthancPlugins& that) : that_(that)
     {
       Reset();
     }
@@ -1264,7 +1267,7 @@ namespace Orthanc
 
 
   public:
-    MoveHandler(OrthancPlugins& that)
+    explicit MoveHandler(OrthancPlugins& that)
     {
       boost::recursive_mutex::scoped_lock lock(that.pimpl_->invokeServiceMutex_);
       params_ = that.pimpl_->moveCallbacks_;
@@ -1338,7 +1341,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool ReadNextChunk(std::string& chunk)
+    virtual bool ReadNextChunk(std::string& chunk) ORTHANC_OVERRIDE
     {
       if (params_.requestIsDone(params_.request))
       {
@@ -1387,7 +1390,7 @@ namespace Orthanc
     }
 
     virtual void AddHeader(const std::string& key,
-                           const std::string& value)
+                           const std::string& value) ORTHANC_OVERRIDE
     {
       OrthancPluginErrorCode error = params_.answerAddHeader(params_.answer, key.c_str(), value.c_str());
         
@@ -1399,7 +1402,7 @@ namespace Orthanc
     }
       
     virtual void AddChunk(const void* data,
-                          size_t size)
+                          size_t size) ORTHANC_OVERRIDE
     {
       OrthancPluginErrorCode error = params_.answerAddChunk(params_.answer, data, size);
         
@@ -1533,7 +1536,7 @@ namespace Orthanc
       std::vector<const char*>  cgroups_;
       
     public:
-      RestCallbackMatcher(const UriComponents& uri) :
+      explicit RestCallbackMatcher(const UriComponents& uri) :
         flatUri_(Toolbox::FlattenUri(uri))
       {
       }
@@ -1846,7 +1849,7 @@ namespace Orthanc
     const DicomInstanceToStore&  instance_;
 
   public:
-    DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
+    explicit DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
       instance_(instance)
     {
     }
@@ -1897,7 +1900,7 @@ namespace Orthanc
     DicomInstanceToStore              instance_;
 
   public:
-    DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
+    explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
       parsed_(transcoded.ReleaseAsParsedDicomFile())
     {
       instance_.SetParsedDicomFile(*parsed_);
@@ -3327,11 +3330,11 @@ namespace Orthanc
   {
     const _OrthancPluginDrawText& p = *reinterpret_cast<const _OrthancPluginDrawText*>(parameters);
 
-    ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
-
     {
       OrthancConfiguration::ReaderLock lock;
       const Font& font = lock.GetConfiguration().GetFontRegistry().GetFont(p.fontIndex);
+
+      ImageAccessor& target = *reinterpret_cast<ImageAccessor*>(p.image);
       font.Draw(target, p.utf8Text, p.x, p.y, p.r, p.g, p.b);
     }
   }
@@ -5037,7 +5040,7 @@ namespace Orthanc
     }
 
     virtual void AddBodyChunk(const void* data,
-                              size_t size)
+                              size_t size) ORTHANC_OVERRIDE
     {
       if (static_cast<uint32_t>(size) != size)
       {
@@ -5047,8 +5050,8 @@ namespace Orthanc
       assert(reader_ != NULL);
       parameters_.addChunk(reader_, data, size);
     }    
-
-    virtual void Execute(HttpOutput& output)
+    
+    virtual void Execute(HttpOutput& output) ORTHANC_OVERRIDE
     {
       assert(reader_ != NULL);
 

@@ -110,7 +110,7 @@ TEST(Zlib, Basic)
   std::string s = Toolbox::GenerateUuid();
   s = s + s + s + s;
  
-  std::string compressed, compressed2;
+  std::string compressed;
   ZlibCompressor c;
   ASSERT_TRUE(c.HasPrefixWithUncompressedSize());
   IBufferCompressor::Compress(compressed, c, s);

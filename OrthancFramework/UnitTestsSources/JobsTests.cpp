@@ -168,7 +168,7 @@ namespace
     {
     }
     
-    DummyInstancesJob(const Json::Value& value) :
+    explicit DummyInstancesJob(const Json::Value& value) :
       SetOfInstancesJob(value)
     {
       if (HasTrailingStep())
@@ -831,7 +831,7 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
 
 
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
-                                         JobOperationValue& value)
+                                         const JobOperationValue& value)
 {
   Json::Value a = 42;
   value.Serialize(a);
@@ -1030,8 +1030,8 @@ TEST(JobsSerialization, GenericJobs)
 }
 
 
-static bool IsSameTagValue(ParsedDicomFile& dicom1,
-                           ParsedDicomFile& dicom2,
+static bool IsSameTagValue(const ParsedDicomFile& dicom1,
+                           const ParsedDicomFile& dicom2,
                            DicomTag tag)
 {
   std::string a, b;
@@ -1073,12 +1073,12 @@ TEST(JobsSerialization, DicomModification)
     std::unique_ptr<ParsedDicomFile> second(source.Clone(true));
     modification.Apply(*second);
 
-    std::string s;
-    ASSERT_TRUE(second->GetTagValue(s, DICOM_TAG_STUDY_DESCRIPTION));
-    ASSERT_TRUE(s.empty());
-    ASSERT_FALSE(second->GetTagValue(s, DICOM_TAG_SERIES_DESCRIPTION));
-    ASSERT_TRUE(second->GetTagValue(s, DICOM_TAG_PATIENT_NAME));
-    ASSERT_EQ("Test 4", s);
+    std::string t;
+    ASSERT_TRUE(second->GetTagValue(t, DICOM_TAG_STUDY_DESCRIPTION));
+    ASSERT_TRUE(t.empty());
+    ASSERT_FALSE(second->GetTagValue(t, DICOM_TAG_SERIES_DESCRIPTION));
+    ASSERT_TRUE(second->GetTagValue(t, DICOM_TAG_PATIENT_NAME));
+    ASSERT_EQ("Test 4", t);
 
     ASSERT_TRUE(IsSameTagValue(source, *modified, DICOM_TAG_STUDY_INSTANCE_UID));
     ASSERT_TRUE(IsSameTagValue(source, *second, DICOM_TAG_STUDY_INSTANCE_UID));
@@ -1369,13 +1369,13 @@ TEST(JobsSerialization, RemoteModalityParameters)
   }
 
   {
-    Json::Value s;
-    s["AllowStorageCommitment"] = false;
-    s["AET"] = "AET";
-    s["Host"] = "host";
-    s["Port"] = "104";
+    Json::Value t;
+    t["AllowStorageCommitment"] = false;
+    t["AET"] = "AET";
+    t["Host"] = "host";
+    t["Port"] = "104";
     
-    RemoteModalityParameters modality(s);
+    RemoteModalityParameters modality(t);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
     ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
     ASSERT_EQ("host", modality.GetHost());
@@ -1386,15 +1386,15 @@ TEST(JobsSerialization, RemoteModalityParameters)
   }
 
   {
-    Json::Value s;
-    s["AllowNAction"] = false;
-    s["AllowNEventReport"] = true;
-    s["AET"] = "AET";
-    s["Host"] = "host";
-    s["Port"] = "104";
-    s["AllowTranscoding"] = false;
+    Json::Value t;
+    t["AllowNAction"] = false;
+    t["AllowNEventReport"] = true;
+    t["AET"] = "AET";
+    t["Host"] = "host";
+    t["Port"] = "104";
+    t["AllowTranscoding"] = false;
     
-    RemoteModalityParameters modality(s);
+    RemoteModalityParameters modality(t);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
     ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
     ASSERT_EQ("host", modality.GetHost());
@@ -1405,14 +1405,14 @@ TEST(JobsSerialization, RemoteModalityParameters)
   }
 
   {
-    Json::Value s;
-    s["AllowNAction"] = true;
-    s["AllowNEventReport"] = true;
-    s["AET"] = "AET";
-    s["Host"] = "host";
-    s["Port"] = "104";
+    Json::Value t;
+    t["AllowNAction"] = true;
+    t["AllowNEventReport"] = true;
+    t["AET"] = "AET";
+    t["Host"] = "host";
+    t["Port"] = "104";
     
-    RemoteModalityParameters modality(s);
+    RemoteModalityParameters modality(t);
     ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     ASSERT_EQ("AET", modality.GetApplicationEntityTitle());
     ASSERT_EQ("host", modality.GetHost());

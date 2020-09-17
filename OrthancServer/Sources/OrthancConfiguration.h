@@ -69,7 +69,8 @@ namespace Orthanc
     ServerIndex*             serverIndex_;
 
     OrthancConfiguration() :
-      configurationFileArg_(NULL)
+      configurationFileArg_(NULL),
+      serverIndex_(NULL)
     {
     }
 
@@ -246,16 +247,16 @@ namespace Orthanc
     }
 
     static void DefaultExtractDicomSummary(DicomMap& target,
-                                           ParsedDicomFile& dicom);
+                                           const ParsedDicomFile& dicom);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
-                                          ParsedDicomFile& dicom);
+                                          const ParsedDicomFile& dicom);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
-                                          ParsedDicomFile& dicom,
+                                          const ParsedDicomFile& dicom,
                                           const std::set<DicomTag>& ignoreTagLength);
     
     static void DefaultDicomHeaderToJson(Json::Value& target,
-                                         ParsedDicomFile& dicom);
+                                         const ParsedDicomFile& dicom);
   };
 }

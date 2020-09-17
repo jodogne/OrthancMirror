@@ -252,7 +252,7 @@ namespace
     std::string value_;
 
   public:
-    S(const std::string& value) : value_(value)
+    explicit S(const std::string& value) : value_(value)
     {
     }
 
@@ -300,7 +300,7 @@ TEST(LRU, SharedArchive)
 
   size_t count = 0;
   for (std::list<std::string>::const_iterator
-         it = i.begin(); it != i.end(); it++)
+         it = i.begin(); it != i.end(); ++it)
   {
     if (*it == first ||
         *it == second)

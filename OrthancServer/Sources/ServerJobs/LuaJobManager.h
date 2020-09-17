@@ -54,7 +54,7 @@ namespace Orthanc
     unsigned int              trailingTimeout_;
     TimeoutDicomConnectionManager  connectionManager_;
 
-    virtual void SignalDone(const SequenceOfOperationsJob& job);
+    virtual void SignalDone(const SequenceOfOperationsJob& job) ORTHANC_OVERRIDE;
 
   public:
     LuaJobManager();

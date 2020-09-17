@@ -80,7 +80,7 @@ namespace Orthanc
     void AddFailedUIDInstance(const std::string& sopInstance);
 
   public:
-    OrthancGetRequestHandler(ServerContext& context);
+    explicit OrthancGetRequestHandler(ServerContext& context);
     
     virtual bool Handle(const DicomMap& input,
                         const std::string& originatorIp,

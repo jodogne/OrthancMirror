@@ -48,7 +48,7 @@ namespace Orthanc
     std::string              type_;
 
   public:
-    PluginsJob(const _OrthancPluginCreateJob& parameters);
+    explicit PluginsJob(const _OrthancPluginCreateJob& parameters);
 
     virtual ~PluginsJob();
 

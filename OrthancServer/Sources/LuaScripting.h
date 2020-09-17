@@ -112,7 +112,7 @@ namespace Orthanc
       }
     };
 
-    LuaScripting(ServerContext& context);
+    explicit LuaScripting(ServerContext& context);
 
     ~LuaScripting();
 

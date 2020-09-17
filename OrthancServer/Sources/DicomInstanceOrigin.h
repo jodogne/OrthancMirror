@@ -46,7 +46,7 @@ namespace Orthanc
     std::string   dicomCalledAet_;
     std::string   httpUsername_;
 
-    DicomInstanceOrigin(RequestOrigin origin) :
+    explicit DicomInstanceOrigin(RequestOrigin origin) :
       origin_(origin)
     {
     }
@@ -57,7 +57,7 @@ namespace Orthanc
     {
     }
 
-    DicomInstanceOrigin(const Json::Value& serialized);
+    explicit DicomInstanceOrigin(const Json::Value& serialized);
 
     static DicomInstanceOrigin FromDicomProtocol(const char* remoteIp,
                                                  const char* remoteAet,

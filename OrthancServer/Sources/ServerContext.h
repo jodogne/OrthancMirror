@@ -96,7 +96,7 @@ namespace Orthanc
       ServerContext& context_;
 
     public:
-      LuaServerListener(ServerContext& context) :
+      explicit LuaServerListener(ServerContext& context) :
         context_(context)
       {
       }
@@ -126,11 +126,11 @@ namespace Orthanc
       ServerContext& context_;
 
     public:
-      DicomCacheProvider(ServerContext& context) : context_(context)
+      explicit DicomCacheProvider(ServerContext& context) : context_(context)
       {
       }
       
-      virtual IDynamicObject* Provide(const std::string& id);
+      virtual IDynamicObject* Provide(const std::string& id) ORTHANC_OVERRIDE;
     };
 
     class ServerListener

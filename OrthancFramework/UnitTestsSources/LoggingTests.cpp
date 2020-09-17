@@ -113,7 +113,7 @@ namespace
   class FuncStreamBuf : public std::stringbuf
   {
   public:
-    FuncStreamBuf(T func) : func_(func) {}
+    explicit FuncStreamBuf(T func) : func_(func) {}
 
     virtual int sync()
     {
