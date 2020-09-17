@@ -46,7 +46,7 @@ namespace Orthanc
     Iterator                   matchEnd_;
     
   public:
-    StringMatcher(const std::string& pattern);
+    explicit StringMatcher(const std::string& pattern);
 
     const std::string& GetPattern() const
     {

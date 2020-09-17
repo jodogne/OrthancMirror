@@ -64,7 +64,7 @@ namespace Orthanc
     void ParseStream();
 
   public:
-    MultipartStreamReader(const std::string& boundary);
+    explicit MultipartStreamReader(const std::string& boundary);
 
     void SetBlockSize(size_t size);
 

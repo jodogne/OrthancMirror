@@ -110,11 +110,11 @@ namespace Orthanc
       return buffer_;
     }
 
-    void* GetBuffer() const;
+    void* GetBuffer();
 
     const void* GetConstRow(unsigned int y) const;
 
-    void* GetRow(unsigned int y) const;
+    void* GetRow(unsigned int y);
 
     void AssignEmpty(PixelFormat format);
 

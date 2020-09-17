@@ -58,7 +58,7 @@ namespace Orthanc
   public:
     WebServiceParameters();
 
-    WebServiceParameters(const Json::Value& serialized)
+    explicit WebServiceParameters(const Json::Value& serialized)
     {
       Unserialize(serialized);
     }

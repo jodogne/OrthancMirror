@@ -83,7 +83,8 @@ namespace Orthanc
       struct mg_connection* connection_;
 
     public:
-      MongooseOutputStream(struct mg_connection* connection) : connection_(connection)
+      explicit MongooseOutputStream(struct mg_connection* connection) :
+        connection_(connection)
       {
       }
 
@@ -146,7 +147,7 @@ namespace Orthanc
     std::string filename_;
 
   public:
-    ChunkedFile(const std::string& filename) :
+    explicit ChunkedFile(const std::string& filename) :
       filename_(filename)
     {
     }
@@ -284,6 +285,11 @@ namespace Orthanc
   {
     struct mg_context *context_;
     ChunkStore chunkStore_;
+
+    PImpl() :
+      context_(NULL)
+    {
+    }
   };
 
 
@@ -300,16 +306,17 @@ namespace Orthanc
     size_t length;
     try
     {
-      length = boost::lexical_cast<size_t>(contentLength);
+      int64_t tmp = boost::lexical_cast<int64_t>(contentLength);
+      if (tmp < 0)
+      {
+        return PostDataStatus_NoLength;
+      }
+
+      length = static_cast<size_t>(tmp);
     }
     catch (boost::bad_lexical_cast&)
     {
       return PostDataStatus_NoLength;
-    }
-
-    if (length < 0)
-    {
-      length = 0;
     }
 
     body.resize(length);
@@ -500,10 +507,7 @@ namespace Orthanc
               {
                 // This file is stored in a single chunk
                 completedFile.resize(chunkSize);
-                if (chunkSize > 0)
-                {
-                  memcpy(&completedFile[0], chunkData, chunkSize);
-                }
+                memcpy(&completedFile[0], chunkData, chunkSize);
                 return PostDataStatus_Success;
               }
               else
@@ -1053,24 +1057,23 @@ namespace Orthanc
   }
 
 
-  HttpServer::HttpServer() : pimpl_(new PImpl)
+  HttpServer::HttpServer() :
+    pimpl_(new PImpl),
+    handler_(NULL),
+    remoteAllowed_(false),
+    authentication_(false),
+    sslVerifyPeers_(false),
+    ssl_(false),
+    port_(8000),
+    filter_(NULL),
+    keepAlive_(false),
+    httpCompression_(true),
+    exceptionFormatter_(NULL),
+    realm_(ORTHANC_REALM),
+    threadsCount_(50),  // Default value in mongoose
+    tcpNoDelay_(true),
+    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)    
   {
-    pimpl_->context_ = NULL;
-    handler_ = NULL;
-    remoteAllowed_ = false;
-    authentication_ = false;
-    ssl_ = false;
-    sslVerifyPeers_ = false;
-    port_ = 8000;
-    filter_ = NULL;
-    keepAlive_ = false;
-    httpCompression_ = true;
-    exceptionFormatter_ = NULL;
-    realm_ = ORTHANC_REALM;
-    threadsCount_ = 50;  // Default value in mongoose
-    tcpNoDelay_ = true;
-    requestTimeout_ = 30;  // Default value in mongoose/civetweb (30 seconds)
-
 #if ORTHANC_ENABLE_MONGOOSE == 1
     LOG(INFO) << "This Orthanc server uses Mongoose as its embedded HTTP server";
 #endif
@@ -1384,7 +1387,7 @@ namespace Orthanc
 
   void HttpServer::SetThreadsCount(unsigned int threads)
   {
-    if (threads <= 0)
+    if (threads == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1407,7 +1410,7 @@ namespace Orthanc
 
   void HttpServer::SetRequestTimeout(unsigned int seconds)
   {
-    if (seconds <= 0)
+    if (seconds == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "Request timeout must be a stricly positive integer");

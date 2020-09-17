@@ -34,7 +34,7 @@ namespace Orthanc
     std::string  content_;
 
   public:
-    StringOperationValue(const std::string& content) :
+    explicit StringOperationValue(const std::string& content) :
       JobOperationValue(JobOperationValue::Type_String),
       content_(content)
     {

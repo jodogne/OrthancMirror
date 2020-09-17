@@ -180,7 +180,7 @@ namespace Orthanc
 
     unsigned int bytesPerChannel;
     PixelFormat format;
-    GetPixelFormat(format, bytesPerChannel, maxValue, channelCount, tupleType.c_str());
+    GetPixelFormat(format, bytesPerChannel, maxValue, channelCount, tupleType);
 
     unsigned int pitch = width * channelCount * bytesPerChannel;
 

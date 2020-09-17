@@ -51,6 +51,7 @@ namespace Orthanc
     state_(State_WritingHeader),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
+    contentLength_(0),
     contentPosition_(0),
     keepAlive_(isKeepAlive)
   {

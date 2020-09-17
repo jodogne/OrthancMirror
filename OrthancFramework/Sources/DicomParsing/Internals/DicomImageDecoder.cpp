@@ -346,7 +346,7 @@ namespace Orthanc
 
 
   template <typename PixelType>
-  static void CopyPixels(const ImageAccessor& target,
+  static void CopyPixels(ImageAccessor& target,
                          const DicomIntegerPixelAccessor& source)
   {
     // WARNING - "::min()" should be replaced by "::lowest()" if

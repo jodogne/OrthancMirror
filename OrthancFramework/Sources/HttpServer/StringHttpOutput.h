@@ -39,11 +39,11 @@ namespace Orthanc
     {
     }
 
-    virtual void OnHttpStatusReceived(HttpStatus status);
+    virtual void OnHttpStatusReceived(HttpStatus status) ORTHANC_OVERRIDE;
 
-    virtual void Send(bool isHeader, const void* buffer, size_t length);
+    virtual void Send(bool isHeader, const void* buffer, size_t length) ORTHANC_OVERRIDE;
 
-    virtual void DisableKeepAlive()
+    virtual void DisableKeepAlive() ORTHANC_OVERRIDE
     {
     }
 

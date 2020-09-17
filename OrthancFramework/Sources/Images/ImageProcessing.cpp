@@ -418,7 +418,7 @@ namespace Orthanc
     for (unsigned int y = 0; y < height; y++)
     {
       TargetType* p = reinterpret_cast<TargetType*>(target.GetRow(y));
-      const SourceType* q = reinterpret_cast<const SourceType*>(source.GetRow(y));
+      const SourceType* q = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
 
       for (unsigned int x = 0; x < width; x++, p++, q++)
       {
@@ -1860,15 +1860,15 @@ namespace Orthanc
 
     std::vector<int32_t> nodeX;
     nodeX.resize(cpSize);
-    int  nodes, pixelX, pixelY, i, j, swap ;
+    int  pixelX, pixelY, i, swap ;
 
     //  Loop through the rows of the image.
     for (pixelY = top; pixelY < bottom; pixelY++)
     {
       double y = (double)pixelY;
       //  Build a list of nodes.
-      nodes = 0;
-      j = static_cast<int>(cpSize) - 1;
+      int nodes = 0;
+      int j = static_cast<int>(cpSize) - 1;
 
       for (i = 0; i < static_cast<int>(cpSize); i++)
       {
@@ -2047,7 +2047,7 @@ namespace Orthanc
   void ImageProcessing::Resize(ImageAccessor& target,
                                const ImageAccessor& source)
   {
-    if (source.GetFormat() != source.GetFormat())
+    if (source.GetFormat() != target.GetFormat())
     {
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
