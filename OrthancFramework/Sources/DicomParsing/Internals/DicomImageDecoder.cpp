@@ -652,20 +652,6 @@ namespace Orthanc
   }
 
 
-  ImageAccessor* DicomImageDecoder::Decode(const ParsedDicomFile& dicom,
-                                           unsigned int frame)
-  {
-    if (dicom.GetDcmtkObject().getDataset() == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return Decode(*dicom.GetDcmtkObject().getDataset(), frame);
-    }
-  }
-
-
   ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
                                            unsigned int frame)
   {

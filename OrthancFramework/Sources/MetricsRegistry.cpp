@@ -94,7 +94,7 @@ namespace Orthanc
     }
 
   public:
-    Item(MetricsType type) :
+    explicit Item(MetricsType type) :
       type_(type),
       hasValue_(false),
       value_(0)

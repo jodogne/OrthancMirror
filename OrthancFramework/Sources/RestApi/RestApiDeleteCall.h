@@ -45,7 +45,7 @@ namespace Orthanc
     {
     }
 
-    virtual bool ParseJsonRequest(Json::Value& result) const
+    virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE
     {
       result.clear();
       return true;

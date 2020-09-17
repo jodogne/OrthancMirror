@@ -98,8 +98,8 @@ TEST(FilesystemStorage, EndToEnd)
   ASSERT_EQ(10u, ss.size());
   
   unsigned int c = 0;
-  for (std::list<std::string>::iterator
-         i = u.begin(); i != u.end(); i++, c++)
+  for (std::list<std::string>::const_iterator
+         i = u.begin(); i != u.end(); ++i, c++)
   {
     ASSERT_TRUE(ss.find(*i) != ss.end());
     if (c < 5)

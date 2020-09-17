@@ -312,8 +312,8 @@ namespace Orthanc
   };
 
 
-  bool JobsRegistry::PriorityComparator::operator() (JobHandler*& a,
-                                                     JobHandler*& b) const
+  bool JobsRegistry::PriorityComparator::operator() (JobHandler* const& a,
+                                                     JobHandler* const& b) const
   {
     return a->GetPriority() < b->GetPriority();
   }

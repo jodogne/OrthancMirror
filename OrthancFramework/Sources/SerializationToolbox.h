@@ -66,12 +66,12 @@ namespace Orthanc
                               const Json::Value& value,
                               const std::string& field);
 
-    static void ReadMapOfStrings(std::map<std::string, std::string>& values,
-                                 const Json::Value& target,
+    static void ReadMapOfStrings(std::map<std::string, std::string>& target,
+                                 const Json::Value& value,
                                  const std::string& field);
 
-    static void ReadMapOfTags(std::map<DicomTag, std::string>& values,
-                              const Json::Value& target,
+    static void ReadMapOfTags(std::map<DicomTag, std::string>& target,
+                              const Json::Value& value,
                               const std::string& field);
 
     static void WriteArrayOfStrings(Json::Value& target,

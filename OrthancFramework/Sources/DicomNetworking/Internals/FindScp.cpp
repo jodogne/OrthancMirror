@@ -152,7 +152,7 @@ namespace Orthanc
 
 
 
-    static void FixWorklistQuery(const ParsedDicomFile& query)
+    static void FixWorklistQuery(ParsedDicomFile& query)
     {
       // TODO: Check out
       // WlmDataSourceFileSystem::HandleExistentButEmptyDescriptionAndCodeSequenceAttributes()"

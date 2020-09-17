@@ -93,6 +93,6 @@ namespace Orthanc
                       const std::string& instanceUid);
 
     void FindWorklist(DicomFindAnswers& result,
-                      const ParsedDicomFile& query);
+                      ParsedDicomFile& query);
   };
 }

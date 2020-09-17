@@ -37,7 +37,7 @@ namespace Orthanc
     std::vector<std::string> components_;
 
   public:
-    RestApiPath(const std::string& uri);
+    explicit RestApiPath(const std::string& uri);
 
     // This version is slower
     bool Match(IHttpHandler::Arguments& components,

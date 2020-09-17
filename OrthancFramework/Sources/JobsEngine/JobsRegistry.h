@@ -71,8 +71,8 @@ namespace Orthanc
 
     struct PriorityComparator
     {
-      bool operator() (JobHandler*& a,
-                       JobHandler*& b) const;
+      bool operator() (JobHandler* const& a,
+                       JobHandler* const& b) const;
     };
 
     typedef std::map<std::string, JobHandler*>              JobsIndex;

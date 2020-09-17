@@ -61,6 +61,6 @@ namespace Orthanc
       return getArguments_.find(name) != getArguments_.end();
     }
 
-    virtual bool ParseJsonRequest(Json::Value& result) const;
+    virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }

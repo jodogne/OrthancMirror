@@ -72,6 +72,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "Internals/DicomFrameIndex.h"
+#include "Internals/DicomImageDecoder.h"
 #include "ToDcmtkBridge.h"
 
 #include "../Images/PamReader.h"
@@ -442,10 +443,10 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
-                                      const UriComponents& uri)
+                                      const UriComponents& uri) const
   {
-    DcmItem* dicom = GetDcmtkObject().getDataset();
-    E_TransferSyntax transferSyntax = GetDcmtkObject().getDataset()->getCurrentXfer();
+    DcmItem* dicom = GetDcmtkObjectConst().getDataset();
+    E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
 
     // Special case: Accessing the pixel data
     if (uri.size() == 1 || 
@@ -853,10 +854,10 @@ namespace Orthanc
 
     
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
-  void ParsedDicomFile::Answer(RestApiOutput& output)
+  void ParsedDicomFile::Answer(RestApiOutput& output) const
   {
     std::string serialized;
-    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *GetDcmtkObject().getDataset()))
+    if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *GetDcmtkObjectConst().getDataset()))
     {
       output.AnswerBuffer(serialized, MimeType_Dicom);
     }
@@ -865,10 +866,10 @@ namespace Orthanc
 
 
   bool ParsedDicomFile::GetTagValue(std::string& value,
-                                    const DicomTag& tag)
+                                    const DicomTag& tag) const
   {
     DcmTagKey k(tag.GetGroup(), tag.GetElement());
-    DcmDataset& dataset = *GetDcmtkObject().getDataset();
+    DcmDataset& dataset = *GetDcmtkObjectConst().getDataset();
 
     if (tag.IsPrivate() ||
         FromDcmtkBridge::IsUnknownTag(tag) ||
@@ -930,7 +931,7 @@ namespace Orthanc
   }
 
 
-  DicomInstanceHasher ParsedDicomFile::GetHasher()
+  DicomInstanceHasher ParsedDicomFile::GetHasher() const
   {
     std::string patientId, studyUid, seriesUid, instanceUid;
 
@@ -1107,7 +1108,7 @@ namespace Orthanc
                                    bool keepSopInstanceUid) : 
     pimpl_(new PImpl)
   {
-    pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.GetDcmtkObject().clone()));
+    pimpl_->file_.reset(dynamic_cast<DcmFileFormat*>(other.GetDcmtkObjectConst().clone()));
 
     if (!keepSopInstanceUid)
     {
@@ -1135,7 +1136,7 @@ namespace Orthanc
   }
 
 
-  DcmFileFormat& ParsedDicomFile::GetDcmtkObject() const
+  DcmFileFormat& ParsedDicomFile::GetDcmtkObjectConst() const
   {
     if (pimpl_->file_.get() == NULL)
     {
@@ -1164,7 +1165,7 @@ namespace Orthanc
   }
 
 
-  ParsedDicomFile* ParsedDicomFile::Clone(bool keepSopInstanceUid)
+  ParsedDicomFile* ParsedDicomFile::Clone(bool keepSopInstanceUid) const
   {
     return new ParsedDicomFile(*this, keepSopInstanceUid);
   }
@@ -1403,7 +1404,7 @@ namespace Orthanc
   Encoding ParsedDicomFile::DetectEncoding(bool& hasCodeExtensions) const
   {
     return FromDcmtkBridge::DetectEncoding(hasCodeExtensions,
-                                           *GetDcmtkObject().getDataset(),
+                                           *GetDcmtkObjectConst().getDataset(),
                                            GetDefaultDicomEncoding());
   }
 
@@ -1424,10 +1425,10 @@ namespace Orthanc
   void ParsedDicomFile::DatasetToJson(Json::Value& target, 
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
-                                      unsigned int maxStringLength)
+                                      unsigned int maxStringLength) const
   {
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObjectConst().getDataset(),
                                         format, flags, maxStringLength, ignoreTagLength);
   }
 
@@ -1436,24 +1437,24 @@ namespace Orthanc
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength,
-                                      const std::set<DicomTag>& ignoreTagLength)
+                                      const std::set<DicomTag>& ignoreTagLength) const
   {
-    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObject().getDataset(),
+    FromDcmtkBridge::ExtractDicomAsJson(target, *GetDcmtkObjectConst().getDataset(),
                                         format, flags, maxStringLength, ignoreTagLength);
   }
 
 
   void ParsedDicomFile::HeaderToJson(Json::Value& target, 
-                                     DicomToJsonFormat format)
+                                     DicomToJsonFormat format) const
   {
-    FromDcmtkBridge::ExtractHeaderAsJson(target, *GetDcmtkObject().getMetaInfo(), format, DicomToJsonFlags_None, 0);
+    FromDcmtkBridge::ExtractHeaderAsJson(target, *GetDcmtkObjectConst().getMetaInfo(), format, DicomToJsonFlags_None, 0);
   }
 
 
   bool ParsedDicomFile::HasTag(const DicomTag& tag) const
   {
     DcmTag key(tag.GetGroup(), tag.GetElement());
-    return GetDcmtkObject().getDataset()->tagExists(key);
+    return GetDcmtkObjectConst().getDataset()->tagExists(key);
   }
 
 
@@ -1505,7 +1506,7 @@ namespace Orthanc
   }
 
 
-  bool ParsedDicomFile::ExtractPdf(std::string& pdf)
+  bool ParsedDicomFile::ExtractPdf(std::string& pdf) const
   {
     std::string sop, mime;
     
@@ -1582,18 +1583,18 @@ namespace Orthanc
 
   void ParsedDicomFile::GetRawFrame(std::string& target,
                                     MimeType& mime,
-                                    unsigned int frameId)
+                                    unsigned int frameId) const
   {
     if (pimpl_->frameIndex_.get() == NULL)
     {
       assert(pimpl_->file_ != NULL &&
-             GetDcmtkObject().getDataset() != NULL);
-      pimpl_->frameIndex_.reset(new DicomFrameIndex(*GetDcmtkObject().getDataset()));
+             GetDcmtkObjectConst().getDataset() != NULL);
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*GetDcmtkObjectConst().getDataset()));
     }
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
 
-    E_TransferSyntax transferSyntax = GetDcmtkObject().getDataset()->getCurrentXfer();
+    E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
@@ -1621,8 +1622,8 @@ namespace Orthanc
   unsigned int ParsedDicomFile::GetFramesCount() const
   {
     assert(pimpl_->file_ != NULL &&
-           GetDcmtkObject().getDataset() != NULL);
-    return DicomFrameIndex::GetFramesCount(*GetDcmtkObject().getDataset());
+           GetDcmtkObjectConst().getDataset() != NULL);
+    return DicomFrameIndex::GetFramesCount(*GetDcmtkObjectConst().getDataset());
   }
 
 
@@ -1643,7 +1644,7 @@ namespace Orthanc
                                             unsigned int maxTagLength) const
   {
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset(),
+    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObjectConst().getDataset(),
                                          maxTagLength, ignoreTagLength);
   }
 
@@ -1652,12 +1653,12 @@ namespace Orthanc
                                             unsigned int maxTagLength,
                                             const std::set<DicomTag>& ignoreTagLength) const
   {
-    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObject().getDataset(),
+    FromDcmtkBridge::ExtractDicomSummary(target, *GetDcmtkObjectConst().getDataset(),
                                          maxTagLength, ignoreTagLength);
   }
 
 
-  bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
+  bool ParsedDicomFile::LookupTransferSyntax(std::string& result) const
   {
 #if 0
     // This was the implementation in Orthanc <= 1.6.1
@@ -1666,8 +1667,8 @@ namespace Orthanc
     // using the meta header?
     const char* value = NULL;
 
-    if (GetDcmtkObject().getMetaInfo() != NULL &&
-        GetDcmtkObject().getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
+    if (GetDcmtkObjectConst().getMetaInfo() != NULL &&
+        GetDcmtkObjectConst().getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
         value != NULL)
     {
       result.assign(value);
@@ -1679,7 +1680,7 @@ namespace Orthanc
     }
 #else
     DicomTransferSyntax s;
-    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, GetDcmtkObject()))
+    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, GetDcmtkObjectConst()))
     {
       result.assign(GetTransferSyntaxUid(s));
       return true;
@@ -1697,7 +1698,7 @@ namespace Orthanc
     DcmTagKey k(DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetGroup(),
                 DICOM_TAG_PHOTOMETRIC_INTERPRETATION.GetElement());
 
-    DcmDataset& dataset = *GetDcmtkObject().getDataset();
+    DcmDataset& dataset = *GetDcmtkObjectConst().getDataset();
 
     const char *c = NULL;
     if (dataset.findAndGetString(k, c).good() &&
@@ -1713,8 +1714,21 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::Apply(ITagVisitor& visitor)
+  void ParsedDicomFile::Apply(ITagVisitor& visitor) const
   {
-    FromDcmtkBridge::Apply(*GetDcmtkObject().getDataset(), visitor, GetDefaultDicomEncoding());
+    FromDcmtkBridge::Apply(*GetDcmtkObjectConst().getDataset(), visitor, GetDefaultDicomEncoding());
+  }
+
+
+  ImageAccessor* ParsedDicomFile::DecodeFrame(unsigned int frame) const
+  {
+    if (GetDcmtkObjectConst().getDataset() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      return DicomImageDecoder::Decode(*GetDcmtkObjectConst().getDataset(), frame);
+    }
   }
 }

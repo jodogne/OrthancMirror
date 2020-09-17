@@ -913,7 +913,7 @@ namespace Orthanc
   {
     // http://sourceforge.net/p/predef/wiki/Endianness/
 
-    uint32_t bufferView;
+    uint32_t bufferView = 0;
 
     uint8_t* buffer = reinterpret_cast<uint8_t*>(&bufferView);
 
@@ -1569,27 +1569,27 @@ namespace Orthanc
     }
 #endif
 
-    // Make Orthanc use English, United States locale
-    // Linux: use "en_US.UTF-8"
-    // Windows: use ""
-    // Wine: use NULL
-    
-#if defined(__MINGW32__)
-    // Visibly, there is no support of locales in MinGW yet
-    // http://mingw.5.n7.nabble.com/How-to-use-std-locale-global-with-MinGW-correct-td33048.html
-    static const char* DEFAULT_LOCALE = NULL;
-#elif defined(_WIN32)
-    // For Windows: use default locale (using "en_US" does not work)
-    static const char* DEFAULT_LOCALE = "";
-#else
-    // For Linux & cie
-    static const char* DEFAULT_LOCALE = "en_US.UTF-8";
-#endif
-
     bool ok;
     
     if (locale == NULL)
     {
+      // Make Orthanc use English, United States locale
+      // Linux: use "en_US.UTF-8"
+      // Windows: use ""
+      // Wine: use NULL
+    
+#if defined(__MINGW32__)
+      // Visibly, there is no support of locales in MinGW yet
+      // http://mingw.5.n7.nabble.com/How-to-use-std-locale-global-with-MinGW-correct-td33048.html
+      static const char* DEFAULT_LOCALE = NULL;
+#elif defined(_WIN32)
+      // For Windows: use default locale (using "en_US" does not work)
+      static const char* DEFAULT_LOCALE = "";
+#else
+      // For Linux & cie
+      static const char* DEFAULT_LOCALE = "en_US.UTF-8";
+#endif
+
       ok = SetGlobalLocale(DEFAULT_LOCALE);
 
 #if defined(__MINGW32__)
@@ -1773,7 +1773,7 @@ namespace Orthanc
       const Dictionary& dictionary_;
 
     public:
-      VariableFormatter(const Dictionary& dictionary) :
+      explicit VariableFormatter(const Dictionary& dictionary) :
         dictionary_(dictionary)
       {
       }
@@ -2253,10 +2253,10 @@ namespace Orthanc
         assert(array.isArray());
 
         Json::Value children = Json::arrayValue;
-        for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+        for (Json::Value::ArrayIndex j = 0; j < array.size(); j++)
         {
           Json::Value c;
-          SimplifyDicomAsJson(c, array[i], format);
+          SimplifyDicomAsJson(c, array[j], format);
           children.append(c);
         }
 
