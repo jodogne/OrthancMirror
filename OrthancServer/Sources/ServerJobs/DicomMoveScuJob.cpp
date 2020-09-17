@@ -217,11 +217,10 @@ namespace Orthanc
                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
     context_(context),
+    parameters_(DicomAssociationParameters::UnserializeJob(serialized)),
+    targetAet_(SerializationToolbox::ReadString(serialized, TARGET_AET)),
     query_(Json::arrayValue)
   {
-    parameters_ = DicomAssociationParameters::UnserializeJob(serialized);
-    targetAet_ = SerializationToolbox::ReadString(serialized, TARGET_AET);
-
     if (serialized.isMember(QUERY) &&
         serialized[QUERY].type() == Json::arrayValue)
     {

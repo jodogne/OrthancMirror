@@ -107,7 +107,8 @@ namespace Orthanc
                   size_t index) :
       that_(that),
       index_(index),
-      hasFailureReason_(false)
+      hasFailureReason_(false),
+      failureReason_(StorageCommitmentFailureReason_Success)
     {
     }
 
@@ -426,11 +427,18 @@ namespace Orthanc
   StorageCommitmentScpJob::StorageCommitmentScpJob(ServerContext& context,
                                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
-    context_(context)
+    context_(context),
+    transactionUid_(SerializationToolbox::ReadString(serialized, TRANSACTION_UID)),
+    calledAet_(SerializationToolbox::ReadString(serialized, CALLED_AET))
+    // "ready_" is initialized by the unserializer
   {
-    transactionUid_ = SerializationToolbox::ReadString(serialized, TRANSACTION_UID);
+    if (serialized.type() != Json::objectValue ||
+        !serialized.isMember(REMOTE_MODALITY))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+    
     remoteModality_ = RemoteModalityParameters(serialized[REMOTE_MODALITY]);
-    calledAet_ = SerializationToolbox::ReadString(serialized, CALLED_AET);
     SerializationToolbox::ReadArrayOfStrings(sopClassUids_, serialized, SOP_CLASS_UIDS);
     SerializationToolbox::ReadArrayOfStrings(sopInstanceUids_, serialized, SOP_INSTANCE_UIDS);
   }
