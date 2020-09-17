@@ -60,24 +60,24 @@ namespace Orthanc
 
     // This is the first method to be called
     virtual HttpCompression SetupHttpCompression(bool gzipAllowed,
-                                                 bool deflateAllowed);
+                                                 bool deflateAllowed) ORTHANC_OVERRIDE;
 
-    virtual bool HasContentFilename(std::string& filename)
+    virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE
     {
       return source_.HasContentFilename(filename);
     }
 
-    virtual std::string GetContentType()
+    virtual std::string GetContentType() ORTHANC_OVERRIDE
     {
       return source_.GetContentType();
     }
 
-    virtual uint64_t GetContentLength();
+    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE;
 
-    virtual bool ReadNextChunk();
+    virtual bool ReadNextChunk() ORTHANC_OVERRIDE;
 
-    virtual const char* GetChunkContent();
+    virtual const char* GetChunkContent() ORTHANC_OVERRIDE;
 
-    virtual size_t GetChunkSize();
+    virtual size_t GetChunkSize() ORTHANC_OVERRIDE;
   };
 }

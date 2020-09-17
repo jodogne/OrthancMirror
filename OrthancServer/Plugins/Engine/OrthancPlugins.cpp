@@ -3901,7 +3901,7 @@ namespace Orthanc
       case _OrthancPluginService_GetImageBuffer:
       {
         const _OrthancPluginGetImageInfo& p = *reinterpret_cast<const _OrthancPluginGetImageInfo*>(parameters);
-        *(p.resultBuffer) = reinterpret_cast<const ImageAccessor*>(p.image)->GetBuffer();
+        *(p.resultBuffer) = const_cast<void*>(reinterpret_cast<const ImageAccessor*>(p.image)->GetConstBuffer());
         return true;
       }
 

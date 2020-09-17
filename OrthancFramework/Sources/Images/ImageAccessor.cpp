@@ -92,7 +92,7 @@ namespace Orthanc
   }
 
 
-  void* ImageAccessor::GetBuffer() const
+  void* ImageAccessor::GetBuffer()
   {
     if (readOnly_)
     {
@@ -117,7 +117,7 @@ namespace Orthanc
   }
 
 
-  void* ImageAccessor::GetRow(unsigned int y) const
+  void* ImageAccessor::GetRow(unsigned int y)
   {
     if (readOnly_)
     {

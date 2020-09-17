@@ -42,7 +42,7 @@ namespace Orthanc
     {
       FILE* fp_;
 
-      FileRabi(const char* filename)
+      explicit FileRabi(const char* filename)
       {
         fp_ = SystemToolbox::OpenFile(filename, FileMode_ReadBinary);
         if (!fp_)
@@ -81,12 +81,11 @@ namespace Orthanc
       }
     }
 
-    PngRabi()
+    PngRabi() :
+      png_(NULL),
+      info_(NULL),
+      endInfo_(NULL)
     {
-      png_ = NULL;
-      info_ = NULL;
-      endInfo_ = NULL;
-
       png_ = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
       if (!png_)
       {

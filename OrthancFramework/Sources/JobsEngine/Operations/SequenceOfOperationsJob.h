@@ -83,7 +83,7 @@ namespace Orthanc
       boost::mutex::scoped_lock  lock_;
 
     public:
-      Lock(SequenceOfOperationsJob& that) :
+      explicit Lock(SequenceOfOperationsJob& that) :
         that_(that),
         lock_(that.mutex_)
       {

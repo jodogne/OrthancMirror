@@ -43,7 +43,7 @@ namespace Orthanc
     Type  type_;
 
   protected:
-    JobOperationValue(Type type) :
+    explicit JobOperationValue(Type type) :
       type_(type)
     {
     }

@@ -42,7 +42,7 @@ namespace Orthanc
   public:
     // WARNING - The lifetime of "pattern_" must be larger than
     // "search_", as the latter internally keeps a pointer to "pattern" (*)
-    Search(const std::string& pattern) :
+    explicit Search(const std::string& pattern) :
       algorithm_(pattern.begin(), pattern.end())
     {
     }

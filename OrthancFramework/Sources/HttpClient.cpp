@@ -117,7 +117,7 @@ namespace Orthanc
     {
     }
 
-    CurlHeaders(const HttpClient::HttpHeaders& headers)
+    explicit CurlHeaders(const HttpClient::HttpHeaders& headers)
     {
       for (HttpClient::HttpHeaders::const_iterator
              it = headers.begin(); it != headers.end(); ++it)
@@ -318,7 +318,6 @@ namespace Orthanc
       try
       {
         assert(userdata != NULL);
-        CurlAnswer& that = *(static_cast<CurlAnswer*>(userdata));
 
         size_t length = size * nmemb;
         if (length == 0)
@@ -333,6 +332,7 @@ namespace Orthanc
           if (colon != std::string::npos &&
               eol != std::string::npos)
           {
+            CurlAnswer& that = *(static_cast<CurlAnswer*>(userdata));
             std::string tmp(s.substr(0, colon));
 
             if (that.headersLowerCase_)
@@ -345,6 +345,7 @@ namespace Orthanc
             if (!key.empty())
             {
               std::string value = Toolbox::StripSpaces(s.substr(colon + 1, eol));
+
               that.answer_.AddHeader(key, value);
             }
           }
@@ -369,7 +370,6 @@ namespace Orthanc
       try
       {
         assert(userdata != NULL);
-        CurlAnswer& that = *(static_cast<CurlAnswer*>(userdata));
 
         size_t length = size * nmemb;
         if (length == 0)
@@ -378,6 +378,7 @@ namespace Orthanc
         }
         else
         {
+          CurlAnswer& that = *(static_cast<CurlAnswer*>(userdata));
           that.answer_.AddChunk(buffer, length);
           return length;
         }
@@ -419,7 +420,7 @@ namespace Orthanc
     }
 
     virtual void AddHeader(const std::string& key,
-                           const std::string& value)
+                           const std::string& value) ORTHANC_OVERRIDE
     {
       if (headers_ != NULL)
       {
@@ -428,7 +429,7 @@ namespace Orthanc
     }
       
     virtual void AddChunk(const void* data,
-                          size_t size)
+                          size_t size) ORTHANC_OVERRIDE
     {
       answer_.AddChunk(data, size);
     }
