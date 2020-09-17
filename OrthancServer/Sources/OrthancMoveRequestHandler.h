@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
 #include "../../OrthancFramework/Sources/DicomNetworking/IMoveRequestHandler.h"
 
 namespace Orthanc
@@ -48,8 +49,8 @@ namespace Orthanc
                            const DicomMap& input);
 
   public:
-    OrthancMoveRequestHandler(ServerContext& context) :
-    context_(context)
+    explicit OrthancMoveRequestHandler(ServerContext& context) :
+      context_(context)
     {
     }
 
@@ -58,6 +59,6 @@ namespace Orthanc
                                          const std::string& originatorIp,
                                          const std::string& originatorAet,
                                          const std::string& calledAet,
-                                         uint16_t originatorId);
+                                         uint16_t originatorId) ORTHANC_OVERRIDE;
   };
 }

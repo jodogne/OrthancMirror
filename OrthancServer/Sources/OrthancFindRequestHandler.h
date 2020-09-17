@@ -63,7 +63,7 @@ namespace Orthanc
                         ModalityManufacturer manufacturer);
 
   public:
-    OrthancFindRequestHandler(ServerContext& context);
+    explicit OrthancFindRequestHandler(ServerContext& context);
 
     virtual void Handle(DicomFindAnswers& answers,
                         const DicomMap& input,
@@ -71,7 +71,7 @@ namespace Orthanc
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet,
-                        ModalityManufacturer manufacturer);
+                        ModalityManufacturer manufacturer) ORTHANC_OVERRIDE;
 
     unsigned int GetMaxResults() const
     {

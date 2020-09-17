@@ -57,7 +57,7 @@ namespace Orthanc
     virtual bool HandleInstance(const std::string& instance);
     
   public:
-    ResourceModificationJob(ServerContext& context);
+    explicit ResourceModificationJob(ServerContext& context);
 
     ResourceModificationJob(ServerContext& context,
                             const Json::Value& serialized);

@@ -917,7 +917,7 @@ namespace Orthanc
 
 
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
-                                                        ParsedDicomFile& dicom)
+                                                        const ParsedDicomFile& dicom)
   {
     std::set<DicomTag> ignoreTagLength;
     dicom.ExtractDicomSummary(target, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
@@ -925,7 +925,7 @@ namespace Orthanc
   
     
   void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
-                                                       ParsedDicomFile& dicom)
+                                                       const ParsedDicomFile& dicom)
   {
     std::set<DicomTag> ignoreTagLength;
     DefaultDicomDatasetToJson(target, dicom, ignoreTagLength);
@@ -933,7 +933,7 @@ namespace Orthanc
   
     
   void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
-                                                       ParsedDicomFile& dicom,
+                                                       const ParsedDicomFile& dicom,
                                                        const std::set<DicomTag>& ignoreTagLength)
   {
     dicom.DatasetToJson(target, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
@@ -942,9 +942,8 @@ namespace Orthanc
   
 
   void OrthancConfiguration::DefaultDicomHeaderToJson(Json::Value& target,
-                                                      ParsedDicomFile& dicom)
+                                                      const ParsedDicomFile& dicom)
   {
-    std::set<DicomTag> ignoreTagLength;
     dicom.HeaderToJson(target, DicomToJsonFormat_Full);
   }
 }

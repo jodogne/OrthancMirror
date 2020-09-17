@@ -109,7 +109,7 @@ namespace Orthanc
                        bool mandatory);
 
 #if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
-    DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
+    explicit DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
 #endif
     
     ResourceType GetLevel() const

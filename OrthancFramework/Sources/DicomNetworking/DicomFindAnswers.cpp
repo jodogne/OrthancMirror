@@ -116,7 +116,7 @@ namespace Orthanc
   }
 
 
-  void DicomFindAnswers::Add(ParsedDicomFile& dicom)
+  void DicomFindAnswers::Add(const ParsedDicomFile& dicom)
   {
     AddAnswerInternal(dicom.Clone(true));
   }

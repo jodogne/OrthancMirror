@@ -68,7 +68,7 @@ namespace Orthanc
     virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
 
   public:
-    DicomModalityStoreJob(ServerContext& context);
+    explicit DicomModalityStoreJob(ServerContext& context);
 
     DicomModalityStoreJob(ServerContext& context,
                           const Json::Value& serialized);

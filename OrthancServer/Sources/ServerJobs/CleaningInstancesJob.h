@@ -46,7 +46,7 @@ namespace Orthanc
     bool            keepSource_;
     
   protected:
-    virtual bool HandleTrailingStep();
+    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
     
   public:
     CleaningInstancesJob(ServerContext& context,

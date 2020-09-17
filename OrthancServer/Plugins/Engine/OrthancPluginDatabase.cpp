@@ -62,22 +62,22 @@ namespace Orthanc
     }
 
   public:
-    Transaction(OrthancPluginDatabase& that) :
-    that_(that)
+    explicit Transaction(OrthancPluginDatabase& that) :
+      that_(that)
     {
     }
 
-    virtual void Begin()
+    virtual void Begin() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.startTransaction(that_.payload_));
     }
 
-    virtual void Rollback()
+    virtual void Rollback() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.rollbackTransaction(that_.payload_));
     }
 
-    virtual void Commit(int64_t diskSizeDelta)
+    virtual void Commit(int64_t diskSizeDelta) ORTHANC_OVERRIDE
     {
       if (that_.fastGetTotalSize_)
       {
@@ -229,7 +229,10 @@ namespace Orthanc
     errorDictionary_(errorDictionary),
     backend_(backend),
     payload_(payload),
-    listener_(NULL)
+    listener_(NULL),
+    fastGetTotalSize_(false),
+    currentDiskSize_(0),
+    answerDoneIgnored_(false)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
     
@@ -571,11 +574,11 @@ namespace Orthanc
 
   void OrthancPluginDatabase::GetLastChange(std::list<ServerIndexChange>& target /*out*/)
   {
-    bool ignored = false;
+    answerDoneIgnored_ = false;
 
     ResetAnswers();
     answerChanges_ = &target;
-    answerDone_ = &ignored;
+    answerDone_ = &answerDoneIgnored_;
 
     CheckSuccess(backend_.getLastChange(GetContext(), payload_));
   }
@@ -583,11 +586,11 @@ namespace Orthanc
 
   void OrthancPluginDatabase::GetLastExportedResource(std::list<ExportedResource>& target /*out*/)
   {
-    bool ignored = false;
+    answerDoneIgnored_ = false;
 
     ResetAnswers();
     answerExportedResources_ = &target;
-    answerDone_ = &ignored;
+    answerDone_ = &answerDoneIgnored_;
 
     CheckSuccess(backend_.getLastExportedResource(GetContext(), payload_));
   }

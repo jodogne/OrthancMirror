@@ -10,11 +10,15 @@ fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
+knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
+knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:309
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1070
+syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
+syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:129
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp
-syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \

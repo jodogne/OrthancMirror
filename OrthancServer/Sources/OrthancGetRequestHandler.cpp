@@ -79,7 +79,7 @@ namespace Orthanc
     std::string dicom;
     context_.ReadDicom(dicom, id);
     
-    if (dicom.size() <= 0)
+    if (dicom.empty())
     {
       return Status_Failure;
     }
@@ -475,9 +475,9 @@ namespace Orthanc
         }
         else
         {
-          for (size_t i = 0; i < tmp.size(); i++)
+          for (size_t j = 0; j < tmp.size(); j++)
           {
-            publicIds.push_back(tmp[i]);
+            publicIds.push_back(tmp[j]);
           }
         }
       }
@@ -488,7 +488,8 @@ namespace Orthanc
 
 
     OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
-      context_(context)
+      context_(context),
+      getCancelled_(false)
     {
       position_ = 0;
       nRemaining_ = 0;

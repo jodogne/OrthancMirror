@@ -538,7 +538,7 @@ namespace Orthanc
       }
     }
 
-    virtual bool IsDicomAsJsonNeeded() const
+    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
     {
       // Ask the "DICOM-as-JSON" attachment only if sequences are to
       // be returned OR if "query_" contains non-main DICOM tags!
@@ -564,7 +564,7 @@ namespace Orthanc
               !withoutSpecialTags.HasOnlyMainDicomTags());
     }
       
-    virtual void MarkAsComplete()
+    virtual void MarkAsComplete() ORTHANC_OVERRIDE
     {
       answers_.SetComplete(true);
     }
@@ -572,7 +572,7 @@ namespace Orthanc
     virtual void Visit(const std::string& publicId,
                        const std::string& instanceId,
                        const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson) 
+                       const Json::Value* dicomAsJson) ORTHANC_OVERRIDE
     {
       std::unique_ptr<DicomMap> counters(ComputeCounters(context_, instanceId, level_, query_));
 

@@ -71,7 +71,7 @@ namespace Orthanc
                                 bool hasCodeExtensions) const;
 
   public:
-    HierarchicalMatcher(ParsedDicomFile& query);
+    explicit HierarchicalMatcher(ParsedDicomFile& query);
 
     ~HierarchicalMatcher();
 

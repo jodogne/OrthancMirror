@@ -533,12 +533,14 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_EQ(v, v2);
 
     p.Serialize(v2, false, false /* no password */);
-    WebServiceParameters p2(v2);
     ASSERT_EQ(Json::arrayValue, v2.type());
     ASSERT_EQ(3u, v2.size());
     ASSERT_EQ("http://localhost:8042/", v2[0u].asString());
     ASSERT_EQ("user", v2[1u].asString());
     ASSERT_TRUE(v2[2u].asString().empty());
+
+    WebServiceParameters p2(v2);  // Test decoding
+    ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
   }
 
   {
@@ -552,7 +554,6 @@ TEST(WebServiceParameters, Serialization)
 
     Json::Value v2;
     p.Serialize(v2, false, true);
-    WebServiceParameters p2(v2);
 
     ASSERT_EQ(Json::objectValue, v2.type());
     ASSERT_EQ(3u, v2.size());
@@ -560,6 +561,9 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_TRUE(v2["Pkcs11"].asBool());
     ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
     ASSERT_EQ(0u, v2["HttpHeaders"].size());
+
+    WebServiceParameters p2(v2);  // Test decoding
+    ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
   }
 
   {
@@ -573,7 +577,6 @@ TEST(WebServiceParameters, Serialization)
 
     Json::Value v2;
     p.Serialize(v2, false, true);
-    WebServiceParameters p2(v2);
 
     ASSERT_EQ(Json::objectValue, v2.type());
     ASSERT_EQ(6u, v2.size());
@@ -584,6 +587,9 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_FALSE(v2["Pkcs11"].asBool());
     ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
     ASSERT_EQ(0u, v2["HttpHeaders"].size());
+
+    WebServiceParameters p2(v2);  // Test decoding
+    ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
   }
 
   {
@@ -981,7 +987,7 @@ namespace
     {
     }
       
-    virtual bool ReadNextChunk(std::string& chunk)
+    virtual bool ReadNextChunk(std::string& chunk) ORTHANC_OVERRIDE
     {
       if (pos_ == size_)
       {
@@ -1018,7 +1024,7 @@ namespace
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers)
+                                            const Arguments& headers) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -1032,7 +1038,7 @@ namespace
                         const Arguments& headers,
                         const GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize)
+                        size_t bodySize) ORTHANC_OVERRIDE
     {
       printf("received %d\n", static_cast<int>(bodySize));
 

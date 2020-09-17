@@ -74,7 +74,7 @@ namespace Orthanc
       instance.GetOrigin().Format(origin_);
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       static const char* NAME = "OnStoredInstance";
 
@@ -103,12 +103,12 @@ namespace Orthanc
     std::string    command_;
 
   public:
-    ExecuteEvent(const std::string& command) :
+    explicit ExecuteEvent(const std::string& command) :
       command_(command)
     {
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       LuaScripting::Lock lock(that);
 
@@ -127,12 +127,12 @@ namespace Orthanc
     ServerIndexChange  change_;
 
   public:
-    StableResourceEvent(const ServerIndexChange& change) :
-    change_(change)
+    explicit StableResourceEvent(const ServerIndexChange& change) :
+      change_(change)
     {
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       const char* name;
 
@@ -223,7 +223,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
       
@@ -273,7 +273,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
       
@@ -327,7 +327,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Apply(LuaScripting& that)
+    virtual void Apply(LuaScripting& that) ORTHANC_OVERRIDE
     {
       std::string functionName;
       
