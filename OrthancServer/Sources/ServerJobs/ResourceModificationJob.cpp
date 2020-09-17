@@ -274,7 +274,8 @@ namespace Orthanc
     CleaningInstancesJob(context, true /* by default, keep source */),
     modification_(new DicomModification),
     isAnonymization_(false),
-    transcode_(false)
+    transcode_(false),
+    transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
   {
   }
 
