@@ -22,6 +22,7 @@ syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:314
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:714
+unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:285
 EOF
@@ -77,4 +78,4 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Sources \
             ../../OrthancServer/UnitTestsSources \
             \
-            2>&1 | grep -vE '\[unusedFunction\]$|^\^$|^$|function .* is never used'
+            2>&1
