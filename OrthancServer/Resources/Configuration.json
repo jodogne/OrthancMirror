@@ -154,13 +154,13 @@
   "SslCertificate" : "certificate.pem",
 
   // Whether or not peer client certificates shall be checked. This
-  // option is only meaningfull if "SslEnabled" is true.
+  // option is only meaningful if "SslEnabled" is true.
   "SslVerifyPeers" : false,
 
   // Path to a file containing the concatenation of the client SSL
   // certificate(s) that are trusted to verify the identify of remote
   // HTTP clients. The individual certificate(s) must be stored in the
-  // PEM format. This option is only meaningfull if "SslVerifyPeers"
+  // PEM format. This option is only meaningful if "SslVerifyPeers"
   // is true.
   "SslTrustedClientCertificates" : "trustedClientCertificates.pem",
   
