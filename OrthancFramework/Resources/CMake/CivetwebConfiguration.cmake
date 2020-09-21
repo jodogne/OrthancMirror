@@ -93,20 +93,29 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 else()
   CHECK_INCLUDE_FILE_CXX(civetweb.h HAVE_CIVETWEB_H)
   if (NOT HAVE_CIVETWEB_H)
-    message(FATAL_ERROR "Please install the libcivetweb-devel package")
+    message(FATAL_ERROR "Please install the libcivetweb-dev package")
   endif()
 
   cmake_reset_check_state()
   set(CMAKE_REQUIRED_LIBRARIES dl pthread)
   CHECK_LIBRARY_EXISTS(civetweb mg_start "" HAVE_CIVETWEB_LIB)
   if (NOT HAVE_CIVETWEB_LIB)
-    message(FATAL_ERROR "Please install the libcivetweb-devel package")
+    message(FATAL_ERROR "Please install the libcivetweb-dev package")
   endif()
 
   link_libraries(civetweb)
   unset(CMAKE_REQUIRED_LIBRARIES)
 
-  add_definitions(
-    -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0
-    )
+  # Check whether the system distribution of civetweb contains the
+  # patch "../Patches/civetweb-1.12.patch" that allows to disable
+  # keep-alive on selected HTTP connections. This is useful to speed
+  # up multipart transfers, as encountered in DICOMweb.
+  CHECK_LIBRARY_EXISTS(civetweb mg_disable_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
+  if (CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
+    add_definitions(-DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1)
+    message("Performance: Your system-wide distribution of civetweb is configured for best performance")
+  else()
+    message(WARNING "Performance: Your system-wide distribution of civetweb does not feature the mg_disable_keep_alive() function")
+    add_definitions(-DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0)
+  endif()
 endif()
