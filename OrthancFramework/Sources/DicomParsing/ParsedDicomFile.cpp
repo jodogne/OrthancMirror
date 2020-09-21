@@ -1257,7 +1257,9 @@ namespace Orthanc
 
       case MimeType_Pam:
       {
-        PamReader reader;
+        // "true" means "enforce memory alignment": This is slower,
+        // but possibly avoids crash related to non-aligned memory access
+        PamReader reader(true);
         reader.ReadFromMemory(content);
         EmbedImage(reader);
         break;

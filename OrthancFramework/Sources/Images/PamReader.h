@@ -61,9 +61,11 @@ namespace Orthanc
 
   public:
     /**
-    See doc for field enforceAligned_
+    See doc for field enforceAligned_. Setting "enforceAligned" is slower,
+    but avoids possible crashes due to non-aligned memory access. It is
+    recommended to set this parameter to "true".
     */
-    PamReader(bool enforceAligned = false) :
+    explicit PamReader(bool enforceAligned) :
       enforceAligned_(enforceAligned),
       alignedImageBuffer_(NULL)
     {
