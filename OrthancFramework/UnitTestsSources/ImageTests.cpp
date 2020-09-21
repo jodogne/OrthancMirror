@@ -365,7 +365,7 @@ TEST(PamWriter, EndToEnd)
   w.WriteToMemory(s, accessor);
 
   {
-    Orthanc::PamReader r;
+    Orthanc::PamReader r(true);
     r.ReadFromMemory(s);
 
     ASSERT_EQ(r.GetFormat(), Orthanc::PixelFormat_Grayscale16);
@@ -411,7 +411,7 @@ TEST(PamWriter, EndToEnd)
     Orthanc::TemporaryFile tmp;
     tmp.Write(s);
 
-    Orthanc::PamReader r2;
+    Orthanc::PamReader r2(true);
     r2.ReadFromFile(tmp.GetPath());
 
     ASSERT_EQ(r2.GetFormat(), Orthanc::PixelFormat_Grayscale16);
