@@ -97,6 +97,8 @@ Plugins
 SDK
 ---
 
+* Implement PluginsJob::GetOutput() to allow user-defined jobs to provide output:
+  https://groups.google.com/g/orthanc-users/c/GZ7u0bTTVoo/m/Z7iTNTi2BgAJ
 * Add plugins for normalized operations (notably so as to support
   Print SCU/SCP):
   https://web.archive.org/web/20170923150432/https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
