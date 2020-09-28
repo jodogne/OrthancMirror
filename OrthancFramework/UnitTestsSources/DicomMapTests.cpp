@@ -693,3 +693,574 @@ TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
     ASSERT_EQ(ts, it->second);
   }
 }
+
+
+namespace
+{
+  class StreamBlockReader : public boost::noncopyable
+  {
+  private:
+    std::istream&  stream_;
+    std::string    block_;
+    size_t         blockPos_;
+    uint64_t       processedBytes_;
+
+  public:
+    StreamBlockReader(std::istream& stream) :
+      stream_(stream),
+      blockPos_(0),
+      processedBytes_(0)
+    {
+    }
+
+    void Schedule(size_t blockSize)
+    {
+      if (!block_.empty())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        block_.resize(blockSize);
+        blockPos_ = 0;
+      }
+    }
+
+    bool Read(std::string& block)
+    {
+      if (block_.empty())
+      {
+        if (blockPos_ != 0)
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        
+        block.clear();
+        return true;
+      }
+      else
+      {
+        while (blockPos_ < block_.size())
+        {
+          char c;
+          stream_.get(c);
+
+          if (stream_.good())
+          {
+            block_[blockPos_] = c;
+            blockPos_++;
+          }
+          else
+          {
+            return false;
+          }
+        }
+
+        processedBytes_ += block_.size();
+
+        block.swap(block_);
+        block_.clear();
+        return true;
+      }
+    }
+
+    uint64_t GetProcessedBytes() const
+    {
+      return processedBytes_;
+    }
+  };
+
+
+
+
+  /**
+   * This class parses a stream containing a DICOM instance. It does
+   * *not* support the visit of sequences (it only works at the first
+   * level of the hierarchy), and it stops the processing once pixel
+   * data is reached in compressed transfer syntaxes.
+   **/
+  class DicomStreamReader : public boost::noncopyable
+  {
+  public:
+    class IVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IVisitor()
+      {
+      }
+
+      virtual void VisitMetaHeaderTag(const DicomTag& tag,
+                                      const ValueRepresentation& vr,
+                                      const std::string& value) = 0;
+
+      // Return "false" to stop processing
+      virtual bool VisitDatasetTag(const DicomTag& tag,
+                                   const ValueRepresentation& vr,
+                                   DicomTransferSyntax transferSyntax,
+                                   const std::string& value) = 0;
+    };
+    
+  private:
+    enum State
+    {
+      State_Preamble,
+      State_MetaHeader,
+      State_DatasetTag,
+      State_DatasetExplicitLength,
+      State_DatasetValue,
+      State_Done
+    };
+
+    StreamBlockReader    reader_;
+    State                state_;
+    DicomTransferSyntax  transferSyntax_;
+    DicomTag             danglingTag_;
+    ValueRepresentation  danglingVR_;
+    
+    static uint16_t ReadUnsignedInteger16(const char* dicom,
+                                          bool littleEndian)
+    {
+      const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+      if (littleEndian)
+      {
+        return (static_cast<uint16_t>(p[0]) |
+                (static_cast<uint16_t>(p[1]) << 8));
+      }
+      else
+      {
+        return (static_cast<uint16_t>(p[1]) |
+                (static_cast<uint16_t>(p[0]) << 8));
+      }
+    }
+
+
+    static uint32_t ReadUnsignedInteger32(const char* dicom,
+                                          bool littleEndian)
+    {
+      const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+      if (littleEndian)
+      {
+        return (static_cast<uint32_t>(p[0]) |
+                (static_cast<uint32_t>(p[1]) << 8) |
+                (static_cast<uint32_t>(p[2]) << 16) |
+                (static_cast<uint32_t>(p[3]) << 24));
+      }
+      else
+      {
+        return (static_cast<uint32_t>(p[3]) |
+                (static_cast<uint32_t>(p[2]) << 8) |
+                (static_cast<uint32_t>(p[1]) << 16) |
+                (static_cast<uint32_t>(p[0]) << 24));
+      }
+    }
+
+
+    static DicomTag ReadTag(const char* dicom,
+                            bool littleEndian)
+    {
+      return DicomTag(ReadUnsignedInteger16(dicom, littleEndian),
+                      ReadUnsignedInteger16(dicom + 2, littleEndian));
+    }
+
+
+    static bool IsShortExplicitTag(ValueRepresentation vr)
+    {
+      /**
+       * Are we in the case of Table 7.1-2? "Data Element with
+       * Explicit VR of AE, AS, AT, CS, DA, DS, DT, FL, FD, IS, LO,
+       * LT, PN, SH, SL, SS, ST, TM, UI, UL and US"
+       * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_7.html#sect_7.1.2
+       **/
+      return (vr == ValueRepresentation_ApplicationEntity   /* AE */ ||
+              vr == ValueRepresentation_AgeString           /* AS */ ||
+              vr == ValueRepresentation_AttributeTag        /* AT */ ||
+              vr == ValueRepresentation_CodeString          /* CS */ ||
+              vr == ValueRepresentation_Date                /* DA */ ||
+              vr == ValueRepresentation_DecimalString       /* DS */ ||
+              vr == ValueRepresentation_DateTime            /* DT */ ||
+              vr == ValueRepresentation_FloatingPointSingle /* FL */ ||
+              vr == ValueRepresentation_FloatingPointDouble /* FD */ ||
+              vr == ValueRepresentation_IntegerString       /* IS */ ||
+              vr == ValueRepresentation_LongString          /* LO */ ||
+              vr == ValueRepresentation_LongText            /* LT */ ||
+              vr == ValueRepresentation_PersonName          /* PN */ ||
+              vr == ValueRepresentation_ShortString         /* SH */ ||
+              vr == ValueRepresentation_SignedLong          /* SL */ ||
+              vr == ValueRepresentation_SignedShort         /* SS */ ||
+              vr == ValueRepresentation_ShortText           /* ST */ ||
+              vr == ValueRepresentation_Time                /* TM */ ||
+              vr == ValueRepresentation_UniqueIdentifier    /* UI */ ||
+              vr == ValueRepresentation_UnsignedLong        /* UL */ ||
+              vr == ValueRepresentation_UnsignedShort       /* US */);
+    }
+
+
+    void PrintBlock(const std::string& block)
+    {
+      for (size_t i = 0; i < block.size(); i++)
+      {
+        printf("%02x ", static_cast<uint8_t>(block[i]));
+        if (i % 16 == 15)
+          printf("\n");
+      }
+      printf("\n");
+    }
+    
+    void HandlePreamble(IVisitor& visitor,
+                        const std::string& block)
+    {
+      printf("PREAMBLE:\n");
+      PrintBlock(block);
+
+      assert(block.size() == 144u);
+      assert(reader_.GetProcessedBytes() == 144u);
+
+      /**
+       * The "DICOM file meta information" is always encoded using
+       * "Explicit VR Little Endian Transfer Syntax"
+       * http://dicom.nema.org/medical/dicom/current/output/chtml/part10/chapter_7.html
+       **/
+      if (block[128] != 'D' ||
+          block[129] != 'I' ||
+          block[130] != 'C' ||
+          block[131] != 'M' ||
+          ReadTag(block.c_str() + 132, true) != DicomTag(0x0002, 0x0000) ||
+          block[136] != 'U' ||
+          block[137] != 'L' ||
+          ReadUnsignedInteger16(block.c_str() + 138, true) != 4)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      uint32_t length = ReadUnsignedInteger32(block.c_str() + 140, true);
+
+      reader_.Schedule(length);
+      state_ = State_MetaHeader;
+    }
+
+    
+    void HandleMetaHeader(IVisitor& visitor,
+                          const std::string& block)
+    {
+      printf("META-HEADER:\n");
+      PrintBlock(block);
+
+      size_t pos = 0;
+      const char* p = block.c_str();
+
+      bool hasTransferSyntax = false;
+
+      while (pos + 8 <= block.size())
+      {
+        DicomTag tag = ReadTag(p + pos, true);
+        
+        ValueRepresentation vr = StringToValueRepresentation(std::string(p + pos + 4, 2), true);
+
+        if (IsShortExplicitTag(vr))
+        {
+          uint16_t length = ReadUnsignedInteger16(p + pos + 6, true);
+
+          std::string value;
+          value.assign(p + pos + 8, length);
+
+          if (tag.GetGroup() == 0x0002)
+          {
+            visitor.VisitMetaHeaderTag(tag, vr, value);
+          }                  
+
+          if (tag == DICOM_TAG_TRANSFER_SYNTAX_UID)
+          {
+            // Remove possible padding byte
+            if (!value.empty() &&
+                value[value.size() - 1] == '\0')
+            {
+              value.resize(value.size() - 1);
+            }
+            
+            if (LookupTransferSyntax(transferSyntax_, value))
+            {
+              hasTransferSyntax = true;
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_NotImplemented, "Unsupported transfer syntax: " + value);
+            }
+          }
+          
+          pos += length + 8;
+        }
+        else if (pos + 12 <= block.size())
+        {
+          uint16_t reserved = ReadUnsignedInteger16(p + pos + 6, true);
+          if (reserved != 0)
+          {
+            break;
+          }
+          
+          uint32_t length = ReadUnsignedInteger32(p + pos + 8, true);
+
+          std::string value;
+          value.assign(p + pos + 12, length);
+
+          if (tag.GetGroup() == 0x0002)
+          {
+            visitor.VisitMetaHeaderTag(tag, vr, value);
+          }                  
+          
+          pos += length + 12;
+        }
+      }
+
+      if (pos != block.size())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
+      if (!hasTransferSyntax)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "DICOM file meta-header without transfer syntax UID");
+      }
+
+      reader_.Schedule(8);
+      state_ = State_DatasetTag;
+    }
+    
+
+    void HandleDatasetTag(IVisitor& visitor,
+                          const std::string& block)
+    {
+      printf("DATASET TAG:\n");
+      PrintBlock(block);
+
+      assert(block.size() == 8u);
+
+      const bool littleEndian = (transferSyntax_ != DicomTransferSyntax_BigEndianExplicit);
+        
+      danglingTag_ = ReadTag(block.c_str(), littleEndian);
+      danglingVR_ = ValueRepresentation_Unknown;
+
+      /*if (danglingTag_ == DICOM_TAG_PIXEL_DATA)
+      {
+        state_ = State_Done;
+        return;
+        }*/
+
+      if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
+      {
+        uint32_t length = ReadUnsignedInteger32(block.c_str() + 4, true /* little endian */);
+        
+        reader_.Schedule(length);
+        state_ = State_DatasetValue;
+      }
+      else
+      {
+        // This in an explicit transfer syntax
+        
+        danglingVR_ = StringToValueRepresentation(
+          std::string(block.c_str() + 4, 2), false /* ignore unknown VR */);
+
+        if (IsShortExplicitTag(danglingVR_))
+        {
+          uint16_t length = ReadUnsignedInteger16(block.c_str() + 6, littleEndian);
+
+          reader_.Schedule(length);
+          state_ = State_DatasetValue;
+        }
+        else
+        {
+          uint16_t reserved = ReadUnsignedInteger16(block.c_str() + 6, littleEndian);
+          if (reserved != 0)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+
+          reader_.Schedule(4);
+          state_ = State_DatasetExplicitLength;
+        }
+      };
+    }
+
+
+    void HandleDatasetExplicitLength(IVisitor& visitor,
+                                     const std::string& block)
+    {
+      //printf("DATASET TAG LENGTH:\n");
+      //PrintBlock(block);
+
+      assert(block.size() == 4);
+
+      const bool littleEndian = (transferSyntax_ != DicomTransferSyntax_BigEndianExplicit);
+        
+      uint32_t length = ReadUnsignedInteger32(block.c_str(), littleEndian);
+      if (length == 0xffffffffu)
+      {
+        // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
+        printf("AIE\n");
+        
+        /**
+         * This is the case for compressed transfer syntaxes. We stop
+         * the processing here, as this would cause StreamBlockReader
+         * to allocate a huge memory buffer of 2GB.
+         **/
+        state_ = State_Done;
+      }
+      else
+      {
+        reader_.Schedule(length);
+        state_ = State_DatasetValue;
+      }
+    }
+    
+    
+  public:
+    DicomStreamReader(std::istream& stream) :
+      reader_(stream),
+      state_(State_Preamble),
+      transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),  // Dummy
+      danglingTag_(0x0000, 0x0000),  // Dummy
+      danglingVR_(ValueRepresentation_Unknown)  // Dummy
+    {
+      reader_.Schedule(128 /* empty header */ +
+                       4 /* "DICM" magic value */ +
+                       4 /* (0x0002, 0x0000) tag */ +
+                       2 /* value representation of (0x0002, 0x0000) == "UL" */ +
+                       2 /* length of "UL" value == 4 */ +
+                       4 /* actual length of the meta-header */);
+    }
+
+    void Consume(IVisitor& visitor)
+    {
+      while (state_ != State_Done)
+      {
+        std::string block;
+        if (reader_.Read(block))
+        {
+          switch (state_)
+          {
+            case State_Preamble:
+              HandlePreamble(visitor, block);
+              break;
+
+            case State_MetaHeader:
+              HandleMetaHeader(visitor, block);
+              break;
+
+            case State_DatasetTag:
+              HandleDatasetTag(visitor, block);
+              break;
+
+            case State_DatasetExplicitLength:
+              HandleDatasetExplicitLength(visitor, block);
+              break;
+
+            case State_DatasetValue:
+              if (visitor.VisitDatasetTag(danglingTag_, danglingVR_, transferSyntax_, block))
+              {
+                reader_.Schedule(8);
+                state_ = State_DatasetTag;
+              }
+              else
+              {
+                state_ = State_Done;
+              }
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        else
+        {
+          return;  // No more data in the stream
+        }
+      }
+    }
+
+    bool IsDone() const
+    {
+      return (state_ == State_Done);
+    }
+
+    uint64_t GetProcessedBytes() const
+    {
+      return reader_.GetProcessedBytes();
+    }
+  };
+
+
+
+  class V : public DicomStreamReader::IVisitor
+  {
+  public:
+    virtual void VisitMetaHeaderTag(const DicomTag& tag,
+                                    const ValueRepresentation& vr,
+                                    const std::string& value)
+    {
+      std::cout << "Header: " << tag.Format() << " [" << value.c_str() << "] (" << value.size() << ")" << std::endl;
+    }
+
+    virtual bool VisitDatasetTag(const DicomTag& tag,
+                                 const ValueRepresentation& vr,
+                                 DicomTransferSyntax transferSyntax,
+                                 const std::string& value)
+    {
+      if (tag.GetGroup() < 0x7f00)
+        std::cout << "Dataset: " << tag.Format() << " [" << value.c_str() << "] (" << value.size() << ")" << std::endl;
+      else
+        std::cout << "Dataset: " << tag.Format() << " [PIXEL] (" << value.size() << ")" << std::endl;
+
+      return true;
+    }
+  };
+}
+
+
+
+TEST(DicomStreamReader, DISABLED_Tutu)
+{
+  static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
+  
+  std::string dicom;
+  //SystemToolbox::ReadFile(dicom, PATH + "../ColorTestMalaterre.dcm", false);
+  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.2.dcm", false);  // Big Endian
+  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.1.dcm", false);
+  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.dcm", false);
+  SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.51.dcm", false);
+
+  std::stringstream stream;
+  size_t pos = 0;
+  
+  DicomStreamReader r(stream);
+  V visitor;
+
+  while (pos < dicom.size() &&
+         !r.IsDone())
+  {
+    //printf("."); 
+    //printf("%d\n", pos);
+    r.Consume(visitor);
+    stream.clear();
+    stream.put(dicom[pos++]);
+  }
+
+  r.Consume(visitor);
+
+  printf(">> %d\n", r.GetProcessedBytes());
+}
+
+TEST(DicomStreamReader, DISABLED_Tutu2)
+{
+  static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
+
+  //std::ifstream stream(PATH + "1.2.840.10008.1.2.4.50.dcm");
+  std::ifstream stream(PATH + "1.2.840.10008.1.2.2.dcm");
+  
+  DicomStreamReader r(stream);
+  V visitor;
+
+  r.Consume(visitor);
+
+  printf(">> %d\n", r.GetProcessedBytes());
+}
