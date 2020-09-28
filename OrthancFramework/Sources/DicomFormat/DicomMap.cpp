@@ -493,15 +493,23 @@ namespace Orthanc
   }
 
 
-  static uint16_t ReadUnsignedInteger16(const char* dicom)
+  static uint16_t ReadLittleEndianUint16(const char* dicom)
   {
-    return le16toh(*reinterpret_cast<const uint16_t*>(dicom));
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+    return (static_cast<uint16_t>(p[0]) |
+            (static_cast<uint16_t>(p[1]) << 8));
   }
 
 
-  static uint32_t ReadUnsignedInteger32(const char* dicom)
+  static uint32_t ReadLittleEndianUint32(const char* dicom)
   {
-    return le32toh(*reinterpret_cast<const uint32_t*>(dicom));
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+    return (static_cast<uint16_t>(p[0]) |
+            (static_cast<uint16_t>(p[1]) << 8) |
+            (static_cast<uint16_t>(p[2]) << 16) |
+            (static_cast<uint16_t>(p[3]) << 24));
   }
 
 
@@ -670,8 +678,8 @@ namespace Orthanc
       return false;
     }
 
-    tag = DicomTag(ReadUnsignedInteger16(dicom + position),
-                   ReadUnsignedInteger16(dicom + position + 2));
+    tag = DicomTag(ReadLittleEndianUint16(dicom + position),
+                   ReadLittleEndianUint16(dicom + position + 2));
 
     vr = StringToValueRepresentation(std::string(dicom + position + 4, 2), true);
     if (vr == ValueRepresentation_NotSupported)
@@ -679,41 +687,40 @@ namespace Orthanc
       return false;
     }
 
-    if (vr == ValueRepresentation_OtherByte ||
-        vr == ValueRepresentation_OtherDouble ||
-        vr == ValueRepresentation_OtherFloat ||
-        vr == ValueRepresentation_OtherLong ||
-        vr == ValueRepresentation_OtherWord ||
-        vr == ValueRepresentation_Sequence ||
-        vr == ValueRepresentation_UnlimitedCharacters ||
-        vr == ValueRepresentation_UniversalResource ||
-        vr == ValueRepresentation_UnlimitedText ||
-        vr == ValueRepresentation_Unknown)    // Note that "UN" should never appear in the Meta Information
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_7.html#sect_7.1.2
+    if (vr == ValueRepresentation_ApplicationEntity   /* AE */ ||
+        vr == ValueRepresentation_AgeString           /* AS */ ||
+        vr == ValueRepresentation_AttributeTag        /* AT */ ||
+        vr == ValueRepresentation_CodeString          /* CS */ ||
+        vr == ValueRepresentation_Date                /* DA */ ||
+        vr == ValueRepresentation_DecimalString       /* DS */ ||
+        vr == ValueRepresentation_DateTime            /* DT */ ||
+        vr == ValueRepresentation_FloatingPointSingle /* FL */ ||
+        vr == ValueRepresentation_FloatingPointDouble /* FD */ ||
+        vr == ValueRepresentation_IntegerString       /* IS */ ||
+        vr == ValueRepresentation_LongString          /* LO */ ||
+        vr == ValueRepresentation_LongText            /* LT */ ||
+        vr == ValueRepresentation_PersonName          /* PN */ ||
+        vr == ValueRepresentation_ShortString         /* SH */ ||
+        vr == ValueRepresentation_SignedLong          /* SL */ ||
+        vr == ValueRepresentation_SignedShort         /* SS */ ||
+        vr == ValueRepresentation_ShortText           /* ST */ ||
+        vr == ValueRepresentation_Time                /* TM */ ||
+        vr == ValueRepresentation_UniqueIdentifier    /* UI */ ||
+        vr == ValueRepresentation_UnsignedLong        /* UL */ ||
+        vr == ValueRepresentation_UnsignedShort       /* US */)
     {
-      if (position + 12 > size)
-      {
-        return false;
-      }
-
-      uint32_t length = ReadUnsignedInteger32(dicom + position + 8);
-
-      if (position + 12 + length > size)
-      {
-        return false;
-      }
-
-      value.assign(dicom + position + 12, length);
-      position += (12 + length);
-    }
-    else
-    {
+      /**
+       * This is Table 7.1-2. "Data Element with Explicit VR of AE,
+       * AS, AT, CS, DA, DS, DT, FL, FD, IS, LO, LT, PN, SH, SL, SS,
+       * ST, TM, UI, UL and US"
+       **/
       if (position + 8 > size)
       {
         return false;
       }
 
-      uint16_t length = ReadUnsignedInteger16(dicom + position + 6);
-
+      uint16_t length = ReadLittleEndianUint16(dicom + position + 6);
       if (position + 8 + length > size)
       {
         return false;
@@ -721,6 +728,32 @@ namespace Orthanc
 
       value.assign(dicom + position + 8, length);
       position += (8 + length);
+    }
+    else
+    {
+      /**
+       * This is Table 7.1-1. "Data Element with Explicit VR other
+       * than as shown in Table 7.1-2"
+       **/
+      if (position + 12 > size)
+      {
+        return false;
+      }
+      
+      uint16_t reserved = ReadLittleEndianUint16(dicom + position + 6);
+      if (reserved != 0)
+      {
+        return false;
+      }
+
+      uint32_t length = ReadLittleEndianUint32(dicom + position + 8);
+      if (position + 12 + length > size)
+      {
+        return false;
+      }
+
+      value.assign(dicom + position + 12, length);
+      position += (12 + length);
     }
 
     if (!ValidateTag(vr, value))
@@ -788,7 +821,7 @@ namespace Orthanc
       return false;
     }
 
-    size_t stopPosition = position + ReadUnsignedInteger32(value.c_str());
+    size_t stopPosition = position + ReadLittleEndianUint32(value.c_str());
     if (stopPosition > size)
     {
       return false;
