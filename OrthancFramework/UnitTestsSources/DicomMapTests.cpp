@@ -650,3 +650,46 @@ TEST(DicomMap, MainTagNames)
     }
   }
 }
+
+
+
+
+#include "../Sources/SystemToolbox.h"
+
+TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
+{
+  static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
+  
+  std::map<std::string, DicomTransferSyntax> f;
+  f.insert(std::make_pair(PATH + "../ColorTestMalaterre.dcm", DicomTransferSyntax_LittleEndianImplicit));  // 1.2.840.10008.1.2
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", DicomTransferSyntax_LittleEndianExplicit));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", DicomTransferSyntax_BigEndianExplicit));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", DicomTransferSyntax_JPEGProcess1));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", DicomTransferSyntax_JPEGProcess2_4));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", DicomTransferSyntax_JPEGProcess14));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", DicomTransferSyntax_JPEGProcess14SV1));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", DicomTransferSyntax_JPEGLSLossless));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", DicomTransferSyntax_JPEGLSLossy));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", DicomTransferSyntax_JPEG2000LosslessOnly));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", DicomTransferSyntax_JPEG2000));
+  f.insert(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", DicomTransferSyntax_RLELossless));
+
+  for (std::map<std::string, DicomTransferSyntax>::const_iterator it = f.begin(); it != f.end(); ++it)
+  {
+    printf("\n== %s ==\n\n", it->first.c_str());
+    
+    std::string dicom;
+    SystemToolbox::ReadFile(dicom, it->first, false);
+
+    DicomMap d;
+    ASSERT_TRUE(DicomMap::ParseDicomMetaInformation(d, dicom.c_str(), dicom.size()));
+    d.Print(stdout);
+
+    std::string s;
+    ASSERT_TRUE(d.LookupStringValue(s, DICOM_TAG_TRANSFER_SYNTAX_UID, false));
+    
+    DicomTransferSyntax ts;
+    ASSERT_TRUE(LookupTransferSyntax(ts, s));
+    ASSERT_EQ(ts, it->second);
+  }
+}
