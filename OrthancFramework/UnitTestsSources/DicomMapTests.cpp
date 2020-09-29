@@ -809,6 +809,8 @@ namespace
       State_Preamble,
       State_MetaHeader,
       State_DatasetTag,
+      State_SequenceExplicitLength,
+      State_SequenceExplicitValue,
       State_DatasetExplicitLength,
       State_DatasetValue,
       State_Done
@@ -817,7 +819,6 @@ namespace
     StreamBlockReader    reader_;
     State                state_;
     DicomTransferSyntax  transferSyntax_;
-    DicomTag             previousTag_;
     DicomTag             danglingTag_;
     ValueRepresentation  danglingVR_;
     unsigned int         sequenceDepth_;
@@ -922,8 +923,8 @@ namespace
     void HandlePreamble(IVisitor& visitor,
                         const std::string& block)
     {
-      printf("PREAMBLE:\n");
-      PrintBlock(block);
+      //printf("PREAMBLE:\n");
+      //PrintBlock(block);
 
       assert(block.size() == 144u);
       assert(reader_.GetProcessedBytes() == 144u);
@@ -955,8 +956,8 @@ namespace
     void HandleMetaHeader(IVisitor& visitor,
                           const std::string& block)
     {
-      printf("META-HEADER:\n");
-      PrintBlock(block);
+      //printf("META-HEADER:\n");
+      //PrintBlock(block);
 
       size_t pos = 0;
       const char* p = block.c_str();
@@ -1039,15 +1040,11 @@ namespace
     }
     
 
-    void HandleDatasetTag(IVisitor& visitor,
-                          const std::string& block)
+    void HandleDatasetTag(const std::string& block)
     {
       static const DicomTag DICOM_TAG_SEQUENCE_ITEM(0xfffe, 0xe000);
       static const DicomTag DICOM_TAG_SEQUENCE_DELIMITATION_ITEM(0xfffe, 0xe00d);
       static const DicomTag DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE(0xfffe, 0xe0dd);
-
-      //printf("DATASET TAG:\n");
-      //PrintBlock(block);
 
       assert(block.size() == 8u);
 
@@ -1058,8 +1055,8 @@ namespace
           tag == DICOM_TAG_SEQUENCE_DELIMITATION_ITEM ||
           tag == DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE)
       {
-        printf("SEQUENCE TAG:\n");
-        PrintBlock(block);
+        //printf("SEQUENCE TAG:\n");
+        //PrintBlock(block);
 
         // The special sequence items are encoded like "Implicit VR"
         uint32_t length = ReadUnsignedInteger32(block.c_str() + 4, littleEndian);
@@ -1094,11 +1091,18 @@ namespace
 
           if (tag == DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE)
           {
-            sequenceDepth_ --;
-
-            for (unsigned int i = 0; i <= sequenceDepth_; i++)
+            for (unsigned int i = 0; i < sequenceDepth_; i++)
               printf("  ");
             printf("...leaving sequence...\n");
+
+            sequenceDepth_ --;
+          }
+          else
+          {
+            if (sequenceDepth_ == 0)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
           }
 
           reader_.Schedule(8);
@@ -1111,6 +1115,9 @@ namespace
       }
       else
       {
+        //printf("DATASET TAG:\n");
+        //PrintBlock(block);
+
         ValueRepresentation vr = ValueRepresentation_Unknown;
         
         if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
@@ -1123,18 +1130,26 @@ namespace
         else
         {
           // This in an explicit transfer syntax
-        
+
           vr = StringToValueRepresentation(
             std::string(block.c_str() + 4, 2), false /* ignore unknown VR */);
 
+          if (vr != ValueRepresentation_Sequence &&
+              sequenceDepth_ > 0)
+          {
+            for (unsigned int i = 0; i <= sequenceDepth_; i++)
+              printf("  ");
+            printf("%s\n", tag.Format().c_str());
+          }
+          
           if (vr == ValueRepresentation_Sequence)
           {
             for (unsigned int i = 0; i <= sequenceDepth_; i++)
               printf("  ");
-            printf("...entering sequence... %s\n", previousTag_.Format().c_str());
+            printf("...entering sequence... %s\n", tag.Format().c_str());
             sequenceDepth_ ++;
             reader_.Schedule(4);
-            state_ = State_DatasetExplicitLength;
+            state_ = State_SequenceExplicitLength;
           }
           else if (IsShortExplicitTag(vr))
           {
@@ -1156,25 +1171,16 @@ namespace
           }
         }
 
-        previousTag_ = tag;
-
         if (sequenceDepth_ == 0)
         {
           danglingTag_ = tag;
           danglingVR_ = vr;
         }
-        else
-        {
-          for (unsigned int i = 0; i <= sequenceDepth_; i++)
-            printf("  ");
-          printf("  %s\n", tag.Format().c_str());
-        }
       }
     }
 
 
-    void HandleDatasetExplicitLength(IVisitor& visitor,
-                                     const std::string& block)
+    void HandleDatasetExplicitLength(const std::string& block)
     {
       //printf("DATASET TAG LENGTH:\n");
       //PrintBlock(block);
@@ -1182,17 +1188,25 @@ namespace
       assert(block.size() == 4);
 
       uint32_t length = ReadUnsignedInteger32(block.c_str(), IsLittleEndian());
+      
       if (length == 0xffffffffu)
       {
         /**
-         * This is the case of sequences, or pixel data with
-         * compressed transfer syntaxes. Schedule the reading of the
-         * first tag of the nested dataset.
+         * This is the case of pixel data with compressed transfer
+         * syntaxes. Schedule the reading of the first tag of the
+         * nested dataset.
          * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
          **/
 
+        if (sequenceDepth_ != 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        
+        printf("  ...entering sequence... %s\n", danglingTag_.Format().c_str());
         state_ = State_DatasetTag;
         reader_.Schedule(8);
+        sequenceDepth_ ++;
       }
       else
       {
@@ -1202,12 +1216,92 @@ namespace
     }
     
     
+    void HandleSequenceExplicitLength(const std::string& block)
+    {
+      //printf("DATASET TAG LENGTH:\n");
+      //PrintBlock(block);
+
+      assert(block.size() == 4);
+
+      uint32_t length = ReadUnsignedInteger32(block.c_str(), IsLittleEndian());
+      if (length == 0xffffffffu)
+      {
+        state_ = State_DatasetTag;
+        reader_.Schedule(8);
+      }
+      else
+      {
+        for (unsigned int i = 0; i <= sequenceDepth_; i++)
+          printf("  ");
+        printf("...skipping sequence thanks to explicit length... %d\n", length);
+
+        reader_.Schedule(length);
+        state_ = State_SequenceExplicitValue;
+      }
+    }
+
+    void HandleSequenceExplicitValue()
+    {
+      if (sequenceDepth_ == 0)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      sequenceDepth_ --;
+
+      state_ = State_DatasetTag;
+      reader_.Schedule(8);
+    }
+
+
+    void HandleDatasetValue(IVisitor& visitor,
+                            const std::string& block)
+    {
+      if (sequenceDepth_ == 0)
+      {
+        bool c;
+        
+        if (!block.empty() &&
+            (block[block.size() - 1] == ' ' ||
+             block[block.size() - 1] == '\0') &&
+            (danglingVR_ == ValueRepresentation_ApplicationEntity ||
+             danglingVR_ == ValueRepresentation_AgeString ||
+             danglingVR_ == ValueRepresentation_CodeString ||
+             danglingVR_ == ValueRepresentation_DecimalString ||
+             danglingVR_ == ValueRepresentation_IntegerString ||
+             danglingVR_ == ValueRepresentation_LongString ||
+             danglingVR_ == ValueRepresentation_LongText ||
+             danglingVR_ == ValueRepresentation_PersonName ||
+             danglingVR_ == ValueRepresentation_ShortString ||
+             danglingVR_ == ValueRepresentation_ShortText ||
+             danglingVR_ == ValueRepresentation_UniqueIdentifier ||
+             danglingVR_ == ValueRepresentation_UnlimitedText))
+        {
+          std::string s(block.begin(), block.end() - 1);
+          c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, transferSyntax_, s, IsLittleEndian());
+        }
+        else
+        {
+          c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, transferSyntax_, block, IsLittleEndian());
+        }
+        
+        if (!c)
+        {
+          state_ = State_Done;
+          return;
+        }
+      }
+
+      reader_.Schedule(8);
+      state_ = State_DatasetTag;
+    }
+    
+    
   public:
     DicomStreamReader(std::istream& stream) :
       reader_(stream),
       state_(State_Preamble),
       transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),  // Dummy
-      previousTag_(0x0000, 0x0000),  // Dummy
       danglingTag_(0x0000, 0x0000),  // Dummy
       danglingVR_(ValueRepresentation_Unknown),  // Dummy
       sequenceDepth_(0)
@@ -1238,25 +1332,23 @@ namespace
               break;
 
             case State_DatasetTag:
-              HandleDatasetTag(visitor, block);
+              HandleDatasetTag(block);
               break;
 
             case State_DatasetExplicitLength:
-              HandleDatasetExplicitLength(visitor, block);
+              HandleDatasetExplicitLength(block);
+              break;
+
+            case State_SequenceExplicitLength:
+              HandleSequenceExplicitLength(block);
+              break;
+
+            case State_SequenceExplicitValue:
+              HandleSequenceExplicitValue();
               break;
 
             case State_DatasetValue:
-              if (sequenceDepth_ == 0 &&
-                  !visitor.VisitDatasetTag(danglingTag_, danglingVR_, transferSyntax_, block, IsLittleEndian()))
-              {
-                state_ = State_Done;
-              }
-              else
-              {
-                reader_.Schedule(8);
-                state_ = State_DatasetTag;
-              }
-              
+              HandleDatasetValue(visitor, block);
               break;
 
             default:
@@ -1302,9 +1394,11 @@ namespace
       if (!isLittleEndian)
         printf("** ");
       if (tag.GetGroup() < 0x7f00)
-        std::cout << "Dataset: " << tag.Format() << " [" << Toolbox::ConvertToAscii(value).c_str() << "] (" << value.size() << ")" << std::endl;
+        std::cout << "Dataset: " << tag.Format() << " " << EnumerationToString(vr)
+                  << " [" << Toolbox::ConvertToAscii(value).c_str() << "] (" << value.size() << ")" << std::endl;
       else
-        std::cout << "Dataset: " << tag.Format() << " [PIXEL] (" << value.size() << ")" << std::endl;
+        std::cout << "Dataset: " << tag.Format() << " " << EnumerationToString(vr)
+                  << " [PIXEL] (" << value.size() << ")" << std::endl;
 
       return true;
     }
@@ -1318,7 +1412,7 @@ TEST(DicomStreamReader, DISABLED_Tutu)
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
   
   std::string dicom;
-  //SystemToolbox::ReadFile(dicom, PATH + "../ColorTestMalaterre.dcm", false);
+  SystemToolbox::ReadFile(dicom, PATH + "../ColorTestMalaterre.dcm", false);
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.1.dcm", false);
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.2.dcm", false);  // Big Endian
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.dcm", false);
@@ -1329,8 +1423,8 @@ TEST(DicomStreamReader, DISABLED_Tutu)
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.81.dcm", false);
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.90.dcm", false);
   //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.91.dcm", false);
-  SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.5.dcm", false);
-
+  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.5.dcm", false);
+  
   std::stringstream stream;
   size_t pos = 0;
   
