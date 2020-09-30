@@ -140,19 +140,6 @@ namespace Orthanc
   }
 
 
-  static void PrintBlock(const std::string& block)
-  {
-    for (size_t i = 0; i < block.size(); i++)
-    {
-      printf("%02x ", static_cast<uint8_t>(block[i]));
-      if (i % 16 == 15)
-        printf("\n");
-    }
-    printf("\n");
-  }
-    
-
-
   bool DicomStreamReader::IsLittleEndian() const
   {
     return (transferSyntax_ != DicomTransferSyntax_BigEndianExplicit);
@@ -162,9 +149,6 @@ namespace Orthanc
   void DicomStreamReader::HandlePreamble(IVisitor& visitor,
                                          const std::string& block)
   {
-    //printf("PREAMBLE:\n");
-    //PrintBlock(block);
-
     assert(block.size() == 144u);
     assert(reader_.GetProcessedBytes() == 144u);
 
@@ -195,9 +179,6 @@ namespace Orthanc
   void DicomStreamReader::HandleMetaHeader(IVisitor& visitor,
                                            const std::string& block)
   {
-    //printf("META-HEADER:\n");
-    //PrintBlock(block);
-
     size_t pos = 0;
     const char* p = block.c_str();
 
@@ -298,27 +279,20 @@ namespace Orthanc
         tag == DICOM_TAG_SEQUENCE_DELIMITATION_ITEM ||
         tag == DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE)
     {
-      //printf("SEQUENCE TAG:\n");
-      //PrintBlock(block);
-
       // The special sequence items are encoded like "Implicit VR"
       uint32_t length = ReadUnsignedInteger32(block.c_str() + 4, littleEndian);
 
       if (tag == DICOM_TAG_SEQUENCE_ITEM)
       {
-        for (unsigned int i = 0; i <= sequenceDepth_; i++)
-          printf("  ");
         if (length == 0xffffffffu)
         {
           // Undefined length: Need to loop over the tags of the nested dataset
-          printf("...next dataset in sequence...\n");
           reader_.Schedule(8);
           state_ = State_DatasetTag;
         }
         else
         {
           // Explicit length: Can skip the full sequence at once
-          printf("...next dataset in sequence... %u bytes\n", length);
           reader_.Schedule(length);
           state_ = State_DatasetValue;
         }
@@ -334,18 +308,7 @@ namespace Orthanc
 
         if (tag == DICOM_TAG_SEQUENCE_DELIMITATION_SEQUENCE)
         {
-          for (unsigned int i = 0; i < sequenceDepth_; i++)
-            printf("  ");
-          printf("...leaving sequence...\n");
-
           sequenceDepth_ --;
-        }
-        else
-        {
-          if (sequenceDepth_ == 0)
-          {
-            throw OrthancException(ErrorCode_BadFileFormat);
-          }
         }
 
         reader_.Schedule(8);
@@ -358,11 +321,6 @@ namespace Orthanc
     }
     else
     {
-      //printf("DATASET TAG:\n");
-      //PrintBlock(block);
-
-      previousTag_ = tag;
-          
       ValueRepresentation vr = ValueRepresentation_Unknown;
         
       if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
@@ -383,19 +341,8 @@ namespace Orthanc
         vr = StringToValueRepresentation(
           std::string(block.c_str() + 4, 2), false /* ignore unknown VR */);
 
-        if (vr != ValueRepresentation_Sequence &&
-            sequenceDepth_ > 0)
-        {
-          for (unsigned int i = 0; i <= sequenceDepth_; i++)
-            printf("  ");
-          printf("%s\n", tag.Format().c_str());
-        }
-          
         if (vr == ValueRepresentation_Sequence)
         {
-          for (unsigned int i = 0; i <= sequenceDepth_; i++)
-            printf("  ");
-          printf("...entering sequence... %s\n", tag.Format().c_str());
           sequenceDepth_ ++;
           reader_.Schedule(4);
           state_ = State_SequenceExplicitLength;
@@ -439,11 +386,6 @@ namespace Orthanc
        * nested dataset.
        * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
        **/
-
-      for (unsigned int i = 0; i <= sequenceDepth_; i++)
-        printf("  ");
-      printf("...entering sequence... %s\n", previousTag_.Format().c_str());
-        
       state_ = State_DatasetTag;
       reader_.Schedule(8);
       sequenceDepth_ ++;
@@ -458,9 +400,6 @@ namespace Orthanc
     
   void DicomStreamReader::HandleDatasetExplicitLength(const std::string& block)
   {
-    //printf("DATASET TAG LENGTH:\n");
-    //PrintBlock(block);
-
     assert(block.size() == 4);
 
     uint32_t length = ReadUnsignedInteger32(block.c_str(), IsLittleEndian());
@@ -470,9 +409,6 @@ namespace Orthanc
 
   void DicomStreamReader::HandleSequenceExplicitLength(const std::string& block)
   {
-    //printf("DATASET TAG LENGTH:\n");
-    //PrintBlock(block);
-
     assert(block.size() == 4);
 
     uint32_t length = ReadUnsignedInteger32(block.c_str(), IsLittleEndian());
@@ -483,10 +419,6 @@ namespace Orthanc
     }
     else
     {
-      for (unsigned int i = 0; i <= sequenceDepth_; i++)
-        printf("  ");
-      printf("...skipping sequence thanks to explicit length... %d\n", length);
-
       reader_.Schedule(length);
       state_ = State_SequenceExplicitValue;
     }
@@ -540,7 +472,6 @@ namespace Orthanc
     reader_(stream),
     state_(State_Preamble),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),  // Dummy
-    previousTag_(0x0000, 0x0000),  // Dummy
     danglingTag_(0x0000, 0x0000),  // Dummy
     danglingVR_(ValueRepresentation_Unknown),  // Dummy
     sequenceDepth_(0)
