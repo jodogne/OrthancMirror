@@ -65,6 +65,18 @@ namespace Orthanc
 
     bool operator< (const DicomTag& other) const;
 
+    bool operator<= (const DicomTag& other) const;
+
+    bool operator> (const DicomTag& other) const
+    {
+      return !(*this <= other);
+    }
+
+    bool operator>= (const DicomTag& other) const
+    {
+      return !(*this < other);
+    }
+
     bool operator== (const DicomTag& other) const
     {
       return group_ == other.group_ && element_ == other.element_;

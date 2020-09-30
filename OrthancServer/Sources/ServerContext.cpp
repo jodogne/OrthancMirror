@@ -1278,7 +1278,8 @@ namespace Orthanc
           {
             // Ignore universal lookup on "ModalitiesInStudy" (0008,0061),
             // this should have been handled by the caller
-            return ApplyInternal(visitor, lookup, queryLevel, since, limit);
+            ApplyInternal(visitor, lookup, queryLevel, since, limit);
+            return;
           }
           else
           {

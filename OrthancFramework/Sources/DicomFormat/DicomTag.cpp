@@ -66,6 +66,18 @@ namespace Orthanc
   }
 
 
+  bool DicomTag::operator<= (const DicomTag& other) const
+  {
+    if (group_ < other.group_)
+      return true;
+
+    if (group_ > other.group_)
+      return false;
+
+    return element_ <= other.element_;
+  }
+
+
   std::ostream& operator<< (std::ostream& o, const DicomTag& tag)
   {
     using namespace std;
