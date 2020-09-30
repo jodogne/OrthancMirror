@@ -308,7 +308,7 @@ namespace Orthanc
       // https://stackoverflow.com/a/23826489/881731
       f.flush();
 
-      bool success = false;
+      bool success;
 
       /**
        * "f->handle()" corresponds to "FILE*" (aka "HANDLE") on

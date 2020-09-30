@@ -43,7 +43,7 @@ namespace Orthanc
     uint64_t       processedBytes_;
 
   public:
-    StreamBlockReader(std::istream& stream);
+    explicit StreamBlockReader(std::istream& stream);
 
     /**
      * Schedule the size of the next block to be extracted from the

@@ -414,7 +414,8 @@ namespace Orthanc
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    CleaningInstancesJob(context, serialized, true /* by default, keep source */)
+    CleaningInstancesJob(context, serialized, true /* by default, keep source */),
+    transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
   {
     assert(serialized.type() == Json::objectValue);
 

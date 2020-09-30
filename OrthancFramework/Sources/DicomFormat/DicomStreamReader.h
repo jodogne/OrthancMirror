@@ -104,7 +104,7 @@ namespace Orthanc
                             const std::string& block);
     
   public:
-    DicomStreamReader(std::istream& stream);
+    explicit DicomStreamReader(std::istream& stream);
 
     /**
      * Consume all the available bytes from the input stream, until

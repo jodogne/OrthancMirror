@@ -730,7 +730,7 @@ namespace Orthanc
       boost::regex                      regex_;
 
     public:
-      explicit ChunkedRestCallback(_OrthancPluginChunkedRestCallback parameters) :
+      explicit ChunkedRestCallback(const _OrthancPluginChunkedRestCallback& parameters) :
         parameters_(parameters),
         regex_(parameters.pathRegularExpression)
       {
@@ -759,7 +759,7 @@ namespace Orthanc
         void*    handler_;
 
       public:
-        Handler(_OrthancPluginRegisterStorageCommitmentScpCallback  parameters,
+        Handler(const _OrthancPluginRegisterStorageCommitmentScpCallback& parameters,
                 void* handler) :
           parameters_(parameters),
           handler_(handler)
@@ -800,7 +800,7 @@ namespace Orthanc
       _OrthancPluginRegisterStorageCommitmentScpCallback  parameters_;
 
     public:
-      explicit StorageCommitmentScp(_OrthancPluginRegisterStorageCommitmentScpCallback parameters) :
+      explicit StorageCommitmentScp(const _OrthancPluginRegisterStorageCommitmentScpCallback& parameters) :
         parameters_(parameters)
       {
       }
