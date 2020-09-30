@@ -1450,8 +1450,11 @@ TEST(DicomStreamReader, DISABLED_Tutu2)
 {
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
 
-  //std::ifstream stream(PATH + "1.2.840.10008.1.2.4.50.dcm");
-  std::ifstream stream(PATH + "1.2.840.10008.1.2.2.dcm");
+  const std::string path = PATH + "1.2.840.10008.1.2.4.50.dcm";
+  //const std::string path = PATH + "1.2.840.10008.1.2.2.dcm";
+
+  
+  std::ifstream stream(path.c_str());
   
   DicomStreamReader r(stream);
   V visitor;
