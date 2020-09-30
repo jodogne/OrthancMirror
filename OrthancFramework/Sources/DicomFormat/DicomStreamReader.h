@@ -28,10 +28,13 @@
 namespace Orthanc
 {
   /**
-   * This class parses a stream containing a DICOM instance. It does
-   * *not* support the visit of sequences (it only works at the first
-   * level of the hierarchy), and as a consequence, it doesn't give
-   * access to the pixel data of compressed transfer syntaxes.
+   * This class parses a stream containing a DICOM instance, using a
+   * state machine.
+   *
+   * It does *not* support the visit of sequences (it only works at
+   * the first level of the hierarchy), and as a consequence, it
+   * doesn't give access to the pixel data of compressed transfer
+   * syntaxes.
    **/
   class DicomStreamReader : public boost::noncopyable
   {

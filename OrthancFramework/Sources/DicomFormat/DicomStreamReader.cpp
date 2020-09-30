@@ -27,6 +27,39 @@
 
 namespace Orthanc
 {
+  static bool IsNormalizationNeeded(const std::string& source,
+                                    ValueRepresentation vr)
+  {
+    return (!source.empty() &&
+            (source[source.size() - 1] == ' ' ||
+             source[source.size() - 1] == '\0') &&
+            // Normalization only applies to string-based VR
+            (vr == ValueRepresentation_ApplicationEntity ||
+             vr == ValueRepresentation_AgeString ||
+             vr == ValueRepresentation_CodeString ||
+             vr == ValueRepresentation_DecimalString ||
+             vr == ValueRepresentation_IntegerString ||
+             vr == ValueRepresentation_LongString ||
+             vr == ValueRepresentation_LongText ||
+             vr == ValueRepresentation_PersonName ||
+             vr == ValueRepresentation_ShortString ||
+             vr == ValueRepresentation_ShortText ||
+             vr == ValueRepresentation_UniqueIdentifier ||
+             vr == ValueRepresentation_UnlimitedText));
+  }
+
+  
+  static void NormalizeValue(std::string& inplace,
+                             ValueRepresentation vr)
+  {
+    if (IsNormalizationNeeded(inplace, vr))
+    {
+      assert(!inplace.empty());
+      inplace.resize(inplace.size() - 1);
+    }
+  }
+
+    
   static uint16_t ReadUnsignedInteger16(const char* dicom,
                                         bool littleEndian)
   {
@@ -158,7 +191,7 @@ namespace Orthanc
     state_ = State_MetaHeader;
   }
 
-    
+
   void DicomStreamReader::HandleMetaHeader(IVisitor& visitor,
                                            const std::string& block)
   {
@@ -182,6 +215,7 @@ namespace Orthanc
 
         std::string value;
         value.assign(p + pos + 8, length);
+        NormalizeValue(value, vr);
 
         if (tag.GetGroup() == 0x0002)
         {
@@ -190,13 +224,6 @@ namespace Orthanc
 
         if (tag == DICOM_TAG_TRANSFER_SYNTAX_UID)
         {
-          // Remove possible padding byte
-          if (!value.empty() &&
-              value[value.size() - 1] == '\0')
-          {
-            value.resize(value.size() - 1);
-          }
-            
           if (LookupTransferSyntax(transferSyntax_, value))
           {
             hasTransferSyntax = true;
@@ -219,11 +246,11 @@ namespace Orthanc
           
         uint32_t length = ReadUnsignedInteger32(p + pos + 8, true);
 
-        std::string value;
-        value.assign(p + pos + 12, length);
-
         if (tag.GetGroup() == 0x0002)
         {
+          std::string value;
+          value.assign(p + pos + 12, length);
+          NormalizeValue(value, vr);
           visitor.VisitMetaHeaderTag(tag, vr, value);
         }                  
           
@@ -486,22 +513,8 @@ namespace Orthanc
     if (sequenceDepth_ == 0)
     {
       bool c;
-        
-      if (!block.empty() &&
-          (block[block.size() - 1] == ' ' ||
-           block[block.size() - 1] == '\0') &&
-          (danglingVR_ == ValueRepresentation_ApplicationEntity ||
-           danglingVR_ == ValueRepresentation_AgeString ||
-           danglingVR_ == ValueRepresentation_CodeString ||
-           danglingVR_ == ValueRepresentation_DecimalString ||
-           danglingVR_ == ValueRepresentation_IntegerString ||
-           danglingVR_ == ValueRepresentation_LongString ||
-           danglingVR_ == ValueRepresentation_LongText ||
-           danglingVR_ == ValueRepresentation_PersonName ||
-           danglingVR_ == ValueRepresentation_ShortString ||
-           danglingVR_ == ValueRepresentation_ShortText ||
-           danglingVR_ == ValueRepresentation_UniqueIdentifier ||
-           danglingVR_ == ValueRepresentation_UnlimitedText))
+
+      if (IsNormalizationNeeded(block, danglingVR_))
       {
         std::string s(block.begin(), block.end() - 1);
         c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, s, IsLittleEndian());
