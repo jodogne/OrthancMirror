@@ -184,6 +184,8 @@ if (ENABLE_MODULE_DICOM)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomIntegerPixelAccessor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomMap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomValue.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/StreamBlockReader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomStreamReader.cpp
     )
 endif()
 
