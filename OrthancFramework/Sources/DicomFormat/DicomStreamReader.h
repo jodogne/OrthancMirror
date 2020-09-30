@@ -36,7 +36,7 @@ namespace Orthanc
    * doesn't give access to the pixel data of compressed transfer
    * syntaxes.
    **/
-  class DicomStreamReader : public boost::noncopyable
+  class ORTHANC_PUBLIC DicomStreamReader : public boost::noncopyable
   {
   public:
     class IVisitor : public boost::noncopyable

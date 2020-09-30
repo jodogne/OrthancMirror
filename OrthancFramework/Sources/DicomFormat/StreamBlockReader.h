@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "../OrthancFramework.h"  // For ORTHANC_PUBLIC
+
 #include <boost/noncopyable.hpp>
 #include <istream>
 #include <string>
@@ -34,7 +36,7 @@ namespace Orthanc
    * stream. Bytes from the stream are buffered until the requested
    * size is available, and the full block can be returned.
    **/
-  class StreamBlockReader : public boost::noncopyable
+  class ORTHANC_PUBLIC StreamBlockReader : public boost::noncopyable
   {
   private:
     std::istream&  stream_;
