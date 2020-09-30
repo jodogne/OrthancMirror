@@ -885,12 +885,12 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 
   r.Consume(visitor);
 
-  printf(">> %d\n", r.GetProcessedBytes());
+  printf(">> %d\n", static_cast<int>(r.GetProcessedBytes()));
 }
 
 TEST(DicomStreamReader, DISABLED_Tutu2)
 {
-  static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
+  //static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
 
   //const std::string path = PATH + "1.2.840.10008.1.2.4.50.dcm";
   //const std::string path = PATH + "1.2.840.10008.1.2.2.dcm";
@@ -903,7 +903,7 @@ TEST(DicomStreamReader, DISABLED_Tutu2)
 
   r.Consume(visitor);
 
-  printf(">> %d\n", r.GetProcessedBytes());
+  printf(">> %d\n", static_cast<int>(r.GetProcessedBytes()));
 }
 
 
@@ -1011,5 +1011,5 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
     printf("[%s]\n", it->c_str());
   }
 
-  printf("\n== SUCCESSES: %d ==\n\n", success);
+  printf("\n== SUCCESSES: %u ==\n\n", success);
 }
