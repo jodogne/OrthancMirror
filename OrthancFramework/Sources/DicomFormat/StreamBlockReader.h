@@ -26,6 +26,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <istream>
+#include <stdint.h>
 #include <string>
 
 
