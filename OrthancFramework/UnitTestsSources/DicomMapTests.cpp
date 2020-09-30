@@ -1167,7 +1167,8 @@ namespace
       const bool littleEndian = IsLittleEndian();
       DicomTag tag = ReadTag(block.c_str(), littleEndian);
 
-      if (tag >= untilTag)
+      if (sequenceDepth_ == 0 &&
+          tag >= untilTag)
       {
         state_ = State_Done;
         return;
