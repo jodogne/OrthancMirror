@@ -77,8 +77,7 @@ namespace Orthanc
     StreamBlockReader    reader_;
     State                state_;
     DicomTransferSyntax  transferSyntax_;
-    DicomTag             previousTag_;
-    DicomTag             danglingTag_;  // Root-level tag
+    DicomTag             danglingTag_;  // Current root-level tag
     ValueRepresentation  danglingVR_;
     unsigned int         sequenceDepth_;
     
