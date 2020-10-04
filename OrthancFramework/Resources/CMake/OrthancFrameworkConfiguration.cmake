@@ -309,6 +309,12 @@ if (ENABLE_WEB_SERVER)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
     )
+
+  if (ENABLE_PUGIXML)
+    list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/IWebDavBucket.cpp
+      )
+  endif()
 endif()
 
 if (ORTHANC_ENABLE_CIVETWEB)

@@ -1,0 +1,161 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2020 Osimis S.A., Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ **/
+
+
+#pragma once
+
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error The macro ORTHANC_ENABLE_PUGIXML must be defined
+#endif
+
+#if ORTHANC_ENABLE_PUGIXML != 1
+#  error XML support is required to use this file
+#endif
+
+#include "../Compatibility.h"
+#include "../Enumerations.h"
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/noncopyable.hpp>
+#include <pugixml.hpp>
+
+#include <list>
+
+namespace Orthanc
+{
+  class IWebDavBucket : public boost::noncopyable
+  {
+  public:
+    class Resource : public boost::noncopyable
+    {
+    private:
+      std::string               name_;
+      bool                      hasModificationTime_;
+      boost::posix_time::ptime  creationTime_;
+      boost::posix_time::ptime  modificationTime_;
+
+    protected:
+      void SetNameInternal(const std::string& name);
+
+    public:
+      Resource();
+
+      virtual ~Resource()
+      {
+      }
+
+      void SetCreationTime(const boost::posix_time::ptime& t);
+
+      void SetModificationTime(const boost::posix_time::ptime& t);
+
+      const std::string& GetName() const
+      {
+        return name_;
+      }
+
+      const boost::posix_time::ptime& GetCreationTime() const
+      {
+        return creationTime_;
+      }
+
+      const boost::posix_time::ptime& GetModificationTime() const
+      {
+        return modificationTime_;
+      }
+
+      virtual void Format(pugi::xml_node& node,
+                          const std::string& parentPath) const;
+    };
+
+
+    class File : public Resource
+    {
+    private:
+      uint64_t  contentLength_;
+      MimeType  mime_;
+
+    public:
+      File(const std::string& name);
+
+      void SetContentLength(uint64_t contentLength)
+      {
+        contentLength_ = contentLength;
+      }
+
+      void SetMimeType(MimeType mime)
+      {
+        mime_ = mime;
+      }
+
+      uint64_t GetContentLength() const
+      {
+        return contentLength_;
+      }
+
+      MimeType GetMimeType() const
+      {
+        return mime_;
+      }
+
+      virtual void Format(pugi::xml_node& node,
+                          const std::string& parentPath) const ORTHANC_OVERRIDE;
+    };
+
+
+    class Folder : public Resource
+    {
+    public:
+      Folder(const std::string& name)
+      {
+        SetNameInternal(name);
+      }
+      
+      virtual void Format(pugi::xml_node& node,
+                          const std::string& parentPath) const ORTHANC_OVERRIDE;
+    };
+
+
+    class Collection : public boost::noncopyable
+    {
+    private:
+      std::list<Resource*>  resources_;
+
+    public:
+      ~Collection();
+
+      void AddResource(Resource* resource);  // Takes ownership
+
+      void Format(std::string& target,
+                  const std::string& parentPath) const;
+    };
+    
+
+    virtual ~IWebDavBucket()
+    {
+    }
+
+    virtual bool ListCollection(Collection& collection,
+                                const std::vector<std::string>& path) = 0;
+
+    virtual bool GetFileContent(std::string& content,
+                                const std::vector<std::string>& path) = 0;
+  };
+}
