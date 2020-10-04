@@ -32,6 +32,10 @@
 #include "../TemporaryFile.h"
 #include "HttpToolbox.h"
 
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include "IWebDavBucket.h"
+#endif
+
 #if ORTHANC_ENABLE_MONGOOSE == 1
 #  include <mongoose.h>
 
@@ -1097,6 +1101,14 @@ namespace Orthanc
   HttpServer::~HttpServer()
   {
     Stop();
+
+#if ORTHANC_ENABLE_PUGIXML == 1    
+    for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
+    }
+#endif
   }
 
 
@@ -1420,4 +1432,39 @@ namespace Orthanc
     requestTimeout_ = seconds;
     LOG(INFO) << "Request timeout in the HTTP server is set to " << seconds << " seconds";
   }
+
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+  void HttpServer::Register(const std::vector<std::string>& root,
+                            IWebDavBucket* bucket)
+  {
+    std::unique_ptr<IWebDavBucket> protection(bucket);
+    
+    if (bucket == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    std::string s = "/";
+    for (size_t i = 0; i < root.size(); i++)
+    {
+      if (root[i].empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "An URI component cannot be empty");
+      }
+      
+      s += root[i];
+    }
+
+    if (webDavBuckets_.find(s) != webDavBuckets_.end())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Cannot register two WebDAV buckets at the same root: " + s);
+    }
+    else
+    {
+      webDavBuckets_[s] = protection.release();
+    }
+  }
+#endif
 }

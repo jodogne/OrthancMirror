@@ -38,6 +38,14 @@
 #  error Either ORTHANC_ENABLE_MONGOOSE or ORTHANC_ENABLE_CIVETWEB must be set to 1
 #endif
 
+#if !defined(ORTHANC_ENABLE_PUGIXML)
+#  error The macro ORTHANC_ENABLE_PUGIXML must be defined
+#endif
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+#  include "IWebDavBucket.h"
+#endif
+
 
 #include "IIncomingHttpRequestFilter.h"
 
@@ -93,7 +101,12 @@ namespace Orthanc
     unsigned int threadsCount_;
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
-  
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+    typedef std::map<std::string, IWebDavBucket*>  WebDavBuckets;
+    WebDavBuckets webDavBuckets_;
+#endif
+    
     bool IsRunning() const;
 
   public:
@@ -221,5 +234,10 @@ namespace Orthanc
     {
       return requestTimeout_;
     }
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+    void Register(const std::vector<std::string>& root,
+                  IWebDavBucket* bucket); // Takes ownership
+#endif
   };
 }

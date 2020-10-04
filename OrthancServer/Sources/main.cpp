@@ -43,6 +43,7 @@
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
+#include "../../OrthancFramework/Sources/HttpServer/IWebDavBucket.h"  // TODO
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
@@ -611,6 +612,61 @@ public:
 
 
 
+
+class DummyBucket : public IWebDavBucket  // TODO
+{
+private:
+  ServerContext& context_;
+
+public:
+  DummyBucket(ServerContext& context) :
+    context_(context)
+  {
+  }
+  
+  virtual bool ListCollection(Collection& collection,
+                              const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    if (path.size() == 0 ||
+        (path.size() == 1 && path[0] == "Folder1") ||
+        (path.size() == 2 && path[0] == "Folder1" && path[1] == "Folder2"))
+    {
+      for (unsigned int i = 0; i < 5; i++)
+      {
+        std::unique_ptr<File> f(new File("IM" + boost::lexical_cast<std::string>(i) + ".dcm"));
+        f->SetContentLength(1024 * i);
+        collection.AddResource(f.release());
+      }
+        
+      for (unsigned int i = 0; i < 5; i++)
+      {
+        collection.AddResource(new Folder("Folder" + boost::lexical_cast<std::string>(i)));
+      }
+        
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  virtual bool GetFileContent(std::string& content,
+                              const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    std::string s = "/";
+    for (size_t i = 0; i < path.size(); i++)
+    {
+      s += path[i] + "/";
+    }
+      
+    content = "Hello world!\r\n" + s + "\r\n";
+    return true;
+  }
+};
+
+
+
 static void PrintHelp(const char* path)
 {
   std::cout 
@@ -1047,6 +1103,12 @@ static bool StartHttpServer(ServerContext& context,
     httpServer.SetIncomingHttpRequestFilter(httpFilter);
     httpServer.SetHttpExceptionFormatter(exceptionFormatter);
     httpServer.Register(context.GetHttpHandler());
+
+    {
+      std::vector<std::string> root;  // TODO
+      root.push_back("davfs");
+      httpServer.Register(root, new DummyBucket(context));
+    }
 
     if (httpServer.GetPortNumber() < 1024)
     {
