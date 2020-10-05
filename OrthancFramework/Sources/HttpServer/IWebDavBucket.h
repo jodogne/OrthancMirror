@@ -152,6 +152,8 @@ namespace Orthanc
     {
     }
 
+    virtual bool IsExistingFolder(const std::vector<std::string>& path) = 0;
+
     virtual bool ListCollection(Collection& collection,
                                 const std::vector<std::string>& path) = 0;
 

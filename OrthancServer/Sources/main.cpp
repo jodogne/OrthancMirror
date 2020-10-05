@@ -624,17 +624,23 @@ public:
   {
   }
   
+  virtual bool IsExistingFolder(const std::vector<std::string>& path) ORTHANC_OVERRIDE
+  {
+    return (path.size() == 0 ||
+            (path.size() == 1 && path[0] == "Folder1") ||
+            (path.size() == 2 && path[0] == "Folder1" && path[1] == "Folder2"));
+  }
+
   virtual bool ListCollection(Collection& collection,
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
-    if (path.size() == 0 ||
-        (path.size() == 1 && path[0] == "Folder1") ||
-        (path.size() == 2 && path[0] == "Folder1" && path[1] == "Folder2"))
+    if (IsExistingFolder(path))
     {
       for (unsigned int i = 0; i < 5; i++)
       {
         std::unique_ptr<File> f(new File("IM" + boost::lexical_cast<std::string>(i) + ".dcm"));
         f->SetContentLength(1024 * i);
+        f->SetMimeType(MimeType_PlainText);
         collection.AddResource(f.release());
       }
         
@@ -1106,7 +1112,8 @@ static bool StartHttpServer(ServerContext& context,
 
     {
       std::vector<std::string> root;  // TODO
-      root.push_back("davfs");
+      root.push_back("a");
+      root.push_back("b");
       httpServer.Register(root, new DummyBucket(context));
     }
 

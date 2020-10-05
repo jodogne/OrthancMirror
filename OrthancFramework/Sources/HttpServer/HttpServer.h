@@ -239,5 +239,10 @@ namespace Orthanc
     void Register(const std::vector<std::string>& root,
                   IWebDavBucket* bucket); // Takes ownership
 #endif
+
+    bool HandleWebDav(HttpOutput& output,
+                      const std::string& method,
+                      const IHttpHandler::Arguments& headers,
+                      const std::string& uri);
   };
 }

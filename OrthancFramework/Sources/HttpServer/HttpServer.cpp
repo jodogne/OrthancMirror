@@ -51,14 +51,14 @@
 #endif
 
 #include <algorithm>
-#include <string.h>
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
-#include <iostream>
-#include <string.h>
-#include <stdio.h>
+#include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
 
 #if !defined(ORTHANC_ENABLE_SSL)
 #  error The macro ORTHANC_ENABLE_SSL must be defined
@@ -696,6 +696,118 @@ namespace Orthanc
   }
 
 
+  bool HttpServer::HandleWebDav(HttpOutput& output,
+                                const std::string& method,
+                                const IHttpHandler::Arguments& headers,
+                                const std::string& uri)
+  {
+    if (method == "OPTIONS")
+    {
+      // Remove the trailing slash, if any (necessary for davfs2)
+      std::string s = uri;
+      if (!s.empty() &&
+          s[s.size() - 1] == '/')
+      {
+        s.resize(s.size() - 1);
+      }
+      
+      WebDavBuckets::const_iterator bucket = webDavBuckets_.find(s);
+      if (bucket == webDavBuckets_.end())
+      {
+        return false;
+      }
+      else
+      {
+        output.AddHeader("DAV", "1");
+        output.AddHeader("Allow", "GET, POST, PUT, DELETE, PROPFIND");
+        output.SendStatus(HttpStatus_200_Ok);
+        return true;
+      }
+    }
+    else if (method == "PROPFIND")
+    {
+      IHttpHandler::Arguments::const_iterator i = headers.find("depth");
+      if (i == headers.end())
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol, "WebDAV PROPFIND without depth");
+      }
+
+      int depth = boost::lexical_cast<int>(i->second);
+      if (depth != 0 &&
+          depth != 1)
+      {
+        throw OrthancException(
+          ErrorCode_NetworkProtocol,
+          "WebDAV PROPFIND at unsupported depth (can only be 0 or 1): " + i->second);
+      }
+      
+      for (WebDavBuckets::const_iterator bucket = webDavBuckets_.begin();
+           bucket != webDavBuckets_.end(); ++bucket)
+      {
+        assert(!bucket->first.empty() &&
+               bucket->first[bucket->first.size() - 1] != '/' &&
+               bucket->second != NULL);
+        
+        if (uri == bucket->first ||
+            boost::starts_with(uri, bucket->first + "/"))
+        {
+          std::string s = uri.substr(bucket->first.size());
+          if (s.empty())
+          {
+            s = "/";
+          }
+
+          std::vector<std::string> path;
+          Toolbox::SplitUriComponents(path, s);
+
+          std::string answer;
+          
+          if (depth == 0)
+          {
+            if (bucket->second->IsExistingFolder(path))
+            {
+              IWebDavBucket::Collection c;
+              c.AddResource(new IWebDavBucket::Folder(""));
+              c.Format(answer, uri);
+            }
+            else
+            {
+              output.SendStatus(HttpStatus_404_NotFound);
+              return true;
+            }
+          }
+          else if (depth == 1)
+          {
+            IWebDavBucket::Collection c;
+            if (!bucket->second->ListCollection(c, path))
+            {
+              output.SendStatus(HttpStatus_404_NotFound);
+              return true;
+            }
+
+            c.Format(answer, uri);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          
+          output.AddHeader("DAV", "1");
+          output.AddHeader("Content-Type", "application/xml");
+          output.SendStatus(HttpStatus_207_MultiStatus, answer);
+          return true;
+        }
+      }
+      
+      return false;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
   static void InternalCallback(HttpOutput& output /* out */,
                                HttpMethod& method /* out */,
                                HttpServer& server,
@@ -750,15 +862,6 @@ namespace Orthanc
     }
 
 
-    // Compute the HTTP method, taking method faking into consideration
-    method = HttpMethod_Get;
-    if (!ExtractMethod(method, request, headers, argumentsGET))
-    {
-      output.SendStatus(HttpStatus_400_BadRequest);
-      return;
-    }
-
-
     // Authenticate this connection
     if (server.IsAuthenticationEnabled() && 
         !IsAccessGranted(server, headers))
@@ -791,21 +894,6 @@ namespace Orthanc
       requestUri = "";
     }
       
-    std::string username = GetAuthenticatedUsername(headers);
-
-    IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
-    if (filter != NULL)
-    {
-      if (!filter->IsAllowed(method, requestUri, remoteIp,
-                             username.c_str(), headers, argumentsGET))
-      {
-        //output.SendUnauthorized(server.GetRealm());
-        output.SendStatus(HttpStatus_403_Forbidden);
-        return;
-      }
-    }
-
-
     // Decompose the URI into its components
     UriComponents uri;
     try
@@ -818,7 +906,60 @@ namespace Orthanc
       return;
     }
 
-    LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+
+    // Compute the HTTP method, taking method faking into consideration
+    method = HttpMethod_Get;
+
+    bool isWebDav = false;
+    HttpMethod filterMethod;
+    
+    if (ExtractMethod(method, request, headers, argumentsGET))
+    {
+      LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+      filterMethod = method;
+    }
+    else if (!strcmp(request->request_method, "OPTIONS") ||
+             !strcmp(request->request_method, "PROPFIND"))
+    {
+      LOG(INFO) << "Incoming WebDAV request: " << request->request_method << " " << requestUri;
+      filterMethod = HttpMethod_Get;
+      isWebDav = true;
+    }
+    else
+    {
+      LOG(INFO) << "Unknown HTTP method: " << request->request_method;
+      output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+    
+
+    // Check that this connection is allowed by the user's authentication filter
+    const std::string username = GetAuthenticatedUsername(headers);
+
+    IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+    if (filter != NULL)
+    {
+      if (!filter->IsAllowed(filterMethod, requestUri, remoteIp,
+                             username.c_str(), headers, argumentsGET))
+      {
+        //output.SendUnauthorized(server.GetRealm());
+        output.SendStatus(HttpStatus_403_Forbidden);
+        return;
+      }
+    }
+
+
+    if (server.HandleWebDav(output, request->request_method, headers, requestUri))
+    {
+      return;
+    }
+    else if (isWebDav)
+    {
+      LOG(INFO) << "No WebDAV bucket is registered against URI: "
+                << request->request_method << " " << requestUri;
+      output.SendStatus(HttpStatus_404_NotFound);
+      return;
+    }
 
 
     bool found = false;
@@ -1445,16 +1586,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    std::string s = "/";
-    for (size_t i = 0; i < root.size(); i++)
-    {
-      if (root[i].empty())
-      {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "An URI component cannot be empty");
-      }
-      
-      s += root[i];
-    }
+    const std::string s = Toolbox::FlattenUri(root);
 
     if (webDavBuckets_.find(s) != webDavBuckets_.end())
     {
@@ -1463,6 +1595,7 @@ namespace Orthanc
     }
     else
     {
+      LOG(INFO) << "Branching WebDAV bucket at: " << s;
       webDavBuckets_[s] = protection.release();
     }
   }
