@@ -613,29 +613,290 @@ public:
 
 
 
+static const char* const UPLOAD_FOLDER = "upload";
+
 class DummyBucket : public IWebDavBucket  // TODO
 {
 private:
   ServerContext& context_;
 
+  static void RemoveFirstElement(std::vector<std::string>& target,
+                                 const std::vector<std::string>& source)
+  {
+    if (source.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      target.resize(source.size() - 1);
+      for (size_t i = 1; i < source.size(); i++)
+      {
+        target[i - 1] = source[i];
+      }
+    }
+  }
+  
+  class UploadedFile : public boost::noncopyable
+  {
+  private:
+    std::string               content_;
+    MimeType                  mime_;
+    boost::posix_time::ptime  time_;
+
+    void Touch()
+    {
+      time_ = boost::posix_time::second_clock::universal_time();
+    }
+    
+  public:
+    UploadedFile() :
+      mime_(MimeType_Binary)
+    {
+      Touch();
+    }
+    
+    void SetContent(const std::string& content,
+                    MimeType mime)
+    {
+      content_ = content;
+      mime_ = mime;
+      Touch();
+    }
+
+    MimeType GetMimeType() const
+    {
+      return mime_;
+    }
+
+    const std::string& GetContent() const
+    {
+      return content_;
+    }
+
+    const boost::posix_time::ptime& GetTime() const
+    {
+      return time_;
+    }
+  };
+
+
+  class UploadedFolder : public boost::noncopyable
+  {
+  private:
+    typedef std::map<std::string, UploadedFile*>    Files;
+    typedef std::map<std::string, UploadedFolder*>  Subfolders;
+
+    Files       files_;
+    Subfolders  subfolders_;
+
+    void CheckName(const std::string& name)
+    {
+      if (name.empty() ||
+          name.find('/') != std::string::npos ||
+          name.find('\\') != std::string::npos ||
+          name.find('\0') != std::string::npos)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Bad resource name for WebDAV: " + name);
+      }
+    }
+
+    bool IsExisting(const std::string& name) const
+    {
+      return (files_.find(name) != files_.end() ||
+              subfolders_.find(name) != subfolders_.end());
+    }
+
+  public:
+    ~UploadedFolder()
+    {
+      for (Files::iterator it = files_.begin(); it != files_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        delete it->second;
+      }        
+
+      for (Subfolders::iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        delete it->second;
+      }        
+    }
+
+    const UploadedFile* LookupFile(const std::string& name) const
+    {
+      Files::const_iterator found = files_.find(name);
+      if (found == files_.end())
+      {
+        return NULL;
+      }
+      else
+      {
+        assert(found->second != NULL);
+        return found->second;
+      }
+    }
+
+    bool CreateSubfolder(const std::string& name)
+    {
+      CheckName(name);
+
+      if (IsExisting(name))
+      {
+        LOG(ERROR) << "WebDAV folder already existing: " << name;
+        return false;
+      }
+      else
+      {
+        subfolders_[name] = new UploadedFolder;
+        return true;
+      }
+    }
+
+    bool StoreFile(const std::string& name,
+                   const std::string& content,
+                   MimeType mime)
+    {
+      CheckName(name);
+
+      if (subfolders_.find(name) != subfolders_.end())
+      {
+        LOG(ERROR) << "WebDAV folder already existing: " << name;
+        return false;
+      }
+
+      Files::iterator found = files_.find(name);
+      if (found == files_.end())
+      {
+        std::unique_ptr<UploadedFile> f(new UploadedFile);
+        f->SetContent(content, mime);
+        files_[name] = f.release();
+      }
+      else
+      {
+        assert(found->second != NULL);
+        found->second->SetContent(content, mime);
+      }
+      
+      return true;
+    }
+
+    UploadedFolder* LookupSubfolder(const UriComponents& path)
+    {
+      if (path.empty())
+      {
+        return this;
+      }
+      else
+      {
+        Subfolders::const_iterator found = subfolders_.find(path[0]);
+        if (found == subfolders_.end())
+        {
+          return NULL;
+        }
+        else
+        {
+          assert(found->second != NULL);
+
+          UriComponents p;
+          RemoveFirstElement(p, path);
+          
+          return found->second->LookupSubfolder(p);
+        }
+      }
+    }
+
+    void ListCollection(Collection& collection) const
+    {
+      for (Files::const_iterator it = files_.begin(); it != files_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        
+        std::unique_ptr<File> f(new File(it->first));
+        f->SetContentLength(it->second->GetContent().size());
+        f->SetCreationTime(it->second->GetTime());
+        collection.AddResource(f.release());
+      }
+
+      for (Subfolders::const_iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
+      {
+        collection.AddResource(new Folder(it->first));
+      }
+    }
+  };
+
+  bool IsUploadedFolder(const UriComponents& path) const
+  {
+    return (path.size() >= 1 &&
+            path[0] == UPLOAD_FOLDER);
+  }
+
+  UploadedFolder  uploads_;
+  boost::recursive_mutex    mutex_;
+
+  UploadedFolder* LookupUploadedFolder(const UriComponents& path)
+  {
+    if (IsUploadedFolder(path))
+    {
+      UriComponents p;
+      RemoveFirstElement(p, path);
+      
+      return uploads_.LookupSubfolder(p);
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+  
 public:
   DummyBucket(ServerContext& context) :
     context_(context)
   {
   }
   
-  virtual bool IsExistingFolder(const std::vector<std::string>& path) ORTHANC_OVERRIDE
+  virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
   {
-    return (path.size() == 0 ||
-            (path.size() == 1 && path[0] == "Folder1") ||
-            (path.size() == 2 && path[0] == "Folder1" && path[1] == "Folder2"));
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    if (IsUploadedFolder(path))
+    {
+      return LookupUploadedFolder(path) != NULL;
+    }
+    else
+    {
+      return (path.size() == 0 ||
+              (path.size() == 1 && path[0] == "Folder1") ||
+              (path.size() == 2 && path[0] == "Folder1" && path[1] == "Folder2"));
+    }
   }
 
   virtual bool ListCollection(Collection& collection,
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
-    if (IsExistingFolder(path))
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    if (IsUploadedFolder(path))
     {
+      const UploadedFolder* folder = LookupUploadedFolder(path);
+      if (folder == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        folder->ListCollection(collection);
+        return true;
+      }
+    }
+    else if (IsExistingFolder(path))
+    {
+      if (path.empty())
+      {
+        collection.AddResource(new Folder(UPLOAD_FOLDER));
+      }
+      
       for (unsigned int i = 0; i < 5; i++)
       {
         std::unique_ptr<File> f(new File("IM" + boost::lexical_cast<std::string>(i) + ".dcm"));
@@ -648,7 +909,7 @@ public:
       {
         collection.AddResource(new Folder("Folder" + boost::lexical_cast<std::string>(i)));
       }
-        
+
       return true;
     }
     else
@@ -657,17 +918,133 @@ public:
     }
   }
 
-  virtual bool GetFileContent(std::string& content,
+  virtual bool GetFileContent(MimeType& mime,
+                              std::string& content,
+                              boost::posix_time::ptime& modificationTime, 
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
-    std::string s = "/";
-    for (size_t i = 0; i < path.size(); i++)
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    if (path.empty())
     {
-      s += path[i] + "/";
+      return false;
     }
+    else if (IsUploadedFolder(path))
+    {
+      std::vector<std::string> p(path.begin(), path.end() - 1);
       
-    content = "Hello world!\r\n" + s + "\r\n";
-    return true;
+      const UploadedFolder* folder = LookupUploadedFolder(p);
+      if (folder == NULL)
+      {
+        return false;
+      }
+
+      const UploadedFile* file = folder->LookupFile(path.back());
+      if (file == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        mime = file->GetMimeType();
+        content = file->GetContent();
+        modificationTime = file->GetTime();
+        return true;
+      }
+    }
+    else if (path.back() == "IM0.dcm" ||
+             path.back() == "IM1.dcm" ||
+             path.back() == "IM2.dcm" ||
+             path.back() == "IM3.dcm" ||
+             path.back() == "IM4.dcm")
+    {
+      modificationTime = boost::posix_time::second_clock::universal_time();
+
+      std::string s;
+      for (size_t i = 0; i < path.size(); i++)
+      {
+        s += "/" + path[i];
+      }
+      
+      content = "Hello world!\r\n" + s + "\r\n";
+      mime = MimeType_PlainText;
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  virtual bool StoreFile(const std::string& content,
+                         const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    if (IsUploadedFolder(path))
+    {
+      std::vector<std::string> p(path.begin(), path.end() - 1);
+      
+      UploadedFolder* folder = LookupUploadedFolder(p);
+      if (folder == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        printf("STORING %d bytes at %s\n", content.size(), path.back().c_str());
+        return folder->StoreFile(path.back(), content, SystemToolbox::AutodetectMimeType(path.back()));
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "Writing to a read-only location in WebDAV: " << Toolbox::FlattenUri(path);
+      return false;
+    }
+  }
+
+
+  virtual bool CreateFolder(const UriComponents& path)
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    if (IsUploadedFolder(path))
+    {
+      std::vector<std::string> p(path.begin(), path.end() - 1);
+      
+      UploadedFolder* folder = LookupUploadedFolder(p);
+      if (folder == NULL)
+      {
+        return false;
+      }
+      else
+      {
+        printf("CREATING FOLDER %s\n", path.back().c_str());
+        return folder->CreateSubfolder(path.back());
+      }
+    }
+    else
+    {
+      LOG(WARNING) << "Writing to a read-only location in WebDAV: " << Toolbox::FlattenUri(path);
+      return false;
+    }
+  }
+
+
+  virtual void Start() ORTHANC_OVERRIDE
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    LOG(WARNING) << "Starting WebDAV";
+  }
+
+
+  virtual void Stop() ORTHANC_OVERRIDE
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    
+    LOG(WARNING) << "Stopping WebDAV";
   }
 };
 
@@ -1111,7 +1488,7 @@ static bool StartHttpServer(ServerContext& context,
     httpServer.Register(context.GetHttpHandler());
 
     {
-      std::vector<std::string> root;  // TODO
+      UriComponents root;  // TODO
       root.push_back("a");
       root.push_back("b");
       httpServer.Register(root, new DummyBucket(context));
