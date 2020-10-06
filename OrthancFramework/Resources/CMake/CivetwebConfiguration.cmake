@@ -88,6 +88,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   add_definitions(
     -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1
+    -DCIVETWEB_HAS_WEBDAV_WRITING=1
     )
 
 else()
@@ -112,10 +113,16 @@ else()
   # up multipart transfers, as encountered in DICOMweb.
   CHECK_LIBRARY_EXISTS(civetweb mg_disable_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
   if (CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
-    add_definitions(-DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1)
+    add_definitions(
+      -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1
+      -DCIVETWEB_HAS_WEBDAV_WRITING=1
+      )
     message("Performance: Your system-wide distribution of civetweb is configured for best performance")
   else()
-    message(WARNING "Performance: Your system-wide distribution of civetweb does not feature the mg_disable_keep_alive() function")
-    add_definitions(-DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0)
+    message(WARNING "Performance: Your system-wide distribution of civetweb does not feature the mg_disable_keep_alive() function, and WebDAV will only be available for read-only access")
+    add_definitions(
+      -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=0
+      -DCIVETWEB_HAS_WEBDAV_WRITING=0
+      )
   endif()
 endif()

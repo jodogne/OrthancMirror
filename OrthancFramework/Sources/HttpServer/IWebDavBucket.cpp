@@ -23,6 +23,7 @@
 #include "../PrecompiledHeaders.h"
 #include "IWebDavBucket.h"
 
+#include "HttpOutput.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
@@ -90,7 +91,7 @@ namespace Orthanc
 
 
   void IWebDavBucket::Resource::Format(pugi::xml_node& node,
-                                        const std::string& parentPath) const
+                                       const std::string& parentPath) const
   {
     node.set_name("D:response");
 
@@ -98,8 +99,11 @@ namespace Orthanc
     node.append_child("D:href").append_child(pugi::node_pcdata).set_value(s.c_str());
 
     pugi::xml_node propstat = node.append_child("D:propstat");
-    propstat.append_child("D:status").append_child(pugi::node_pcdata).
-      set_value("HTTP/1.1 200 OK");
+
+    static const HttpStatus status = HttpStatus_200_Ok;
+    s = ("HTTP/1.1 " + boost::lexical_cast<std::string>(status) + " " +
+         std::string(EnumerationToString(status)));
+    propstat.append_child("D:status").append_child(pugi::node_pcdata).set_value(s.c_str());
 
     pugi::xml_node prop = propstat.append_child("D:prop");
 
@@ -110,6 +114,12 @@ namespace Orthanc
     s = boost::posix_time::to_iso_extended_string(GetModificationTime()) + "Z";
     prop.append_child("D:getlastmodified").append_child(pugi::node_pcdata).set_value(s.c_str());
 
+#if 0
+    // Maybe used by davfs2
+    prop.append_child("D:quota-available-bytes");
+    prop.append_child("D:quota-used-bytes");
+#endif
+    
 #if 0
     prop.append_child("D:lockdiscovery");
     pugi::xml_node lock = prop.append_child("D:supportedlock");
@@ -216,5 +226,85 @@ namespace Orthanc
     decl.append_attribute("encoding").set_value("UTF-8");
 
     Toolbox::XmlToString(target, doc);
+  }
+
+
+  void IWebDavBucket::AnswerFakedProppatch(HttpOutput& output,
+                                           const std::string& uri)
+  {
+    /**
+     * This is a fake implementation. The goal is to make happy the
+     * WebDAV clients that set properties (such as Windows >= 7).
+     **/
+            
+    pugi::xml_document doc;
+
+    pugi::xml_node root = doc.append_child("D:multistatus");
+    root.append_attribute("xmlns:D").set_value("DAV:");
+
+    pugi::xml_node response = root.append_child("D:response");
+    response.append_child("D:href").append_child(pugi::node_pcdata).set_value(uri.c_str());
+
+    response.append_child("D:propstat");
+
+    pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
+    decl.append_attribute("version").set_value("1.0");
+    decl.append_attribute("encoding").set_value("UTF-8");
+
+    std::string s;
+    Toolbox::XmlToString(s, doc);
+
+    output.AddHeader("Content-Type", "application/xml");
+    output.SendStatus(HttpStatus_207_MultiStatus, s);    
+  }
+
+
+  void IWebDavBucket::AnswerFakedLock(HttpOutput& output,
+                                      const std::string& uri)
+  {
+    /**
+     * This is a fake implementation. No lock is actually
+     * created. The goal is to make happy the WebDAV clients
+     * that use locking (such as Windows >= 7).
+     **/
+            
+    pugi::xml_document doc;
+
+    pugi::xml_node root = doc.append_child("D:prop");
+    root.append_attribute("xmlns:D").set_value("DAV:");
+
+    pugi::xml_node activelock = root.append_child("D:lockdiscovery").append_child("D:activelock");
+    activelock.append_child("D:locktype").append_child("D:write");
+    activelock.append_child("D:lockscope").append_child("D:exclusive");
+    activelock.append_child("D:depth").append_child(pugi::node_pcdata).set_value("0");
+    activelock.append_child("D:timeout").append_child(pugi::node_pcdata).set_value("Second-3599");
+
+    activelock.append_child("D:lockroot").append_child("D:href")
+      .append_child(pugi::node_pcdata).set_value(uri.c_str());
+    activelock.append_child("D:owner");
+
+    std::string token = Toolbox::GenerateUuid();
+    boost::erase_all(token, "-");
+    token = "opaquelocktoken:0x" + token;
+            
+    activelock.append_child("D:locktoken").append_child("D:href").
+      append_child(pugi::node_pcdata).set_value(token.c_str());
+            
+    pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
+    decl.append_attribute("version").set_value("1.0");
+    decl.append_attribute("encoding").set_value("UTF-8");
+
+    std::string s;
+    Toolbox::XmlToString(s, doc);
+
+    output.AddHeader("Lock-Token", token);  // Necessary for davfs2
+    output.AddHeader("Content-Type", "application/xml");
+    output.SendStatus(HttpStatus_201_Created, s);
+  }
+
+
+  void IWebDavBucket::AnswerFakedUnlock(HttpOutput& output)
+  {
+    output.SendStatus(HttpStatus_204_NoContent);
   }
 }

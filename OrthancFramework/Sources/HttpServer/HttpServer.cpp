@@ -45,7 +45,9 @@
 #  if !defined(CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
 #    error Macro CIVETWEB_HAS_DISABLE_KEEP_ALIVE must be defined
 #  endif
-
+#  if !defined(CIVETWEB_HAS_WEBDAV_WRITING)
+#    error Macro CIVETWEB_HAS_WEBDAV_WRITING must be defined
+#  endif
 #else
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
 #endif
@@ -343,6 +345,38 @@ namespace Orthanc
   }
                                                   
 
+  static PostDataStatus ReadBodyWithoutContentLength(std::string& body,
+                                                     struct mg_connection *connection)
+  {
+    // Store the individual chunks in a temporary file, then read it
+    // back into the memory buffer "body"
+    FileBuffer buffer;
+
+    std::string tmp(1024 * 1024, 0);
+      
+    for (;;)
+    {
+      int r = mg_read(connection, &tmp[0], tmp.size());
+      if (r < 0)
+      {
+        return PostDataStatus_Failure;
+      }
+      else if (r == 0)
+      {
+        break;
+      }
+      else
+      {
+        buffer.Append(tmp.c_str(), r);
+      }
+    }
+
+    buffer.Read(body);
+
+    return PostDataStatus_Success;
+  }
+                                                  
+
   static PostDataStatus ReadBodyToString(std::string& body,
                                          struct mg_connection *connection,
                                          const IHttpHandler::Arguments& headers)
@@ -356,32 +390,8 @@ namespace Orthanc
     }
     else
     {
-      // No Content-Length. Store the individual chunks in a temporary
-      // file, then read it back into the memory buffer "body"
-      FileBuffer buffer;
-
-      std::string tmp(1024 * 1024, 0);
-      
-      for (;;)
-      {
-        int r = mg_read(connection, &tmp[0], tmp.size());
-        if (r < 0)
-        {
-          return PostDataStatus_Failure;
-        }
-        else if (r == 0)
-        {
-          break;
-        }
-        else
-        {
-          buffer.Append(tmp.c_str(), r);
-        }
-      }
-
-      buffer.Read(body);
-
-      return PostDataStatus_Success;
+      // No Content-Length
+      return ReadBodyWithoutContentLength(body, connection);
     }
   }
 
@@ -696,11 +706,35 @@ namespace Orthanc
   }
 
 
-  bool HttpServer::HandleWebDav(HttpOutput& output,
-                                const std::string& method,
-                                const IHttpHandler::Arguments& headers,
-                                const std::string& uri)
+#if ORTHANC_ENABLE_PUGIXML == 1
+
+#  if CIVETWEB_HAS_WEBDAV_WRITING == 0
+  static void AnswerWebDavReadOnly(HttpOutput& output,
+                                   const std::string& uri)
   {
+    LOG(ERROR) << "Orthanc was compiled without support for read-write access to WebDAV: " << uri;
+    output.SendStatus(HttpStatus_403_Forbidden);
+  }    
+#  endif
+  
+  static bool HandleWebDav(HttpOutput& output,
+                           const HttpServer::WebDavBuckets& buckets,
+                           const std::string& method,
+                           const IHttpHandler::Arguments& headers,
+                           const std::string& uri,
+                           struct mg_connection *connection /* to read the PUT body if need be */)
+  {
+    if (buckets.empty())
+    {
+      return false;  // Speed up things if WebDAV is not used
+    }
+    
+    /**
+     * The "buckets" maps an URI relative to the root of the
+     * bucket, to the content of the bucket. The root URI does *not*
+     * contain a trailing slash.
+     **/
+    
     if (method == "OPTIONS")
     {
       // Remove the trailing slash, if any (necessary for davfs2)
@@ -711,38 +745,37 @@ namespace Orthanc
         s.resize(s.size() - 1);
       }
       
-      WebDavBuckets::const_iterator bucket = webDavBuckets_.find(s);
-      if (bucket == webDavBuckets_.end())
+      HttpServer::WebDavBuckets::const_iterator bucket = buckets.find(s);
+      if (bucket == buckets.end())
       {
         return false;
       }
       else
       {
-        output.AddHeader("DAV", "1");
-        output.AddHeader("Allow", "GET, POST, PUT, DELETE, PROPFIND");
+        output.AddHeader("DAV", "1,2");  // Necessary for Windows XP
+
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1
+        output.AddHeader("Allow", "GET, PUT, OPTIONS, PROPFIND, HEAD, LOCK, UNLOCK, PROPPATCH, MKCOL");
+#else
+        output.AddHeader("Allow", "GET, PUT, OPTIONS, PROPFIND, HEAD");
+#endif
+
         output.SendStatus(HttpStatus_200_Ok);
         return true;
       }
     }
-    else if (method == "PROPFIND")
+    else if (method == "GET" ||
+             method == "PROPFIND" ||
+             method == "PROPPATCH" ||
+             method == "PUT" ||
+             method == "HEAD" ||
+             method == "LOCK" ||
+             method == "UNLOCK" ||
+             method == "MKCOL")
     {
-      IHttpHandler::Arguments::const_iterator i = headers.find("depth");
-      if (i == headers.end())
-      {
-        throw OrthancException(ErrorCode_NetworkProtocol, "WebDAV PROPFIND without depth");
-      }
-
-      int depth = boost::lexical_cast<int>(i->second);
-      if (depth != 0 &&
-          depth != 1)
-      {
-        throw OrthancException(
-          ErrorCode_NetworkProtocol,
-          "WebDAV PROPFIND at unsupported depth (can only be 0 or 1): " + i->second);
-      }
-      
-      for (WebDavBuckets::const_iterator bucket = webDavBuckets_.begin();
-           bucket != webDavBuckets_.end(); ++bucket)
+      // Locate the WebDAV bucket of interest, if any
+      for (HttpServer::WebDavBuckets::const_iterator bucket = buckets.begin();
+           bucket != buckets.end(); ++bucket)
       {
         assert(!bucket->first.empty() &&
                bucket->first[bucket->first.size() - 1] != '/' &&
@@ -760,42 +793,222 @@ namespace Orthanc
           std::vector<std::string> path;
           Toolbox::SplitUriComponents(path, s);
 
-          std::string answer;
+
+          /**
+           * WebDAV - PROPFIND
+           **/
           
-          if (depth == 0)
+          if (method == "PROPFIND")
           {
-            if (bucket->second->IsExistingFolder(path))
+            IHttpHandler::Arguments::const_iterator i = headers.find("depth");
+            if (i == headers.end())
+            {
+              throw OrthancException(ErrorCode_NetworkProtocol, "WebDAV PROPFIND without depth");
+            }
+
+            int depth = boost::lexical_cast<int>(i->second);
+            if (depth != 0 &&
+                depth != 1)
+            {
+              throw OrthancException(
+                ErrorCode_NetworkProtocol,
+                "WebDAV PROPFIND at unsupported depth (can only be 0 or 1): " + i->second);
+            }
+      
+            std::string answer;
+          
+            if (depth == 0)
+            {
+              MimeType mime;
+              std::string content;
+              boost::posix_time::ptime modificationTime;
+            
+              if (bucket->second->IsExistingFolder(path))
+              {
+                IWebDavBucket::Collection c;
+                c.AddResource(new IWebDavBucket::Folder(""));
+                c.Format(answer, uri);
+              }
+              else if (!path.empty() &&
+                       bucket->second->GetFileContent(mime, content, modificationTime, path))
+              {
+                std::unique_ptr<IWebDavBucket::File> f(new IWebDavBucket::File(path.back()));
+                f->SetContentLength(content.size());
+                f->SetModificationTime(modificationTime);
+                f->SetMimeType(mime);
+
+                IWebDavBucket::Collection c;
+                c.AddResource(f.release());
+
+                std::vector<std::string> p;
+                Toolbox::SplitUriComponents(p, uri);
+                if (p.empty())
+                {
+                  throw OrthancException(ErrorCode_InternalError);
+                }
+                
+                p.resize(p.size() - 1);
+                c.Format(answer, Toolbox::FlattenUri(p));
+              }
+              else
+              {
+                output.SendStatus(HttpStatus_404_NotFound);
+                return true;
+              }
+            }
+            else if (depth == 1)
             {
               IWebDavBucket::Collection c;
-              c.AddResource(new IWebDavBucket::Folder(""));
+              c.AddResource(new IWebDavBucket::Folder(""));  // Necessary for empty folders
+              
+              if (!bucket->second->ListCollection(c, path))
+              {
+                output.SendStatus(HttpStatus_404_NotFound);
+                return true;
+              }
+
               c.Format(answer, uri);
             }
             else
             {
-              output.SendStatus(HttpStatus_404_NotFound);
-              return true;
-            }
-          }
-          else if (depth == 1)
-          {
-            IWebDavBucket::Collection c;
-            if (!bucket->second->ListCollection(c, path))
-            {
-              output.SendStatus(HttpStatus_404_NotFound);
-              return true;
+              throw OrthancException(ErrorCode_InternalError);
             }
 
-            c.Format(answer, uri);
+            output.AddHeader("Content-Type", "application/xml; charset=UTF-8");
+            output.SendStatus(HttpStatus_207_MultiStatus, answer);
+            return true;
+          }
+          
+
+          /**
+           * WebDAV - GET and HEAD
+           **/
+          
+          else if (method == "GET" ||
+                   method == "HEAD")
+          {
+            MimeType mime;
+            std::string content;
+            boost::posix_time::ptime modificationTime;
+            
+            if (bucket->second->GetFileContent(mime, content, modificationTime, path))
+            {
+              output.AddHeader("Content-Type", EnumerationToString(mime));
+
+              // "Last-Modified" is necessary on Windows XP. The "Z"
+              // suffix is mandatory on Windows >= 7.
+              output.AddHeader("Last-Modified", boost::posix_time::to_iso_extended_string(modificationTime) + "Z");
+
+              if (method == "GET")
+              {
+                output.Answer(content);
+              }
+              else
+              {
+                output.SendStatus(HttpStatus_200_Ok);
+              }
+            }
+            else
+            {
+              output.SendStatus(HttpStatus_404_NotFound);
+            }
+
+            return true;
+          }
+
+          
+          /**
+           * WebDAV - PUT
+           **/
+          
+          else if (method == "PUT")
+          {
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+            std::string body;
+            if (ReadBodyToString(body, connection, headers) == PostDataStatus_Success)
+            {
+              if (bucket->second->StoreFile(body, path))
+              {
+                //output.SendStatus(HttpStatus_200_Ok);
+                output.SendStatus(HttpStatus_201_Created);
+              }
+              else
+              {
+                output.SendStatus(HttpStatus_403_Forbidden);
+              }
+            }
+            else
+            {
+              LOG(ERROR) << "Cannot read the content of a file to be stored in WebDAV";
+              output.SendStatus(HttpStatus_400_BadRequest);
+            }
+#else
+            AnswerWebDavReadOnly(output, uri);
+#endif
+
+            return true;
+          }
+          
+
+          /**
+           * WebDAV - MKCOL
+           **/
+          
+          else if (method == "MKCOL")
+          {
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+            if (bucket->second->CreateFolder(path))
+            {
+              //output.SendStatus(HttpStatus_200_Ok);
+              output.SendStatus(HttpStatus_201_Created);
+            }
+            else
+            {
+              output.SendStatus(HttpStatus_403_Forbidden);
+            }
+#else
+            AnswerWebDavReadOnly(output, uri);
+#endif
+
+            return true;
+          }
+          
+
+          /**
+           * WebDAV - Faking PROPPATCH, LOCK and UNLOCK
+           **/
+          
+          else if (method == "PROPPATCH")
+          {
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+            IWebDavBucket::AnswerFakedProppatch(output, uri);
+#else
+            AnswerWebDavReadOnly(output, uri);
+#endif
+            return true;
+          }
+          else if (method == "LOCK")
+          {
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+            IWebDavBucket::AnswerFakedLock(output, uri);
+#else
+            AnswerWebDavReadOnly(output, uri);
+#endif
+            return true;
+          }
+          else if (method == "UNLOCK")
+          {
+#if CIVETWEB_HAS_WEBDAV_WRITING == 1           
+            IWebDavBucket::AnswerFakedUnlock(output);
+#else
+            AnswerWebDavReadOnly(output, uri);
+#endif
+            return true;
           }
           else
           {
             throw OrthancException(ErrorCode_InternalError);
           }
-          
-          output.AddHeader("DAV", "1");
-          output.AddHeader("Content-Type", "application/xml");
-          output.SendStatus(HttpStatus_207_MultiStatus, answer);
-          return true;
         }
       }
       
@@ -803,11 +1016,16 @@ namespace Orthanc
     }
     else
     {
+      /**
+       * WebDAV - Unapplicable method (such as POST and DELETE)
+       **/
+          
       return false;
     }
-  }
+  } 
+#endif /* ORTHANC_ENABLE_PUGIXML == 1 */
 
-
+  
   static void InternalCallback(HttpOutput& output /* out */,
                                HttpMethod& method /* out */,
                                HttpServer& server,
@@ -910,21 +1128,39 @@ namespace Orthanc
     // Compute the HTTP method, taking method faking into consideration
     method = HttpMethod_Get;
 
+#if ORTHANC_ENABLE_PUGIXML == 1
     bool isWebDav = false;
+#endif
+    
     HttpMethod filterMethod;
+
     
     if (ExtractMethod(method, request, headers, argumentsGET))
     {
       LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
       filterMethod = method;
     }
+#if ORTHANC_ENABLE_PUGIXML == 1
     else if (!strcmp(request->request_method, "OPTIONS") ||
-             !strcmp(request->request_method, "PROPFIND"))
+             !strcmp(request->request_method, "PROPFIND") ||
+             !strcmp(request->request_method, "HEAD"))
     {
-      LOG(INFO) << "Incoming WebDAV request: " << request->request_method << " " << requestUri;
+      LOG(INFO) << "Incoming read-only WebDAV request: "
+                << request->request_method << " " << requestUri;
       filterMethod = HttpMethod_Get;
       isWebDav = true;
     }
+    else if (!strcmp(request->request_method, "PROPPATCH") ||
+             !strcmp(request->request_method, "LOCK") ||
+             !strcmp(request->request_method, "UNLOCK") ||
+             !strcmp(request->request_method, "MKCOL"))
+    {
+      LOG(INFO) << "Incoming read-write WebDAV request: "
+                << request->request_method << " " << requestUri;
+      filterMethod = HttpMethod_Put;
+      isWebDav = true;
+    }
+#endif /* ORTHANC_ENABLE_PUGIXML == 1 */
     else
     {
       LOG(INFO) << "Unknown HTTP method: " << request->request_method;
@@ -949,7 +1185,9 @@ namespace Orthanc
     }
 
 
-    if (server.HandleWebDav(output, request->request_method, headers, requestUri))
+#if ORTHANC_ENABLE_PUGIXML == 1
+    if (HandleWebDav(output, server.GetWebDavBuckets(), request->request_method,
+                     headers, requestUri, connection))
     {
       return;
     }
@@ -960,6 +1198,7 @@ namespace Orthanc
       output.SendStatus(HttpStatus_404_NotFound);
       return;
     }
+#endif
 
 
     bool found = false;
@@ -1381,6 +1620,14 @@ namespace Orthanc
         }
       }
 
+#if ORTHANC_ENABLE_PUGIXML == 1    
+      for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        it->second->Start();
+      }
+#endif
+
       LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()
                    << " (HTTPS encryption is "
                    << (IsSslEnabled() ? "enabled" : "disabled")
@@ -1395,6 +1642,15 @@ namespace Orthanc
     if (IsRunning())
     {
       mg_stop(pimpl_->context_);
+      
+#if ORTHANC_ENABLE_PUGIXML == 1    
+      for (WebDavBuckets::iterator it = webDavBuckets_.begin(); it != webDavBuckets_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        it->second->Stop();
+      }
+#endif
+
       pimpl_->context_ = NULL;
     }
   }

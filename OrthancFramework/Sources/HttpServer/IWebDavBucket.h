@@ -41,6 +41,8 @@
 
 namespace Orthanc
 {
+  class HttpOutput;
+  
   class IWebDavBucket : public boost::noncopyable
   {
   public:
@@ -115,6 +117,8 @@ namespace Orthanc
         return mime_;
       }
 
+      void SetCreated(bool created);
+
       virtual void Format(pugi::xml_node& node,
                           const std::string& parentPath) const ORTHANC_OVERRIDE;
     };
@@ -146,7 +150,7 @@ namespace Orthanc
       void Format(std::string& target,
                   const std::string& parentPath) const;
     };
-    
+
 
     virtual ~IWebDavBucket()
     {
@@ -157,7 +161,30 @@ namespace Orthanc
     virtual bool ListCollection(Collection& collection,
                                 const std::vector<std::string>& path) = 0;
 
-    virtual bool GetFileContent(std::string& content,
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& modificationTime, 
                                 const std::vector<std::string>& path) = 0;
+
+    // "false" returns indicate a read-only target
+    virtual bool StoreFile(const std::string& content,
+                           const std::vector<std::string>& path) = 0;
+
+    virtual bool CreateFolder(const std::vector<std::string>& path) = 0;
+
+    virtual void Start() = 0;
+
+    // During the shutdown of the Web server, give a chance to the
+    // bucket to end its pending operations
+    virtual void Stop() = 0;
+
+
+    static void AnswerFakedProppatch(HttpOutput& output,
+                                     const std::string& uri);
+
+    static void AnswerFakedLock(HttpOutput& output,
+                                const std::string& uri);
+
+    static void AnswerFakedUnlock(HttpOutput& output);
   };
 }

@@ -76,6 +76,11 @@ namespace Orthanc
 
   class ORTHANC_PUBLIC HttpServer : public boost::noncopyable
   {
+  public:
+#if ORTHANC_ENABLE_PUGIXML == 1
+    typedef std::map<std::string, IWebDavBucket*>  WebDavBuckets;
+#endif
+    
   private:
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
@@ -103,7 +108,6 @@ namespace Orthanc
     unsigned int requestTimeout_;  // In seconds
 
 #if ORTHANC_ENABLE_PUGIXML == 1
-    typedef std::map<std::string, IWebDavBucket*>  WebDavBuckets;
     WebDavBuckets webDavBuckets_;
 #endif
     
@@ -236,13 +240,15 @@ namespace Orthanc
     }
 
 #if ORTHANC_ENABLE_PUGIXML == 1
+    WebDavBuckets& GetWebDavBuckets()
+    {
+      return webDavBuckets_;
+    }      
+#endif
+
+#if ORTHANC_ENABLE_PUGIXML == 1
     void Register(const std::vector<std::string>& root,
                   IWebDavBucket* bucket); // Takes ownership
 #endif
-
-    bool HandleWebDav(HttpOutput& output,
-                      const std::string& method,
-                      const IHttpHandler::Arguments& headers,
-                      const std::string& uri);
   };
 }
