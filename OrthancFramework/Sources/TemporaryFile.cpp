@@ -126,4 +126,10 @@ namespace Orthanc
     std::string empty;
     Write(empty);
   }
+
+
+  uint64_t TemporaryFile::GetFileSize() const
+  {
+    return SystemToolbox::GetFileSize(path_);
+  }
 }

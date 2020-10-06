@@ -107,7 +107,7 @@ namespace Orthanc
 
     pugi::xml_node prop = propstat.append_child("D:prop");
 
-    // IMPORTANT: The "Z" suffix is mandatory on Windows >= 7
+    // IMPORTANT: The "Z" suffix is mandatory on Windows >= 7 (it indicates UTC)
     s = boost::posix_time::to_iso_extended_string(GetCreationTime()) + "Z";
     prop.append_child("D:creationdate").append_child(pugi::node_pcdata).set_value(s.c_str());
 
