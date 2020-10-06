@@ -1836,12 +1836,22 @@ namespace Orthanc
                             IWebDavBucket* bucket)
   {
     std::unique_ptr<IWebDavBucket> protection(bucket);
-    
+
     if (bucket == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
 
+    Stop();
+    
+#if CIVETWEB_HAS_WEBDAV_WRITING == 0
+    if (webDavBuckets_.size() == 0)
+    {
+      LOG(WARNING) << "Your version of the Orthanc framework was compiled "
+                   << "without support for writing into WebDAV collections";
+    }
+#endif
+    
     const std::string s = Toolbox::FlattenUri(root);
 
     if (webDavBuckets_.find(s) != webDavBuckets_.end())
