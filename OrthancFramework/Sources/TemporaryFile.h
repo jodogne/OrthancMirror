@@ -33,6 +33,7 @@
 #endif
 
 #include <boost/noncopyable.hpp>
+#include <stdint.h>
 #include <string>
 
 namespace Orthanc
