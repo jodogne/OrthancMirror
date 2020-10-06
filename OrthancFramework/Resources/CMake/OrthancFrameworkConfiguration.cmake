@@ -313,6 +313,7 @@ if (ENABLE_WEB_SERVER)
   if (ENABLE_PUGIXML)
     list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/IWebDavBucket.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/WebDavStorage.cpp
       )
   endif()
 endif()
