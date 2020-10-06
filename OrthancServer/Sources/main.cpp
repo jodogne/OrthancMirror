@@ -58,6 +58,7 @@
 #include "StorageCommitmentReports.h"
 
 #include "../../OrthancFramework/Sources/HttpServer/WebDavStorage.h"  // TODO
+#include "Search/DatabaseLookup.h"  // TODO
 
 
 using namespace Orthanc;
@@ -768,6 +769,258 @@ public:
 
 
 
+
+
+static const char* const DICOM_IDENTIFIERS = "DicomIdentifiers";
+
+class DummyBucket2 : public IWebDavBucket  // TODO
+{
+private:
+  ServerContext&  context_;
+
+  class DicomIdentifiersVisitor : public ServerContext::ILookupVisitor
+  {
+  private:
+    ServerContext&  context_;
+    bool            isComplete_;
+    Collection&     target_;
+    ResourceType    level_;
+
+  public:
+    DicomIdentifiersVisitor(ServerContext& context,
+                Collection&  target,
+                ResourceType level) :
+      context_(context),
+      isComplete_(false),
+      target_(target),
+      level_(level)
+    {
+    }
+      
+    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+    {
+      return false;   // (*)
+    }
+      
+    virtual void MarkAsComplete() ORTHANC_OVERRIDE
+    {
+      isComplete_ = true;  // TODO
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId   /* unused     */,
+                       const DicomMap& mainDicomTags,
+                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    {
+      DicomTag tag(0, 0);
+      switch (level_)
+      {
+        case ResourceType_Study:
+          tag = DICOM_TAG_STUDY_INSTANCE_UID;
+          break;
+
+        case ResourceType_Series:
+          tag = DICOM_TAG_SERIES_INSTANCE_UID;
+          break;
+        
+        case ResourceType_Instance:
+          tag = DICOM_TAG_SOP_INSTANCE_UID;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+        
+      std::string s;
+      if (mainDicomTags.LookupStringValue(s, tag, false) &&
+          !s.empty())
+      {
+        if (level_ == ResourceType_Instance)
+        {
+          FileInfo info;
+          if (context_.GetIndex().LookupAttachment(info, publicId, FileContentType_Dicom))
+          {
+            std::unique_ptr<File> f(new File(s + ".dcm"));
+            f->SetMimeType(MimeType_Dicom);
+            f->SetContentLength(info.GetUncompressedSize());
+            target_.AddResource(f.release());
+          }
+        }
+        else
+        {
+          target_.AddResource(new Folder(s));
+        }
+      }
+    }
+  };
+  
+  class DicomFileVisitor : public ServerContext::ILookupVisitor
+  {
+  private:
+    ServerContext&  context_;
+    bool            success_;
+    std::string&    target_;
+
+  public:
+    DicomFileVisitor(ServerContext& context,
+                     std::string& target) :
+      context_(context),
+      success_(false),
+      target_(target)
+    {
+    }
+
+    bool IsSuccess() const
+    {
+      return success_;
+    }
+      
+    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+    {
+      return false;   // (*)
+    }
+      
+    virtual void MarkAsComplete() ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId   /* unused     */,
+                       const DicomMap& mainDicomTags,
+                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    {
+      context_.ReadDicom(target_, publicId);
+      success_ = true;
+    }
+  };
+  
+public:
+  DummyBucket2(ServerContext& context) :
+    context_(context)
+  {
+  }
+  
+  virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    if (path.empty())
+    {
+      return true;
+    }
+    else if (path.front() == DICOM_IDENTIFIERS &&
+             path.size() <= 3)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  virtual bool ListCollection(Collection& collection,
+                              const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    if (path.empty())
+    {
+      collection.AddResource(new Folder(DICOM_IDENTIFIERS));
+      return true;
+    }
+    else if (path.front() == DICOM_IDENTIFIERS)
+    {
+      DatabaseLookup query;
+      ResourceType level;
+
+      if (path.size() == 1)
+      {
+        level = ResourceType_Study;
+      }
+      else if (path.size() == 2)
+      {
+        level = ResourceType_Series;
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+      }      
+      else if (path.size() == 3)
+      {
+        level = ResourceType_Instance;
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+        query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
+                                true /* case sensitive */, true /* mandatory tag */);
+      }
+      else
+      {
+        return false;
+      }
+
+      DicomIdentifiersVisitor visitor(context_, collection, level);
+      context_.Apply(visitor, query, level, 0 /* since */, 100 /* limit */);
+      
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  virtual bool GetFileContent(MimeType& mime,
+                              std::string& content,
+                              boost::posix_time::ptime& modificationTime, 
+                              const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    if (path.size() == 4 &&
+        path[0] == DICOM_IDENTIFIERS &&
+        boost::ends_with(path[3], ".dcm"))
+    {
+      std::string sopInstanceUid = path[3];
+      sopInstanceUid.resize(sopInstanceUid.size() - 4);
+      
+      mime = MimeType_Dicom;
+
+      DatabaseLookup query;
+      query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+      query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
+                              true /* case sensitive */, true /* mandatory tag */);
+      query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
+                              true /* case sensitive */, true /* mandatory tag */);
+      
+      DicomFileVisitor visitor(context_, content);
+      context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 100 /* limit */);
+
+      return visitor.IsSuccess();
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  
+  virtual bool StoreFile(const std::string& content,
+                         const UriComponents& path) ORTHANC_OVERRIDE
+  {
+    return false;
+  }
+
+
+  virtual bool CreateFolder(const UriComponents& path)
+  {
+    return false;
+  }
+
+  virtual void Start() ORTHANC_OVERRIDE
+  {
+  }
+
+  virtual void Stop() ORTHANC_OVERRIDE
+  {
+  }
+};
+
+
+
 static void PrintHelp(const char* path)
 {
   std::cout 
@@ -1210,7 +1463,8 @@ static bool StartHttpServer(ServerContext& context,
       root.push_back("a");
       root.push_back("b");
       //httpServer.Register(root, new WebDavStorage(true));
-      httpServer.Register(root, new DummyBucket(context, true));
+      //httpServer.Register(root, new DummyBucket(context, true));
+      httpServer.Register(root, new DummyBucket2(context));
     }
 
     if (httpServer.GetPortNumber() < 1024)
