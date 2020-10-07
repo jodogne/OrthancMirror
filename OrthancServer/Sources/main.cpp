@@ -1634,9 +1634,9 @@ static bool StartHttpServer(ServerContext& context,
       UriComponents root;  // TODO
       root.push_back("a");
       root.push_back("b");
-      //httpServer.Register(root, new WebDavStorage(true));
+      httpServer.Register(root, new WebDavStorage(true));
       //httpServer.Register(root, new DummyBucket(context, true));
-      httpServer.Register(root, new DummyBucket2(context));
+      //httpServer.Register(root, new DummyBucket2(context));
     }
 
     if (httpServer.GetPortNumber() < 1024)
