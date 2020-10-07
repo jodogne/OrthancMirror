@@ -84,7 +84,8 @@ namespace Orthanc
       }
 
       virtual void Format(pugi::xml_node& node,
-                          const std::string& parentPath) const;
+                          const std::string& parentPath,
+                          bool includeDisplayName) const;
     };
 
 
@@ -120,7 +121,8 @@ namespace Orthanc
       void SetCreated(bool created);
 
       virtual void Format(pugi::xml_node& node,
-                          const std::string& parentPath) const ORTHANC_OVERRIDE;
+                          const std::string& parentPath,
+                          bool includeDisplayName) const ORTHANC_OVERRIDE;
     };
 
 
@@ -133,7 +135,8 @@ namespace Orthanc
       }
       
       virtual void Format(pugi::xml_node& node,
-                          const std::string& parentPath) const ORTHANC_OVERRIDE;
+                          const std::string& parentPath,
+                          bool includeDisplayName) const ORTHANC_OVERRIDE;
     };
 
 
@@ -148,7 +151,8 @@ namespace Orthanc
       void AddResource(Resource* resource);  // Takes ownership
 
       void Format(std::string& target,
-                  const std::string& parentPath) const;
+                  const std::string& parentPath,
+                  bool includeDisplayName) const;
     };
 
 
@@ -171,6 +175,8 @@ namespace Orthanc
                            const std::vector<std::string>& path) = 0;
 
     virtual bool CreateFolder(const std::vector<std::string>& path) = 0;
+
+    virtual bool DeleteItem(const std::vector<std::string>& path) = 0;
 
     virtual void Start() = 0;
 

@@ -91,7 +91,8 @@ namespace Orthanc
 
 
   void IWebDavBucket::Resource::Format(pugi::xml_node& node,
-                                       const std::string& parentPath) const
+                                       const std::string& parentPath,
+                                       bool includeDisplayName) const
   {
     node.set_name("D:response");
 
@@ -148,11 +149,12 @@ namespace Orthanc
     SetNameInternal(name);
   }
 
-
+  
   void IWebDavBucket::File::Format(pugi::xml_node& node,
-                                   const std::string& parentPath) const
+                                   const std::string& parentPath,
+                                   bool includeDisplayName) const
   {
-    Resource::Format(node, parentPath);
+    Resource::Format(node, parentPath, includeDisplayName);
 
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype");
@@ -168,9 +170,10 @@ namespace Orthanc
 
 
   void IWebDavBucket::Folder::Format(pugi::xml_node& node,
-                                     const std::string& parentPath) const
+                                     const std::string& parentPath,
+                                     bool includeDisplayName) const
   {
-    Resource::Format(node, parentPath);
+    Resource::Format(node, parentPath, includeDisplayName);
         
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype").append_child("D:collection");
@@ -206,7 +209,8 @@ namespace Orthanc
 
 
   void IWebDavBucket::Collection::Format(std::string& target,
-                                         const std::string& parentPath) const
+                                         const std::string& parentPath,
+                                         bool includeDisplayName) const
   {
     pugi::xml_document doc;
 
@@ -218,7 +222,7 @@ namespace Orthanc
     {
       assert(*it != NULL);
       pugi::xml_node n = root.append_child();
-      (*it)->Format(n, parentPath);
+      (*it)->Format(n, parentPath, includeDisplayName);
     }
 
     pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);

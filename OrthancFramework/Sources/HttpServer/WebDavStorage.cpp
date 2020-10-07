@@ -364,4 +364,11 @@ namespace Orthanc
       return folder->CreateSubfolder(path.back());
     }
   }
+
+
+  bool WebDavStorage::DeleteItem(const std::vector<std::string>& path)
+  {
+    // TODO
+    return false;
+  }
 }
