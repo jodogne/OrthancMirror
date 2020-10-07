@@ -969,7 +969,8 @@ namespace Orthanc
           
           else if (method == "DELETE")
           {
-            if (bucket->second->DeleteItem(path))
+            if (!path.empty() &&  // Cannot delete the root
+                bucket->second->DeleteItem(path))
             {
               output.SendStatus(HttpStatus_204_NoContent);
             }

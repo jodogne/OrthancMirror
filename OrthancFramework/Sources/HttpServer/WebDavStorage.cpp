@@ -112,8 +112,14 @@ namespace Orthanc
     typedef std::map<std::string, StorageFile*>    Files;
     typedef std::map<std::string, StorageFolder*>  Subfolders;
 
-    Files       files_;
-    Subfolders  subfolders_;
+    Files                      files_;
+    Subfolders                 subfolders_;
+    boost::posix_time::ptime   time_;
+
+    void Touch()
+    {
+      time_ = boost::posix_time::second_clock::universal_time();
+    }
 
     void CheckName(const std::string& name)
     {
@@ -134,6 +140,11 @@ namespace Orthanc
     }
 
   public:
+    StorageFolder()
+    {
+      Touch();
+    }
+    
     ~StorageFolder()
     {
       for (Files::iterator it = files_.begin(); it != files_.end(); ++it)
@@ -149,6 +160,11 @@ namespace Orthanc
       }        
     }
 
+    const boost::posix_time::ptime& GetModificationTime() const
+    {
+      return time_;
+    }
+    
     const StorageFile* LookupFile(const std::string& name) const
     {
       Files::const_iterator found = files_.find(name);
@@ -175,6 +191,7 @@ namespace Orthanc
       else
       {
         subfolders_[name] = new StorageFolder;
+        Touch();
         return true;
       }
     }
@@ -205,6 +222,7 @@ namespace Orthanc
         found->second->SetContent(content, mime, isMemory);
       }
       
+      Touch();
       return true;
     }
 
@@ -245,7 +263,68 @@ namespace Orthanc
 
       for (Subfolders::const_iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
       {
-        collection.AddResource(new Folder(it->first));
+        std::unique_ptr<Folder> f(new Folder(it->first));
+        f->SetModificationTime(it->second->GetModificationTime());
+        collection.AddResource(f.release());
+      }
+    }
+
+    bool DeleteItem(const std::vector<std::string>& path)
+    {
+      if (path.size() == 0)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else if (path.size() == 1)
+      {
+        {
+          Files::iterator f = files_.find(path[0]);
+          if (f != files_.end())
+          {
+            assert(f->second != NULL);
+            delete f->second;
+            files_.erase(f);
+            Touch();
+            return true;
+          }
+        }
+
+        {
+          Subfolders::iterator f = subfolders_.find(path[0]);
+          if (f != subfolders_.end())
+          {
+            assert(f->second != NULL);
+            delete f->second;
+            subfolders_.erase(f);
+            Touch();
+            return true;
+          }
+        }
+
+        return false;
+      }
+      else
+      {
+        Subfolders::iterator f = subfolders_.find(path[0]);
+        if (f != subfolders_.end())
+        {
+          assert(f->second != NULL);
+
+          std::vector<std::string> p(path.begin() + 1, path.end());
+          if (f->second->DeleteItem(p))
+          {
+            Touch();
+            return true;
+          }
+          else
+          {
+            return false;
+          }
+        }
+        else
+        {
+          return false;
+        }
       }
     }
   };
@@ -368,7 +447,16 @@ namespace Orthanc
 
   bool WebDavStorage::DeleteItem(const std::vector<std::string>& path)
   {
-    // TODO
-    return false;
+    if (path.empty())
+    {
+      return false;  // Cannot delete the root
+    }
+    else
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);
+
+      LOG(INFO) << "Deleting from WebDAV bucket: " << Toolbox::FlattenUri(path);
+      return root_->DeleteItem(path);
+    }
   }
 }
