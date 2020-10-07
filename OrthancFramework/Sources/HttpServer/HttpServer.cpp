@@ -755,9 +755,9 @@ namespace Orthanc
         output.AddHeader("DAV", "1,2");  // Necessary for Windows XP
 
 #if CIVETWEB_HAS_WEBDAV_WRITING == 1
-        output.AddHeader("Allow", "GET, PUT, OPTIONS, PROPFIND, HEAD, LOCK, UNLOCK, PROPPATCH, MKCOL");
+        output.AddHeader("Allow", "GET, PUT, DELETE, OPTIONS, PROPFIND, HEAD, LOCK, UNLOCK, PROPPATCH, MKCOL");
 #else
-        output.AddHeader("Allow", "GET, PUT, OPTIONS, PROPFIND, HEAD");
+        output.AddHeader("Allow", "GET, PUT, DELETE, OPTIONS, PROPFIND, HEAD");
 #endif
 
         output.SendStatus(HttpStatus_200_Ok);
@@ -768,6 +768,7 @@ namespace Orthanc
              method == "PROPFIND" ||
              method == "PROPPATCH" ||
              method == "PUT" ||
+             method == "DELETE" ||
              method == "HEAD" ||
              method == "LOCK" ||
              method == "UNLOCK" ||
@@ -817,20 +818,41 @@ namespace Orthanc
       
             std::string answer;
           
-            if (depth == 0)
-            {
-              MimeType mime;
-              std::string content;
-              boost::posix_time::ptime modificationTime;
+            MimeType mime;
+            std::string content;
+            boost::posix_time::ptime modificationTime = boost::posix_time::second_clock::universal_time();
             
-              if (bucket->second->IsExistingFolder(path))
+            if (bucket->second->IsExistingFolder(path))
+            {
+              if (depth == 0)
               {
                 IWebDavBucket::Collection c;
                 c.AddResource(new IWebDavBucket::Folder(""));
-                c.Format(answer, uri);
+                c.Format(answer, uri, true /* include display name */);
               }
-              else if (!path.empty() &&
-                       bucket->second->GetFileContent(mime, content, modificationTime, path))
+              else if (depth == 1)
+              {
+                IWebDavBucket::Collection c;
+                c.AddResource(new IWebDavBucket::Folder(""));  // Necessary for empty folders
+              
+                if (!bucket->second->ListCollection(c, path))
+                {
+                  output.SendStatus(HttpStatus_404_NotFound);
+                  return true;
+                }
+                
+                c.Format(answer, uri, true /* include display name */);
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+            }
+            else if (!path.empty() &&
+                     bucket->second->GetFileContent(mime, content, modificationTime, path))
+            {
+              if (depth == 0 ||
+                  depth == 1)
               {
                 std::unique_ptr<IWebDavBucket::File> f(new IWebDavBucket::File(path.back()));
                 f->SetContentLength(content.size());
@@ -846,32 +868,23 @@ namespace Orthanc
                 {
                   throw OrthancException(ErrorCode_InternalError);
                 }
+
+                // Nautilus doesn't work on DELETE, if "D:displayname"
+                // is included in the multi-status answer of PROPFIND at depth 1
+                const bool includeDisplayName = (depth == 0);
                 
                 p.resize(p.size() - 1);
-                c.Format(answer, Toolbox::FlattenUri(p));
+                c.Format(answer, Toolbox::FlattenUri(p), includeDisplayName);
               }
               else
               {
-                output.SendStatus(HttpStatus_404_NotFound);
-                return true;
+                throw OrthancException(ErrorCode_InternalError);
               }
-            }
-            else if (depth == 1)
-            {
-              IWebDavBucket::Collection c;
-              c.AddResource(new IWebDavBucket::Folder(""));  // Necessary for empty folders
-              
-              if (!bucket->second->ListCollection(c, path))
-              {
-                output.SendStatus(HttpStatus_404_NotFound);
-                return true;
-              }
-
-              c.Format(answer, uri);
             }
             else
             {
-              throw OrthancException(ErrorCode_InternalError);
+              output.SendStatus(HttpStatus_404_NotFound);
+              return true;
             }
 
             output.AddHeader("Content-Type", "application/xml; charset=UTF-8");
@@ -946,6 +959,24 @@ namespace Orthanc
             AnswerWebDavReadOnly(output, uri);
 #endif
 
+            return true;
+          }
+          
+
+          /**
+           * WebDAV - DELETE
+           **/
+          
+          else if (method == "DELETE")
+          {
+            if (bucket->second->DeleteItem(path))
+            {
+              output.SendStatus(HttpStatus_204_NoContent);
+            }
+            else
+            {
+              output.SendStatus(HttpStatus_403_Forbidden);
+            }
             return true;
           }
           

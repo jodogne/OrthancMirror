@@ -59,6 +59,8 @@ namespace Orthanc
 
     virtual bool CreateFolder(const std::vector<std::string>& path) ORTHANC_OVERRIDE;
 
+    virtual bool DeleteItem(const std::vector<std::string>& path) ORTHANC_OVERRIDE;
+
     virtual void Start() ORTHANC_OVERRIDE
     {
     }

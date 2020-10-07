@@ -743,7 +743,7 @@ public:
   }
 
 
-  virtual bool CreateFolder(const UriComponents& path)
+  virtual bool CreateFolder(const UriComponents& path) ORTHANC_OVERRIDE
   {
     if (IsUploadedFolder(path))
     {
@@ -754,6 +754,11 @@ public:
       LOG(WARNING) << "Writing to a read-only location in WebDAV: " << Toolbox::FlattenUri(path);
       return false;
     }
+  }
+
+  virtual bool DeleteItem(const std::vector<std::string>& path) ORTHANC_OVERRIDE
+  {
+    return false;  // read-only
   }
 
   virtual void Start() ORTHANC_OVERRIDE
@@ -771,13 +776,36 @@ public:
 
 
 
-static const char* const DICOM_IDENTIFIERS = "DicomIdentifiers";
+static const char* const BY_UIDS = "by-uids";
 
 class DummyBucket2 : public IWebDavBucket  // TODO
 {
 private:
   ServerContext&  context_;
 
+
+  static void LookupTime(boost::posix_time::ptime& target,
+                         ServerContext& context,
+                         const std::string& publicId,
+                         MetadataType metadata)
+  {
+    std::string value;
+    if (context.GetIndex().LookupMetadata(value, publicId, metadata))
+    {
+      try
+      {
+        target = boost::posix_time::from_iso_string(value);
+        return;
+      }
+      catch (std::exception& e)
+      {
+      }
+    }
+
+    target = boost::posix_time::second_clock::universal_time();  // Now
+  }
+
+  
   class DicomIdentifiersVisitor : public ServerContext::ILookupVisitor
   {
   private:
@@ -813,18 +841,23 @@ private:
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
       DicomTag tag(0, 0);
+      MetadataType dateMetadata;
+
       switch (level_)
       {
         case ResourceType_Study:
           tag = DICOM_TAG_STUDY_INSTANCE_UID;
+          dateMetadata = MetadataType_LastUpdate;
           break;
 
         case ResourceType_Series:
           tag = DICOM_TAG_SERIES_INSTANCE_UID;
+          dateMetadata = MetadataType_LastUpdate;
           break;
         
         case ResourceType_Instance:
           tag = DICOM_TAG_SOP_INSTANCE_UID;
+          dateMetadata = MetadataType_Instance_ReceptionDate;
           break;
 
         default:
@@ -835,6 +868,8 @@ private:
       if (mainDicomTags.LookupStringValue(s, tag, false) &&
           !s.empty())
       {
+        std::unique_ptr<Resource> resource;
+
         if (level_ == ResourceType_Instance)
         {
           FileInfo info;
@@ -843,13 +878,19 @@ private:
             std::unique_ptr<File> f(new File(s + ".dcm"));
             f->SetMimeType(MimeType_Dicom);
             f->SetContentLength(info.GetUncompressedSize());
-            target_.AddResource(f.release());
+            resource.reset(f.release());
           }
         }
         else
         {
-          target_.AddResource(new Folder(s));
+          resource.reset(new Folder(s));
         }
+
+        boost::posix_time::ptime t;
+        LookupTime(t, context_, publicId, dateMetadata);
+        resource->SetCreationTime(t);
+        
+        target_.AddResource(resource.release());
       }
     }
   };
@@ -860,13 +901,16 @@ private:
     ServerContext&  context_;
     bool            success_;
     std::string&    target_;
+    boost::posix_time::ptime&  modificationTime_;
 
   public:
     DicomFileVisitor(ServerContext& context,
-                     std::string& target) :
+                     std::string& target,
+                     boost::posix_time::ptime& modificationTime) :
       context_(context),
       success_(false),
-      target_(target)
+      target_(target),
+      modificationTime_(modificationTime)
     {
     }
 
@@ -874,7 +918,7 @@ private:
     {
       return success_;
     }
-      
+
     virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
     {
       return false;   // (*)
@@ -889,10 +933,98 @@ private:
                        const DicomMap& mainDicomTags,
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
-      context_.ReadDicom(target_, publicId);
-      success_ = true;
+      if (success_)
+      {
+        success_ = false;  // Two matches => Error
+      }
+      else
+      {
+        LookupTime(modificationTime_, context_, publicId, MetadataType_Instance_ReceptionDate);
+        context_.ReadDicom(target_, publicId);
+        success_ = true;
+      }
     }
   };
+  
+  class OrthancJsonVisitor : public ServerContext::ILookupVisitor
+  {
+  private:
+    ServerContext&  context_;
+    bool            success_;
+    std::string&    target_;
+    ResourceType    level_;
+
+  public:
+    OrthancJsonVisitor(ServerContext& context,
+                       std::string& target,
+                       ResourceType level) :
+      context_(context),
+      success_(false),
+      target_(target),
+      level_(level)
+    {
+    }
+
+    bool IsSuccess() const
+    {
+      return success_;
+    }
+
+    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+    {
+      return false;   // (*)
+    }
+      
+    virtual void MarkAsComplete() ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId   /* unused     */,
+                       const DicomMap& mainDicomTags,
+                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    {
+      Json::Value info;
+      if (context_.GetIndex().LookupResource(info, publicId, level_))
+      {
+        if (success_)
+        {
+          success_ = false;  // Two matches => Error
+        }
+        else
+        {
+          target_ = info.toStyledString();
+
+          // Replace UNIX newlines with DOS newlines 
+          boost::replace_all(target_, "\n", "\r\n");
+
+          success_ = true;
+        }
+      }
+    }
+  };
+
+
+  void AddVirtualFile(Collection& collection,
+                      const UriComponents& path,
+                      const std::string& filename)
+  {
+    MimeType mime;
+    std::string content;
+    boost::posix_time::ptime modification;
+
+    UriComponents p = path;
+    p.push_back(filename);
+
+    if (GetFileContent(mime, content, modification, p))
+    {
+      std::unique_ptr<File> f(new File(filename));
+      f->SetMimeType(mime);
+      f->SetContentLength(content.size());
+      f->SetCreationTime(modification);
+      collection.AddResource(f.release());
+    }
+  }    
   
 public:
   DummyBucket2(ServerContext& context) :
@@ -906,10 +1038,10 @@ public:
     {
       return true;
     }
-    else if (path.front() == DICOM_IDENTIFIERS &&
-             path.size() <= 3)
+    else if (path.front() == BY_UIDS)
     {
-      return true;
+      return (path.size() <= 3 &&
+              (path.size() != 3 || path[2] != "study.json"));
     }
     else
     {
@@ -922,26 +1054,32 @@ public:
   {
     if (path.empty())
     {
-      collection.AddResource(new Folder(DICOM_IDENTIFIERS));
+      collection.AddResource(new Folder(BY_UIDS));
       return true;
     }
-    else if (path.front() == DICOM_IDENTIFIERS)
+    else if (path.front() == BY_UIDS)
     {
       DatabaseLookup query;
       ResourceType level;
+      size_t limit = 0;  // By default, no limits
 
       if (path.size() == 1)
       {
         level = ResourceType_Study;
+        limit = 100;  // TODO
       }
       else if (path.size() == 2)
       {
+        AddVirtualFile(collection, path, "study.json");
+
         level = ResourceType_Series;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
       }      
       else if (path.size() == 3)
       {
+        AddVirtualFile(collection, path, "series.json");
+
         level = ResourceType_Instance;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
@@ -954,7 +1092,7 @@ public:
       }
 
       DicomIdentifiersVisitor visitor(context_, collection, level);
-      context_.Apply(visitor, query, level, 0 /* since */, 100 /* limit */);
+      context_.Apply(visitor, query, level, 0 /* since */, limit);
       
       return true;
     }
@@ -969,32 +1107,60 @@ public:
                               boost::posix_time::ptime& modificationTime, 
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
-    if (path.size() == 4 &&
-        path[0] == DICOM_IDENTIFIERS &&
-        boost::ends_with(path[3], ".dcm"))
+    if (!path.empty() &&
+        path[0] == BY_UIDS)
     {
-      std::string sopInstanceUid = path[3];
-      sopInstanceUid.resize(sopInstanceUid.size() - 4);
-      
-      mime = MimeType_Dicom;
-
-      DatabaseLookup query;
-      query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+      if (path.size() == 3 &&
+          path[2] == "study.json")
+      {
+        DatabaseLookup query;
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
-      query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
-                              true /* case sensitive */, true /* mandatory tag */);
-      query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
-                              true /* case sensitive */, true /* mandatory tag */);
       
-      DicomFileVisitor visitor(context_, content);
-      context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 100 /* limit */);
+        OrthancJsonVisitor visitor(context_, content, ResourceType_Study);
+        context_.Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
 
-      return visitor.IsSuccess();
+        mime = MimeType_Json;
+        return visitor.IsSuccess();
+      }
+      else if (path.size() == 4 &&
+               path[3] == "series.json")
+      {
+        DatabaseLookup query;
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+        query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
+                                true /* case sensitive */, true /* mandatory tag */);
+      
+        OrthancJsonVisitor visitor(context_, content, ResourceType_Series);
+        context_.Apply(visitor, query, ResourceType_Series, 0 /* since */, 0 /* no limit */);
+
+        mime = MimeType_Json;
+        return visitor.IsSuccess();
+      }
+      else if (path.size() == 4 &&
+               boost::ends_with(path[3], ".dcm"))
+      {
+        std::string sopInstanceUid = path[3];
+        sopInstanceUid.resize(sopInstanceUid.size() - 4);
+        
+        DatabaseLookup query;
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+        query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
+                                true /* case sensitive */, true /* mandatory tag */);
+        query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
+                                true /* case sensitive */, true /* mandatory tag */);
+      
+        DicomFileVisitor visitor(context_, content, modificationTime);
+        context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
+        
+        mime = MimeType_Dicom;
+        return visitor.IsSuccess();
+      }
     }
-    else
-    {
-      return false;
-    }
+      
+    return false;
   }
 
   
@@ -1008,6 +1174,12 @@ public:
   virtual bool CreateFolder(const UriComponents& path)
   {
     return false;
+  }
+
+  virtual bool DeleteItem(const std::vector<std::string>& path) ORTHANC_OVERRIDE
+  {
+    LOG(WARNING) << "DELETE: " << Toolbox::FlattenUri(path);
+    return false;  // read-only
   }
 
   virtual void Start() ORTHANC_OVERRIDE
