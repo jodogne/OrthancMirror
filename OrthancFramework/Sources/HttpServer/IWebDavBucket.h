@@ -148,6 +148,11 @@ namespace Orthanc
     public:
       ~Collection();
 
+      size_t GetSize() const
+      {
+        return resources_.size();
+      }
+
       void AddResource(Resource* resource);  // Takes ownership
 
       void Format(std::string& target,

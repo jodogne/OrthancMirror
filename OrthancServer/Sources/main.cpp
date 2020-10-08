@@ -59,6 +59,7 @@
 
 #include "../../OrthancFramework/Sources/HttpServer/WebDavStorage.h"  // TODO
 #include "Search/DatabaseLookup.h"  // TODO
+#include <boost/regex.hpp> // TODO
 
 
 using namespace Orthanc;
@@ -691,7 +692,7 @@ public:
 
   virtual bool GetFileContent(MimeType& mime,
                               std::string& content,
-                              boost::posix_time::ptime& modificationTime, 
+                              boost::posix_time::ptime& time, 
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
     if (path.empty())
@@ -700,7 +701,7 @@ public:
     }
     else if (IsUploadedFolder(path))
     {
-      return storage_.GetFileContent(mime, content, modificationTime,
+      return storage_.GetFileContent(mime, content, time,
                                      UriComponents(path.begin() + 1, path.end()));
     }
     else if (path.back() == "IM0.dcm" ||
@@ -709,7 +710,7 @@ public:
              path.back() == "IM3.dcm" ||
              path.back() == "IM4.dcm")
     {
-      modificationTime = boost::posix_time::second_clock::universal_time();
+      time = boost::posix_time::second_clock::universal_time();
 
       std::string s;
       for (size_t i = 0; i < path.size(); i++)
@@ -776,7 +777,10 @@ public:
 
 
 
+static const char* const BY_PATIENTS = "by-patients";
+static const char* const BY_STUDIES = "by-studies";
 static const char* const BY_UIDS = "by-uids";
+static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 
 class DummyBucket2 : public IWebDavBucket  // TODO
 {
@@ -841,23 +845,23 @@ private:
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
       DicomTag tag(0, 0);
-      MetadataType dateMetadata;
+      MetadataType timeMetadata;
 
       switch (level_)
       {
         case ResourceType_Study:
           tag = DICOM_TAG_STUDY_INSTANCE_UID;
-          dateMetadata = MetadataType_LastUpdate;
+          timeMetadata = MetadataType_LastUpdate;
           break;
 
         case ResourceType_Series:
           tag = DICOM_TAG_SERIES_INSTANCE_UID;
-          dateMetadata = MetadataType_LastUpdate;
+          timeMetadata = MetadataType_LastUpdate;
           break;
         
         case ResourceType_Instance:
           tag = DICOM_TAG_SOP_INSTANCE_UID;
-          dateMetadata = MetadataType_Instance_ReceptionDate;
+          timeMetadata = MetadataType_Instance_ReceptionDate;
           break;
 
         default:
@@ -886,11 +890,13 @@ private:
           resource.reset(new Folder(s));
         }
 
-        boost::posix_time::ptime t;
-        LookupTime(t, context_, publicId, dateMetadata);
-        resource->SetCreationTime(t);
-        
-        target_.AddResource(resource.release());
+        if (resource.get() != NULL)
+        {
+          boost::posix_time::ptime t;
+          LookupTime(t, context_, publicId, timeMetadata);
+          resource->SetCreationTime(t);
+          target_.AddResource(resource.release());
+        }
       }
     }
   };
@@ -901,16 +907,16 @@ private:
     ServerContext&  context_;
     bool            success_;
     std::string&    target_;
-    boost::posix_time::ptime&  modificationTime_;
+    boost::posix_time::ptime&  time_;
 
   public:
     DicomFileVisitor(ServerContext& context,
                      std::string& target,
-                     boost::posix_time::ptime& modificationTime) :
+                     boost::posix_time::ptime& time) :
       context_(context),
       success_(false),
       target_(target),
-      modificationTime_(modificationTime)
+      time_(time)
     {
     }
 
@@ -939,7 +945,7 @@ private:
       }
       else
       {
-        LookupTime(modificationTime_, context_, publicId, MetadataType_Instance_ReceptionDate);
+        LookupTime(time_, context_, publicId, MetadataType_Instance_ReceptionDate);
         context_.ReadDicom(target_, publicId);
         success_ = true;
       }
@@ -1024,24 +1030,604 @@ private:
       f->SetCreationTime(modification);
       collection.AddResource(f.release());
     }
-  }    
+  }
+
+
+
+
+  class ResourcesIndex : public boost::noncopyable
+  {
+  public:
+    typedef std::map<std::string, std::string>   Map;
+
+  private:
+    ServerContext&  context_;
+    ResourceType    level_;
+    std::string     template_;
+    Map             pathToResource_;
+    Map             resourceToPath_;
+
+    void CheckInvariants()
+    {
+#ifndef NDEBUG
+      assert(pathToResource_.size() == resourceToPath_.size());
+
+      for (Map::const_iterator it = pathToResource_.begin(); it != pathToResource_.end(); ++it)
+      {
+        assert(resourceToPath_[it->second] == it->first);
+      }
+
+      for (Map::const_iterator it = resourceToPath_.begin(); it != resourceToPath_.end(); ++it)
+      {
+        assert(pathToResource_[it->second] == it->first);
+      }
+#endif
+    }      
+
+    void AddTags(DicomMap& target,
+                 const std::string& resourceId,
+                 ResourceType tagsFromLevel)
+    {
+      DicomMap tags;
+      if (context_.GetIndex().GetMainDicomTags(tags, resourceId, level_, tagsFromLevel))
+      {
+        target.Merge(tags);
+      }
+    }
+
+    void Register(const std::string& resourceId)
+    {
+      // Don't register twice the same resource
+      if (resourceToPath_.find(resourceId) == resourceToPath_.end())
+      {
+        std::string name = template_;
+
+        DicomMap tags;
+
+        AddTags(tags, resourceId, level_);
+        
+        if (level_ == ResourceType_Study)
+        {
+          AddTags(tags, resourceId, ResourceType_Patient);
+        }
+        
+        DicomArray arr(tags);
+        for (size_t i = 0; i < arr.GetSize(); i++)
+        {
+          const DicomElement& element = arr.GetElement(i);
+          if (!element.GetValue().IsNull() &&
+              !element.GetValue().IsBinary())
+          {
+            const std::string tag = FromDcmtkBridge::GetTagName(element.GetTag(), "");
+            boost::replace_all(name, "{{" + tag + "}}", element.GetValue().GetContent());
+          } 
+        }
+
+        // Blank the tags that were not matched
+        static const boost::regex REGEX_BLANK_TAGS("{{.*?}}");  // non-greedy match
+        name = boost::regex_replace(name, REGEX_BLANK_TAGS, "");
+
+        // UTF-8 characters cannot be used on Windows XP
+        name = Toolbox::ConvertToAscii(name);
+        boost::replace_all(name, "/", "");
+        boost::replace_all(name, "\\", "");
+
+        // Trim sequences of spaces as one single space
+        static const boost::regex REGEX_TRIM_SPACES("{{.*?}}");
+        name = boost::regex_replace(name, REGEX_TRIM_SPACES, " ");
+        name = Toolbox::StripSpaces(name);
+
+        size_t count = 0;
+        for (;;)
+        {
+          std::string path = name;
+          if (count > 0)
+          {
+            path += " (" + boost::lexical_cast<std::string>(count) + ")";
+          }
+
+          if (pathToResource_.find(path) == pathToResource_.end())
+          {
+            pathToResource_[path] = resourceId;
+            resourceToPath_[resourceId] = path;
+            return;
+          }
+
+          count++;
+        }
+
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+  public:
+    ResourcesIndex(ServerContext& context,
+                   ResourceType level,
+                   const std::string& templateString) :
+      context_(context),
+      level_(level),
+      template_(templateString)
+    {
+    }
+
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
+
+    void Refresh(std::set<std::string>& removedPaths /* out */,
+                 const std::set<std::string>& resources)
+    {
+      CheckInvariants();
+
+      // Detect the resources that have been removed since last refresh
+      removedPaths.clear();
+      std::set<std::string> removedResources;
+      
+      for (Map::iterator it = resourceToPath_.begin(); it != resourceToPath_.end(); ++it)
+      {
+        if (resources.find(it->first) == resources.end())
+        {
+          const std::string& path = it->second;
+          
+          assert(pathToResource_.find(path) != pathToResource_.end());
+          pathToResource_.erase(path);
+          removedPaths.insert(path);
+          
+          removedResources.insert(it->first);  // Delay the removal to avoid disturbing the iterator
+        }
+      }
+
+      // Remove the missing resources
+      for (std::set<std::string>::const_iterator it = removedResources.begin(); it != removedResources.end(); ++it)
+      {
+        assert(resourceToPath_.find(*it) != resourceToPath_.end());
+        resourceToPath_.erase(*it);
+      }
+
+      CheckInvariants();
+
+      for (std::set<std::string>::const_iterator it = resources.begin(); it != resources.end(); ++it)
+      {
+        Register(*it);
+      }
+
+      CheckInvariants();
+    }
+
+    const Map& GetPathToResource() const
+    {
+      return pathToResource_;
+    }
+  };
+
+
+  class INode : public boost::noncopyable
+  {
+  public:
+    virtual ~INode()
+    {
+    }
+
+    virtual bool ListCollection(IWebDavBucket::Collection& target,
+                                const UriComponents& path) = 0;
+
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& time, 
+                                const UriComponents& path) = 0;
+  };
+
+
+  class InstancesNode : public INode
+  {
+  private:
+    ServerContext&  context_;
+    std::string     parentSeries_;
+
+  public:
+    InstancesNode(ServerContext& context,
+                  const std::string& parentSeries) :
+      context_(context),
+      parentSeries_(parentSeries)
+    {
+    }
+
+    virtual bool ListCollection(IWebDavBucket::Collection& target,
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      if (path.empty())
+      {
+        std::list<std::string> resources;
+        try
+        {
+          context_.GetIndex().GetChildren(resources, parentSeries_);
+        }
+        catch (OrthancException&)
+        {
+          // Unknown (or deleted) parent series
+          return false;
+        }
+
+        for (std::list<std::string>::const_iterator
+               it = resources.begin(); it != resources.end(); ++it)
+        {
+          boost::posix_time::ptime time;
+          LookupTime(time, context_, *it, MetadataType_Instance_ReceptionDate);
+
+          FileInfo info;
+          if (context_.GetIndex().LookupAttachment(info, *it, FileContentType_Dicom))
+          {
+            std::unique_ptr<File> resource(new File(*it + ".dcm"));
+            resource->SetMimeType(MimeType_Dicom);
+            resource->SetContentLength(info.GetUncompressedSize());
+            resource->SetCreationTime(time);
+            target.AddResource(resource.release());
+          }          
+        }
+        
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& time, 
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      if (path.size() == 1 &&
+          boost::ends_with(path[0], ".dcm"))
+      {
+        std::string instanceId = path[0].substr(0, path[0].size() - 4);
+
+        try
+        {
+          mime = MimeType_Dicom;
+          context_.ReadDicom(content, instanceId);
+          LookupTime(time, context_, instanceId, MetadataType_Instance_ReceptionDate);
+          return true;
+        }
+        catch (OrthancException&)
+        {
+          // File was removed
+          return false;
+        }
+      }
+      else
+      {
+        return false;
+      }
+    }
+  };
+
+
+
+  class ResourcesNode : public INode
+  {
+  private:
+    typedef std::map<std::string, INode*>  Children;
+    
+    ServerContext&  context_;
+    ResourcesIndex  index_;
+    MetadataType    timeMetadata_;
+    Children        children_;  // Maps Orthanc resource IDs to subnodes
+
+    void Refresh()
+    {
+      std::list<std::string> resources;
+      GetCurrentResources(resources);
+
+      std::set<std::string> removedPaths;
+      index_.Refresh(removedPaths, std::set<std::string>(resources.begin(), resources.end()));
+
+      // Remove the children that have been removed
+      for (std::set<std::string>::const_iterator
+             it = removedPaths.begin(); it != removedPaths.end(); ++it)
+      {
+        Children::iterator child = children_.find(*it);
+        if (child != children_.end())
+        {
+          assert(child->second != NULL);
+          delete child->second;
+          children_.erase(child);
+        }
+      }
+    }
+
+    INode* GetChild(const std::string& path)  // Don't free the resulting pointer!
+    {
+      ResourcesIndex::Map::const_iterator resource = index_.GetPathToResource().find(path);
+      if (resource == index_.GetPathToResource().end())
+      {
+        return NULL;
+      }
+      else
+      {            
+        Children::iterator child = children_.find(resource->second);
+        if (child != children_.end())
+        {
+          assert(child->second != NULL);
+          return child->second;
+        }
+        else
+        {
+          INode* child = CreateChild(resource->second);
+          if (child == NULL)
+          {            
+            return NULL;
+          }
+          else
+          {
+            children_[resource->second] = child;
+            return child;
+          }
+        }
+      }
+    }
+
+  protected:
+    ServerContext& GetContext() const
+    {
+      return context_;
+    }
+    
+    virtual void GetCurrentResources(std::list<std::string>& resources) = 0;
+
+    virtual INode* CreateChild(const std::string& resource) = 0;
+    
+  public:
+    ResourcesNode(ServerContext& context,
+                  ResourceType level,
+                  const std::string& templateString) :
+      context_(context),
+      index_(context, level, templateString)
+    {
+      if (level == ResourceType_Instance)
+      {
+        timeMetadata_ = MetadataType_Instance_ReceptionDate;
+      }
+      else
+      {
+        timeMetadata_ = MetadataType_LastUpdate;
+      }
+    }
+
+    virtual ~ResourcesNode()
+    {
+      for (Children::iterator it = children_.begin(); it != children_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        delete it->second;
+      }        
+    }
+
+    ResourceType GetLevel() const
+    {
+      return index_.GetLevel();
+    }
+
+    virtual bool ListCollection(IWebDavBucket::Collection& target,
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      Refresh();
+
+      if (index_.GetLevel() == ResourceType_Instance)
+      {
+        // Not a collection, no subfolders
+        return false;
+      }
+      else if (path.empty())
+      {
+        const ResourcesIndex::Map& paths = index_.GetPathToResource();
+        
+        for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
+        {
+          boost::posix_time::ptime time;
+          LookupTime(time, context_, it->second, timeMetadata_);
+
+          std::unique_ptr<IWebDavBucket::Resource> resource(new IWebDavBucket::Folder(it->first));
+          resource->SetCreationTime(time);
+          target.AddResource(resource.release());
+        }
+
+        return true;
+      }
+      else
+      {
+        // Recursivity
+        INode* child = GetChild(path[0]);
+        if (child == NULL)
+        {
+          return false;
+        }
+        else
+        {
+          UriComponents subpath(path.begin() + 1, path.end());
+          return child->ListCollection(target, subpath);
+        }
+      }
+    }
+
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& time, 
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      Refresh();
+
+      if (path.empty())
+      {
+        return false;
+      }
+      else
+      {
+        // Recursivity
+        INode* child = GetChild(path[0]);
+        if (child == NULL)
+        {
+          return false;
+        }
+        else
+        {
+          UriComponents subpath(path.begin() + 1, path.end());
+          return child->GetFileContent(mime, content, time, subpath);
+        }
+      }
+    }
+  };
+
   
+
+  class ParentNode : public ResourcesNode
+  {
+  private:
+    std::string  parentId_;
+    
+  protected: 
+    virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
+    {
+      try
+      {
+        GetContext().GetIndex().GetChildren(resources, parentId_);
+      }
+      catch (OrthancException&)
+      {
+        // Unknown parent resource
+        resources.clear();
+      }
+    }
+
+    virtual INode* CreateChild(const std::string& resource) ORTHANC_OVERRIDE
+    {
+      if (GetLevel() == ResourceType_Instance)
+      {
+        return NULL;
+      }
+      else if (GetLevel() == ResourceType_Series)
+      {
+        return new InstancesNode(GetContext(), resource);
+      }
+      else
+      {
+        std::string t;
+        
+        ResourceType l = GetChildResourceType(GetLevel());
+        switch (l)
+        {
+          case ResourceType_Study:
+            t = "{{StudyDate}} - {{StudyDescription}}";
+            break;
+
+          case ResourceType_Series:
+            t = "{{Modality}} - {{SeriesDescription}}";
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+        
+        return new ParentNode(GetContext(), l, resource, t);
+      }
+    }
+
+  public:
+    ParentNode(ServerContext& context,
+               ResourceType level,
+               const std::string& parentId,
+               const std::string& templateString) :
+      ResourcesNode(context, level, templateString),
+      parentId_(parentId)
+    {
+    }
+  };
+  
+  
+  class RootNode : public ResourcesNode
+  {
+  protected:   
+    virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
+    {
+      GetContext().GetIndex().GetAllUuids(resources, GetLevel());
+    }
+
+    virtual INode* CreateChild(const std::string& resource) ORTHANC_OVERRIDE
+    {
+      if (GetLevel() == ResourceType_Series)
+      {
+        return new InstancesNode(GetContext(), resource);
+      }
+      else
+      {
+        std::string t;
+        
+        ResourceType l = GetChildResourceType(GetLevel());
+        switch (l)
+        {
+          case ResourceType_Study:
+            t = "{{StudyDate}} - {{StudyDescription}}";
+            break;
+
+          case ResourceType_Series:
+            t = "{{Modality}} - {{SeriesDescription}}";
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        printf("OPENING CHILDREN of %s %s\n", EnumerationToString(GetLevel()), resource.c_str());
+        
+        return new ParentNode(GetContext(), l, resource, t);
+      }
+    }
+
+  public:
+    RootNode(ServerContext& context,
+             ResourceType level,
+             const std::string& templateString) :
+      ResourcesNode(context, level, templateString)
+    {
+    }
+  };
+  
+  
+
+  RootNode patients_;
+  RootNode studies_;
+  
+
 public:
   DummyBucket2(ServerContext& context) :
-    context_(context)
+    context_(context),
+    patients_(context, ResourceType_Patient, "{{PatientID}} - {{PatientName}}"),
+    studies_(context, ResourceType_Study, "{{PatientID}} - {{PatientName}} - {{StudyDescription}}")
   {
   }
-  
+
   virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
   {
     if (path.empty())
     {
       return true;
     }
-    else if (path.front() == BY_UIDS)
+    else if (path[0] == BY_UIDS)
     {
       return (path.size() <= 3 &&
               (path.size() != 3 || path[2] != "study.json"));
+    }
+    else if (path[0] == BY_PATIENTS)
+    {
+      IWebDavBucket::Collection tmp;
+      return patients_.ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_STUDIES)
+    {
+      IWebDavBucket::Collection tmp;
+      return studies_.ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
     else
     {
@@ -1055,9 +1641,11 @@ public:
     if (path.empty())
     {
       collection.AddResource(new Folder(BY_UIDS));
+      collection.AddResource(new Folder(BY_PATIENTS));
+      collection.AddResource(new Folder(BY_STUDIES));
       return true;
-    }
-    else if (path.front() == BY_UIDS)
+    }   
+    else if (path[0] == BY_UIDS)
     {
       DatabaseLookup query;
       ResourceType level;
@@ -1096,6 +1684,14 @@ public:
       
       return true;
     }
+    else if (path[0] == BY_PATIENTS)
+    {
+      return patients_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_STUDIES)
+    {
+      return studies_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+    }
     else
     {
       return false;
@@ -1107,8 +1703,11 @@ public:
                               boost::posix_time::ptime& modificationTime, 
                               const UriComponents& path) ORTHANC_OVERRIDE
   {
-    if (!path.empty() &&
-        path[0] == BY_UIDS)
+    if (path.empty())
+    {
+      return false;
+    }
+    else if (path[0] == BY_UIDS)
     {
       if (path.size() == 3 &&
           path[2] == "study.json")
@@ -1158,6 +1757,14 @@ public:
         mime = MimeType_Dicom;
         return visitor.IsSuccess();
       }
+    }
+    else if (path[0] == BY_PATIENTS)
+    {
+      return patients_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_STUDIES)
+    {
+      return studies_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
       
     return false;
@@ -1634,9 +2241,9 @@ static bool StartHttpServer(ServerContext& context,
       UriComponents root;  // TODO
       root.push_back("a");
       root.push_back("b");
-      httpServer.Register(root, new WebDavStorage(true));
+      //httpServer.Register(root, new WebDavStorage(true));
       //httpServer.Register(root, new DummyBucket(context, true));
-      //httpServer.Register(root, new DummyBucket2(context));
+      httpServer.Register(root, new DummyBucket2(context));
     }
 
     if (httpServer.GetPortNumber() < 1024)

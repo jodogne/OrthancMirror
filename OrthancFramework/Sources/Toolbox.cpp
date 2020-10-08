@@ -1248,7 +1248,8 @@ namespace Orthanc
             c == '-' ||
             c == '_' ||
             c == '.' ||
-            c == '~');
+            c == '~' ||
+            c == '/');
   }
 
   void Toolbox::UriEncode(std::string& target,
