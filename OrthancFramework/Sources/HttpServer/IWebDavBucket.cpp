@@ -96,7 +96,8 @@ namespace Orthanc
   {
     node.set_name("D:response");
 
-    std::string s = AddTrailingSlash(parentPath) + GetName();
+    std::string s;
+    Toolbox::UriEncode(s, AddTrailingSlash(parentPath) + GetName());
     node.append_child("D:href").append_child(pugi::node_pcdata).set_value(s.c_str());
 
     pugi::xml_node propstat = node.append_child("D:propstat");
@@ -180,8 +181,7 @@ namespace Orthanc
 
     //prop.append_child("D:getcontenttype").append_child(pugi::node_pcdata).set_value("httpd/unix-directory");
 
-    std::string s = GetName();
-    prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(s.c_str());
+    prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(GetName().c_str());
   }
 
 

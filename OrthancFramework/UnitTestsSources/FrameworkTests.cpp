@@ -1086,7 +1086,7 @@ TEST(Toolbox, UriEncode)
   Toolbox::UriEncode(s, t); 
   ASSERT_EQ(t, s);
 
-  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);  
+  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C/%3A%3B%3D%3F%40%5B%5D", s);  
   Toolbox::UriEncode(s, "%"); ASSERT_EQ("%25", s);
 
   // Encode characters from UTF-8. This is the test string from the
