@@ -779,13 +779,14 @@ public:
 
 static const char* const BY_PATIENTS = "by-patients";
 static const char* const BY_STUDIES = "by-studies";
+static const char* const BY_DATE = "by-date";
 static const char* const BY_UIDS = "by-uids";
 static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 
 class DummyBucket2 : public IWebDavBucket  // TODO
 {
 private:
-  ServerContext&  context_;
+  typedef std::map<ResourceType, std::string>  Templates;
 
 
   static void LookupTime(boost::posix_time::ptime& target,
@@ -820,8 +821,8 @@ private:
 
   public:
     DicomIdentifiersVisitor(ServerContext& context,
-                Collection&  target,
-                ResourceType level) :
+                            Collection&  target,
+                            ResourceType level) :
       context_(context),
       isComplete_(false),
       target_(target),
@@ -1311,10 +1312,11 @@ private:
   private:
     typedef std::map<std::string, INode*>  Children;
     
-    ServerContext&  context_;
-    ResourcesIndex  index_;
-    MetadataType    timeMetadata_;
-    Children        children_;  // Maps Orthanc resource IDs to subnodes
+    ServerContext&                   context_;
+    const Templates&                 templates_;
+    std::unique_ptr<ResourcesIndex>  index_;
+    MetadataType                     timeMetadata_;
+    Children                         children_;  // Maps Orthanc resource IDs to subnodes
 
     void Refresh()
     {
@@ -1322,7 +1324,7 @@ private:
       GetCurrentResources(resources);
 
       std::set<std::string> removedPaths;
-      index_.Refresh(removedPaths, std::set<std::string>(resources.begin(), resources.end()));
+      index_->Refresh(removedPaths, std::set<std::string>(resources.begin(), resources.end()));
 
       // Remove the children that have been removed
       for (std::set<std::string>::const_iterator
@@ -1340,8 +1342,8 @@ private:
 
     INode* GetChild(const std::string& path)  // Don't free the resulting pointer!
     {
-      ResourcesIndex::Map::const_iterator resource = index_.GetPathToResource().find(path);
-      if (resource == index_.GetPathToResource().end())
+      ResourcesIndex::Map::const_iterator resource = index_->GetPathToResource().find(path);
+      if (resource == index_->GetPathToResource().end())
       {
         return NULL;
       }
@@ -1382,10 +1384,18 @@ private:
   public:
     ResourcesNode(ServerContext& context,
                   ResourceType level,
-                  const std::string& templateString) :
+                  const Templates& templates) :
       context_(context),
-      index_(context, level, templateString)
+      templates_(templates)
     {
+      Templates::const_iterator t = templates.find(level);
+      if (t == templates.end())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      index_.reset(new ResourcesIndex(context, level, t->second));
+      
       if (level == ResourceType_Instance)
       {
         timeMetadata_ = MetadataType_Instance_ReceptionDate;
@@ -1407,7 +1417,12 @@ private:
 
     ResourceType GetLevel() const
     {
-      return index_.GetLevel();
+      return index_->GetLevel();
+    }
+
+    const Templates& GetTemplates() const
+    {
+      return templates_;
     }
 
     virtual bool ListCollection(IWebDavBucket::Collection& target,
@@ -1415,14 +1430,14 @@ private:
     {
       Refresh();
 
-      if (index_.GetLevel() == ResourceType_Instance)
+      if (index_->GetLevel() == ResourceType_Instance)
       {
         // Not a collection, no subfolders
         return false;
       }
       else if (path.empty())
       {
-        const ResourcesIndex::Map& paths = index_.GetPathToResource();
+        const ResourcesIndex::Map& paths = index_->GetPathToResource();
         
         for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
         {
@@ -1482,7 +1497,7 @@ private:
 
   
 
-  class ParentNode : public ResourcesNode
+  class ResourceChildrenNode : public ResourcesNode
   {
   private:
     std::string  parentId_;
@@ -1513,33 +1528,17 @@ private:
       }
       else
       {
-        std::string t;
-        
         ResourceType l = GetChildResourceType(GetLevel());
-        switch (l)
-        {
-          case ResourceType_Study:
-            t = "{{StudyDate}} - {{StudyDescription}}";
-            break;
-
-          case ResourceType_Series:
-            t = "{{Modality}} - {{SeriesDescription}}";
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-        
-        return new ParentNode(GetContext(), l, resource, t);
+        return new ResourceChildrenNode(GetContext(), l, resource, GetTemplates());
       }
     }
 
   public:
-    ParentNode(ServerContext& context,
-               ResourceType level,
-               const std::string& parentId,
-               const std::string& templateString) :
-      ResourcesNode(context, level, templateString),
+    ResourceChildrenNode(ServerContext& context,
+                         ResourceType level,
+                         const std::string& parentId,
+                         const Templates& templates) :
+      ResourcesNode(context, level, templates),
       parentId_(parentId)
     {
     }
@@ -1562,50 +1561,265 @@ private:
       }
       else
       {
-        std::string t;
-        
         ResourceType l = GetChildResourceType(GetLevel());
-        switch (l)
-        {
-          case ResourceType_Study:
-            t = "{{StudyDate}} - {{StudyDescription}}";
-            break;
-
-          case ResourceType_Series:
-            t = "{{Modality}} - {{SeriesDescription}}";
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-
-        printf("OPENING CHILDREN of %s %s\n", EnumerationToString(GetLevel()), resource.c_str());
-        
-        return new ParentNode(GetContext(), l, resource, t);
+        return new ResourceChildrenNode(GetContext(), l, resource, GetTemplates());
       }
     }
 
   public:
     RootNode(ServerContext& context,
              ResourceType level,
-             const std::string& templateString) :
-      ResourcesNode(context, level, templateString)
+             const Templates& templates) :
+      ResourcesNode(context, level, templates)
     {
     }
   };
-  
+
+
+
+  class NodeWithChildren : public INode
+  {
+  private:
+    typedef std::map<std::string, INode*>  Children;
+
+    Children  children_;
+
+    INode* GetChild(const std::string& path)  // Don't delete the result pointer!
+    {
+      Children::const_iterator found = children_.find(path);
+      if (found == children_.end())
+      {
+        INode* child = CreateChild(path);
+        
+        if (child == NULL)
+        {
+          return NULL;
+        }
+        else
+        {
+          children_[path] = child;
+          return child;
+        }
+      }
+      else
+      {
+        assert(found->second != NULL);
+        return found->second;
+      }
+    }
+
+  protected:
+    virtual void ListContent(IWebDavBucket::Collection& target) = 0;
+
+    virtual INode* CreateChild(const std::string& path) = 0;
+
+  public:
+    virtual ~NodeWithChildren()
+    {
+      for (Children::iterator it = children_.begin(); it != children_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        delete it->second;
+      }
+    }
+
+    virtual bool ListCollection(IWebDavBucket::Collection& target,
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      if (path.empty())
+      {
+        ListContent(target);
+        return true;
+      }
+      else
+      {
+        INode* child = GetChild(path[0]);
+        if (child == NULL)
+        {
+          return false;
+        }
+        else
+        {
+          UriComponents subpath(path.begin() + 1, path.end());
+          return child->ListCollection(target, subpath);
+        }
+      }
+    }
+
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& time, 
+                                const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      if (path.empty())
+      {
+        return false;
+      }
+      else
+      {
+        INode* child = GetChild(path[0]);
+        if (child == NULL)
+        {
+          return false;
+        }
+        else
+        {
+          UriComponents subpath(path.begin() + 1, path.end());
+          return child->GetFileContent(mime, content, time, subpath);
+        }
+      }
+    }
+  };
   
 
-  RootNode patients_;
-  RootNode studies_;
+  class StudyMonthsNode : public NodeWithChildren
+  {
+  private:
+    ServerContext&    context_;
+    std::string       year_;
+    const Templates&  templates_;
+
+    class Visitor : public ServerContext::ILookupVisitor
+    {
+    private:
+      std::set<std::string> months_;
+      
+    public:
+      Visitor()
+      {
+      }
+
+      const std::set<std::string>& GetMonths() const
+      {
+        return months_;
+      }
+      
+      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+      {
+        return false;   // (*)
+      }
+      
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+      }
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId   /* unused     */,
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+      {
+        std::string s;
+        if (mainDicomTags.LookupStringValue(s, DICOM_TAG_STUDY_DATE, false) &&
+            s.size() == 8)
+        {
+          months_.insert(s.substr(4, 2)); // Get the month from "YYYYMMDD"
+        }
+      }
+    };
+
+  protected:
+    virtual void ListContent(IWebDavBucket::Collection& target)
+    {
+      DatabaseLookup query;
+      query.AddRestConstraint(DICOM_TAG_STUDY_DATE, year_ + "0101-" + year_ + "1231",
+                              true /* case sensitive */, true /* mandatory tag */);
+
+      Visitor visitor;
+      context_.Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
+
+      for (std::set<std::string>::const_iterator it = visitor.GetMonths().begin();
+           it != visitor.GetMonths().end(); ++it)
+      {
+        target.AddResource(new IWebDavBucket::Folder(year_ + "-" + *it));
+      }
+    }
+
+    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
+    {
+      return NULL;
+    }
+
+  public:
+    StudyMonthsNode(ServerContext& context,
+                    const std::string& year,
+                    const Templates& templates) :
+      context_(context),
+      year_(year),
+      templates_(templates)
+    {
+    }
+  };
+
+  
+  class StudyYearsNode : public NodeWithChildren
+  {
+  private:
+    ServerContext&    context_;
+    const Templates&  templates_;
+
+  protected:
+    virtual void ListContent(IWebDavBucket::Collection& target)
+    {
+      std::list<std::string> resources;
+      context_.GetIndex().GetAllUuids(resources, ResourceType_Study);
+
+      std::set<std::string> years;
+      
+      for (std::list<std::string>::const_iterator it = resources.begin(); it != resources.end(); ++it)
+      {
+        DicomMap tags;
+        std::string studyDate;
+        if (context_.GetIndex().GetMainDicomTags(tags, *it, ResourceType_Study, ResourceType_Study) &&
+            tags.LookupStringValue(studyDate, DICOM_TAG_STUDY_DATE, false) &&
+            studyDate.size() == 8)
+        {
+          years.insert(studyDate.substr(0, 4)); // Get the year from "YYYYMMDD"
+        }
+      }
+      
+      for (std::set<std::string>::const_iterator it = years.begin(); it != years.end(); ++it)
+      {
+        target.AddResource(new IWebDavBucket::Folder(*it));
+      }
+    }
+
+    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
+    {
+      return new StudyMonthsNode(context_, path, templates_);
+    }
+
+  public:
+    StudyYearsNode(ServerContext& context,
+                   const Templates& templates) :
+      context_(context),
+      templates_(templates)
+    {
+    }
+  };
+
+  
+  ServerContext&          context_;
+  std::unique_ptr<INode>  patients_;
+  std::unique_ptr<INode>  studies_;
+  std::unique_ptr<INode>  dates_;
+  Templates               patientsTemplates_;
+  Templates               studiesTemplates_;
   
 
 public:
   DummyBucket2(ServerContext& context) :
-    context_(context),
-    patients_(context, ResourceType_Patient, "{{PatientID}} - {{PatientName}}"),
-    studies_(context, ResourceType_Study, "{{PatientID}} - {{PatientName}} - {{StudyDescription}}")
+    context_(context)
   {
+    patientsTemplates_[ResourceType_Patient] = "{{PatientID}} - {{PatientName}}";
+    patientsTemplates_[ResourceType_Study] = "{{StudyDate}} - {{StudyDescription}}";
+    patientsTemplates_[ResourceType_Series] = "{{Modality}} - {{SeriesDescription}}";
+
+    studiesTemplates_[ResourceType_Study] = "{{PatientID}} - {{PatientName}} - {{StudyDescription}}";
+    studiesTemplates_[ResourceType_Series] = patientsTemplates_[ResourceType_Series];
+
+    patients_.reset(new RootNode(context, ResourceType_Patient, patientsTemplates_));
+    studies_.reset(new RootNode(context, ResourceType_Study, studiesTemplates_));
+    dates_.reset(new StudyYearsNode(context, studiesTemplates_));
   }
 
   virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
@@ -1622,12 +1836,17 @@ public:
     else if (path[0] == BY_PATIENTS)
     {
       IWebDavBucket::Collection tmp;
-      return patients_.ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+      return patients_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == BY_STUDIES)
     {
       IWebDavBucket::Collection tmp;
-      return studies_.ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+      return studies_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_DATE)
+    {
+      IWebDavBucket::Collection tmp;
+      return dates_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
     else
     {
@@ -1640,9 +1859,10 @@ public:
   {
     if (path.empty())
     {
-      collection.AddResource(new Folder(BY_UIDS));
+      collection.AddResource(new Folder(BY_DATE));
       collection.AddResource(new Folder(BY_PATIENTS));
       collection.AddResource(new Folder(BY_STUDIES));
+      collection.AddResource(new Folder(BY_UIDS));
       return true;
     }   
     else if (path[0] == BY_UIDS)
@@ -1686,11 +1906,15 @@ public:
     }
     else if (path[0] == BY_PATIENTS)
     {
-      return patients_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+      return patients_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == BY_STUDIES)
     {
-      return studies_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+      return studies_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_DATE)
+    {
+      return dates_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
     else
     {
@@ -1760,11 +1984,15 @@ public:
     }
     else if (path[0] == BY_PATIENTS)
     {
-      return patients_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+      return patients_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == BY_STUDIES)
     {
-      return studies_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+      return studies_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_DATE)
+    {
+      return dates_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
       
     return false;
