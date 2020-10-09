@@ -49,6 +49,8 @@ static const char* const BY_DATES = "by-dates";
 static const char* const BY_UIDS = "by-uids";
 static const char* const UPLOADS = "uploads";
 static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+static const char* const STUDY_INFO = "study.json";
+static const char* const SERIES_INFO = "series.json";
 
 
 namespace Orthanc
@@ -457,6 +459,21 @@ namespace Orthanc
     ServerContext&  context_;
     std::string     parentSeries_;
 
+    static bool LookupInstanceId(std::string& instanceId,
+                                 const UriComponents& path)
+    {
+      if (path.size() == 1 &&
+          boost::ends_with(path[0], ".dcm"))
+      {
+        instanceId = path[0].substr(0, path[0].size() - 4);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
   public:
     InstancesOfSeries(ServerContext& context,
                       const std::string& parentSeries) :
@@ -511,11 +528,9 @@ namespace Orthanc
                                 boost::posix_time::ptime& time, 
                                 const UriComponents& path) ORTHANC_OVERRIDE
     {
-      if (path.size() == 1 &&
-          boost::ends_with(path[0], ".dcm"))
+      std::string instanceId;
+      if (LookupInstanceId(instanceId, path))
       {
-        std::string instanceId = path[0].substr(0, path[0].size() - 4);
-
         try
         {
           mime = MimeType_Dicom;
@@ -528,6 +543,20 @@ namespace Orthanc
           // File was removed
           return false;
         }
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    virtual bool DeleteItem(const UriComponents& path) ORTHANC_OVERRIDE
+    {
+      std::string instanceId;
+      if (LookupInstanceId(instanceId, path))
+      {
+        Json::Value info;
+        return context_.DeleteResource(info, instanceId, ResourceType_Instance);
       }
       else
       {
@@ -557,7 +586,7 @@ namespace Orthanc
       Children::const_iterator child = children_.find(path);
       if (child == children_.end())
       {
-        INode* child = CreateChild(path);
+        INode* child = CreateSubfolder(path);
         
         if (child == NULL)
         {
@@ -577,7 +606,7 @@ namespace Orthanc
     }
 
   protected:
-    void RemoveSubfolder(const std::string& path)
+    void InvalidateSubfolder(const std::string& path)
     {
       Children::iterator child = children_.find(path);
       if (child != children_.end())
@@ -591,8 +620,8 @@ namespace Orthanc
     virtual void Refresh() = 0;
     
     virtual bool ListSubfolders(IWebDavBucket::Collection& target) = 0;
-
-    virtual INode* CreateChild(const std::string& path) = 0;
+    
+    virtual INode* CreateSubfolder(const std::string& path) = 0;
 
   public:
     virtual ~InternalNode()
@@ -620,7 +649,9 @@ namespace Orthanc
         INode* child = GetChild(path[0]);
         if (child == NULL)
         {
-          return false;
+          // Must be "true" to allow DELETE on folders that are
+          // automatically removed through recursive deletion
+          return true;
         }
         else
         {
@@ -657,6 +688,39 @@ namespace Orthanc
         }
       }
     }
+
+
+    virtual bool DeleteItem(const UriComponents& path) ORTHANC_OVERRIDE ORTHANC_FINAL
+    {
+      Refresh();
+
+      if (path.empty())
+      {
+        IWebDavBucket::Collection tmp;
+        if (ListSubfolders(tmp))
+        {
+          return (tmp.GetSize() == 0);
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        INode* child = GetChild(path[0]);
+        if (child == NULL)
+        {
+          return true;
+        }
+        else
+        {
+          // Recursivity
+          UriComponents subpath(path.begin() + 1, path.end());
+          return child->DeleteItem(subpath);
+        }
+      }
+    }
   };
   
 
@@ -681,7 +745,7 @@ namespace Orthanc
       for (std::set<std::string>::const_iterator
              it = removedPaths.begin(); it != removedPaths.end(); ++it)
       {
-        RemoveSubfolder(*it);
+        InvalidateSubfolder(*it);
       }
     }
 
@@ -710,7 +774,7 @@ namespace Orthanc
       }
     }
 
-    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE ORTHANC_FINAL
+    virtual INode* CreateSubfolder(const std::string& path) ORTHANC_OVERRIDE ORTHANC_FINAL
     {
       ResourcesIndex::Map::const_iterator resource = index_->GetPathToResource().find(path);
       if (resource == index_->GetPathToResource().end())
@@ -727,7 +791,7 @@ namespace Orthanc
     {
       return context_;
     }
-    
+
     virtual void GetCurrentResources(std::list<std::string>& resources) = 0;
 
     virtual INode* CreateResourceNode(const std::string& resource) = 0;
@@ -931,10 +995,6 @@ namespace Orthanc
       std::set<std::string> months_;
       
     public:
-      Visitor()
-      {
-      }
-
       const std::set<std::string>& GetMonths() const
       {
         return months_;
@@ -986,7 +1046,7 @@ namespace Orthanc
       return true;
     }
 
-    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
+    virtual INode* CreateSubfolder(const std::string& path) ORTHANC_OVERRIDE
     {
       if (path.size() != 7)  // Format: "YYYY-MM"
       {
@@ -1054,7 +1114,7 @@ namespace Orthanc
       return true;
     }
 
-    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
+    virtual INode* CreateSubfolder(const std::string& path) ORTHANC_OVERRIDE
     {
       return new ListOfStudiesByMonth(context_, path, templates_);
     }
@@ -1068,6 +1128,40 @@ namespace Orthanc
     }
   };
 
+
+  class OrthancWebDav::DicomDeleteVisitor : public ServerContext::ILookupVisitor
+  {
+  private:
+    ServerContext&  context_;
+    ResourceType    level_;
+
+  public:
+    DicomDeleteVisitor(ServerContext& context,
+                       ResourceType level) :
+      context_(context),
+      level_(level)
+    {
+    }
+
+    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+    {
+      return false;   // (*)
+    }
+      
+    virtual void MarkAsComplete() ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void Visit(const std::string& publicId,
+                       const std::string& instanceId   /* unused     */,
+                       const DicomMap& mainDicomTags   /* unused     */,
+                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    {
+      Json::Value info;
+      context_.DeleteResource(info, publicId, level_);
+    }
+  };
+  
 
   void OrthancWebDav::AddVirtualFile(Collection& collection,
                                      const UriComponents& path,
@@ -1148,8 +1242,31 @@ namespace Orthanc
   }
 
 
-  OrthancWebDav::OrthancWebDav(ServerContext& context) :
+  OrthancWebDav::INode& OrthancWebDav::GetRootNode(const std::string& rootPath)
+  {
+    if (rootPath == BY_PATIENTS)
+    {
+      return *patients_;
+    }
+    else if (rootPath == BY_STUDIES)
+    {
+      return *studies_;
+    }
+    else if (rootPath == BY_DATES)
+    {
+      return *dates_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+  
+
+  OrthancWebDav::OrthancWebDav(ServerContext& context,
+                               bool allowDicomDelete) :
     context_(context),
+    allowDicomDelete_(allowDicomDelete),
     uploads_(false /* store uploads as temporary files */),
     running_(false)
   {
@@ -1175,22 +1292,14 @@ namespace Orthanc
     else if (path[0] == BY_UIDS)
     {
       return (path.size() <= 3 &&
-              (path.size() != 3 || path[2] != "study.json"));
+              (path.size() != 3 || path[2] != STUDY_INFO));
     }
-    else if (path[0] == BY_PATIENTS)
+    else if (path[0] == BY_PATIENTS ||
+             path[0] == BY_STUDIES ||
+             path[0] == BY_DATES)
     {
       IWebDavBucket::Collection tmp;
-      return patients_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_STUDIES)
-    {
-      IWebDavBucket::Collection tmp;
-      return studies_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_DATES)
-    {
-      IWebDavBucket::Collection tmp;
-      return dates_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+      return GetRootNode(path[0]).ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == UPLOADS)
     {
@@ -1228,7 +1337,7 @@ namespace Orthanc
       }
       else if (path.size() == 2)
       {
-        AddVirtualFile(collection, path, "study.json");
+        AddVirtualFile(collection, path, STUDY_INFO);
 
         level = ResourceType_Series;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
@@ -1236,7 +1345,7 @@ namespace Orthanc
       }      
       else if (path.size() == 3)
       {
-        AddVirtualFile(collection, path, "series.json");
+        AddVirtualFile(collection, path, SERIES_INFO);
 
         level = ResourceType_Instance;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
@@ -1254,17 +1363,11 @@ namespace Orthanc
       
       return true;
     }
-    else if (path[0] == BY_PATIENTS)
+    else if (path[0] == BY_PATIENTS ||
+             path[0] == BY_STUDIES ||
+             path[0] == BY_DATES)
     {
-      return patients_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_STUDIES)
-    {
-      return studies_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_DATES)
-    {
-      return dates_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+      return GetRootNode(path[0]).ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == UPLOADS)
     {
@@ -1289,7 +1392,7 @@ namespace Orthanc
     else if (path[0] == BY_UIDS)
     {
       if (path.size() == 3 &&
-          path[2] == "study.json")
+          path[2] == STUDY_INFO)
       {
         DatabaseLookup query;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
@@ -1302,7 +1405,7 @@ namespace Orthanc
         return visitor.IsSuccess();
       }
       else if (path.size() == 4 &&
-               path[3] == "series.json")
+               path[3] == SERIES_INFO)
       {
         DatabaseLookup query;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
@@ -1319,8 +1422,7 @@ namespace Orthanc
       else if (path.size() == 4 &&
                boost::ends_with(path[3], ".dcm"))
       {
-        std::string sopInstanceUid = path[3];
-        sopInstanceUid.resize(sopInstanceUid.size() - 4);
+        const std::string sopInstanceUid = path[3].substr(0, path[3].size() - 4);
         
         DatabaseLookup query;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
@@ -1341,17 +1443,11 @@ namespace Orthanc
         return false;
       }
     }
-    else if (path[0] == BY_PATIENTS)
+    else if (path[0] == BY_PATIENTS ||
+             path[0] == BY_STUDIES ||
+             path[0] == BY_DATES)
     {
-      return patients_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_STUDIES)
-    {
-      return studies_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
-    }
-    else if (path[0] == BY_DATES)
-    {
-      return dates_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+      return GetRootNode(path[0]).GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == UPLOADS)
     {
@@ -1408,14 +1504,86 @@ namespace Orthanc
   
   bool OrthancWebDav::DeleteItem(const std::vector<std::string>& path) 
   {
-    if (path.size() >= 1 &&
-        path[0] == UPLOADS)
+    if (path.empty())
+    {
+      return false;
+    }
+    else if (path[0] == BY_UIDS &&
+             path.size() >= 2 &&
+             path.size() <= 4)
+    {
+      if (allowDicomDelete_)
+      {
+        ResourceType level;
+        DatabaseLookup query;
+
+        query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
+                                true /* case sensitive */, true /* mandatory tag */);
+        level = ResourceType_Study;
+
+        if (path.size() >= 3)
+        {
+          if (path[2] == STUDY_INFO)
+          {
+            return true;  // Allow deletion of virtual files
+          }
+          
+          query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
+                                  true /* case sensitive */, true /* mandatory tag */);
+          level = ResourceType_Series;
+        }
+
+        if (path.size() == 4)
+        {
+          if (path[3] == SERIES_INFO)
+          {
+            return true;  // Allow deletion of virtual files
+          }
+          else if (boost::ends_with(path[3], ".dcm"))
+          {
+            const std::string sopInstanceUid = path[3].substr(0, path[3].size() - 4);
+
+            query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
+                                    true /* case sensitive */, true /* mandatory tag */);
+            level = ResourceType_Instance;
+          }
+          else
+          {
+            return false;
+          }
+        }
+
+        std::cout << "\n\n" << query.Format() << "\n\n";
+
+        DicomDeleteVisitor visitor(context_, level);
+        context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
+        return true;
+      }
+      else
+      {
+        return false;  // read-only
+      }
+    }
+    else if (path[0] == BY_PATIENTS ||
+             path[0] == BY_STUDIES ||
+             path[0] == BY_DATES)
+    {
+      if (allowDicomDelete_)
+      {
+        return GetRootNode(path[0]).DeleteItem(UriComponents(path.begin() + 1, path.end()));
+      }
+      else
+      {
+        return false;  // read-only
+      }
+    }
+    else if (path[0] == UPLOADS)
     {
       return uploads_.DeleteItem(UriComponents(path.begin() + 1, path.end()));
     }
     else
     {
-      return false;  // read-only
+      return false;
     }
   }
 

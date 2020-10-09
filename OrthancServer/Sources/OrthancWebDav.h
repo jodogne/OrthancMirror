@@ -47,19 +47,20 @@ namespace Orthanc
   private:
     typedef std::map<ResourceType, std::string>  Templates;
 
-    class DicomIdentifiersVisitor;  
+    class DicomDeleteVisitor;
     class DicomFileVisitor;
-    class OrthancJsonVisitor;
+    class DicomIdentifiersVisitor;  
     class InstancesOfSeries;
     class InternalNode;
     class ListOfResources;
     class ListOfStudiesByDate;
     class ListOfStudiesByMonth;
     class ListOfStudiesByYear;
+    class OrthancJsonVisitor;
     class ResourcesIndex;
     class RootNode;
     class SingleDicomResource;
-    
+
     class INode : public boost::noncopyable
     {
     public:
@@ -74,6 +75,8 @@ namespace Orthanc
                                   std::string& content,
                                   boost::posix_time::ptime& time, 
                                   const UriComponents& path) = 0;
+
+      virtual bool DeleteItem(const UriComponents& path) = 0;
     };
 
 
@@ -84,8 +87,11 @@ namespace Orthanc
     static void UploadWorker(OrthancWebDav* that);
 
     void Upload(const std::string& path);
+
+    INode& GetRootNode(const std::string& rootPath);
   
     ServerContext&          context_;
+    bool                    allowDicomDelete_;
     std::unique_ptr<INode>  patients_;
     std::unique_ptr<INode>  studies_;
     std::unique_ptr<INode>  dates_;
@@ -97,7 +103,8 @@ namespace Orthanc
     bool                    running_;
   
   public:
-    OrthancWebDav(ServerContext& context);
+    OrthancWebDav(ServerContext& context,
+                  bool allowDicomDelete);
 
     virtual ~OrthancWebDav()
     {
