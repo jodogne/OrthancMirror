@@ -45,7 +45,7 @@
 
 static const char* const BY_PATIENTS = "by-patients";
 static const char* const BY_STUDIES = "by-studies";
-static const char* const BY_DATE = "by-dates";
+static const char* const BY_DATES = "by-dates";
 static const char* const BY_UIDS = "by-uids";
 static const char* const UPLOADS = "uploads";
 static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
@@ -1187,7 +1187,7 @@ namespace Orthanc
       IWebDavBucket::Collection tmp;
       return studies_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == BY_DATE)
+    else if (path[0] == BY_DATES)
     {
       IWebDavBucket::Collection tmp;
       return dates_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
@@ -1208,7 +1208,7 @@ namespace Orthanc
   {
     if (path.empty())
     {
-      collection.AddResource(new Folder(BY_DATE));
+      collection.AddResource(new Folder(BY_DATES));
       collection.AddResource(new Folder(BY_PATIENTS));
       collection.AddResource(new Folder(BY_STUDIES));
       collection.AddResource(new Folder(BY_UIDS));
@@ -1262,7 +1262,7 @@ namespace Orthanc
     {
       return studies_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == BY_DATE)
+    else if (path[0] == BY_DATES)
     {
       return dates_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
@@ -1348,6 +1348,10 @@ namespace Orthanc
     else if (path[0] == BY_STUDIES)
     {
       return studies_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == BY_DATES)
+    {
+      return dates_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
     else if (path[0] == UPLOADS)
     {
