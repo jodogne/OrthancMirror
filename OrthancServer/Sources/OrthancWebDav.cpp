@@ -1191,7 +1191,7 @@ namespace Orthanc
 
     boost::posix_time::ptime lastModification = GetNow();
 
-    while (that->running_)
+    while (that->uploadRunning_)
     {
       std::unique_ptr<IDynamicObject> obj(that->uploadQueue_.Dequeue(100));
       if (obj.get() != NULL)
@@ -1223,7 +1223,7 @@ namespace Orthanc
     if (uploads_.GetFileContent(mime, content, time, uri))
     {
       DicomInstanceToStore instance;
-      // instance.SetOrigin(DicomInstanceOrigin_WebDav);
+      // instance.SetOrigin(DicomInstanceOrigin_WebDav);   // TODO
       instance.SetBuffer(content.c_str(), content.size());
 
       std::string publicId;
@@ -1264,11 +1264,13 @@ namespace Orthanc
   
 
   OrthancWebDav::OrthancWebDav(ServerContext& context,
-                               bool allowDicomDelete) :
+                               bool allowDicomDelete,
+                               bool allowUpload) :
     context_(context),
     allowDicomDelete_(allowDicomDelete),
+    allowUpload_(allowUpload),
     uploads_(false /* store uploads as temporary files */),
-    running_(false)
+    uploadRunning_(false)
   {
     patientsTemplates_[ResourceType_Patient] = "{{PatientID}} - {{PatientName}}";
     patientsTemplates_[ResourceType_Study] = "{{StudyDate}} - {{StudyDescription}}";
@@ -1301,7 +1303,8 @@ namespace Orthanc
       IWebDavBucket::Collection tmp;
       return GetRootNode(path[0]).ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == UPLOADS)
+    else if (allowUpload_ &&
+             path[0] == UPLOADS)
     {
       return uploads_.IsExistingFolder(UriComponents(path.begin() + 1, path.end()));
     }
@@ -1321,7 +1324,12 @@ namespace Orthanc
       collection.AddResource(new Folder(BY_PATIENTS));
       collection.AddResource(new Folder(BY_STUDIES));
       collection.AddResource(new Folder(BY_UIDS));
-      collection.AddResource(new Folder(UPLOADS));
+
+      if (allowUpload_)
+      {
+        collection.AddResource(new Folder(UPLOADS));
+      }
+      
       return true;
     }   
     else if (path[0] == BY_UIDS)
@@ -1333,7 +1341,7 @@ namespace Orthanc
       if (path.size() == 1)
       {
         level = ResourceType_Study;
-        limit = 100;  // TODO
+        limit = 0;  // TODO - Should we limit here?
       }
       else if (path.size() == 2)
       {
@@ -1369,7 +1377,8 @@ namespace Orthanc
     {
       return GetRootNode(path[0]).ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == UPLOADS)
+    else if (allowUpload_ &&
+             path[0] == UPLOADS)
     {
       return uploads_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
@@ -1449,7 +1458,8 @@ namespace Orthanc
     {
       return GetRootNode(path[0]).GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == UPLOADS)
+    else if (allowUpload_ &&
+             path[0] == UPLOADS)
     {
       return uploads_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
@@ -1463,7 +1473,8 @@ namespace Orthanc
   bool OrthancWebDav::StoreFile(const std::string& content,
                                 const UriComponents& path) 
   {
-    if (path.size() >= 1 &&
+    if (allowUpload_ &&
+        path.size() >= 1 &&
         path[0] == UPLOADS)
     {
       UriComponents subpath(UriComponents(path.begin() + 1, path.end()));
@@ -1490,7 +1501,8 @@ namespace Orthanc
 
   bool OrthancWebDav::CreateFolder(const UriComponents& path)
   {
-    if (path.size() >= 1 &&
+    if (allowUpload_ &&
+        path.size() >= 1 &&
         path[0] == UPLOADS)
     {
       return uploads_.CreateFolder(UriComponents(path.begin() + 1, path.end()));
@@ -1553,8 +1565,6 @@ namespace Orthanc
           }
         }
 
-        std::cout << "\n\n" << query.Format() << "\n\n";
-
         DicomDeleteVisitor visitor(context_, level);
         context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
         return true;
@@ -1577,7 +1587,8 @@ namespace Orthanc
         return false;  // read-only
       }
     }
-    else if (path[0] == UPLOADS)
+    else if (allowUpload_ &&
+             path[0] == UPLOADS)
     {
       return uploads_.DeleteItem(UriComponents(path.begin() + 1, path.end()));
     }
@@ -1590,14 +1601,14 @@ namespace Orthanc
   
   void OrthancWebDav::Start() 
   {
-    if (running_)
+    if (uploadRunning_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else
+    else if (allowUpload_)
     {
       LOG(INFO) << "Starting the WebDAV upload thread";
-      running_ = true;
+      uploadRunning_ = true;
       uploadThread_ = boost::thread(UploadWorker, this);
     }
   }
@@ -1605,10 +1616,10 @@ namespace Orthanc
   
   void OrthancWebDav::Stop() 
   {
-    if (running_)
+    if (uploadRunning_)
     {
       LOG(INFO) << "Stopping the WebDAV upload thread";
-      running_ = false;
+      uploadRunning_ = false;
       if (uploadThread_.joinable())
       {
         uploadThread_.join();

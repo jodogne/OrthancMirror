@@ -85,6 +85,18 @@
   // supports the "gzip" and "deflate" HTTP encodings.
   "HttpCompressionEnabled" : true,
 
+  // Enable the publication of the content of the Orthanc server as a
+  // WebDAV share (new in Orthanc 1.8.0). On the localhost, the WebDAV
+  // share is mapped as "http://localhost:8042/webdav/".
+  "WebDavEnabled" : true,
+
+  // Whether to allow deletions through the WebDAV share. This is
+  // disabled by default to avoid accidental loss of DICOM instances.
+  "WebDavDeleteAllowed" : false,
+
+  // Whether to allow uploads through the WebDAV share.
+  "WebDavUploadAllowed" : true,
+
 
 
   /**

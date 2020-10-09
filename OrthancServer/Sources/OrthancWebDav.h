@@ -92,6 +92,7 @@ namespace Orthanc
   
     ServerContext&          context_;
     bool                    allowDicomDelete_;
+    bool                    allowUpload_;
     std::unique_ptr<INode>  patients_;
     std::unique_ptr<INode>  studies_;
     std::unique_ptr<INode>  dates_;
@@ -100,11 +101,12 @@ namespace Orthanc
     WebDavStorage           uploads_;
     SharedMessageQueue      uploadQueue_;
     boost::thread           uploadThread_;
-    bool                    running_;
+    bool                    uploadRunning_;
   
   public:
     OrthancWebDav(ServerContext& context,
-                  bool allowDicomDelete);
+                  bool allowDicomDelete,
+                  bool allowUpload);
 
     virtual ~OrthancWebDav()
     {
