@@ -781,6 +781,7 @@ static const char* const BY_PATIENTS = "by-patients";
 static const char* const BY_STUDIES = "by-studies";
 static const char* const BY_DATE = "by-dates";
 static const char* const BY_UIDS = "by-uids";
+static const char* const UPLOADS = "uploads";
 static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 
 class DummyBucket2 : public IWebDavBucket  // TODO
@@ -788,6 +789,12 @@ class DummyBucket2 : public IWebDavBucket  // TODO
 private:
   typedef std::map<ResourceType, std::string>  Templates;
 
+
+  static boost::posix_time::ptime GetNow()
+  {
+    return boost::posix_time::second_clock::universal_time();
+  }
+  
 
   static void LookupTime(boost::posix_time::ptime& target,
                          ServerContext& context,
@@ -807,7 +814,7 @@ private:
       }
     }
 
-    target = boost::posix_time::second_clock::universal_time();  // Now
+    target = GetNow();
   }
 
   
@@ -1838,6 +1845,62 @@ private:
     }
   };
 
+
+  static void UploadWorker(DummyBucket2* that)
+  {
+    assert(that != NULL);
+
+    boost::posix_time::ptime lastModification = GetNow();
+
+    while (that->running_)
+    {
+      std::unique_ptr<IDynamicObject> obj(that->uploadQueue_.Dequeue(100));
+      if (obj.get() != NULL)
+      {
+        that->Upload(reinterpret_cast<const SingleValueObject<std::string>&>(*obj).GetValue());
+        lastModification = GetNow();
+      }
+      else if (GetNow() - lastModification > boost::posix_time::seconds(10))
+      {
+        // After every 10 seconds of inactivity, remove the empty folders
+        LOG(INFO) << "Cleaning up the empty WebDAV upload folders";
+        that->uploads_.RemoveEmptyFolders();
+        lastModification = GetNow();
+      }
+    }
+  }
+
+  void Upload(const std::string& path)
+  {
+    UriComponents uri;
+    Toolbox::SplitUriComponents(uri, path);
+        
+    LOG(INFO) << "Upload from WebDAV: " << path;
+
+    MimeType mime;
+    std::string content;
+    boost::posix_time::ptime time;
+    if (uploads_.GetFileContent(mime, content, time, uri))
+    {
+      DicomInstanceToStore instance;
+      // instance.SetOrigin(DicomInstanceOrigin_WebDav);
+      instance.SetBuffer(content.c_str(), content.size());
+
+      std::string publicId;
+      StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
+      if (status == StoreStatus_Success ||
+          status == StoreStatus_AlreadyStored)
+      {
+        LOG(INFO) << "Successfully imported DICOM instance from WebDAV: " << path << " (Orthanc ID: " << publicId << ")";
+        uploads_.DeleteItem(uri);
+      }
+      else
+      {
+        LOG(WARNING) << "Cannot import DICOM instance from WebWAV: " << path;
+      }
+    }
+  }
+
   
   ServerContext&          context_;
   std::unique_ptr<INode>  patients_;
@@ -1845,11 +1908,16 @@ private:
   std::unique_ptr<INode>  dates_;
   Templates               patientsTemplates_;
   Templates               studiesTemplates_;
+  WebDavStorage           uploads_;
+  SharedMessageQueue      uploadQueue_;
+  boost::thread           uploadThread_;
+  bool                    running_;
   
-
 public:
   DummyBucket2(ServerContext& context) :
-    context_(context)
+    context_(context),
+    uploads_(false /* store uploads as temporary files */),
+    running_(false)
   {
     patientsTemplates_[ResourceType_Patient] = "{{PatientID}} - {{PatientName}}";
     patientsTemplates_[ResourceType_Study] = "{{StudyDate}} - {{StudyDescription}}";
@@ -1861,6 +1929,11 @@ public:
     patients_.reset(new RootNode(context, ResourceType_Patient, patientsTemplates_));
     studies_.reset(new RootNode(context, ResourceType_Study, studiesTemplates_));
     dates_.reset(new ListOfStudiesByYear(context, studiesTemplates_));
+  }
+
+  virtual ~DummyBucket2()
+  {
+    Stop();
   }
 
   virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
@@ -1889,6 +1962,10 @@ public:
       IWebDavBucket::Collection tmp;
       return dates_->ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
     }
+    else if (path[0] == UPLOADS)
+    {
+      return uploads_.IsExistingFolder(UriComponents(path.begin() + 1, path.end()));
+    }
     else
     {
       return false;
@@ -1904,6 +1981,7 @@ public:
       collection.AddResource(new Folder(BY_PATIENTS));
       collection.AddResource(new Folder(BY_STUDIES));
       collection.AddResource(new Folder(BY_UIDS));
+      collection.AddResource(new Folder(UPLOADS));
       return true;
     }   
     else if (path[0] == BY_UIDS)
@@ -1956,6 +2034,10 @@ public:
     else if (path[0] == BY_DATE)
     {
       return dates_->ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
+    }
+    else if (path[0] == UPLOADS)
+    {
+      return uploads_.ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
     else
     {
@@ -2022,6 +2104,10 @@ public:
         mime = MimeType_Dicom;
         return visitor.IsSuccess();
       }
+      else
+      {
+        return false;
+      }
     }
     else if (path[0] == BY_PATIENTS)
     {
@@ -2031,39 +2117,96 @@ public:
     {
       return studies_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
-    else if (path[0] == BY_DATE)
+    else if (path[0] == UPLOADS)
     {
-      return dates_->GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
+      return uploads_.GetFileContent(mime, content, modificationTime, UriComponents(path.begin() + 1, path.end()));
     }
-      
-    return false;
+    else
+    {
+      return false;
+    }
   }
 
   
   virtual bool StoreFile(const std::string& content,
                          const UriComponents& path) ORTHANC_OVERRIDE
   {
-    return false;
+    if (path.size() >= 1 &&
+        path[0] == UPLOADS)
+    {
+      UriComponents subpath(UriComponents(path.begin() + 1, path.end()));
+
+      if (uploads_.StoreFile(content, subpath))
+      {
+        if (!content.empty())
+        {
+          uploadQueue_.Enqueue(new SingleValueObject<std::string>(Toolbox::FlattenUri(subpath)));
+        }
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      return false;
+    }
   }
 
 
   virtual bool CreateFolder(const UriComponents& path)
   {
-    return false;
+    if (path.size() >= 1 &&
+        path[0] == UPLOADS)
+    {
+      return uploads_.CreateFolder(UriComponents(path.begin() + 1, path.end()));
+    }
+    else
+    {
+      return false;
+    }
   }
 
   virtual bool DeleteItem(const std::vector<std::string>& path) ORTHANC_OVERRIDE
   {
-    LOG(WARNING) << "DELETE: " << Toolbox::FlattenUri(path);
-    return false;  // read-only
+    if (path.size() >= 1 &&
+        path[0] == UPLOADS)
+    {
+      return uploads_.DeleteItem(UriComponents(path.begin() + 1, path.end()));
+    }
+    else
+    {
+      return false;  // read-only
+    }
   }
 
   virtual void Start() ORTHANC_OVERRIDE
   {
+    if (running_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      LOG(INFO) << "Starting the WebDAV upload thread";
+      running_ = true;
+      uploadThread_ = boost::thread(UploadWorker, this);
+    }
   }
 
   virtual void Stop() ORTHANC_OVERRIDE
   {
+    if (running_)
+    {
+      LOG(INFO) << "Stopping the WebDAV upload thread";
+      running_ = false;
+      if (uploadThread_.joinable())
+      {
+        uploadThread_.join();
+      }
+    }
   }
 };
 

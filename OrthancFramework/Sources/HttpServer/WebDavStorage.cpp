@@ -160,6 +160,11 @@ namespace Orthanc
       }        
     }
 
+    size_t GetSize() const
+    {
+      return files_.size() + subfolders_.size();
+    }
+
     const boost::posix_time::ptime& GetModificationTime() const
     {
       return time_;
@@ -327,6 +332,33 @@ namespace Orthanc
         }
       }
     }
+
+
+    void RemoveEmptyFolders()
+    {
+      std::list<std::string> emptyFolders;
+      
+      for (Subfolders::const_iterator it = subfolders_.begin(); it != subfolders_.end(); ++it)
+      {
+        assert(it->second != NULL);
+        it->second->RemoveEmptyFolders();
+
+        if (it->second->GetSize() == 0)
+        {
+          assert(it->second != NULL);
+          delete it->second;
+          
+          emptyFolders.push_back(it->first);
+        }
+      }
+
+      for (std::list<std::string>::const_iterator it = emptyFolders.begin();
+           it != emptyFolders.end(); ++it)
+      {
+        assert(subfolders_.find(*it) != subfolders_.end());
+        subfolders_.erase(*it);
+      }
+    }
   };
 
 
@@ -458,5 +490,12 @@ namespace Orthanc
       LOG(INFO) << "Deleting from WebDAV bucket: " << Toolbox::FlattenUri(path);
       return root_->DeleteItem(path);
     }
+  }
+
+
+  void WebDavStorage::RemoveEmptyFolders()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    root_->RemoveEmptyFolders();
   }
 }

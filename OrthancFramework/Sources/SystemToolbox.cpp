@@ -700,6 +700,10 @@ namespace Orthanc
     }
 
     // Images types
+    else if (extension == ".dcm")
+    {
+      return MimeType_Dicom;
+    }
     else if (extension == ".jpg" ||
              extension == ".jpeg")
     {
