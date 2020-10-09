@@ -1053,7 +1053,7 @@ static bool StartHttpServer(ServerContext& context,
       UriComponents root;  // TODO
       root.push_back("a");
       root.push_back("b");
-      httpServer.Register(root, new OrthancWebDav(context));
+      httpServer.Register(root, new OrthancWebDav(context, true /* allow delete */));
     }
 
     if (httpServer.GetPortNumber() < 1024)
