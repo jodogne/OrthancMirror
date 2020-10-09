@@ -779,7 +779,7 @@ public:
 
 static const char* const BY_PATIENTS = "by-patients";
 static const char* const BY_STUDIES = "by-studies";
-static const char* const BY_DATE = "by-date";
+static const char* const BY_DATE = "by-dates";
 static const char* const BY_UIDS = "by-uids";
 static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 
@@ -1540,7 +1540,7 @@ private:
 
   
 
-  class ResourceChildrenNode : public ListOfResources
+  class SingleDicomResource : public ListOfResources
   {
   private:
     std::string  parentId_;
@@ -1572,15 +1572,15 @@ private:
       else
       {
         ResourceType l = GetChildResourceType(GetLevel());
-        return new ResourceChildrenNode(GetContext(), l, resource, GetTemplates());
+        return new SingleDicomResource(GetContext(), l, resource, GetTemplates());
       }
     }
 
   public:
-    ResourceChildrenNode(ServerContext& context,
-                         ResourceType level,
-                         const std::string& parentId,
-                         const Templates& templates) :
+    SingleDicomResource(ServerContext& context,
+                  ResourceType level,
+                  const std::string& parentId,
+                  const Templates& templates) :
       ListOfResources(context, level, templates),
       parentId_(parentId)
     {
@@ -1605,7 +1605,7 @@ private:
       else
       {
         ResourceType l = GetChildResourceType(GetLevel());
-        return new ResourceChildrenNode(GetContext(), l, resource, GetTemplates());
+        return new SingleDicomResource(GetContext(), l, resource, GetTemplates());
       }
     }
 
@@ -1618,6 +1618,74 @@ private:
     }
   };
 
+
+  class ListOfStudiesByDate : public ListOfResources
+  {
+  private:
+    std::string  year_;
+    std::string  month_;
+
+    class Visitor : public ServerContext::ILookupVisitor
+    {
+    private:
+      std::list<std::string>&  resources_;
+
+    public:
+      Visitor(std::list<std::string>& resources) :
+        resources_(resources)
+      {
+      }
+
+      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+      {
+        return false;   // (*)
+      }
+      
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+      }
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId   /* unused     */,
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+      {
+        resources_.push_back(publicId);
+      }
+    };
+    
+  protected:   
+    virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
+    {
+      DatabaseLookup query;
+      query.AddRestConstraint(DICOM_TAG_STUDY_DATE, year_ + month_ + "01-" + year_ + month_ + "31",
+                              true /* case sensitive */, true /* mandatory tag */);
+
+      Visitor visitor(resources);
+      GetContext().Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
+    }
+
+    virtual INode* CreateResourceNode(const std::string& resource) ORTHANC_OVERRIDE
+    {
+      return new SingleDicomResource(GetContext(), ResourceType_Series, resource, GetTemplates());
+    }
+
+  public:
+    ListOfStudiesByDate(ServerContext& context,
+                        const std::string& year,
+                        const std::string& month,
+                        const Templates& templates) :
+      ListOfResources(context, ResourceType_Study, templates),
+      year_(year),
+      month_(month)
+    {
+      if (year.size() != 4 ||
+          month.size() != 2)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  };
 
 
   class ListOfStudiesByMonth : public InternalNode
@@ -1690,7 +1758,16 @@ private:
 
     virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
     {
-      return NULL;
+      if (path.size() != 7)  // Format: "YYYY-MM"
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        const std::string year = path.substr(0, 4);
+        const std::string month = path.substr(5, 2);
+        return new ListOfStudiesByDate(context_, year, month, templates_);
+      }
     }
 
   public:
@@ -1701,6 +1778,10 @@ private:
       year_(year),
       templates_(templates)
     {
+      if (year_.size() != 4)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
   };
 
