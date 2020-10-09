@@ -1221,15 +1221,15 @@ private:
 
 
   
-  class InstancesNode : public INode
+  class InstancesOfSeries : public INode
   {
   private:
     ServerContext&  context_;
     std::string     parentSeries_;
 
   public:
-    InstancesNode(ServerContext& context,
-                  const std::string& parentSeries) :
+    InstancesOfSeries(ServerContext& context,
+                      const std::string& parentSeries) :
       context_(context),
       parentSeries_(parentSeries)
     {
@@ -1347,9 +1347,20 @@ private:
     }
 
   protected:
+    void RemoveSubfolder(const std::string& path)
+    {
+      Children::iterator child = children_.find(path);
+      if (child != children_.end())
+      {
+        assert(child->second != NULL);
+        delete child->second;
+        children_.erase(child);
+      }
+    }
+    
     virtual void Refresh() = 0;
     
-    virtual bool ListContent(IWebDavBucket::Collection& target) = 0;
+    virtual bool ListSubfolders(IWebDavBucket::Collection& target) = 0;
 
     virtual INode* CreateChild(const std::string& path) = 0;
 
@@ -1371,7 +1382,7 @@ private:
       
       if (path.empty())
       {
-        return ListContent(target);
+        return ListSubfolders(target);
       }
       else
       {
@@ -1397,7 +1408,7 @@ private:
     {
       if (path.empty())
       {
-        return false;
+        return false;  // An internal node doesn't correspond to a file
       }
       else
       {
@@ -1419,18 +1430,16 @@ private:
   };
   
 
-  class ResourcesNode : public INode
+  class ListOfResources : public InternalNode
   {
   private:
-    typedef std::map<std::string, INode*>  Children;
-    
     ServerContext&                   context_;
     const Templates&                 templates_;
     std::unique_ptr<ResourcesIndex>  index_;
     MetadataType                     timeMetadata_;
-    Children                         children_;  // Maps paths to subnodes
 
-    void Refresh()
+  protected:
+    virtual void Refresh() ORTHANC_OVERRIDE ORTHANC_FINAL
     {
       std::list<std::string> resources;
       GetCurrentResources(resources);
@@ -1442,48 +1451,36 @@ private:
       for (std::set<std::string>::const_iterator
              it = removedPaths.begin(); it != removedPaths.end(); ++it)
       {
-        Children::iterator child = children_.find(*it);
-        if (child != children_.end())
-        {
-          assert(child->second != NULL);
-          delete child->second;
-          children_.erase(child);
-        }
+        RemoveSubfolder(*it);
       }
     }
 
-    INode* GetChild(const std::string& path)  // Don't free the resulting pointer!
+    virtual bool ListSubfolders(IWebDavBucket::Collection& target) ORTHANC_OVERRIDE ORTHANC_FINAL
     {
-      Children::iterator child = children_.find(path);
-      if (child == children_.end())
+      if (index_->GetLevel() == ResourceType_Instance)
       {
-        INode* child = CreateChild(path);
-        if (child == NULL)
-        {            
-          return NULL;
-        }
-        else
-        {
-          children_[path] = child;
-          return child;
-        }
+        // Not a collection, no subfolders
+        return false;
       }
       else
       {
-        assert(child->second != NULL);
-        return child->second;
+        const ResourcesIndex::Map& paths = index_->GetPathToResource();
+        
+        for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
+        {
+          boost::posix_time::ptime time;
+          LookupTime(time, context_, it->second, timeMetadata_);
+
+          std::unique_ptr<IWebDavBucket::Resource> resource(new IWebDavBucket::Folder(it->first));
+          resource->SetCreationTime(time);
+          target.AddResource(resource.release());
+        }
+
+        return true;
       }
     }
 
-  protected:
-    ServerContext& GetContext() const
-    {
-      return context_;
-    }
-    
-    virtual void GetCurrentResources(std::list<std::string>& resources) = 0;
-
-    virtual INode* CreateChild(const std::string& path)
+    virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE ORTHANC_FINAL
     {
       ResourcesIndex::Map::const_iterator resource = index_->GetPathToResource().find(path);
       if (resource == index_->GetPathToResource().end())
@@ -1496,12 +1493,19 @@ private:
       }
     }
 
+    ServerContext& GetContext() const
+    {
+      return context_;
+    }
+    
+    virtual void GetCurrentResources(std::list<std::string>& resources) = 0;
+
     virtual INode* CreateResourceNode(const std::string& resource) = 0;
     
   public:
-    ResourcesNode(ServerContext& context,
-                  ResourceType level,
-                  const Templates& templates) :
+    ListOfResources(ServerContext& context,
+                    ResourceType level,
+                    const Templates& templates) :
       context_(context),
       templates_(templates)
     {
@@ -1523,15 +1527,6 @@ private:
       }
     }
 
-    virtual ~ResourcesNode()
-    {
-      for (Children::iterator it = children_.begin(); it != children_.end(); ++it)
-      {
-        assert(it->second != NULL);
-        delete it->second;
-      }        
-    }
-
     ResourceType GetLevel() const
     {
       return index_->GetLevel();
@@ -1541,82 +1536,11 @@ private:
     {
       return templates_;
     }
-
-    virtual bool ListCollection(IWebDavBucket::Collection& target,
-                                const UriComponents& path)
-      ORTHANC_OVERRIDE ORTHANC_FINAL
-    {
-      Refresh();
-
-      if (index_->GetLevel() == ResourceType_Instance)
-      {
-        // Not a collection, no subfolders
-        return false;
-      }
-      else if (path.empty())
-      {
-        const ResourcesIndex::Map& paths = index_->GetPathToResource();
-        
-        for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
-        {
-          boost::posix_time::ptime time;
-          LookupTime(time, context_, it->second, timeMetadata_);
-
-          std::unique_ptr<IWebDavBucket::Resource> resource(new IWebDavBucket::Folder(it->first));
-          resource->SetCreationTime(time);
-          target.AddResource(resource.release());
-        }
-
-        return true;
-      }
-      else
-      {
-        // Recursivity
-        INode* child = GetChild(path[0]);
-        if (child == NULL)
-        {
-          return false;
-        }
-        else
-        {
-          UriComponents subpath(path.begin() + 1, path.end());
-          return child->ListCollection(target, subpath);
-        }
-      }
-    }
-
-    virtual bool GetFileContent(MimeType& mime,
-                                std::string& content,
-                                boost::posix_time::ptime& time, 
-                                const UriComponents& path)
-      ORTHANC_OVERRIDE ORTHANC_FINAL
-    {
-      if (path.empty())
-      {
-        return false;
-      }
-      else
-      {
-        // Recursivity
-        Refresh();
-
-        INode* child = GetChild(path[0]);
-        if (child == NULL)
-        {
-          return false;
-        }
-        else
-        {
-          UriComponents subpath(path.begin() + 1, path.end());
-          return child->GetFileContent(mime, content, time, subpath);
-        }
-      }
-    }
   };
 
   
 
-  class ResourceChildrenNode : public ResourcesNode
+  class ResourceChildrenNode : public ListOfResources
   {
   private:
     std::string  parentId_;
@@ -1643,7 +1567,7 @@ private:
       }
       else if (GetLevel() == ResourceType_Series)
       {
-        return new InstancesNode(GetContext(), resource);
+        return new InstancesOfSeries(GetContext(), resource);
       }
       else
       {
@@ -1657,14 +1581,14 @@ private:
                          ResourceType level,
                          const std::string& parentId,
                          const Templates& templates) :
-      ResourcesNode(context, level, templates),
+      ListOfResources(context, level, templates),
       parentId_(parentId)
     {
     }
   };
   
   
-  class RootNode : public ResourcesNode
+  class RootNode : public ListOfResources
   {
   protected:   
     virtual void GetCurrentResources(std::list<std::string>& resources) ORTHANC_OVERRIDE
@@ -1676,7 +1600,7 @@ private:
     {
       if (GetLevel() == ResourceType_Series)
       {
-        return new InstancesNode(GetContext(), resource);
+        return new InstancesOfSeries(GetContext(), resource);
       }
       else
       {
@@ -1689,14 +1613,14 @@ private:
     RootNode(ServerContext& context,
              ResourceType level,
              const Templates& templates) :
-      ResourcesNode(context, level, templates)
+      ListOfResources(context, level, templates)
     {
     }
   };
 
 
 
-  class StudyMonthsNode : public InternalNode
+  class ListOfStudiesByMonth : public InternalNode
   {
   private:
     ServerContext&    context_;
@@ -1746,7 +1670,7 @@ private:
     {
     }
 
-    virtual bool ListContent(IWebDavBucket::Collection& target) ORTHANC_OVERRIDE
+    virtual bool ListSubfolders(IWebDavBucket::Collection& target) ORTHANC_OVERRIDE
     {
       DatabaseLookup query;
       query.AddRestConstraint(DICOM_TAG_STUDY_DATE, year_ + "0101-" + year_ + "1231",
@@ -1770,9 +1694,9 @@ private:
     }
 
   public:
-    StudyMonthsNode(ServerContext& context,
-                    const std::string& year,
-                    const Templates& templates) :
+    ListOfStudiesByMonth(ServerContext& context,
+                         const std::string& year,
+                         const Templates& templates) :
       context_(context),
       year_(year),
       templates_(templates)
@@ -1781,7 +1705,7 @@ private:
   };
 
   
-  class StudyYearsNode : public InternalNode
+  class ListOfStudiesByYear : public InternalNode
   {
   private:
     ServerContext&    context_;
@@ -1792,7 +1716,7 @@ private:
     {
     }
 
-    virtual bool ListContent(IWebDavBucket::Collection& target) ORTHANC_OVERRIDE
+    virtual bool ListSubfolders(IWebDavBucket::Collection& target) ORTHANC_OVERRIDE
     {
       std::list<std::string> resources;
       context_.GetIndex().GetAllUuids(resources, ResourceType_Study);
@@ -1821,12 +1745,12 @@ private:
 
     virtual INode* CreateChild(const std::string& path) ORTHANC_OVERRIDE
     {
-      return new StudyMonthsNode(context_, path, templates_);
+      return new ListOfStudiesByMonth(context_, path, templates_);
     }
 
   public:
-    StudyYearsNode(ServerContext& context,
-                   const Templates& templates) :
+    ListOfStudiesByYear(ServerContext& context,
+                        const Templates& templates) :
       context_(context),
       templates_(templates)
     {
@@ -1855,7 +1779,7 @@ public:
 
     patients_.reset(new RootNode(context, ResourceType_Patient, patientsTemplates_));
     studies_.reset(new RootNode(context, ResourceType_Study, studiesTemplates_));
-    dates_.reset(new StudyYearsNode(context, studiesTemplates_));
+    dates_.reset(new ListOfStudiesByYear(context, studiesTemplates_));
   }
 
   virtual bool IsExistingFolder(const UriComponents& path) ORTHANC_OVERRIDE
