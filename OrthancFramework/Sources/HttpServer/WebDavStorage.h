@@ -68,5 +68,7 @@ namespace Orthanc
     virtual void Stop() ORTHANC_OVERRIDE
     {
     }
+
+    void RemoveEmptyFolders();
   };
 }
