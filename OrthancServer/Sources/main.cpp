@@ -1041,6 +1041,16 @@ static bool StartHttpServer(ServerContext& context,
         context.SetExecuteLuaEnabled(false);
         LOG(WARNING) << "Remote LUA script execution is disabled";
       }
+
+      if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
+      {
+        const bool allowDelete = lock.GetConfiguration().GetBooleanParameter("WebDavDeleteAllowed", false);
+        const bool allowUpload = lock.GetConfiguration().GetBooleanParameter("WebDavUploadAllowed", true);
+        
+        UriComponents root;
+        root.push_back("webdav");
+        httpServer.Register(root, new OrthancWebDav(context, allowDelete, allowUpload));
+      }
     }
 
     MyHttpExceptionFormatter exceptionFormatter(httpDescribeErrors, plugins);
@@ -1048,13 +1058,6 @@ static bool StartHttpServer(ServerContext& context,
     httpServer.SetIncomingHttpRequestFilter(httpFilter);
     httpServer.SetHttpExceptionFormatter(exceptionFormatter);
     httpServer.Register(context.GetHttpHandler());
-
-    {
-      UriComponents root;  // TODO
-      root.push_back("a");
-      root.push_back("b");
-      httpServer.Register(root, new OrthancWebDav(context, true /* allow delete */));
-    }
 
     if (httpServer.GetPortNumber() < 1024)
     {
