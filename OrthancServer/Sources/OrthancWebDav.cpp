@@ -1226,17 +1226,28 @@ namespace Orthanc
       // instance.SetOrigin(DicomInstanceOrigin_WebDav);   // TODO
       instance.SetBuffer(content.c_str(), content.size());
 
-      std::string publicId;
-      StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
-      if (status == StoreStatus_Success ||
-          status == StoreStatus_AlreadyStored)
+      bool success = false;
+
+      try
       {
-        LOG(INFO) << "Successfully imported DICOM instance from WebDAV: " << path << " (Orthanc ID: " << publicId << ")";
-        uploads_.DeleteItem(uri);
+        std::string publicId;
+        StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
+        if (status == StoreStatus_Success ||
+            status == StoreStatus_AlreadyStored)
+        {
+          LOG(INFO) << "Successfully imported DICOM instance from WebDAV: " << path << " (Orthanc ID: " << publicId << ")";
+          success = true;
+        }
       }
-      else
+      catch (OrthancException& e)
       {
-        LOG(WARNING) << "Cannot import DICOM instance from WebWAV: " << path;
+      }
+
+      uploads_.DeleteItem(uri);
+
+      if (!success)
+      {
+        LOG(WARNING) << "Cannot import DICOM instance from WebWAV (maybe not a DICOM file): " << path;
       }
     }
   }
