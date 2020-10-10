@@ -288,6 +288,9 @@ namespace Orthanc
         case RequestOrigin_Unknown:
           return OrthancPluginInstanceOrigin_Unknown;
 
+        case RequestOrigin_WebDav:
+          return OrthancPluginInstanceOrigin_WebDav;
+
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }

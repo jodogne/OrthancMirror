@@ -738,6 +738,9 @@ namespace Orthanc
       case RequestOrigin_Lua:
         return "Lua";
 
+      case RequestOrigin_WebDav:
+        return "WebDav";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1661,6 +1664,10 @@ namespace Orthanc
     else if (origin == "Lua")
     {
       return RequestOrigin_Lua;
+    }
+    else if (origin == "WebDav")
+    {
+      return RequestOrigin_WebDav;
     }
     else
     {

@@ -70,6 +70,7 @@ namespace Orthanc
 
       case RequestOrigin_Lua:
       case RequestOrigin_Plugins:
+      case RequestOrigin_WebDav:
       {
         // No additional information available for these kinds of requests
         break;
