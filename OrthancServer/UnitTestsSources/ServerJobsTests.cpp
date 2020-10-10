@@ -478,6 +478,23 @@ TEST(JobsSerialization, DicomInstanceOrigin)
     ASSERT_FALSE(origin.LookupCalledAet(t));
     ASSERT_FALSE(origin.LookupHttpUsername(t));
   }
+
+  {
+    DicomInstanceOrigin origin(DicomInstanceOrigin::FromWebDav());
+
+    s = 42;
+    origin.Serialize(s);
+  }
+
+  {
+    DicomInstanceOrigin origin(s);
+    ASSERT_EQ(RequestOrigin_WebDav, origin.GetRequestOrigin());
+    ASSERT_EQ("", std::string(origin.GetRemoteAetC()));
+    ASSERT_FALSE(origin.LookupRemoteIp(t));
+    ASSERT_FALSE(origin.LookupRemoteAet(t));
+    ASSERT_FALSE(origin.LookupCalledAet(t));
+    ASSERT_FALSE(origin.LookupHttpUsername(t));
+  }
 }
 
 

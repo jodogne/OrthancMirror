@@ -78,6 +78,11 @@ namespace Orthanc
       return DicomInstanceOrigin(RequestOrigin_Plugins);
     }
 
+    static DicomInstanceOrigin FromWebDav()
+    {
+      return DicomInstanceOrigin(RequestOrigin_WebDav);
+    }
+
     RequestOrigin GetRequestOrigin() const
     {
       return origin_;

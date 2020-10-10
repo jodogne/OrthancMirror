@@ -497,7 +497,8 @@ namespace Orthanc
     RequestOrigin_DicomProtocol,
     RequestOrigin_RestApi,
     RequestOrigin_Plugins,
-    RequestOrigin_Lua
+    RequestOrigin_Lua,
+    RequestOrigin_WebDav   // New in Orthanc 1.8.0
   };
 
   enum ServerBarrierEvent

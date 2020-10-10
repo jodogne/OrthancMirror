@@ -1199,9 +1199,14 @@ namespace Orthanc
         that->Upload(reinterpret_cast<const SingleValueObject<std::string>&>(*obj).GetValue());
         lastModification = GetNow();
       }
-      else if (GetNow() - lastModification > boost::posix_time::seconds(10))
+      else if (GetNow() - lastModification > boost::posix_time::seconds(30))
       {
-        // After every 10 seconds of inactivity, remove the empty folders
+        /**
+         * After every 30 seconds of inactivity, remove the empty
+         * folders. This delay is needed to avoid removing
+         * just-created folders before the remote WebDAV has time to
+         * write files into it.
+         **/
         LOG(INFO) << "Cleaning up the empty WebDAV upload folders";
         that->uploads_.RemoveEmptyFolders();
         lastModification = GetNow();
@@ -1223,7 +1228,7 @@ namespace Orthanc
     if (uploads_.GetFileContent(mime, content, time, uri))
     {
       DicomInstanceToStore instance;
-      // instance.SetOrigin(DicomInstanceOrigin_WebDav);   // TODO
+      instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
       instance.SetBuffer(content.c_str(), content.size());
 
       bool success = false;
@@ -1235,7 +1240,8 @@ namespace Orthanc
         if (status == StoreStatus_Success ||
             status == StoreStatus_AlreadyStored)
         {
-          LOG(INFO) << "Successfully imported DICOM instance from WebDAV: " << path << " (Orthanc ID: " << publicId << ")";
+          LOG(INFO) << "Successfully imported DICOM instance from WebDAV: "
+                    << path << " (Orthanc ID: " << publicId << ")";
           success = true;
         }
       }
