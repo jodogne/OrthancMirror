@@ -74,46 +74,61 @@ namespace Orthanc
 
   void IWebDavBucket::Resource::SetCreationTime(const boost::posix_time::ptime& t)
   {
-    creationTime_ = t;
-
-    if (!hasModificationTime_)
+    if (t.is_special())
     {
-      modificationTime_ = t;
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Not a valid date-time");
+    }
+    else
+    {
+      creationTime_ = t;
+      
+      if (!hasModificationTime_)
+      {
+        modificationTime_ = t;
+      }
     }
   }
 
 
   void IWebDavBucket::Resource::SetModificationTime(const boost::posix_time::ptime& t)
   {
-    modificationTime_ = t;
-    hasModificationTime_ = true;
+    if (t.is_special())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Not a valid date-time");
+    }
+    else
+    {
+      modificationTime_ = t;
+      hasModificationTime_ = true;
+    }
   }
 
 
-  void IWebDavBucket::Resource::Format(pugi::xml_node& node,
-                                       const std::string& parentPath,
-                                       bool includeDisplayName) const
+  static void FormatInternal(pugi::xml_node& node,
+                             const std::string& href,
+                             const std::string& displayName,
+                             const boost::posix_time::ptime& creationTime,
+                             const boost::posix_time::ptime& modificationTime)
   {
     node.set_name("D:response");
 
-    std::string s;
-    Toolbox::UriEncode(s, AddTrailingSlash(parentPath) + GetName());
-    node.append_child("D:href").append_child(pugi::node_pcdata).set_value(s.c_str());
+    node.append_child("D:href").append_child(pugi::node_pcdata).set_value(href.c_str());
 
     pugi::xml_node propstat = node.append_child("D:propstat");
 
     static const HttpStatus status = HttpStatus_200_Ok;
-    s = ("HTTP/1.1 " + boost::lexical_cast<std::string>(status) + " " +
-         std::string(EnumerationToString(status)));
+    std::string s = ("HTTP/1.1 " + boost::lexical_cast<std::string>(status) + " " +
+                     std::string(EnumerationToString(status)));
     propstat.append_child("D:status").append_child(pugi::node_pcdata).set_value(s.c_str());
 
     pugi::xml_node prop = propstat.append_child("D:prop");
+    prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(displayName.c_str());
 
     // IMPORTANT: The "Z" suffix is mandatory on Windows >= 7 (it indicates UTC)
-    s = boost::posix_time::to_iso_extended_string(GetCreationTime()) + "Z";
+    s = boost::posix_time::to_iso_extended_string(creationTime) + "Z";
     prop.append_child("D:creationdate").append_child(pugi::node_pcdata).set_value(s.c_str());
 
-    s = boost::posix_time::to_iso_extended_string(GetModificationTime()) + "Z";
+    s = boost::posix_time::to_iso_extended_string(modificationTime) + "Z";
     prop.append_child("D:getlastmodified").append_child(pugi::node_pcdata).set_value(s.c_str());
 
 #if 0
@@ -136,7 +151,7 @@ namespace Orthanc
 #endif
   }
 
-
+  
   IWebDavBucket::File::File(const std::string& name) :
     contentLength_(0),
     mime_(MimeType_Binary)
@@ -152,10 +167,11 @@ namespace Orthanc
 
   
   void IWebDavBucket::File::Format(pugi::xml_node& node,
-                                   const std::string& parentPath,
-                                   bool includeDisplayName) const
+                                   const std::string& parentPath) const
   {
-    Resource::Format(node, parentPath, includeDisplayName);
+    std::string href;
+    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetName());
+    FormatInternal(node, href, GetName(), GetCreationTime(), GetModificationTime());
 
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype");
@@ -165,23 +181,20 @@ namespace Orthanc
 
     s = EnumerationToString(mime_);
     prop.append_child("D:getcontenttype").append_child(pugi::node_pcdata).set_value(s.c_str());
-
-    prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(GetName().c_str());
   }
 
 
   void IWebDavBucket::Folder::Format(pugi::xml_node& node,
-                                     const std::string& parentPath,
-                                     bool includeDisplayName) const
+                                     const std::string& parentPath) const
   {
-    Resource::Format(node, parentPath, includeDisplayName);
+    std::string href;
+    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetName());
+    FormatInternal(node, href, GetName(), GetCreationTime(), GetModificationTime());
         
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype").append_child("D:collection");
 
     //prop.append_child("D:getcontenttype").append_child(pugi::node_pcdata).set_value("httpd/unix-directory");
-
-    prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(GetName().c_str());
   }
 
 
@@ -209,20 +222,41 @@ namespace Orthanc
 
 
   void IWebDavBucket::Collection::Format(std::string& target,
-                                         const std::string& parentPath,
-                                         bool includeDisplayName) const
+                                         const std::string& parentPath) const
   {
     pugi::xml_document doc;
 
     pugi::xml_node root = doc.append_child("D:multistatus");
     root.append_attribute("xmlns:D").set_value("DAV:");
 
+    {
+      pugi::xml_node self = root.append_child();
+
+      std::string folder;
+      size_t lastSlash = parentPath.rfind('/');
+      if (lastSlash == std::string::npos)
+      {
+        folder = parentPath;
+      }
+      else
+      {
+        folder = parentPath.substr(lastSlash + 1);
+      }
+      
+      std::string href;
+      Toolbox::UriEncode(href, AddTrailingSlash(parentPath));
+      FormatInternal(self, href, folder, GetNow(), GetNow());
+
+      pugi::xml_node prop = self.first_element_by_path("D:propstat/D:prop");
+      prop.append_child("D:resourcetype").append_child("D:collection");
+    }
+
     for (std::list<Resource*>::const_iterator
            it = resources_.begin(); it != resources_.end(); ++it)
     {
       assert(*it != NULL);
       pugi::xml_node n = root.append_child();
-      (*it)->Format(n, parentPath, includeDisplayName);
+      (*it)->Format(n, parentPath);
     }
 
     pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
