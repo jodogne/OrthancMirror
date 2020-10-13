@@ -124,10 +124,12 @@ namespace Orthanc
     pugi::xml_node prop = propstat.append_child("D:prop");
     prop.append_child("D:displayname").append_child(pugi::node_pcdata).set_value(displayName.c_str());
 
-    // IMPORTANT: The "Z" suffix is mandatory on Windows >= 7 (it indicates UTC)
+    // IMPORTANT: Adding the "Z" suffix is mandatory on Windows >= 7 (it indicates UTC)
+    assert(!creationTime.is_special());
     s = boost::posix_time::to_iso_extended_string(creationTime) + "Z";
     prop.append_child("D:creationdate").append_child(pugi::node_pcdata).set_value(s.c_str());
 
+    assert(!modificationTime.is_special());
     s = boost::posix_time::to_iso_extended_string(modificationTime) + "Z";
     prop.append_child("D:getlastmodified").append_child(pugi::node_pcdata).set_value(s.c_str());
 
@@ -245,7 +247,9 @@ namespace Orthanc
       
       std::string href;
       Toolbox::UriEncode(href, AddTrailingSlash(parentPath));
-      FormatInternal(self, href, folder, GetNow(), GetNow());
+
+      boost::posix_time::ptime now = GetNow();
+      FormatInternal(self, href, folder, now, now);
 
       pugi::xml_node prop = self.first_element_by_path("D:propstat/D:prop");
       prop.append_child("D:resourcetype").append_child("D:collection");
