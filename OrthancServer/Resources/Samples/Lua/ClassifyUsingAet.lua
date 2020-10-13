@@ -1,6 +1,7 @@
 -- Write the received DICOM instances to an external directory, and
 -- group the patients by the source AET that has sent the DICOM
 -- files. This sample is similar to "WriteToDisk.lua".
+-- https://groups.google.com/g/orthanc-users/c/7RU1EVi9VYY/m/tBdvkeI1AAAJ
 
 
 TARGET = '/tmp/lua'
