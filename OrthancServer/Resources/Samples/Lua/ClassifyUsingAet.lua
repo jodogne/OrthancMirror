@@ -28,12 +28,14 @@ function OnStoredInstance(instanceId, tags, metadata, origin)
    local tags = ParseJson(RestApiGet('/instances/' .. instanceId .. '/tags?simplify'))
    local metadata = ParseJson(RestApiGet('/instances/' .. instanceId .. '/metadata?expand'))
 
-   local path = ToAscii(
-      TARGET .. '/' ..
-         GetFromTable(metadata, 'RemoteAET', 'None') .. '/'..
-         GetFromTable(tags, 'PatientID', '') .. ' - ' .. GetFromTable(tags, 'PatientName', '') .. '/' ..
-         GetFromTable(tags, 'StudyDate', '') .. ' - ' .. GetFromTable(tags, 'StudyDescription', '') .. '/' ..
-         GetFromTable(tags, 'SeriesDescription', ''))
+   local path = ToAscii(TARGET .. '/' ..
+                           GetFromTable(metadata, 'RemoteAET', 'None') .. '/'..
+                           GetFromTable(tags, 'StudyDate', '') .. '/' ..
+                           GetFromTable(tags, 'PatientID', '') .. ' - ' ..
+                           GetFromTable(tags, 'PatientName', '') .. ' - ' ..
+                           GetFromTable(tags, 'StudyDescription', '') .. '/' ..
+                           GetFromTable(tags, 'Modality', '') .. ' - ' ..
+                           GetFromTable(tags, 'SeriesDescription', ''))
 
    -- Create the subdirectory (CAUTION: For Linux demo only, this is insecure!)
    -- http://stackoverflow.com/a/16029744/881731
@@ -44,6 +46,6 @@ function OnStoredInstance(instanceId, tags, metadata, origin)
    target:write(dicom)
    target:close()
 
-   -- Optional step: Remove the source file
+   -- Optional step: Remove the DICOM instance from Orthanc
    RestApiDelete('/instances/' .. instanceId)
 end
