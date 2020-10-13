@@ -1169,7 +1169,7 @@ namespace Orthanc
   {
     MimeType mime;
     std::string content;
-    boost::posix_time::ptime modification;
+    boost::posix_time::ptime modification;  // Unused, let the date be set to "GetNow()"
 
     UriComponents p = path;
     p.push_back(filename);
@@ -1179,7 +1179,6 @@ namespace Orthanc
       std::unique_ptr<File> f(new File(filename));
       f->SetMimeType(mime);
       f->SetContentLength(content.size());
-      f->SetCreationTime(modification);
       collection.AddResource(f.release());
     }
   }

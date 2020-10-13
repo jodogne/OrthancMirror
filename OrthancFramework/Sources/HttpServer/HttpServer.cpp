@@ -821,19 +821,17 @@ namespace Orthanc
             MimeType mime;
             std::string content;
             boost::posix_time::ptime modificationTime = boost::posix_time::second_clock::universal_time();
-            
+
             if (bucket->second->IsExistingFolder(path))
             {
               if (depth == 0)
               {
                 IWebDavBucket::Collection c;
-                c.AddResource(new IWebDavBucket::Folder(""));
-                c.Format(answer, uri, true /* include display name */);
+                c.Format(answer, uri);
               }
               else if (depth == 1)
               {
                 IWebDavBucket::Collection c;
-                c.AddResource(new IWebDavBucket::Folder(""));  // Necessary for empty folders
               
                 if (!bucket->second->ListCollection(c, path))
                 {
@@ -841,7 +839,7 @@ namespace Orthanc
                   return true;
                 }
                 
-                c.Format(answer, uri, true /* include display name */);
+                c.Format(answer, uri);
               }
               else
               {
@@ -869,12 +867,8 @@ namespace Orthanc
                   throw OrthancException(ErrorCode_InternalError);
                 }
 
-                // Nautilus doesn't work on DELETE, if "D:displayname"
-                // is included in the multi-status answer of PROPFIND at depth 1
-                const bool includeDisplayName = (depth == 0);
-                
                 p.resize(p.size() - 1);
-                c.Format(answer, Toolbox::FlattenUri(p), includeDisplayName);
+                c.Format(answer, Toolbox::FlattenUri(p));
               }
               else
               {
