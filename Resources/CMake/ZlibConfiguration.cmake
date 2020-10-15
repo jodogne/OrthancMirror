@@ -8,7 +8,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   SET(ZLIB_SOURCES_DIR ${CMAKE_BINARY_DIR}/zlib-1.2.7)
   DownloadPackage(
     "60df6a37c56e7c1366cca812414f7b85"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/zlib-1.2.7.tar.gz"
+    "http://www.orthanc-server.com/downloads/third-party/zlib-1.2.7.tar.gz"
     "${ZLIB_SOURCES_DIR}")
 
   include_directories(

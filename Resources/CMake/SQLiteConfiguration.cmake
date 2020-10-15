@@ -2,7 +2,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
   SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3071300)
   DownloadPackage(
     "5fbeff9645ab035a1f580e90b279a16d"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/sqlite-amalgamation-3071300.zip"
+    "http://www.orthanc-server.com/downloads/third-party/sqlite-amalgamation-3071300.zip"
     "${SQLITE_SOURCES_DIR}")
 
   list(APPEND THIRD_PARTY_SOURCES

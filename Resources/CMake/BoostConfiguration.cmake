@@ -39,16 +39,22 @@ endif()
 
 
 if (BOOST_STATIC)
-  # Parameters for Boost 1.55.0
-  set(BOOST_NAME boost_1_55_0)
-  set(BOOST_BCP_SUFFIX bcpdigest-0.7.4)
-  set(BOOST_MD5 "409f7a0e4fb1f5659d07114f3133b67b")
+  ##
+  ## WARNING 2020-10-15: Contrarily to the official 0.8.6 release from
+  ## 2015-02-12 that uses Boost 1.55.0, this branch contains a
+  ## hotpatch to use Boost 1.58.0. This is necessary for static build
+  ## on Ubuntu 16.04.
+  ##
+  
+  set(BOOST_NAME boost_1_58_0)
+  set(BOOST_BCP_SUFFIX bcpdigest-0.9.2)
+  set(BOOST_MD5 "704b110917cbda903e07cb53934b47ac")
   set(BOOST_FILESYSTEM_SOURCES_DIR "${BOOST_NAME}/libs/filesystem/src")
   
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
   DownloadPackage(
     "${BOOST_MD5}"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
+    "http://www.orthanc-server.com/downloads/third-party/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz"
     "${BOOST_SOURCES_DIR}"
     )
 

@@ -61,7 +61,7 @@ TEST(HttpClient, Basic)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
   Json::Value v;
-  c.SetUrl("http://orthanc.googlecode.com/hg/Resources/Configuration.json");
+  c.SetUrl("https://hg.orthanc-server.com/orthanc/raw-file/Orthanc-0.8.6/Resources/Configuration.json");
   c.Apply(v);
   ASSERT_TRUE(v.isMember("StorageDirectory"));
   //ASSERT_EQ(GetLastStatusText());
@@ -69,7 +69,7 @@ TEST(HttpClient, Basic)
   v = Json::nullValue;
 
   HttpClient cc(c);
-  cc.SetUrl("https://orthanc.googlecode.com/hg/Resources/Configuration.json");
+  cc.SetUrl("https://hg.orthanc-server.com/orthanc/raw-file/Orthanc-0.8.6/Resources/Configuration.json");
   cc.Apply(v);
   ASSERT_TRUE(v.isMember("LuaScripts"));
 #endif

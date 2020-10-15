@@ -2,7 +2,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.5.12)
   DownloadPackage(
     "8ea7f60347a306c5faf70b977fa80e28"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/libpng-1.5.12.tar.gz"
+    "http://www.orthanc-server.com/downloads/third-party/libpng-1.5.12.tar.gz"
     "${LIBPNG_SOURCES_DIR}")
 
   include_directories(

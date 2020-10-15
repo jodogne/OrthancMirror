@@ -11,7 +11,7 @@ elseif (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_TEST)
   set(GTEST_SOURCES_DIR ${CMAKE_BINARY_DIR}/gtest-1.7.0)
   DownloadPackage(
     "2d6ec8ccdf5c46b05ba54a9fd1d130d7"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/gtest-1.7.0.zip"
+    "http://www.orthanc-server.com/downloads/third-party/gtest-1.7.0.zip"
     "${GTEST_SOURCES_DIR}")
 
   include_directories(

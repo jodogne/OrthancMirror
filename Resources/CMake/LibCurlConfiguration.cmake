@@ -2,7 +2,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.26.0)
   DownloadPackage(
     "3fa4d5236f2a36ca5c3af6715e837691"
-    "http://www.montefiore.ulg.ac.be/~jodogne/Orthanc/ThirdPartyDownloads/curl-7.26.0.tar.gz"
+    "http://www.orthanc-server.com/downloads/third-party/curl-7.26.0.tar.gz"
     "${CURL_SOURCES_DIR}")
 
   include_directories(${CURL_SOURCES_DIR}/include)
