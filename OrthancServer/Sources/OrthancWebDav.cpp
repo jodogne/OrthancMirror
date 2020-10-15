@@ -612,16 +612,16 @@ namespace Orthanc
       Children::const_iterator child = children_.find(path);
       if (child == children_.end())
       {
-        INode* child = CreateSubfolder(path);
+        INode* node = CreateSubfolder(path);
         
-        if (child == NULL)
+        if (node == NULL)
         {
           return NULL;
         }
         else
         {
-          children_[path] = child;
-          return child;
+          children_[path] = node;
+          return node;
         }
       }
       else
@@ -964,7 +964,7 @@ namespace Orthanc
       std::list<std::string>&  resources_;
 
     public:
-      Visitor(std::list<std::string>& resources) :
+      explicit Visitor(std::list<std::string>& resources) :
         resources_(resources)
       {
       }

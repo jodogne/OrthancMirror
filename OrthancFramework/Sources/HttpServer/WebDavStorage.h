@@ -42,7 +42,7 @@ namespace Orthanc
     bool                              isMemory_;
 
   public:
-    WebDavStorage(bool isMemory);
+    explicit WebDavStorage(bool isMemory);
   
     virtual bool IsExistingFolder(const std::vector<std::string>& path) ORTHANC_OVERRIDE;
 
