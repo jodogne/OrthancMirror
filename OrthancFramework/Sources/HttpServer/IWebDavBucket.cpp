@@ -50,25 +50,20 @@ static std::string AddTrailingSlash(const std::string& s)
 
 namespace Orthanc
 {
-  void IWebDavBucket::Resource::SetNameInternal(const std::string& name)
-  {
-    if (name.find('/') != std::string::npos ||
-        name.find('\\') != std::string::npos ||
-        name.find('\0') != std::string::npos)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "Bad resource name for WebDAV: " + name);
-    }
-        
-    name_ = name;
-  }
-
-
-  IWebDavBucket::Resource::Resource() :
+  IWebDavBucket::Resource::Resource(const std::string& displayName) :
+    displayName_(displayName),
     hasModificationTime_(false),
     creationTime_(GetNow()),
     modificationTime_(GetNow())
   {
+    if (displayName.empty() ||
+        displayName.find('/') != std::string::npos ||
+        displayName.find('\\') != std::string::npos ||
+        displayName.find('\0') != std::string::npos)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Bad resource name for WebDAV: " + displayName);
+    }
   }
 
 
@@ -154,17 +149,11 @@ namespace Orthanc
   }
 
   
-  IWebDavBucket::File::File(const std::string& name) :
+  IWebDavBucket::File::File(const std::string& displayName) :
+    Resource(displayName),
     contentLength_(0),
     mime_(MimeType_Binary)
   {
-    if (name.empty())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "Cannot use an empty filename in WebDAV");          
-    }
-        
-    SetNameInternal(name);
   }
 
   
@@ -172,8 +161,8 @@ namespace Orthanc
                                    const std::string& parentPath) const
   {
     std::string href;
-    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetName());
-    FormatInternal(node, href, GetName(), GetCreationTime(), GetModificationTime());
+    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetDisplayName());
+    FormatInternal(node, href, GetDisplayName(), GetCreationTime(), GetModificationTime());
 
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype");
@@ -190,8 +179,8 @@ namespace Orthanc
                                      const std::string& parentPath) const
   {
     std::string href;
-    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetName());
-    FormatInternal(node, href, GetName(), GetCreationTime(), GetModificationTime());
+    Toolbox::UriEncode(href, AddTrailingSlash(parentPath) + GetDisplayName());
+    FormatInternal(node, href, GetDisplayName(), GetCreationTime(), GetModificationTime());
         
     pugi::xml_node prop = node.first_element_by_path("D:propstat/D:prop");
     prop.append_child("D:resourcetype").append_child("D:collection");
@@ -223,6 +212,16 @@ namespace Orthanc
   }
 
 
+  void IWebDavBucket::Collection::ListDisplayNames(std::set<std::string>& target)
+  {
+    for (std::list<Resource*>::iterator it = resources_.begin(); it != resources_.end(); ++it)
+    {
+      assert(*it != NULL);
+      target.insert((*it)->GetDisplayName());
+    }
+  }
+
+
   void IWebDavBucket::Collection::Format(std::string& target,
                                          const std::string& parentPath) const
   {
@@ -234,19 +233,17 @@ namespace Orthanc
     {
       pugi::xml_node self = root.append_child();
 
-      std::string folder;
-      size_t lastSlash = parentPath.rfind('/');
-      if (lastSlash == std::string::npos)
-      {
-        folder = parentPath;
-      }
-      else
-      {
-        folder = parentPath.substr(lastSlash + 1);
-      }
+      std::vector<std::string> tokens;
+      Toolbox::SplitUriComponents(tokens, parentPath);
       
+      std::string folder;
+      if (!tokens.empty())
+      {
+        folder = tokens.back();
+      }
+       
       std::string href;
-      Toolbox::UriEncode(href, AddTrailingSlash(parentPath));
+      Toolbox::UriEncode(href, Toolbox::FlattenUri(tokens) + "/");
 
       boost::posix_time::ptime now = GetNow();
       FormatInternal(self, href, folder, now, now);

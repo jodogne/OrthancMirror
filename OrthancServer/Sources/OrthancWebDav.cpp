@@ -552,15 +552,41 @@ namespace Orthanc
 
     virtual bool DeleteItem(const UriComponents& path) ORTHANC_OVERRIDE
     {
-      std::string instanceId;
-      if (LookupInstanceId(instanceId, path))
+      if (path.empty())
       {
-        Json::Value info;
-        return context_.DeleteResource(info, instanceId, ResourceType_Instance);
+        // Delete all
+        std::list<std::string> resources;
+        try
+        {
+          context_.GetIndex().GetChildren(resources, parentSeries_);
+        }
+        catch (OrthancException&)
+        {
+          // Unknown (or deleted) parent series
+          return true;
+        }
+
+        for (std::list<std::string>::const_iterator it = resources.begin();
+             it != resources.end(); ++it)
+        {
+          Json::Value info;
+          context_.DeleteResource(info, *it, ResourceType_Instance);
+        }
+
+        return true;
       }
       else
       {
-        return false;
+        std::string instanceId;
+        if (LookupInstanceId(instanceId, path))
+        {
+          Json::Value info;
+          return context_.DeleteResource(info, instanceId, ResourceType_Instance);
+        }
+        else
+        {
+          return false;
+        }
       }
     }
   };
@@ -696,10 +722,23 @@ namespace Orthanc
 
       if (path.empty())
       {
-        IWebDavBucket::Collection tmp;
-        if (ListSubfolders(tmp))
+        IWebDavBucket::Collection collection;
+        if (ListSubfolders(collection))
         {
-          return (tmp.GetSize() == 0);
+          std::set<std::string> content;
+          collection.ListDisplayNames(content);
+
+          for (std::set<std::string>::const_iterator
+                 it = content.begin(); it != content.end(); ++it)
+          {
+            INode* node = GetChild(*it);
+            if (node)
+            {
+              node->DeleteItem(path);
+            }
+          }
+
+          return true;
         }
         else
         {
@@ -1316,8 +1355,8 @@ namespace Orthanc
              path[0] == BY_STUDIES ||
              path[0] == BY_DATES)
     {
-      IWebDavBucket::Collection tmp;
-      return GetRootNode(path[0]).ListCollection(tmp, UriComponents(path.begin() + 1, path.end()));
+      IWebDavBucket::Collection collection;
+      return GetRootNode(path[0]).ListCollection(collection, UriComponents(path.begin() + 1, path.end()));
     }
     else if (allowUpload_ &&
              path[0] == UPLOADS)
@@ -1553,7 +1592,7 @@ namespace Orthanc
         {
           if (path[2] == STUDY_INFO)
           {
-            return true;  // Allow deletion of virtual files
+            return true;  // Allow deletion of virtual files (to avoid blocking recursive DELETE)
           }
           
           query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
@@ -1565,7 +1604,7 @@ namespace Orthanc
         {
           if (path[3] == SERIES_INFO)
           {
-            return true;  // Allow deletion of virtual files
+            return true;  // Allow deletion of virtual files (to avoid blocking recursive DELETE)
           }
           else if (boost::ends_with(path[3], ".dcm"))
           {
@@ -1582,7 +1621,7 @@ namespace Orthanc
         }
 
         DicomDeleteVisitor visitor(context_, level);
-        context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
+        context_.Apply(visitor, query, level, 0 /* since */, 0 /* no limit */);
         return true;
       }
       else

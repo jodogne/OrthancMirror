@@ -38,6 +38,7 @@
 #include <pugixml.hpp>
 
 #include <list>
+#include <set>
 
 namespace Orthanc
 {
@@ -49,16 +50,13 @@ namespace Orthanc
     class Resource : public boost::noncopyable
     {
     private:
-      std::string               name_;
+      std::string               displayName_;
       bool                      hasModificationTime_;
       boost::posix_time::ptime  creationTime_;
       boost::posix_time::ptime  modificationTime_;
 
-    protected:
-      void SetNameInternal(const std::string& name);
-
     public:
-      Resource();
+      Resource(const std::string& displayName);
 
       virtual ~Resource()
       {
@@ -68,9 +66,9 @@ namespace Orthanc
 
       void SetModificationTime(const boost::posix_time::ptime& t);
 
-      const std::string& GetName() const
+      const std::string& GetDisplayName() const
       {
-        return name_;
+        return displayName_;
       }
 
       const boost::posix_time::ptime& GetCreationTime() const
@@ -95,7 +93,7 @@ namespace Orthanc
       MimeType  mime_;
 
     public:
-      File(const std::string& name);
+      File(const std::string& displayName);
 
       void SetContentLength(uint64_t contentLength)
       {
@@ -127,9 +125,9 @@ namespace Orthanc
     class Folder : public Resource
     {
     public:
-      Folder(const std::string& name)
+      Folder(const std::string& displayName) :
+        Resource(displayName)
       {
-        SetNameInternal(name);
       }
       
       virtual void Format(pugi::xml_node& node,
@@ -149,6 +147,8 @@ namespace Orthanc
       {
         return resources_.size();
       }
+
+      void ListDisplayNames(std::set<std::string>& target);
 
       void AddResource(Resource* resource);  // Takes ownership
 
