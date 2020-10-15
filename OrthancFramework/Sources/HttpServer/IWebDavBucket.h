@@ -56,7 +56,7 @@ namespace Orthanc
       boost::posix_time::ptime  modificationTime_;
 
     public:
-      Resource(const std::string& displayName);
+      explicit Resource(const std::string& displayName);
 
       virtual ~Resource()
       {
@@ -93,7 +93,7 @@ namespace Orthanc
       MimeType  mime_;
 
     public:
-      File(const std::string& displayName);
+      explicit File(const std::string& displayName);
 
       void SetContentLength(uint64_t contentLength)
       {
@@ -125,7 +125,7 @@ namespace Orthanc
     class Folder : public Resource
     {
     public:
-      Folder(const std::string& displayName) :
+      explicit Folder(const std::string& displayName) :
         Resource(displayName)
       {
       }

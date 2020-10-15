@@ -15,6 +15,7 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:309
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1103
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:382
 stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:129
@@ -33,6 +34,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DBOOST_HAS_FILESYSTEM_V3=1 \
             -DBOOST_HAS_REGEX=1 \
             -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1 \
+            -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
             -DDCMTK_VERSION_NUMBER=365 \
             -DMONGOOSE_USE_CALLBACKS=1 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
