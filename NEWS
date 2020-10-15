@@ -1,11 +1,12 @@
 Pending changes in the mainline
 ===============================
 
-General
--------
+
+Version 1.8.0 (2020-10-16)
+==========================
 
 * Serving the content of Orthanc as a WebDAV network share
-* New configuration options: "WebDavEnabled", "WebDavDeleteAllowed" and "WebDavUploadAllowed"
+* New config options: "WebDavEnabled", "WebDavDeleteAllowed" and "WebDavUploadAllowed"
 
 
 Version 1.7.4 (2020-09-18)
