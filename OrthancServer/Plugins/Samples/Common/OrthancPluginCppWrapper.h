@@ -779,7 +779,7 @@ namespace OrthancPlugins
     void UpdateProgress(float progress);
     
   public:
-    OrthancJob(const std::string& jobType);
+    explicit OrthancJob(const std::string& jobType);
     
     virtual ~OrthancJob()
     {
