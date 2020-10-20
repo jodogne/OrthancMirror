@@ -72,10 +72,10 @@ namespace Orthanc
                            ResourceType level,
                            const DicomMap& input) const;
     
-    OFCondition PerformGetSubOp(T_ASC_Association *assoc,
-                                const std::string& sopClassUid,
-                                const std::string& sopInstanceUid,
-                                DcmFileFormat* datasetRaw);
+    Status PerformGetSubOp(T_ASC_Association *assoc,
+                           const std::string& sopClassUid,
+                           const std::string& sopInstanceUid,
+                           DcmFileFormat* datasetRaw);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 
