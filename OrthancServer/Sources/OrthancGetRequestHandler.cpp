@@ -107,19 +107,17 @@ namespace Orthanc
     std::string sopClassUid(a.c_str());
     std::string sopInstanceUid(b.c_str());
     
-    OFCondition cond = PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, parsed.release());
+    Status status = PerformGetSubOp(assoc, sopClassUid, sopInstanceUid, parsed.release());
     
     if (getCancelled_)
     {
       LOG(INFO) << "C-GET SCP: Received C-Cancel RQ";
-    }
-    
-    if (cond.bad() || getCancelled_)
-    {
       return Status_Failure;
+    }    
+    else 
+    {
+      return status;
     }
-    
-    return Status_Success;
   }
 
   
@@ -233,10 +231,11 @@ namespace Orthanc
   }                                                           
 
 
-  OFCondition OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
-                                                        const std::string& sopClassUid,
-                                                        const std::string& sopInstanceUid,
-                                                        DcmFileFormat* dicomRaw)
+  OrthancGetRequestHandler::Status
+  OrthancGetRequestHandler::PerformGetSubOp(T_ASC_Association* assoc,
+                                            const std::string& sopClassUid,
+                                            const std::string& sopInstanceUid,
+                                            DcmFileFormat* dicomRaw)
   {
     assert(dicomRaw != NULL);
     std::unique_ptr<DcmFileFormat> dicom(dicomRaw);
@@ -248,7 +247,7 @@ namespace Orthanc
       AddFailedUIDInstance(sopInstanceUid);
       LOG(ERROR) << "C-GET SCP: Unknown transfer syntax: ("
                  << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
-      return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+      return Status_Failure;
     }
 
     bool allowTranscoding = (context_.IsTranscodeDicomProtocol() &&
@@ -264,7 +263,7 @@ namespace Orthanc
       AddFailedUIDInstance(sopInstanceUid);
       LOG(ERROR) << "C-GET SCP: storeSCU: No presentation context for: ("
                  << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
-      return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+      return Status_Failure;
     }
     else
     {
@@ -286,7 +285,7 @@ namespace Orthanc
         AddFailedUIDInstance(sopInstanceUid);
         LOG(ERROR) << "C-GET SCP: storeSCU: [No presentation context with requestor SCP role for: ("
                    << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
-        return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+        return Status_Failure;
       }
     }
 
@@ -354,10 +353,11 @@ namespace Orthanc
         LOG(ERROR) << "C-GET SCP: Cannot transcode " << sopClassUid
                    << " from transfer syntax " << GetTransferSyntaxUid(sourceSyntax)
                    << " to " << GetTransferSyntaxUid(selectedSyntax);
-        return DIMSE_NOVALIDPRESENTATIONCONTEXTID;
+        return Status_Failure;
       }      
     }
-    
+
+    Status status;
     if (cond.good())
     {
       if (cancelParameters.cancelEncountered)
@@ -365,7 +365,7 @@ namespace Orthanc
         if (origPresId_ == cancelParameters.presId &&
             origMsgId_ == cancelParameters.req.MessageIDBeingRespondedTo)
         {
-          getCancelled_ = OFTrue;
+          getCancelled_ = true;
         }
         else
         {
@@ -378,6 +378,7 @@ namespace Orthanc
       {
         // everything ok
         nCompleted_++;
+        status = Status_Success;
       }
       else if ((rsp.DimseStatus & 0xf000) == 0xb000)
       {
@@ -385,6 +386,7 @@ namespace Orthanc
         warningCount_++;
         LOG(ERROR) << "C-GET SCP: Store Warning: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
+        status = Status_Warning;
       }
       else
       {
@@ -393,6 +395,7 @@ namespace Orthanc
         // print a status message
         LOG(ERROR) << "C-GET SCP: Store Failed: Response Status: "
                    << DU_cstoreStatusString(rsp.DimseStatus);
+        status = Status_Failure;
       }
     }
     else
@@ -401,6 +404,7 @@ namespace Orthanc
       AddFailedUIDInstance(sopInstanceUid);
       OFString temp_str;
       LOG(ERROR) << "C-GET SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
+      status = Status_Failure;
     }
     
     if (stDetail.get() != NULL)
@@ -414,7 +418,7 @@ namespace Orthanc
       LOG(INFO) << "  Status Detail: " << s.str();
     }
     
-    return cond;
+    return status;
   }
 
   bool OrthancGetRequestHandler::LookupIdentifiers(std::list<std::string>& publicIds,
@@ -571,7 +575,7 @@ namespace Orthanc
     }
 
     failedUIDs_.clear();
-    getCancelled_ = OFFalse;
+    getCancelled_ = false;
 
     nRemaining_ = GetSubOperationCount();
     nCompleted_ = 0;

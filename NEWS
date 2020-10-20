@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Fix reporting of client-side store warnings/errors in C-GET SCP
+
 
 Version 1.8.0 (2020-10-16)
 ==========================
