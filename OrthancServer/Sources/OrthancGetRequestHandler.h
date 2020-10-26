@@ -56,26 +56,22 @@ namespace Orthanc
     RemoteModalityParameters remote_;
     std::string originatorAet_;
     
-    unsigned int nRemaining_;
-    unsigned int nCompleted_;
+    unsigned int completedCount_;
     unsigned int warningCount_;
-    unsigned int nFailed_;
+    unsigned int failedCount_;
     std::string failedUIDs_;
     
-    DIC_US origMsgId_;
-    T_ASC_PresentationContextID origPresId_;
-    
-    bool getCancelled_;
     uint32_t timeout_;
 
     bool LookupIdentifiers(std::list<std::string>& publicIds,
                            ResourceType level,
                            const DicomMap& input) const;
     
-    Status PerformGetSubOp(T_ASC_Association *assoc,
-                           const std::string& sopClassUid,
-                           const std::string& sopInstanceUid,
-                           DcmFileFormat* datasetRaw);
+    // Returns "false" iff cancel
+    bool PerformGetSubOp(T_ASC_Association *assoc,
+                         const std::string& sopClassUid,
+                         const std::string& sopInstanceUid,
+                         DcmFileFormat* datasetRaw);
     
     void AddFailedUIDInstance(const std::string& sopInstance);
 
@@ -87,22 +83,17 @@ namespace Orthanc
                         const std::string& originatorAet,
                         const std::string& calledAet,
                         uint32_t timeout) ORTHANC_OVERRIDE;
-    
-    virtual Status DoNext(T_ASC_Association *assoc) ORTHANC_OVERRIDE;
+
+    virtual bool DoNext(T_ASC_Association *assoc) ORTHANC_OVERRIDE;
     
     virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
     {
       return static_cast<unsigned int>(instances_.size());
     }
     
-    virtual unsigned int GetRemainingCount() const ORTHANC_OVERRIDE
-    {
-      return nRemaining_;
-    }
-    
     virtual unsigned int GetCompletedCount() const ORTHANC_OVERRIDE
     {
-      return nCompleted_;
+      return completedCount_;
     }
     
     virtual unsigned int GetWarningCount() const ORTHANC_OVERRIDE
@@ -112,7 +103,7 @@ namespace Orthanc
     
     virtual unsigned int GetFailedCount() const ORTHANC_OVERRIDE
     {
-      return nFailed_;
+      return failedCount_;
     }
     
     virtual const std::string& GetFailedUids() const ORTHANC_OVERRIDE
