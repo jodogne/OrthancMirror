@@ -99,12 +99,14 @@ namespace Orthanc
       std::string remoteAet_;
       std::string calledAet_;
       int timeout_;
+      bool canceled_;
 
       GetScpData() :
         handler_(NULL),
         lastRequest_(NULL),
         assoc_(NULL),
-        timeout_(0)
+        timeout_(0),
+        canceled_(false)
       {
       };
     };
@@ -129,6 +131,56 @@ namespace Orthanc
       }
     }
 
+
+    static void FillResponse(T_DIMSE_C_GetRSP& response,
+                             DcmDataset** failedIdentifiers,
+                             const IGetRequestHandler& handler)
+    {
+      response.DimseStatus = STATUS_Success;
+
+      size_t processedCount = (handler.GetCompletedCount() +
+                               handler.GetFailedCount() +
+                               handler.GetWarningCount());
+
+      if (processedCount > handler.GetSubOperationCount())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      response.NumberOfRemainingSubOperations = (handler.GetSubOperationCount() - processedCount);
+      response.NumberOfCompletedSubOperations = handler.GetCompletedCount();
+      response.NumberOfFailedSubOperations = handler.GetFailedCount();
+      response.NumberOfWarningSubOperations = handler.GetWarningCount();
+
+      // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.3.3.html
+      
+      if (handler.GetFailedCount() > 0 ||
+          handler.GetWarningCount() > 0) 
+      {
+        /**
+         * "Warning if one or more sub-operations were successfully
+         * completed and one or more sub-operations were unsuccessful
+         * or had a status of warning. Warning if all sub-operations
+         * had a status of Warning"
+         **/
+        response.DimseStatus = STATUS_GET_Warning_SubOperationsCompleteOneOrMoreFailures;
+      }
+
+      if (handler.GetFailedCount() > 0 &&
+          handler.GetFailedCount() == handler.GetSubOperationCount())
+      {
+        /**
+         * "Failure or Refused if all sub-operations were
+         * unsuccessful." => We choose to generate a "Refused - Out
+         * of Resources - Unable to perform suboperations" status.
+         */
+        response.DimseStatus = STATUS_GET_Refused_OutOfResourcesSubOperations;
+      }
+            
+      *failedIdentifiers = BuildFailedInstanceList(handler.GetFailedUids());
+    }
+    
+
     static void GetScpCallback(
       /* in */ 
       void *callbackData,  
@@ -141,6 +193,9 @@ namespace Orthanc
       DcmDataset **responseIdentifiers,
       DcmDataset **statusDetail)
     {
+      assert(response != NULL);
+      assert(responseIdentifiers != NULL);
+      
       bzero(response, sizeof(T_DIMSE_C_GetRSP));
       *statusDetail = NULL;
       *responseIdentifiers = NULL;   
@@ -180,68 +235,52 @@ namespace Orthanc
         return;
       }
 
-      if (data.handler_->GetRemainingCount() == 0)
+      if (data.canceled_)
       {
-        response->DimseStatus = STATUS_Success;
+        LOG(ERROR) << "IGetRequestHandler Failed: Cannot pursue a request that was canceled by the SCU";
+        response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
+        return;
+      }
+      
+      if (data.handler_->GetSubOperationCount() ==
+          data.handler_->GetCompletedCount() +
+          data.handler_->GetFailedCount() +
+          data.handler_->GetWarningCount())
+      {
+        // We're all done
+        FillResponse(*response, responseIdentifiers, *data.handler_);
       }
       else
       {
-        IGetRequestHandler::Status status;
-
+        bool isContinue;
+        
         try
         {
-          status = data.handler_->DoNext(data.assoc_);
+          isContinue = data.handler_->DoNext(data.assoc_);
         }
         catch (OrthancException& e)
         {
           // Internal error!
           LOG(ERROR) << "IGetRequestHandler Failed: " << e.What();
+          FillResponse(*response, responseIdentifiers, *data.handler_);
+
+          // Fix the status code that is computed by "FillResponse()"
           response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
           return;
         }
-        
-        if (status == STATUS_Success)
+
+        FillResponse(*response, responseIdentifiers, *data.handler_);
+
+        if (isContinue)
         {
-          if (responseCount < static_cast<int>(data.handler_->GetRemainingCount()))
-          {
-            response->DimseStatus = STATUS_Pending;
-          }
-          else
-          {
-            response->DimseStatus = STATUS_Success;
-          }
+          response->DimseStatus = STATUS_Pending;
         }
         else
         {
-          response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
-          
-          if (data.handler_->GetFailedCount() > 0 ||
-              data.handler_->GetWarningCount() > 0) 
-          {
-            response->DimseStatus = STATUS_GET_Warning_SubOperationsCompleteOneOrMoreFailures;
-          }
-          
-          /*
-           * if all the sub-operations failed then we need to generate
-           * a failed or refused status.  cf. DICOM part 4, C.4.3.3.1
-           * we choose to generate a "Refused - Out of Resources -
-           * Unable to perform suboperations" status.
-           */
-          if ((data.handler_->GetFailedCount() > 0) &&
-              ((data.handler_->GetCompletedCount() +
-                data.handler_->GetWarningCount()) == 0)) 
-          {
-            response->DimseStatus = STATUS_GET_Refused_OutOfResourcesSubOperations;
-          }
-          
-          *responseIdentifiers = BuildFailedInstanceList(data.handler_->GetFailedUids());
+          response->DimseStatus = STATUS_GET_Cancel_SubOperationsTerminatedDueToCancelIndication;
+          data.canceled_ = true;
         }
       }
-      
-      response->NumberOfRemainingSubOperations = data.handler_->GetRemainingCount();
-      response->NumberOfCompletedSubOperations = data.handler_->GetCompletedCount();
-      response->NumberOfFailedSubOperations = data.handler_->GetFailedCount();
-      response->NumberOfWarningSubOperations = data.handler_->GetWarningCount();
     }
   }
 
