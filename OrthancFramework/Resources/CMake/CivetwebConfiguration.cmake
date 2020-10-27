@@ -20,21 +20,21 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
-  ## WARNING: "civetweb-1.12.tar.gz" comes with a subfolder
-  ## "civetweb-1.12/test/nonlatin" that cannot be removed by "hg purge
+  ## WARNING: "civetweb-1.13.tar.gz" comes with a subfolder
+  ## "civetweb-1.13/test/nonlatin" that cannot be removed by "hg purge
   ## --all" on Windows hosts. We thus created a custom
-  ## "civetweb-1.12-fixed.tar.gz" as follows:
+  ## "civetweb-1.13-fixed.tar.gz" as follows:
   ##
   ##  $ cd /tmp
-  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.12.tar.gz
-  ##  $ tar xvf civetweb-1.12.tar.gz
-  ##  $ rm -rf civetweb-1.12/src/third_party/ civetweb-1.12/test/
-  ##  $ tar cvfz civetweb-1.12-fixed.tar.gz civetweb-1.12
+  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.13.tar.gz
+  ##  $ tar xvf civetweb-1.13.tar.gz
+  ##  $ rm -rf civetweb-1.13/src/third_party/ civetweb-1.13/test/
+  ##  $ tar cvfz civetweb-1.13-fixed.tar.gz civetweb-1.13
   ##
   
-  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.12)
-  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.12-fixed.tar.gz")
-  set(CIVETWEB_MD5 "016ed7cd26cbc46b5941f0cbfb2e4ac8")
+  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.13)
+  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.13-fixed.tar.gz")
+  set(CIVETWEB_MD5 "9cf9d22cf8a06a8487d98637bbcd543c")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -46,7 +46,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.12.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.13.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )
@@ -64,11 +64,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
     )
 
   # New in Orthanc 1.6.0: Enable support of compression in civetweb
-  set_source_files_properties(
-    ${CIVETWEB_SOURCES}
-    PROPERTIES COMPILE_DEFINITIONS
-    "USE_ZLIB=1")
-  
+  set(tmp "USE_ZLIB=1")
+    
   if (ENABLE_SSL)
     add_definitions(
       -DNO_SSL_DL=1
@@ -78,12 +75,25 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
       link_libraries(dl)
     endif()
 
+    if (CIVETWEB_OPENSSL_API STREQUAL "1.0")
+      set(tmp "${tmp};OPENSSL_API_1_0=1")
+    elseif (CIVETWEB_OPENSSL_API STREQUAL "1.1")
+      set(tmp "${tmp};OPENSSL_API_1_1=1")
+    else()
+      message(FATAL_ERROR "Unsupported value for CIVETWEB_OPENSSL_API: ${CIVETWEB_OPENSSL_API}")
+    endif()
+
   else()
     add_definitions(
       -DNO_SSL=1   # Remove SSL support from civetweb
       )
   endif()
 
+  set_source_files_properties(
+    ${CIVETWEB_SOURCES}
+    PROPERTIES COMPILE_DEFINITIONS "${tmp}"
+    )
+  
   source_group(ThirdParty\\Civetweb REGULAR_EXPRESSION ${CIVETWEB_SOURCES_DIR}/.*)
 
   add_definitions(
@@ -108,7 +118,7 @@ else()
   unset(CMAKE_REQUIRED_LIBRARIES)
 
   # Check whether the system distribution of civetweb contains the
-  # patch "../Patches/civetweb-1.12.patch" that allows to disable
+  # patch "../Patches/civetweb-1.13.patch" that allows to disable
   # keep-alive on selected HTTP connections. This is useful to speed
   # up multipart transfers, as encountered in DICOMweb.
   CHECK_LIBRARY_EXISTS(civetweb mg_disable_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
