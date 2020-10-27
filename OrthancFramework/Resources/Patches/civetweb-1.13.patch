@@ -1,0 +1,41 @@
+diff -urEb civetweb-1.13.orig/include/civetweb.h civetweb-1.13/include/civetweb.h
+--- civetweb-1.13.orig/include/civetweb.h	2020-10-27 13:11:13.870113645 +0100
++++ civetweb-1.13/include/civetweb.h	2020-10-27 13:12:33.997986337 +0100
+@@ -1695,6 +1695,9 @@
+                                   struct mg_error_data *error);
+ #endif
+ 
++// Added by SJ
++CIVETWEB_API void mg_disable_keep_alive(struct mg_connection *conn);
++
+ #ifdef __cplusplus
+ }
+ #endif /* __cplusplus */
+diff -urEb civetweb-1.13.orig/src/civetweb.c civetweb-1.13/src/civetweb.c
+--- civetweb-1.13.orig/src/civetweb.c	2020-10-27 13:11:13.870113645 +0100
++++ civetweb-1.13/src/civetweb.c	2020-10-27 13:12:14.534017414 +0100
+@@ -10876,6 +10876,11 @@
+     /* + MicroSoft extensions
+      * https://msdn.microsoft.com/en-us/library/aa142917.aspx */
+ 
++    /* Added by SJ, for write access to WebDAV on Windows >= 7 */
++    {"LOCK", 1, 1, 0, 0, 0},
++    {"UNLOCK", 1, 0, 0, 0, 0},
++    {"PROPPATCH", 1, 1, 0, 0, 0},
++    
+     /* REPORT method (RFC 3253) */
+     {"REPORT", 1, 1, 1, 1, 1},
+     /* REPORT method only allowed for CGI/Lua/LSP and callbacks. */
+@@ -21287,4 +21292,12 @@
+ }
+ 
+ 
++// Added by SJ
++void mg_disable_keep_alive(struct mg_connection *conn)
++{
++  if (conn != NULL) {
++    conn->must_close = 1;
++  }
++}
++ 
+ /* End of civetweb.c */
