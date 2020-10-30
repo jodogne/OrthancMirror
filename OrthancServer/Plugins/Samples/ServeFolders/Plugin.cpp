@@ -62,16 +62,17 @@ static void RegisterDefaultExtensions()
   extensions_["jpg"]  = "image/jpeg";
   extensions_["js"]   = "application/javascript";
   extensions_["json"] = "application/json";
+  extensions_["map"] = "application/octet-stream";  // https://stackoverflow.com/a/19912684/881731
   extensions_["nexe"] = "application/x-nacl";
   extensions_["nmf"]  = "application/json";
+  extensions_["pdf"]  = "application/pdf";
   extensions_["pexe"] = "application/x-pnacl";
   extensions_["png"]  = "image/png";
   extensions_["svg"]  = "image/svg+xml";
   extensions_["wasm"] = "application/wasm";
   extensions_["woff"] = "application/x-font-woff";
-  extensions_["xml"]  = "application/xml";
-  extensions_["pdf"]  = "application/pdf";
   extensions_["woff2"] = "font/woff2";
+  extensions_["xml"]  = "application/xml";
 }
 
 
