@@ -1245,7 +1245,7 @@ namespace Orthanc
          * just-created folders before the remote WebDAV has time to
          * write files into it.
          **/
-        LOG(INFO) << "Cleaning up the empty WebDAV upload folders";
+        VLOG(1) << "Cleaning up the empty WebDAV upload folders";
         that->uploads_.RemoveEmptyFolders();
         lastModification = GetNow();
       }
