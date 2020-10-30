@@ -210,7 +210,7 @@ namespace Orthanc
       {
         if (index.LookupMetadata(s, instanceId, MetadataType_Instance_IndexInSeries))
         {
-          indexInSeries_ = boost::lexical_cast<size_t>(s);
+          indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));
           hasIndexInSeries_ = true;
         }
       }
