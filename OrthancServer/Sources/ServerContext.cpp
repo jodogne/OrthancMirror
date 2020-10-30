@@ -1441,8 +1441,17 @@ namespace Orthanc
     {
       // Use Orthanc's built-in decoder, using the cache to speed-up
       // things on multi-frame images
-      ServerContext::DicomCacheLocker locker(*this, publicId);        
-      std::unique_ptr<ImageAccessor> decoded(locker.GetDicom().DecodeFrame(frameIndex));
+      ServerContext::DicomCacheLocker locker(*this, publicId);
+
+      std::unique_ptr<ImageAccessor> decoded;
+      try
+      {
+        decoded.reset(locker.GetDicom().DecodeFrame(frameIndex));
+      }
+      catch (OrthancException& e)
+      {
+      }
+      
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -1456,8 +1465,16 @@ namespace Orthanc
       // TODO: Store the raw buffer in the DicomCacheLocker
       std::string dicomContent;
       ReadDicom(dicomContent, publicId);
-      std::unique_ptr<ImageAccessor> decoded(
-        GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+      
+      std::unique_ptr<ImageAccessor> decoded;
+      try
+      {
+        decoded.reset(GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+      }
+      catch (OrthancException& e)
+      {
+      }
+      
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -1487,7 +1504,15 @@ namespace Orthanc
   {
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      std::unique_ptr<ImageAccessor> decoded(dicom.GetParsedDicomFile().DecodeFrame(frameIndex));
+      std::unique_ptr<ImageAccessor> decoded;
+      try
+      {
+        decoded.reset(dicom.GetParsedDicomFile().DecodeFrame(frameIndex));
+      }
+      catch (OrthancException& e)
+      {
+      }
+        
       if (decoded.get() != NULL)
       {
         return decoded.release();
@@ -1498,8 +1523,15 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomImageDecoder())
     {
-      std::unique_ptr<ImageAccessor> decoded(
-        GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
+      std::unique_ptr<ImageAccessor> decoded;
+      try
+      {
+        decoded.reset(GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
+      }
+      catch (OrthancException& e)
+      {
+      }
+    
       if (decoded.get() != NULL)
       {
         return decoded.release();
