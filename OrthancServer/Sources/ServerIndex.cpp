@@ -977,7 +977,7 @@ namespace Orthanc
               !value->IsBinary())
           {
             SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_IndexInSeries, value->GetContent());
+                                MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
           }
         }
 
