@@ -830,8 +830,16 @@ namespace Orthanc
 
   void OrthancConfiguration::RemoveModality(const std::string& symbolicName)
   {
-    modalities_.erase(symbolicName);
-    SaveModalities();
+    if (modalities_.find(symbolicName) == modalities_.end())
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Unknown DICOM modality with symbolic name: " + symbolicName);
+    }
+    else
+    {
+      modalities_.erase(symbolicName);
+      SaveModalities();
+    }
   }
 
     
@@ -849,8 +857,16 @@ namespace Orthanc
 
   void OrthancConfiguration::RemovePeer(const std::string& symbolicName)
   {
-    peers_.erase(symbolicName);
-    SavePeers();
+    if (peers_.find(symbolicName) == peers_.end())
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Unknown Orthanc peer: " + symbolicName);
+    }
+    else
+    {
+      peers_.erase(symbolicName);
+      SavePeers();
+    }
   }
 
 
