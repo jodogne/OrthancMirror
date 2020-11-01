@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * C-GET SCP: Fix responses and handling of cancel
 * Fix decoding sequence if "BuiltinDecoderTranscoderOrder" is "Before"
+* REST API returns 404 error if deleting an inexistent peer or modality
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - civetweb 1.13
 
