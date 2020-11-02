@@ -222,7 +222,7 @@ namespace Orthanc
   {
     if (saveJobs_)
     {
-      VLOG(1) << "Serializing the content of the jobs engine";
+      LOG(TRACE) << "Serializing the content of the jobs engine";
     
       try
       {

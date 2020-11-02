@@ -51,6 +51,13 @@ namespace Orthanc
       LogLevel_INFO,
       LogLevel_TRACE
     };
+
+    enum TraceCategory
+    {
+      TraceCategory_GENERIC,
+      TraceCategory_SQLITE,
+      TraceCategory_DICOM
+    };
     
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);
 
@@ -97,14 +104,26 @@ namespace Orthanc
 }
 
 
+
+/**
+ * NB: The macro "VLOG(unused)" is for backward compatibility with
+ * Orthanc <= 1.8.0.
+ **/
+
 #if ORTHANC_ENABLE_LOGGING != 1
-#  define LOG(level)   ::Orthanc::Logging::NullStream()
-#  define VLOG(level)  ::Orthanc::Logging::NullStream()
+#  define LOG(level)     ::Orthanc::Logging::NullStream()
+#  define VLOG(unused)   ::Orthanc::Logging::NullStream()
+#  define TLOG(category) ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
-#  define LOG(level)  ::Orthanc::Logging::InternalLogger        \
-  (::Orthanc::Logging::LogLevel_ ## level, __FILE__, __LINE__)
-#  define VLOG(level) ::Orthanc::Logging::InternalLogger        \
-  (::Orthanc::Logging::LogLevel_TRACE, __FILE__, __LINE__)
+#  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
+  (::Orthanc::Logging::LogLevel_ ## level,                              \
+   ::Orthanc::Logging::TraceCategory_GENERIC, __FILE__, __LINE__)
+#  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
+  (::Orthanc::Logging::LogLevel_TRACE,                                  \
+   ::Orthanc::Logging::TraceCategory_GENERIC, __FILE__, __LINE__)
+#  define TLOG(category) ::Orthanc::Logging::InternalLogger             \
+  (::Orthanc::Logging::LogLevel_TRACE,                                  \
+   ::Orthanc::Logging::TraceCategory_ ## category, __FILE__, __LINE__)
 #endif
 
 
@@ -125,13 +144,16 @@ namespace Orthanc
     {
     private:
       LogLevel           level_;
+      TraceCategory      category_;
       std::stringstream  messageStream_;
 
     public:
       InternalLogger(LogLevel level,
+                     TraceCategory category,
                      const char* file  /* ignored */,
                      int line  /* ignored */) :
-        level_(level)
+        level_(level),
+        category_(category)
       {
       }
 
@@ -169,11 +191,13 @@ namespace Orthanc
     private:
       boost::mutex::scoped_lock           lock_;
       LogLevel                            level_;
+      TraceCategory                       category_;
       std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
 
     public:
       InternalLogger(LogLevel level,
+                     TraceCategory category,
                      const char* file,
                      int line);
 

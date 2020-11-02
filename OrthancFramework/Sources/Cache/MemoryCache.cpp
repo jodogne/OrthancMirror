@@ -35,7 +35,7 @@ namespace Orthanc
       Page* p = NULL;
       if (index_.Contains(id, p))
       {
-        VLOG(1) << "Reusing a cache page";
+        LOG(TRACE) << "Reusing a cache page";
         assert(p != NULL);
         index_.MakeMostRecent(id);
         return *p;
@@ -45,7 +45,7 @@ namespace Orthanc
       // is full.
       if (index_.GetSize() == cacheSize_)
       {
-        VLOG(1) << "Dropping the oldest cache page";
+        LOG(TRACE) << "Dropping the oldest cache page";
         index_.RemoveOldest(p);
         delete p;
       }
@@ -56,7 +56,7 @@ namespace Orthanc
       result->content_.reset(provider_.Provide(id));
 
       // Add the newly create page to the cache
-      VLOG(1) << "Registering new data in a cache page";
+      LOG(TRACE) << "Registering new data in a cache page";
       p = result.release();
       index_.Add(id, p);
       return *p;
@@ -74,7 +74,7 @@ namespace Orthanc
       Page* p = NULL;
       if (index_.Contains(id, p))
       {
-        VLOG(1) << "Invalidating a cache page";
+        LOG(TRACE) << "Invalidating a cache page";
         assert(p != NULL);
         delete p;
         index_.Invalidate(id);
