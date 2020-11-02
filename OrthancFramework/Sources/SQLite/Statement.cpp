@@ -59,8 +59,8 @@
 #else
 // Trace logging is enabled in debug builds
 #  include "../Logging.h"
-#  define LOG_CREATE(message)  TLOG(SQLITE) << "SQLite::Statement create: " << message;
-#  define LOG_APPLY(message);  // TLOG(SQLITE) << "SQLite::Statement apply: " << message;
+#  define LOG_CREATE(message)  CLOG(TRACE, SQLITE) << "SQLite::Statement create: " << message;
+#  define LOG_APPLY(message);  // CLOG(TRACE, SQLITE) << "SQLite::Statement apply: " << message;
 #endif
 
 #include "sqlite3.h"
@@ -168,7 +168,7 @@ namespace Orthanc
       // spurious error callback.
       if (clear_bound_vars)
         sqlite3_clear_bindings(GetStatement());
-      //TLOG(SQLITE) << "SQLite::Statement::Reset";
+      //CLOG(TRACE, SQLITE) << "SQLite::Statement::Reset";
       sqlite3_reset(GetStatement());
     }
 

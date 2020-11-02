@@ -52,11 +52,11 @@ namespace Orthanc
       LogLevel_TRACE
     };
 
-    enum TraceCategory
+    enum LogCategory
     {
-      TraceCategory_GENERIC,
-      TraceCategory_SQLITE,
-      TraceCategory_DICOM
+      LogCategory_GENERIC,
+      LogCategory_SQLITE,
+      LogCategory_DICOM
     };
     
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);
@@ -106,24 +106,38 @@ namespace Orthanc
 
 
 /**
- * NB: The macro "VLOG(unused)" is for backward compatibility with
- * Orthanc <= 1.8.0.
+ * NB:
+ * - The "VLOG(unused)" macro is for backward compatibility with
+ *   Orthanc <= 1.8.0.
+ * - The "CLOG()" macro stands for "category log" (new in Orthanc 1.8.1)
  **/
 
+#if defined(LOG)
+#  error The macro LOG cannot be defined beforehand
+#endif
+
+#if defined(VLOG)
+#  error The macro VLOG cannot be defined beforehand
+#endif
+
+#if defined(CLOG)
+#  error The macro CLOG cannot be defined beforehand
+#endif
+
 #if ORTHANC_ENABLE_LOGGING != 1
-#  define LOG(level)     ::Orthanc::Logging::NullStream()
-#  define VLOG(unused)   ::Orthanc::Logging::NullStream()
-#  define TLOG(category) ::Orthanc::Logging::NullStream()
+#  define LOG(level)            ::Orthanc::Logging::NullStream()
+#  define VLOG(unused)          ::Orthanc::Logging::NullStream()
+#  define CLOG(level, category) ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
 #  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::TraceCategory_GENERIC, __FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
 #  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_TRACE,                                  \
-   ::Orthanc::Logging::TraceCategory_GENERIC, __FILE__, __LINE__)
-#  define TLOG(category) ::Orthanc::Logging::InternalLogger             \
-  (::Orthanc::Logging::LogLevel_TRACE,                                  \
-   ::Orthanc::Logging::TraceCategory_ ## category, __FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
+#  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
+  (::Orthanc::Logging::LogLevel_ ## level,                              \
+   ::Orthanc::Logging::LogCategory_ ## category, __FILE__, __LINE__)
 #endif
 
 
@@ -144,12 +158,12 @@ namespace Orthanc
     {
     private:
       LogLevel           level_;
-      TraceCategory      category_;
+      LogCategory        category_;
       std::stringstream  messageStream_;
 
     public:
       InternalLogger(LogLevel level,
-                     TraceCategory category,
+                     LogCategory category,
                      const char* file  /* ignored */,
                      int line  /* ignored */) :
         level_(level),
@@ -191,13 +205,12 @@ namespace Orthanc
     private:
       boost::mutex::scoped_lock           lock_;
       LogLevel                            level_;
-      TraceCategory                       category_;
       std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
 
     public:
       InternalLogger(LogLevel level,
-                     TraceCategory category,
+                     LogCategory category,
                      const char* file,
                      int line);
 
