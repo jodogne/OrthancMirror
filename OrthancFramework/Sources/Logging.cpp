@@ -221,6 +221,7 @@ namespace Orthanc
           break;
 
         case LogLevel_TRACE:
+          // TODO - Check trace category
           if (traceEnabled_)
           {
             TraceLogFunc(message.c_str());
@@ -643,10 +644,12 @@ namespace Orthanc
 
 
     InternalLogger::InternalLogger(LogLevel level,
+                                   TraceCategory category,
                                    const char* file,
                                    int line) : 
       lock_(loggingStreamsMutex_, boost::defer_lock_t()),
       level_(level),
+      category_(category),
       stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
     {
       if (pluginContext_ != NULL)
@@ -670,7 +673,7 @@ namespace Orthanc
         // We are logging in a standalone application, not inside an Orthanc plugin
 
         if ((level == LogLevel_INFO  && !infoEnabled_) ||
-            (level == LogLevel_TRACE && !traceEnabled_))
+            (level == LogLevel_TRACE && !traceEnabled_))     // TODO - Check trace category
         {
           // This logging level is disabled, directly exit as the
           // stream is set to "/dev/null"

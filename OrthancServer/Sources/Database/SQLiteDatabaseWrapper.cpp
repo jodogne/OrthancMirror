@@ -155,10 +155,9 @@ namespace Orthanc
 
       virtual void Compute(SQLite::FunctionContext& context)
       {
-        VLOG(1) << "There exists a remaining ancestor with public ID \""
-                << context.GetStringValue(0)
-                << "\" of type "
-                << context.GetIntValue(1);
+        TLOG(SQLITE) << "There exists a remaining ancestor with public ID \""
+                     << context.GetStringValue(0) << "\" of type "
+                     << context.GetIntValue(1);
 
         if (!hasRemainingAncestor_ ||
             remainingType_ >= context.GetIntValue(1))

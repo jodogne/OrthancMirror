@@ -4661,7 +4661,7 @@ namespace Orthanc
                                      _OrthancPluginService service,
                                      const void* parameters)
   {
-    VLOG(1) << "Calling service " << service << " from plugin " << plugin.GetPath();
+    LOG(TRACE) << "Calling service " << service << " from plugin " << plugin.GetPath();
 
     if (service == _OrthancPluginService_DatabaseAnswer)
     {

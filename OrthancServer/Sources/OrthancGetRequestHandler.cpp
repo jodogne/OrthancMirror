@@ -151,8 +151,8 @@ namespace Orthanc
         if (pc->result == ASC_P_ACCEPTANCE &&
             LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
         {
-          VLOG(0) << "C-GET SCP accepted: SOP class " << sopClassUid
-                  << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);
+          TLOG(DICOM) << "C-GET SCP accepted: SOP class " << sopClassUid
+                      << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);
           if (std::string(pc->abstractSyntax) == sopClassUid)
           {
             accepted[transferSyntax] = pc->presentationContextID;

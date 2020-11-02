@@ -1088,7 +1088,7 @@ namespace Orthanc
 
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
       headers.insert(std::make_pair(name, value));
-      VLOG(1) << "HTTP header: [" << name << "]: [" << value << "]";
+      LOG(TRACE) << "HTTP header: [" << name << "]: [" << value << "]";
     }
 
     if (server.IsHttpCompressionEnabled())

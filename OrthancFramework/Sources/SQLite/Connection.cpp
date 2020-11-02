@@ -154,7 +154,7 @@ namespace Orthanc
     bool Connection::Execute(const char* sql) 
     {
 #if ORTHANC_SQLITE_STANDALONE != 1
-      VLOG(1) << "SQLite::Connection::Execute " << sql;
+      TLOG(SQLITE) << "SQLite::Connection::Execute " << sql;
 #endif
 
       CheckIsOpen();
@@ -385,7 +385,7 @@ namespace Orthanc
     void Connection::FlushToDisk()
     {
 #if ORTHANC_SQLITE_STANDALONE != 1
-      VLOG(1) << "SQLite::Connection::FlushToDisk";
+      TLOG(SQLITE) << "SQLite::Connection::FlushToDisk";
 #endif
 
       int err = sqlite3_wal_checkpoint(db_, NULL);
