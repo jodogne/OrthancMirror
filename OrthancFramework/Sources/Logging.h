@@ -52,11 +52,17 @@ namespace Orthanc
       LogLevel_TRACE
     };
 
+    /**
+     * NB: The log level for each category is encoded as a bit
+     * mask. As a consequence, there can be up to 31 log categories
+     * (not 32, as the value GENERIC is reserved for the log commands
+     * that don't fall in a specific category).
+     **/
     enum LogCategory
     {
-      LogCategory_GENERIC,
-      LogCategory_SQLITE,
-      LogCategory_DICOM
+      LogCategory_GENERIC = (1 << 0),
+      LogCategory_SQLITE  = (1 << 1),
+      LogCategory_DICOM   = (1 << 2)
     };
     
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);
@@ -81,6 +87,15 @@ namespace Orthanc
     ORTHANC_PUBLIC bool IsTraceLevelEnabled();
 
     ORTHANC_PUBLIC bool IsInfoLevelEnabled();
+
+    ORTHANC_PUBLIC void SetCategoryEnabled(LogLevel level,
+                                           LogCategory category,
+                                           bool enabled);
+
+    ORTHANC_PUBLIC bool IsCategoryEnabled(LogLevel level,
+                                          LogCategory category);
+    
+    ORTHANC_PUBLIC LogCategory StringToCategory(const std::string& category);
 
     ORTHANC_PUBLIC void SetTargetFile(const std::string& path);
 

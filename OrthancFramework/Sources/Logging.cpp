@@ -34,8 +34,10 @@ namespace Orthanc
 {
   namespace Logging
   {
-    static bool infoEnabled_ = false;
-    static bool traceEnabled_ = false;
+    static const uint32_t ALL_CATEGORIES_MASK = 0xffffffff;
+    
+    static uint32_t infoCategoriesMask_ = 0;
+    static uint32_t traceCategoriesMask_ = 0;
     
     const char* EnumerationToString(LogLevel level)
     {
@@ -83,40 +85,87 @@ namespace Orthanc
       }
     }
 
+    
     void EnableInfoLevel(bool enabled)
     {
-      infoEnabled_ = enabled;
-
-      if (!enabled)
+      if (enabled)
+      {
+        infoCategoriesMask_ = ALL_CATEGORIES_MASK;
+      }
+      else
       {
         // Also disable the "TRACE" level when info-level debugging is disabled
-        traceEnabled_ = false;
+        infoCategoriesMask_ = 0;
+        traceCategoriesMask_ = 0;
       }
     }
 
+    
     bool IsInfoLevelEnabled()
     {
-      return infoEnabled_;
+      return (infoCategoriesMask_ != 0);
     }
 
+    
     void EnableTraceLevel(bool enabled)
     {
-      traceEnabled_ = enabled;
-            
       if (enabled)
       {
         // Also enable the "INFO" level when trace-level debugging is enabled
-        infoEnabled_ = true;
+        infoCategoriesMask_ = ALL_CATEGORIES_MASK;
+        traceCategoriesMask_ = ALL_CATEGORIES_MASK;
+      }
+      else
+      {
+        traceCategoriesMask_ = 0;
       }
     }
 
+
     bool IsTraceLevelEnabled()
     {
-      return traceEnabled_;
+      return (traceCategoriesMask_ != 0);
     }
 
-    static bool IsLoggingEnabled(LogLevel level,
-                                 LogCategory category)
+    
+    void SetCategoryEnabled(LogLevel level,
+                            LogCategory category,
+                            bool enabled)
+    {
+      if (level == LogLevel_INFO)
+      {
+        if (enabled)
+        {
+          infoCategoriesMask_ |= static_cast<uint32_t>(category);
+        }
+        else
+        {
+          infoCategoriesMask_ &= ~static_cast<uint32_t>(category);
+          traceCategoriesMask_ &= ~static_cast<uint32_t>(category);
+        }
+      }
+      else if (level == LogLevel_TRACE)
+      {
+        if (enabled)
+        {
+          traceCategoriesMask_ |= static_cast<uint32_t>(category);
+          infoCategoriesMask_ |= static_cast<uint32_t>(category);
+        }
+        else
+        {
+          traceCategoriesMask_ &= ~static_cast<uint32_t>(category);
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Can only modify the parameters of the INFO and TRACE levels");
+      }
+    }
+
+    
+    bool IsCategoryEnabled(LogLevel level,
+                           LogCategory category)
     {
       if (level == LogLevel_ERROR ||
           level == LogLevel_WARNING)
@@ -125,15 +174,37 @@ namespace Orthanc
       }
       else if (level == LogLevel_INFO)
       {
-        return infoEnabled_;
+        return (infoCategoriesMask_ & category) != 0;
       }
       else if (level == LogLevel_TRACE)
       {
-        return traceEnabled_;
+        return (traceCategoriesMask_ & category) != 0;
       }
       else
       {
         return false;
+      }
+    }
+
+
+    LogCategory StringToCategory(const std::string& category)
+    {
+      if (category == "generic")
+      {
+        return LogCategory_GENERIC;
+      }
+      else if (category == "dicom")
+      {
+        return LogCategory_DICOM;
+      }
+      else if (category == "sqlite")
+      {
+        return LogCategory_SQLITE;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Unknown log category: " + category);
       }
     }
   }
@@ -247,7 +318,7 @@ namespace Orthanc
     {
       std::string message = messageStream_.str();
 
-      if (IsLoggingEnabled(level_, category_))
+      if (IsCategoryEnabled(level_, category_))
       {
         switch (level_)
         {
@@ -637,7 +708,7 @@ namespace Orthanc
         // We are logging using the Orthanc plugin SDK
 
         if (level == LogLevel_TRACE ||
-            !IsLoggingEnabled(level, category))
+            !IsCategoryEnabled(level, category))
         {
           // No trace level in plugins, directly exit as the stream is
           // set to "/dev/null"
@@ -653,7 +724,7 @@ namespace Orthanc
       {
         // We are logging in a standalone application, not inside an Orthanc plugin
 
-        if (!IsLoggingEnabled(level, category))
+        if (!IsCategoryEnabled(level, category))
         {
           // This logging level is disabled, directly exit as the
           // stream is set to "/dev/null"
