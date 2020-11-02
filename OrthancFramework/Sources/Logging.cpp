@@ -26,10 +26,17 @@
 #include "OrthancException.h"
 
 
+/*********************************************************
+ * Common section
+ *********************************************************/
+
 namespace Orthanc
 {
   namespace Logging
   {
+    static bool infoEnabled_ = false;
+    static bool traceEnabled_ = false;
+    
     const char* EnumerationToString(LogLevel level)
     {
       switch (level)
@@ -75,11 +82,70 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+    void EnableInfoLevel(bool enabled)
+    {
+      infoEnabled_ = enabled;
+
+      if (!enabled)
+      {
+        // Also disable the "TRACE" level when info-level debugging is disabled
+        traceEnabled_ = false;
+      }
+    }
+
+    bool IsInfoLevelEnabled()
+    {
+      return infoEnabled_;
+    }
+
+    void EnableTraceLevel(bool enabled)
+    {
+      traceEnabled_ = enabled;
+            
+      if (enabled)
+      {
+        // Also enable the "INFO" level when trace-level debugging is enabled
+        infoEnabled_ = true;
+      }
+    }
+
+    bool IsTraceLevelEnabled()
+    {
+      return traceEnabled_;
+    }
+
+    static bool IsLoggingEnabled(LogLevel level,
+                                 LogCategory category)
+    {
+      if (level == LogLevel_ERROR ||
+          level == LogLevel_WARNING)
+      {
+        return true;
+      }
+      else if (level == LogLevel_INFO)
+      {
+        return infoEnabled_;
+      }
+      else if (level == LogLevel_TRACE)
+      {
+        return traceEnabled_;
+      }
+      else
+      {
+        return false;
+      }
+    }
   }
 }
 
 
+
 #if ORTHANC_ENABLE_LOGGING != 1
+
+/*********************************************************
+ * Section if logging is disabled
+ *********************************************************/
 
 namespace Orthanc
 {
@@ -105,24 +171,6 @@ namespace Orthanc
     {
     }
 
-    void EnableInfoLevel(bool enabled)
-    {
-    }
-
-    void EnableTraceLevel(bool enabled)
-    {
-    }
-    
-    bool IsTraceLevelEnabled()
-    {
-      return false;
-    }
-
-    bool IsInfoLevelEnabled()
-    {
-      return false;
-    }
-    
     void SetTargetFile(const std::string& path)
     {
     }
@@ -152,9 +200,6 @@ namespace Orthanc
 {
   namespace Logging
   {
-    static bool infoEnabled_ = false;
-    static bool traceEnabled_ = false;
-    
 #ifdef __EMSCRIPTEN__
     static void ErrorLogFunc(const char* msg)
     {
@@ -202,38 +247,34 @@ namespace Orthanc
     {
       std::string message = messageStream_.str();
 
-      switch (level_)
+      if (IsLoggingEnabled(level_, category_))
       {
-        case LogLevel_ERROR:
-          ErrorLogFunc(message.c_str());
-          break;
+        switch (level_)
+        {
+          case LogLevel_ERROR:
+            ErrorLogFunc(message.c_str());
+            break;
 
-        case LogLevel_WARNING:
-          WarningLogFunc(message.c_str());
-          break;
+          case LogLevel_WARNING:
+            WarningLogFunc(message.c_str());
+            break;
 
-        case LogLevel_INFO:
-          if (infoEnabled_)
-          {
+          case LogLevel_INFO:
             InfoLogFunc(message.c_str());
             // TODO: stone_console_info(message_.c_str());
-          }
-          break;
+            break;
 
-        case LogLevel_TRACE:
-          // TODO - Check trace category
-          if (traceEnabled_)
-          {
+          case LogLevel_TRACE:
             TraceLogFunc(message.c_str());
-          }
-          break;
+            break;
 
-        default:
-        {
-          std::stringstream ss;
-          ss << "Unknown log level (" << level_ << ") for message: " << message;
-          std::string s = ss.str();
-          ErrorLogFunc(s.c_str());
+          default:
+          {
+            std::stringstream ss;
+            ss << "Unknown log level (" << level_ << ") for message: " << message;
+            std::string s = ss.str();
+            ErrorLogFunc(s.c_str());
+          }
         }
       }
     }
@@ -256,32 +297,6 @@ namespace Orthanc
 
     void Flush()
     {
-    }
-
-    void EnableInfoLevel(bool enabled)
-    {
-      infoEnabled_ = enabled;
-
-      if (!enabled)
-      {
-        // Also disable the "TRACE" level when info-level debugging is disabled
-        traceEnabled_ = false;
-      }
-    }
-
-    bool IsInfoLevelEnabled()
-    {
-      return infoEnabled_;
-    }
-
-    void EnableTraceLevel(bool enabled)
-    {
-      traceEnabled_ = enabled;
-    }
-
-    bool IsTraceLevelEnabled()
-    {
-      return traceEnabled_;
     }
 
     void SetTargetFile(const std::string& path)
@@ -368,8 +383,6 @@ static std::unique_ptr<LoggingStreamsContext> loggingStreamsContext_;
 static boost::mutex                           loggingStreamsMutex_;
 static Orthanc::Logging::NullStream           nullStream_;
 static OrthancPluginContext*                  pluginContext_ = NULL;
-static bool                                   infoEnabled_ = false;
-static bool                                   traceEnabled_ = false;
 
 
 namespace Orthanc
@@ -496,7 +509,8 @@ namespace Orthanc
           break;
 
         default:
-          throw OrthancException(ErrorCode_InternalError);            
+          c = '?';
+          break;
       }
 
       char date[64];
@@ -575,39 +589,6 @@ namespace Orthanc
     }
 
 
-    void EnableInfoLevel(bool enabled)
-    {
-      infoEnabled_ = enabled;
-      
-      if (!enabled)
-      {
-        // Also disable the "TRACE" level when info-level debugging is disabled
-        traceEnabled_ = false;
-      }
-    }
-
-    bool IsInfoLevelEnabled()
-    {
-      return infoEnabled_;
-    }
-
-    void EnableTraceLevel(bool enabled)
-    {
-      traceEnabled_ = enabled;
-      
-      if (enabled)
-      {
-        // Also enable the "INFO" level when trace-level debugging is enabled
-        infoEnabled_ = true;
-      }
-    }
-
-    bool IsTraceLevelEnabled()
-    {
-      return traceEnabled_;
-    }
-
-
     void SetTargetFolder(const std::string& path)
     {
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
@@ -644,19 +625,19 @@ namespace Orthanc
 
 
     InternalLogger::InternalLogger(LogLevel level,
-                                   TraceCategory category,
+                                   LogCategory category,
                                    const char* file,
                                    int line) : 
       lock_(loggingStreamsMutex_, boost::defer_lock_t()),
       level_(level),
-      category_(category),
       stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
     {
       if (pluginContext_ != NULL)
       {
         // We are logging using the Orthanc plugin SDK
 
-        if (level == LogLevel_TRACE)
+        if (level == LogLevel_TRACE ||
+            !IsLoggingEnabled(level, category))
         {
           // No trace level in plugins, directly exit as the stream is
           // set to "/dev/null"
@@ -672,8 +653,7 @@ namespace Orthanc
       {
         // We are logging in a standalone application, not inside an Orthanc plugin
 
-        if ((level == LogLevel_INFO  && !infoEnabled_) ||
-            (level == LogLevel_TRACE && !traceEnabled_))     // TODO - Check trace category
+        if (!IsLoggingEnabled(level, category))
         {
           // This logging level is disabled, directly exit as the
           // stream is set to "/dev/null"
@@ -710,8 +690,9 @@ namespace Orthanc
               stream_ = loggingStreamsContext_->info_;
               break;
               
-            default:
-              throw OrthancException(ErrorCode_InternalError);
+            default:  // Should not occur
+              stream_ = loggingStreamsContext_->error_;
+              break;              
           }
 
           if (stream_ == &nullStream_)
