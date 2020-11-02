@@ -28,11 +28,11 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/Logging.h"
+#include "../Sources/OrthancException.h"
 
 #include <boost/regex.hpp>
 #include <sstream>
 
-using namespace Orthanc::Logging;
 
 static std::stringstream testErrorStream;
 void TestError(const char* message)
@@ -133,7 +133,7 @@ TEST(FuncStreamBuf, BasicTest)
 {
   LoggingMementoScope loggingConfiguration;
 
-  EnableTraceLevel(true);
+  Orthanc::Logging::EnableTraceLevel(true);
 
   typedef void(*LoggingFunctionFunc)(const char*);
 
@@ -146,7 +146,7 @@ TEST(FuncStreamBuf, BasicTest)
   FuncStreamBuf<LoggingFunctionFunc> infoStreamBuf(TestInfo);
   std::ostream infoStream(&infoStreamBuf);
 
-  SetErrorWarnInfoLoggingStreams(errorStream, warningStream, infoStream);
+  Orthanc::Logging::SetErrorWarnInfoLoggingStreams(errorStream, warningStream, infoStream);
 
   {
     const char* text = "E is the set of all sets that do not contain themselves. Does E contain itself?";
@@ -196,4 +196,166 @@ TEST(FuncStreamBuf, BasicTest)
     ASSERT_TRUE(ok);
     ASSERT_STREQ(payload.c_str(), text);
   }
+
+  Orthanc::Logging::EnableTraceLevel(false);  // Back to normal
+}
+
+
+
+TEST(Logging, Categories)
+{
+  using namespace Orthanc::Logging;
+  
+  // Unit tests are running in "--verbose" mode (not "--trace")
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
+
+  // Cannot modify categories for ERROR and WARNING
+  ASSERT_THROW(SetCategoryEnabled(LogLevel_ERROR, LogCategory_GENERIC, true),
+               Orthanc::OrthancException);
+  ASSERT_THROW(SetCategoryEnabled(LogLevel_WARNING, LogCategory_GENERIC, false),
+               Orthanc::OrthancException);
+
+
+  EnableInfoLevel(false);
+  EnableTraceLevel(false);
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_FALSE(IsInfoLevelEnabled());
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_SQLITE));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
+
+
+  // Test the "category" setters at INFO level
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_DICOM, true);
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());   // At least one category is verbose
+  
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, true);
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_DICOM, false);
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());  // "GENERIC" is still verbose
+  
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, false);
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_FALSE(IsInfoLevelEnabled());
+
+
+  // Test the "category" setters at TRACE level
+  SetCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM, true);
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_TRUE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  
+  SetCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC, true);
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_TRUE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_DICOM, false);
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_TRUE(IsTraceLevelEnabled());  // "GENERIC" is still at trace level
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  
+  SetCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC, false);
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  
+  SetCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC, false);
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_FALSE(IsInfoLevelEnabled());
+
+
+
+  // Test the "macro" setters
+  EnableInfoLevel(true);
+  EnableTraceLevel(false);
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
+
+  EnableInfoLevel(false);
+  EnableTraceLevel(true);  // "--trace" implies "--verbose"
+  ASSERT_TRUE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_ERROR, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_WARNING, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_GENERIC));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_DICOM));
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
+
+
+
+  // Back to normal
+  EnableInfoLevel(true);
+  EnableTraceLevel(false);
+  ASSERT_FALSE(IsTraceLevelEnabled());
+  ASSERT_TRUE(IsInfoLevelEnabled());
+  ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
+  ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
 }

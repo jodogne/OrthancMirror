@@ -1495,6 +1495,18 @@ static bool StartOrthanc(int argc,
 }
 
 
+static void SetLoggingCategories(Logging::LogLevel level,
+                                 const std::string& lst)
+{
+  std::vector<std::string> categories;
+  Toolbox::TokenizeString(categories, lst, ':');
+  for (size_t i = 0; i < categories.size(); i++)
+  {
+    Logging::SetCategoryEnabled(level, Logging::StringToCategory(categories[i]), true);
+  }
+}
+
+
 static bool DisplayPerformanceWarning()
 {
   (void) DisplayPerformanceWarning;   // Disable warning about unused function
@@ -1563,10 +1575,18 @@ int main(int argc, char* argv[])
     {
       Logging::EnableTraceLevel(true);
     }
+    else if (boost::starts_with(argument, "--verbose="))  // New in Orthanc 1.8.1
+    {
+      SetLoggingCategories(Logging::LogLevel_INFO, argument.substr(10));
+    }
+    else if (boost::starts_with(argument, "--trace="))  // New in Orthanc 1.8.1
+    {
+      SetLoggingCategories(Logging::LogLevel_TRACE, argument.substr(8));
+    }
     else if (boost::starts_with(argument, "--logdir="))
     {
       // TODO WHAT IS THE ENCODING?
-      std::string directory = argument.substr(9);
+      const std::string directory = argument.substr(9);
 
       try
       {
@@ -1582,7 +1602,7 @@ int main(int argc, char* argv[])
     else if (boost::starts_with(argument, "--logfile="))
     {
       // TODO WHAT IS THE ENCODING?
-      std::string file = argument.substr(10);
+      const std::string file = argument.substr(10);
 
       try
       {
