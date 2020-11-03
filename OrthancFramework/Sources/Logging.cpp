@@ -132,6 +132,10 @@ namespace Orthanc
                             LogCategory category,
                             bool enabled)
     {
+      // Invariant: If a bit is set for "trace", it must also be set
+      // for "verbose" (in other words, trace level implies verbose level)
+      assert((traceCategoriesMask_ & infoCategoriesMask_) == traceCategoriesMask_);
+      
       if (level == LogLevel_INFO)
       {
         if (enabled)
@@ -161,6 +165,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange,
                                "Can only modify the parameters of the INFO and TRACE levels");
       }
+
+      assert((traceCategoriesMask_ & infoCategoriesMask_) == traceCategoriesMask_);
     }
 
     
@@ -192,6 +198,10 @@ namespace Orthanc
       if (category == "generic")
       {
         return LogCategory_GENERIC;
+      }
+      else if (category == "plugins")
+      {
+        return LogCategory_PLUGINS;
       }
       else if (category == "dicom")
       {
