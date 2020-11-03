@@ -62,8 +62,9 @@ namespace Orthanc
     {
       LogCategory_GENERIC = (1 << 0),
       LogCategory_PLUGINS = (1 << 1),
-      LogCategory_SQLITE  = (1 << 2),
-      LogCategory_DICOM   = (1 << 3)
+      LogCategory_REST    = (1 << 2),
+      LogCategory_SQLITE  = (1 << 3),
+      LogCategory_DICOM   = (1 << 4)
     };
     
     ORTHANC_PUBLIC const char* EnumerationToString(LogLevel level);

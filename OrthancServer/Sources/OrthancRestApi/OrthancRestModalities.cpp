@@ -1587,8 +1587,8 @@ namespace Orthanc
 
           for (size_t j = 0; j < orthancId.size(); j++)
           {
-            LOG(INFO) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
-                      << sopInstanceUids[i] << " / " << orthancId[j];
+            CLOG(INFO, REST) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
+                             << sopInstanceUids[i] << " / " << orthancId[j];
 
             Json::Value tmp;
             context.GetIndex().DeleteResource(tmp, orthancId[j], ResourceType_Instance);
