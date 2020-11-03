@@ -384,11 +384,11 @@ TEST(Logging, Enumerations)
   }
 
   ASSERT_EQ(5u, s.size());
-  ASSERT_NE(s.end(), s.find("generic"));
-  ASSERT_NE(s.end(), s.find("plugins"));
-  ASSERT_NE(s.end(), s.find("rest"));
-  ASSERT_NE(s.end(), s.find("sqlite"));
-  ASSERT_NE(s.end(), s.find("dicom"));
+  ASSERT_TRUE(s.find("generic") != s.end());
+  ASSERT_TRUE(s.find("plugins") != s.end());
+  ASSERT_TRUE(s.find("rest") != s.end());
+  ASSERT_TRUE(s.find("sqlite") != s.end());
+  ASSERT_TRUE(s.find("dicom") != s.end());
 
   ASSERT_THROW(Logging::GetCategoryName(Logging::GetCategoriesCount()), OrthancException);
 
