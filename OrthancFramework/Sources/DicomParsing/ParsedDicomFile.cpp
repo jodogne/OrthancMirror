@@ -1363,7 +1363,10 @@ namespace Orthanc
     Uint8* target = NULL;
     pixels->createUint8Array(accessor.GetHeight() * pitch, target);
 
-    for (unsigned int y = 0; y < accessor.GetHeight(); y++)
+    const unsigned int height = accessor.GetHeight();
+    const unsigned int width = accessor.GetWidth();
+
+    for (unsigned int y = 0; y < height; y++)
     {
       switch (accessor.GetFormat())
       {
@@ -1381,7 +1384,7 @@ namespace Orthanc
         {
           // The alpha channel is not supported by the DICOM standard
           const Uint8* source = reinterpret_cast<const Uint8*>(accessor.GetConstRow(y));
-          for (unsigned int x = 0; x < accessor.GetWidth(); x++, target += 3, source += 4)
+          for (unsigned int x = 0; x < width; x++, target += 3, source += 4)
           {
             target[0] = source[0];
             target[1] = source[1];

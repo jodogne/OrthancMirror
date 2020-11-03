@@ -354,12 +354,16 @@ namespace Orthanc
     const PixelType minValue = std::numeric_limits<PixelType>::min();
     const PixelType maxValue = std::numeric_limits<PixelType>::max();
 
-    for (unsigned int y = 0; y < source.GetInformation().GetHeight(); y++)
+    const unsigned int height = source.GetInformation().GetHeight();
+    const unsigned int width = source.GetInformation().GetWidth();
+    const unsigned int channels = source.GetInformation().GetChannelCount();
+    
+    for (unsigned int y = 0; y < height; y++)
     {
       PixelType* pixel = reinterpret_cast<PixelType*>(target.GetRow(y));
-      for (unsigned int x = 0; x < source.GetInformation().GetWidth(); x++)
+      for (unsigned int x = 0; x < width; x++)
       {
-        for (unsigned int c = 0; c < source.GetInformation().GetChannelCount(); c++, pixel++)
+        for (unsigned int c = 0; c < channels; c++, pixel++)
         {
           int32_t v = source.GetValue(x, y, c);
           if (v < static_cast<int32_t>(minValue))
@@ -437,12 +441,14 @@ namespace Orthanc
         }
 
         const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData);
+        const unsigned int width = target->GetWidth();
+        const unsigned int height = target->GetHeight();
         
-        for (unsigned int y = 0; y < target->GetHeight(); y++)
+        for (unsigned int y = 0; y < height; y++)
         {
           uint8_t* p = reinterpret_cast<uint8_t*>(target->GetRow(y));
 
-          for (unsigned int x = 0; x < target->GetWidth(); x++)
+          for (unsigned int x = 0; x < width; x++)
           {
             p[0] = lutRed[*source] >> 8;
             p[1] = lutGreen[*source] >> 8;
@@ -467,12 +473,14 @@ namespace Orthanc
         }
 
         const uint16_t* source = reinterpret_cast<const uint16_t*>(pixelData);
+        const unsigned int width = target->GetWidth();
+        const unsigned int height = target->GetHeight();
         
-        for (unsigned int y = 0; y < target->GetHeight(); y++)
+        for (unsigned int y = 0; y < height; y++)
         {
           uint16_t* p = reinterpret_cast<uint16_t*>(target->GetRow(y));
 
-          for (unsigned int x = 0; x < target->GetWidth(); x++)
+          for (unsigned int x = 0; x < width; x++)
           {
             p[0] = lutRed[*source];
             p[1] = lutGreen[*source];
