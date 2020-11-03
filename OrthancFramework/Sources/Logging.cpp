@@ -203,6 +203,10 @@ namespace Orthanc
       {
         return LogCategory_PLUGINS;
       }
+      else if (category == "rest")
+      {
+        return LogCategory_REST;
+      }
       else if (category == "dicom")
       {
         return LogCategory_DICOM;
