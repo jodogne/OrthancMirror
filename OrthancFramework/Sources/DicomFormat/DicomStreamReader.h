@@ -118,14 +118,8 @@ namespace Orthanc
 
     void Consume(IVisitor& visitor);
 
-    bool IsDone() const
-    {
-      return (state_ == State_Done);
-    }
+    bool IsDone() const;
 
-    uint64_t GetProcessedBytes() const
-    {
-      return reader_.GetProcessedBytes();
-    }
+    uint64_t GetProcessedBytes() const;
   };
 }

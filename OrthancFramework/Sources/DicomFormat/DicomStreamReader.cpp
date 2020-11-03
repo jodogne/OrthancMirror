@@ -540,4 +540,16 @@ namespace Orthanc
     DicomTag untilTag(0xffff, 0xffff);
     Consume(visitor, untilTag);
   }
+
+
+  bool DicomStreamReader::IsDone() const
+  {
+    return (state_ == State_Done);
+  }
+
+  
+  uint64_t DicomStreamReader::GetProcessedBytes() const
+  {
+    return reader_.GetProcessedBytes();
+  }
 }
