@@ -1738,7 +1738,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
+      CLOG(INFO, PLUGINS) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
       OrthancPluginRestCallback handler;
 
@@ -1812,7 +1812,7 @@ namespace Orthanc
       return HandleChunkedGetDelete(output, method, uri, headers, getArguments);
     }
 
-    LOG(INFO) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
+    CLOG(INFO, PLUGINS) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
     HttpRequestConverter converter(matcher, method, headers);
     converter.SetGetArguments(getArguments);
@@ -2009,10 +2009,10 @@ namespace Orthanc
     const _OrthancPluginRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a REST callback "
-              << (lock ? "with" : "without")
-              << " mutual exclusion on: " 
-              << p.pathRegularExpression;
+    CLOG(INFO, PLUGINS) << "Plugin has registered a REST callback "
+                        << (lock ? "with" : "without")
+                        << " mutual exclusion on: " 
+                        << p.pathRegularExpression;
 
     pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, lock));
   }
@@ -2023,8 +2023,8 @@ namespace Orthanc
     const _OrthancPluginChunkedRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginChunkedRestCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a REST callback for chunked streams on: " 
-              << p.pathRegularExpression;
+    CLOG(INFO, PLUGINS) << "Plugin has registered a REST callback for chunked streams on: " 
+                        << p.pathRegularExpression;
 
     pimpl_->chunkedRestCallbacks_.push_back(new PImpl::ChunkedRestCallback(p));
   }
@@ -2035,7 +2035,7 @@ namespace Orthanc
     const _OrthancPluginOnStoredInstanceCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnStoredInstanceCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered an OnStoredInstance callback";
+    CLOG(INFO, PLUGINS) << "Plugin has registered an OnStoredInstance callback";
     pimpl_->onStoredCallbacks_.push_back(p.callback);
   }
 
@@ -2045,7 +2045,7 @@ namespace Orthanc
     const _OrthancPluginOnChangeCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
 
-    LOG(INFO) << "Plugin has registered an OnChange callback";
+    CLOG(INFO, PLUGINS) << "Plugin has registered an OnChange callback";
     pimpl_->onChangeCallbacks_.push_back(p.callback);
   }
 
@@ -2064,7 +2064,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Plugin has registered a callback to handle modality worklists";
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle modality worklists";
       pimpl_->worklistCallback_ = p.callback;
     }
   }
@@ -2084,7 +2084,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Plugin has registered a callback to handle C-FIND requests";
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle C-FIND requests";
       pimpl_->findCallback_ = p.callback;
     }
   }
@@ -2104,7 +2104,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Plugin has registered a callback to handle C-MOVE requests";
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to handle C-MOVE requests";
       pimpl_->moveCallbacks_ = p;
     }
   }
@@ -2118,8 +2118,8 @@ namespace Orthanc
     boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     pimpl_->decodeImageCallbacks_.push_back(p.callback);
-    LOG(INFO) << "Plugin has registered a callback to decode DICOM images (" 
-              << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to decode DICOM images (" 
+                        << pimpl_->decodeImageCallbacks_.size() << " decoder(s) now active)";
   }
 
 
@@ -2131,8 +2131,8 @@ namespace Orthanc
     boost::unique_lock<boost::shared_mutex> lock(pimpl_->decoderTranscoderMutex_);
 
     pimpl_->transcoderCallbacks_.push_back(p.callback);
-    LOG(INFO) << "Plugin has registered a callback to transcode DICOM images (" 
-              << pimpl_->transcoderCallbacks_.size() << " transcoder(s) now active)";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to transcode DICOM images (" 
+                        << pimpl_->transcoderCallbacks_.size() << " transcoder(s) now active)";
   }
 
 
@@ -2144,8 +2144,8 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(pimpl_->jobsUnserializersMutex_);
 
     pimpl_->jobsUnserializers_.push_back(p.unserializer);
-    LOG(INFO) << "Plugin has registered a callback to unserialize jobs (" 
-              << pimpl_->jobsUnserializers_.size() << " unserializer(s) now active)";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to unserialize jobs (" 
+                        << pimpl_->jobsUnserializers_.size() << " unserializer(s) now active)";
   }
 
 
@@ -2154,7 +2154,7 @@ namespace Orthanc
     const _OrthancPluginIncomingHttpRequestFilter& p = 
       *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters_.push_back(p.callback);
   }
 
@@ -2164,7 +2164,7 @@ namespace Orthanc
     const _OrthancPluginIncomingHttpRequestFilter2& p = 
       *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter2*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a callback to filter incoming HTTP requests";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters2_.push_back(p.callback);
   }
 
@@ -2174,7 +2174,7 @@ namespace Orthanc
     const _OrthancPluginIncomingDicomInstanceFilter& p = 
       *reinterpret_cast<const _OrthancPluginIncomingDicomInstanceFilter*>(parameters);
 
-    LOG(INFO) << "Plugin has registered a callback to filter incoming DICOM instances";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming DICOM instances";
     pimpl_->incomingDicomInstanceFilters_.push_back(p.callback);
   }
 
@@ -2186,7 +2186,7 @@ namespace Orthanc
 
     boost::mutex::scoped_lock lock(pimpl_->refreshMetricsMutex_);
 
-    LOG(INFO) << "Plugin has registered a callback to refresh its metrics";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to refresh its metrics";
     pimpl_->refreshMetricsCallbacks_.push_back(p.callback);
   }
 
@@ -2197,7 +2197,7 @@ namespace Orthanc
       *reinterpret_cast<const _OrthancPluginRegisterStorageCommitmentScpCallback*>(parameters);
 
     boost::mutex::scoped_lock lock(pimpl_->storageCommitmentScpMutex_);
-    LOG(INFO) << "Plugin has registered a storage commitment callback";
+    CLOG(INFO, PLUGINS) << "Plugin has registered a storage commitment callback";
 
     pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
   }
@@ -2385,8 +2385,8 @@ namespace Orthanc
     const _OrthancPluginRestApiGet& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet*>(parameters);
         
-    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
-              << (afterPlugins ? " (after plugins)" : " (built-in API)");
+    CLOG(INFO, PLUGINS) << "Plugin making REST GET call on URI " << p.uri
+                        << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
     IHttpHandler* handler;
 
@@ -2414,8 +2414,8 @@ namespace Orthanc
     const _OrthancPluginRestApiGet2& p = 
       *reinterpret_cast<const _OrthancPluginRestApiGet2*>(parameters);
         
-    LOG(INFO) << "Plugin making REST GET call on URI " << p.uri
-              << (p.afterPlugins ? " (after plugins)" : " (built-in API)");
+    CLOG(INFO, PLUGINS) << "Plugin making REST GET call on URI " << p.uri
+                        << (p.afterPlugins ? " (after plugins)" : " (built-in API)");
 
     IHttpHandler::Arguments headers;
 
@@ -2452,8 +2452,8 @@ namespace Orthanc
     const _OrthancPluginRestApiPostPut& p = 
       *reinterpret_cast<const _OrthancPluginRestApiPostPut*>(parameters);
 
-    LOG(INFO) << "Plugin making REST " << EnumerationToString(isPost ? HttpMethod_Post : HttpMethod_Put)
-              << " call on URI " << p.uri << (afterPlugins ? " (after plugins)" : " (built-in API)");
+    CLOG(INFO, PLUGINS) << "Plugin making REST " << EnumerationToString(isPost ? HttpMethod_Post : HttpMethod_Put)
+                        << " call on URI " << p.uri << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
     IHttpHandler* handler;
 
@@ -2482,8 +2482,8 @@ namespace Orthanc
                                      bool afterPlugins)
   {
     const char* uri = reinterpret_cast<const char*>(parameters);
-    LOG(INFO) << "Plugin making REST DELETE call on URI " << uri
-              << (afterPlugins ? " (after plugins)" : " (built-in API)");
+    CLOG(INFO, PLUGINS) << "Plugin making REST DELETE call on URI " << uri
+                        << (afterPlugins ? " (after plugins)" : " (built-in API)");
 
     IHttpHandler* handler;
 
@@ -4505,7 +4505,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageArea:
       {
-        LOG(INFO) << "Plugin has registered a custom storage area";
+        CLOG(INFO, PLUGINS) << "Plugin has registered a custom storage area";
         const _OrthancPluginRegisterStorageArea& p = 
           *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
         
@@ -4556,7 +4556,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
-        LOG(INFO) << "Plugin has registered a custom database back-end";
+        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
@@ -4578,7 +4578,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
-        LOG(INFO) << "Plugin has registered a custom database back-end";
+        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
@@ -4661,7 +4661,7 @@ namespace Orthanc
                                      _OrthancPluginService service,
                                      const void* parameters)
   {
-    LOG(TRACE) << "Calling service " << service << " from plugin " << plugin.GetPath();
+    CLOG(TRACE, PLUGINS) << "Calling service " << service << " from plugin " << plugin.GetPath();
 
     if (service == _OrthancPluginService_DatabaseAnswer)
     {
@@ -5124,7 +5124,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(INFO) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
+        CLOG(INFO, PLUGINS) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
         HttpRequestConverter converter(matcher, method, headers);
         converter.GetRequest().body = NULL;

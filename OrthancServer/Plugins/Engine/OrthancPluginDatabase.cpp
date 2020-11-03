@@ -252,44 +252,44 @@ namespace Orthanc
 
     if (extensions_.lookupResources == NULL)
     {
-      LOG(INFO) << MISSING << "LookupIdentifierRange()";
+      CLOG(INFO, PLUGINS) << MISSING << "LookupIdentifierRange()";
       isOptimal = false;
     }
 
     if (extensions_.createInstance == NULL)
     {
-      LOG(INFO) << MISSING << "CreateInstance()";
+      CLOG(INFO, PLUGINS) << MISSING << "CreateInstance()";
       isOptimal = false;
     }
 
     if (extensions_.setResourcesContent == NULL)
     {
-      LOG(INFO) << MISSING << "SetResourcesContent()";
+      CLOG(INFO, PLUGINS) << MISSING << "SetResourcesContent()";
       isOptimal = false;
     }
 
     if (extensions_.getChildrenMetadata == NULL)
     {
-      LOG(INFO) << MISSING << "GetChildrenMetadata()";
+      CLOG(INFO, PLUGINS) << MISSING << "GetChildrenMetadata()";
       isOptimal = false;
     }
 
     if (extensions_.getAllMetadata == NULL)
     {
-      LOG(INFO) << MISSING << "GetAllMetadata()";
+      CLOG(INFO, PLUGINS) << MISSING << "GetAllMetadata()";
       isOptimal = false;
     }
 
     if (extensions_.lookupResourceAndParent == NULL)
     {
-      LOG(INFO) << MISSING << "LookupResourceAndParent()";
+      CLOG(INFO, PLUGINS) << MISSING << "LookupResourceAndParent()";
       isOptimal = false;
     }
 
     if (isOptimal)
     {
-      LOG(INFO) << "The performance of the database index plugin "
-                << "is optimal for this version of Orthanc";
+      CLOG(INFO, PLUGINS) << "The performance of the database index plugin "
+                          << "is optimal for this version of Orthanc";
     }
     else
     {

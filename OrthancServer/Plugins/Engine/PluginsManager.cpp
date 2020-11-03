@@ -285,7 +285,7 @@ namespace Orthanc
       return;
     }
 
-    LOG(INFO) << "Scanning folder " << folder << " for plugins";
+    CLOG(INFO, PLUGINS) << "Scanning folder " << folder << " for plugins";
 
     directory_iterator end_it; // default construction yields past-the-end
     for (directory_iterator it(folder);
@@ -308,7 +308,7 @@ namespace Orthanc
 
         if (extension == PLUGIN_EXTENSION)
         {
-          LOG(INFO) << "Found a shared library: " << it->path();
+          CLOG(INFO, PLUGINS) << "Found a shared library: " << it->path();
 
           SharedLibrary plugin(path);
           if (IsOrthancPlugin(plugin))
