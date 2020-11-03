@@ -228,29 +228,42 @@ namespace Orthanc
     }
 
 
-    size_t GetCategoriesCount()
+    unsigned int GetCategoriesCount()
     {
       return 5;
     }
 
 
-    const char* GetCategoryName(size_t i)
+    const char* GetCategoryName(unsigned int i)
     {
-      switch (i)
+      if (i < GetCategoriesCount())
       {
-        case 0:
+        return GetCategoryName(static_cast<LogCategory>(1 << i));
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    
+
+    const char* GetCategoryName(LogCategory category)
+    {
+      switch (category)
+      {
+        case LogCategory_GENERIC:
           return "generic";
-          
-        case 1:
+            
+        case LogCategory_PLUGINS:
           return "plugins";
-          
-        case 2:
+            
+        case LogCategory_REST:
           return "rest";
-          
-        case 3:
+            
+        case LogCategory_DICOM:
           return "dicom";
-          
-        case 4:
+            
+        case LogCategory_SQLITE:
           return "sqlite";
 
         default:

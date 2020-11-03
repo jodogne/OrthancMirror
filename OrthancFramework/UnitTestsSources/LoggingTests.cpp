@@ -359,3 +359,42 @@ TEST(Logging, Categories)
   ASSERT_TRUE(IsCategoryEnabled(LogLevel_INFO, LogCategory_SQLITE));
   ASSERT_FALSE(IsCategoryEnabled(LogLevel_TRACE, LogCategory_SQLITE));
 }
+
+
+TEST(Logging, Enumerations)
+{
+  using namespace Orthanc;
+  
+  Logging::LogCategory c;
+  ASSERT_TRUE(Logging::LookupCategory(c, "generic"));  ASSERT_EQ(Logging::LogCategory_GENERIC, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "plugins"));  ASSERT_EQ(Logging::LogCategory_PLUGINS, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "rest"));     ASSERT_EQ(Logging::LogCategory_REST, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "sqlite"));   ASSERT_EQ(Logging::LogCategory_SQLITE, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "dicom"));    ASSERT_EQ(Logging::LogCategory_DICOM, c);
+  ASSERT_FALSE(Logging::LookupCategory(c, "nope"));
+
+  ASSERT_EQ(5u, Logging::GetCategoriesCount());
+
+  std::set<std::string> s;
+  for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+  {
+    Logging::LogCategory c;
+    ASSERT_TRUE(Logging::LookupCategory(c, Logging::GetCategoryName(i)));
+    s.insert(Logging::GetCategoryName(i));
+  }
+
+  ASSERT_EQ(5u, s.size());
+  ASSERT_NE(s.end(), s.find("generic"));
+  ASSERT_NE(s.end(), s.find("plugins"));
+  ASSERT_NE(s.end(), s.find("rest"));
+  ASSERT_NE(s.end(), s.find("sqlite"));
+  ASSERT_NE(s.end(), s.find("dicom"));
+
+  ASSERT_THROW(Logging::GetCategoryName(Logging::GetCategoriesCount()), OrthancException);
+
+  ASSERT_STREQ("generic", Logging::GetCategoryName(Logging::LogCategory_GENERIC));
+  ASSERT_STREQ("plugins", Logging::GetCategoryName(Logging::LogCategory_PLUGINS));
+  ASSERT_STREQ("rest", Logging::GetCategoryName(Logging::LogCategory_REST));
+  ASSERT_STREQ("sqlite", Logging::GetCategoryName(Logging::LogCategory_SQLITE));
+  ASSERT_STREQ("dicom", Logging::GetCategoryName(Logging::LogCategory_DICOM));
+}
