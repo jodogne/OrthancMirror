@@ -1441,11 +1441,11 @@ namespace Orthanc
     {
       // Use Orthanc's built-in decoder, using the cache to speed-up
       // things on multi-frame images
-      ServerContext::DicomCacheLocker locker(*this, publicId);
 
       std::unique_ptr<ImageAccessor> decoded;
       try
       {
+        ServerContext::DicomCacheLocker locker(*this, publicId);
         decoded.reset(locker.GetDicom().DecodeFrame(frameIndex));
       }
       catch (OrthancException& e)
