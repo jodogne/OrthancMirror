@@ -328,7 +328,7 @@ namespace Orthanc
     }
 
     std::string original;
-    if (!dicom.GetTagValue(original, *tag))
+    if (!const_cast<const ParsedDicomFile&>(dicom).GetTagValue(original, *tag))
     {
       original = "";
     }
@@ -1017,7 +1017,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_STUDY_INSTANCE_UID);
-        toModify.GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_STUDY_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Study);
       }
 
@@ -1025,7 +1025,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SERIES_INSTANCE_UID);
-        toModify.GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SERIES_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Series);
       }
 
@@ -1033,7 +1033,7 @@ namespace Orthanc
       {
         std::string original;
         std::string replacement = GetReplacementAsString(DICOM_TAG_SOP_INSTANCE_UID);
-        toModify.GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
+        const_cast<const ParsedDicomFile&>(toModify).GetTagValue(original, DICOM_TAG_SOP_INSTANCE_UID);
         RegisterMappedDicomIdentifier(original, replacement, ResourceType_Instance);
       }
     }
@@ -1114,7 +1114,7 @@ namespace Orthanc
 
       if (updateReferencedRelationships_)
       {
-        toModify.Apply(visitor);
+        const_cast<const ParsedDicomFile&>(toModify).Apply(visitor);
       }
       else
       {

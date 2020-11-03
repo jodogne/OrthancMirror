@@ -237,6 +237,28 @@ namespace Orthanc
                              "should be \"After\", \"Before\" or \"Disabled\": " + value);
     }    
   }
+
+
+  Verbosity StringToVerbosity(const std::string& str)
+  {
+    if (str == "default")
+    {
+      return Verbosity_Default;
+    }
+    else if (str == "verbose")
+    {
+      return Verbosity_Verbose;
+    }
+    else if (str == "trace")
+    {
+      return Verbosity_Trace;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Verbosity can be \"default\", \"verbose\" or \"trace\": " + str);
+    }    
+  }
   
 
   std::string GetBasePath(ResourceType type,
@@ -366,6 +388,25 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+  const char* EnumerationToString(Verbosity verbosity)
+  {
+    switch (verbosity)
+    {
+      case Verbosity_Default:
+        return "default";
+        
+      case Verbosity_Verbose:
+        return "verbose";
+        
+      case Verbosity_Trace:
+        return "trace";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }    
 
   
   bool IsUserMetadata(MetadataType metadata)

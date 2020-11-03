@@ -642,6 +642,19 @@ static void PrintHelp(const char* path)
     << "\t\t\tthe last execution of Orthanc" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
+    << "Fine-tuning of log categories:" << std::endl;
+
+  for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+  {
+    const std::string name = Logging::GetCategoryName(i);
+    std::cout << "  --verbose-" << name
+              << "\tbe verbose in logs of category \"" << name << "\"" << std::endl;
+    std::cout << "  --trace-" << name
+              << "\tuse highest verbosity for logs of category \"" << name << "\"" << std::endl;
+  }
+  
+  std::cout
+    << std::endl
     << "Exit status:" << std::endl
     << "   0 if success," << std::endl
 #if defined(_WIN32)
@@ -1495,14 +1508,18 @@ static bool StartOrthanc(int argc,
 }
 
 
-static void SetLoggingCategories(Logging::LogLevel level,
-                                 const std::string& lst)
+static bool SetCategoryVerbosity(const Verbosity verbosity,
+                                 const std::string& category)
 {
-  std::vector<std::string> categories;
-  Toolbox::TokenizeString(categories, lst, ':');
-  for (size_t i = 0; i < categories.size(); i++)
+  Logging::LogCategory c;
+  if (LookupCategory(c, category))
   {
-    Logging::SetCategoryEnabled(level, Logging::StringToCategory(categories[i]), true);
+    SetCategoryVerbosity(c, verbosity);
+    return true;
+  }
+  else
+  {
+    return false;
   }
 }
 
@@ -1569,19 +1586,21 @@ int main(int argc, char* argv[])
     }
     else if (argument == "--verbose")
     {
-      Logging::EnableInfoLevel(true);
+      SetGlobalVerbosity(Verbosity_Verbose);
     }
     else if (argument == "--trace")
     {
-      Logging::EnableTraceLevel(true);
+      SetGlobalVerbosity(Verbosity_Trace);
     }
-    else if (boost::starts_with(argument, "--verbose="))  // New in Orthanc 1.8.1
+    else if (boost::starts_with(argument, "--verbose-") &&
+             SetCategoryVerbosity(Verbosity_Verbose, argument.substr(10)))
     {
-      SetLoggingCategories(Logging::LogLevel_INFO, argument.substr(10));
+      // New in Orthanc 1.8.1
     }
-    else if (boost::starts_with(argument, "--trace="))  // New in Orthanc 1.8.1
+    else if (boost::starts_with(argument, "--trace-") &&
+             SetCategoryVerbosity(Verbosity_Trace, argument.substr(8)))
     {
-      SetLoggingCategories(Logging::LogLevel_TRACE, argument.substr(8));
+      // New in Orthanc 1.8.1
     }
     else if (boost::starts_with(argument, "--logdir="))
     {

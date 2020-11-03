@@ -101,6 +101,20 @@ namespace Orthanc
 
     explicit ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+    // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
+    void DatasetToJson(Json::Value& target, 
+                       DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
+                       unsigned int maxStringLength);    
+    DcmFileFormat& GetDcmtkObject() const;
+    void Apply(ITagVisitor& visitor);
+    ParsedDicomFile* Clone(bool keepSopInstanceUid);
+    bool LookupTransferSyntax(std::string& result);
+    bool GetTagValue(std::string& value,
+                     const DicomTag& tag);
+#endif
+
   public:
     explicit ParsedDicomFile(bool createIdentifiers);  // Create a minimal DICOM instance
 

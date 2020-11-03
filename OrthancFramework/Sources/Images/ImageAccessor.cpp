@@ -90,7 +90,7 @@ namespace Orthanc
     target.AddChunk("], [ 3 " + boost::lexical_cast<std::string>(source.GetHeight()) +
                     " " + boost::lexical_cast<std::string>(source.GetWidth()) + " ]), [ 3 2 1 ]))");
   }
-
+  
 
   void* ImageAccessor::GetBuffer()
   {
@@ -293,4 +293,17 @@ namespace Orthanc
 
     format_ = format;
   }
+
+
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  void* ImageAccessor::GetBuffer() const
+  {
+    return const_cast<ImageAccessor&>(*this).GetBuffer();
+  }
+
+  void* ImageAccessor::GetRow(unsigned int y) const
+  {
+    return const_cast<ImageAccessor&>(*this).GetRow(y);
+  }
+#endif
 }

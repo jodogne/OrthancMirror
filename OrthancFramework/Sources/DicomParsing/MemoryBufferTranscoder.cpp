@@ -41,7 +41,7 @@ namespace Orthanc
 
     std::string s;
     DicomTransferSyntax a, b;
-    if (!parsed.LookupTransferSyntax(s) ||
+    if (!const_cast<const ParsedDicomFile&>(parsed).LookupTransferSyntax(s) ||
         !FromDcmtkBridge::LookupOrthancTransferSyntax(a, parsed.GetDcmtkObject()) ||
         !LookupTransferSyntax(b, s) ||
         a != b ||

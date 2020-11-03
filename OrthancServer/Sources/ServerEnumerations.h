@@ -40,6 +40,13 @@
 
 namespace Orthanc
 {
+  enum Verbosity
+  {
+    Verbosity_Default,
+    Verbosity_Verbose,
+    Verbosity_Trace
+  };
+  
   enum SeriesStatus
   {
     SeriesStatus_Complete,
@@ -194,6 +201,8 @@ namespace Orthanc
 
   BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& str);
 
+  Verbosity StringToVerbosity(const std::string& str);
+
   std::string EnumerationToString(FileContentType type);
 
   std::string GetFileContentMime(FileContentType type);
@@ -206,6 +215,8 @@ namespace Orthanc
   const char* EnumerationToString(StoreStatus status);
 
   const char* EnumerationToString(ChangeType type);
+
+  const char* EnumerationToString(Verbosity verbosity);
 
   bool IsUserMetadata(MetadataType type);
 }

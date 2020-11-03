@@ -180,7 +180,9 @@ namespace Orthanc
                                 bool simplify) const
   {
     DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
-    GetAnswer(index).DatasetToJson(target, format, DicomToJsonFlags_None, 0);
+    
+    const ParsedDicomFile& answer = GetAnswer(index);
+    answer.DatasetToJson(target, format, DicomToJsonFlags_None, 0);
   }
 
 
@@ -196,4 +198,12 @@ namespace Orthanc
       target.append(answer);
     }
   }
+
+
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  void DicomFindAnswers::Add(ParsedDicomFile& dicom)
+  {
+    return Add(const_cast<const ParsedDicomFile&>(dicom));
+  }
+#endif
 }

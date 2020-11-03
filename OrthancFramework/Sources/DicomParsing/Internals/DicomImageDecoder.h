@@ -84,6 +84,12 @@ namespace Orthanc
                                     ImageExtractionMode mode,
                                     bool invert);
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+    // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
+    static ImageAccessor *Decode(ParsedDicomFile& dataset,
+                                 unsigned int frame);
+#endif
+
   public:
     static bool IsPsmctRle1(DcmDataset& dataset);
 

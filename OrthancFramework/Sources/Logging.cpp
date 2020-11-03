@@ -193,32 +193,68 @@ namespace Orthanc
     }
 
 
-    LogCategory StringToCategory(const std::string& category)
+    bool LookupCategory(LogCategory& target,
+                        const std::string& category)
     {
       if (category == "generic")
       {
-        return LogCategory_GENERIC;
+        target = LogCategory_GENERIC;
+        return true;
       }
       else if (category == "plugins")
       {
-        return LogCategory_PLUGINS;
+        target = LogCategory_PLUGINS;
+        return true;
       }
       else if (category == "rest")
       {
-        return LogCategory_REST;
+        target = LogCategory_REST;
+        return true;
       }
       else if (category == "dicom")
       {
-        return LogCategory_DICOM;
+        target = LogCategory_DICOM;
+        return true;
       }
       else if (category == "sqlite")
       {
-        return LogCategory_SQLITE;
+        target = LogCategory_SQLITE;
+        return true;
       }
       else
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange,
-                               "Unknown log category: " + category);
+        return false;
+      }
+    }
+
+
+    size_t GetCategoriesCount()
+    {
+      return 5;
+    }
+
+
+    const char* GetCategoryName(size_t i)
+    {
+      switch (i)
+      {
+        case 0:
+          return "generic";
+          
+        case 1:
+          return "plugins";
+          
+        case 2:
+          return "rest";
+          
+        case 3:
+          return "dicom";
+          
+        case 4:
+          return "sqlite";
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
   }
@@ -709,20 +745,16 @@ namespace Orthanc
     }
 
 
-    InternalLogger::InternalLogger(LogLevel level,
-                                   LogCategory category,
-                                   const char* file,
-                                   int line) : 
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
+    void InternalLogger::Setup(LogCategory category,
+                               const char* file,
+                               int line)
     {
       if (pluginContext_ != NULL)
       {
         // We are logging using the Orthanc plugin SDK
 
-        if (level == LogLevel_TRACE ||
-            !IsCategoryEnabled(level, category))
+        if (level_ == LogLevel_TRACE ||
+            !IsCategoryEnabled(level_, category))
         {
           // No trace level in plugins, directly exit as the stream is
           // set to "/dev/null"
@@ -738,7 +770,7 @@ namespace Orthanc
       {
         // We are logging in a standalone application, not inside an Orthanc plugin
 
-        if (!IsCategoryEnabled(level, category))
+        if (!IsCategoryEnabled(level_, category))
         {
           // This logging level is disabled, directly exit as the
           // stream is set to "/dev/null"
@@ -746,7 +778,7 @@ namespace Orthanc
         }
 
         std::string prefix;
-        GetLinePrefix(prefix, level, file, line);
+        GetLinePrefix(prefix, level_, file, line);
 
         {
           // We lock the global mutex. The mutex is locked until the
@@ -760,7 +792,7 @@ namespace Orthanc
             return;
           }
 
-          switch (level)
+          switch (level_)
           {
             case LogLevel_ERROR:
               stream_ = loggingStreamsContext_->error_;
@@ -802,6 +834,29 @@ namespace Orthanc
           }
         }
       }
+    }
+
+
+    InternalLogger::InternalLogger(LogLevel level,
+                                   LogCategory category,
+                                   const char* file,
+                                   int line) :
+      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      level_(level),
+      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
+    {
+      Setup(category, file, line);
+    }
+
+
+    InternalLogger::InternalLogger(LogLevel level,
+                                   const char* file,
+                                   int line) :
+      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      level_(level),
+      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
+    {
+      Setup(LogCategory_GENERIC, file, line);
     }
 
 

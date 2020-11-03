@@ -39,12 +39,8 @@
 #include "../../Plugins/Engine/OrthancPlugins.h"
 #include "../../Plugins/Engine/PluginsManager.h"
 #include "../OrthancConfiguration.h"
+#include "../OrthancInitialization.h"
 #include "../ServerContext.h"
-
-
-static const char* LOG_LEVEL_DEFAULT = "default";
-static const char* LOG_LEVEL_VERBOSE = "verbose";
-static const char* LOG_LEVEL_TRACE = "trace";
 
 
 namespace Orthanc
@@ -497,21 +493,7 @@ namespace Orthanc
 
   static void GetLogLevel(RestApiGetCall& call)
   {
-    std::string s;
-    
-    if (Logging::IsTraceLevelEnabled())
-    {
-      s = LOG_LEVEL_TRACE;
-    }
-    else if (Logging::IsInfoLevelEnabled())
-    {
-      s = LOG_LEVEL_VERBOSE;
-    }
-    else
-    {
-      s = LOG_LEVEL_DEFAULT;
-    }
-    
+    const std::string s = EnumerationToString(GetGlobalVerbosity());
     call.GetOutput().AnswerBuffer(s, MimeType_PlainText);
   }
 
@@ -521,30 +503,8 @@ namespace Orthanc
     std::string body;
     call.BodyToString(body);
 
-    if (body == LOG_LEVEL_DEFAULT)
-    {
-      Logging::EnableInfoLevel(false);
-      Logging::EnableTraceLevel(false);
-    }
-    else if (body == LOG_LEVEL_VERBOSE)
-    {
-      Logging::EnableInfoLevel(true);
-      Logging::EnableTraceLevel(false);
-    }
-    else if (body == LOG_LEVEL_TRACE)
-    {
-      Logging::EnableInfoLevel(true);
-      Logging::EnableTraceLevel(true);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "The log level must be one of the following values: \"" +
-                             std::string(LOG_LEVEL_DEFAULT) + "\", \"" +
-                             std::string(LOG_LEVEL_VERBOSE) + "\", of \"" +
-                             std::string(LOG_LEVEL_TRACE) + "\"");
-    }
-
+    SetGlobalVerbosity(StringToVerbosity(body));
+    
     // Success
     LOG(WARNING) << "REST API call has switched the log level to: " << body;
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
