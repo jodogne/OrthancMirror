@@ -126,6 +126,29 @@ TEST(EnumerationDictionary, ServerEnumerations)
   ASSERT_STREQ("Generic", EnumerationToString(StringToModalityManufacturer("Dcm4Chee")));
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("SyngoVia")));
   ASSERT_STREQ("GenericNoWildcardInDates", EnumerationToString(StringToModalityManufacturer("AgfaImpax")));
+
+  ASSERT_STREQ("default", EnumerationToString(StringToVerbosity("default")));
+  ASSERT_STREQ("verbose", EnumerationToString(StringToVerbosity("verbose")));
+  ASSERT_STREQ("trace", EnumerationToString(StringToVerbosity("trace")));
+  ASSERT_THROW(StringToVerbosity("nope"), OrthancException);
+
+  Logging::LogCategory c;
+  ASSERT_TRUE(Logging::LookupCategory(c, "generic"));  ASSERT_EQ(Logging::LogCategory_GENERIC, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "plugins"));  ASSERT_EQ(Logging::LogCategory_PLUGINS, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "rest"));     ASSERT_EQ(Logging::LogCategory_REST, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "sqlite"));   ASSERT_EQ(Logging::LogCategory_SQLITE, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "dicom"));    ASSERT_EQ(Logging::LogCategory_DICOM, c);
+  ASSERT_FALSE(Logging::LookupCategory(c, "nope"));
+
+  ASSERT_EQ(5u, Logging::GetCategoriesCount());
+
+  for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+  {
+    Logging::LogCategory c;
+    ASSERT_TRUE(Logging::LookupCategory(c, Logging::GetCategoryName(i)));
+  }
+
+  ASSERT_THROW(Logging::GetCategoryName(Logging::GetCategoriesCount()), OrthancException);
 }
 
 
@@ -509,7 +532,7 @@ int main(int argc, char **argv)
 {
   Logging::Initialize();
   Toolbox::InitializeGlobalLocale(NULL);
-  Logging::EnableInfoLevel(true);
+  SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");
   OrthancInitialize();

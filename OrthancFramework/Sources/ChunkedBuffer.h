@@ -50,22 +50,13 @@ namespace Orthanc
   public:
     ChunkedBuffer();
 
-    ~ChunkedBuffer()
-    {
-      Clear();
-    }
+    ~ChunkedBuffer();
 
-    size_t GetNumBytes() const
-    {
-      return numBytes_ + pendingPos_;
-    }
+    size_t GetNumBytes() const;
 
     void SetPendingBufferSize(size_t size);
 
-    size_t GetPendingBufferSize() const
-    {
-      return pendingBuffer_.size();
-    }
+    size_t GetPendingBufferSize() const;
 
     void AddChunk(const void* chunkData,
                   size_t chunkSize);

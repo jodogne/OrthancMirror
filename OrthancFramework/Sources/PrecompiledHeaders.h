@@ -48,8 +48,6 @@
 #include "Enumerations.h"
 #include "Logging.h"
 #include "OrthancException.h"
-#include "OrthancFramework.h"
-#include "Toolbox.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
 // Headers from DCMTK used in Orthanc headers 
@@ -60,8 +58,6 @@
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_NETWORKING == 1
-#  include "DicomNetworking/DicomServer.h"
-
 // Headers from DCMTK used in Orthanc headers 
 #  include <dcmtk/dcmnet/dimse.h>
 #endif

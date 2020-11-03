@@ -76,7 +76,7 @@ namespace Orthanc
 
       if (payload.isWorklist)
       {
-        ParsedDicomFile answer(*responseIdentifiers);
+        const ParsedDicomFile answer(*responseIdentifiers);
         payload.answers->Add(answer);
       }
       else

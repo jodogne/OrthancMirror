@@ -97,7 +97,12 @@ namespace Orthanc
     ORTHANC_PUBLIC bool IsCategoryEnabled(LogLevel level,
                                           LogCategory category);
     
-    ORTHANC_PUBLIC LogCategory StringToCategory(const std::string& category);
+    ORTHANC_PUBLIC bool LookupCategory(LogCategory& target,
+                                       const std::string& category);
+
+    ORTHANC_PUBLIC size_t GetCategoriesCount();
+
+    ORTHANC_PUBLIC const char* GetCategoryName(size_t i);
 
     ORTHANC_PUBLIC void SetTargetFile(const std::string& path);
 
@@ -146,11 +151,11 @@ namespace Orthanc
 #  define VLOG(unused)          ::Orthanc::Logging::NullStream()
 #  define CLOG(level, category) ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
-#  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
-  (::Orthanc::Logging::LogLevel_ ## level,                              \
+#  define LOG(level)     ::Orthanc::Logging::InternalLogger     \
+  (::Orthanc::Logging::LogLevel_ ## level,                      \
    ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
-#  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
-  (::Orthanc::Logging::LogLevel_TRACE,                                  \
+#  define VLOG(unused)   ::Orthanc::Logging::InternalLogger     \
+  (::Orthanc::Logging::LogLevel_TRACE,                          \
    ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
 #  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
@@ -185,6 +190,15 @@ namespace Orthanc
                      int line  /* ignored */) :
         level_(level),
         category_(category)
+      {
+      }
+
+      // For backward binary compatibility with Orthanc Framework <= 1.8.0
+      InternalLogger(LogLevel level,
+                     const char* file  /* ignored */,
+                     int line  /* ignored */) :
+        level_(level),
+        category_(LogCategory_GENERIC)
       {
       }
 
@@ -225,9 +239,18 @@ namespace Orthanc
       std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
 
+      void Setup(LogCategory category,
+                 const char* file,
+                 int line);
+
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
+                     const char* file,
+                     int line);
+
+      // For backward binary compatibility with Orthanc Framework <= 1.8.0
+      InternalLogger(LogLevel level,
                      const char* file,
                      int line);
 
@@ -239,7 +262,6 @@ namespace Orthanc
         return (*stream_) << boost::lexical_cast<std::string>(message);
       }
     };
-
 
     /**
      * Set custom logging streams for the error, warning and info

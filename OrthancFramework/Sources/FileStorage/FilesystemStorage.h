@@ -55,6 +55,11 @@ namespace Orthanc
 
     void Setup(const std::string& root);
     
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+    // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
+    explicit FilesystemStorage(std::string root);
+#endif
+
   public:
     explicit FilesystemStorage(const std::string& root) :
       fsyncOnWrite_(false)

@@ -394,4 +394,89 @@ namespace Orthanc
   {
     return CreateFilesystemStorage();
   }  
+
+
+  void SetGlobalVerbosity(Verbosity verbosity)
+  {
+    switch (verbosity)
+    {
+      case Verbosity_Default:
+        Logging::EnableInfoLevel(false);
+        Logging::EnableTraceLevel(false);
+        break;
+
+      case Verbosity_Verbose:
+        Logging::EnableInfoLevel(true);
+        Logging::EnableTraceLevel(false);
+        break;
+
+      case Verbosity_Trace:
+        Logging::EnableInfoLevel(true);
+        Logging::EnableTraceLevel(true);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  
+  Verbosity GetGlobalVerbosity()
+  {
+    if (Logging::IsTraceLevelEnabled())
+    {
+      return Verbosity_Trace;
+    }
+    else if (Logging::IsInfoLevelEnabled())
+    {
+      return Verbosity_Verbose;
+    }
+    else
+    {
+      return Verbosity_Default;
+    }
+  }
+
+  
+  void SetCategoryVerbosity(Logging::LogCategory category,
+                            Verbosity verbosity)
+  {
+    switch (verbosity)
+    {
+      case Verbosity_Default:
+        Logging::SetCategoryEnabled(Logging::LogLevel_INFO, category, false);
+        Logging::SetCategoryEnabled(Logging::LogLevel_TRACE, category, false);
+        break;
+
+      case Verbosity_Verbose:
+        Logging::SetCategoryEnabled(Logging::LogLevel_INFO, category, true);
+        Logging::SetCategoryEnabled(Logging::LogLevel_TRACE, category, false);
+        break;
+
+      case Verbosity_Trace:
+        Logging::SetCategoryEnabled(Logging::LogLevel_INFO, category, true);
+        Logging::SetCategoryEnabled(Logging::LogLevel_TRACE, category, true);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
+  Verbosity GetCategoryVerbosity(Logging::LogCategory category)
+  {
+    if (Logging::IsCategoryEnabled(Logging::LogLevel_TRACE, category))
+    {
+      return Verbosity_Trace;
+    }
+    else if (Logging::IsCategoryEnabled(Logging::LogLevel_INFO, category))
+    {
+      return Verbosity_Verbose;
+    }
+    else
+    {
+      return Verbosity_Default;
+    }
+  }
 }

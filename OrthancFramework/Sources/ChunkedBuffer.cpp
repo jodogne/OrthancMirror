@@ -83,6 +83,18 @@ namespace Orthanc
   }
 
 
+  ChunkedBuffer::~ChunkedBuffer()
+  {
+    Clear();
+  }
+
+
+  size_t ChunkedBuffer::GetNumBytes() const
+  {
+    return numBytes_ + pendingPos_;
+  }
+  
+
   void ChunkedBuffer::SetPendingBufferSize(size_t size)
   {
     FlushPendingBuffer();
@@ -90,6 +102,12 @@ namespace Orthanc
   }
   
 
+  size_t ChunkedBuffer::GetPendingBufferSize() const
+  {
+    return pendingBuffer_.size();
+  }
+
+  
   void ChunkedBuffer::AddChunk(const void* chunkData,
                                size_t chunkSize)
   {

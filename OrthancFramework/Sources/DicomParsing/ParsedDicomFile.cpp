@@ -1733,4 +1733,42 @@ namespace Orthanc
       return DicomImageDecoder::Decode(*GetDcmtkObjectConst().getDataset(), frame);
     }
   }
+
+
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
+  void ParsedDicomFile::DatasetToJson(Json::Value& target, 
+                                      DicomToJsonFormat format,
+                                      DicomToJsonFlags flags,
+                                      unsigned int maxStringLength)
+  {
+    return const_cast<const ParsedDicomFile&>(*this).DatasetToJson(target, format, flags, maxStringLength);
+  }
+
+  DcmFileFormat& ParsedDicomFile::GetDcmtkObject() const
+  {
+    return const_cast<ParsedDicomFile&>(*this).GetDcmtkObject();
+  }
+
+  void ParsedDicomFile::Apply(ITagVisitor& visitor)
+  {
+    const_cast<const ParsedDicomFile&>(*this).Apply(visitor);
+  }
+
+  ParsedDicomFile* ParsedDicomFile::Clone(bool keepSopInstanceUid)
+  {
+    return const_cast<const ParsedDicomFile&>(*this).Clone(keepSopInstanceUid);
+  }
+  
+  bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
+  {
+    return const_cast<const ParsedDicomFile&>(*this).LookupTransferSyntax(result);
+  }
+
+  bool ParsedDicomFile::GetTagValue(std::string& value,
+                                    const DicomTag& tag)
+  {
+    return const_cast<const ParsedDicomFile&>(*this).GetTagValue(value, tag);
+  }
+#endif
 }
