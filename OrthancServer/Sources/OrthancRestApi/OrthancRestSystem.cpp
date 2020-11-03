@@ -42,6 +42,8 @@
 #include "../OrthancInitialization.h"
 #include "../ServerContext.h"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 
 namespace Orthanc
 {
@@ -511,6 +513,49 @@ namespace Orthanc
   }
 
 
+  static Logging::LogCategory GetCategory(const RestApiCall& call)
+  {
+    static const std::string PREFIX = "log-level-";
+
+    if (call.GetFullUri().size() == 2 &&
+        call.GetFullUri() [0] == "tools" &&
+        boost::starts_with(call.GetFullUri() [1], PREFIX))
+    {
+      Logging::LogCategory category;
+      if (Logging::LookupCategory(category, call.GetFullUri() [1].substr(PREFIX.size())))
+      {
+        return category;
+      }
+    }
+
+    throw OrthancException(ErrorCode_InternalError);
+  }
+  
+
+  static void GetLogLevelCategory(RestApiGetCall& call)
+  {
+    const std::string s = EnumerationToString(GetCategoryVerbosity(GetCategory(call)));
+    call.GetOutput().AnswerBuffer(s, MimeType_PlainText);
+  }
+
+
+  static void PutLogLevelCategory(RestApiPutCall& call)
+  {
+    std::string body;
+    call.BodyToString(body);
+
+    Verbosity verbosity = StringToVerbosity(body);
+    Logging::LogCategory category = GetCategory(call);
+    SetCategoryVerbosity(category, verbosity);
+    
+    // Success
+    LOG(WARNING) << "REST API call has switched the log level of category \""
+                 << Logging::GetCategoryName(category) << "\" to \""
+                 << EnumerationToString(verbosity) << "\"";
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
   void OrthancRestApi::RegisterSystem()
   {
     Register("/", ServeRoot);
@@ -528,6 +573,13 @@ namespace Orthanc
     Register("/tools/metrics-prometheus", GetMetricsPrometheus);
     Register("/tools/log-level", GetLogLevel);
     Register("/tools/log-level", PutLogLevel);
+
+    for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+    {
+      const std::string name(Logging::GetCategoryName(i));
+      Register("/tools/log-level-" + name, GetLogLevelCategory);
+      Register("/tools/log-level-" + name, PutLogLevelCategory);
+    }
 
     Register("/plugins", ListPlugins);
     Register("/plugins/{id}", GetPlugin);

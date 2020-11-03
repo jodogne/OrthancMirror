@@ -1,7 +1,19 @@
 Pending changes in the mainline
 ===============================
 
-* Logging categories (check out command-line options "--verbose=" and "--trace=")
+General
+-------
+
+* Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
+
+REST API
+--------
+
+* "/tools/log-level-*": Dynamically access and/or change the verbosity of logging categories
+
+Maintenance
+-----------
+
 * C-GET SCP: Fix responses and handling of cancel
 * Fix decoding sequence if "BuiltinDecoderTranscoderOrder" is "Before"
 * REST API returns 404 error if deleting an inexistent peer or modality

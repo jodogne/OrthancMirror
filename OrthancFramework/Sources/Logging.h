@@ -100,9 +100,11 @@ namespace Orthanc
     ORTHANC_PUBLIC bool LookupCategory(LogCategory& target,
                                        const std::string& category);
 
-    ORTHANC_PUBLIC size_t GetCategoriesCount();
+    ORTHANC_PUBLIC unsigned int GetCategoriesCount();
 
-    ORTHANC_PUBLIC const char* GetCategoryName(size_t i);
+    ORTHANC_PUBLIC const char* GetCategoryName(unsigned int i);
+
+    ORTHANC_PUBLIC const char* GetCategoryName(LogCategory category);
 
     ORTHANC_PUBLIC void SetTargetFile(const std::string& path);
 
