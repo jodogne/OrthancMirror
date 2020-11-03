@@ -41,7 +41,10 @@ namespace Orthanc
   {
     target.AddChunk("double([ ");
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
     {
       const PixelType* p = reinterpret_cast<const PixelType*>(source.GetConstRow(y));
 
@@ -51,9 +54,9 @@ namespace Orthanc
         s = "; ";
       }
 
-      s.reserve(source.GetWidth() * 8);
+      s.reserve(width * 8);
 
-      for (unsigned int x = 0; x < source.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < width; x++, p++)
       {
         s += boost::lexical_cast<std::string>(static_cast<double>(*p)) + " ";
       }
@@ -72,14 +75,17 @@ namespace Orthanc
 
     target.AddChunk("double(permute(reshape([ ");
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int width = source.GetWidth();
+    const unsigned int height = source.GetHeight();
+
+    for (unsigned int y = 0; y < height; y++)
     {
       const uint8_t* p = reinterpret_cast<const uint8_t*>(source.GetConstRow(y));
       
       std::string s;
-      s.reserve(source.GetWidth() * 3 * 8);
+      s.reserve(width * 3 * 8);
       
-      for (unsigned int x = 0; x < 3 * source.GetWidth(); x++, p++)
+      for (unsigned int x = 0; x < 3 * width; x++, p++)
       {
         s += boost::lexical_cast<std::string>(static_cast<int>(*p)) + " ";
       }
@@ -87,8 +93,8 @@ namespace Orthanc
       target.AddChunk(s);
     }
 
-    target.AddChunk("], [ 3 " + boost::lexical_cast<std::string>(source.GetHeight()) +
-                    " " + boost::lexical_cast<std::string>(source.GetWidth()) + " ]), [ 3 2 1 ]))");
+    target.AddChunk("], [ 3 " + boost::lexical_cast<std::string>(height) +
+                    " " + boost::lexical_cast<std::string>(width) + " ]), [ 3 2 1 ]))");
   }
   
 

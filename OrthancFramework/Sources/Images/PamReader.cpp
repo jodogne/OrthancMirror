@@ -229,7 +229,7 @@ namespace Orthanc
       {
         uint16_t* pixel = reinterpret_cast<uint16_t*>(GetRow(h));
         
-        for (unsigned int w = 0; w < GetWidth(); ++w, ++pixel)
+        for (unsigned int w = 0; w < width; ++w, ++pixel)
         {
 #if defined(__EMSCRIPTEN__)  // For WebAssembly
           /* 

@@ -501,11 +501,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
 
-    unsigned int lineSize = source.GetBytesPerPixel() * source.GetWidth();
-
+    const unsigned int lineSize = source.GetBytesPerPixel() * source.GetWidth();
     assert(source.GetPitch() >= lineSize && target.GetPitch() >= lineSize);
 
-    for (unsigned int y = 0; y < source.GetHeight(); y++)
+    const unsigned int height = source.GetHeight();
+    for (unsigned int y = 0; y < height; y++)
     {
       memcpy(target.GetRow(y), source.GetConstRow(y), lineSize);
     }

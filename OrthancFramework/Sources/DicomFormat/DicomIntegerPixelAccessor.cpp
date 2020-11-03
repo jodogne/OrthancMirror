@@ -104,12 +104,16 @@ namespace Orthanc
 
     min = std::numeric_limits<int32_t>::max();
     max = std::numeric_limits<int32_t>::min();
+
+    const unsigned int height = information_.GetHeight();
+    const unsigned int width = information_.GetWidth();
+    const unsigned int channels = information_.GetChannelCount();
     
-    for (unsigned int y = 0; y < information_.GetHeight(); y++)
+    for (unsigned int y = 0; y < height; y++)
     {
-      for (unsigned int x = 0; x < information_.GetWidth(); x++)
+      for (unsigned int x = 0; x < width; x++)
       {
-        for (unsigned int c = 0; c < information_.GetChannelCount(); c++)
+        for (unsigned int c = 0; c < channels; c++)
         {
           int32_t v = GetValue(x, y);
           if (v < min)
