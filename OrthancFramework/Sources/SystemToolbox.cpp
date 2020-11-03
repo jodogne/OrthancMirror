@@ -233,6 +233,12 @@ namespace Orthanc
   }
 
 
+  void Orthanc::SystemToolbox::ReadFile(std::string &content, const std::string &path)
+  {
+    ReadFile(content, path, true /* log */);
+  }
+
+
   bool SystemToolbox::ReadHeader(std::string& header,
                                  const std::string& path,
                                  size_t headerSize)
@@ -336,12 +342,24 @@ namespace Orthanc
   }
 
 
+  void SystemToolbox::WriteFile(const void *content, size_t size, const std::string &path)
+  {
+    WriteFile(content, size, path, false /* don't automatically call fsync */);
+  }
+
+
   void SystemToolbox::WriteFile(const std::string& content,
                                 const std::string& path,
                                 bool callFsync)
   {
     WriteFile(content.size() > 0 ? content.c_str() : NULL,
               content.size(), path, callFsync);
+  }
+
+
+  void SystemToolbox::WriteFile(const std::string &content, const std::string &path)
+  {
+    WriteFile(content, path, false /* don't automatically call fsync */);
   }
 
 

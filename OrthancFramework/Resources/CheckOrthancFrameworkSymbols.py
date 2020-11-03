@@ -83,6 +83,8 @@ tu = index.parse(AMALGAMATION,
                  [ '-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1' ])
 
 
+FILES = []
+COUNT = 0
 
 def ExploreNamespace(node, namespace):
     for child in node.get_children():
@@ -116,6 +118,10 @@ def ExploreNamespace(node, namespace):
                                     hasImplementation = True
 
                             if hasImplementation:
+                                global FILES, COUNT
+                                FILES.append(str(child.location.file))
+                                COUNT += 1
+                                
                                 print('Exported public method with an implementation: %s::%s()' %
                                       ('::'.join(fqn), i.spelling))
 
@@ -124,3 +130,11 @@ for node in tu.cursor.get_children():
     if (node.kind == clang.cindex.CursorKind.NAMESPACE and
         node.spelling == 'Orthanc'):
         ExploreNamespace(node, [ 'Orthanc' ])
+
+
+print('\nTotal of possibly problematic methods: %d' % COUNT)
+
+print('\nFiles:\n')
+for i in sorted(list(set(FILES))):
+    print(i)
+    

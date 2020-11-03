@@ -55,10 +55,7 @@ namespace Orthanc
                          bool log);
 
     static void ReadFile(std::string& content,
-                         const std::string& path)
-    {
-      ReadFile(content, path, true /* log */);
-    }
+                         const std::string& path);
 
     static bool ReadHeader(std::string& header,
                            const std::string& path,
@@ -71,20 +68,14 @@ namespace Orthanc
 
     static void WriteFile(const void* content,
                           size_t size,
-                          const std::string& path)
-    {
-      WriteFile(content, size, path, false /* don't automatically call fsync */);
-    }
+                          const std::string& path);
 
     static void WriteFile(const std::string& content,
                           const std::string& path,
                           bool callFsync);
 
     static void WriteFile(const std::string& content,
-                          const std::string& path)
-    {
-      WriteFile(content, path, false /* don't automatically call fsync */);
-    }
+                          const std::string& path);
 
     static void RemoveFile(const std::string& path);
 

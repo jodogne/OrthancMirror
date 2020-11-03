@@ -48,27 +48,14 @@ namespace Orthanc
                                         size_t compressedSize);
 
   public:
-    DeflateBaseCompressor() : 
-      compressionLevel_(6),
-      prefixWithUncompressedSize_(false)
-    {
-    }
+    DeflateBaseCompressor();
 
     void SetCompressionLevel(uint8_t level);
     
-    void SetPrefixWithUncompressedSize(bool prefix)
-    {
-      prefixWithUncompressedSize_ = prefix;
-    }
+    void SetPrefixWithUncompressedSize(bool prefix);
 
-    bool HasPrefixWithUncompressedSize() const
-    {
-      return prefixWithUncompressedSize_;
-    }
+    bool HasPrefixWithUncompressedSize() const;
 
-    uint8_t GetCompressionLevel() const
-    {
-      return compressionLevel_;
-    }
+    uint8_t GetCompressionLevel() const;
   };
 }

@@ -210,6 +210,66 @@ namespace Orthanc
     return target.release();
   }
 
+  unsigned int Orthanc::DicomImageInformation::GetWidth() const
+  {
+    return width_;
+  }
+
+  unsigned int Orthanc::DicomImageInformation::GetHeight() const
+  {
+    return height_;
+  }
+
+  unsigned int DicomImageInformation::GetNumberOfFrames() const
+  {
+    return numberOfFrames_;
+  }
+
+  unsigned int DicomImageInformation::GetChannelCount() const
+  {
+    return samplesPerPixel_;
+  }
+
+  unsigned int DicomImageInformation::GetBitsStored() const
+  {
+    return bitsStored_;
+  }
+
+  size_t DicomImageInformation::GetBytesPerValue() const
+  {
+    return bytesPerValue_;
+  }
+
+  bool DicomImageInformation::IsSigned() const
+  {
+    return isSigned_;
+  }
+
+  unsigned int DicomImageInformation::GetBitsAllocated() const
+  {
+    return bitsAllocated_;
+  }
+
+  unsigned int DicomImageInformation::GetHighBit() const
+  {
+    return highBit_;
+  }
+
+  bool DicomImageInformation::IsPlanar() const
+  {
+    return isPlanar_;
+  }
+
+  unsigned int DicomImageInformation::GetShift() const
+  {
+    return highBit_ + 1 - bitsStored_;
+  }
+
+  PhotometricInterpretation DicomImageInformation::GetPhotometricInterpretation() const
+  {
+    return photometric_;
+  }
+
   bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format,
                                                  bool ignorePhotometricInterpretation) const
   {
