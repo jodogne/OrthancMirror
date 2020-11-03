@@ -47,6 +47,15 @@ namespace Orthanc
     }      
   };
 
+  size_t Orthanc::MemoryStringCache::GetMaximumSize()
+  {
+    return cache_.GetMaximumSize();
+  }
+
+  void MemoryStringCache::SetMaximumSize(size_t size)
+  {
+    cache_.SetMaximumSize(size);
+  }
 
   void MemoryStringCache::Add(const std::string& key,
                               const std::string& value)
@@ -54,6 +63,10 @@ namespace Orthanc
     cache_.Acquire(key, new StringValue(value));
   }
 
+  void MemoryStringCache::Invalidate(const std::string &key)
+  {
+    cache_.Invalidate(key);
+  }
   
   bool MemoryStringCache::Fetch(std::string& value,
                                 const std::string& key)

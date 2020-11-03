@@ -67,65 +67,29 @@ namespace Orthanc
 
     DicomImageInformation* Clone() const;
 
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
+    unsigned int GetWidth() const;
 
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
+    unsigned int GetHeight() const;
 
-    unsigned int GetNumberOfFrames() const
-    {
-      return numberOfFrames_;
-    }
+    unsigned int GetNumberOfFrames() const;
 
-    unsigned int GetChannelCount() const
-    {
-      return samplesPerPixel_;
-    }
+    unsigned int GetChannelCount() const;
 
-    unsigned int GetBitsStored() const
-    {
-      return bitsStored_;
-    }
+    unsigned int GetBitsStored() const;
 
-    size_t GetBytesPerValue() const
-    {
-      return bytesPerValue_;
-    }
+    size_t GetBytesPerValue() const;
 
-    bool IsSigned() const
-    {
-      return isSigned_;
-    }
+    bool IsSigned() const;
 
-    unsigned int GetBitsAllocated() const
-    {
-      return bitsAllocated_;
-    }
+    unsigned int GetBitsAllocated() const;
 
-    unsigned int GetHighBit() const
-    {
-      return highBit_;
-    }
+    unsigned int GetHighBit() const;
 
-    bool IsPlanar() const
-    {
-      return isPlanar_;
-    }
+    bool IsPlanar() const;
 
-    unsigned int GetShift() const
-    {
-      return highBit_ + 1 - bitsStored_;
-    }
+    unsigned int GetShift() const;
 
-    PhotometricInterpretation GetPhotometricInterpretation() const
-    {
-      return photometric_;
-    }
+    PhotometricInterpretation GetPhotometricInterpretation() const;
 
     bool ExtractPixelFormat(PixelFormat& format,
                             bool ignorePhotometricInterpretation) const;

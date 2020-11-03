@@ -30,6 +30,13 @@
 
 namespace Orthanc
 {
+  DeflateBaseCompressor::DeflateBaseCompressor() :
+    compressionLevel_(6),
+    prefixWithUncompressedSize_(false)
+  {
+  }
+
+
   void DeflateBaseCompressor::SetCompressionLevel(uint8_t level)
   {
     if (level >= 10)
@@ -61,4 +68,19 @@ namespace Orthanc
     return size;
   }
 
+
+  void Orthanc::DeflateBaseCompressor::SetPrefixWithUncompressedSize(bool prefix)
+  {
+    prefixWithUncompressedSize_ = prefix;
+  }
+
+  bool DeflateBaseCompressor::HasPrefixWithUncompressedSize() const
+  {
+    return prefixWithUncompressedSize_;
+  }
+
+  uint8_t DeflateBaseCompressor::GetCompressionLevel() const
+  {
+    return compressionLevel_;
+  }
 }

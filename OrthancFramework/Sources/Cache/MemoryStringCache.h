@@ -38,23 +38,14 @@ namespace Orthanc
     MemoryObjectCache  cache_;
 
   public:
-    size_t GetMaximumSize()
-    {
-      return cache_.GetMaximumSize();
-    }
+    size_t GetMaximumSize();
     
-    void SetMaximumSize(size_t size)
-    {
-      cache_.SetMaximumSize(size);
-    }
+    void SetMaximumSize(size_t size);
 
     void Add(const std::string& key,
              const std::string& value);
     
-    void Invalidate(const std::string& key)
-    {
-      cache_.Invalidate(key);
-    }
+    void Invalidate(const std::string& key);
 
     bool Fetch(std::string& value,
                const std::string& key);
