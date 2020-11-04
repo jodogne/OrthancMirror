@@ -5,6 +5,7 @@ General
 -------
 
 * Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
+* Command-line option "--trace-dicom" can be used to access debug information from DCMTK
 
 REST API
 --------
