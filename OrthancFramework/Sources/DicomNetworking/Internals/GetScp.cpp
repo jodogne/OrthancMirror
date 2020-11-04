@@ -205,9 +205,9 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         {
-          std::stringstream s;  // This is necessary for VS2008
-          s << DcmObject::PrintHelper(*requestIdentifiers);
-          /*CLOG(TRACE, DICOM)*/std::cout << "Received C-GET Request:" << std::endl << s.str();
+          std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+          requestIdentifiers->print(s);
+          CLOG(TRACE, DICOM) << "Received C-GET Request:" << std::endl << s.str();
         }
 
         DicomMap input;

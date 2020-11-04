@@ -674,8 +674,8 @@ namespace Orthanc
       }
 
       {
-        std::stringstream s;  // This is necessary for VS2008
-        s << DcmObject::PrintHelper(dataset);
+        std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+        dataset.print(s);
 
         OFString str;
         CLOG(TRACE, DICOM) << "Sending Storage Commitment Report:" << std::endl
@@ -837,8 +837,8 @@ namespace Orthanc
       }
 
       {
-        std::stringstream s;  // This is necessary for VS2008
-        s << DcmObject::PrintHelper(dataset);
+        std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+        dataset.print(s);
 
         OFString str;
         CLOG(TRACE, DICOM) << "Sending Storage Commitment Request:" << std::endl

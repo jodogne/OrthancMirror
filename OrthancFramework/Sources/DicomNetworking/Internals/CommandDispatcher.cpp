@@ -748,8 +748,8 @@ namespace Orthanc
       // detail information, dump this information
       if (statusDetail != NULL)
       {
-        std::stringstream s;  // This is necessary for VS2008
-        s << DcmObject::PrintHelper(*statusDetail);
+        std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+        statusDetail->print(s);
         CLOG(TRACE, DICOM) << "Status Detail:" << std::endl << s.str();
 
         delete statusDetail;
@@ -1143,8 +1143,8 @@ namespace Orthanc
       assert(dataset.get() != NULL);
 
       {
-        std::stringstream s;  // This is necessary for VS2008
-        s << DcmObject::PrintHelper(*dataset);
+        std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+        dataset->print(s);
         CLOG(TRACE, DICOM) << "Received Storage Commitment Request:" << std::endl << s.str();
       }
       
@@ -1279,8 +1279,8 @@ namespace Orthanc
       assert(dataset.get() != NULL);
 
       {
-        std::stringstream s;  // This is necessary for VS2008
-        s << DcmObject::PrintHelper(*dataset);
+        std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+        dataset->print(s);
         CLOG(TRACE, DICOM) << "Received Storage Commitment Report:" << std::endl << s.str();
       }
       
