@@ -1,6 +1,6 @@
 diff -urEb dcmtk-3.6.5.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.5/CMake/GenerateDCMTKConfigure.cmake
---- dcmtk-3.6.5.orig/CMake/GenerateDCMTKConfigure.cmake	2020-06-08 22:19:03.265799573 +0200
-+++ dcmtk-3.6.5/CMake/GenerateDCMTKConfigure.cmake	2020-06-08 22:21:22.670025141 +0200
+--- dcmtk-3.6.5.orig/CMake/GenerateDCMTKConfigure.cmake	2020-11-04 18:27:08.984662119 +0100
++++ dcmtk-3.6.5/CMake/GenerateDCMTKConfigure.cmake	2020-11-04 18:27:48.232609773 +0100
 @@ -169,6 +169,8 @@
  endif()
  
@@ -19,8 +19,8 @@ diff -urEb dcmtk-3.6.5.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.5/CMake
  # Check for include files, libraries, and functions
  include("${DCMTK_CMAKE_INCLUDE}CMake/dcmtkTryCompile.cmake")
 diff -urEb dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h
---- dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-06-08 22:19:03.229799498 +0200
-+++ dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-11-04 18:27:08.972662135 +0100
++++ dcmtk-3.6.5/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-11-04 18:27:48.232609773 +0100
 @@ -152,6 +152,12 @@
      /// returns an iterator to the end of the repeating tag dictionary
      DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
@@ -35,8 +35,8 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.5/d
  
      /** private undefined assignment operator
 diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc
---- dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc	2020-06-08 22:19:03.245799531 +0200
-+++ dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc	2020-11-04 18:27:08.976662131 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcdict.cc	2020-11-04 18:27:48.232609773 +0100
 @@ -900,3 +900,6 @@
    wrlock().clear();
    wrunlock();
@@ -45,8 +45,8 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.5/dcmdata/libsrc/
 +
 +#include "dcdict_orthanc.cc"
 diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc
---- dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc	2020-06-08 22:19:03.245799531 +0200
-+++ dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc	2020-11-04 18:27:08.976662131 +0100
++++ dcmtk-3.6.5/dcmdata/libsrc/dcpxitem.cc	2020-11-04 18:27:48.232609773 +0100
 @@ -36,6 +36,9 @@
  #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
  #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
@@ -57,9 +57,28 @@ diff -urEb dcmtk-3.6.5.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.5/dcmdata/libsr
  
  // ********************************
  
+diff -urEb dcmtk-3.6.5.orig/dcmnet/libsrc/dulparse.cc dcmtk-3.6.5/dcmnet/libsrc/dulparse.cc
+--- dcmtk-3.6.5.orig/dcmnet/libsrc/dulparse.cc	2020-11-04 18:27:09.004662093 +0100
++++ dcmtk-3.6.5/dcmnet/libsrc/dulparse.cc	2020-11-04 18:29:41.832458294 +0100
+@@ -736,7 +736,14 @@
+       << " is larger than maximum allowed UID length " << DICOM_UI_LENGTH << " (will use 64 bytes max)");
+       UIDLength = DICOM_UI_LENGTH;
+     }
+-    OFStandard::strlcpy(role->SOPClassUID, (char*)buf, UIDLength+1 /* +1 for 0-byte */);
++
++    // Patch from: https://github.com/DCMTK/dcmtk/commit/10428a74e74c003b3ff31c992f658d528b626fab
++    // The UID in the source buffer is not necessarily null terminated. Copy with memcpy
++    // and add a zero byte. We have already checked that there is enough data available
++    // in the source source buffer and enough space in the target buffer.
++    (void) memcpy(role->SOPClassUID, buf, UIDLength);
++    role->SOPClassUID[UIDLength] = '\0';
++    
+     buf += UIDLength;
+     role->SCURole = *buf++;
+     role->SCPRole = *buf++;
 diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h
---- dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-06-08 22:19:03.261799565 +0200
-+++ dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-11-04 18:27:08.980662125 +0100
++++ dcmtk-3.6.5/oflog/include/dcmtk/oflog/thread/syncpub.h	2020-11-04 18:27:48.232609773 +0100
 @@ -63,7 +63,7 @@
  
  DCMTK_LOG4CPLUS_INLINE_EXPORT
@@ -106,8 +125,8 @@ diff -urEb dcmtk-3.6.5.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6
  
  
 diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog.cc
---- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-06-08 22:19:03.261799565 +0200
-+++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc	2020-11-04 18:27:08.984662119 +0100
++++ dcmtk-3.6.5/oflog/libsrc/oflog.cc	2020-11-04 18:27:48.232609773 +0100
 @@ -19,6 +19,10 @@
   *
   */
@@ -120,8 +139,8 @@ diff -urEb dcmtk-3.6.5.orig/oflog/libsrc/oflog.cc dcmtk-3.6.5/oflog/libsrc/oflog
  #include "dcmtk/oflog/oflog.h"
  
 diff -urEb dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h
---- dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h	2020-06-08 22:19:03.293799632 +0200
-+++ dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h	2020-06-08 22:19:35.317862998 +0200
+--- dcmtk-3.6.5.orig/ofstd/include/dcmtk/ofstd/offile.h	2020-11-04 18:27:09.008662088 +0100
++++ dcmtk-3.6.5/ofstd/include/dcmtk/ofstd/offile.h	2020-11-04 18:27:48.232609773 +0100
 @@ -575,7 +575,7 @@
     */
    void setlinebuf()
