@@ -227,15 +227,15 @@ namespace Orthanc
     // The association must be re-negotiated
     if (association_->IsOpen())
     {
-      LOG(INFO) << "Re-negotiating DICOM association with "
-                << parameters_.GetRemoteModality().GetApplicationEntityTitle();
+      CLOG(INFO, DICOM) << "Re-negotiating DICOM association with "
+                        << parameters_.GetRemoteModality().GetApplicationEntityTitle();
 
       if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) !=
           proposedOriginalClasses_.end())
       {
-        LOG(INFO) << "The remote modality has already rejected SOP class UID \""
-                  << sopClassUid << "\" with transfer syntax \""
-                  << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
+        CLOG(INFO, DICOM) << "The remote modality has already rejected SOP class UID \""
+                          << sopClassUid << "\" with transfer syntax \""
+                          << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
         return false;
       }
     }

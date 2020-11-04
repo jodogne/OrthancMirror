@@ -29,44 +29,44 @@
   Program: DCMTK 3.6.0
   Module:  http://dicom.offis.de/dcmtk.php.en
 
-Copyright (C) 1994-2011, OFFIS e.V.
-All rights reserved.
+  Copyright (C) 1994-2011, OFFIS e.V.
+  All rights reserved.
 
-This software and supporting documentation were developed by
+  This software and supporting documentation were developed by
 
   OFFIS e.V.
   R&D Division Health
   Escherweg 2
   26121 Oldenburg, Germany
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
 
-- Redistributions of source code must retain the above copyright
+  - Redistributions of source code must retain the above copyright
   notice, this list of conditions and the following disclaimer.
 
-- Redistributions in binary form must reproduce the above copyright
+  - Redistributions in binary form must reproduce the above copyright
   notice, this list of conditions and the following disclaimer in the
   documentation and/or other materials provided with the distribution.
 
-- Neither the name of OFFIS nor the names of its contributors may be
+  - Neither the name of OFFIS nor the names of its contributors may be
   used to endorse or promote products derived from this software
   without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 #include "../../PrecompiledHeaders.h"
@@ -169,7 +169,7 @@ namespace Orthanc
 
             if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
             {
-              LOG(ERROR) << "cannot write DICOM file to memory";
+              CLOG(ERROR, DICOM) << "cannot write DICOM file to memory";
               rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
             }
           }
@@ -188,40 +188,40 @@ namespace Orthanc
 	    if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
 						     sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
 #else
-            if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
+              if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
 #endif
-            {
+              {
 		//LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
 		rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
-            }
-            else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
-            {
-              rsp->DimseStatus = STATUS_STORE_Error_DataSetDoesNotMatchSOPClass;
-            }
-            else if (strcmp(sopInstance, req->AffectedSOPInstanceUID) != 0)
-            {
-              rsp->DimseStatus = STATUS_STORE_Error_DataSetDoesNotMatchSOPClass;
-            }
-            else
-            {
-              try
-              {
-                cbdata->handler->Handle(buffer, summary, dicomJson, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
               }
-              catch (OrthancException& e)
+              else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
               {
-                rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
+                rsp->DimseStatus = STATUS_STORE_Error_DataSetDoesNotMatchSOPClass;
+              }
+              else if (strcmp(sopInstance, req->AffectedSOPInstanceUID) != 0)
+              {
+                rsp->DimseStatus = STATUS_STORE_Error_DataSetDoesNotMatchSOPClass;
+              }
+              else
+              {
+                try
+                {
+                  cbdata->handler->Handle(buffer, summary, dicomJson, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+                }
+                catch (OrthancException& e)
+                {
+                  rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
 
-                if (e.GetErrorCode() == ErrorCode_InexistentTag)
-                {
-                  summary.LogMissingTagsForStore();
-                }
-                else
-                {
-                  LOG(ERROR) << "Exception while storing DICOM: " << e.What();
+                  if (e.GetErrorCode() == ErrorCode_InexistentTag)
+                  {
+                    summary.LogMissingTagsForStore();
+                  }
+                  else
+                  {
+                    CLOG(ERROR, DICOM) << "Exception while storing DICOM: " << e.What();
+                  }
                 }
               }
-            }
           }
         }
       }
@@ -293,7 +293,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG(ERROR) << "Store SCP Failed: " << cond.text();
+      CLOG(ERROR, DICOM) << "Store SCP Failed: " << cond.text();
     }
 
     // return return value

@@ -138,8 +138,8 @@ namespace Orthanc
 
   void DicomAssociationParameters::SetDefaultTimeout(uint32_t seconds)
   {
-    LOG(INFO) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
-              << seconds << " seconds (0 = no timeout)";
+    CLOG(INFO, DICOM) << "Default timeout for DICOM connections if Orthanc acts as SCU (client): " 
+                      << seconds << " seconds (0 = no timeout)";
 
     {
       boost::mutex::scoped_lock lock(defaultTimeoutMutex_);

@@ -29,44 +29,44 @@
   Program: DCMTK 3.6.0
   Module:  http://dicom.offis.de/dcmtk.php.en
 
-Copyright (C) 1994-2011, OFFIS e.V.
-All rights reserved.
+  Copyright (C) 1994-2011, OFFIS e.V.
+  All rights reserved.
 
-This software and supporting documentation were developed by
+  This software and supporting documentation were developed by
 
   OFFIS e.V.
   R&D Division Health
   Escherweg 2
   26121 Oldenburg, Germany
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
 
-- Redistributions of source code must retain the above copyright
+  - Redistributions of source code must retain the above copyright
   notice, this list of conditions and the following disclaimer.
 
-- Redistributions in binary form must reproduce the above copyright
+  - Redistributions in binary form must reproduce the above copyright
   notice, this list of conditions and the following disclaimer in the
   documentation and/or other materials provided with the distribution.
 
-- Neither the name of OFFIS nor the names of its contributors may be
+  - Neither the name of OFFIS nor the names of its contributors may be
   used to endorse or promote products derived from this software
   without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 #include "../../PrecompiledHeaders.h"
@@ -92,7 +92,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 
-  static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
+static OFBool    opt_rejectWithoutImplementationUID = OFFalse;
 
 
 
@@ -237,14 +237,14 @@ namespace Orthanc
       OFCondition cond = ASC_dropSCPAssociation(assoc);
       if (cond.bad())
       {
-        LOG(ERROR) << cond.text();
+        CLOG(ERROR, DICOM) << cond.text();
         return cond;
       }
 
       cond = ASC_destroyAssociation(&assoc);
       if (cond.bad())
       {
-        LOG(ERROR) << cond.text();
+        CLOG(ERROR, DICOM) << cond.text();
         return cond;
       }
 
@@ -278,7 +278,7 @@ namespace Orthanc
       // if some kind of error occured, take care of it
       if (cond.bad())
       {
-        LOG(ERROR) << "Receiving Association failed: " << cond.text();
+        CLOG(ERROR, DICOM) << "Receiving Association failed: " << cond.text();
         // no matter what kind of error occurred, we need to do a cleanup
         AssociationCleanup(assoc);
         return NULL;
@@ -327,8 +327,8 @@ namespace Orthanc
         calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
       }
 
-      LOG(INFO) << "Association Received from AET " << remoteAet 
-                << " on IP " << remoteIp;
+      CLOG(INFO, DICOM) << "Association Received from AET " << remoteAet 
+                        << " on IP " << remoteIp;
 
 
       {
@@ -378,7 +378,7 @@ namespace Orthanc
           &genericTransferSyntaxes[0], genericTransferSyntaxes.size());
         if (cond.bad())
         {
-          LOG(INFO) << cond.text();
+          CLOG(INFO, DICOM) << cond.text();
           AssociationCleanup(assoc);
           return NULL;
         }
@@ -398,7 +398,7 @@ namespace Orthanc
             &genericTransferSyntaxes[0], genericTransferSyntaxes.size(), ASC_SC_ROLE_SCUSCP);
           if (cond.bad())
           {
-            LOG(INFO) << cond.text();
+            CLOG(INFO, DICOM) << cond.text();
             AssociationCleanup(assoc);
             return NULL;
           }
@@ -520,7 +520,7 @@ namespace Orthanc
             &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
           if (cond.bad())
           {
-            LOG(INFO) << cond.text();
+            CLOG(INFO, DICOM) << cond.text();
             AssociationCleanup(assoc);
             return NULL;
           }
@@ -562,7 +562,7 @@ namespace Orthanc
                       assoc->params, pc.presentationContextID, storageTransferSyntaxes[k], role);
                     if (cond.bad())
                     {
-                      LOG(INFO) << cond.text();
+                      CLOG(INFO, DICOM) << cond.text();
                       AssociationCleanup(assoc);
                       return NULL;
                     }
@@ -584,7 +584,7 @@ namespace Orthanc
             assoc->params, &storageTransferSyntaxes[0], storageTransferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
           if (cond.bad())
           {
-            LOG(INFO) << cond.text();
+            CLOG(INFO, DICOM) << cond.text();
             AssociationCleanup(assoc);
             return NULL;
           }
@@ -611,11 +611,11 @@ namespace Orthanc
             ASC_REASON_SU_APPCONTEXTNAMENOTSUPPORTED
           };
 
-        LOG(INFO) << "Association Rejected: Bad Application Context Name: " << buf;
+        CLOG(INFO, DICOM) << "Association Rejected: Bad Application Context Name: " << buf;
         cond = ASC_rejectAssociation(assoc, &rej);
         if (cond.bad())
         {
-          LOG(INFO) << cond.text();
+          CLOG(INFO, DICOM) << cond.text();
         }
         AssociationCleanup(assoc);
         return NULL;
@@ -624,7 +624,7 @@ namespace Orthanc
       /* check the AETs */
       if (!server.IsMyAETitle(calledAet))
       {
-        LOG(WARNING) << "Rejected association, because of a bad called AET in the request (" << calledAet << ")";
+        CLOG(WARNING, DICOM) << "Rejected association, because of a bad called AET in the request (" << calledAet << ")";
         T_ASC_RejectParameters rej =
           {
             ASC_RESULT_REJECTEDPERMANENT,
@@ -639,7 +639,7 @@ namespace Orthanc
       if (server.HasApplicationEntityFilter() &&
           !server.GetApplicationEntityFilter().IsAllowedConnection(remoteIp, remoteAet, calledAet))
       {
-        LOG(WARNING) << "Rejected association for remote AET " << remoteAet << " on IP " << remoteIp;
+        CLOG(WARNING, DICOM) << "Rejected association for remote AET " << remoteAet << " on IP " << remoteIp;
         T_ASC_RejectParameters rej =
           {
             ASC_RESULT_REJECTEDPERMANENT,
@@ -662,11 +662,11 @@ namespace Orthanc
             ASC_REASON_SU_NOREASON
           };
 
-        LOG(INFO) << "Association Rejected: No Implementation Class UID provided";
+        CLOG(INFO, DICOM) << "Association Rejected: No Implementation Class UID provided";
         cond = ASC_rejectAssociation(assoc, &rej);
         if (cond.bad())
         {
-          LOG(INFO) << cond.text();
+          CLOG(INFO, DICOM) << cond.text();
         }
         AssociationCleanup(assoc);
         return NULL;
@@ -676,13 +676,13 @@ namespace Orthanc
         cond = ASC_acknowledgeAssociation(assoc);
         if (cond.bad())
         {
-          LOG(ERROR) << cond.text();
+          CLOG(ERROR, DICOM) << cond.text();
           AssociationCleanup(assoc);
           return NULL;
         }
-        LOG(INFO) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength << ")";
+        CLOG(INFO, DICOM) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength << ")";
         if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
-          LOG(INFO) << "    (but no valid presentation contexts)";
+          CLOG(INFO, DICOM) << "    (but no valid presentation contexts)";
 
         {
           OFString str;
@@ -722,7 +722,7 @@ namespace Orthanc
       }
       catch (...)
       {
-        LOG(ERROR) << "Some association was not cleanly aborted";
+        CLOG(ERROR, DICOM) << "Some association was not cleanly aborted";
       }
     }
 
@@ -820,7 +820,7 @@ namespace Orthanc
           default:
             // we cannot handle this kind of message
             cond = DIMSE_BADCOMMANDTYPE;
-            LOG(ERROR) << "cannot handle command: 0x" << std::hex << msg.CommandField;
+            CLOG(ERROR, DICOM) << "cannot handle command: 0x" << std::hex << msg.CommandField;
             break;
         }
 
@@ -830,9 +830,9 @@ namespace Orthanc
             filter_ != NULL &&
             !filter_->IsAllowedRequest(remoteIp_, remoteAet_, calledAet_, request))
         {
-          LOG(WARNING) << "Rejected " << EnumerationToString(request)
-                       << " request from remote DICOM modality with AET \""
-                       << remoteAet_ << "\" and hostname \"" << remoteIp_ << "\"";
+          CLOG(WARNING, DICOM) << "Rejected " << EnumerationToString(request)
+                               << " request from remote DICOM modality with AET \""
+                               << remoteAet_ << "\" and hostname \"" << remoteIp_ << "\"";
           cond = DIMSE_ILLEGALASSOCIATION;
           supported = false;
           finished = true;
@@ -931,24 +931,24 @@ namespace Orthanc
         // the peer or a network error
         finished = true;
 
-        LOG(INFO) << cond.text();
+        CLOG(INFO, DICOM) << cond.text();
       }
     
       if (finished)
       {
         if (cond == DUL_PEERREQUESTEDRELEASE)
         {
-          LOG(INFO) << "Association Release";
+          CLOG(INFO, DICOM) << "Association Release";
           ASC_acknowledgeRelease(assoc_);
         }
         else if (cond == DUL_PEERABORTEDASSOCIATION)
         {
-          LOG(INFO) << "Association Aborted";
+          CLOG(INFO, DICOM) << "Association Aborted";
         }
         else
         {
           OFString temp_str;
-          LOG(INFO) << "DIMSE failure (aborting association): " << cond.text();
+          CLOG(INFO, DICOM) << "DIMSE failure (aborting association): " << cond.text();
           /* some kind of error so abort the association */
           ASC_abortAssociation(assoc_);
         }
@@ -961,14 +961,13 @@ namespace Orthanc
     OFCondition EchoScp(T_ASC_Association * assoc, T_DIMSE_Message * msg, T_ASC_PresentationContextID presID)
     {
       OFString temp_str;
-      LOG(INFO) << "Received Echo Request";
-      //LOG(DEBUG) << DIMSE_dumpMessage(temp_str, msg->msg.CEchoRQ, DIMSE_INCOMING, NULL, presID));
+      CLOG(INFO, DICOM) << "Received Echo Request";
 
       /* the echo succeeded !! */
       OFCondition cond = DIMSE_sendEchoResponse(assoc, presID, &msg->msg.CEchoRQ, STATUS_Success, NULL);
       if (cond.bad())
       {
-        LOG(ERROR) << "Echo SCP Failed: " << cond.text();
+        CLOG(ERROR, DICOM) << "Echo SCP Failed: " << cond.text();
       }
       return cond;
     }
@@ -1145,13 +1144,13 @@ namespace Orthanc
       ReadSopSequence(sopClassUid, sopInstanceUid, NULL,
                       *dataset, DCM_ReferencedSOPSequence, true /* mandatory */);
 
-      LOG(INFO) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
+      CLOG(INFO, DICOM) << "Incoming storage commitment request, with transaction UID: " << transactionUid;
 
       for (size_t i = 0; i < sopClassUid.size(); i++)
       {
-        LOG(INFO) << "  (" << (i + 1) << "/" << sopClassUid.size()
-                  << ") queried SOP Class/Instance UID: "
-                  << sopClassUid[i] << " / " << sopInstanceUid[i];
+        CLOG(INFO, DICOM) << "  (" << (i + 1) << "/" << sopClassUid.size()
+                          << ") queried SOP Class/Instance UID: "
+                          << sopClassUid[i] << " / " << sopInstanceUid[i];
       }
 
 
@@ -1176,7 +1175,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Error while processing an incoming storage commitment request: " << e.What();
+        CLOG(ERROR, DICOM) << "Error while processing an incoming storage commitment request: " << e.What();
 
         // Code 0x0110 - "General failure in processing the operation was encountered"
         dimseStatus = STATUS_N_ProcessingFailure;
@@ -1278,20 +1277,20 @@ namespace Orthanc
                         *dataset, DCM_FailedSOPSequence, true);
       }
 
-      LOG(INFO) << "Incoming storage commitment report, with transaction UID: " << transactionUid;
+      CLOG(INFO, DICOM) << "Incoming storage commitment report, with transaction UID: " << transactionUid;
 
       for (size_t i = 0; i < successSopClassUid.size(); i++)
       {
-        LOG(INFO) << "  (success " << (i + 1) << "/" << successSopClassUid.size()
-                  << ") SOP Class/Instance UID: "
-                  << successSopClassUid[i] << " / " << successSopInstanceUid[i];
+        CLOG(INFO, DICOM) << "  (success " << (i + 1) << "/" << successSopClassUid.size()
+                          << ") SOP Class/Instance UID: "
+                          << successSopClassUid[i] << " / " << successSopInstanceUid[i];
       }
 
       for (size_t i = 0; i < failedSopClassUid.size(); i++)
       {
-        LOG(INFO) << "  (failure " << (i + 1) << "/" << failedSopClassUid.size()
-                  << ") SOP Class/Instance UID: "
-                  << failedSopClassUid[i] << " / " << failedSopInstanceUid[i];
+        CLOG(INFO, DICOM) << "  (failure " << (i + 1) << "/" << failedSopClassUid.size()
+                          << ") SOP Class/Instance UID: "
+                          << failedSopClassUid[i] << " / " << failedSopInstanceUid[i];
       }
 
       /**
@@ -1316,7 +1315,7 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Error while processing an incoming storage commitment report: " << e.What();
+        CLOG(ERROR, DICOM) << "Error while processing an incoming storage commitment report: " << e.What();
 
         // Code 0x0110 - "General failure in processing the operation was encountered"
         dimseStatus = STATUS_N_ProcessingFailure;

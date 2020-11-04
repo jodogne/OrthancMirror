@@ -136,8 +136,8 @@ namespace Orthanc
         }
         catch (boost::bad_lexical_cast&)
         {
-          LOG(WARNING) << "Cannot convert the Message ID (\"" << value->GetContent()
-                       << "\") of an incoming C-MOVE request to an integer, assuming zero";
+          CLOG(WARNING, DICOM) << "Cannot convert the Message ID (\"" << value->GetContent()
+                               << "\") of an incoming C-MOVE request to an integer, assuming zero";
         }
       }
 
@@ -195,7 +195,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) << "IMoveRequestHandler Failed: " << e.What();
+          CLOG(ERROR, DICOM) << "IMoveRequestHandler Failed: " << e.What();
           response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
           return;
         }
@@ -224,7 +224,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) << "IMoveRequestHandler Failed: " << e.What();
+          CLOG(ERROR, DICOM) << "IMoveRequestHandler Failed: " << e.What();
           response->DimseStatus = STATUS_MOVE_Failed_UnableToProcess;
           return;
         }
@@ -282,7 +282,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG(ERROR) << "Move SCP Failed: " << cond.text();
+      CLOG(ERROR, DICOM) << "Move SCP Failed: " << cond.text();
     }
 
     return cond;
