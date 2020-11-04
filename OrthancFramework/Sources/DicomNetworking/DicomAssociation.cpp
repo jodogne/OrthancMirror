@@ -673,6 +673,13 @@ namespace Orthanc
                                parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Sending Storage Commitment Report:" << std::endl
+                           << DIMSE_dumpMessage(str, message, DIMSE_OUTGOING) << std::endl
+                           << DcmObject::PrintHelper(dataset);
+      }
+
       if (!DIMSE_sendMessageUsingMemoryData(
             &association.GetDcmtkAssociation(), presID, &message, NULL /* status detail */,
             &dataset, NULL /* callback */, NULL /* callback context */,
@@ -701,6 +708,12 @@ namespace Orthanc
                                parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Received Storage Commitment Report Response:" << std::endl
+                           << DIMSE_dumpMessage(str, message, DIMSE_INCOMING, NULL, presID);
+      }
+      
       const T_DIMSE_N_EventReportRSP& content = message.msg.NEventReportRSP;
       if (content.MessageIDBeingRespondedTo != messageId ||
           !(content.opts & O_NEVENTREPORT_AFFECTEDSOPCLASSUID) ||
@@ -820,6 +833,13 @@ namespace Orthanc
                                parameters.GetRemoteModality().GetApplicationEntityTitle());
       }
 
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Sending Storage Commitment Request:" << std::endl
+                           << DIMSE_dumpMessage(str, message, DIMSE_OUTGOING) << std::endl
+                           << DcmObject::PrintHelper(dataset);
+      }
+
       if (!DIMSE_sendMessageUsingMemoryData(
             &association.GetDcmtkAssociation(), presID, &message, NULL /* status detail */,
             &dataset, NULL /* callback */, NULL /* callback context */,
@@ -860,6 +880,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NetworkProtocol, "Storage commitment - "
                                "Badly formatted N-ACTION response from AET: " +
                                parameters.GetRemoteModality().GetApplicationEntityTitle());
+      }
+
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Received Storage Commitment Request Response:" << std::endl
+                           << DIMSE_dumpMessage(str, message, DIMSE_INCOMING, NULL, presID);
       }
 
       if (content.DimseStatus != 0 /* success */)
