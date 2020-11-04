@@ -160,8 +160,8 @@ namespace Orthanc
         }
         else
         {
-          LOG(WARNING) << "C-GET: Unknown transfer syntax received: "
-                       << pc->acceptedTransferSyntax;
+          CLOG(WARNING, DICOM) << "C-GET: Unknown transfer syntax received: "
+                               << pc->acceptedTransferSyntax;
         }
             
         pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
@@ -258,9 +258,9 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "C-GET SCP selected transfer syntax " << GetTransferSyntaxUid(selectedSyntax)
-                << ", for source instance with SOP class " << sopClassUid
-                << " and transfer syntax " << GetTransferSyntaxUid(sourceSyntax);
+      CLOG(INFO, DICOM) << "C-GET SCP selected transfer syntax " << GetTransferSyntaxUid(selectedSyntax)
+                        << ", for source instance with SOP class " << sopClassUid
+                        << " and transfer syntax " << GetTransferSyntaxUid(sourceSyntax);
 
       // make sure that we can send images in this presentation context
       T_ASC_PresentationContext pc;
@@ -295,8 +295,8 @@ namespace Orthanc
     T_DIMSE_C_StoreRSP rsp;
     memset(&rsp, 0, sizeof(rsp));
 
-    LOG(INFO) << "Store SCU RQ: MsgID " << msgId << ", ("
-              << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ")";
+    CLOG(INFO, DICOM) << "Store SCU RQ: MsgID " << msgId << ", ("
+                      << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ")";
     
     T_DIMSE_DetectedCancelParameters cancelParameters;
     memset(&cancelParameters, 0, sizeof(cancelParameters));
@@ -361,7 +361,7 @@ namespace Orthanc
       
       if (cancelParameters.cancelEncountered)
       {
-        LOG(INFO) << "C-GET SCP: Received C-Cancel RQ";
+        CLOG(INFO, DICOM) << "C-GET SCP: Received C-Cancel RQ";
         isContinue = false;
       }
       else if (rsp.DimseStatus == STATUS_Success)
@@ -374,8 +374,8 @@ namespace Orthanc
       {
         // a warning status message
         warningCount_++;
-        LOG(ERROR) << "C-GET SCP: Store Warning: Response Status: "
-                   << DU_cstoreStatusString(rsp.DimseStatus);
+        CLOG(ERROR, DICOM) << "C-GET SCP: Store Warning: Response Status: "
+                           << DU_cstoreStatusString(rsp.DimseStatus);
         isContinue = true;
       }
       else
@@ -383,8 +383,8 @@ namespace Orthanc
         failedCount_++;
         AddFailedUIDInstance(sopInstanceUid);
         // print a status message
-        LOG(ERROR) << "C-GET SCP: Store Failed: Response Status: "
-                   << DU_cstoreStatusString(rsp.DimseStatus);
+        CLOG(ERROR, DICOM) << "C-GET SCP: Store Failed: Response Status: "
+                           << DU_cstoreStatusString(rsp.DimseStatus);
         isContinue = true;
       }
     }
@@ -393,7 +393,8 @@ namespace Orthanc
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
       OFString temp_str;
-      LOG(ERROR) << "C-GET SCP: storeSCU: Store Request Failed: " << DimseCondition::dump(temp_str, cond);
+      CLOG(ERROR, DICOM) << "C-GET SCP: storeSCU: Store Request Failed: "
+                         << DimseCondition::dump(temp_str, cond);
       isContinue = true;
     }
     
@@ -405,7 +406,7 @@ namespace Orthanc
       DcmObject::PrintHelper obj(*stDetail);
       obj.dcmobj_.print(s);
 
-      LOG(INFO) << "  Status Detail: " << s.str();
+      CLOG(INFO, DICOM) << "  Status Detail: " << s.str();
     }
     
     return isContinue;
@@ -463,8 +464,8 @@ namespace Orthanc
 
         if (tmp.empty())
         {
-          LOG(ERROR) << "C-GET: Cannot locate resource \"" << tokens[i]
-                     << "\" at the " << EnumerationToString(level) << " level";
+          CLOG(ERROR, DICOM) << "C-GET: Cannot locate resource \"" << tokens[i]
+                             << "\" at the " << EnumerationToString(level) << " level";
           return false;
         }
         else
@@ -481,15 +482,15 @@ namespace Orthanc
   }
 
 
-    OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
-      context_(context)
-    {
-      position_ = 0;
-      completedCount_  = 0;
-      warningCount_ = 0;
-      failedCount_ = 0;
-      timeout_ = 0;
-    }
+  OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
+    context_(context)
+  {
+    position_ = 0;
+    completedCount_  = 0;
+    warningCount_ = 0;
+    failedCount_ = 0;
+    timeout_ = 0;
+  }
 
 
   bool OrthancGetRequestHandler::Handle(const DicomMap& input,
@@ -500,7 +501,7 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_get_scp_duration_ms");
 
-    LOG(WARNING) << "C-GET-SCU request received from AET \"" << originatorAet << "\"";
+    CLOG(WARNING, DICOM) << "C-GET-SCU request received from AET \"" << originatorAet << "\"";
 
     {
       DicomArray query(input);
@@ -508,9 +509,9 @@ namespace Orthanc
       {
         if (!query.GetElement(i).GetValue().IsNull())
         {
-          LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                    << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
-                    << " = " << query.GetElement(i).GetValue().GetContent();
+          CLOG(INFO, DICOM) << "  " << query.GetElement(i).GetTag()
+                            << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
+                            << " = " << query.GetElement(i).GetValue().GetContent();
         }
       }
     }
@@ -533,7 +534,7 @@ namespace Orthanc
 
     if (!LookupIdentifiers(publicIds, level, input))
     {
-      LOG(ERROR) << "Cannot determine what resources are requested by C-GET";
+      CLOG(ERROR, DICOM) << "Cannot determine what resources are requested by C-GET";
       return false; 
     }
 
@@ -549,8 +550,8 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator
            resource = publicIds.begin(); resource != publicIds.end(); ++resource)
     {
-      LOG(INFO) << "C-GET: Sending resource " << *resource
-                << " to modality \"" << originatorAet << "\"";
+      CLOG(INFO, DICOM) << "C-GET: Sending resource " << *resource
+                        << " to modality \"" << originatorAet << "\"";
       
       std::list<std::string> tmp;
       context_.GetIndex().GetChildInstances(tmp, *resource);

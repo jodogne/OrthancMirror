@@ -368,7 +368,7 @@ namespace Orthanc
     if (result.GetSize() == 0 &&
         sequencesToReturn.empty())
     {
-      LOG(WARNING) << "The C-FIND request does not return any DICOM tag";
+      CLOG(WARNING, DICOM) << "The C-FIND request does not return any DICOM tag";
     }
     else if (sequencesToReturn.empty())
     {
@@ -376,7 +376,7 @@ namespace Orthanc
     }
     else if (dicomAsJson == NULL)
     {
-      LOG(WARNING) << "C-FIND query requesting a sequence, but reading JSON from disk is disabled";
+      CLOG(WARNING, DICOM) << "C-FIND query requesting a sequence, but reading JSON from disk is disabled";
       answers.Add(result);
     }
     else
@@ -631,24 +631,24 @@ namespace Orthanc
 
 
     DicomArray query(*filteredInput);
-    LOG(INFO) << "DICOM C-Find request at level: " << EnumerationToString(level);
+    CLOG(INFO, DICOM) << "DICOM C-Find request at level: " << EnumerationToString(level);
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {
       if (!query.GetElement(i).GetValue().IsNull())
       {
-        LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                  << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
-                  << " = " << query.GetElement(i).GetValue().GetContent();
+        CLOG(INFO, DICOM) << "  " << query.GetElement(i).GetTag()
+                          << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
+                          << " = " << query.GetElement(i).GetValue().GetContent();
       }
     }
 
     for (std::list<DicomTag>::const_iterator it = sequencesToReturn.begin();
          it != sequencesToReturn.end(); ++it)
     {
-      LOG(INFO) << "  (" << it->Format()
-                << ")  " << FromDcmtkBridge::GetTagName(*it, "")
-                << " : sequence tag whose content will be copied";
+      CLOG(INFO, DICOM) << "  (" << it->Format()
+                        << ")  " << FromDcmtkBridge::GetTagName(*it, "")
+                        << " : sequence tag whose content will be copied";
     }
 
     // collect the private creators from the query itself
@@ -710,8 +710,9 @@ namespace Orthanc
       }
       else
       {
-        LOG(INFO) << "Because of a patch for the manufacturer of the remote modality, " 
-                  << "ignoring constraint on tag (" << tag.Format() << ") " << FromDcmtkBridge::GetTagName(element);
+        CLOG(INFO, DICOM) << "Because of a patch for the manufacturer of the remote modality, " 
+                          << "ignoring constraint on tag (" << tag.Format() << ") "
+                          << FromDcmtkBridge::GetTagName(element);
       }
     }
 
