@@ -169,8 +169,8 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         {
-          std::stringstream s;  // This is necessary for VS2008
-          s << DcmObject::PrintHelper(*requestIdentifiers);
+          std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+          requestIdentifiers->print(s);
           CLOG(TRACE, DICOM) << "Received C-MOVE Request:" << std::endl << s.str();
         }
 

@@ -79,8 +79,8 @@ namespace Orthanc
       
     if (responseIdentifiers != NULL)
     {
-      std::stringstream s;  // This is necessary for VS2008
-      s << DcmObject::PrintHelper(*responseIdentifiers);
+      std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+      responseIdentifiers->print(s);
       CLOG(TRACE, DICOM) << "Response Identifiers "  << responseCount << ":" << std::endl << s.str();
     }
     
@@ -283,8 +283,8 @@ namespace Orthanc
 #endif
 
     {
-      std::stringstream s;  // This is necessary for VS2008
-      s << DcmObject::PrintHelper(*dataset);
+      std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+      dataset->print(s);
 
       OFString str;
       CLOG(TRACE, DICOM) << "Sending Find Request:" << std::endl

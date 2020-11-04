@@ -400,12 +400,8 @@ namespace Orthanc
     
     if (stDetail.get() != NULL)
     {
-      // It is impossible to directly use the "<<" stream construct
-      // with "DcmObject::PrintHelper" using MSVC2008
-      std::stringstream s;
-      DcmObject::PrintHelper obj(*stDetail);
-      obj.dcmobj_.print(s);
-
+      std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+      stDetail->print(s);
       CLOG(INFO, DICOM) << "  Status Detail: " << s.str();
     }
     

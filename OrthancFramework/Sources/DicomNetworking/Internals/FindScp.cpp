@@ -212,8 +212,8 @@ namespace Orthanc
       if (data.lastRequest_ == NULL)
       {
         {
-          std::stringstream s;  // This is necessary for VS2008
-          s << DcmObject::PrintHelper(*requestIdentifiers);
+          std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+          requestIdentifiers->print(s);
           CLOG(TRACE, DICOM) << "Received C-FIND Request:" << std::endl << s.str();
         }
       
@@ -331,8 +331,8 @@ namespace Orthanc
 
         if (*responseIdentifiers)
         {
-          std::stringstream s;  // This is necessary for VS2008
-          s << DcmObject::PrintHelper(**responseIdentifiers);
+          std::stringstream s;  // DcmObject::PrintHelper cannot be used with VS2008
+          (*responseIdentifiers)->print(s);
           OFString str;
           CLOG(TRACE, DICOM) << "Sending C-FIND Response "
                              << responseCount << "/" << data.answers_.GetSize() << ":" << std::endl
