@@ -158,6 +158,9 @@ namespace Orthanc
       DcmDataset **responseIdentifiers,
       DcmDataset **statusDetail)
     {
+      assert(response != NULL);
+      assert(requestIdentifiers != NULL);
+      
       bzero(response, sizeof(T_DIMSE_C_MoveRSP));
       *statusDetail = NULL;
       *responseIdentifiers = NULL;   
@@ -165,6 +168,12 @@ namespace Orthanc
       MoveScpData& data = *reinterpret_cast<MoveScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
+        {
+          std::stringstream s;  // This is necessary for VS2008
+          s << DcmObject::PrintHelper(*requestIdentifiers);
+          CLOG(TRACE, DICOM) << "Received C-MOVE Request:" << std::endl << s.str();
+        }
+
         DicomMap input;
         std::set<DicomTag> ignoreTagLength;
         FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);

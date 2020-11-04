@@ -195,6 +195,7 @@ namespace Orthanc
     {
       assert(response != NULL);
       assert(responseIdentifiers != NULL);
+      assert(requestIdentifiers != NULL);
       
       bzero(response, sizeof(T_DIMSE_C_GetRSP));
       *statusDetail = NULL;
@@ -203,6 +204,12 @@ namespace Orthanc
       GetScpData& data = *reinterpret_cast<GetScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
+        {
+          std::stringstream s;  // This is necessary for VS2008
+          s << DcmObject::PrintHelper(*requestIdentifiers);
+          /*CLOG(TRACE, DICOM)*/std::cout << "Received C-GET Request:" << std::endl << s.str();
+        }
+
         DicomMap input;
         std::set<DicomTag> ignoreTagLength;
         FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);
