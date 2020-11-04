@@ -748,7 +748,10 @@ namespace Orthanc
       // detail information, dump this information
       if (statusDetail != NULL)
       {
-        //LOG4CPP_WARN(Internals::GetLogger(), "Status Detail:" << OFendl << DcmObject::PrintHelper(*statusDetail));
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(*statusDetail);
+        CLOG(TRACE, DICOM) << "Status Detail:" << std::endl << s.str();
+
         delete statusDetail;
       }
 
@@ -1137,7 +1140,14 @@ namespace Orthanc
       
       std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-ACTION SCP", associationTimeout_));
+      assert(dataset.get() != NULL);
 
+      {
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(*dataset);
+        CLOG(TRACE, DICOM) << "Received Storage Commitment Request:" << std::endl << s.str();
+      }
+      
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> sopClassUid, sopInstanceUid;
@@ -1200,6 +1210,12 @@ namespace Orthanc
         content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
         content.opts = O_NACTION_AFFECTEDSOPCLASSUID | O_NACTION_AFFECTEDSOPINSTANCEUID;
 
+        {
+          OFString str;
+          CLOG(TRACE, DICOM) << "Sending Storage Commitment Request Response:" << std::endl
+                             << DIMSE_dumpMessage(str, response, DIMSE_OUTGOING);
+        }
+        
         return DIMSE_sendMessageUsingMemoryData(
           assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,
           NULL /* callback */, NULL /* callback context */, NULL /* commandSet */);
@@ -1260,7 +1276,14 @@ namespace Orthanc
       
       std::unique_ptr<DcmDataset> dataset(
         ReadDataset(assoc_, "Cannot read the dataset in N-EVENT-REPORT SCP", associationTimeout_));
+      assert(dataset.get() != NULL);
 
+      {
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(*dataset);
+        CLOG(TRACE, DICOM) << "Received Storage Commitment Report:" << std::endl << s.str();
+      }
+      
       std::string transactionUid = ReadString(*dataset, DCM_TransactionUID);
 
       std::vector<std::string> successSopClassUid, successSopInstanceUid;
@@ -1339,6 +1362,12 @@ namespace Orthanc
         content.EventTypeID = 0; // Not present, as "O_NEVENTREPORT_EVENTTYPEID" not set in "opts"
         content.DataSetType = DIMSE_DATASET_NULL;  // Dataset is absent in storage commitment response
         content.opts = O_NEVENTREPORT_AFFECTEDSOPCLASSUID | O_NEVENTREPORT_AFFECTEDSOPINSTANCEUID;
+
+        {
+          OFString str;
+          CLOG(TRACE, DICOM) << "Sending Storage Commitment Report Response:" << std::endl
+                             << DIMSE_dumpMessage(str, response, DIMSE_OUTGOING);
+        }
 
         return DIMSE_sendMessageUsingMemoryData(
           assoc_, presID, &response, NULL /* no dataset */, NULL /* dataObject */,

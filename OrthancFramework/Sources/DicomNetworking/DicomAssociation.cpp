@@ -674,10 +674,13 @@ namespace Orthanc
       }
 
       {
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(dataset);
+
         OFString str;
         CLOG(TRACE, DICOM) << "Sending Storage Commitment Report:" << std::endl
                            << DIMSE_dumpMessage(str, message, DIMSE_OUTGOING) << std::endl
-                           << DcmObject::PrintHelper(dataset);
+                           << s.str();
       }
 
       if (!DIMSE_sendMessageUsingMemoryData(
@@ -834,10 +837,13 @@ namespace Orthanc
       }
 
       {
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(dataset);
+
         OFString str;
         CLOG(TRACE, DICOM) << "Sending Storage Commitment Request:" << std::endl
                            << DIMSE_dumpMessage(str, message, DIMSE_OUTGOING) << std::endl
-                           << DcmObject::PrintHelper(dataset);
+                           << s.str();
       }
 
       if (!DIMSE_sendMessageUsingMemoryData(

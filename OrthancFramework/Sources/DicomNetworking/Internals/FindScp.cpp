@@ -200,6 +200,8 @@ namespace Orthanc
       DcmDataset **responseIdentifiers,
       DcmDataset **statusDetail)
     {
+      assert(requestIdentifiers != NULL);
+      
       bzero(response, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
@@ -208,6 +210,12 @@ namespace Orthanc
       FindScpData& data = *reinterpret_cast<FindScpData*>(callbackData);
       if (data.lastRequest_ == NULL)
       {
+        {
+          std::stringstream s;  // This is necessary for VS2008
+          s << DcmObject::PrintHelper(*requestIdentifiers);
+          CLOG(TRACE, DICOM) << "Received C-FIND Request:" << std::endl << s.str();
+        }
+      
         bool ok = false;
 
         try
@@ -332,6 +340,21 @@ namespace Orthanc
         CLOG(WARNING, DICOM) <<  "Too many results for an incoming C-FIND query";
         response->DimseStatus = STATUS_FIND_Cancel_MatchingTerminatedDueToCancelRequest;
         *responseIdentifiers = NULL;
+      }
+
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Sending C-FIND Response:" << std::endl
+                           << DIMSE_dumpMessage(str, *response, DIMSE_OUTGOING);
+      }
+
+      if (*responseIdentifiers)
+      {
+        std::stringstream s;  // This is necessary for VS2008
+        s << DcmObject::PrintHelper(**responseIdentifiers);
+        CLOG(TRACE, DICOM) << "C-FIND Response Content "
+                           << responseCount << "/" << data.answers_.GetSize() << ":" << std::endl
+                           << s.str();
       }
     }
   }
