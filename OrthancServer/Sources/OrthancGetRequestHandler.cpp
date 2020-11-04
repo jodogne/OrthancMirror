@@ -53,16 +53,16 @@
 
 namespace Orthanc
 {
-  namespace
+  static void ProgressCallback(void *callbackData,
+                               T_DIMSE_StoreProgress *progress,
+                               T_DIMSE_C_StoreRQ *req)
   {
-    // Anonymous namespace to avoid clashes between compilation modules
-    
-    static void GetSubOpProgressCallback(
-      void * /* callbackData == pointer to the "OrthancGetRequestHandler" object */,
-      T_DIMSE_StoreProgress *progress,
-      T_DIMSE_C_StoreRQ * /*req*/)
+    if (req != NULL &&
+        progress->state == DIMSE_StoreBegin)
     {
-      // SBL - no logging to be done here.
+      OFString str;
+      CLOG(TRACE, DICOM) << "Sending Store Request following a C-GET:" << std::endl
+                         << DIMSE_dumpMessage(str, *req, DIMSE_OUTGOING);
     }
   }
 
@@ -151,8 +151,8 @@ namespace Orthanc
         if (pc->result == ASC_P_ACCEPTANCE &&
             LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
         {
-          CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << sopClassUid
-                             << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);
+          /*CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << pc->abstractSyntax
+            << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);*/
           if (std::string(pc->abstractSyntax) == sopClassUid)
           {
             accepted[transferSyntax] = pc->presentationContextID;
@@ -311,7 +311,7 @@ namespace Orthanc
       DcmDataset *stDetailTmp = NULL;
       cond = DIMSE_storeUser(
         assoc, presId, &req, NULL /* imageFileName */, dicom->getDataset(),
-        GetSubOpProgressCallback, this /* callbackData */,
+        ProgressCallback, NULL /* callbackData */,
         (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
         &rsp, &stDetailTmp, &cancelParameters);
       stDetail.reset(stDetailTmp);
@@ -332,7 +332,7 @@ namespace Orthanc
         cond = DIMSE_storeUser(
           assoc, presId, &req, NULL /* imageFileName */,
           transcoded.GetParsed().getDataset(),
-          GetSubOpProgressCallback, this /* callbackData */,
+          ProgressCallback, NULL /* callbackData */,
           (timeout_ > 0 ? DIMSE_NONBLOCKING : DIMSE_BLOCKING), timeout_,
           &rsp, &stDetailTmp, &cancelParameters);
         stDetail.reset(stDetailTmp);
@@ -353,6 +353,12 @@ namespace Orthanc
     
     if (cond.good())
     {
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Received Store Response following a C-GET:" << std::endl
+                           << DIMSE_dumpMessage(str, rsp, DIMSE_INCOMING);
+      }
+      
       if (cancelParameters.cancelEncountered)
       {
         LOG(INFO) << "C-GET SCP: Received C-Cancel RQ";
