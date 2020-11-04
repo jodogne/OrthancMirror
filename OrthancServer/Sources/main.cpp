@@ -1535,6 +1535,7 @@ static bool DisplayPerformanceWarning()
 int main(int argc, char* argv[]) 
 {
   Logging::Initialize();
+  SetGlobalVerbosity(Verbosity_Default);
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;

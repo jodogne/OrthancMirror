@@ -51,7 +51,8 @@
 
 #include <OrthancServerResources.h>
 
-#include <dcmtk/dcmnet/dul.h>   // For dcmDisableGethostbyaddr()
+#include <dcmtk/dcmnet/dul.h>     // For dcmDisableGethostbyaddr()
+#include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
 
 
@@ -393,11 +394,44 @@ namespace Orthanc
   IStorageArea* CreateStorageArea()
   {
     return CreateFilesystemStorage();
-  }  
+  }
+
+
+  static void SetDcmtkVerbosity(Verbosity verbosity)
+  {
+    // https://support.dcmtk.org/docs-dcmrt/classOFLogger.html#ae20bf2616f15313c1f089da2eefb8245
+    OFLogger::LogLevel level;
+
+    switch (verbosity)
+    {
+      case Verbosity_Default:
+        level = OFLogger::OFF_LOG_LEVEL;  // No log
+        break;
+
+      case Verbosity_Verbose:
+        level = OFLogger::INFO_LOG_LEVEL;  // This was the default log level in Orthanc <= 1.8.0
+        break;
+
+      case Verbosity_Trace:
+        level = OFLogger::DEBUG_LOG_LEVEL;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    OFLog::configure(level);
+    assert(dcmtk::log4cplus::Logger::getRoot().getChainedLogLevel() == level);
+    
+    DCM_dcmdataLogger.setLogLevel(level);
+    DCM_dcmnetLogger.setLogLevel(level);
+  }
 
 
   void SetGlobalVerbosity(Verbosity verbosity)
   {
+    SetDcmtkVerbosity(verbosity);
+    
     switch (verbosity)
     {
       case Verbosity_Default:
@@ -460,6 +494,11 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (category == Logging::LogCategory_DICOM)
+    {
+      SetDcmtkVerbosity(verbosity);
     }
   }
   
