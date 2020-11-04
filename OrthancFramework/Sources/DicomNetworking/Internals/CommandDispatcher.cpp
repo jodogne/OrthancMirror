@@ -284,6 +284,12 @@ namespace Orthanc
         return NULL;
       }
 
+      {
+        OFString str;
+        CLOG(TRACE, DICOM) << "Received Association Parameters:" << std::endl
+                           << ASC_dumpParameters(str, assoc->params, ASC_ASSOC_RQ);
+      }
+
       // Retrieve the AET and the IP address of the remote modality
       std::string remoteAet;
       std::string remoteIp;
@@ -677,6 +683,12 @@ namespace Orthanc
         LOG(INFO) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength << ")";
         if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
           LOG(INFO) << "    (but no valid presentation contexts)";
+
+        {
+          OFString str;
+          CLOG(TRACE, DICOM) << "Association Acknowledged Details:" << std::endl
+                             << ASC_dumpParameters(str, assoc->params, ASC_ASSOC_AC);
+        }
       }
 
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
@@ -756,6 +768,12 @@ namespace Orthanc
       }
       else if (cond == EC_Normal)
       {
+        {
+          OFString str;
+          CLOG(TRACE, DICOM) << "Received Command:" << std::endl
+                             << DIMSE_dumpMessage(str, msg, DIMSE_INCOMING, NULL, presID);
+        }
+        
         // Reset the association timeout counter
         elapsedTimeSinceLastCommand_ = 0;
 
