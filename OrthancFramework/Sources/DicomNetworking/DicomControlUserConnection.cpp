@@ -79,8 +79,9 @@ namespace Orthanc
       
     if (responseIdentifiers != NULL)
     {
-      CLOG(TRACE, DICOM) << "Response Identifiers "  << responseCount << ":" << std::endl
-                         << DcmObject::PrintHelper(*responseIdentifiers);
+      std::stringstream s;  // This is necessary for VS2008
+      s << DcmObject::PrintHelper(*responseIdentifiers);
+      CLOG(TRACE, DICOM) << "Response Identifiers "  << responseCount << ":" << std::endl << s.str();
     }
     
     if (responseIdentifiers != NULL)
@@ -282,10 +283,13 @@ namespace Orthanc
 #endif
 
     {
+      std::stringstream s;  // This is necessary for VS2008
+      s << DcmObject::PrintHelper(*dataset);
+
       OFString str;
       CLOG(TRACE, DICOM) << "Sending Find Request:" << std::endl
                          << DIMSE_dumpMessage(str, request, DIMSE_OUTGOING, NULL, presID) << std::endl
-                         << DcmObject::PrintHelper(*dataset);
+                         << s.str();
     }
 
     OFCondition cond = DIMSE_findUser(
