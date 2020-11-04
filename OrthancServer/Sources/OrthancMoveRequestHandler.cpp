@@ -81,8 +81,8 @@ namespace Orthanc
 
         for (size_t i = 0; i < publicIds.size(); i++)
         {
-          LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
-                    << targetAet << "\" in synchronous mode";
+          CLOG(INFO, DICOM) << "Sending resource " << publicIds[i] << " to modality \""
+                            << targetAet << "\" in synchronous mode";
 
           std::list<std::string> tmp;
           context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
@@ -162,8 +162,8 @@ namespace Orthanc
 
         for (size_t i = 0; i < publicIds.size(); i++)
         {
-          LOG(INFO) << "Sending resource " << publicIds[i] << " to modality \""
-                    << targetAet << "\" in asynchronous mode";
+          CLOG(INFO, DICOM) << "Sending resource " << publicIds[i] << " to modality \""
+                            << targetAet << "\" in asynchronous mode";
 
           std::list<std::string> tmp;
           context_.GetIndex().GetChildInstances(tmp, publicIds[i]);
@@ -334,7 +334,7 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_move_scp_duration_ms");
 
-    LOG(WARNING) << "Move-SCU request received for AET \"" << targetAet << "\"";
+    CLOG(WARNING, DICOM) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
     {
       DicomArray query(input);
@@ -342,9 +342,9 @@ namespace Orthanc
       {
         if (!query.GetElement(i).GetValue().IsNull())
         {
-          LOG(INFO) << "  " << query.GetElement(i).GetTag()
-                    << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
-                    << " = " << query.GetElement(i).GetValue().GetContent();
+          CLOG(INFO, DICOM) << "  " << query.GetElement(i).GetTag()
+                            << "  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
+                            << " = " << query.GetElement(i).GetValue().GetContent();
         }
       }
     }
