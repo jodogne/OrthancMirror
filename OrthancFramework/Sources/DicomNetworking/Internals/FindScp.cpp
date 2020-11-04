@@ -21,6 +21,7 @@
 
 
 
+
 /*=========================================================================
 
   This file is based on portions of the following project:
@@ -28,44 +29,44 @@
   Program: DCMTK 3.6.0
   Module:  http://dicom.offis.de/dcmtk.php.en
 
-Copyright (C) 1994-2011, OFFIS e.V.
-All rights reserved.
+  Copyright (C) 1994-2011, OFFIS e.V.
+  All rights reserved.
 
-This software and supporting documentation were developed by
+  This software and supporting documentation were developed by
 
   OFFIS e.V.
   R&D Division Health
   Escherweg 2
   26121 Oldenburg, Germany
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
 
-- Redistributions of source code must retain the above copyright
+  - Redistributions of source code must retain the above copyright
   notice, this list of conditions and the following disclaimer.
 
-- Redistributions in binary form must reproduce the above copyright
+  - Redistributions in binary form must reproduce the above copyright
   notice, this list of conditions and the following disclaimer in the
   documentation and/or other materials provided with the distribution.
 
-- Neither the name of OFFIS nor the names of its contributors may be
+  - Neither the name of OFFIS nor the names of its contributors may be
   used to endorse or promote products derived from this software
   without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-=========================================================================*/
+  =========================================================================*/
 
 
 
@@ -242,7 +243,7 @@ namespace Orthanc
             }
             else
             {
-              LOG(ERROR) << "No worklist handler is installed, cannot handle this C-FIND request";
+              CLOG(ERROR, DICOM) << "No worklist handler is installed, cannot handle this C-FIND request";
             }
           }
           else
@@ -263,9 +264,9 @@ namespace Orthanc
                   DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(*element);
                   if (sequence.card() != 0)
                   {
-                    LOG(WARNING) << "Orthanc only supports sequence matching on worklists, "
-                                 << "ignoring C-FIND SCU constraint on tag (" << tag.Format() 
-                                 << ") " << FromDcmtkBridge::GetTagName(*element);
+                    CLOG(WARNING, DICOM) << "Orthanc only supports sequence matching on worklists, "
+                                         << "ignoring C-FIND SCU constraint on tag (" << tag.Format() 
+                                         << ") " << FromDcmtkBridge::GetTagName(*element);
                   }
 
                   sequencesToReturn.push_back(tag);
@@ -286,14 +287,14 @@ namespace Orthanc
             }
             else
             {
-              LOG(ERROR) << "No C-Find handler is installed, cannot handle this request";
+              CLOG(ERROR, DICOM) << "No C-Find handler is installed, cannot handle this request";
             }
           }
         }
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) <<  "C-FIND request handler has failed: " << e.What();
+          CLOG(ERROR, DICOM) <<  "C-FIND request handler has failed: " << e.What();
         }
 
         if (!ok)
@@ -328,7 +329,7 @@ namespace Orthanc
       else
       {
         // Success, but the results were too numerous and had to be cropped
-        LOG(WARNING) <<  "Too many results for an incoming C-FIND query";
+        CLOG(WARNING, DICOM) <<  "Too many results for an incoming C-FIND query";
         response->DimseStatus = STATUS_FIND_Cancel_MatchingTerminatedDueToCancelRequest;
         *responseIdentifiers = NULL;
       }
@@ -365,7 +366,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG(ERROR) << "Find SCP Failed: " << cond.text();
+      CLOG(ERROR, DICOM) << "Find SCP Failed: " << cond.text();
     }
 
     return cond;

@@ -91,8 +91,8 @@ namespace Orthanc
   {
     if (connection_.get() != NULL)
     {
-      LOG(INFO) << "Closing inactive DICOM association with modality: "
-                << connection_->GetParameters().GetRemoteModality().GetApplicationEntityTitle();
+      CLOG(INFO, DICOM) << "Closing inactive DICOM association with modality: "
+                        << connection_->GetParameters().GetRemoteModality().GetApplicationEntityTitle();
 
       connection_.reset(NULL);
     }

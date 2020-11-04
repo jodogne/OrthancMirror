@@ -48,7 +48,7 @@ namespace Orthanc
 
   void DicomServer::ServerThread(DicomServer* server)
   {
-    LOG(INFO) << "DICOM server started";
+    CLOG(INFO, DICOM) << "DICOM server started";
 
     while (server->continue_)
     {
@@ -65,11 +65,11 @@ namespace Orthanc
       }
       catch (OrthancException& e)
       {
-        LOG(ERROR) << "Exception in the DICOM server thread: " << e.What();
+        CLOG(ERROR, DICOM) << "Exception in the DICOM server thread: " << e.What();
       }
     }
 
-    LOG(INFO) << "DICOM server stopping";
+    CLOG(INFO, DICOM) << "DICOM server stopping";
   }
 
 
@@ -95,7 +95,7 @@ namespace Orthanc
   {
     if (continue_)
     {
-      LOG(ERROR) << "INTERNAL ERROR: DicomServer::Stop() should be invoked manually to avoid mess in the destruction order!";
+      CLOG(ERROR, DICOM) << "INTERNAL ERROR: DicomServer::Stop() should be invoked manually to avoid mess in the destruction order!";
       Stop();
     }
   }
@@ -113,8 +113,8 @@ namespace Orthanc
 
   void DicomServer::SetAssociationTimeout(uint32_t seconds)
   {
-    LOG(INFO) << "Setting timeout for DICOM connections if Orthanc acts as SCP (server): " 
-              << seconds << " seconds (0 = no timeout)";
+    CLOG(INFO, DICOM) << "Setting timeout for DICOM connections if Orthanc acts as SCP (server): " 
+                      << seconds << " seconds (0 = no timeout)";
 
     Stop();
     associationTimeout_ = seconds;
@@ -156,7 +156,7 @@ namespace Orthanc
             isdigit(aet[i]) ||
             (aet[i] >= 'A' && aet[i] <= 'Z')))
       {
-        LOG(WARNING) << "For best interoperability, only upper case, alphanumeric characters should be present in AET: \"" << aet << "\"";
+        CLOG(WARNING, DICOM) << "For best interoperability, only upper case, alphanumeric characters should be present in AET: \"" << aet << "\"";
         break;
       }
     }
@@ -392,7 +392,7 @@ namespace Orthanc
       OFCondition cond = ASC_dropNetwork(&pimpl_->network_);
       if (cond.bad())
       {
-        LOG(ERROR) << "Error while dropping the network: " << cond.text();
+        CLOG(ERROR, DICOM) << "Error while dropping the network: " << cond.text();
       }
     }
   }

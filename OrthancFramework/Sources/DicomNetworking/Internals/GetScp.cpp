@@ -220,7 +220,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) << "IGetRequestHandler Failed: " << e.What();
+          CLOG(ERROR, DICOM) << "IGetRequestHandler Failed: " << e.What();
           response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
           return;
         }
@@ -230,14 +230,14 @@ namespace Orthanc
       else if (data.lastRequest_ != requestIdentifiers)
       {
         // Internal error!
-        LOG(ERROR) << "IGetRequestHandler Failed: Internal error lastRequestIdentifier";
+        CLOG(ERROR, DICOM) << "IGetRequestHandler Failed: Internal error lastRequestIdentifier";
         response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
         return;
       }
 
       if (data.canceled_)
       {
-        LOG(ERROR) << "IGetRequestHandler Failed: Cannot pursue a request that was canceled by the SCU";
+        CLOG(ERROR, DICOM) << "IGetRequestHandler Failed: Cannot pursue a request that was canceled by the SCU";
         response->DimseStatus = STATUS_GET_Failed_UnableToProcess;
         return;
       }
@@ -261,7 +261,7 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           // Internal error!
-          LOG(ERROR) << "IGetRequestHandler Failed: " << e.What();
+          CLOG(ERROR, DICOM) << "IGetRequestHandler Failed: " << e.What();
           FillResponse(*response, responseIdentifiers, *data.handler_);
 
           // Fix the status code that is computed by "FillResponse()"
@@ -311,7 +311,7 @@ namespace Orthanc
     if (cond.bad())
     {
       OFString temp_str;
-      LOG(ERROR) << "Get SCP Failed: " << cond.text();
+      CLOG(ERROR, DICOM) << "Get SCP Failed: " << cond.text();
     }
 
     return cond;

@@ -159,10 +159,10 @@ namespace Orthanc
     {
       if (found->second.find(syntax) != found->second.end())
       {
-        LOG(WARNING) << "The same transfer syntax ("
-                     << GetTransferSyntaxUid(syntax)
-                     << ") was accepted twice for the same abstract syntax UID ("
-                     << abstractSyntax << ")";
+        CLOG(WARNING, DICOM) << "The same transfer syntax ("
+                             << GetTransferSyntaxUid(syntax)
+                             << ") was accepted twice for the same abstract syntax UID ("
+                             << abstractSyntax << ")";
       }
       else
       {
@@ -181,7 +181,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       // Don't throw exception in destructors
-      LOG(ERROR) << "Error while destroying a DICOM association: " << e.What();
+      CLOG(ERROR, DICOM) << "Error while destroying a DICOM association: " << e.What();
     }
   }
 
@@ -257,12 +257,12 @@ namespace Orthanc
                              "No presentation context was proposed");
     }
 
-    LOG(INFO) << "Opening a DICOM SCU connection from AET \""
-              << parameters.GetLocalApplicationEntityTitle() 
-              << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
-              << "\" on host " << parameters.GetRemoteModality().GetHost()
-              << ":" << parameters.GetRemoteModality().GetPortNumber() 
-              << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer()) << ")";
+    CLOG(INFO, DICOM) << "Opening a DICOM SCU connection from AET \""
+                      << parameters.GetLocalApplicationEntityTitle() 
+                      << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
+                      << "\" on host " << parameters.GetRemoteModality().GetHost()
+                      << ":" << parameters.GetRemoteModality().GetPortNumber() 
+                      << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer()) << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
@@ -354,9 +354,9 @@ namespace Orthanc
           }
           else
           {
-            LOG(WARNING) << "Unknown transfer syntax received from AET \""
-                         << parameters.GetRemoteModality().GetApplicationEntityTitle()
-                         << "\": " << pc->acceptedTransferSyntax;
+            CLOG(WARNING, DICOM) << "Unknown transfer syntax received from AET \""
+                                 << parameters.GetRemoteModality().GetApplicationEntityTitle()
+                                 << "\": " << pc->acceptedTransferSyntax;
           }
         }
             
@@ -619,11 +619,11 @@ namespace Orthanc
      * Send the "EVENT_REPORT_RQ" request
      **/
 
-    LOG(INFO) << "Reporting modality \""
-              << parameters.GetRemoteModality().GetApplicationEntityTitle()
-              << "\" about storage commitment transaction: " << transactionUid
-              << " (" << successSopClassUids.size() << " successes, " 
-              << failedSopClassUids.size() << " failures)";
+    CLOG(INFO, DICOM) << "Reporting modality \""
+                      << parameters.GetRemoteModality().GetApplicationEntityTitle()
+                      << "\" about storage commitment transaction: " << transactionUid
+                      << " (" << successSopClassUids.size() << " successes, " 
+                      << failedSopClassUids.size() << " failures)";
     const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
       
     {
@@ -795,10 +795,10 @@ namespace Orthanc
      * Send the "N_ACTION_RQ" request
      **/
 
-    LOG(INFO) << "Request to modality \""
-              << parameters.GetRemoteModality().GetApplicationEntityTitle()
-              << "\" about storage commitment for " << sopClassUids.size()
-              << " instances, with transaction UID: " << transactionUid;
+    CLOG(INFO, DICOM) << "Request to modality \""
+                      << parameters.GetRemoteModality().GetApplicationEntityTitle()
+                      << "\" about storage commitment for " << sopClassUids.size()
+                      << " instances, with transaction UID: " << transactionUid;
     const DIC_US messageId = association.GetDcmtkAssociation().nextMsgID++;
       
     {
