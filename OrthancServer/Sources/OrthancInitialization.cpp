@@ -399,32 +399,38 @@ namespace Orthanc
 
   static void SetDcmtkVerbosity(Verbosity verbosity)
   {
+    // INFO_LOG_LEVEL was the DCMTK log level in Orthanc <= 1.8.0    
     // https://support.dcmtk.org/docs-dcmrt/classOFLogger.html#ae20bf2616f15313c1f089da2eefb8245
-    OFLogger::LogLevel level;
+
+    OFLogger::LogLevel dataLevel, networkLevel;
 
     switch (verbosity)
     {
       case Verbosity_Default:
-        level = OFLogger::OFF_LOG_LEVEL;  // No log
+        // Turn off logging in DCMTK core
+        dataLevel = OFLogger::OFF_LOG_LEVEL;
+        networkLevel = OFLogger::OFF_LOG_LEVEL;
         break;
 
       case Verbosity_Verbose:
-        level = OFLogger::INFO_LOG_LEVEL;  // This was the default log level in Orthanc <= 1.8.0
+        dataLevel = OFLogger::INFO_LOG_LEVEL;
+        networkLevel = OFLogger::INFO_LOG_LEVEL;
         break;
 
       case Verbosity_Trace:
-        level = OFLogger::DEBUG_LOG_LEVEL;
+        dataLevel = OFLogger::INFO_LOG_LEVEL;  // DEBUG here makes DCMTK too verbose to be useful
+        networkLevel = OFLogger::DEBUG_LOG_LEVEL;
         break;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    OFLog::configure(level);
-    assert(dcmtk::log4cplus::Logger::getRoot().getChainedLogLevel() == level);
+    OFLog::configure(dataLevel);
+    assert(dcmtk::log4cplus::Logger::getRoot().getChainedLogLevel() == dataLevel);
     
-    DCM_dcmdataLogger.setLogLevel(level);
-    DCM_dcmnetLogger.setLogLevel(level);
+    DCM_dcmdataLogger.setLogLevel(dataLevel);    // This seems to be implied by "OFLog::configure()"
+    DCM_dcmnetLogger.setLogLevel(networkLevel);  // This will display PDU in DICOM networking
   }
 
 

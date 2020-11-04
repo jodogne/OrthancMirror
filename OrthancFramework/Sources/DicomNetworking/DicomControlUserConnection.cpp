@@ -70,6 +70,19 @@ namespace Orthanc
     DcmDataset *responseIdentifiers /* pending response identifiers */
     )
   {
+    if (response != NULL)
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Find Response " << responseCount << ":" << std::endl
+                         << DIMSE_dumpMessage(str, *response, DIMSE_INCOMING);
+    }
+      
+    if (responseIdentifiers != NULL)
+    {
+      CLOG(TRACE, DICOM) << "Response Identifiers "  << responseCount << ":" << std::endl
+                         << DcmObject::PrintHelper(*responseIdentifiers);
+    }
+    
     if (responseIdentifiers != NULL)
     {
       FindPayload& payload = *reinterpret_cast<FindPayload*>(callbackData);
@@ -234,6 +247,7 @@ namespace Orthanc
                                                 bool isWorklist,
                                                 const char* level)
   {
+    assert(dataset != NULL);
     assert(isWorklist ^ (level != NULL));
     assert(association_.get() != NULL);
 
@@ -267,6 +281,13 @@ namespace Orthanc
     int responseCount;
 #endif
 
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Sending Find Request:" << std::endl
+                         << DIMSE_dumpMessage(str, request, DIMSE_OUTGOING, NULL, presID) << std::endl
+                         << DcmObject::PrintHelper(*dataset);
+    }
+
     OFCondition cond = DIMSE_findUser(
       &association_->GetDcmtkAssociation(), presID, &request, dataset,
 #if DCMTK_VERSION_NUMBER >= 364
@@ -283,6 +304,12 @@ namespace Orthanc
     }
 
     DicomAssociation::CheckCondition(cond, parameters_, "C-FIND");
+
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Final Find Response:" << std::endl
+                         << DIMSE_dumpMessage(str, response, DIMSE_INCOMING);
+    }
 
     
     /**
@@ -366,14 +393,20 @@ namespace Orthanc
     request.DataSetType = DIMSE_DATASET_PRESENT;
     strncpy(request.MoveDestination, targetAet.c_str(), DIC_AE_LEN);
 
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Sending Move Request:" << std::endl
+                         << DIMSE_dumpMessage(str, request, DIMSE_OUTGOING, NULL, presID);
+    }
+    
     T_DIMSE_C_MoveRSP response;
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(
-      &association_->GetDcmtkAssociation(), presID, &request, dataset, NULL, NULL,
+      &association_->GetDcmtkAssociation(), presID, &request, dataset, /*moveCallback*/ NULL, NULL,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ parameters_.GetTimeout(),
-      &association_->GetDcmtkNetwork(), NULL, NULL,
+      &association_->GetDcmtkNetwork(), /*subOpCallback*/ NULL, NULL,
       &response, &statusDetail, &responseIdentifiers);
 
     if (statusDetail)
@@ -388,6 +421,11 @@ namespace Orthanc
 
     DicomAssociation::CheckCondition(cond, parameters_, "C-MOVE");
 
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Final Move Response:" << std::endl
+                         << DIMSE_dumpMessage(str, response, DIMSE_INCOMING);
+    }
     
     /**
      * New in Orthanc 1.6.0: Deal with failures during C-MOVE.
@@ -472,6 +510,7 @@ namespace Orthanc
     }
     
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
+    assert(dataset != NULL);
 
     const char* clevel = NULL;
     const char* sopClass = NULL;

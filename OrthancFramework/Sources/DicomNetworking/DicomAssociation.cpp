@@ -93,6 +93,17 @@ namespace Orthanc
   {
     try
     {
+      if (cond.bad() &&
+          cond == DUL_ASSOCIATIONREJECTED)
+      {
+        T_ASC_RejectParameters rej;
+        ASC_getRejectParameters(params_, &rej);
+
+        OFString str;
+        CLOG(TRACE, DICOM) << "Association Rejected:" << std::endl
+                           << ASC_printRejectParameters(str, &rej);
+      }
+      
       CheckCondition(cond, parameters, "connecting");
     }
     catch (OrthancException&)
@@ -307,9 +318,24 @@ namespace Orthanc
       presentationContextId += 2;
     }
 
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Request Parameters:" << std::endl
+                         << ASC_dumpParameters(str, params_, ASC_ASSOC_RQ);
+    }
+
     // Do the association
     CheckConnecting(parameters, ASC_requestAssociation(net_, params_, &assoc_));
     isOpen_ = true;
+
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Connection Parameters: "
+                         << ASC_dumpConnectionParameters(str, assoc_);
+      CLOG(TRACE, DICOM) << "Association Parameters Negotiated:" << std::endl
+                         << ASC_dumpParameters(str, params_, ASC_ASSOC_AC);
+    }
+
 
     // Inspect the accepted transfer syntaxes
     LST_HEAD **l = &params_->DULparams.acceptedPresentationContext;

@@ -34,6 +34,20 @@
 
 namespace Orthanc
 {
+  static void ProgressCallback(void * /*callbackData*/,
+                               T_DIMSE_StoreProgress *progress,
+                               T_DIMSE_C_StoreRQ * req)
+  {
+    if (req != NULL &&
+        progress->state == DIMSE_StoreBegin)
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Sending Store Request:" << std::endl
+                         << DIMSE_dumpMessage(str, *req, DIMSE_OUTGOING);
+    }
+  }
+
+
   bool DicomStoreUserConnection::ProposeStorageClass(const std::string& sopClassUid,
                                                      const std::set<DicomTransferSyntax>& syntaxes)
   {
@@ -357,7 +371,7 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     DicomAssociation::CheckCondition(
       DIMSE_storeUser(&association_->GetDcmtkAssociation(), presID, &request,
-                      NULL, dicom.getDataset(), /*progressCallback*/ NULL, NULL,
+                      NULL, dicom.getDataset(), ProgressCallback, NULL,
                       /*opt_blockMode*/ (GetParameters().HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
                       /*opt_dimse_timeout*/ GetParameters().GetTimeout(),
                       &response, &statusDetail, NULL),
@@ -366,6 +380,12 @@ namespace Orthanc
     if (statusDetail != NULL) 
     {
       delete statusDetail;
+    }
+
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Store Response:" << std::endl
+                         << DIMSE_dumpMessage(str, response, DIMSE_INCOMING, NULL, presID);
     }
     
     /**
