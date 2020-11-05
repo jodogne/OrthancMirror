@@ -142,6 +142,16 @@ namespace Orthanc
     }    
   }
 
+  ParsedDicomDir::~ParsedDicomDir()
+  {
+    Clear();
+  }
+
+  size_t ParsedDicomDir::GetSize() const
+  {
+    return content_.size();
+  }
+
 
   const DicomMap& ParsedDicomDir::GetItem(size_t i) const
   {

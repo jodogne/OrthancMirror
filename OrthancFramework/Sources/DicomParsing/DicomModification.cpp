@@ -487,6 +487,11 @@ namespace Orthanc
     }
   }
 
+  bool DicomModification::ArePrivateTagsRemoved() const
+  {
+    return removePrivateTags_;
+  }
+
   void DicomModification::SetLevel(ResourceType level)
   {
     uidMap_.clear();
@@ -496,6 +501,11 @@ namespace Orthanc
     {
       MarkNotOrthancAnonymization();
     }
+  }
+
+  ResourceType DicomModification::GetLevel() const
+  {
+    return level_;
   }
 
 
@@ -1123,6 +1133,16 @@ namespace Orthanc
     }
   }
 
+  void DicomModification::SetAllowManualIdentifiers(bool check)
+  {
+    allowManualIdentifiers_ = check;
+  }
+
+  bool DicomModification::AreAllowManualIdentifiers() const
+  {
+    return allowManualIdentifiers_;
+  }
+
 
   static bool IsDatabaseKey(const DicomTag& tag)
   {
@@ -1334,6 +1354,11 @@ namespace Orthanc
     }
   }
 
+  void DicomModification::SetDicomIdentifierGenerator(DicomModification::IDicomIdentifierGenerator &generator)
+  {
+    identifierGenerator_ = &generator;
+  }
+
 
 
 
@@ -1430,7 +1455,6 @@ namespace Orthanc
     }
   }
 
-
   void DicomModification::UnserializeUidMap(ResourceType level,
                                             const Json::Value& serialized,
                                             const char* field)
@@ -1507,5 +1531,16 @@ namespace Orthanc
     UnserializeUidMap(ResourceType_Study, serialized, MAP_STUDIES);
     UnserializeUidMap(ResourceType_Series, serialized, MAP_SERIES);
     UnserializeUidMap(ResourceType_Instance, serialized, MAP_INSTANCES);
+  }
+
+
+  void DicomModification::SetPrivateCreator(const std::string &privateCreator)
+  {
+    privateCreator_ = privateCreator;
+  }
+
+  const std::string &DicomModification::GetPrivateCreator() const
+  {
+    return privateCreator_;
   }
 }

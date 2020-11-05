@@ -127,52 +127,25 @@ namespace Orthanc
 
     ~HttpClient();
 
-    void SetUrl(const char* url)
-    {
-      url_ = std::string(url);
-    }
+    void SetUrl(const char* url);
 
-    void SetUrl(const std::string& url)
-    {
-      url_ = url;
-    }
+    void SetUrl(const std::string& url);
 
-    const std::string& GetUrl() const
-    {
-      return url_;
-    }
+    const std::string& GetUrl() const;
 
-    void SetMethod(HttpMethod method)
-    {
-      method_ = method;
-    }
+    void SetMethod(HttpMethod method);
 
-    HttpMethod GetMethod() const
-    {
-      return method_;
-    }
+    HttpMethod GetMethod() const;
 
-    void SetTimeout(long seconds)
-    {
-      timeout_ = seconds;
-    }
+    void SetTimeout(long seconds);
 
-    long GetTimeout() const
-    {
-      return timeout_;
-    }
+    long GetTimeout() const;
 
     void SetBody(const std::string& data);
 
-    std::string& GetBody()
-    {
-      return body_;
-    }
+    std::string& GetBody();
 
-    const std::string& GetBody() const
-    {
-      return body_;
-    }
+    const std::string& GetBody() const;
 
     void SetBody(IRequestBody& body);
 
@@ -180,10 +153,7 @@ namespace Orthanc
 
     void SetVerbose(bool isVerbose);
 
-    bool IsVerbose() const
-    {
-      return isVerbose_;
-    }
+    bool IsVerbose() const;
 
     void AddHeader(const std::string& key,
                    const std::string& value);
@@ -192,109 +162,52 @@ namespace Orthanc
 
     bool Apply(IAnswer& answer);
 
-    bool Apply(std::string& answerBody)
-    {
-      return ApplyInternal(answerBody, NULL);
-    }
+    bool Apply(std::string& answerBody);
 
-    bool Apply(Json::Value& answerBody)
-    {
-      return ApplyInternal(answerBody, NULL);
-    }
+    bool Apply(Json::Value& answerBody);
 
     bool Apply(std::string& answerBody,
-               HttpHeaders& answerHeaders)
-    {
-      return ApplyInternal(answerBody, &answerHeaders);
-    }
+               HttpHeaders& answerHeaders);
 
     bool Apply(Json::Value& answerBody,
-               HttpHeaders& answerHeaders)
-    {
-      return ApplyInternal(answerBody, &answerHeaders);
-    }
+               HttpHeaders& answerHeaders);
 
-    HttpStatus GetLastStatus() const
-    {
-      return lastStatus_;
-    }
+    HttpStatus GetLastStatus() const;
 
     void SetCredentials(const char* username,
                         const char* password);
 
-    void SetProxy(const std::string& proxy)
-    {
-      proxy_ = proxy;
-    }
+    void SetProxy(const std::string& proxy);
 
-    void SetHttpsVerifyPeers(bool verify)
-    {
-      verifyPeers_ = verify;
-    }
+    void SetHttpsVerifyPeers(bool verify);
 
-    bool IsHttpsVerifyPeers() const
-    {
-      return verifyPeers_;
-    }
+    bool IsHttpsVerifyPeers() const;
 
-    void SetHttpsCACertificates(const std::string& certificates)
-    {
-      caCertificates_ = certificates;
-    }
+    void SetHttpsCACertificates(const std::string& certificates);
 
-    const std::string& GetHttpsCACertificates() const
-    {
-      return caCertificates_;
-    }
+    const std::string& GetHttpsCACertificates() const;
 
     void SetClientCertificate(const std::string& certificateFile,
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
 
-    void SetPkcs11Enabled(bool enabled)
-    {
-      pkcs11Enabled_ = enabled;
-    }
+    void SetPkcs11Enabled(bool enabled);
 
-    bool IsPkcs11Enabled() const
-    {
-      return pkcs11Enabled_;
-    }
+    bool IsPkcs11Enabled() const;
 
-    const std::string& GetClientCertificateFile() const
-    {
-      return clientCertificateFile_;
-    }
+    const std::string& GetClientCertificateFile() const;
 
-    const std::string& GetClientCertificateKeyFile() const
-    {
-      return clientCertificateKeyFile_;
-    }
+    const std::string& GetClientCertificateKeyFile() const;
 
-    const std::string& GetClientCertificateKeyPassword() const
-    {
-      return clientCertificateKeyPassword_;
-    }
+    const std::string& GetClientCertificateKeyPassword() const;
 
-    void SetConvertHeadersToLowerCase(bool lowerCase)
-    {
-      headersToLowerCase_ = lowerCase;
-    }
+    void SetConvertHeadersToLowerCase(bool lowerCase);
 
-    bool IsConvertHeadersToLowerCase() const
-    {
-      return headersToLowerCase_;
-    }
+    bool IsConvertHeadersToLowerCase() const;
 
-    void SetRedirectionFollowed(bool follow)
-    {
-      redirectionFollowed_ = follow;
-    }
+    void SetRedirectionFollowed(bool follow);
 
-    bool IsRedirectionFollowed() const
-    {
-      return redirectionFollowed_;
-    }
+    bool IsRedirectionFollowed() const;
 
     static void GlobalInitialize();
   

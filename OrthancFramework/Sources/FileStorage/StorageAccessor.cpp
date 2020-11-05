@@ -58,6 +58,19 @@ namespace Orthanc
   };
 
 
+  StorageAccessor::StorageAccessor(IStorageArea &area) :
+    area_(area),
+    metrics_(NULL)
+  {
+  }
+
+  StorageAccessor::StorageAccessor(IStorageArea &area, MetricsRegistry &metrics) :
+    area_(area),
+    metrics_(&metrics)
+  {
+  }
+
+
   FileInfo StorageAccessor::Write(const void* data,
                                   size_t size,
                                   FileContentType type,
@@ -119,16 +132,25 @@ namespace Orthanc
     }
   }
 
+  FileInfo StorageAccessor::Write(const std::string &data,
+                                  FileContentType type,
+                                  CompressionType compression,
+                                  bool storeMd5)
+  {
+    return Write((data.size() == 0 ? NULL : data.c_str()),
+                 data.size(), type, compression, storeMd5);
+  }
+
 
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
   {
     switch (info.GetCompressionType())
     {
-      case CompressionType_None:
-      {
-        MetricsTimer timer(*this, METRICS_READ);
-        area_.Read(content, info.GetUuid(), info.GetContentType());
+    case CompressionType_None:
+    {
+      MetricsTimer timer(*this, METRICS_READ);
+      area_.Read(content, info.GetUuid(), info.GetContentType());
         break;
       }
 
@@ -172,6 +194,10 @@ namespace Orthanc
     area_.Remove(fileUuid, type);
   }
 
+  void StorageAccessor::Remove(const FileInfo &info)
+  {
+    Remove(info.GetUuid(), info.GetContentType());
+  }
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
@@ -209,6 +235,16 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(HttpOutput& output,
                                    const FileInfo& info,
+                                   MimeType mime)
+  {
+    AnswerFile(output, info, EnumerationToString(mime));
+  }
+#endif
+
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+  void StorageAccessor::AnswerFile(HttpOutput& output,
+                                   const FileInfo& info,
                                    const std::string& mime)
   {
     BufferHttpSender sender;
@@ -216,6 +252,16 @@ namespace Orthanc
   
     HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
     output.Answer(transcoder);
+  }
+#endif
+
+
+#if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
+  void StorageAccessor::AnswerFile(RestApiOutput& output,
+                                   const FileInfo& info,
+                                   MimeType mime)
+  {
+    AnswerFile(output, info, EnumerationToString(mime));
   }
 #endif
 

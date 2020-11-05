@@ -54,6 +54,28 @@ namespace Orthanc
   }
 
 
+  DicomTag::DicomTag(uint16_t group, uint16_t element) :
+    group_(group),
+    element_(element)
+  {
+  }
+
+  uint16_t DicomTag::GetGroup() const
+  {
+    return group_;
+  }
+
+  uint16_t DicomTag::GetElement() const
+  {
+    return element_;
+  }
+
+  bool DicomTag::IsPrivate() const
+  {
+    return group_ % 2 == 1;
+  }
+
+
   bool DicomTag::operator< (const DicomTag& other) const
   {
     if (group_ < other.group_)
@@ -75,6 +97,26 @@ namespace Orthanc
       return false;
 
     return element_ <= other.element_;
+  }
+
+  bool DicomTag::operator>(const DicomTag &other) const
+  {
+    return !(*this <= other);
+  }
+
+  bool DicomTag::operator>=(const DicomTag &other) const
+  {
+    return !(*this < other);
+  }
+
+  bool DicomTag::operator==(const DicomTag &other) const
+  {
+    return group_ == other.group_ && element_ == other.element_;
+  }
+
+  bool DicomTag::operator!=(const DicomTag &other) const
+  {
+    return !(*this == other);
   }
 
 

@@ -677,11 +677,56 @@ namespace Orthanc
     curl_easy_cleanup(pimpl_->curl_);
   }
 
+  void HttpClient::SetUrl(const char *url)
+  {
+    url_ = std::string(url);
+  }
+
+  void HttpClient::SetUrl(const std::string &url)
+  {
+    url_ = url;
+  }
+
+  const std::string &HttpClient::GetUrl() const
+  {
+    return url_;
+  }
+
+  void HttpClient::SetMethod(HttpMethod method)
+  {
+    method_ = method;
+  }
+
+  HttpMethod HttpClient::GetMethod() const
+  {
+    return method_;
+  }
+
+  void HttpClient::SetTimeout(long seconds)
+  {
+    timeout_ = seconds;
+  }
+
+  long HttpClient::GetTimeout() const
+  {
+    return timeout_;
+  }
+
 
   void HttpClient::SetBody(const std::string& data)
   {
     body_ = data;
     pimpl_->requestBody_.Clear();
+  }
+
+  std::string &HttpClient::GetBody()
+  {
+    return body_;
+  }
+
+  const std::string &HttpClient::GetBody() const
+  {
+    return body_;
   }
 
 
@@ -712,6 +757,11 @@ namespace Orthanc
     {
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_VERBOSE, 0));
     }
+  }
+
+  bool HttpClient::IsVerbose() const
+  {
+    return isVerbose_;
   }
 
 
@@ -1033,6 +1083,31 @@ namespace Orthanc
     credentials_ = std::string(username) + ":" + std::string(password);
   }
 
+  void HttpClient::SetProxy(const std::string &proxy)
+  {
+    proxy_ = proxy;
+  }
+
+  void HttpClient::SetHttpsVerifyPeers(bool verify)
+  {
+    verifyPeers_ = verify;
+  }
+
+  bool HttpClient::IsHttpsVerifyPeers() const
+  {
+    return verifyPeers_;
+  }
+
+  void HttpClient::SetHttpsCACertificates(const std::string &certificates)
+  {
+    caCertificates_ = certificates;
+  }
+
+  const std::string &HttpClient::GetHttpsCACertificates() const
+  {
+    return caCertificates_;
+  }
+
 
   void HttpClient::ConfigureSsl(bool httpsVerifyPeers,
                                 const std::string& httpsVerifyCertificates)
@@ -1102,6 +1177,33 @@ namespace Orthanc
   {
     CurlAnswer wrapper(answer, headersToLowerCase_);
     return ApplyInternal(wrapper);
+  }
+
+  bool HttpClient::Apply(std::string &answerBody)
+  {
+    return ApplyInternal(answerBody, NULL);
+  }
+
+  bool HttpClient::Apply(Json::Value &answerBody)
+  {
+    return ApplyInternal(answerBody, NULL);
+  }
+
+  bool HttpClient::Apply(std::string &answerBody,
+                         HttpClient::HttpHeaders &answerHeaders)
+  {
+    return ApplyInternal(answerBody, &answerHeaders);
+  }
+
+  bool HttpClient::Apply(Json::Value &answerBody,
+                         HttpClient::HttpHeaders &answerHeaders)
+  {
+    return ApplyInternal(answerBody, &answerHeaders);
+  }
+
+  HttpStatus HttpClient::GetLastStatus() const
+  {
+    return lastStatus_;
   }
 
 
@@ -1179,6 +1281,51 @@ namespace Orthanc
     clientCertificateFile_ = certificateFile;
     clientCertificateKeyFile_ = certificateKeyFile;
     clientCertificateKeyPassword_ = certificateKeyPassword;
+  }
+
+  void HttpClient::SetPkcs11Enabled(bool enabled)
+  {
+    pkcs11Enabled_ = enabled;
+  }
+
+  bool HttpClient::IsPkcs11Enabled() const
+  {
+    return pkcs11Enabled_;
+  }
+
+  const std::string &HttpClient::GetClientCertificateFile() const
+  {
+    return clientCertificateFile_;
+  }
+
+  const std::string &HttpClient::GetClientCertificateKeyFile() const
+  {
+    return clientCertificateKeyFile_;
+  }
+
+  const std::string &HttpClient::GetClientCertificateKeyPassword() const
+  {
+    return clientCertificateKeyPassword_;
+  }
+
+  void HttpClient::SetConvertHeadersToLowerCase(bool lowerCase)
+  {
+    headersToLowerCase_ = lowerCase;
+  }
+
+  bool HttpClient::IsConvertHeadersToLowerCase() const
+  {
+    return headersToLowerCase_;
+  }
+
+  void HttpClient::SetRedirectionFollowed(bool follow)
+  {
+    redirectionFollowed_ = follow;
+  }
+
+  bool HttpClient::IsRedirectionFollowed() const
+  {
+    return redirectionFollowed_;
   }
 
 

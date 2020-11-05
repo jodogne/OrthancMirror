@@ -971,7 +971,7 @@ namespace Orthanc
 
       if (invert)
       {
-        Orthanc::ImageProcessing::Invert(*image);
+        ImageProcessing::Invert(*image);
       }
     }
     else

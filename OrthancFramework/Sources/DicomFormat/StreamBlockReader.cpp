@@ -86,7 +86,7 @@ namespace Orthanc
     }
   }
 
-  uint64_t Orthanc::StreamBlockReader::GetProcessedBytes() const
+  uint64_t StreamBlockReader::GetProcessedBytes() const
   {
     return processedBytes_;
   }

@@ -20,44 +20,54 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "DicomElement.h"
 
-#if ORTHANC_ENABLE_DCMTK != 1
-#  error The macro ORTHANC_ENABLE_DCMTK must be set to 1 to use this file
-#endif
-
-#include "../DicomFormat/DicomMap.h"
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC ParsedDicomDir : public boost::noncopyable
+  DicomElement::DicomElement(uint16_t group,
+                             uint16_t element,
+                             const DicomValue &value) :
+    tag_(group, element),
+    value_(value.Clone())
   {
-  private:
-    typedef std::map<uint32_t, size_t>  OffsetToIndex;
+  }
 
-    std::vector<DicomMap*>  content_;
-    std::vector<size_t>     nextOffsets_;
-    std::vector<size_t>     lowerOffsets_;
-    OffsetToIndex           offsetToIndex_;
+  DicomElement::DicomElement(const DicomTag &tag,
+                             const DicomValue &value) :
+    tag_(tag),
+    value_(value.Clone())
+  {
+  }
 
-    void Clear();
+  DicomElement::~DicomElement()
+  {
+    delete value_;
+  }
 
-    bool LookupIndexOfOffset(size_t& target,
-                             unsigned int offset) const;
+  const DicomTag &DicomElement::GetTag() const
+  {
+    return tag_;
+  }
 
-  public:
-    explicit ParsedDicomDir(const std::string& content);
+  const DicomValue &DicomElement::GetValue() const
+  {
+    return *value_;
+  }
 
-    ~ParsedDicomDir();
+  uint16_t DicomElement::GetTagGroup() const
+  {
+    return tag_.GetGroup();
+  }
 
-    size_t GetSize() const;
+  uint16_t DicomElement::GetTagElement() const
+  {
+    return tag_.GetElement();
+  }
 
-    const DicomMap& GetItem(size_t i) const;
-
-    bool LookupNext(size_t& target,
-                    size_t index) const;
-
-    bool LookupLower(size_t& target,
-                     size_t index) const;
-  };
+  bool DicomElement::operator<(const DicomElement &other) const
+  {
+    return GetTag() < other.GetTag();
+  }
 }

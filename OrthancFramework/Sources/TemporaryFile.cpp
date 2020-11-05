@@ -52,7 +52,7 @@ namespace Orthanc
     }
 
     // We use UUID to create unique path to temporary files
-    const std::string uuid = Orthanc::Toolbox::GenerateUuid();
+    const std::string uuid = Toolbox::GenerateUuid();
 
     // New in Orthanc 1.5.8: Prefix the process ID to the name of the
     // temporary files, in order to locate orphan temporary files that

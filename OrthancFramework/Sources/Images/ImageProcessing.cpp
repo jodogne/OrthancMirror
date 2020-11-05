@@ -562,42 +562,42 @@ namespace Orthanc
 
     switch (source.GetFormat())
     {
-      case Orthanc::PixelFormat_Float32:
+      case PixelFormat_Float32:
       {
         switch (target.GetFormat())
         {
-          case Orthanc::PixelFormat_Grayscale8:
+          case PixelFormat_Grayscale8:
             ApplyWindowingInternal<uint8_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
-          case Orthanc::PixelFormat_Grayscale16:
+          case PixelFormat_Grayscale16:
             ApplyWindowingInternal<uint16_t, float>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
             throw OrthancException(ErrorCode_NotImplemented);
         }
       };break;
-      case Orthanc::PixelFormat_Grayscale8:
+      case PixelFormat_Grayscale8:
       {
         switch (target.GetFormat())
         {
-          case Orthanc::PixelFormat_Grayscale8:
+          case PixelFormat_Grayscale8:
             ApplyWindowingInternal<uint8_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
-          case Orthanc::PixelFormat_Grayscale16:
+          case PixelFormat_Grayscale16:
             ApplyWindowingInternal<uint16_t, uint8_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
             throw OrthancException(ErrorCode_NotImplemented);
         }
       };break;
-      case Orthanc::PixelFormat_Grayscale16:
+      case PixelFormat_Grayscale16:
       {
         switch (target.GetFormat())
         {
-          case Orthanc::PixelFormat_Grayscale8:
+          case PixelFormat_Grayscale8:
             ApplyWindowingInternal<uint8_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
-          case Orthanc::PixelFormat_Grayscale16:
+          case PixelFormat_Grayscale16:
             ApplyWindowingInternal<uint16_t, uint16_t>(target, source, windowCenter, windowWidth, rescaleSlope, rescaleIntercept, invert);
             break;
           default:
@@ -1555,13 +1555,13 @@ namespace Orthanc
 
   namespace
   {
-    template <Orthanc::PixelFormat Format>
+    template <PixelFormat Format>
     class BresenhamPixelWriter
     {
     private:
       typedef typename PixelTraits<Format>::PixelType  PixelType;
 
-      Orthanc::ImageAccessor&  image_;
+      ImageAccessor&  image_;
       PixelType                value_;
 
       void PlotLineLow(int x0,
@@ -1629,14 +1629,14 @@ namespace Orthanc
       }
 
     public:
-      BresenhamPixelWriter(Orthanc::ImageAccessor& image,
+      BresenhamPixelWriter(ImageAccessor& image,
                            int64_t value) :
         image_(image),
         value_(PixelTraits<Format>::IntegerToPixel(value))
       {
       }
 
-      BresenhamPixelWriter(Orthanc::ImageAccessor& image,
+      BresenhamPixelWriter(ImageAccessor& image,
                            const PixelType& value) :
         image_(image),
         value_(value)
@@ -1700,29 +1700,29 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case Orthanc::PixelFormat_Grayscale8:
+      case PixelFormat_Grayscale8:
       {
-        BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale8> writer(image, value);
+        BresenhamPixelWriter<PixelFormat_Grayscale8> writer(image, value);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
-      case Orthanc::PixelFormat_Grayscale16:
+      case PixelFormat_Grayscale16:
       {
-        BresenhamPixelWriter<Orthanc::PixelFormat_Grayscale16> writer(image, value);
+        BresenhamPixelWriter<PixelFormat_Grayscale16> writer(image, value);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
-      case Orthanc::PixelFormat_SignedGrayscale16:
+      case PixelFormat_SignedGrayscale16:
       {
-        BresenhamPixelWriter<Orthanc::PixelFormat_SignedGrayscale16> writer(image, value);
+        BresenhamPixelWriter<PixelFormat_SignedGrayscale16> writer(image, value);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
       default:
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -1739,46 +1739,46 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case Orthanc::PixelFormat_BGRA32:
+      case PixelFormat_BGRA32:
       {
-        PixelTraits<Orthanc::PixelFormat_BGRA32>::PixelType pixel;
+        PixelTraits<PixelFormat_BGRA32>::PixelType pixel;
         pixel.red_ = red;
         pixel.green_ = green;
         pixel.blue_ = blue;
         pixel.alpha_ = alpha;
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_BGRA32> writer(image, pixel);
+        BresenhamPixelWriter<PixelFormat_BGRA32> writer(image, pixel);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
-      case Orthanc::PixelFormat_RGBA32:
+      case PixelFormat_RGBA32:
       {
-        PixelTraits<Orthanc::PixelFormat_RGBA32>::PixelType pixel;
+        PixelTraits<PixelFormat_RGBA32>::PixelType pixel;
         pixel.red_ = red;
         pixel.green_ = green;
         pixel.blue_ = blue;
         pixel.alpha_ = alpha;
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_RGBA32> writer(image, pixel);
+        BresenhamPixelWriter<PixelFormat_RGBA32> writer(image, pixel);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
-      case Orthanc::PixelFormat_RGB24:
+      case PixelFormat_RGB24:
       {
-        PixelTraits<Orthanc::PixelFormat_RGB24>::PixelType pixel;
+        PixelTraits<PixelFormat_RGB24>::PixelType pixel;
         pixel.red_ = red;
         pixel.green_ = green;
         pixel.blue_ = blue;
 
-        BresenhamPixelWriter<Orthanc::PixelFormat_RGB24> writer(image, pixel);
+        BresenhamPixelWriter<PixelFormat_RGB24> writer(image, pixel);
         writer.DrawSegment(x0, y0, x1, y1);
         break;
       }
 
       default:
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -1845,7 +1845,7 @@ namespace Orthanc
       if (points[i].GetX() < 0 || points[i].GetX() >= imageWidth
           || points[i].GetY() < 0 || points[i].GetY() >= imageHeight)
       {
-        throw Orthanc::OrthancException(ErrorCode_ParameterOutOfRange);
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
       cpx.push_back((double)points[i].GetX());
       cpy.push_back((double)points[i].GetY());
@@ -1933,23 +1933,23 @@ namespace Orthanc
   {
     switch (image.GetFormat())
     {
-      case Orthanc::PixelFormat_Grayscale8:
+      case PixelFormat_Grayscale8:
       {
-        FillPolygon_<Orthanc::PixelFormat_Grayscale8>(image, points, value);
+        FillPolygon_<PixelFormat_Grayscale8>(image, points, value);
         break;
       }
-      case Orthanc::PixelFormat_Grayscale16:
+      case PixelFormat_Grayscale16:
       {
-        FillPolygon_<Orthanc::PixelFormat_Grayscale16>(image, points, value);
+        FillPolygon_<PixelFormat_Grayscale16>(image, points, value);
         break;
       }
-      case Orthanc::PixelFormat_SignedGrayscale16:
+      case PixelFormat_SignedGrayscale16:
       {
-        FillPolygon_<Orthanc::PixelFormat_SignedGrayscale16>(image, points, value);
+        FillPolygon_<PixelFormat_SignedGrayscale16>(image, points, value);
         break;
       }
       default:
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
@@ -2172,7 +2172,7 @@ namespace Orthanc
   // This is a slow implementation of horizontal convolution on one
   // individual channel, that checks for out-of-image values
   template <typename RawPixel, unsigned int ChannelsCount>
-  static float GetHorizontalConvolutionFloatSecure(const Orthanc::ImageAccessor& source,
+  static float GetHorizontalConvolutionFloatSecure(const ImageAccessor& source,
                                                    const std::vector<float>& horizontal,
                                                    size_t horizontalAnchor,
                                                    unsigned int x,

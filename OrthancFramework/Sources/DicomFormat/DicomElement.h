@@ -36,47 +36,21 @@ namespace Orthanc
   public:
     DicomElement(uint16_t group,
                  uint16_t element,
-                 const DicomValue& value) :
-      tag_(group, element),
-      value_(value.Clone())
-    {
-    }
+                 const DicomValue& value);
 
     DicomElement(const DicomTag& tag,
-                 const DicomValue& value) :
-      tag_(tag),
-      value_(value.Clone())
-    {
-    }
+                 const DicomValue& value);
 
-    ~DicomElement()
-    {
-      delete value_;
-    }
+    ~DicomElement();
 
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
+    const DicomTag& GetTag() const;
 
-    const DicomValue& GetValue() const
-    {
-      return *value_;
-    }
+    const DicomValue& GetValue() const;
 
-    uint16_t GetTagGroup() const
-    {
-      return tag_.GetGroup();
-    }
+    uint16_t GetTagGroup() const;
 
-    uint16_t GetTagElement() const
-    {
-      return tag_.GetElement();
-    }
+    uint16_t GetTagElement() const;
 
-    bool operator< (const DicomElement& other) const
-    {
-      return GetTag() < other.GetTag();
-    }
+    bool operator< (const DicomElement& other) const;
   };
 }

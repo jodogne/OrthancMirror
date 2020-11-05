@@ -44,6 +44,12 @@
 
 namespace Orthanc
 {
+  DcmtkTranscoder::DcmtkTranscoder() :
+    lossyQuality_(90)
+  {
+  }
+
+
   static bool GetBitsStored(uint16_t& bitsStored,
                             DcmDataset& dataset)
   {
@@ -68,7 +74,12 @@ namespace Orthanc
     }
   }
 
-    
+  unsigned int DcmtkTranscoder::GetLossyQuality() const
+  {
+    return lossyQuality_;
+  }
+
+
   bool DcmtkTranscoder::InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                                          DcmFileFormat& dicom,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
@@ -224,7 +235,6 @@ namespace Orthanc
     return false;
   }
 
-    
   bool DcmtkTranscoder::IsSupported(DicomTransferSyntax syntax)
   {
     if (syntax == DicomTransferSyntax_LittleEndianImplicit ||
