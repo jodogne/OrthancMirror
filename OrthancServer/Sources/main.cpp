@@ -663,11 +663,11 @@ static void PrintHelp(const char* path)
   std::cout
     << std::endl
     << "Exit status:" << std::endl
-    << "   0 if success," << std::endl
+    << "  0\tif success," << std::endl
 #if defined(_WIN32)
-    << "!= 0 if error (use the --errors option to get the list of possible errors)." << std::endl
+    << "  != 0\tif error (use the --errors option to get the list of possible errors)." << std::endl
 #else
-    << "  -1 if error (have a look at the logs)." << std::endl
+    << "  -1\tif error (have a look at the logs)." << std::endl
 #endif
     << std::endl;
 }
