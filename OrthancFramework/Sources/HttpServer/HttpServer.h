@@ -120,10 +120,7 @@ namespace Orthanc
 
     void SetPortNumber(uint16_t port);
 
-    uint16_t GetPortNumber() const
-    {
-      return port_;
-    }
+    uint16_t GetPortNumber() const;
 
     void Start();
 
@@ -134,17 +131,11 @@ namespace Orthanc
     void RegisterUser(const char* username,
                       const char* password);
 
-    bool IsAuthenticationEnabled() const
-    {
-      return authentication_;
-    }
+    bool IsAuthenticationEnabled() const;
 
     void SetAuthenticationEnabled(bool enabled);
 
-    bool IsSslEnabled() const
-    {
-      return ssl_;
-    }
+    bool IsSslEnabled() const;
 
     void SetSslEnabled(bool enabled);
 
@@ -152,38 +143,23 @@ namespace Orthanc
 
     void SetSslTrustedClientCertificates(const char* path);
 
-    bool IsKeepAliveEnabled() const
-    {
-      return keepAlive_;
-    }
+    bool IsKeepAliveEnabled() const;
 
     void SetKeepAliveEnabled(bool enabled);
 
-    const std::string& GetSslCertificate() const
-    {
-      return certificate_;
-    }
+    const std::string& GetSslCertificate() const;
 
     void SetSslCertificate(const char* path);
 
-    bool IsRemoteAccessAllowed() const
-    {
-      return remoteAllowed_;
-    }
+    bool IsRemoteAccessAllowed() const;
 
     void SetRemoteAccessAllowed(bool allowed);
 
-    bool IsHttpCompressionEnabled() const
-    {
-      return httpCompression_;;
-    }
+    bool IsHttpCompressionEnabled() const;
 
     void SetHttpCompressionEnabled(bool enabled);
 
-    IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const
-    {
-      return filter_;
-    }
+    IIncomingHttpRequestFilter* GetIncomingHttpRequestFilter() const;
 
     void SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter);
 
@@ -193,57 +169,33 @@ namespace Orthanc
 
     void Register(IHttpHandler& handler);
 
-    bool HasHandler() const
-    {
-      return handler_ != NULL;
-    }
+    bool HasHandler() const;
 
     IHttpHandler& GetHandler() const;
 
     void SetHttpExceptionFormatter(IHttpExceptionFormatter& formatter);
 
-    IHttpExceptionFormatter* GetExceptionFormatter()
-    {
-      return exceptionFormatter_;
-    }
+    IHttpExceptionFormatter* GetExceptionFormatter();
 
-    const std::string& GetRealm() const
-    {
-      return realm_;
-    }
+    const std::string& GetRealm() const;
 
-    void SetRealm(const std::string& realm)
-    {
-      realm_ = realm;
-    }
+    void SetRealm(const std::string& realm);
 
     void SetThreadsCount(unsigned int threads);
 
-    unsigned int GetThreadsCount() const
-    {
-      return threadsCount_;
-    }
+    unsigned int GetThreadsCount() const;
 
     // New in Orthanc 1.5.2, not available for Mongoose
     void SetTcpNoDelay(bool tcpNoDelay);
 
-    bool IsTcpNoDelay() const
-    {
-      return tcpNoDelay_;
-    }
+    bool IsTcpNoDelay() const;
 
     void SetRequestTimeout(unsigned int seconds);
 
-    unsigned int GetRequestTimeout() const
-    {
-      return requestTimeout_;
-    }
+    unsigned int GetRequestTimeout() const;
 
 #if ORTHANC_ENABLE_PUGIXML == 1
-    WebDavBuckets& GetWebDavBuckets()
-    {
-      return webDavBuckets_;
-    }      
+    WebDavBuckets& GetWebDavBuckets();
 #endif
 
 #if ORTHANC_ENABLE_PUGIXML == 1

@@ -43,6 +43,34 @@ namespace Orthanc
     file_.seekg(0, file_.beg);
   }
 
+  FilesystemHttpSender::FilesystemHttpSender(const std::string& path)
+  {
+    Initialize(path);
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path)
+  {
+    Initialize(path);
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const std::string& path,
+                                             MimeType contentType)
+  {
+    SetContentType(contentType);
+    Initialize(path);
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const FilesystemStorage& storage,
+                                             const std::string& uuid)
+  {
+    Initialize(storage.GetPath(uuid));
+  }
+
+  uint64_t FilesystemHttpSender::GetContentLength()
+  {
+    return size_;
+  }
+
 
   bool FilesystemHttpSender::ReadNextChunk()
   {
@@ -62,5 +90,15 @@ namespace Orthanc
     chunkSize_ = static_cast<size_t>(file_.gcount());
 
     return chunkSize_ > 0;
+  }
+
+  const char *FilesystemHttpSender::GetChunkContent()
+  {
+    return chunk_.c_str();
+  }
+
+  size_t FilesystemHttpSender::GetChunkSize()
+  {
+    return chunkSize_;
   }
 }

@@ -40,48 +40,26 @@ namespace Orthanc
     void Initialize(const boost::filesystem::path& path);
 
   public:
-    explicit FilesystemHttpSender(const std::string& path)
-    {
-      Initialize(path);
-    }
+    explicit FilesystemHttpSender(const std::string& path);
 
-    explicit FilesystemHttpSender(const boost::filesystem::path& path)
-    {
-      Initialize(path);
-    }
+    explicit FilesystemHttpSender(const boost::filesystem::path& path);
 
     FilesystemHttpSender(const std::string& path,
-                         MimeType contentType)
-    {
-      SetContentType(contentType);
-      Initialize(path);
-    }
+                         MimeType contentType);
 
     FilesystemHttpSender(const FilesystemStorage& storage,
-                         const std::string& uuid)
-    {
-      Initialize(storage.GetPath(uuid));
-    }
+                         const std::string& uuid);
 
     /**
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE
-    {
-      return size_;
-    }
+    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE;
 
     virtual bool ReadNextChunk() ORTHANC_OVERRIDE;
 
-    virtual const char* GetChunkContent() ORTHANC_OVERRIDE
-    {
-      return chunk_.c_str();
-    }
+    virtual const char* GetChunkContent() ORTHANC_OVERRIDE;
 
-    virtual size_t GetChunkSize() ORTHANC_OVERRIDE
-    {
-      return chunkSize_;
-    }
+    virtual size_t GetChunkSize() ORTHANC_OVERRIDE;
   };
 }

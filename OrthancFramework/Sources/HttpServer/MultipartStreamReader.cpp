@@ -232,7 +232,17 @@ namespace Orthanc
     }        
   }
 
-    
+  size_t MultipartStreamReader::GetBlockSize() const
+  {
+    return blockSize_;
+  }
+
+  void MultipartStreamReader::SetHandler(MultipartStreamReader::IHandler &handler)
+  {
+    handler_ = &handler;
+  }
+
+
   void MultipartStreamReader::AddChunk(const void* chunk,
                                        size_t size)
   {

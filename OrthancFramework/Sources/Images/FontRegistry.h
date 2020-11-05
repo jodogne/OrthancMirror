@@ -42,10 +42,7 @@ namespace Orthanc
     void AddFromFile(const std::string& path);
 #endif
 
-    size_t GetSize() const
-    {
-      return fonts_.size();
-    }
+    size_t GetSize() const;
 
     const Font& GetFont(size_t i) const;
 

@@ -1523,6 +1523,11 @@ namespace Orthanc
     port_ = port;
   }
 
+  uint16_t HttpServer::GetPortNumber() const
+  {
+    return port_;
+  }
+
   void HttpServer::Start()
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
@@ -1699,6 +1704,11 @@ namespace Orthanc
     registeredUsers_.insert(encoded);
   }
 
+  bool HttpServer::IsAuthenticationEnabled() const
+  {
+    return authentication_;
+  }
+
   void HttpServer::SetSslEnabled(bool enabled)
   {
     Stop();
@@ -1749,11 +1759,21 @@ namespace Orthanc
 #endif
   }
 
+  const std::string &HttpServer::GetSslCertificate() const
+  {
+    return certificate_;
+  }
+
 
   void HttpServer::SetAuthenticationEnabled(bool enabled)
   {
     Stop();
     authentication_ = enabled;
+  }
+
+  bool HttpServer::IsSslEnabled() const
+  {
+    return ssl_;
   }
 
   void HttpServer::SetSslCertificate(const char* path)
@@ -1762,10 +1782,20 @@ namespace Orthanc
     certificate_ = path;
   }
 
+  bool HttpServer::IsRemoteAccessAllowed() const
+  {
+    return remoteAllowed_;
+  }
+
   void HttpServer::SetSslTrustedClientCertificates(const char* path)
   {
     Stop();
     trustedClientCertificates_ = path;
+  }
+
+  bool HttpServer::IsKeepAliveEnabled() const
+  {
+    return keepAlive_;
   }
 
   void HttpServer::SetRemoteAccessAllowed(bool allowed)
@@ -1774,11 +1804,21 @@ namespace Orthanc
     remoteAllowed_ = allowed;
   }
 
+  bool HttpServer::IsHttpCompressionEnabled() const
+  {
+    return httpCompression_;;
+  }
+
   void HttpServer::SetHttpCompressionEnabled(bool enabled)
   {
     Stop();
     httpCompression_ = enabled;
     CLOG(WARNING, HTTP) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
+  }
+
+  IIncomingHttpRequestFilter *HttpServer::GetIncomingHttpRequestFilter() const
+  {
+    return filter_;
   }
   
   void HttpServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
@@ -1794,6 +1834,21 @@ namespace Orthanc
     exceptionFormatter_ = &formatter;
   }
 
+  IHttpExceptionFormatter *HttpServer::GetExceptionFormatter()
+  {
+    return exceptionFormatter_;
+  }
+
+  const std::string &HttpServer::GetRealm() const
+  {
+    return realm_;
+  }
+
+  void HttpServer::SetRealm(const std::string &realm)
+  {
+    realm_ = realm;
+  }
+
 
   bool HttpServer::IsValidBasicHttpAuthentication(const std::string& basic) const
   {
@@ -1805,6 +1860,11 @@ namespace Orthanc
   {
     Stop();
     handler_ = &handler;
+  }
+
+  bool HttpServer::HasHandler() const
+  {
+    return handler_ != NULL;
   }
 
 
@@ -1832,6 +1892,11 @@ namespace Orthanc
     CLOG(INFO, HTTP) << "The embedded HTTP server will use " << threads << " threads";
   }
 
+  unsigned int HttpServer::GetThreadsCount() const
+  {
+    return threadsCount_;
+  }
+
   
   void HttpServer::SetTcpNoDelay(bool tcpNoDelay)
   {
@@ -1839,6 +1904,11 @@ namespace Orthanc
     tcpNoDelay_ = tcpNoDelay;
     CLOG(INFO, HTTP) << "TCP_NODELAY for the HTTP sockets is set to "
                      << (tcpNoDelay ? "true" : "false");
+  }
+
+  bool HttpServer::IsTcpNoDelay() const
+  {
+    return tcpNoDelay_;
   }
 
 
@@ -1854,6 +1924,19 @@ namespace Orthanc
     requestTimeout_ = seconds;
     CLOG(INFO, HTTP) << "Request timeout in the HTTP server is set to " << seconds << " seconds";
   }
+
+  unsigned int HttpServer::GetRequestTimeout() const
+  {
+    return requestTimeout_;
+  }
+
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+  HttpServer::WebDavBuckets& HttpServer::GetWebDavBuckets()
+  {
+    return webDavBuckets_;
+  }
+#endif
 
 
 #if ORTHANC_ENABLE_PUGIXML == 1

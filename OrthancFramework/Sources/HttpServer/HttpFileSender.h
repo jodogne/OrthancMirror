@@ -34,38 +34,23 @@ namespace Orthanc
     std::string filename_;
 
   public:
-    void SetContentType(MimeType contentType)
-    {
-      contentType_ = EnumerationToString(contentType);
-    }
+    void SetContentType(MimeType contentType);
 
-    void SetContentType(const std::string& contentType)
-    {
-      contentType_ = contentType;
-    }
+    void SetContentType(const std::string& contentType);
 
-    const std::string& GetContentType() const
-    {
-      return contentType_;
-    }
+    const std::string& GetContentType() const;
 
     void SetContentFilename(const std::string& filename);
 
-    const std::string& GetContentFilename() const
-    {
-      return filename_;
-    }
+    const std::string& GetContentFilename() const;
 
 
     /**
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/, 
-                                                 bool /*deflateAllowed*/) ORTHANC_OVERRIDE
-    {
-      return HttpCompression_None;
-    }
+    virtual HttpCompression SetupHttpCompression(bool /*gzipAllowed*/,
+                                                 bool /*deflateAllowed*/) ORTHANC_OVERRIDE;
 
     virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE;
     

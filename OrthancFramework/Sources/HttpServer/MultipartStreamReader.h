@@ -68,15 +68,9 @@ namespace Orthanc
 
     void SetBlockSize(size_t size);
 
-    size_t GetBlockSize() const
-    {
-      return blockSize_;
-    }
+    size_t GetBlockSize() const;
 
-    void SetHandler(IHandler& handler)
-    {
-      handler_ = &handler;
-    }
+    void SetHandler(IHandler& handler);
     
     void AddChunk(const void* chunk,
                   size_t size);
