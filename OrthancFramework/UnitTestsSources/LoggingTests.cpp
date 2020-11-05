@@ -368,12 +368,14 @@ TEST(Logging, Enumerations)
   Logging::LogCategory c;
   ASSERT_TRUE(Logging::LookupCategory(c, "generic"));  ASSERT_EQ(Logging::LogCategory_GENERIC, c);
   ASSERT_TRUE(Logging::LookupCategory(c, "plugins"));  ASSERT_EQ(Logging::LogCategory_PLUGINS, c);
-  ASSERT_TRUE(Logging::LookupCategory(c, "rest"));     ASSERT_EQ(Logging::LogCategory_REST, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "http"));     ASSERT_EQ(Logging::LogCategory_HTTP, c);
   ASSERT_TRUE(Logging::LookupCategory(c, "sqlite"));   ASSERT_EQ(Logging::LogCategory_SQLITE, c);
   ASSERT_TRUE(Logging::LookupCategory(c, "dicom"));    ASSERT_EQ(Logging::LogCategory_DICOM, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "jobs"));     ASSERT_EQ(Logging::LogCategory_JOBS, c);
+  ASSERT_TRUE(Logging::LookupCategory(c, "lua"));     ASSERT_EQ(Logging::LogCategory_LUA, c);
   ASSERT_FALSE(Logging::LookupCategory(c, "nope"));
 
-  ASSERT_EQ(5u, Logging::GetCategoriesCount());
+  ASSERT_EQ(7u, Logging::GetCategoriesCount());
 
   std::set<std::string> s;
   for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
@@ -383,18 +385,22 @@ TEST(Logging, Enumerations)
     s.insert(Logging::GetCategoryName(i));
   }
 
-  ASSERT_EQ(5u, s.size());
+  ASSERT_EQ(7u, s.size());
   ASSERT_TRUE(s.find("generic") != s.end());
   ASSERT_TRUE(s.find("plugins") != s.end());
-  ASSERT_TRUE(s.find("rest") != s.end());
+  ASSERT_TRUE(s.find("http") != s.end());
   ASSERT_TRUE(s.find("sqlite") != s.end());
   ASSERT_TRUE(s.find("dicom") != s.end());
+  ASSERT_TRUE(s.find("lua") != s.end());
+  ASSERT_TRUE(s.find("jobs") != s.end());
 
   ASSERT_THROW(Logging::GetCategoryName(Logging::GetCategoriesCount()), OrthancException);
 
   ASSERT_STREQ("generic", Logging::GetCategoryName(Logging::LogCategory_GENERIC));
   ASSERT_STREQ("plugins", Logging::GetCategoryName(Logging::LogCategory_PLUGINS));
-  ASSERT_STREQ("rest", Logging::GetCategoryName(Logging::LogCategory_REST));
+  ASSERT_STREQ("http", Logging::GetCategoryName(Logging::LogCategory_HTTP));
   ASSERT_STREQ("sqlite", Logging::GetCategoryName(Logging::LogCategory_SQLITE));
   ASSERT_STREQ("dicom", Logging::GetCategoryName(Logging::LogCategory_DICOM));
+  ASSERT_STREQ("lua", Logging::GetCategoryName(Logging::LogCategory_LUA));
+  ASSERT_STREQ("jobs", Logging::GetCategoryName(Logging::LogCategory_JOBS));
 }

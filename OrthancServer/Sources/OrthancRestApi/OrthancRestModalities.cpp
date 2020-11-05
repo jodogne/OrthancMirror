@@ -1587,7 +1587,7 @@ namespace Orthanc
 
           for (size_t j = 0; j < orthancId.size(); j++)
           {
-            CLOG(INFO, REST) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
+            CLOG(INFO, HTTP) << "Storage commitment - Removing SOP instance UID / Orthanc ID: "
                              << sopInstanceUids[i] << " / " << orthancId[j];
 
             Json::Value tmp;

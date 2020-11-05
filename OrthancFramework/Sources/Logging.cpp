@@ -206,9 +206,9 @@ namespace Orthanc
         target = LogCategory_PLUGINS;
         return true;
       }
-      else if (category == "rest")
+      else if (category == "http")
       {
-        target = LogCategory_REST;
+        target = LogCategory_HTTP;
         return true;
       }
       else if (category == "dicom")
@@ -221,6 +221,16 @@ namespace Orthanc
         target = LogCategory_SQLITE;
         return true;
       }
+      else if (category == "jobs")
+      {
+        target = LogCategory_JOBS;
+        return true;
+      }
+      else if (category == "lua")
+      {
+        target = LogCategory_LUA;
+        return true;
+      }
       else
       {
         return false;
@@ -230,7 +240,7 @@ namespace Orthanc
 
     unsigned int GetCategoriesCount()
     {
-      return 5;
+      return 7;
     }
 
 
@@ -257,14 +267,20 @@ namespace Orthanc
         case LogCategory_PLUGINS:
           return "plugins";
             
-        case LogCategory_REST:
-          return "rest";
+        case LogCategory_HTTP:
+          return "http";
             
         case LogCategory_DICOM:
           return "dicom";
             
         case LogCategory_SQLITE:
           return "sqlite";
+
+        case LogCategory_JOBS:
+          return "jobs";
+
+        case LogCategory_LUA:
+          return "lua";
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);

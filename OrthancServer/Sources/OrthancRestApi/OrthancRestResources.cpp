@@ -1351,12 +1351,12 @@ namespace Orthanc
 
     if (ok)
     {
-      CLOG(INFO, REST) << "The attachment " << name << " of resource " << publicId << " has the right MD5";
+      CLOG(INFO, HTTP) << "The attachment " << name << " of resource " << publicId << " has the right MD5";
       call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
     {
-      CLOG(INFO, REST) << "The attachment " << name << " of resource " << publicId << " has bad MD5!";
+      CLOG(INFO, HTTP) << "The attachment " << name << " of resource " << publicId << " has bad MD5!";
     }
   }
 
