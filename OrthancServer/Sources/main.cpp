@@ -621,8 +621,15 @@ static void PrintHelp(const char* path)
     << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
     << "case of a directory, all the JSON files it contains will be merged. " << std::endl
     << "If no configuration path is given on the command line, a set of default " << std::endl
-    << "parameters is used. Please refer to the Orthanc homepage for the full " << std::endl
-    << "instructions about how to use Orthanc <http://www.orthanc-server.com/>." << std::endl
+    << "parameters is used. Please refer to the Orthanc Book for the full " << std::endl
+    << "instructions about how to use Orthanc <http://book.orthanc-server.com/>." << std::endl
+    << std::endl
+    << "Pay attention to the fact that the order of the options is important." << std::endl
+    << "Options are read left to right. In particular, options such as \"--verbose\" can " << std::endl
+    << "reset the value of other log-related options that were read before." << std::endl
+    << std::endl
+    << "The recommended set of options to debug DICOM communications is "
+    << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl
     << std::endl
     << "Command-line options:" << std::endl
     << "  --help\t\tdisplay this help and exit" << std::endl
@@ -631,7 +638,7 @@ static void PrintHelp(const char* path)
     << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
     << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
     << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
-    << "\t\t\t(if file is \"-\", dumps to stdout)" << std::endl
+    << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
     << "  --errors\t\tprint the supported error codes and exit" << std::endl
     << "  --verbose\t\tbe verbose in logs" << std::endl
     << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
