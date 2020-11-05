@@ -596,7 +596,8 @@ namespace Orthanc
     static void GetLinePrefix(std::string& prefix,
                               LogLevel level,
                               const char* file,
-                              int line)
+                              int line,
+                              LogCategory category)
     {
       boost::filesystem::path path(file);
       boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
@@ -659,6 +660,11 @@ namespace Orthanc
 
       prefix = (std::string(date) + path.filename().string() + ":" +
                 boost::lexical_cast<std::string>(line) + "] ");
+
+      if (category != LogCategory_GENERIC)
+      {
+        prefix += "(" + std::string(GetCategoryName(category)) + ") ";
+      }
     }
     
 
@@ -791,7 +797,7 @@ namespace Orthanc
         }
 
         std::string prefix;
-        GetLinePrefix(prefix, level_, file, line);
+        GetLinePrefix(prefix, level_, file, line, category);
 
         {
           // We lock the global mutex. The mutex is locked until the
