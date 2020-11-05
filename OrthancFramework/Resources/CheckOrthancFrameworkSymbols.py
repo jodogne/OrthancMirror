@@ -86,6 +86,44 @@ tu = index.parse(AMALGAMATION,
 FILES = []
 COUNT = 0
 
+def ExploreClass(child, fqn):
+    visible = False
+
+    for i in child.get_children():
+        if (i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR and
+            i.spelling == 'default'):
+            visible = True
+
+    if visible:
+        isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
+
+        for i in child.get_children():
+            if i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
+                isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
+
+            elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
+                  i.kind == clang.cindex.CursorKind.STRUCT_DECL):
+                # This is a subclass
+                ExploreClass(i, fqn + [ i.spelling ])
+                
+            elif (i.kind == clang.cindex.CursorKind.CXX_METHOD or
+                  i.kind == clang.cindex.CursorKind.CONSTRUCTOR or
+                  i.kind == clang.cindex.CursorKind.DESTRUCTOR):
+                if isPublic:
+                    hasImplementation = False
+                    for j in i.get_children():
+                        if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+                            hasImplementation = True
+
+                    if hasImplementation:
+                        global FILES, COUNT
+                        FILES.append(os.path.normpath(str(child.location.file)))
+                        COUNT += 1
+
+                        print('Exported public method with an implementation: %s::%s()' %
+                              ('::'.join(fqn), i.spelling))
+
+
 def ExploreNamespace(node, namespace):
     for child in node.get_children():
         fqn = namespace + [ child.spelling ]
@@ -95,36 +133,7 @@ def ExploreNamespace(node, namespace):
 
         elif (child.kind == clang.cindex.CursorKind.CLASS_DECL or
               child.kind == clang.cindex.CursorKind.STRUCT_DECL):
-            visible = False
-            
-            for i in child.get_children():
-                if (i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR and
-                    i.spelling == 'default'):
-                    visible = True
-
-            if visible:
-                isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
-                
-                for i in child.get_children():
-                    if i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
-                        isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
-                        
-                    elif (i.kind == clang.cindex.CursorKind.CXX_METHOD or
-                          i.kind == clang.cindex.CursorKind.CONSTRUCTOR):
-                        if isPublic:
-                            hasImplementation = False
-                            for j in i.get_children():
-                                if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
-                                    hasImplementation = True
-
-                            if hasImplementation:
-                                global FILES, COUNT
-                                FILES.append(str(child.location.file))
-                                COUNT += 1
-                                
-                                print('Exported public method with an implementation: %s::%s()' %
-                                      ('::'.join(fqn), i.spelling))
-
+            ExploreClass(child, fqn)
 
 for node in tu.cursor.get_children():
     if (node.kind == clang.cindex.CursorKind.NAMESPACE and

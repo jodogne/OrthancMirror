@@ -68,54 +68,25 @@ namespace Orthanc
 #endif
 
   public:
-    ImageAccessor()
-    {
-      AssignEmpty(PixelFormat_Grayscale8);
-    }
+    ImageAccessor();
 
-    virtual ~ImageAccessor()
-    {
-    }
+    virtual ~ImageAccessor();
 
-    bool IsReadOnly() const
-    {
-      return readOnly_;
-    }
+    bool IsReadOnly() const;
 
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
+    PixelFormat GetFormat() const;
 
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
+    unsigned int GetBytesPerPixel() const;
 
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
+    unsigned int GetWidth() const;
 
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
+    unsigned int GetHeight() const;
 
-    unsigned int GetPitch() const
-    {
-      return pitch_;
-    }
+    unsigned int GetPitch() const;
 
-    unsigned int GetSize() const
-    {
-      return GetHeight() * GetPitch();
-    }
+    unsigned int GetSize() const;
 
-    const void* GetConstBuffer() const
-    {
-      return buffer_;
-    }
+    const void* GetConstBuffer() const;
 
     void* GetBuffer();
 
@@ -131,10 +102,7 @@ namespace Orthanc
                         unsigned int pitch,
                         const void *buffer);
 
-    void GetReadOnlyAccessor(ImageAccessor& target) const
-    {
-      target.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
-    }
+    void GetReadOnlyAccessor(ImageAccessor& target) const;
 
     void AssignWritable(PixelFormat format,
                         unsigned int width,

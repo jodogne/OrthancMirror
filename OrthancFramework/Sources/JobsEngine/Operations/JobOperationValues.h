@@ -39,34 +39,19 @@ namespace Orthanc
                 bool clear);
 
   public:
-    ~JobOperationValues()
-    {
-      Clear();
-    }
+    ~JobOperationValues();
 
-    void Move(JobOperationValues& target)
-    {
-      return Append(target, true);
-    }
+    void Move(JobOperationValues& target);
 
-    void Copy(JobOperationValues& target)
-    {
-      return Append(target, false);
-    }
+    void Copy(JobOperationValues& target);
 
     void Clear();
 
-    void Reserve(size_t count)
-    {
-      values_.reserve(count);
-    }
+    void Reserve(size_t count);
 
     void Append(JobOperationValue* value);  // Takes ownership
 
-    size_t GetSize() const
-    {
-      return values_.size();
-    }
+    size_t GetSize() const;
 
     JobOperationValue& GetValue(size_t index) const;
 

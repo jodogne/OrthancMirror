@@ -41,6 +41,11 @@ namespace Orthanc
   static const char* RUNTIME = "Runtime";
 
 
+  JobsRegistry::IObserver::~IObserver()
+  {
+  }
+
+
   class JobsRegistry::JobHandler : public boost::noncopyable
   {
   private:
@@ -709,6 +714,12 @@ namespace Orthanc
       // the job history size is empty
       ForgetOldCompletedJobs();
     }
+  }
+
+  JobsRegistry::JobsRegistry(size_t maxCompletedJobs) :
+    maxCompletedJobs_(maxCompletedJobs),
+    observer_(NULL)
+  {
   }
 
 

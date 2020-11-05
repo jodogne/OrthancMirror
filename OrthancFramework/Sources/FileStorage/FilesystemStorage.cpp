@@ -76,6 +76,19 @@ namespace Orthanc
     SystemToolbox::MakeDirectory(root);
   }
 
+  FilesystemStorage::FilesystemStorage(const std::string &root) :
+    fsyncOnWrite_(false)
+  {
+    Setup(root);
+  }
+
+  FilesystemStorage::FilesystemStorage(const std::string &root,
+                                       bool fsyncOnWrite) :
+    fsyncOnWrite_(fsyncOnWrite)
+  {
+    Setup(root);
+  }
+
 
 
   static const char* GetDescriptionInternal(FileContentType content)

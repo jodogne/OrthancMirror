@@ -49,4 +49,10 @@ namespace Orthanc
 
     outputs.Append(input.Clone());
   }
+
+  void LogJobOperation::Serialize(Json::Value &result) const
+  {
+    result = Json::objectValue;
+    result["Type"] = "Log";
+  }
 }

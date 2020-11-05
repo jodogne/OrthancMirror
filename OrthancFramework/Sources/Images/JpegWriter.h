@@ -58,15 +58,10 @@ namespace Orthanc
     uint8_t  quality_;
 
   public:
-    JpegWriter() : quality_(90)
-    {
-    }
+    JpegWriter();
 
     void SetQuality(uint8_t quality);
 
-    uint8_t GetQuality() const
-    {
-      return quality_;
-    }
+    uint8_t GetQuality() const;
   };
 }

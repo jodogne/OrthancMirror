@@ -62,17 +62,11 @@ namespace Orthanc
                           MetricsType type);
 
   public:
-    MetricsRegistry() :
-      enabled_(true)
-    {
-    }
+    MetricsRegistry();
 
     ~MetricsRegistry();
 
-    bool IsEnabled() const
-    {
-      return enabled_;
-    }
+    bool IsEnabled() const;
 
     void SetEnabled(bool enabled);
 
@@ -81,20 +75,10 @@ namespace Orthanc
 
     void SetValue(const std::string& name,
                   float value,
-                  MetricsType type)
-    {
-      // Inlining to avoid loosing time if metrics are disabled
-      if (enabled_)
-      {
-        SetValueInternal(name, value, type);
-      }
-    }
+                  MetricsType type);
     
     void SetValue(const std::string& name,
-                  float value)
-    {
-      SetValue(name, value, MetricsType_Default);
-    }
+                  float value);
 
     MetricsType GetMetricsType(const std::string& name);
 
@@ -113,12 +97,7 @@ namespace Orthanc
     public:
       SharedMetrics(MetricsRegistry& registry,
                     const std::string& name,
-                    MetricsType type) :
-        registry_(registry),
-        name_(name),
-        value_(0)
-      {
-      }
+                    MetricsType type);
 
       void Add(float delta);
     };
@@ -130,16 +109,9 @@ namespace Orthanc
       SharedMetrics&   metrics_;
 
     public:
-      explicit ActiveCounter(SharedMetrics& metrics) :
-        metrics_(metrics)
-      {
-        metrics_.Add(1);
-      }
+      explicit ActiveCounter(SharedMetrics& metrics);
 
-      ~ActiveCounter()
-      {
-        metrics_.Add(-1);
-      }
+      ~ActiveCounter();
     };
 
 
@@ -156,23 +128,11 @@ namespace Orthanc
 
     public:
       Timer(MetricsRegistry& registry,
-            const std::string& name) :
-        registry_(registry),
-        name_(name),
-        type_(MetricsType_MaxOver10Seconds)
-      {
-        Start();
-      }
+            const std::string& name);
 
       Timer(MetricsRegistry& registry,
             const std::string& name,
-            MetricsType type) :
-        registry_(registry),
-        name_(name),
-        type_(type)
-      {
-        Start();
-      }
+            MetricsType type);
 
       ~Timer();
     };

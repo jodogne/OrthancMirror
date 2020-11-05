@@ -69,6 +69,16 @@ namespace Orthanc
     // otherwise lifetime is bad! (*)
     search_.reset(new Search(pattern_));
   }
+
+  const std::string &StringMatcher::GetPattern() const
+  {
+    return pattern_;
+  }
+
+  bool StringMatcher::IsValid() const
+  {
+    return valid_;
+  }
   
 
   bool StringMatcher::Apply(Iterator start,
@@ -89,6 +99,11 @@ namespace Orthanc
     }
 
     return valid_;
+  }
+
+  bool StringMatcher::Apply(const std::string &corpus)
+  {
+    return Apply(corpus.begin(), corpus.end());
   }
 
 

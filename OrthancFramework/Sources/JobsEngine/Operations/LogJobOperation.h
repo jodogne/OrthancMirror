@@ -34,10 +34,6 @@ namespace Orthanc
     virtual void Apply(JobOperationValues& outputs,
                        const JobOperationValue& input) ORTHANC_OVERRIDE;
 
-    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE
-    {
-      result = Json::objectValue;
-      result["Type"] = "Log";
-    }
+    virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }

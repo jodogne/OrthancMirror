@@ -54,50 +54,29 @@ namespace Orthanc
                 unsigned int height,
                 bool forceMinimalPitch);
 
-    ImageBuffer()
-    {
-      Initialize();
-    }
+    ImageBuffer();
 
-    ~ImageBuffer()
-    {
-      Deallocate();
-    }
+    ~ImageBuffer();
 
-    PixelFormat GetFormat() const
-    {
-      return format_;
-    }
+    PixelFormat GetFormat() const;
 
     void SetFormat(PixelFormat format);
 
-    unsigned int GetWidth() const
-    {
-      return width_;
-    }
+    unsigned int GetWidth() const;
 
     void SetWidth(unsigned int width);
 
-    unsigned int GetHeight() const
-    {
-      return height_;
-    }
+    unsigned int GetHeight() const;
 
     void SetHeight(unsigned int height);
 
-    unsigned int GetBytesPerPixel() const
-    {
-      return ::Orthanc::GetBytesPerPixel(format_);
-    }
+    unsigned int GetBytesPerPixel() const;
 
     void GetReadOnlyAccessor(ImageAccessor& accessor);
 
     void GetWriteableAccessor(ImageAccessor& accessor);
 
-    bool IsMinimalPitchForced() const
-    {
-      return forceMinimalPitch_;
-    }
+    bool IsMinimalPitchForced() const;
 
     void AcquireOwnership(ImageBuffer& other);
   };

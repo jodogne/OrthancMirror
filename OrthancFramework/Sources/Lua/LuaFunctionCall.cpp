@@ -182,6 +182,11 @@ namespace Orthanc
     PushJson(value);
   }
 
+  void LuaFunctionCall::Execute()
+  {
+    ExecuteInternal(0);
+  }
+
 
 #if ORTHANC_ENABLE_DCMTK == 1
   void LuaFunctionCall::ExecuteToDicom(DicomMap& target)

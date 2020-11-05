@@ -37,38 +37,30 @@ namespace Orthanc
   public:
     class ORTHANC_PUBLIC ImagePoint
     {
+    private:
       int32_t x_;
       int32_t y_;
       
     public:
-      ImagePoint(int32_t x, 
-        int32_t y) : 
-        x_(x),
-        y_(y)
-      {
-      }
+      ImagePoint(int32_t x,
+                 int32_t y);
 
-      int32_t GetX() const
-      {
-        return x_;
-      }
+      int32_t GetX() const;
 
-      int32_t GetY() const
-      {
-        return y_;
-      }
+      int32_t GetY() const;
 
-      void Set(int32_t x, int32_t y)
-      {
-        x_ = x;
-        y_ = y;
-      }
+      void Set(int32_t x, int32_t y);
 
-      void ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY);
+      void ClipTo(int32_t minX,
+                  int32_t maxX,
+                  int32_t minY,
+                  int32_t maxY);
 
       double GetDistanceTo(const ImagePoint& other) const;
 
-      double GetDistanceToLine(double a, double b, double c) const; // where ax + by + c = 0 is the equation of the line
+      double GetDistanceToLine(double a,
+                               double b,
+                               double c) const; // where ax + by + c = 0 is the equation of the line
     };
 
     static void Copy(ImageAccessor& target,

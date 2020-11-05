@@ -115,6 +115,11 @@ namespace Orthanc
     }
   }
 
+  bool HierarchicalZipWriter::Index::IsRoot() const
+  {
+    return stack_.size() == 1;
+  }
+
   std::string HierarchicalZipWriter::Index::OpenFile(const char* name)
   {
     return GetCurrentDirectoryPath() + EnsureUniqueFilename(name);

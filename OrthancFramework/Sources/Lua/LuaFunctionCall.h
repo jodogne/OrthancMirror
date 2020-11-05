@@ -71,10 +71,7 @@ namespace Orthanc
 
     void PushDicom(const DicomArray& dicom);
 
-    void Execute()
-    {
-      ExecuteInternal(0);
-    }
+    void Execute();
 
     bool ExecutePredicate();
 

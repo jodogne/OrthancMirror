@@ -48,23 +48,14 @@ namespace Orthanc
   public:
     explicit StringMatcher(const std::string& pattern);
 
-    const std::string& GetPattern() const
-    {
-      return pattern_;
-    }
+    const std::string& GetPattern() const;
 
-    bool IsValid() const
-    {
-      return valid_;
-    }
+    bool IsValid() const;
 
     bool Apply(Iterator start,
                Iterator end);
 
-    bool Apply(const std::string& corpus)
-    {
-      return Apply(corpus.begin(), corpus.end());
-    }
+    bool Apply(const std::string& corpus);
 
     Iterator GetMatchBegin() const;
 

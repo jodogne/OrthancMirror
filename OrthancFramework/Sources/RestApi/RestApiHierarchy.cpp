@@ -61,6 +61,27 @@ namespace Orthanc
   }
 
 
+  void RestApiHierarchy::Resource::Register(RestApiGetCall::Handler handler)
+  {
+    getHandler_ = handler;
+  }
+
+  void RestApiHierarchy::Resource::Register(RestApiPutCall::Handler handler)
+  {
+    putHandler_ = handler;
+  }
+
+  void RestApiHierarchy::Resource::Register(RestApiPostCall::Handler handler)
+  {
+    postHandler_ = handler;
+  }
+
+  void RestApiHierarchy::Resource::Register(RestApiDeleteCall::Handler handler)
+  {
+    deleteHandler_ = handler;
+  }
+
+
   bool RestApiHierarchy::Resource::IsEmpty() const
   {
     return (getHandler_ == NULL &&
@@ -145,6 +166,10 @@ namespace Orthanc
     }
   }
 
+
+  RestApiHierarchy::IVisitor::~IVisitor()
+  {
+  }
 
 
   void RestApiHierarchy::DeleteChildren(Children& children)
@@ -391,6 +416,11 @@ namespace Orthanc
     }
   }
 
+  bool RestApiHierarchy::GetDirectory(Json::Value &result, const UriComponents &uri)
+  {
+    return GetDirectory(result, uri, 0);
+  }
+
 
   bool RestApiHierarchy::LookupResource(const UriComponents& uri,
                                         IVisitor& visitor)
@@ -463,4 +493,5 @@ namespace Orthanc
       }
     }
   }
+
 }

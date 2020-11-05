@@ -105,9 +105,7 @@ namespace Orthanc
                                  bool allowNewSopInstanceUid);
     
   public:    
-    virtual ~IDicomTranscoder()
-    {
-    }
+    virtual ~IDicomTranscoder();
 
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,

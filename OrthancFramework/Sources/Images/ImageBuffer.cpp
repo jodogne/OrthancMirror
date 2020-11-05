@@ -88,6 +88,21 @@ namespace Orthanc
     SetFormat(format);
   }
 
+  ImageBuffer::ImageBuffer()
+  {
+    Initialize();
+  }
+
+  ImageBuffer::~ImageBuffer()
+  {
+    Deallocate();
+  }
+
+  PixelFormat ImageBuffer::GetFormat() const
+  {
+    return format_;
+  }
+
 
   void ImageBuffer::Initialize()
   {
@@ -110,6 +125,11 @@ namespace Orthanc
     }
   }
 
+  unsigned int ImageBuffer::GetWidth() const
+  {
+    return width_;
+  }
+
 
   void ImageBuffer::SetWidth(unsigned int width)
   {
@@ -120,6 +140,11 @@ namespace Orthanc
     }
   }
 
+  unsigned int ImageBuffer::GetHeight() const
+  {
+    return height_;
+  }
+
 
   void ImageBuffer::SetHeight(unsigned int height)
   {
@@ -128,6 +153,11 @@ namespace Orthanc
       changed_ = true;
       height_ = height;     
     }
+  }
+
+  unsigned int ImageBuffer::GetBytesPerPixel() const
+  {
+    return ::Orthanc::GetBytesPerPixel(format_);
   }
 
   
@@ -142,6 +172,11 @@ namespace Orthanc
   {
     Allocate();
     accessor.AssignWritable(format_, width_, height_, pitch_, buffer_);
+  }
+
+  bool ImageBuffer::IsMinimalPitchForced() const
+  {
+    return forceMinimalPitch_;
   }
 
 

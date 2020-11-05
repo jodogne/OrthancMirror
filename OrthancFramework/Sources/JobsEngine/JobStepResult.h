@@ -44,22 +44,11 @@ namespace Orthanc
     }
 
   public:
-    explicit JobStepResult() :
-      code_(JobStepCode_Failure),
-      timeout_(0),
-      error_(ErrorCode_InternalError)
-    {
-    }
+    explicit JobStepResult();
 
-    static JobStepResult Success()
-    {
-      return JobStepResult(JobStepCode_Success);
-    }
+    static JobStepResult Success();
 
-    static JobStepResult Continue()
-    {
-      return JobStepResult(JobStepCode_Continue);
-    }
+    static JobStepResult Continue();
 
     static JobStepResult Retry(unsigned int timeout);
 
@@ -68,10 +57,7 @@ namespace Orthanc
 
     static JobStepResult Failure(const OrthancException& exception);
 
-    JobStepCode GetCode() const
-    {
-      return code_;
-    }
+    JobStepCode GetCode() const;
 
     unsigned int GetRetryTimeout() const;
 

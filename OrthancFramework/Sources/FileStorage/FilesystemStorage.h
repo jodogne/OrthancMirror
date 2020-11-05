@@ -61,18 +61,10 @@ namespace Orthanc
 #endif
 
   public:
-    explicit FilesystemStorage(const std::string& root) :
-      fsyncOnWrite_(false)
-    {
-      Setup(root);
-    }
+    explicit FilesystemStorage(const std::string& root);
 
     FilesystemStorage(const std::string& root,
-                      bool fsyncOnWrite) :
-      fsyncOnWrite_(fsyncOnWrite)
-    {
-      Setup(root);
-    }
+                      bool fsyncOnWrite);
 
     virtual void Create(const std::string& uuid,
                         const void* content, 

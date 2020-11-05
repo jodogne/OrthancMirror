@@ -64,10 +64,7 @@ namespace Orthanc
 
       ~Index();
 
-      bool IsRoot() const
-      {
-        return stack_.size() == 1;
-      }
+      bool IsRoot() const;
 
       std::string OpenFile(const char* name);
 

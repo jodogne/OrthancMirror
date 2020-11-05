@@ -53,40 +53,19 @@ namespace Orthanc
 
     JobInfo();
 
-    const std::string& GetIdentifier() const
-    {
-      return id_;
-    }
+    const std::string& GetIdentifier() const;
 
-    int GetPriority() const
-    {
-      return priority_;
-    }
+    int GetPriority() const;
 
-    JobState GetState() const
-    {
-      return state_;
-    }
+    JobState GetState() const;
 
-    const boost::posix_time::ptime& GetInfoTime() const
-    {
-      return timestamp_;
-    }
+    const boost::posix_time::ptime& GetInfoTime() const;
 
-    const boost::posix_time::ptime& GetCreationTime() const
-    {
-      return creationTime_;
-    }
+    const boost::posix_time::ptime& GetCreationTime() const;
 
-    const boost::posix_time::time_duration& GetRuntime() const
-    {
-      return runtime_;
-    }
+    const boost::posix_time::time_duration& GetRuntime() const;
 
-    bool HasEstimatedTimeOfArrival() const
-    {
-      return hasEta_;
-    }
+    bool HasEstimatedTimeOfArrival() const;
 
     bool HasCompletionTime() const;
 
@@ -94,15 +73,9 @@ namespace Orthanc
 
     const boost::posix_time::ptime& GetCompletionTime() const;
 
-    const JobStatus& GetStatus() const
-    {
-      return status_;
-    }
+    const JobStatus& GetStatus() const;
 
-    JobStatus& GetStatus()
-    {
-      return status_;
-    }
+    JobStatus& GetStatus();
 
     void Format(Json::Value& target) const;
   };

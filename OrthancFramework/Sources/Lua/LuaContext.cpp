@@ -578,6 +578,17 @@ namespace Orthanc
   }
 
 
+  void LuaContext::Execute(const std::string &command)
+  {
+    ExecuteInternal(NULL, command);
+  }
+
+  void LuaContext::Execute(std::string &output, const std::string &command)
+  {
+    ExecuteInternal(&output, command);
+  }
+
+
   void LuaContext::ExecuteInternal(std::string* output,
                                    const std::string& command)
   {
@@ -607,6 +618,15 @@ namespace Orthanc
     lua_getglobal(lua_, name);
     return lua_type(lua_, -1) == LUA_TFUNCTION;
   }
+
+
+#if ORTHANC_ENABLE_CURL == 1
+  void LuaContext::SetHttpCredentials(const char* username,
+                                      const char* password)
+  {
+    httpClient_.SetCredentials(username, password);
+  }
+#endif
 
 
   void LuaContext::Execute(Json::Value& output,

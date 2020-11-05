@@ -55,15 +55,9 @@ namespace Orthanc
 
     bool WaitEmpty(int32_t millisecondsTimeout);
 
-    bool IsFifoPolicy() const
-    {
-      return isFifo_;
-    }
+    bool IsFifoPolicy() const;
 
-    bool IsLifoPolicy() const
-    {
-      return !isFifo_;
-    }
+    bool IsLifoPolicy() const;
 
     void SetFifoPolicy();
 

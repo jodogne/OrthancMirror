@@ -36,9 +36,7 @@ namespace Orthanc
     class ICommand : public boost::noncopyable
     {
     public:
-      virtual ~ICommand()
-      {
-      }
+      virtual ~ICommand();
 
       virtual bool Execute(const std::string& jobId) = 0;
 
@@ -48,9 +46,7 @@ namespace Orthanc
     class ICommandUnserializer : public boost::noncopyable
     {
     public:
-      virtual ~ICommandUnserializer()
-      {
-      }
+      virtual ~ICommandUnserializer();
       
       virtual ICommand* Unserialize(const Json::Value& source) const = 0;
     };
@@ -70,15 +66,9 @@ namespace Orthanc
 
     virtual ~SetOfCommandsJob();
 
-    size_t GetPosition() const
-    {
-      return position_;
-    }
+    size_t GetPosition() const;
 
-    void SetDescription(const std::string& description)
-    {
-      description_ = description;
-    }
+    void SetDescription(const std::string& description);
 
     const std::string& GetDescription() const
     {
@@ -87,33 +77,21 @@ namespace Orthanc
 
     void Reserve(size_t size);
 
-    size_t GetCommandsCount() const
-    {
-      return commands_.size();
-    }
+    size_t GetCommandsCount() const;
 
     void AddCommand(ICommand* command);  // Takes ownership
 
-    bool IsPermissive() const
-    {
-      return permissive_;
-    }
+    bool IsPermissive() const;
 
     void SetPermissive(bool permissive);
 
     virtual void Reset() ORTHANC_OVERRIDE;
     
-    virtual void Start() ORTHANC_OVERRIDE
-    {
-      started_ = true;
-    }
+    virtual void Start() ORTHANC_OVERRIDE;
     
     virtual float GetProgress() ORTHANC_OVERRIDE;
 
-    bool IsStarted() const
-    {
-      return started_;
-    }
+    bool IsStarted() const;
 
     const ICommand& GetCommand(size_t index) const;
       
@@ -125,9 +103,6 @@ namespace Orthanc
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
-                           const std::string& key) ORTHANC_OVERRIDE
-    {
-      return false;
-    }
+                           const std::string& key) ORTHANC_OVERRIDE;
   };
 }
