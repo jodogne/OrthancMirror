@@ -115,74 +115,36 @@ namespace Orthanc
 
   public:
     HttpOutput(IHttpOutputStream& stream,
-               bool isKeepAlive) : 
-      stateMachine_(stream, isKeepAlive),
-      isDeflateAllowed_(false),
-      isGzipAllowed_(false)
-    {
-    }
+               bool isKeepAlive);
 
-    void SetDeflateAllowed(bool allowed)
-    {
-      isDeflateAllowed_ = allowed;
-    }
+    void SetDeflateAllowed(bool allowed);
 
-    bool IsDeflateAllowed() const
-    {
-      return isDeflateAllowed_;
-    }
+    bool IsDeflateAllowed() const;
 
-    void SetGzipAllowed(bool allowed)
-    {
-      isGzipAllowed_ = allowed;
-    }
+    void SetGzipAllowed(bool allowed);
 
-    bool IsGzipAllowed() const
-    {
-      return isGzipAllowed_;
-    }
+    bool IsGzipAllowed() const;
 
     void SendStatus(HttpStatus status,
 		    const char* message,
 		    size_t messageSize);
 
-    void SendStatus(HttpStatus status)
-    {
-      SendStatus(status, NULL, 0);
-    }
+    void SendStatus(HttpStatus status);
 
     void SendStatus(HttpStatus status,
-		    const std::string& message)
-    {
-      SendStatus(status, message.c_str(), message.size());
-    }
+                    const std::string& message);
 
-    void SetContentType(MimeType contentType)
-    {
-      stateMachine_.SetContentType(EnumerationToString(contentType));
-    }
+    void SetContentType(MimeType contentType);
     
-    void SetContentType(const std::string& contentType)
-    {
-      stateMachine_.SetContentType(contentType.c_str());
-    }
+    void SetContentType(const std::string& contentType);
 
-    void SetContentFilename(const char* filename)
-    {
-      stateMachine_.SetContentFilename(filename);
-    }
+    void SetContentFilename(const char* filename);
 
     void SetCookie(const std::string& cookie,
-                   const std::string& value)
-    {
-      stateMachine_.SetCookie(cookie, value);
-    }
+                   const std::string& value);
 
     void AddHeader(const std::string& key,
-                   const std::string& value)
-    {
-      stateMachine_.AddHeader(key, value);
-    }
+                   const std::string& value);
 
     void Answer(const void* buffer, 
                 size_t length);
@@ -198,27 +160,15 @@ namespace Orthanc
     void SendUnauthorized(const std::string& realm);
 
     void StartMultipart(const std::string& subType,
-                        const std::string& contentType)
-    {
-      stateMachine_.StartMultipart(subType, contentType);
-    }
+                        const std::string& contentType);
 
-    void SendMultipartItem(const void* item, 
+    void SendMultipartItem(const void* item,
                            size_t size,
-                           const std::map<std::string, std::string>& headers)
-    {
-      stateMachine_.SendMultipartItem(item, size, headers);
-    }
+                           const std::map<std::string, std::string>& headers);
 
-    void CloseMultipart()
-    {
-      stateMachine_.CloseMultipart();
-    }
+    void CloseMultipart();
 
-    bool IsWritingMultipart() const
-    {
-      return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
-    }
+    bool IsWritingMultipart() const;
 
     void Answer(IHttpStreamAnswer& stream);
 

@@ -55,6 +55,10 @@ namespace Orthanc
   }
 #endif
 
+  size_t FontRegistry::GetSize() const
+  {
+    return fonts_.size();
+  }
 
   const Font& FontRegistry::GetFont(size_t i) const
   {
@@ -80,5 +84,4 @@ namespace Orthanc
 
     return NULL;
   }
-
 }

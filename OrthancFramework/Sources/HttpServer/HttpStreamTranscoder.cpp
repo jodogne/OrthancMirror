@@ -98,6 +98,16 @@ namespace Orthanc
     }
   }
 
+  HttpStreamTranscoder::HttpStreamTranscoder(IHttpStreamAnswer &source, CompressionType compression) :
+    source_(source),
+    sourceCompression_(compression),
+    bytesToSkip_(0),
+    skipped_(0),
+    currentChunkOffset_(0),
+    ready_(false)
+  {
+  }
+
 
   HttpCompression HttpStreamTranscoder::SetupHttpCompression(bool gzipAllowed,
                                                              bool deflateAllowed)
@@ -120,6 +130,16 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
+  }
+
+  bool HttpStreamTranscoder::HasContentFilename(std::string &filename)
+  {
+    return source_.HasContentFilename(filename);
+  }
+
+  std::string HttpStreamTranscoder::GetContentType()
+  {
+    return source_.GetContentType();
   }
 
 

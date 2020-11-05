@@ -48,29 +48,15 @@ namespace Orthanc
 
   public:
     HttpStreamTranscoder(IHttpStreamAnswer& source,
-                         CompressionType compression) : 
-      source_(source),
-      sourceCompression_(compression),
-      bytesToSkip_(0),
-      skipped_(0),
-      currentChunkOffset_(0),
-      ready_(false)
-    {
-    }
+                         CompressionType compression);
 
     // This is the first method to be called
     virtual HttpCompression SetupHttpCompression(bool gzipAllowed,
                                                  bool deflateAllowed) ORTHANC_OVERRIDE;
 
-    virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE
-    {
-      return source_.HasContentFilename(filename);
-    }
+    virtual bool HasContentFilename(std::string& filename) ORTHANC_OVERRIDE;
 
-    virtual std::string GetContentType() ORTHANC_OVERRIDE
-    {
-      return source_.GetContentType();
-    }
+    virtual std::string GetContentType() ORTHANC_OVERRIDE;
 
     virtual uint64_t GetContentLength() ORTHANC_OVERRIDE;
 

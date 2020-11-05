@@ -282,6 +282,35 @@ namespace Orthanc
   }
 
 
+  HttpOutput::HttpOutput(IHttpOutputStream &stream,
+                         bool isKeepAlive) :
+    stateMachine_(stream, isKeepAlive),
+    isDeflateAllowed_(false),
+    isGzipAllowed_(false)
+  {
+  }
+
+  void HttpOutput::SetDeflateAllowed(bool allowed)
+  {
+    isDeflateAllowed_ = allowed;
+  }
+
+  bool HttpOutput::IsDeflateAllowed() const
+  {
+    return isDeflateAllowed_;
+  }
+
+  void HttpOutput::SetGzipAllowed(bool allowed)
+  {
+    isGzipAllowed_ = allowed;
+  }
+
+  bool HttpOutput::IsGzipAllowed() const
+  {
+    return isGzipAllowed_;
+  }
+
+
   void HttpOutput::SendMethodNotAllowed(const std::string& allowed)
   {
     stateMachine_.ClearHeaders();
@@ -307,6 +336,41 @@ namespace Orthanc
     stateMachine_.SendBody(message, messageSize);
   }
 
+  void HttpOutput::SendStatus(HttpStatus status)
+  {
+    SendStatus(status, NULL, 0);
+  }
+
+  void HttpOutput::SendStatus(HttpStatus status, const std::string &message)
+  {
+    SendStatus(status, message.c_str(), message.size());
+  }
+
+  void HttpOutput::SetContentType(MimeType contentType)
+  {
+    stateMachine_.SetContentType(EnumerationToString(contentType));
+  }
+
+  void HttpOutput::SetContentType(const std::string &contentType)
+  {
+    stateMachine_.SetContentType(contentType.c_str());
+  }
+
+  void HttpOutput::SetContentFilename(const char *filename)
+  {
+    stateMachine_.SetContentFilename(filename);
+  }
+
+  void HttpOutput::SetCookie(const std::string &cookie, const std::string &value)
+  {
+    stateMachine_.SetCookie(cookie, value);
+  }
+
+  void HttpOutput::AddHeader(const std::string &key, const std::string &value)
+  {
+    stateMachine_.AddHeader(key, value);
+  }
+
 
   void HttpOutput::Redirect(const std::string& path)
   {
@@ -325,8 +389,30 @@ namespace Orthanc
     stateMachine_.SendBody(NULL, 0);
   }
 
+  void HttpOutput::StartMultipart(const std::string &subType, const std::string &contentType)
+  {
+    stateMachine_.StartMultipart(subType, contentType);
+  }
+
+  void HttpOutput::SendMultipartItem(const void *item,
+                                     size_t size,
+                                     const std::map<std::string, std::string> &headers)
+  {
+    stateMachine_.SendMultipartItem(item, size, headers);
+  }
+
+  void HttpOutput::CloseMultipart()
+  {
+    stateMachine_.CloseMultipart();
+  }
+
+  bool HttpOutput::IsWritingMultipart() const
+  {
+    return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
+  }
+
   
-  void HttpOutput::Answer(const void* buffer, 
+  void HttpOutput::Answer(const void* buffer,
                           size_t length)
   {
     if (length == 0)
