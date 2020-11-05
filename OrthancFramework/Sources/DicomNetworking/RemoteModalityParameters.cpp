@@ -65,6 +65,16 @@ namespace Orthanc
   }
 
 
+  RemoteModalityParameters::RemoteModalityParameters()
+  {
+    Clear();
+  }
+
+  RemoteModalityParameters::RemoteModalityParameters(const Json::Value &serialized)
+  {
+    Unserialize(serialized);
+  }
+
   RemoteModalityParameters::RemoteModalityParameters(const std::string& aet,
                                                      const std::string& host,
                                                      uint16_t port,
@@ -77,10 +87,35 @@ namespace Orthanc
     SetManufacturer(manufacturer);
   }
 
+  const std::string &RemoteModalityParameters::GetApplicationEntityTitle() const
+  {
+    return aet_;
+  }
+
+  void RemoteModalityParameters::SetApplicationEntityTitle(const std::string &aet)
+  {
+    aet_ = aet;
+  }
+
+  const std::string &RemoteModalityParameters::GetHost() const
+  {
+    return host_;
+  }
+
+  void RemoteModalityParameters::SetHost(const std::string &host)
+  {
+    host_ = host;
+  }
+
+  uint16_t RemoteModalityParameters::GetPortNumber() const
+  {
+    return port_;
+  }
+
 
   static void CheckPortNumber(int value)
   {
-    if (value <= 0 || 
+    if (value <= 0 ||
         value >= 65535)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
@@ -127,12 +162,27 @@ namespace Orthanc
     port_ = port;
   }
 
+  ModalityManufacturer RemoteModalityParameters::GetManufacturer() const
+  {
+    return manufacturer_;
+  }
+
+  void RemoteModalityParameters::SetManufacturer(ModalityManufacturer manufacturer)
+  {
+    manufacturer_ = manufacturer;
+  }
+
+  void RemoteModalityParameters::SetManufacturer(const std::string &manufacturer)
+  {
+    manufacturer_ = StringToModalityManufacturer(manufacturer);
+  }
+
 
   void RemoteModalityParameters::UnserializeArray(const Json::Value& serialized)
   {
     assert(serialized.type() == Json::arrayValue);
 
-    if ((serialized.size() != 3 && 
+    if ((serialized.size() != 3 &&
          serialized.size() != 4) ||
         serialized[0].type() != Json::stringValue ||
         serialized[1].type() != Json::stringValue ||
@@ -236,7 +286,7 @@ namespace Orthanc
   {
     switch (type)
     {
-      case DicomRequestType_Echo:
+    case DicomRequestType_Echo:
         return allowEcho_;
 
       case DicomRequestType_Find:
@@ -363,5 +413,15 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_BadFileFormat);
     }
+  }
+
+  bool RemoteModalityParameters::IsTranscodingAllowed() const
+  {
+    return allowTranscoding_;
+  }
+
+  void RemoteModalityParameters::SetTranscodingAllowed(bool allowed)
+  {
+    allowTranscoding_ = allowed;
   }
 }

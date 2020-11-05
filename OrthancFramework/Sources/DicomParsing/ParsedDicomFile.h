@@ -137,15 +137,9 @@ namespace Orthanc
 
     explicit ParsedDicomFile(DcmFileFormat& dicom);  // This clones the DCMTK object
 
-    static ParsedDicomFile* AcquireDcmtkObject(DcmFileFormat* dicom)  // No clone here
-    {
-      return new ParsedDicomFile(dicom);
-    }
+    static ParsedDicomFile* AcquireDcmtkObject(DcmFileFormat* dicom);
 
-    DcmFileFormat& GetDcmtkObject()
-    {
-      return GetDcmtkObjectConst();
-    }
+    DcmFileFormat& GetDcmtkObject();
 
     // The "ParsedDicomFile" object cannot be used after calling this method
     DcmFileFormat* ReleaseDcmtkObject();
@@ -190,15 +184,9 @@ namespace Orthanc
     void SetIfAbsent(const DicomTag& tag,
                      const std::string& utf8Value);
 
-    void RemovePrivateTags()
-    {
-      RemovePrivateTagsInternal(NULL);
-    }
+    void RemovePrivateTags();
 
-    void RemovePrivateTags(const std::set<DicomTag>& toKeep)
-    {
-      RemovePrivateTagsInternal(&toKeep);
-    }
+    void RemovePrivateTags(const std::set<DicomTag>& toKeep);
 
     // WARNING: This function handles the decoding of strings to UTF8
     bool GetTagValue(std::string& value,

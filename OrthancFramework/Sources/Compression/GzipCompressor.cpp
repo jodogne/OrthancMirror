@@ -75,6 +75,11 @@ namespace Orthanc
   }
 
 
+  Orthanc::GzipCompressor::GzipCompressor()
+  {
+    SetPrefixWithUncompressedSize(false);
+  }
+
 
   void GzipCompressor::Compress(std::string& compressed,
                                 const void* uncompressed,

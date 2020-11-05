@@ -153,6 +153,36 @@ namespace Orthanc
     writer_.Close();
   }
 
+  void Orthanc::HierarchicalZipWriter::SetZip64(bool isZip64)
+  {
+    writer_.SetZip64(isZip64);
+  }
+
+  bool HierarchicalZipWriter::IsZip64() const
+  {
+    return writer_.IsZip64();
+  }
+
+  void HierarchicalZipWriter::SetCompressionLevel(uint8_t level)
+  {
+    writer_.SetCompressionLevel(level);
+  }
+
+  uint8_t HierarchicalZipWriter::GetCompressionLevel() const
+  {
+    return writer_.GetCompressionLevel();
+  }
+
+  void HierarchicalZipWriter::SetAppendToExisting(bool append)
+  {
+    writer_.SetAppendToExisting(append);
+  }
+
+  bool HierarchicalZipWriter::IsAppendToExisting() const
+  {
+    return writer_.IsAppendToExisting();
+  }
+
   void HierarchicalZipWriter::OpenFile(const char* name)
   {
     std::string p = indexer_.OpenFile(name);
@@ -167,5 +197,20 @@ namespace Orthanc
   void HierarchicalZipWriter::CloseDirectory()
   {
     indexer_.CloseDirectory();
+  }
+
+  std::string HierarchicalZipWriter::GetCurrentDirectoryPath() const
+  {
+    return indexer_.GetCurrentDirectoryPath();
+  }
+
+  void HierarchicalZipWriter::Write(const void *data, size_t length)
+  {
+    writer_.Write(data, length);
+  }
+
+  void HierarchicalZipWriter::Write(const std::string &data)
+  {
+    writer_.Write(data);
   }
 }

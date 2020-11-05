@@ -363,6 +363,7 @@ if (ENABLE_ZLIB)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/DeflateBaseCompressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/GzipCompressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/IBufferCompressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZlibCompressor.cpp
     )
 

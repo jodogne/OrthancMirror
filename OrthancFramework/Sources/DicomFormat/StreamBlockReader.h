@@ -61,9 +61,6 @@ namespace Orthanc
      **/
     bool Read(std::string& block);
     
-    uint64_t GetProcessedBytes() const
-    {
-      return processedBytes_;
-    }
+    uint64_t GetProcessedBytes() const;
   };
 }

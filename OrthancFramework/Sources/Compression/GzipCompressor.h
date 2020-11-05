@@ -34,10 +34,7 @@ namespace Orthanc
                                    size_t compressedSize);
 
   public:
-    GzipCompressor()
-    {
-      SetPrefixWithUncompressedSize(false);
-    }
+    GzipCompressor();
 
     virtual void Compress(std::string& compressed,
                           const void* uncompressed,

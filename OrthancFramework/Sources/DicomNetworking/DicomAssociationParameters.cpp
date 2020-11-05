@@ -71,11 +71,31 @@ namespace Orthanc
     SetRemoteModality(remote);
   }
 
-    
+  const std::string &DicomAssociationParameters::GetLocalApplicationEntityTitle() const
+  {
+    return localAet_;
+  }
+
+  void DicomAssociationParameters::SetLocalApplicationEntityTitle(const std::string &aet)
+  {
+    localAet_ = aet;
+  }
+
+  const RemoteModalityParameters &DicomAssociationParameters::GetRemoteModality() const
+  {
+    return remote_;
+  }
+
+
   void DicomAssociationParameters::SetRemoteModality(const RemoteModalityParameters& remote)
   {
     CheckHost(remote.GetHost());
     remote_ = remote;
+  }
+
+  void DicomAssociationParameters::SetRemoteApplicationEntityTitle(const std::string &aet)
+  {
+    remote_.SetApplicationEntityTitle(aet);
   }
 
 
@@ -83,6 +103,16 @@ namespace Orthanc
   {
     CheckHost(host);
     remote_.SetHost(host);
+  }
+
+  void DicomAssociationParameters::SetRemotePort(uint16_t port)
+  {
+    remote_.SetPortNumber(port);
+  }
+
+  void DicomAssociationParameters::SetRemoteManufacturer(ModalityManufacturer manufacturer)
+  {
+    remote_.SetManufacturer(manufacturer);
   }
 
 
@@ -94,6 +124,21 @@ namespace Orthanc
             remote_.GetPortNumber() == other.remote_.GetPortNumber() &&
             remote_.GetManufacturer() == other.remote_.GetManufacturer() &&
             timeout_ == other.timeout_);
+  }
+
+  void DicomAssociationParameters::SetTimeout(uint32_t seconds)
+  {
+    timeout_ = seconds;
+  }
+
+  uint32_t DicomAssociationParameters::GetTimeout() const
+  {
+    return timeout_;
+  }
+
+  bool DicomAssociationParameters::HasTimeout() const
+  {
+    return timeout_ != 0;
   }
 
 

@@ -20,24 +20,27 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "IBufferCompressor.h"
 
-#include "DeflateBaseCompressor.h"
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC ZlibCompressor : public DeflateBaseCompressor
+  void IBufferCompressor::Compress(std::string& compressed,
+                                   IBufferCompressor& compressor,
+                                   const std::string& uncompressed)
   {
-  public:
-    ZlibCompressor();
+    compressor.Compress(compressed, 
+                        uncompressed.size() == 0 ? NULL : uncompressed.c_str(), 
+                        uncompressed.size());
+  }
 
-    virtual void Compress(std::string& compressed,
-                          const void* uncompressed,
-                          size_t uncompressedSize) ORTHANC_OVERRIDE;
-
-    virtual void Uncompress(std::string& uncompressed,
-                            const void* compressed,
-                            size_t compressedSize) ORTHANC_OVERRIDE;
-  };
+  void IBufferCompressor::Uncompress(std::string& uncompressed,
+                                     IBufferCompressor& compressor,
+                                     const std::string& compressed)
+  {
+    compressor.Uncompress(uncompressed, 
+                          compressed.size() == 0 ? NULL : compressed.c_str(), 
+                          compressed.size());
+  }
 }

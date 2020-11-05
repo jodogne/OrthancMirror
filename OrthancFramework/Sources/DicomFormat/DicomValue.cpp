@@ -31,7 +31,13 @@
 
 namespace Orthanc
 {
-  DicomValue::DicomValue(const DicomValue& other) : 
+  Orthanc::DicomValue::DicomValue() :
+    type_(Type_Null)
+  {
+  }
+
+
+  DicomValue::DicomValue(const DicomValue& other) :
     type_(other.type_),
     content_(other.content_)
   {
@@ -65,6 +71,16 @@ namespace Orthanc
     {
       return content_;
     }
+  }
+
+  bool DicomValue::IsNull() const
+  {
+    return type_ == Type_Null;
+  }
+
+  bool DicomValue::IsBinary() const
+  {
+    return type_ == Type_Binary;
   }
 
 

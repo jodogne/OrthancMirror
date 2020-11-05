@@ -159,7 +159,42 @@ namespace Orthanc
     proposeRetiredBigEndian_(false)
   {
   }
-    
+
+  const DicomAssociationParameters &DicomStoreUserConnection::GetParameters() const
+  {
+    return parameters_;
+  }
+
+  void DicomStoreUserConnection::SetCommonClassesProposed(bool proposed)
+  {
+    proposeCommonClasses_ = proposed;
+  }
+
+  bool DicomStoreUserConnection::IsCommonClassesProposed() const
+  {
+    return proposeCommonClasses_;
+  }
+
+  void DicomStoreUserConnection::SetUncompressedSyntaxesProposed(bool proposed)
+  {
+    proposeUncompressedSyntaxes_ = proposed;
+  }
+
+  bool DicomStoreUserConnection::IsUncompressedSyntaxesProposed() const
+  {
+    return proposeUncompressedSyntaxes_;
+  }
+
+  void DicomStoreUserConnection::SetRetiredBigEndianProposed(bool propose)
+  {
+    proposeRetiredBigEndian_ = propose;
+  }
+
+  bool DicomStoreUserConnection::IsRetiredBigEndianProposed() const
+  {
+    return proposeRetiredBigEndian_;
+  }
+
 
   void DicomStoreUserConnection::RegisterStorageClass(const std::string& sopClassUid,
                                                       DicomTransferSyntax syntax)

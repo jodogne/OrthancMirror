@@ -670,6 +670,16 @@ namespace Orthanc
     }
   }
 
+  void ParsedDicomFile::RemovePrivateTags()
+  {
+    RemovePrivateTagsInternal(NULL);
+  }
+
+  void ParsedDicomFile::RemovePrivateTags(const std::set<DicomTag> &toKeep)
+  {
+    RemovePrivateTagsInternal(&toKeep);
+  }
+
 
   static bool CanReplaceProceed(DcmDataset& dicom,
                                 const DcmTagKey& tag,
@@ -1147,6 +1157,16 @@ namespace Orthanc
     {
       return *pimpl_->file_;
     }
+  }
+
+  Orthanc::ParsedDicomFile *Orthanc::ParsedDicomFile::AcquireDcmtkObject(DcmFileFormat *dicom)  // No clone here
+  {
+    return new ParsedDicomFile(dicom);
+  }
+
+  DcmFileFormat &ParsedDicomFile::GetDcmtkObject()
+  {
+    return GetDcmtkObjectConst();
   }
 
 
@@ -1740,7 +1760,7 @@ namespace Orthanc
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
   // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
-  void ParsedDicomFile::DatasetToJson(Json::Value& target, 
+  void ParsedDicomFile::DatasetToJson(Json::Value& target,
                                       DicomToJsonFormat format,
                                       DicomToJsonFlags flags,
                                       unsigned int maxStringLength)

@@ -88,35 +88,17 @@ namespace Orthanc
 
     ~HierarchicalZipWriter();
 
-    void SetZip64(bool isZip64)
-    {
-      writer_.SetZip64(isZip64);
-    }
+    void SetZip64(bool isZip64);
 
-    bool IsZip64() const
-    {
-      return writer_.IsZip64();
-    }
+    bool IsZip64() const;
 
-    void SetCompressionLevel(uint8_t level)
-    {
-      writer_.SetCompressionLevel(level);
-    }
+    void SetCompressionLevel(uint8_t level);
 
-    uint8_t GetCompressionLevel() const
-    {
-      return writer_.GetCompressionLevel();
-    }
+    uint8_t GetCompressionLevel() const;
 
-    void SetAppendToExisting(bool append)
-    {
-      writer_.SetAppendToExisting(append);
-    }
+    void SetAppendToExisting(bool append);
     
-    bool IsAppendToExisting() const
-    {
-      return writer_.IsAppendToExisting();
-    }
+    bool IsAppendToExisting() const;
     
     void OpenFile(const char* name);
 
@@ -124,19 +106,10 @@ namespace Orthanc
 
     void CloseDirectory();
 
-    std::string GetCurrentDirectoryPath() const
-    {
-      return indexer_.GetCurrentDirectoryPath();
-    }
+    std::string GetCurrentDirectoryPath() const;
 
-    void Write(const void* data, size_t length)
-    {
-      writer_.Write(data, length);
-    }
+    void Write(const void* data, size_t length);
 
-    void Write(const std::string& data)
-    {
-      writer_.Write(data);
-    }
+    void Write(const std::string& data);
   };
 }

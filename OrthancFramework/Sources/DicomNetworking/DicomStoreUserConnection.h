@@ -98,40 +98,19 @@ namespace Orthanc
   public:
     explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
     
-    const DicomAssociationParameters& GetParameters() const
-    {
-      return parameters_;
-    }
+    const DicomAssociationParameters& GetParameters() const;
 
-    void SetCommonClassesProposed(bool proposed)
-    {
-      proposeCommonClasses_ = proposed;
-    }
+    void SetCommonClassesProposed(bool proposed);
 
-    bool IsCommonClassesProposed() const
-    {
-      return proposeCommonClasses_;
-    }
+    bool IsCommonClassesProposed() const;
 
-    void SetUncompressedSyntaxesProposed(bool proposed)
-    {
-      proposeUncompressedSyntaxes_ = proposed;
-    }
+    void SetUncompressedSyntaxesProposed(bool proposed);
 
-    bool IsUncompressedSyntaxesProposed() const
-    {
-      return proposeUncompressedSyntaxes_;
-    }
+    bool IsUncompressedSyntaxesProposed() const;
 
-    void SetRetiredBigEndianProposed(bool propose)
-    {
-      proposeRetiredBigEndian_ = propose;
-    }
+    void SetRetiredBigEndianProposed(bool propose);
 
-    bool IsRetiredBigEndianProposed() const
-    {
-      return proposeRetiredBigEndian_;
-    }      
+    bool IsRetiredBigEndianProposed() const;
 
     void RegisterStorageClass(const std::string& sopClassUid,
                               DicomTransferSyntax syntax);
