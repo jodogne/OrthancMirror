@@ -1088,7 +1088,7 @@ namespace Orthanc
 
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
       headers.insert(std::make_pair(name, value));
-      CLOG(TRACE, REST) << "HTTP header: [" << name << "]: [" << value << "]";
+      CLOG(TRACE, HTTP) << "HTTP header: [" << name << "]: [" << value << "]";
     }
 
     if (server.IsHttpCompressionEnabled())
