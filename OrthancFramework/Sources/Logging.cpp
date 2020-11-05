@@ -661,7 +661,9 @@ namespace Orthanc
       prefix = (std::string(date) + path.filename().string() + ":" +
                 boost::lexical_cast<std::string>(line) + "] ");
 
-      if (category != LogCategory_GENERIC)
+      if (level != LogLevel_ERROR &&
+          level != LogLevel_WARNING &&
+          category != LogCategory_GENERIC)
       {
         prefix += "(" + std::string(GetCategoryName(category)) + ") ";
       }
