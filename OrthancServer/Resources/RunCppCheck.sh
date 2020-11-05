@@ -14,12 +14,12 @@ knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:309
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1103
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1163
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:382
 stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:129
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:337
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:319
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:714

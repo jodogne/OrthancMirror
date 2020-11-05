@@ -380,7 +380,6 @@ TEST(Logging, Enumerations)
   std::set<std::string> s;
   for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
   {
-    Logging::LogCategory c;
     ASSERT_TRUE(Logging::LookupCategory(c, Logging::GetCategoryName(i)));
     s.insert(Logging::GetCategoryName(i));
   }
