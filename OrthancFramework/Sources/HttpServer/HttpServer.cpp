@@ -634,7 +634,7 @@ namespace Orthanc
       // A faking has been done within this request
       Toolbox::ToUpperCase(overriden);
 
-      LOG(INFO) << "HTTP method faking has been detected for " << overriden;
+      CLOG(INFO, HTTP) << "HTTP method faking has been detected for " << overriden;
 
       if (overriden == "PUT")
       {
@@ -712,7 +712,7 @@ namespace Orthanc
   static void AnswerWebDavReadOnly(HttpOutput& output,
                                    const std::string& uri)
   {
-    LOG(ERROR) << "Orthanc was compiled without support for read-write access to WebDAV: " << uri;
+    CLOG(ERROR, HTTP) << "Orthanc was compiled without support for read-write access to WebDAV: " << uri;
     output.SendStatus(HttpStatus_403_Forbidden);
   }    
 #  endif
@@ -946,7 +946,7 @@ namespace Orthanc
             }
             else
             {
-              LOG(ERROR) << "Cannot read the content of a file to be stored in WebDAV";
+              CLOG(ERROR, HTTP) << "Cannot read the content of a file to be stored in WebDAV";
               output.SendStatus(HttpStatus_400_BadRequest);
             }
 #else
@@ -1162,7 +1162,7 @@ namespace Orthanc
     
     if (ExtractMethod(method, request, headers, argumentsGET))
     {
-      LOG(INFO) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+      CLOG(INFO, HTTP) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
       filterMethod = method;
     }
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -1170,8 +1170,8 @@ namespace Orthanc
              !strcmp(request->request_method, "PROPFIND") ||
              !strcmp(request->request_method, "HEAD"))
     {
-      LOG(INFO) << "Incoming read-only WebDAV request: "
-                << request->request_method << " " << requestUri;
+      CLOG(INFO, HTTP) << "Incoming read-only WebDAV request: "
+                       << request->request_method << " " << requestUri;
       filterMethod = HttpMethod_Get;
       isWebDav = true;
     }
@@ -1180,15 +1180,15 @@ namespace Orthanc
              !strcmp(request->request_method, "UNLOCK") ||
              !strcmp(request->request_method, "MKCOL"))
     {
-      LOG(INFO) << "Incoming read-write WebDAV request: "
-                << request->request_method << " " << requestUri;
+      CLOG(INFO, HTTP) << "Incoming read-write WebDAV request: "
+                       << request->request_method << " " << requestUri;
       filterMethod = HttpMethod_Put;
       isWebDav = true;
     }
 #endif /* ORTHANC_ENABLE_PUGIXML == 1 */
     else
     {
-      LOG(INFO) << "Unknown HTTP method: " << request->request_method;
+      CLOG(INFO, HTTP) << "Unknown HTTP method: " << request->request_method;
       output.SendStatus(HttpStatus_400_BadRequest);
       return;
     }
@@ -1218,8 +1218,8 @@ namespace Orthanc
     }
     else if (isWebDav)
     {
-      LOG(INFO) << "No WebDAV bucket is registered against URI: "
-                << request->request_method << " " << requestUri;
+      CLOG(INFO, HTTP) << "No WebDAV bucket is registered against URI: "
+                       << request->request_method << " " << requestUri;
       output.SendStatus(HttpStatus_404_NotFound);
       return;
     }
@@ -1401,7 +1401,7 @@ namespace Orthanc
         {
           if (server->GetExceptionFormatter() == NULL)
           {
-            LOG(ERROR) << "Exception in the HTTP handler: " << e.What();
+            CLOG(ERROR, HTTP) << "Exception in the HTTP handler: " << e.What();
             output.SendStatus(e.GetHttpStatus());
           }
           else
@@ -1419,7 +1419,7 @@ namespace Orthanc
     catch (...)
     {
       // We should never arrive at this point, where it is even impossible to send an answer
-      LOG(ERROR) << "Catastrophic error inside the HTTP server, giving up";
+      CLOG(ERROR, HTTP) << "Catastrophic error inside the HTTP server, giving up";
     }
   }
 
@@ -1484,11 +1484,11 @@ namespace Orthanc
     requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)    
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
-    LOG(INFO) << "This Orthanc server uses Mongoose as its embedded HTTP server";
+    CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
 #endif
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
-    LOG(INFO) << "This Orthanc server uses CivetWeb as its embedded HTTP server";
+    CLOG(INFO, HTTP) << "This Orthanc server uses CivetWeb as its embedded HTTP server";
 #endif
 
 #if ORTHANC_ENABLE_SSL == 1
@@ -1497,7 +1497,7 @@ namespace Orthanc
     if (OPENSSL_VERSION_NUMBER <  0x1000107fL  /* openssl-1.0.1g */ &&
         OPENSSL_VERSION_NUMBER >= 0x1000100fL  /* openssl-1.0.1 */) 
     {
-      LOG(WARNING) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
+      CLOG(WARNING, HTTP) << "This version of OpenSSL is vulnerable to the Heartbleed exploit";
     }
 #endif
   }
@@ -1526,9 +1526,9 @@ namespace Orthanc
   void HttpServer::Start()
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
-    LOG(INFO) << "Starting embedded Web server using Mongoose";
+    CLOG(INFO, HTTP) << "Starting embedded Web server using Mongoose";
 #elif ORTHANC_ENABLE_CIVETWEB == 1
-    LOG(INFO) << "Starting embedded Web server using Civetweb";
+    CLOG(INFO, HTTP) << "Starting embedded Web server using Civetweb";
 #else
 #  error
 #endif  
@@ -1629,7 +1629,7 @@ namespace Orthanc
             isSslError = true;
             char message[1024];
             ERR_error_string_n(code, message, sizeof(message) - 1);
-            LOG(ERROR) << "OpenSSL error: " << message;
+            CLOG(ERROR, HTTP) << "OpenSSL error: " << message;
           }
         }        
 #endif
@@ -1653,12 +1653,12 @@ namespace Orthanc
       }
 #endif
 
-      LOG(WARNING) << "HTTP server listening on port: " << GetPortNumber()
-                   << " (HTTPS encryption is "
-                   << (IsSslEnabled() ? "enabled" : "disabled")
-                   << ", remote access is "
-                   << (IsRemoteAccessAllowed() ? "" : "not ")
-                   << "allowed)";
+      CLOG(WARNING, HTTP) << "HTTP server listening on port: " << GetPortNumber()
+                          << " (HTTPS encryption is "
+                          << (IsSslEnabled() ? "enabled" : "disabled")
+                          << ", remote access is "
+                          << (IsRemoteAccessAllowed() ? "" : "not ")
+                          << "allowed)";
     }
   }
 
@@ -1739,12 +1739,12 @@ namespace Orthanc
   {
     Stop();
     keepAlive_ = enabled;
-    LOG(INFO) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
+    CLOG(INFO, HTTP) << "HTTP keep alive is " << (enabled ? "enabled" : "disabled");
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     if (enabled)
     {
-      LOG(WARNING) << "You should disable HTTP keep alive, as you are using Mongoose";
+      CLOG(WARNING, HTTP) << "You should disable HTTP keep alive, as you are using Mongoose";
     }
 #endif
   }
@@ -1778,7 +1778,7 @@ namespace Orthanc
   {
     Stop();
     httpCompression_ = enabled;
-    LOG(WARNING) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
+    CLOG(WARNING, HTTP) << "HTTP compression is " << (enabled ? "enabled" : "disabled");
   }
   
   void HttpServer::SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter)
@@ -1829,7 +1829,7 @@ namespace Orthanc
     Stop();
     threadsCount_ = threads;
 
-    LOG(INFO) << "The embedded HTTP server will use " << threads << " threads";
+    CLOG(INFO, HTTP) << "The embedded HTTP server will use " << threads << " threads";
   }
 
   
@@ -1837,8 +1837,8 @@ namespace Orthanc
   {
     Stop();
     tcpNoDelay_ = tcpNoDelay;
-    LOG(INFO) << "TCP_NODELAY for the HTTP sockets is set to "
-              << (tcpNoDelay ? "true" : "false");
+    CLOG(INFO, HTTP) << "TCP_NODELAY for the HTTP sockets is set to "
+                     << (tcpNoDelay ? "true" : "false");
   }
 
 
@@ -1852,7 +1852,7 @@ namespace Orthanc
 
     Stop();
     requestTimeout_ = seconds;
-    LOG(INFO) << "Request timeout in the HTTP server is set to " << seconds << " seconds";
+    CLOG(INFO, HTTP) << "Request timeout in the HTTP server is set to " << seconds << " seconds";
   }
 
 
@@ -1872,8 +1872,8 @@ namespace Orthanc
 #if CIVETWEB_HAS_WEBDAV_WRITING == 0
     if (webDavBuckets_.size() == 0)
     {
-      LOG(WARNING) << "Your version of the Orthanc framework was compiled "
-                   << "without support for writing into WebDAV collections";
+      CLOG(WARNING, HTTP) << "Your version of the Orthanc framework was compiled "
+                          << "without support for writing into WebDAV collections";
     }
 #endif
     
@@ -1886,7 +1886,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Branching WebDAV bucket at: " << s;
+      CLOG(INFO, HTTP) << "Branching WebDAV bucket at: " << s;
       webDavBuckets_[s] = protection.release();
     }
   }
