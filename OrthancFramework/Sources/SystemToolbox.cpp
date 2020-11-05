@@ -233,7 +233,7 @@ namespace Orthanc
   }
 
 
-  void Orthanc::SystemToolbox::ReadFile(std::string &content, const std::string &path)
+  void SystemToolbox::ReadFile(std::string &content, const std::string &path)
   {
     ReadFile(content, path, true /* log */);
   }

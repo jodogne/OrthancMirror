@@ -179,13 +179,14 @@ endif()
 if (ENABLE_MODULE_DICOM)
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomArray.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomElement.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomImageInformation.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomInstanceHasher.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomIntegerPixelAccessor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomMap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomStreamReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomValue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/StreamBlockReader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomStreamReader.cpp
     )
 endif()
 

@@ -31,7 +31,7 @@
 
 namespace Orthanc
 {
-  Orthanc::DicomValue::DicomValue() :
+  DicomValue::DicomValue() :
     type_(Type_Null)
   {
   }

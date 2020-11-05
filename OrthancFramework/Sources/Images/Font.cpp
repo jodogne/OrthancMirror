@@ -42,6 +42,13 @@
 
 namespace Orthanc
 {
+  Font::Font() :
+    size_(0),
+    maxHeight_(0)
+  {
+  }
+
+
   Font::~Font()
   {
     for (Characters::iterator it = characters_.begin();
@@ -141,8 +148,18 @@ namespace Orthanc
   }
 #endif
 
+  const std::string &Font::GetName() const
+  {
+    return name_;
+  }
 
-  static unsigned int MyMin(unsigned int a, 
+  unsigned int Font::GetSize() const
+  {
+    return size_;
+  }
+
+
+  static unsigned int MyMin(unsigned int a,
                             unsigned int b)
   {
     return a < b ? a : b;

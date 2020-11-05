@@ -467,7 +467,15 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   }
 
 
-  void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target, 
+  Encoding FromDcmtkBridge::DetectEncoding(DcmItem &dataset,
+                                           Encoding defaultEncoding)
+  {
+    bool hasCodeExtensions;  // ignored
+    return DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
+  }
+
+
+  void FromDcmtkBridge::ExtractDicomSummary(DicomMap& target,
                                             DcmItem& dataset,
                                             unsigned int maxStringLength,
                                             const std::set<DicomTag>& ignoreTagLength)
@@ -1069,6 +1077,11 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     return GetTagNameInternal(tag);
   }
 
+  std::string FromDcmtkBridge::GetTagName(const DicomElement &element)
+  {
+    return GetTagName(element.GetTag(), "");
+  }
+
 
 
   DicomTag FromDcmtkBridge::ParseTag(const char* name)
@@ -1107,6 +1120,30 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       throw OrthancException(ErrorCode_UnknownDicomTag);
     }
 #endif
+  }
+
+  DicomTag FromDcmtkBridge::ParseTag(const std::string &name)
+  {
+    return ParseTag(name.c_str());
+  }
+
+  bool FromDcmtkBridge::HasTag(const DicomMap &fields, const std::string &tagName)
+  {
+    return fields.HasTag(ParseTag(tagName));
+  }
+
+  const DicomValue &FromDcmtkBridge::GetValue(const DicomMap &fields,
+                                              const std::string &tagName)
+  {
+    return fields.GetValue(ParseTag(tagName));
+  }
+
+  void FromDcmtkBridge::SetValue(DicomMap &target,
+                                 const std::string &tagName,
+                                 DicomValue *value)
+  {
+    const DicomTag tag = ParseTag(tagName);
+    target.SetValueInternal(tag.GetGroup(), tag.GetElement(), value);
   }
 
 

@@ -2119,8 +2119,8 @@ namespace Orthanc
             (c >= 'a' && c <= 'f') ||
             (c >= '0' && c <= '9')))
       {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange,
-                                        "Not an hexadecimal number");
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Not an hexadecimal number");
       }
     }
     
@@ -2213,7 +2213,7 @@ namespace Orthanc
   {
     if (!source.isObject())
     {
-      throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
 
     target = Json::objectValue;

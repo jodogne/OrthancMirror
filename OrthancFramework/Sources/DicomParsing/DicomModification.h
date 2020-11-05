@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
@@ -139,52 +139,31 @@ namespace Orthanc
 
     void SetRemovePrivateTags(bool removed);
 
-    bool ArePrivateTagsRemoved() const
-    {
-      return removePrivateTags_;
-    }
+    bool ArePrivateTagsRemoved() const;
 
     void SetLevel(ResourceType level);
 
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
+    ResourceType GetLevel() const;
 
     void SetupAnonymization(DicomVersion version);
 
     void Apply(ParsedDicomFile& toModify);
 
-    void SetAllowManualIdentifiers(bool check)
-    {
-      allowManualIdentifiers_ = check;
-    }
+    void SetAllowManualIdentifiers(bool check);
 
-    bool AreAllowManualIdentifiers() const
-    {
-      return allowManualIdentifiers_;
-    }
+    bool AreAllowManualIdentifiers() const;
 
     void ParseModifyRequest(const Json::Value& request);
 
     void ParseAnonymizationRequest(bool& patientNameReplaced,
                                    const Json::Value& request);
 
-    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator)
-    {
-      identifierGenerator_ = &generator;
-    }
+    void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator);
 
     void Serialize(Json::Value& value) const;
 
-    void SetPrivateCreator(const std::string& privateCreator)
-    {
-      privateCreator_ = privateCreator;
-    }
+    void SetPrivateCreator(const std::string& privateCreator);
 
-    const std::string& GetPrivateCreator()
-    {
-      return privateCreator_;
-    }
+    const std::string& GetPrivateCreator() const;
   };
 }

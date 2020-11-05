@@ -1159,7 +1159,7 @@ namespace Orthanc
     }
   }
 
-  Orthanc::ParsedDicomFile *Orthanc::ParsedDicomFile::AcquireDcmtkObject(DcmFileFormat *dicom)  // No clone here
+  ParsedDicomFile *ParsedDicomFile::AcquireDcmtkObject(DcmFileFormat *dicom)  // No clone here
   {
     return new ParsedDicomFile(dicom);
   }

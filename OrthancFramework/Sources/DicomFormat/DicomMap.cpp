@@ -332,7 +332,7 @@ namespace Orthanc
   }
 
 
-  Orthanc::DicomMap::~DicomMap()
+  DicomMap::~DicomMap()
   {
     Clear();
   }

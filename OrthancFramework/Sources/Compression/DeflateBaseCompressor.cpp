@@ -69,7 +69,7 @@ namespace Orthanc
   }
 
 
-  void Orthanc::DeflateBaseCompressor::SetPrefixWithUncompressedSize(bool prefix)
+  void DeflateBaseCompressor::SetPrefixWithUncompressedSize(bool prefix)
   {
     prefixWithUncompressedSize_ = prefix;
   }

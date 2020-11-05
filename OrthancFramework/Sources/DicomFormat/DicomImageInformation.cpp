@@ -210,12 +210,12 @@ namespace Orthanc
     return target.release();
   }
 
-  unsigned int Orthanc::DicomImageInformation::GetWidth() const
+  unsigned int DicomImageInformation::GetWidth() const
   {
     return width_;
   }
 
-  unsigned int Orthanc::DicomImageInformation::GetHeight() const
+  unsigned int DicomImageInformation::GetHeight() const
   {
     return height_;
   }

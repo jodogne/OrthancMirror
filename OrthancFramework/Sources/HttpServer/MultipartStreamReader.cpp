@@ -292,15 +292,15 @@ namespace Orthanc
                                                         const std::string& contentTypeHeader)
   {
     std::vector<std::string> tokens;
-    Orthanc::Toolbox::TokenizeString(tokens, contentTypeHeader, ';');
+    Toolbox::TokenizeString(tokens, contentTypeHeader, ';');
 
     if (tokens.empty())
     {
       return false;
     }
 
-    contentType = Orthanc::Toolbox::StripSpaces(tokens[0]);
-    Orthanc::Toolbox::ToLowerCase(contentType);
+    contentType = Toolbox::StripSpaces(tokens[0]);
+    Toolbox::ToLowerCase(contentType);
 
     if (contentType.empty())
     {
@@ -313,19 +313,19 @@ namespace Orthanc
     for (size_t i = 0; i < tokens.size(); i++)
     {
       std::vector<std::string> items;
-      Orthanc::Toolbox::TokenizeString(items, tokens[i], '=');
+      Toolbox::TokenizeString(items, tokens[i], '=');
 
       if (items.size() == 2)
       {
-        if (boost::iequals("boundary", Orthanc::Toolbox::StripSpaces(items[0])))
+        if (boost::iequals("boundary", Toolbox::StripSpaces(items[0])))
         {
-          boundary = Orthanc::Toolbox::StripSpaces(items[1]);
+          boundary = Toolbox::StripSpaces(items[1]);
           valid = !boundary.empty();
         }
-        else if (boost::iequals("type", Orthanc::Toolbox::StripSpaces(items[0])))
+        else if (boost::iequals("type", Toolbox::StripSpaces(items[0])))
         {
-          subType = Orthanc::Toolbox::StripSpaces(items[1]);
-          Orthanc::Toolbox::ToLowerCase(subType);
+          subType = Toolbox::StripSpaces(items[1]);
+          Toolbox::ToLowerCase(subType);
 
           // https://bitbucket.org/sjodogne/orthanc/issues/54/decide-what-to-do-wrt-quoting-of-multipart
           // https://tools.ietf.org/html/rfc7231#section-3.1.1.1

@@ -264,9 +264,8 @@ namespace Orthanc
     return append_;
   }
 
-  bool Orthanc::ZipWriter::IsZip64() const
+  bool ZipWriter::IsZip64() const
   {
     return isZip64_;
   }
-
 }

@@ -40,26 +40,13 @@ namespace Orthanc
 
   public:
     DicomTag(uint16_t group,
-             uint16_t element) :
-      group_(group),
-      element_(element)
-    {
-    }
+             uint16_t element);
 
-    uint16_t GetGroup() const
-    {
-      return group_;
-    }
+    uint16_t GetGroup() const;
 
-    uint16_t GetElement() const
-    {
-      return element_;
-    }
+    uint16_t GetElement() const;
 
-    bool IsPrivate() const
-    {
-      return group_ % 2 == 1;
-    }
+    bool IsPrivate() const;
 
     const char* GetMainTagsName() const;
 
@@ -67,25 +54,13 @@ namespace Orthanc
 
     bool operator<= (const DicomTag& other) const;
 
-    bool operator> (const DicomTag& other) const
-    {
-      return !(*this <= other);
-    }
+    bool operator> (const DicomTag& other) const;
 
-    bool operator>= (const DicomTag& other) const
-    {
-      return !(*this < other);
-    }
+    bool operator>= (const DicomTag& other) const;
 
-    bool operator== (const DicomTag& other) const
-    {
-      return group_ == other.group_ && element_ == other.element_;
-    }
+    bool operator== (const DicomTag& other) const;
 
-    bool operator!= (const DicomTag& other) const
-    {
-      return !(*this == other);
-    }
+    bool operator!= (const DicomTag& other) const;
 
     std::string Format() const;
 

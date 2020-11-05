@@ -45,17 +45,11 @@ namespace Orthanc
                           bool allowNewSopInstanceUid);
     
   public:
-    DcmtkTranscoder() :
-      lossyQuality_(90)
-    {
-    }
+    DcmtkTranscoder();
 
     void SetLossyQuality(unsigned int quality);
 
-    unsigned int GetLossyQuality() const
-    {
-      return lossyQuality_;
-    }
+    unsigned int GetLossyQuality() const;
     
     static bool IsSupported(DicomTransferSyntax syntax);
 

@@ -32,7 +32,7 @@
 
 namespace Orthanc
 {
-  Orthanc::ZlibCompressor::ZlibCompressor()
+  ZlibCompressor::ZlibCompressor()
   {
     SetPrefixWithUncompressedSize(true);
   }

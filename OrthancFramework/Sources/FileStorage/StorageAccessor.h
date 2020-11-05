@@ -75,18 +75,10 @@ namespace Orthanc
 #endif
 
   public:
-    explicit StorageAccessor(IStorageArea& area) : 
-      area_(area),
-      metrics_(NULL)
-    {
-    }
+    explicit StorageAccessor(IStorageArea& area);
 
     StorageAccessor(IStorageArea& area,
-                    MetricsRegistry& metrics) : 
-      area_(area),
-      metrics_(&metrics)
-    {
-    }
+                    MetricsRegistry& metrics);
 
     FileInfo Write(const void* data,
                    size_t size,
@@ -94,14 +86,10 @@ namespace Orthanc
                    CompressionType compression,
                    bool storeMd5);
 
-    FileInfo Write(const std::string& data, 
+    FileInfo Write(const std::string& data,
                    FileContentType type,
                    CompressionType compression,
-                   bool storeMd5)
-    {
-      return Write((data.size() == 0 ? NULL : data.c_str()),
-                   data.size(), type, compression, storeMd5);
-    }
+                   bool storeMd5);
 
     void Read(std::string& content,
               const FileInfo& info);
@@ -112,18 +100,12 @@ namespace Orthanc
     void Remove(const std::string& fileUuid,
                 FileContentType type);
 
-    void Remove(const FileInfo& info)
-    {
-      Remove(info.GetUuid(), info.GetContentType());
-    }
+    void Remove(const FileInfo& info);
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void AnswerFile(HttpOutput& output,
                     const FileInfo& info,
-                    MimeType mime)
-    {
-      AnswerFile(output, info, EnumerationToString(mime));
-    }
+                    MimeType mime);
 
     void AnswerFile(HttpOutput& output,
                     const FileInfo& info,
@@ -131,10 +113,7 @@ namespace Orthanc
 
     void AnswerFile(RestApiOutput& output,
                     const FileInfo& info,
-                    MimeType mime)
-    {
-      AnswerFile(output, info, EnumerationToString(mime));
-    }
+                    MimeType mime);
 
     void AnswerFile(RestApiOutput& output,
                     const FileInfo& info,

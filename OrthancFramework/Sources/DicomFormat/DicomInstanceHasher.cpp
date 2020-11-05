@@ -56,10 +56,10 @@ namespace Orthanc
           instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent());
   }
 
-  Orthanc::DicomInstanceHasher::DicomInstanceHasher(const std::string &patientId,
-                                                    const std::string &studyUid,
-                                                    const std::string &seriesUid,
-                                                    const std::string &instanceUid)
+  DicomInstanceHasher::DicomInstanceHasher(const std::string &patientId,
+                                           const std::string &studyUid,
+                                           const std::string &seriesUid,
+                                           const std::string &instanceUid)
   {
     Setup(patientId, studyUid, seriesUid, instanceUid);
   }

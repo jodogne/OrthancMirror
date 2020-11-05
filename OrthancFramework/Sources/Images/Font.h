@@ -65,11 +65,7 @@ namespace Orthanc
                       const uint8_t color[4]) const;
 
   public:
-    Font() : 
-      size_(0), 
-      maxHeight_(0)
-    {
-    }
+    Font();
 
     ~Font();
 
@@ -79,15 +75,9 @@ namespace Orthanc
     void LoadFromFile(const std::string& path);
 #endif
 
-    const std::string& GetName() const
-    {
-      return name_;
-    }
+    const std::string& GetName() const;
 
-    unsigned int GetSize() const
-    {
-      return size_;
-    }
+    unsigned int GetSize() const;
 
     void Draw(ImageAccessor& target,
               const std::string& utf8,

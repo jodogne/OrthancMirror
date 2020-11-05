@@ -48,7 +48,7 @@ namespace Orthanc
   }
 
 
-  size_t Orthanc::DicomArray::GetSize() const
+  size_t DicomArray::GetSize() const
   {
     return elements_.size();
   }

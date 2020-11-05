@@ -153,7 +153,7 @@ namespace Orthanc
     writer_.Close();
   }
 
-  void Orthanc::HierarchicalZipWriter::SetZip64(bool isZip64)
+  void HierarchicalZipWriter::SetZip64(bool isZip64)
   {
     writer_.SetZip64(isZip64);
   }

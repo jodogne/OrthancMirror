@@ -47,7 +47,7 @@ namespace Orthanc
     }      
   };
 
-  size_t Orthanc::MemoryStringCache::GetMaximumSize()
+  size_t MemoryStringCache::GetMaximumSize()
   {
     return cache_.GetMaximumSize();
   }

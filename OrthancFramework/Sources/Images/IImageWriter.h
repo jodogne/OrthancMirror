@@ -52,24 +52,14 @@ namespace Orthanc
 #endif
 
   public:
-    virtual ~IImageWriter()
-    {
-    }
+    virtual ~IImageWriter();
 
     virtual void WriteToMemory(std::string& compressed,
-                               const ImageAccessor& accessor)
-    {
-      WriteToMemoryInternal(compressed, accessor.GetWidth(), accessor.GetHeight(),
-                            accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
+                               const ImageAccessor& accessor);
 
 #if ORTHANC_SANDBOXED == 0
     virtual void WriteToFile(const std::string& path,
-                             const ImageAccessor& accessor)
-    {
-      WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
-                          accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
-    }
+                             const ImageAccessor& accessor);
 #endif
   };
 }

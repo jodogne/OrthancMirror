@@ -34,7 +34,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC ImageAccessor : public boost::noncopyable
   {
   private:
-    template <Orthanc::PixelFormat Format>
+    template <PixelFormat Format>
     friend struct ImageTraits;
     
     bool readOnly_;

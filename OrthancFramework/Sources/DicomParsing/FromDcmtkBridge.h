@@ -99,13 +99,9 @@ namespace Orthanc
                                    DcmItem& dataset,
                                    Encoding defaultEncoding);
 
+    // Compatibility wrapper for Orthanc <= 1.5.4
     static Encoding DetectEncoding(DcmItem& dataset,
-                                   Encoding defaultEncoding)
-    {
-      // Compatibility wrapper for Orthanc <= 1.5.4
-      bool hasCodeExtensions;  // ignored
-      return DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
-    }
+                                   Encoding defaultEncoding);
 
     static DicomTag Convert(const DcmTag& tag);
 
@@ -131,37 +127,21 @@ namespace Orthanc
 
     static std::string GetTagName(const DcmElement& element);
 
-    static std::string GetTagName(const DicomElement& element)
-    {
-      return GetTagName(element.GetTag(), "");
-    }
+    static std::string GetTagName(const DicomElement& element);
 
     static DicomTag ParseTag(const char* name);
 
-    static DicomTag ParseTag(const std::string& name)
-    {
-      return ParseTag(name.c_str());
-    }
+    static DicomTag ParseTag(const std::string& name);
 
     static bool HasTag(const DicomMap& fields,
-                       const std::string& tagName)
-    {
-      return fields.HasTag(ParseTag(tagName));
-    }
+                       const std::string& tagName);
 
     static const DicomValue& GetValue(const DicomMap& fields,
-                                      const std::string& tagName)
-    {
-      return fields.GetValue(ParseTag(tagName));
-    }
+                                      const std::string& tagName);
 
     static void SetValue(DicomMap& target,
                          const std::string& tagName,
-                         DicomValue* value)
-    {
-      const DicomTag tag = ParseTag(tagName);
-      target.SetValueInternal(tag.GetGroup(), tag.GetElement(), value);
-    }
+                         DicomValue* value);
 
     static void ToJson(Json::Value& result,
                        const DicomMap& values,

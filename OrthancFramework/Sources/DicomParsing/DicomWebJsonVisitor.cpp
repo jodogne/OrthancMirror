@@ -336,6 +336,27 @@ namespace Orthanc
     }
   }
 
+  DicomWebJsonVisitor::DicomWebJsonVisitor() :
+    formatter_(NULL)
+  {
+    Clear();
+  }
+
+  void DicomWebJsonVisitor::SetFormatter(DicomWebJsonVisitor::IBinaryFormatter &formatter)
+  {
+    formatter_ = &formatter;
+  }
+
+  void DicomWebJsonVisitor::Clear()
+  {
+    result_ = Json::objectValue;
+  }
+
+  const Json::Value &DicomWebJsonVisitor::GetResult() const
+  {
+    return result_;
+  }
+
 
 #if ORTHANC_ENABLE_PUGIXML == 1
   void DicomWebJsonVisitor::FormatXml(std::string& target) const
@@ -345,6 +366,14 @@ namespace Orthanc
     Toolbox::XmlToString(target, doc);
   }
 #endif
+
+
+  void DicomWebJsonVisitor::VisitNotSupported(const std::vector<DicomTag> &parentTags,
+                                              const std::vector<size_t> &parentIndexes,
+                                              const DicomTag &tag,
+                                              ValueRepresentation vr)
+  {
+  }
 
 
   void DicomWebJsonVisitor::VisitEmptySequence(const std::vector<DicomTag>& parentTags,
@@ -597,7 +626,7 @@ namespace Orthanc
                    * https://groups.google.com/d/msg/orthanc-users/T32FovWPcCE/-hKFbfRJBgAJ
                    **/
 
-                  std::string t = Orthanc::Toolbox::StripSpaces(tokens[i]);
+                  std::string t = Toolbox::StripSpaces(tokens[i]);
                   if (t.empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);
@@ -613,7 +642,7 @@ namespace Orthanc
               
                 case ValueRepresentation_DecimalString:
                 {
-                  std::string t = Orthanc::Toolbox::StripSpaces(tokens[i]);
+                  std::string t = Toolbox::StripSpaces(tokens[i]);
                   if (t.empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);

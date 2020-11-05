@@ -75,7 +75,7 @@ namespace Orthanc
   }
 
 
-  Orthanc::GzipCompressor::GzipCompressor()
+  GzipCompressor::GzipCompressor()
   {
     SetPrefixWithUncompressedSize(false);
   }

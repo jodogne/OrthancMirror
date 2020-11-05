@@ -73,26 +73,13 @@ namespace Orthanc
     static Json::Value FormatDouble(double value);
 
   public:
-    DicomWebJsonVisitor() :
-      formatter_(NULL)
-    {
-      Clear();
-    }
+    DicomWebJsonVisitor();
 
-    void SetFormatter(IBinaryFormatter& formatter)
-    {
-      formatter_ = &formatter;
-    }
+    void SetFormatter(IBinaryFormatter& formatter);
     
-    void Clear()
-    {
-      result_ = Json::objectValue;
-    }
+    void Clear();
 
-    const Json::Value& GetResult() const
-    {
-      return result_;
-    }
+    const Json::Value& GetResult() const;
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     void FormatXml(std::string& target) const;
@@ -102,9 +89,7 @@ namespace Orthanc
                                    const std::vector<size_t>& parentIndexes,
                                    const DicomTag& tag,
                                    ValueRepresentation vr)
-      ORTHANC_OVERRIDE
-    {
-    }
+      ORTHANC_OVERRIDE;
 
     virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
