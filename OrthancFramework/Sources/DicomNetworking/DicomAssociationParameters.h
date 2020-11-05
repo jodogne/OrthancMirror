@@ -45,57 +45,30 @@ namespace Orthanc
     DicomAssociationParameters(const std::string& localAet,
                                const RemoteModalityParameters& remote);
     
-    const std::string& GetLocalApplicationEntityTitle() const
-    {
-      return localAet_;
-    }
+    const std::string& GetLocalApplicationEntityTitle() const;
 
-    void SetLocalApplicationEntityTitle(const std::string& aet)
-    {
-      localAet_ = aet;
-    }
+    void SetLocalApplicationEntityTitle(const std::string& aet);
 
-    const RemoteModalityParameters& GetRemoteModality() const
-    {
-      return remote_;
-    }
+    const RemoteModalityParameters& GetRemoteModality() const;
 
     void SetRemoteModality(const RemoteModalityParameters& parameters);
     
-    void SetRemoteApplicationEntityTitle(const std::string& aet)
-    {
-      remote_.SetApplicationEntityTitle(aet);
-    }
+    void SetRemoteApplicationEntityTitle(const std::string& aet);
 
     void SetRemoteHost(const std::string& host);
 
-    void SetRemotePort(uint16_t port)
-    {
-      remote_.SetPortNumber(port);
-    }
+    void SetRemotePort(uint16_t port);
 
-    void SetRemoteManufacturer(ModalityManufacturer manufacturer)
-    {
-      remote_.SetManufacturer(manufacturer);
-    }
+    void SetRemoteManufacturer(ModalityManufacturer manufacturer);
 
     bool IsEqual(const DicomAssociationParameters& other) const;
 
     // Setting it to "0" disables the timeout (infinite wait)
-    void SetTimeout(uint32_t seconds)
-    {
-      timeout_ = seconds;
-    }
+    void SetTimeout(uint32_t seconds);
 
-    uint32_t GetTimeout() const
-    {
-      return timeout_;
-    }
+    uint32_t GetTimeout() const;
 
-    bool HasTimeout() const
-    {
-      return timeout_ != 0;
-    }
+    bool HasTimeout() const;
 
     void SerializeJob(Json::Value& target) const;
     

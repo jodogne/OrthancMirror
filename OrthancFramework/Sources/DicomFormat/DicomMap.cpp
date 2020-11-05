@@ -247,6 +247,51 @@ namespace Orthanc
     content_.clear();
   }
 
+  void DicomMap::SetNullValue(uint16_t group, uint16_t element)
+  {
+    SetValueInternal(group, element, new DicomValue);
+  }
+
+  void DicomMap::SetNullValue(const DicomTag &tag)
+  {
+    SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue);
+  }
+
+  void DicomMap::SetValue(uint16_t group, uint16_t element, const DicomValue &value)
+  {
+    SetValueInternal(group, element, value.Clone());
+  }
+
+  void DicomMap::SetValue(const DicomTag &tag, const DicomValue &value)
+  {
+    SetValueInternal(tag.GetGroup(), tag.GetElement(), value.Clone());
+  }
+
+  void DicomMap::SetValue(const DicomTag &tag, const std::string &str, bool isBinary)
+  {
+    SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(str, isBinary));
+  }
+
+  void DicomMap::SetValue(uint16_t group, uint16_t element, const std::string &str, bool isBinary)
+  {
+    SetValueInternal(group, element, new DicomValue(str, isBinary));
+  }
+
+  bool DicomMap::HasTag(uint16_t group, uint16_t element) const
+  {
+    return HasTag(DicomTag(group, element));
+  }
+
+  bool DicomMap::HasTag(const DicomTag &tag) const
+  {
+    return content_.find(tag) != content_.end();
+  }
+
+  const DicomValue &DicomMap::GetValue(uint16_t group, uint16_t element) const
+  {
+    return GetValue(DicomTag(group, element));
+  }
+
 
   static void ExtractTags(DicomMap& result,
                           const DicomMap::Content& source,
@@ -287,6 +332,16 @@ namespace Orthanc
   }
 
 
+  Orthanc::DicomMap::~DicomMap()
+  {
+    Clear();
+  }
+
+  size_t DicomMap::GetSize() const
+  {
+    return content_.size();
+  }
+
 
   DicomMap* DicomMap::Clone() const
   {
@@ -324,6 +379,11 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InexistentTag);
     }
+  }
+
+  const DicomValue *DicomMap::TestAndGetValue(uint16_t group, uint16_t element) const
+  {
+    return TestAndGetValue(DicomTag(group, element));
   }
 
 

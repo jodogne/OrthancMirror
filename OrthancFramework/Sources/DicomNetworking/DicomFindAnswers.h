@@ -44,24 +44,15 @@ namespace Orthanc
   public:
     explicit DicomFindAnswers(bool isWorklist);
 
-    ~DicomFindAnswers()
-    {
-      Clear();
-    }
+    ~DicomFindAnswers();
 
-    Encoding GetEncoding() const
-    {
-      return encoding_;
-    }
+    Encoding GetEncoding() const;
 
     void SetEncoding(Encoding encoding);
 
     void SetWorklist(bool isWorklist);
 
-    bool IsWorklist() const
-    {
-      return isWorklist_;
-    }
+    bool IsWorklist() const;
 
     void Clear();
 
@@ -74,10 +65,7 @@ namespace Orthanc
     void Add(const void* dicom,
              size_t size);
 
-    size_t GetSize() const
-    {
-      return answers_.size();
-    }
+    size_t GetSize() const;
 
     ParsedDicomFile& GetAnswer(size_t index) const;
 
@@ -90,14 +78,8 @@ namespace Orthanc
                 size_t index,
                 bool simplify) const;
 
-    bool IsComplete() const
-    {
-      return complete_;
-    }
+    bool IsComplete() const;
 
-    void SetComplete(bool isComplete)
-    {
-      complete_ = isComplete;
-    }
+    void SetComplete(bool isComplete);
   };
 }

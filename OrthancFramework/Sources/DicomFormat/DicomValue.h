@@ -51,9 +51,7 @@ namespace Orthanc
     DicomValue(const DicomValue& other);
 
   public:
-    DicomValue() : type_(Type_Null)
-    {
-    }
+    DicomValue();
     
     DicomValue(const std::string& content,
                bool isBinary);
@@ -64,15 +62,9 @@ namespace Orthanc
     
     const std::string& GetContent() const;
 
-    bool IsNull() const
-    {
-      return type_ == Type_Null;
-    }
+    bool IsNull() const;
 
-    bool IsBinary() const
-    {
-      return type_ == Type_Binary;
-    }
+    bool IsBinary() const;
     
     DicomValue* Clone() const;
 

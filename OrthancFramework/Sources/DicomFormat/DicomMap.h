@@ -53,19 +53,9 @@ namespace Orthanc
                                          ResourceType level);
 
   public:
-    DicomMap()
-    {
-    }
+    ~DicomMap();
 
-    ~DicomMap()
-    {
-      Clear();
-    }
-
-    size_t GetSize() const
-    {
-      return content_.size();
-    }
+    size_t GetSize() const;
     
     DicomMap* Clone() const;
 
@@ -73,67 +63,37 @@ namespace Orthanc
 
     void Clear();
 
-    void SetNullValue(uint16_t group, 
-                      uint16_t element)
-    {
-      SetValueInternal(group, element, new DicomValue);
-    }
+    void SetNullValue(uint16_t group,
+                      uint16_t element);
     
-    void SetNullValue(const DicomTag& tag)
-    {
-      SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue);
-    }
+    void SetNullValue(const DicomTag& tag);
     
-    void SetValue(uint16_t group, 
-                  uint16_t element, 
-                  const DicomValue& value)
-    {
-      SetValueInternal(group, element, value.Clone());
-    }
+    void SetValue(uint16_t group,
+                  uint16_t element,
+                  const DicomValue& value);
 
     void SetValue(const DicomTag& tag,
-                  const DicomValue& value)
-    {
-      SetValueInternal(tag.GetGroup(), tag.GetElement(), value.Clone());
-    }
+                  const DicomValue& value);
 
     void SetValue(const DicomTag& tag,
                   const std::string& str,
-                  bool isBinary)
-    {
-      SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(str, isBinary));
-    }
+                  bool isBinary);
 
-    void SetValue(uint16_t group, 
-                  uint16_t element, 
+    void SetValue(uint16_t group,
+                  uint16_t element,
                   const std::string& str,
-                  bool isBinary)
-    {
-      SetValueInternal(group, element, new DicomValue(str, isBinary));
-    }
+                  bool isBinary);
 
-    bool HasTag(uint16_t group, uint16_t element) const
-    {
-      return HasTag(DicomTag(group, element));
-    }
+    bool HasTag(uint16_t group, uint16_t element) const;
 
-    bool HasTag(const DicomTag& tag) const
-    {
-      return content_.find(tag) != content_.end();
-    }
+    bool HasTag(const DicomTag& tag) const;
 
-    const DicomValue& GetValue(uint16_t group, uint16_t element) const
-    {
-      return GetValue(DicomTag(group, element));
-    }
+    const DicomValue& GetValue(uint16_t group, uint16_t element) const;
 
     const DicomValue& GetValue(const DicomTag& tag) const;
 
     // DO NOT delete the returned value!
-    const DicomValue* TestAndGetValue(uint16_t group, uint16_t element) const
-    {
-      return TestAndGetValue(DicomTag(group, element));
-    }       
+    const DicomValue* TestAndGetValue(uint16_t group, uint16_t element) const;
 
     // DO NOT delete the returned value!
     const DicomValue* TestAndGetValue(const DicomTag& tag) const;

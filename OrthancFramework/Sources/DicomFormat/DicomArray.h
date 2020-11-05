@@ -41,15 +41,9 @@ namespace Orthanc
 
     ~DicomArray();
 
-    size_t GetSize() const
-    {
-      return elements_.size();
-    }
+    size_t GetSize() const;
 
-    const DicomElement& GetElement(size_t i) const
-    {
-      return *elements_[i];
-    }
+    const DicomElement& GetElement(size_t i) const;
 
     void Print(FILE* fp) const;  // For debugging only
   };

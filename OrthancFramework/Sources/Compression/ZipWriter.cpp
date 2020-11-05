@@ -148,6 +148,11 @@ namespace Orthanc
     path_ = path;
   }
 
+  const std::string &ZipWriter::GetOutputPath() const
+  {
+    return path_;
+  }
+
   void ZipWriter::SetZip64(bool isZip64)
   {
     Close();
@@ -165,6 +170,11 @@ namespace Orthanc
 
     Close();
     compressionLevel_ = level;
+  }
+
+  uint8_t ZipWriter::GetCompressionLevel() const
+  {
+    return compressionLevel_;
   }
 
   void ZipWriter::OpenFile(const char* path)
@@ -248,4 +258,15 @@ namespace Orthanc
     Close();
     append_ = append;
   }
+
+  bool ZipWriter::IsAppendToExisting() const
+  {
+    return append_;
+  }
+
+  bool Orthanc::ZipWriter::IsZip64() const
+  {
+    return isZip64_;
+  }
+
 }

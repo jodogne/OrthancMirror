@@ -46,20 +46,10 @@ namespace Orthanc
 
     static void Compress(std::string& compressed,
                          IBufferCompressor& compressor,
-                         const std::string& uncompressed)
-    {
-      compressor.Compress(compressed, 
-                          uncompressed.size() == 0 ? NULL : uncompressed.c_str(), 
-                          uncompressed.size());
-    }
+                         const std::string& uncompressed);
 
     static void Uncompress(std::string& uncompressed,
                            IBufferCompressor& compressor,
-                           const std::string& compressed)
-    {
-      compressor.Uncompress(uncompressed, 
-                            compressed.size() == 0 ? NULL : compressed.c_str(), 
-                            compressed.size());
-    }
+                           const std::string& compressed);
   };
 }

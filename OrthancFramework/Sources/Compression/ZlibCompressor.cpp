@@ -32,6 +32,11 @@
 
 namespace Orthanc
 {
+  Orthanc::ZlibCompressor::ZlibCompressor()
+  {
+    SetPrefixWithUncompressedSize(true);
+  }
+
   void ZlibCompressor::Compress(std::string& compressed,
                                 const void* uncompressed,
                                 size_t uncompressedSize)

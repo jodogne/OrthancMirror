@@ -53,62 +53,32 @@ namespace Orthanc
     void UnserializeObject(const Json::Value& serialized);
 
   public:
-    RemoteModalityParameters()
-    {
-      Clear();
-    }
+    RemoteModalityParameters();
 
-    explicit RemoteModalityParameters(const Json::Value& serialized)
-    {
-      Unserialize(serialized);
-    }
+    explicit RemoteModalityParameters(const Json::Value& serialized);
 
     RemoteModalityParameters(const std::string& aet,
                              const std::string& host,
                              uint16_t port,
                              ModalityManufacturer manufacturer);
 
-    const std::string& GetApplicationEntityTitle() const
-    {
-      return aet_;
-    }
+    const std::string& GetApplicationEntityTitle() const;
 
-    void SetApplicationEntityTitle(const std::string& aet)
-    {
-      aet_ = aet;
-    }
+    void SetApplicationEntityTitle(const std::string& aet);
 
-    const std::string& GetHost() const
-    {
-      return host_;
-    }
+    const std::string& GetHost() const;
 
-    void SetHost(const std::string& host)
-    {
-      host_ = host;
-    }
+    void SetHost(const std::string& host);
     
-    uint16_t GetPortNumber() const
-    {
-      return port_;
-    }
+    uint16_t GetPortNumber() const;
 
     void SetPortNumber(uint16_t port);
 
-    ModalityManufacturer GetManufacturer() const
-    {
-      return manufacturer_;
-    }
+    ModalityManufacturer GetManufacturer() const;
 
-    void SetManufacturer(ModalityManufacturer manufacturer)
-    {
-      manufacturer_ = manufacturer;
-    }    
+    void SetManufacturer(ModalityManufacturer manufacturer);
 
-    void SetManufacturer(const std::string& manufacturer)
-    {
-      manufacturer_ = StringToModalityManufacturer(manufacturer);
-    }
+    void SetManufacturer(const std::string& manufacturer);
 
     bool IsRequestAllowed(DicomRequestType type) const;
 
@@ -122,14 +92,8 @@ namespace Orthanc
     void Serialize(Json::Value& target,
                    bool forceAdvancedFormat) const;
 
-    bool IsTranscodingAllowed() const
-    {
-      return allowTranscoding_;
-    }
+    bool IsTranscodingAllowed() const;
 
-    void SetTranscodingAllowed(bool allowed)
-    {
-      allowTranscoding_ = allowed;
-    }
+    void SetTranscodingAllowed(bool allowed);
   };
 }

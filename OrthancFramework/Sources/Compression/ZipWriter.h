@@ -59,24 +59,15 @@ namespace Orthanc
 
     void SetZip64(bool isZip64);
 
-    bool IsZip64() const
-    {
-      return isZip64_;
-    }
+    bool IsZip64() const;
 
     void SetCompressionLevel(uint8_t level);
 
-    uint8_t GetCompressionLevel() const
-    {
-      return compressionLevel_;
-    }
+    uint8_t GetCompressionLevel() const;
 
     void SetAppendToExisting(bool append);
     
-    bool IsAppendToExisting() const
-    {
-      return append_;
-    }
+    bool IsAppendToExisting() const;
     
     void Open();
 
@@ -86,10 +77,7 @@ namespace Orthanc
 
     void SetOutputPath(const char* path);
 
-    const std::string& GetOutputPath() const
-    {
-      return path_;
-    }
+    const std::string& GetOutputPath() const;
 
     void OpenFile(const char* path);
 

@@ -56,6 +56,34 @@ namespace Orthanc
           instance.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent());
   }
 
+  Orthanc::DicomInstanceHasher::DicomInstanceHasher(const std::string &patientId,
+                                                    const std::string &studyUid,
+                                                    const std::string &seriesUid,
+                                                    const std::string &instanceUid)
+  {
+    Setup(patientId, studyUid, seriesUid, instanceUid);
+  }
+
+  const std::string &DicomInstanceHasher::GetPatientId() const
+  {
+    return patientId_;
+  }
+
+  const std::string &DicomInstanceHasher::GetStudyUid() const
+  {
+    return studyUid_;
+  }
+
+  const std::string &DicomInstanceHasher::GetSeriesUid() const
+  {
+    return seriesUid_;
+  }
+
+  const std::string &DicomInstanceHasher::GetInstanceUid() const
+  {
+    return instanceUid_;
+  }
+
   const std::string& DicomInstanceHasher::HashPatient()
   {
     if (patientHash_.size() == 0)

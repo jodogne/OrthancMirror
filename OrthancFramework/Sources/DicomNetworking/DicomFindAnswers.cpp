@@ -58,6 +58,16 @@ namespace Orthanc
   {
   }
 
+  DicomFindAnswers::~DicomFindAnswers()
+  {
+    Clear();
+  }
+
+  Encoding DicomFindAnswers::GetEncoding() const
+  {
+    return encoding_;
+  }
+
 
   void DicomFindAnswers::SetEncoding(Encoding encoding)
   {
@@ -82,6 +92,11 @@ namespace Orthanc
       // This set of answers is not empty anymore, cannot change its type
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
+  }
+
+  bool DicomFindAnswers::IsWorklist() const
+  {
+    return isWorklist_;
   }
 
 
@@ -125,6 +140,11 @@ namespace Orthanc
                              size_t size)
   {
     AddAnswerInternal(new ParsedDicomFile(dicom, size));
+  }
+
+  size_t DicomFindAnswers::GetSize() const
+  {
+    return answers_.size();
   }
 
 
@@ -197,6 +217,17 @@ namespace Orthanc
       ToJson(answer, i, simplify);
       target.append(answer);
     }
+  }
+
+
+  bool DicomFindAnswers::IsComplete() const
+  {
+    return complete_;
+  }
+
+  void DicomFindAnswers::SetComplete(bool isComplete)
+  {
+    complete_ = isComplete;
   }
 
 
