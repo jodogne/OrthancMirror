@@ -65,11 +65,7 @@ namespace Orthanc
     but avoids possible crashes due to non-aligned memory access. It is
     recommended to set this parameter to "true".
     */
-    explicit PamReader(bool enforceAligned) :
-      enforceAligned_(enforceAligned),
-      alignedImageBuffer_(NULL)
-    {
-    }
+    explicit PamReader(bool enforceAligned);
 
     virtual ~PamReader();
 

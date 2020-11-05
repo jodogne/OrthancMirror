@@ -35,6 +35,26 @@ namespace Orthanc
   {
   }
 
+  std::string &BufferHttpSender::GetBuffer()
+  {
+    return buffer_;
+  }
+
+  const std::string &BufferHttpSender::GetBuffer() const
+  {
+    return buffer_;
+  }
+
+  void BufferHttpSender::SetChunkSize(size_t chunkSize)
+  {
+    chunkSize_ = chunkSize;
+  }
+
+  uint64_t BufferHttpSender::GetContentLength()
+  {
+    return buffer_.size();
+  }
+
 
   bool BufferHttpSender::ReadNextChunk()
   {

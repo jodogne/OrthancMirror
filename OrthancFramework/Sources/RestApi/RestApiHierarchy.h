@@ -47,25 +47,13 @@ namespace Orthanc
 
       bool HasHandler(HttpMethod method) const;
 
-      void Register(RestApiGetCall::Handler handler)
-      {
-        getHandler_ = handler;
-      }
+      void Register(RestApiGetCall::Handler handler);
 
-      void Register(RestApiPutCall::Handler handler)
-      {
-        putHandler_ = handler;
-      }
+      void Register(RestApiPutCall::Handler handler);
 
-      void Register(RestApiPostCall::Handler handler)
-      {
-        postHandler_ = handler;
-      }
+      void Register(RestApiPostCall::Handler handler);
 
-      void Register(RestApiDeleteCall::Handler handler)
-      {
-        deleteHandler_ = handler;
-      }
+      void Register(RestApiDeleteCall::Handler handler);
 
       bool IsEmpty() const;
 
@@ -82,9 +70,7 @@ namespace Orthanc
     class IVisitor : public boost::noncopyable
     {
     public:
-      virtual ~IVisitor()
-      {
-      }
+      virtual ~IVisitor();
 
       virtual bool Visit(const Resource& resource,
                          const UriComponents& uri,
@@ -140,10 +126,7 @@ namespace Orthanc
     void CreateSiteMap(Json::Value& target) const;
 
     bool GetDirectory(Json::Value& result,
-                      const UriComponents& uri)
-    {
-      return GetDirectory(result, uri, 0);
-    }
+                      const UriComponents& uri);
 
     bool LookupResource(const UriComponents& uri,
                         IVisitor& visitor);

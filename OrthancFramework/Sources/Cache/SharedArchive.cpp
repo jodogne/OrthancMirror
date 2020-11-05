@@ -59,6 +59,11 @@ namespace Orthanc
     }
   }
 
+  bool SharedArchive::Accessor::IsValid() const
+  {
+    return item_ != NULL;
+  }
+
 
   IDynamicObject& SharedArchive::Accessor::GetItem() const
   {

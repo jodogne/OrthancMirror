@@ -55,6 +55,21 @@ namespace Orthanc
     }
   }
 
+  JobOperationValues::~JobOperationValues()
+  {
+    Clear();
+  }
+
+  void JobOperationValues::Move(JobOperationValues &target)
+  {
+    return Append(target, true);
+  }
+
+  void JobOperationValues::Copy(JobOperationValues &target)
+  {
+    return Append(target, false);
+  }
+
 
   void JobOperationValues::Clear()
   {
@@ -69,6 +84,11 @@ namespace Orthanc
     values_.clear();
   }
 
+  void JobOperationValues::Reserve(size_t count)
+  {
+    values_.reserve(count);
+  }
+
 
   void JobOperationValues::Append(JobOperationValue* value)  // Takes ownership
   {
@@ -80,6 +100,11 @@ namespace Orthanc
     {
       values_.push_back(value);
     }
+  }
+
+  size_t JobOperationValues::GetSize() const
+  {
+    return values_.size();
   }
 
 

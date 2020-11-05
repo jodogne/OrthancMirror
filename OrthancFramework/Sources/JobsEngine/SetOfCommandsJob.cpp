@@ -32,6 +32,14 @@
 
 namespace Orthanc
 {
+  SetOfCommandsJob::ICommand::~ICommand()
+  {
+  }
+
+  SetOfCommandsJob::ICommandUnserializer::~ICommandUnserializer()
+  {
+  }
+
   SetOfCommandsJob::SetOfCommandsJob() :
     started_(false),
     permissive_(false),
@@ -49,7 +57,17 @@ namespace Orthanc
     }
   }
 
-    
+  size_t SetOfCommandsJob::GetPosition() const
+  {
+    return position_;
+  }
+
+  void SetOfCommandsJob::SetDescription(const std::string &description)
+  {
+    description_ = description;
+  }
+
+
   void SetOfCommandsJob::Reserve(size_t size)
   {
     if (started_)
@@ -62,7 +80,12 @@ namespace Orthanc
     }
   }
 
-    
+  size_t SetOfCommandsJob::GetCommandsCount() const
+  {
+    return commands_.size();
+  }
+
+
   void SetOfCommandsJob::AddCommand(ICommand* command)
   {
     if (command == NULL)
@@ -77,6 +100,11 @@ namespace Orthanc
     {
       commands_.push_back(command);
     }
+  }
+
+  bool SetOfCommandsJob::IsPermissive() const
+  {
+    return permissive_;
   }
 
 
@@ -105,7 +133,12 @@ namespace Orthanc
     }
   }
 
-    
+  void SetOfCommandsJob::Start()
+  {
+    started_ = true;
+  }
+
+
   float SetOfCommandsJob::GetProgress()
   {
     if (commands_.empty())
@@ -117,6 +150,11 @@ namespace Orthanc
       return (static_cast<float>(position_) /
               static_cast<float>(commands_.size()));
     }
+  }
+
+  bool SetOfCommandsJob::IsStarted() const
+  {
+    return started_;
   }
 
 
@@ -232,6 +270,13 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  bool SetOfCommandsJob::GetOutput(std::string &output,
+                                   MimeType &mime,
+                                   const std::string &key)
+  {
+    return false;
   }
 
 

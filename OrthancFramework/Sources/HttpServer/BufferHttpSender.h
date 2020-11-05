@@ -36,32 +36,20 @@ namespace Orthanc
   public:
     BufferHttpSender();
 
-    std::string& GetBuffer() 
-    {
-      return buffer_;
-    }
+    std::string& GetBuffer();
 
-    const std::string& GetBuffer() const
-    {
-      return buffer_;
-    }
+    const std::string& GetBuffer() const;
 
     // This is for test purpose. If "chunkSize" is set to "0" (the
     // default), the entire buffer is consumed at once.
-    void SetChunkSize(size_t chunkSize)
-    {
-      chunkSize_ = chunkSize;
-    }
+    void SetChunkSize(size_t chunkSize);
 
 
     /**
      * Implementation of the IHttpStreamAnswer interface.
      **/
 
-    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE
-    {
-      return buffer_.size();
-    }
+    virtual uint64_t GetContentLength() ORTHANC_OVERRIDE;
 
     virtual bool ReadNextChunk() ORTHANC_OVERRIDE;
 

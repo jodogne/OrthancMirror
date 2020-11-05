@@ -61,10 +61,7 @@ namespace Orthanc
 
     ~SharedLibrary();
 
-    const std::string& GetPath() const
-    {
-      return path_;
-    }
+    const std::string& GetPath() const;
 
     bool HasFunction(const std::string& name);
 

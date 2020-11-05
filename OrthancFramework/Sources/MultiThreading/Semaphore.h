@@ -44,10 +44,7 @@ namespace Orthanc
   public:
     explicit Semaphore(unsigned int availableResources);
 
-    unsigned int GetAvailableResourcesCount() const
-    {
-      return availableResources_;
-    }
+    unsigned int GetAvailableResourcesCount() const;
 
 
     class Locker : public boost::noncopyable

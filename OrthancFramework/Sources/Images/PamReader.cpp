@@ -265,6 +265,12 @@ namespace Orthanc
     }
   }
 
+  PamReader::PamReader(bool enforceAligned) :
+    enforceAligned_(enforceAligned),
+    alignedImageBuffer_(NULL)
+  {
+  }
+
   
 #if ORTHANC_SANDBOXED == 0
   void PamReader::ReadFromFile(const std::string& filename)

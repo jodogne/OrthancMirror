@@ -175,6 +175,11 @@ namespace Orthanc
     }
   }
 
+  bool MetricsRegistry::IsEnabled() const
+  {
+    return enabled_;
+  }
+
 
   void MetricsRegistry::SetEnabled(bool enabled)
   {
@@ -208,7 +213,6 @@ namespace Orthanc
     }    
   }
 
-
   void MetricsRegistry::SetValueInternal(const std::string& name,
                                          float value,
                                          MetricsType type)
@@ -228,6 +232,29 @@ namespace Orthanc
       assert(found->second != NULL);
       found->second->Update(value);
     }
+  }
+
+  MetricsRegistry::MetricsRegistry() :
+    enabled_(true)
+  {
+  }
+
+
+  void MetricsRegistry::SetValue(const std::string &name,
+                                 float value,
+                                 MetricsType type)
+  {
+    // Inlining to avoid loosing time if metrics are disabled
+    if (enabled_)
+    {
+      SetValueInternal(name, value, type);
+    }
+  }
+
+
+  void MetricsRegistry::SetValue(const std::string &name, float value)
+  {
+    SetValue(name, value, MetricsType_Default);
   }
 
 
@@ -286,11 +313,32 @@ namespace Orthanc
   }
 
 
+  MetricsRegistry::SharedMetrics::SharedMetrics(MetricsRegistry &registry,
+                                                const std::string &name,
+                                                MetricsType type) :
+    registry_(registry),
+    name_(name),
+    value_(0)
+  {
+  }
+
   void MetricsRegistry::SharedMetrics::Add(float delta)
   {
     boost::mutex::scoped_lock lock(mutex_);
     value_ += delta;
     registry_.SetValue(name_, value_);
+  }
+
+
+  MetricsRegistry::ActiveCounter::ActiveCounter(MetricsRegistry::SharedMetrics &metrics) :
+    metrics_(metrics)
+  {
+    metrics_.Add(1);
+  }
+
+  MetricsRegistry::ActiveCounter::~ActiveCounter()
+  {
+    metrics_.Add(-1);
   }
 
 
@@ -308,13 +356,34 @@ namespace Orthanc
   }
 
 
+  MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
+                                const std::string &name) :
+    registry_(registry),
+    name_(name),
+    type_(MetricsType_MaxOver10Seconds)
+  {
+    Start();
+  }
+
+
+  MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
+                                const std::string &name,
+                                MetricsType type) :
+    registry_(registry),
+    name_(name),
+    type_(type)
+  {
+    Start();
+  }
+
+
   MetricsRegistry::Timer::~Timer()
   {
     if (active_)
-    {   
+    {
       boost::posix_time::time_duration diff = GetNow() - start_;
       registry_.SetValue(
-        name_, static_cast<float>(diff.total_milliseconds()), type_);
+            name_, static_cast<float>(diff.total_milliseconds()), type_);
     }
   }
 }

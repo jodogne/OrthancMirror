@@ -165,6 +165,16 @@ namespace Orthanc
     return true;
   }
 
+  bool SharedMessageQueue::IsFifoPolicy() const
+  {
+    return isFifo_;
+  }
+
+  bool SharedMessageQueue::IsLifoPolicy() const
+  {
+    return !isFifo_;
+  }
+
 
   void SharedMessageQueue::SetFifoPolicy()
   {

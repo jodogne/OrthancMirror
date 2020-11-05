@@ -102,6 +102,12 @@ namespace Orthanc
   }
 
 
+  const std::string &SharedLibrary::GetPath() const
+  {
+    return path_;
+  }
+
+
   SharedLibrary::FunctionPointer SharedLibrary::GetFunctionInternal(const std::string& name)
   {
     if (!handle_)

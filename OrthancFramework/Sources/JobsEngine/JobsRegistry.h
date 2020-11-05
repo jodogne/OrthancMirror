@@ -48,9 +48,7 @@ namespace Orthanc
     class ORTHANC_PUBLIC IObserver : public boost::noncopyable
     {
     public:
-      virtual ~IObserver()
-      {
-      }
+      virtual ~IObserver();
 
       virtual void SignalJobSubmitted(const std::string& jobId) = 0;
 
@@ -129,11 +127,7 @@ namespace Orthanc
                         JobHandler* handler);
 
   public:
-    explicit JobsRegistry(size_t maxCompletedJobs) :
-      maxCompletedJobs_(maxCompletedJobs),
-      observer_(NULL)
-    {
-    }
+    explicit JobsRegistry(size_t maxCompletedJobs);
 
     JobsRegistry(IJobUnserializer& unserializer,
                  const Json::Value& s,

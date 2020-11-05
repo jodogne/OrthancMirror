@@ -97,6 +97,11 @@ namespace Orthanc
   }
                        
 
+  JpegWriter::JpegWriter() : quality_(90)
+  {
+  }
+
+
   void JpegWriter::SetQuality(uint8_t quality)
   {
     if (quality == 0 || quality > 100)
@@ -198,5 +203,10 @@ namespace Orthanc
 
     jpeg.assign(reinterpret_cast<const char*>(data), size);
     free(data);
+  }
+
+  uint8_t JpegWriter::GetQuality() const
+  {
+    return quality_;
   }
 }

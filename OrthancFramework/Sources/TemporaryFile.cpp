@@ -88,6 +88,11 @@ namespace Orthanc
     boost::filesystem::remove(path_);
   }
 
+  const std::string &TemporaryFile::GetPath() const
+  {
+    return path_;
+  }
+
 
   void TemporaryFile::Write(const std::string& content)
   {

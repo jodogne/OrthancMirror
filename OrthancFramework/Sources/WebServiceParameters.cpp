@@ -68,6 +68,16 @@ namespace Orthanc
     SetUrl("http://127.0.0.1:8042/");
   }
 
+  WebServiceParameters::WebServiceParameters(const Json::Value &serialized)
+  {
+    Unserialize(serialized);
+  }
+
+  const std::string &WebServiceParameters::GetUrl() const
+  {
+    return url_;
+  }
+
 
   void WebServiceParameters::ClearClientCertificate()
   {
@@ -128,6 +138,16 @@ namespace Orthanc
     }
   }
 
+  const std::string &WebServiceParameters::GetUsername() const
+  {
+    return username_;
+  }
+
+  const std::string &WebServiceParameters::GetPassword() const
+  {
+    return password_;
+  }
+
 
   void WebServiceParameters::SetClientCertificate(const std::string& certificateFile,
                                                   const std::string& certificateKeyFile,
@@ -146,6 +166,46 @@ namespace Orthanc
     certificateFile_ = certificateFile;
     certificateKeyFile_ = certificateKeyFile;
     certificateKeyPassword_ = certificateKeyPassword;
+  }
+
+  const std::string &WebServiceParameters::GetCertificateFile() const
+  {
+    return certificateFile_;
+  }
+
+  const std::string &WebServiceParameters::GetCertificateKeyFile() const
+  {
+    return certificateKeyFile_;
+  }
+
+  const std::string &WebServiceParameters::GetCertificateKeyPassword() const
+  {
+    return certificateKeyPassword_;
+  }
+
+  void WebServiceParameters::SetPkcs11Enabled(bool enabled)
+  {
+    pkcs11Enabled_ = enabled;
+  }
+
+  bool WebServiceParameters::IsPkcs11Enabled() const
+  {
+    return pkcs11Enabled_;
+  }
+
+  void WebServiceParameters::AddHttpHeader(const std::string &key, const std::string &value)
+  {
+    headers_[key] = value;
+  }
+
+  void WebServiceParameters::ClearHttpHeaders()
+  {
+    headers_.clear();
+  }
+
+  const WebServiceParameters::Dictionary &WebServiceParameters::GetHttpHeaders() const
+  {
+    return headers_;
   }
 
 
@@ -379,6 +439,16 @@ namespace Orthanc
     {
       userProperties_[key] = value;
     }
+  }
+
+  void WebServiceParameters::ClearUserProperties()
+  {
+    userProperties_.clear();
+  }
+
+  const WebServiceParameters::Dictionary &WebServiceParameters::GetUserProperties() const
+  {
+    return userProperties_;
   }
 
 

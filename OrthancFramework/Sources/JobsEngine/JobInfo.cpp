@@ -90,6 +90,41 @@ namespace Orthanc
   {
   }
 
+  const std::string &JobInfo::GetIdentifier() const
+  {
+    return id_;
+  }
+
+  int JobInfo::GetPriority() const
+  {
+    return priority_;
+  }
+
+  JobState JobInfo::GetState() const
+  {
+    return state_;
+  }
+
+  const boost::posix_time::ptime &JobInfo::GetInfoTime() const
+  {
+    return timestamp_;
+  }
+
+  const boost::posix_time::ptime &JobInfo::GetCreationTime() const
+  {
+    return creationTime_;
+  }
+
+  const boost::posix_time::time_duration &JobInfo::GetRuntime() const
+  {
+    return runtime_;
+  }
+
+  bool JobInfo::HasEstimatedTimeOfArrival() const
+  {
+    return hasEta_;
+  }
+
 
   bool JobInfo::HasCompletionTime() const
   {
@@ -121,6 +156,16 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
+  }
+
+  const JobStatus &JobInfo::GetStatus() const
+  {
+    return status_;
+  }
+
+  JobStatus &JobInfo::GetStatus()
+  {
+    return status_;
   }
 
 

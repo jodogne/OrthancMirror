@@ -58,15 +58,9 @@ namespace Orthanc
   public:
     WebServiceParameters();
 
-    explicit WebServiceParameters(const Json::Value& serialized)
-    {
-      Unserialize(serialized);
-    }
+    explicit WebServiceParameters(const Json::Value& serialized);
 
-    const std::string& GetUrl() const
-    {
-      return url_;
-    }
+    const std::string& GetUrl() const;
 
     void SetUrl(const std::string& url);
 
@@ -75,15 +69,9 @@ namespace Orthanc
     void SetCredentials(const std::string& username,
                         const std::string& password);
     
-    const std::string& GetUsername() const
-    {
-      return username_;
-    }
+    const std::string& GetUsername() const;
 
-    const std::string& GetPassword() const
-    {
-      return password_;
-    }
+    const std::string& GetPassword() const;
 
     void ClearClientCertificate();
 
@@ -91,46 +79,22 @@ namespace Orthanc
                               const std::string& certificateKeyFile,
                               const std::string& certificateKeyPassword);
 
-    const std::string& GetCertificateFile() const
-    {
-      return certificateFile_;
-    }
+    const std::string& GetCertificateFile() const;
 
-    const std::string& GetCertificateKeyFile() const
-    {
-      return certificateKeyFile_;
-    }
+    const std::string& GetCertificateKeyFile() const;
 
-    const std::string& GetCertificateKeyPassword() const
-    {
-      return certificateKeyPassword_;
-    }
+    const std::string& GetCertificateKeyPassword() const;
 
-    void SetPkcs11Enabled(bool enabled)
-    {
-      pkcs11Enabled_ = enabled;
-    }
+    void SetPkcs11Enabled(bool enabled);
 
-    bool IsPkcs11Enabled() const
-    {
-      return pkcs11Enabled_;
-    }
+    bool IsPkcs11Enabled() const;
 
     void AddHttpHeader(const std::string& key,
-                       const std::string& value)
-    {
-      headers_[key] = value;
-    }
+                       const std::string& value);
 
-    void ClearHttpHeaders()
-    {
-      headers_.clear();
-    }
+    void ClearHttpHeaders();
 
-    const Dictionary& GetHttpHeaders() const
-    {
-      return headers_;
-    }
+    const Dictionary& GetHttpHeaders() const;
 
     void ListHttpHeaders(std::set<std::string>& target) const; 
 
@@ -140,15 +104,9 @@ namespace Orthanc
     void AddUserProperty(const std::string& key,
                          const std::string& value);
 
-    void ClearUserProperties()
-    {
-      userProperties_.clear();
-    }
+    void ClearUserProperties();
 
-    const Dictionary& GetUserProperties() const
-    {
-      return userProperties_;
-    }
+    const Dictionary& GetUserProperties() const;
 
     void ListUserProperties(std::set<std::string>& target) const; 
 

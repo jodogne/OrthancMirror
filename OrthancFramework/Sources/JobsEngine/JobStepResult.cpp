@@ -27,6 +27,23 @@
 
 namespace Orthanc
 {
+  JobStepResult::JobStepResult() :
+    code_(JobStepCode_Failure),
+    timeout_(0),
+    error_(ErrorCode_InternalError)
+  {
+  }
+
+  JobStepResult JobStepResult::Success()
+  {
+    return JobStepResult(JobStepCode_Success);
+  }
+
+  JobStepResult JobStepResult::Continue()
+  {
+    return JobStepResult(JobStepCode_Continue);
+  }
+
   JobStepResult JobStepResult::Retry(unsigned int timeout)
   {
     JobStepResult result(JobStepCode_Retry);
@@ -54,6 +71,11 @@ namespace Orthanc
   {
     return Failure(exception.GetErrorCode(),
                    exception.HasDetails() ? exception.GetDetails() : NULL);
+  }
+
+  JobStepCode JobStepResult::GetCode() const
+  {
+    return code_;
   }
   
 

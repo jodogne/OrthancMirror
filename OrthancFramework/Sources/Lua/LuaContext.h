@@ -94,16 +94,10 @@ namespace Orthanc
 
     ~LuaContext();
 
-    void Execute(const std::string& command)
-    {
-      ExecuteInternal(NULL, command);
-    }
+    void Execute(const std::string& command);
 
     void Execute(std::string& output,
-                 const std::string& command)
-    {
-      ExecuteInternal(&output, command);
-    }
+                 const std::string& command);
 
     void Execute(Json::Value& output,
                  const std::string& command);
@@ -112,10 +106,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_CURL == 1
     void SetHttpCredentials(const char* username,
-                            const char* password)
-    {
-      httpClient_.SetCredentials(username, password);
-    }
+                            const char* password);
 #endif
 
     void RegisterFunction(const char* name,

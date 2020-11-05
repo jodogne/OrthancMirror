@@ -50,17 +50,11 @@ namespace Orthanc
 
     bool Match(const UriComponents& uri) const;
 
-    size_t GetLevelCount() const
-    {
-      return uri_.size();
-    }
+    size_t GetLevelCount() const;
 
     bool IsWildcardLevel(size_t level) const;
 
-    bool IsUniversalTrailing() const
-    {
-      return hasTrailing_;
-    }
+    bool IsUniversalTrailing() const;
 
     const std::string& GetWildcardName(size_t level) const;
 

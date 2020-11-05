@@ -49,6 +49,29 @@
 
 namespace Orthanc
 {
+  ImageProcessing::ImagePoint::ImagePoint(int32_t x,
+                                          int32_t y) :
+    x_(x),
+    y_(y)
+  {
+  }
+
+  int32_t ImageProcessing::ImagePoint::GetX() const
+  {
+    return x_;
+  }
+
+  int32_t ImageProcessing::ImagePoint::GetY() const
+  {
+    return y_;
+  }
+
+  void ImageProcessing::ImagePoint::Set(int32_t x, int32_t y)
+  {
+    x_ = x;
+    y_ = y;
+  }
+
   void ImageProcessing::ImagePoint::ClipTo(int32_t minX, int32_t maxX, int32_t minY, int32_t maxY)
   {
     x_ = std::max(minX, std::min(maxX, x_));

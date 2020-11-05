@@ -98,6 +98,55 @@ namespace Orthanc
   }
   
 
+  ImageAccessor::ImageAccessor()
+  {
+    AssignEmpty(PixelFormat_Grayscale8);
+  }
+
+  ImageAccessor::~ImageAccessor()
+  {
+  }
+
+  bool ImageAccessor::IsReadOnly() const
+  {
+    return readOnly_;
+  }
+
+  PixelFormat ImageAccessor::GetFormat() const
+  {
+    return format_;
+  }
+
+  unsigned int ImageAccessor::GetBytesPerPixel() const
+  {
+    return ::Orthanc::GetBytesPerPixel(format_);
+  }
+
+  unsigned int ImageAccessor::GetWidth() const
+  {
+    return width_;
+  }
+
+  unsigned int ImageAccessor::GetHeight() const
+  {
+    return height_;
+  }
+
+  unsigned int ImageAccessor::GetPitch() const
+  {
+    return pitch_;
+  }
+
+  unsigned int ImageAccessor::GetSize() const
+  {
+    return GetHeight() * GetPitch();
+  }
+
+  const void *ImageAccessor::GetConstBuffer() const
+  {
+    return buffer_;
+  }
+
   void* ImageAccessor::GetBuffer()
   {
     if (readOnly_)
@@ -170,6 +219,11 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }
+
+  void ImageAccessor::GetReadOnlyAccessor(ImageAccessor &target) const
+  {
+    target.AssignReadOnly(format_, width_, height_, pitch_, buffer_);
   }
 
 

@@ -51,10 +51,7 @@ namespace Orthanc
 
     ~TemporaryFile();
 
-    const std::string& GetPath() const
-    {
-      return path_;
-    }
+    const std::string& GetPath() const;
 
     void Write(const std::string& content);
 

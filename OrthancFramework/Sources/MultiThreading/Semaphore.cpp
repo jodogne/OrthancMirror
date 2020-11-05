@@ -37,6 +37,11 @@ namespace Orthanc
     }
   }
 
+  unsigned int Semaphore::GetAvailableResourcesCount() const
+  {
+    return availableResources_;
+  }
+
   void Semaphore::Release(unsigned int resourceCount)
   {
     boost::mutex::scoped_lock lock(mutex_);

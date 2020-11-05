@@ -61,10 +61,7 @@ namespace Orthanc
       Accessor(SharedArchive& that,
                const std::string& id);
 
-      bool IsValid() const
-      {
-        return item_ != NULL;
-      }
+      bool IsValid() const;
       
       IDynamicObject& GetItem() const;
     };

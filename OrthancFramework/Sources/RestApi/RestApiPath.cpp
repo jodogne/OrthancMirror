@@ -131,6 +131,12 @@ namespace Orthanc
   }
 
 
+  size_t RestApiPath::GetLevelCount() const
+  {
+    return uri_.size();
+  }
+
+
   bool RestApiPath::IsWildcardLevel(size_t level) const
   {
     assert(uri_.size() == components_.size());
@@ -141,6 +147,11 @@ namespace Orthanc
     }
 
     return uri_[level].length() == 0;
+  }
+
+  bool RestApiPath::IsUniversalTrailing() const
+  {
+    return hasTrailing_;
   }
 
   const std::string& RestApiPath::GetWildcardName(size_t level) const
