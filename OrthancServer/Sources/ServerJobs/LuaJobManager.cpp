@@ -76,8 +76,8 @@ namespace Orthanc
     }
 
     connectionManager_.SetInactivityTimeout(dicomTimeout * 1000);  // Milliseconds expected
-    LOG(INFO) << "Lua: DICOM associations will be closed after "
-              << dicomTimeout << " seconds of inactivity";
+    CLOG(INFO, LUA) << "Lua: DICOM associations will be closed after "
+                    << dicomTimeout << " seconds of inactivity";
   }
 
 
@@ -106,7 +106,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    LOG(INFO) << "Awaking trailing sleep";
+    CLOG(INFO, LUA) << "Awaking trailing sleep";
 
     if (currentJob_ != NULL)
     {

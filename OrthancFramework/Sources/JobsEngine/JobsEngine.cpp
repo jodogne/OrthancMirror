@@ -122,7 +122,7 @@ namespace Orthanc
   {
     assert(engine != NULL);
 
-    LOG(INFO) << "Worker thread " << workerIndex << " has started";
+    CLOG(INFO, JOBS) << "Worker thread " << workerIndex << " has started";
 
     while (engine->IsRunning())
     {
@@ -130,8 +130,8 @@ namespace Orthanc
 
       if (running.IsValid())
       {
-        LOG(INFO) << "Executing job with priority " << running.GetPriority()
-                  << " in worker thread " << workerIndex << ": " << running.GetId();
+        CLOG(INFO, JOBS) << "Executing job with priority " << running.GetPriority()
+                         << " in worker thread " << workerIndex << ": " << running.GetId();
 
         while (engine->IsRunning())
         {
@@ -159,7 +159,7 @@ namespace Orthanc
     if (state_ != State_Setup &&
         state_ != State_Done)
     {
-      LOG(ERROR) << "INTERNAL ERROR: JobsEngine::Stop() should be invoked manually to avoid mess in the destruction order!";
+      CLOG(ERROR, JOBS) << "INTERNAL ERROR: JobsEngine::Stop() should be invoked manually to avoid mess in the destruction order!";
       Stop();
     }
   }
@@ -269,7 +269,7 @@ namespace Orthanc
 
     state_ = State_Running;
 
-    LOG(WARNING) << "The jobs engine has started with " << workers_.size() << " threads";
+    CLOG(WARNING, JOBS) << "The jobs engine has started with " << workers_.size() << " threads";
   }
 
 
@@ -286,7 +286,7 @@ namespace Orthanc
       state_ = State_Stopping;
     }
 
-    LOG(INFO) << "Stopping the jobs engine";
+    CLOG(INFO, JOBS) << "Stopping the jobs engine";
       
     if (retryHandler_.joinable())
     {
@@ -310,6 +310,6 @@ namespace Orthanc
       state_ = State_Done;
     }
 
-    LOG(WARNING) << "The jobs engine has stopped";
+    CLOG(WARNING, JOBS) << "The jobs engine has stopped";
   }
 }
