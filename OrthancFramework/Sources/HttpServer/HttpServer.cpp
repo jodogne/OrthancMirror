@@ -1543,6 +1543,7 @@ namespace Orthanc
       std::string port = boost::lexical_cast<std::string>(port_);
       std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
       std::string requestTimeoutMilliseconds = boost::lexical_cast<std::string>(requestTimeout_ * 1000);
+      std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS * 1000);
 
       if (ssl_)
       {
@@ -1561,9 +1562,16 @@ namespace Orthanc
       options.push_back(keepAlive_ ? "yes" : "no");
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
-      // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
+      /**
+       * The "keep_alive_timeout_ms" cannot use milliseconds, as the
+       * value of "timeout" in the HTTP header "Keep-Alive" must be
+       * expressed in seconds (at least for the Java client).
+       * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
+       * https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#enable_keep_alive-no
+       * https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#keep_alive_timeout_ms-500-or-0
+       **/
       options.push_back("keep_alive_timeout_ms");
-      options.push_back(keepAlive_ ? "500" : "0");
+      options.push_back(keepAlive_ ? keepAliveTimeoutMilliseconds.c_str() : "0");
 #endif
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
