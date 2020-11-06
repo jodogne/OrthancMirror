@@ -130,10 +130,10 @@ if (BOOST_STATIC)
 
   if (ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
     add_definitions(
-      # Packaging Boost inside the Orthanc Framework DLL
-      -DBOOST_ALL_DYN_LINK
+      # Packaging Boost inside the Orthanc Framework DLL, not exposing
+      # the Boost symbols
       -DBOOST_THREAD_BUILD_DLL
-      #-DBOOST_REGEX_BUILD_DLL
+      -DBOOST_REGEX_BUILD_DLL
       )
   else()
     add_definitions(
