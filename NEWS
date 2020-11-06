@@ -5,7 +5,7 @@ General
 -------
 
 * Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
-* Command-line option "--trace-dicom" can be used to access debug information from DCMTK
+* New command-line option "--trace-dicom" to access full debug information from DCMTK
 
 REST API
 --------
@@ -17,7 +17,8 @@ Maintenance
 
 * C-GET SCP: Fix responses and handling of cancel
 * Fix decoding sequence if "BuiltinDecoderTranscoderOrder" is "Before"
-* REST API returns 404 error if deleting an inexistent peer or modality
+* Fix keep-alive in the embedded HTTP server by setting the "Keep-Alive" HTTP header
+* REST API now returns 404 error if deleting an inexistent peer or modality
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - civetweb 1.13
 

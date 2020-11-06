@@ -174,6 +174,21 @@ namespace Orthanc
       if (keepAlive_)
       {
         s += "Connection: keep-alive\r\n";
+
+        /**
+         * [LIFY-2311] The "Keep-Alive" HTTP header was missing in
+         * Orthanc <= 1.8.0, which notably caused failures if
+         * uploading DICOM instances by applying Java's
+         * "org.apache.http.client.methods.HttpPost()" on "/instances"
+         * URI, if "PoolingHttpClientConnectionManager" was in used. A
+         * workaround was to manually set a timeout for the keep-alive
+         * client to, say, 200 milliseconds, by using
+         * "HttpClients.custom().setKeepAliveStrategy((httpResponse,httpContext)->200)".
+         * Note that the "timeout" value can only be integer in the
+         * HTTP header, so we can't use the milliseconds granularity.
+         **/
+        s += ("Keep-Alive: timeout=" +
+              boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS) + "\r\n");
       }
       else
       {
