@@ -39,6 +39,7 @@
 
 #include <list>
 #include <set>
+#include <stdint.h>
 
 namespace Orthanc
 {
