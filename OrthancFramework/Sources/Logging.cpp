@@ -25,6 +25,8 @@
 
 #include "OrthancException.h"
 
+#include <stdint.h>
+
 
 /*********************************************************
  * Common section
