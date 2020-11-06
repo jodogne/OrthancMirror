@@ -36,6 +36,7 @@
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/WebDavStorage.h"
+#include "../../OrthancFramework/Sources/Logging.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
 

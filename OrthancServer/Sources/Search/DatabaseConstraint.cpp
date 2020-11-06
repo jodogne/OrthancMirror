@@ -47,6 +47,9 @@
 #  include <OrthancException.h>
 #endif
 
+#include <cassert>
+
+
 namespace Orthanc
 {
   namespace Plugins

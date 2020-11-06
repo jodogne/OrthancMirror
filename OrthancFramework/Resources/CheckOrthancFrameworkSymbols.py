@@ -145,13 +145,11 @@ def ExploreClass(child, fqn):
     ## Ignore pure abstract interfaces, by checking the following
     ## criteria:
     ##   - It must be a C++ class (not a struct)
-    ##   - The class name must start with "I"
     ##   - All its methods must be pure virtual (abstract) and public
     ##   - Its destructor must be public, virtual, and must do nothing
     ##
     
-    if (child.kind == clang.cindex.CursorKind.CLASS_DECL and
-        fqn[-1].startswith('I')):
+    if child.kind == clang.cindex.CursorKind.CLASS_DECL:
         abstract = True
         isPublic = False
 
@@ -185,6 +183,9 @@ def ExploreClass(child, fqn):
                 elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
                       i.kind == clang.cindex.CursorKind.STRUCT_DECL):
                     ExploreClass(i, fqn + [ i.spelling ])
+                elif (i.kind == clang.cindex.CursorKind.TYPEDEF_DECL or  # Allow "typedef"
+                      i.kind == clang.cindex.CursorKind.ENUM_DECL):      # Allow enums
+                    pass
                 else:
                     abstract = False
 

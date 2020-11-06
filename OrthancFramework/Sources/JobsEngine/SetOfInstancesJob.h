@@ -55,10 +55,7 @@ namespace Orthanc
 
     // Only used for reporting in the public content
     // https://groups.google.com/d/msg/orthanc-users/9GCV88GLEzw/6wAgP_PRAgAJ
-    void AddParentResource(const std::string& resource)
-    {
-      parentResources_.insert(resource);
-    }
+    void AddParentResource(const std::string& resource);
     
     void AddInstance(const std::string& instance);
 
@@ -68,20 +65,11 @@ namespace Orthanc
     
     const std::string& GetInstance(size_t index) const;
 
-    bool HasTrailingStep() const
-    {
-      return hasTrailingStep_;
-    }
+    bool HasTrailingStep() const;
 
-    const std::set<std::string>& GetFailedInstances() const
-    {
-      return failedInstances_;
-    }
+    const std::set<std::string>& GetFailedInstances() const;
 
-    bool IsFailedInstance(const std::string& instance) const
-    {
-      return failedInstances_.find(instance) != failedInstances_.end();
-    }
+    bool IsFailedInstance(const std::string& instance) const;
 
     virtual void Start() ORTHANC_OVERRIDE;
 

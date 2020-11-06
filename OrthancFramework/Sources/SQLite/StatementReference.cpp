@@ -157,5 +157,11 @@ namespace Orthanc
     {
       return refCount_;
     }
+
+    sqlite3_stmt *StatementReference::GetWrappedObject() const
+    {
+      assert(statement_ != NULL);
+      return statement_;
+    }
   }
 }

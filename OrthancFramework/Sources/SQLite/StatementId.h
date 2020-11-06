@@ -56,9 +56,8 @@ namespace Orthanc
       StatementId(); // Forbidden
 
     public:
-      StatementId(const char* file, int line) : file_(file), line_(line)
-      {
-      }
+      StatementId(const char* file,
+                  int line);
 
       bool operator< (const StatementId& other) const;
     };

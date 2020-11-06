@@ -60,9 +60,14 @@ namespace Orthanc
       }
     }
 
+    bool Transaction::IsOpen() const
+    {
+      return isOpen_;
+    }
+
     void Transaction::Begin()
     {
-      if (isOpen_) 
+      if (isOpen_)
       {
         throw OrthancSQLiteException(ErrorCode_SQLiteTransactionAlreadyStarted);
       }

@@ -58,10 +58,7 @@ namespace Orthanc
 
       ColumnType GetColumnType(unsigned int index) const;
  
-      unsigned int GetParameterCount() const
-      {
-        return argc_;
-      }
+      unsigned int GetParameterCount() const;
 
       int GetIntValue(unsigned int index) const;
 

@@ -127,7 +127,13 @@ namespace Orthanc
   {
   }
 
-    
+
+  void SetOfInstancesJob::AddParentResource(const std::string &resource)
+  {
+    parentResources_.insert(resource);
+  }
+
+
   void SetOfInstancesJob::AddInstance(const std::string& instance)
   {
     AddCommand(new InstanceCommand(*this, instance));
@@ -167,10 +173,25 @@ namespace Orthanc
     }
   }
 
+  bool SetOfInstancesJob::HasTrailingStep() const
+  {
+    return hasTrailingStep_;
+  }
+
+  const std::set<std::string> &SetOfInstancesJob::GetFailedInstances() const
+  {
+    return failedInstances_;
+  }
+
+  bool SetOfInstancesJob::IsFailedInstance(const std::string &instance) const
+  {
+    return failedInstances_.find(instance) != failedInstances_.end();
+  }
+
 
   void SetOfInstancesJob::Start()
   {
-    SetOfCommandsJob::Start();    
+    SetOfCommandsJob::Start();
   }
 
 
@@ -236,6 +257,4 @@ namespace Orthanc
       hasTrailingStep_ = false;
     }
   }
-  
-
 }

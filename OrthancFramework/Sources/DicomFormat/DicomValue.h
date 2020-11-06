@@ -72,10 +72,7 @@ namespace Orthanc
     void FormatDataUriScheme(std::string& target,
                              const std::string& mime) const;
 
-    void FormatDataUriScheme(std::string& target) const
-    {
-      FormatDataUriScheme(target, MIME_BINARY);
-    }
+    void FormatDataUriScheme(std::string& target) const;
 #endif
 
     bool CopyToString(std::string& result,

@@ -25,6 +25,8 @@
 
 #include "../OrthancException.h"
 
+#include <cassert>
+
 namespace Orthanc
 {
   static bool IsNormalizationNeeded(const std::string& source,

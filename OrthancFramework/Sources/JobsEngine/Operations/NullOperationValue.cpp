@@ -20,33 +20,25 @@
  **/
 
 
-#pragma once
+#include "../../PrecompiledHeaders.h"
+#include "NullOperationValue.h"
 
-#include "../../OrthancFramework.h"
-
-#include <json/value.h>
-#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC JobOperationValue : public boost::noncopyable
+  JobOperationValue::Type NullOperationValue::GetType() const
   {
-  public:
-    enum Type
-    {
-      Type_DicomInstance,
-      Type_Null,
-      Type_String
-    };
+    return Type_Null;
+  }
+    
+  JobOperationValue* NullOperationValue::Clone() const 
+  {
+    return new NullOperationValue;
+  }
 
-    virtual ~JobOperationValue()
-    {
-    }
-
-    virtual Type GetType() const = 0;
-
-    virtual JobOperationValue* Clone() const = 0;
-
-    virtual void Serialize(Json::Value& target) const = 0;
-  };
+  void NullOperationValue::Serialize(Json::Value& target) const 
+  {
+    target = Json::objectValue;
+    target["Type"] = "Null";
+  }
 }

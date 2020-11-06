@@ -47,6 +47,13 @@ namespace Orthanc
 {
   namespace SQLite
   {
+    Orthanc::SQLite::StatementId::StatementId(const char *file,
+                                              int line) :
+      file_(file),
+      line_(line)
+    {
+    }
+
     bool StatementId::operator< (const StatementId& other) const
     {
       if (line_ != other.line_)

@@ -104,10 +104,7 @@ namespace Orthanc
 
       bool Execute(const char* sql);
 
-      bool Execute(const std::string& sql)
-      {
-        return Execute(sql.c_str());
-      }
+      bool Execute(const std::string& sql);
 
       void FlushToDisk();
 
@@ -155,15 +152,9 @@ namespace Orthanc
 
       int ExecuteAndReturnErrorCode(const char* sql);
     
-      bool HasCachedStatement(const StatementId& id) const
-      {
-        return cachedStatements_.find(id) != cachedStatements_.end();
-      }
+      bool HasCachedStatement(const StatementId& id) const;
 
-      int GetTransactionNesting() const
-      {
-        return transactionNesting_;
-      }
+      int GetTransactionNesting() const;
 
       // Transactions --------------------------------------------------------------
 

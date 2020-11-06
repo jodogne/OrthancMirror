@@ -39,6 +39,7 @@
 #include "FunctionContext.h"
 #include "OrthancSQLiteException.h"
 
+#include <cassert>
 #include <string>
 
 #include "sqlite3.h"
@@ -72,6 +73,11 @@ namespace Orthanc
     {
       CheckIndex(index);
       return static_cast<SQLite::ColumnType>(sqlite3_value_type(argv_[index]));
+    }
+
+    unsigned int FunctionContext::GetParameterCount() const
+    {
+      return argc_;
     }
 
     int FunctionContext::GetIntValue(unsigned int index) const
