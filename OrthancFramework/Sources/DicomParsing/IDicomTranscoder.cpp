@@ -66,11 +66,6 @@ namespace Orthanc
   }
 
 
-  IDicomTranscoder::~IDicomTranscoder()
-  {
-  }
-
-
   std::string IDicomTranscoder::GetSopInstanceUid(DcmFileFormat& dicom)
   {
     if (dicom.getDataset() == NULL)

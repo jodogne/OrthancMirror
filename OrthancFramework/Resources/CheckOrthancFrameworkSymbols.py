@@ -79,14 +79,57 @@ with open(AMALGAMATION, 'w') as f:
         f.write('#include "%s"\n' % source)
             
 
-tu = index.parse(AMALGAMATION,
-                 [ '-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1' ])
+tu = index.parse(AMALGAMATION, [
+    '-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1',
+    '-DORTHANC_BUILD_UNIT_TESTS=0',
+    '-DORTHANC_SANDBOXED=0',
+    '-DORTHANC_ENABLE_BASE64=1',
+    '-DORTHANC_ENABLE_CIVETWEB=1',
+    '-DORTHANC_ENABLE_CURL=1',
+    '-DORTHANC_ENABLE_DCMTK=1',
+    '-DORTHANC_ENABLE_DCMTK_JPEG=1',
+    '-DORTHANC_ENABLE_DCMTK_NETWORKING=1',
+    '-DORTHANC_ENABLE_DCMTK_TRANSCODING=1',
+    '-DORTHANC_ENABLE_JPEG=1',
+    '-DORTHANC_ENABLE_LOCALE=1',
+    '-DORTHANC_ENABLE_LUA=1',
+    '-DORTHANC_ENABLE_LOGGING=1',
+    '-DORTHANC_ENABLE_MD5=1',
+    '-DORTHANC_ENABLE_PKCS11=1',
+    '-DORTHANC_ENABLE_PNG=1',
+    '-DORTHANC_ENABLE_PUGIXML=1',
+    '-DORTHANC_ENABLE_SSL=1',
+    '-DORTHANC_SQLITE_STANDALONE=0',
+    '-DORTHANC_ENABLE_LOGGING_STDIO=0',
+])
 
 
 FILES = []
 COUNT = 0
 
+def ReportProblem(message, fqn, cursor):
+    global FILES, COUNT
+    FILES.append(os.path.normpath(str(cursor.location.file)))
+    COUNT += 1
+
+    print('%s: %s::%s()' % (message, '::'.join(fqn), cursor.spelling))
+
+
 def ExploreClass(child, fqn):
+    # Safety check
+    if (child.kind != clang.cindex.CursorKind.CLASS_DECL and
+        child.kind != clang.cindex.CursorKind.STRUCT_DECL):
+        raise Exception()
+
+    # Ignore forward declaration of classes
+    if not child.is_definition():
+        return
+    
+
+    ##
+    ## Verify that the class is publicly exported (its visibility must
+    ## be "default")
+    ##
     visible = False
 
     for i in child.get_children():
@@ -94,34 +137,113 @@ def ExploreClass(child, fqn):
             i.spelling == 'default'):
             visible = True
 
-    if visible:
-        isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
+    if not visible:
+        return
+
+    
+    ##
+    ## Ignore pure abstract interfaces, by checking the following
+    ## criteria:
+    ##   - It must be a C++ class (not a struct)
+    ##   - The class name must start with "I"
+    ##   - All its methods must be pure virtual (abstract) and public
+    ##   - Its destructor must be public, virtual, and must do nothing
+    ##
+    
+    if (child.kind == clang.cindex.CursorKind.CLASS_DECL and
+        fqn[-1].startswith('I')):
+        abstract = True
+        isPublic = False
 
         for i in child.get_children():
-            if i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
+            if i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR:      # "default"
+                pass
+            elif i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
                 isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
+            elif i.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER:
+                if i.spelling != 'boost::noncopyable':
+                    abstract = False
+            elif isPublic:
+                if i.kind == clang.cindex.CursorKind.CXX_METHOD:
+                    if i.is_pure_virtual_method():
+                        pass  # pure virtual is ok
+                    elif i.is_static_method():
+                        # static method without an inline implementation is ok
+                        for j in i.get_children():
+                            if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+                                abstract = False
+                    else:
+                        abstract = False
+                elif (i.kind == clang.cindex.CursorKind.DESTRUCTOR and
+                      i.is_virtual_method()):
+                    # The destructor must be virtual, and must do nothing
+                    c = list(i.get_children())
+                    if (len(c) != 1 or
+                        c[0].kind != clang.cindex.CursorKind.COMPOUND_STMT or
+                        len(list(c[0].get_children())) != 0):
+                        abstract = False
+                elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
+                      i.kind == clang.cindex.CursorKind.STRUCT_DECL):
+                    ExploreClass(i, fqn + [ i.spelling ])
+                else:
+                    abstract = False
 
-            elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
-                  i.kind == clang.cindex.CursorKind.STRUCT_DECL):
-                # This is a subclass
+        if abstract:
+            print('Detected a pure interface (this is fine): %s' % ('::'.join(fqn)))
+            return
+
+
+    ##
+    ## We are facing a standard C++ class or struct
+    ##
+    
+    isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
+
+    for i in child.get_children():
+        if (i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR or    # "default"
+            i.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER):  # base class
+            pass
+        
+        elif i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
+            isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
+
+        elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
+              i.kind == clang.cindex.CursorKind.STRUCT_DECL):
+            # This is a subclass
+            if isPublic:
                 ExploreClass(i, fqn + [ i.spelling ])
-                
-            elif (i.kind == clang.cindex.CursorKind.CXX_METHOD or
-                  i.kind == clang.cindex.CursorKind.CONSTRUCTOR or
-                  i.kind == clang.cindex.CursorKind.DESTRUCTOR):
-                if isPublic:
-                    hasImplementation = False
-                    for j in i.get_children():
-                        if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
-                            hasImplementation = True
 
-                    if hasImplementation:
-                        global FILES, COUNT
-                        FILES.append(os.path.normpath(str(child.location.file)))
-                        COUNT += 1
+        elif (i.kind == clang.cindex.CursorKind.CXX_METHOD or
+              i.kind == clang.cindex.CursorKind.CONSTRUCTOR or
+              i.kind == clang.cindex.CursorKind.DESTRUCTOR):
+            if isPublic:
+                hasImplementation = False
+                for j in i.get_children():
+                    if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+                        hasImplementation = True
 
-                        print('Exported public method with an implementation: %s::%s()' %
-                              ('::'.join(fqn), i.spelling))
+                if hasImplementation:
+                    ReportProblem('Exported public method with an implementation', fqn, i)
+
+        elif i.kind == clang.cindex.CursorKind.VAR_DECL:
+            if isPublic:
+                ReportProblem('Exported public member variable', fqn, i)
+
+        elif i.kind == clang.cindex.CursorKind.FUNCTION_TEMPLATE:
+            if isPublic:
+                ReportProblem('Exported public template method', fqn, i)
+
+        elif i.kind == clang.cindex.CursorKind.FRIEND_DECL:
+            if isPublic:
+                ReportProblem('Exported public friend method', fqn, i)
+            
+        elif (i.kind == clang.cindex.CursorKind.TYPEDEF_DECL or  # Allow "typedef"
+              i.kind == clang.cindex.CursorKind.ENUM_DECL):      # Allow enums
+            pass
+            
+        else:
+            if isPublic:
+                raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
 
 
 def ExploreNamespace(node, namespace):
@@ -135,6 +257,10 @@ def ExploreNamespace(node, namespace):
               child.kind == clang.cindex.CursorKind.STRUCT_DECL):
             ExploreClass(child, fqn)
 
+
+
+print('')
+
 for node in tu.cursor.get_children():
     if (node.kind == clang.cindex.CursorKind.NAMESPACE and
         node.spelling == 'Orthanc'):
@@ -143,7 +269,8 @@ for node in tu.cursor.get_children():
 
 print('\nTotal of possibly problematic methods: %d' % COUNT)
 
-print('\nFiles:\n')
+print('\nProblematic files:\n')
 for i in sorted(list(set(FILES))):
     print(i)
-    
+
+print('')
