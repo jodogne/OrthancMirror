@@ -36,27 +36,14 @@ namespace Orthanc
     std::string  content_;
 
   public:
-    explicit StringOperationValue(const std::string& content) :
-      JobOperationValue(JobOperationValue::Type_String),
-      content_(content)
-    {
-    }
+    explicit StringOperationValue(const std::string& content);
 
-    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
-    {
-      return new StringOperationValue(content_);
-    }
+    virtual Type GetType() const;
+    
+    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
-    const std::string& GetContent() const
-    {
-      return content_;
-    }
+    const std::string& GetContent() const;
 
-    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
-    {
-      target = Json::objectValue;
-      target["Type"] = "String";
-      target["Content"] = content_;
-    }
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
   };
 }

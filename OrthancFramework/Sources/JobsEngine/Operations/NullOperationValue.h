@@ -24,25 +24,17 @@
 
 #include "JobOperationValue.h"
 
+#include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC NullOperationValue : public JobOperationValue
   {
   public:
-    NullOperationValue() :
-      JobOperationValue(Type_Null)
-    {
-    }
+    virtual Type GetType() const ORTHANC_OVERRIDE;
+    
+    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
-    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
-    {
-      return new NullOperationValue;
-    }
-
-    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE
-    {
-      target = Json::objectValue;
-      target["Type"] = "Null";
-    }
+    virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
   };
 }

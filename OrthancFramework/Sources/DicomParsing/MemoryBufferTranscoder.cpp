@@ -23,12 +23,14 @@
 #include "../PrecompiledHeaders.h"
 #include "MemoryBufferTranscoder.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "FromDcmtkBridge.h"
 
 #if !defined(NDEBUG)  // For debugging
 #  include "ParsedDicomFile.h"
 #endif
+
 
 namespace Orthanc
 {

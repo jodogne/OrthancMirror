@@ -36,6 +36,9 @@
 
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 
+#include <cassert>
+
+
 namespace Orthanc
 {
   namespace Compatibility

@@ -24,6 +24,7 @@
 #include "PamReader.h"
 
 #include "../Endianness.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 

@@ -49,12 +49,16 @@ namespace Orthanc
   public:
     DicomInstanceOperationValue(ServerContext& context,
                                 const std::string& id) :
-      JobOperationValue(Type_DicomInstance),
       context_(context),
       id_(id)
     {
     }
 
+    virtual Type GetType() const
+    {
+      return Type_DicomInstance;
+    }
+    
     ServerContext& GetServerContext() const
     {
       return context_;

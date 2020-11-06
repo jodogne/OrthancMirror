@@ -236,6 +236,17 @@ namespace Orthanc
   }
 
 
+  SequenceOfOperationsJob::Lock::Lock(SequenceOfOperationsJob& that) :
+    that_(that),
+    lock_(that.mutex_)
+  {
+  }
+
+  bool SequenceOfOperationsJob::Lock::IsDone() const
+  {
+    return that_.done_;
+  }
+
   void SequenceOfOperationsJob::Lock::SetTrailingOperationTimeout(unsigned int timeout)
   {
     that_.trailingTimeout_ = boost::posix_time::milliseconds(timeout);
@@ -255,6 +266,11 @@ namespace Orthanc
     that_.operationAdded_.notify_one();
 
     return index;
+  }
+
+  size_t SequenceOfOperationsJob::Lock::GetOperationsCount() const
+  {
+    return that_.operations_.size();
   }
 
 
@@ -298,6 +314,11 @@ namespace Orthanc
       Operation& b = *that_.operations_[output];
       a.AddNextOperation(b, false /* not unserializing */);
     }
+  }
+
+
+  void SequenceOfOperationsJob::Start()
+  {
   }
 
 
@@ -361,6 +382,10 @@ namespace Orthanc
     }
   }
 
+  void SequenceOfOperationsJob::Stop(JobStopReason reason)
+  {
+  }
+
 
   float SequenceOfOperationsJob::GetProgress()
   {
@@ -368,6 +393,11 @@ namespace Orthanc
       
     return (static_cast<float>(current_) / 
             static_cast<float>(operations_.size() + 1));
+  }
+
+  void SequenceOfOperationsJob::GetJobType(std::string& target)
+  {
+    target = "SequenceOfOperations";
   }
 
 
@@ -405,6 +435,18 @@ namespace Orthanc
     value[OPERATIONS] = tmp;
 
     return true;
+  }
+
+  bool SequenceOfOperationsJob::GetOutput(std::string& output,
+                                          MimeType& mime,
+                                          const std::string& key)
+  {
+    return false;
+  }
+
+  void SequenceOfOperationsJob::AwakeTrailingSleep()
+  {
+    operationAdded_.notify_one();
   }
 
 

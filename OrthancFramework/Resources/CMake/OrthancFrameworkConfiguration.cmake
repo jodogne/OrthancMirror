@@ -156,6 +156,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SerializationToolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
@@ -198,7 +199,9 @@ if (ENABLE_MODULE_JOBS)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/JobStepResult.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/JobOperationValues.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/LogJobOperation.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/NullOperationValue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/SequenceOfOperationsJob.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/Operations/StringOperationValue.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/SetOfCommandsJob.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/JobsEngine/SetOfInstancesJob.cpp
     )

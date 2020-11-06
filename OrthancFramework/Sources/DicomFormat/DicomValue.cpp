@@ -97,6 +97,11 @@ namespace Orthanc
     Toolbox::EncodeBase64(target, GetContent());
     target.insert(0, "data:" + mime + ";base64,");
   }
+
+  void DicomValue::FormatDataUriScheme(std::string& target) const
+  {
+    FormatDataUriScheme(target, MIME_BINARY);
+  }
 #endif
 
   // same as ParseValue but in case the value actually contains a sequence,

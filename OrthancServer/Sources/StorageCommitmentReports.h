@@ -35,6 +35,8 @@
 
 #include "../../OrthancFramework/Sources/Cache/LeastRecentlyUsedIndex.h"
 
+#include <boost/thread/mutex.hpp>
+
 namespace Orthanc
 {
   class StorageCommitmentReports : public boost::noncopyable

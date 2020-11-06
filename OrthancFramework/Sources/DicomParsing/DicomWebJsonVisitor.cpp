@@ -23,6 +23,7 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomWebJsonVisitor.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "FromDcmtkBridge.h"

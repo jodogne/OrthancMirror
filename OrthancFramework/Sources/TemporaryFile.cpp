@@ -28,6 +28,7 @@
 #include "Toolbox.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace Orthanc
 {

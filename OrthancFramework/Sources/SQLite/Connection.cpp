@@ -175,15 +175,14 @@ namespace Orthanc
       }
     }
 
-    int  Connection::ExecuteAndReturnErrorCode(const char* sql)
+    bool Connection::Execute(const std::string &sql)
     {
-      CheckIsOpen();
-      return sqlite3_exec(db_, sql, NULL, NULL, NULL);
+      return Execute(sql.c_str());
     }
 
     // Info querying -------------------------------------------------------------
 
-    bool Connection::IsSQLValid(const char* sql) 
+    bool Connection::IsSQLValid(const char* sql)
     {
       sqlite3_stmt* stmt = NULL;
       if (sqlite3_prepare_v2(db_, sql, -1, &stmt, NULL) != SQLITE_OK)
@@ -259,6 +258,22 @@ namespace Orthanc
       return sqlite3_errmsg(db_);
     }
 
+
+    int Connection::ExecuteAndReturnErrorCode(const char* sql)
+    {
+      CheckIsOpen();
+      return sqlite3_exec(db_, sql, NULL, NULL, NULL);
+    }
+
+    bool Connection::HasCachedStatement(const StatementId &id) const
+    {
+      return cachedStatements_.find(id) != cachedStatements_.end();
+    }
+
+    int Connection::GetTransactionNesting() const
+    {
+      return transactionNesting_;
+    }
 
     bool Connection::BeginTransaction()
     {

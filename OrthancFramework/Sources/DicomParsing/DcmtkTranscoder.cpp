@@ -34,12 +34,15 @@
 
 
 #include "FromDcmtkBridge.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmjpeg/djrploss.h>  // for DJ_RPLossy
 #include <dcmtk/dcmjpeg/djrplol.h>   // for DJ_RPLossless
 #include <dcmtk/dcmjpls/djrparam.h>  // for DJLSRepresentationParameter
+
+#include <boost/lexical_cast.hpp>
 
 
 namespace Orthanc

@@ -40,6 +40,7 @@
 #include "../Sources/DicomParsing/ParsedDicomFile.h"
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 
+#include <boost/lexical_cast.hpp>
 
 using namespace Orthanc;
 

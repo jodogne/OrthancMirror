@@ -37,6 +37,7 @@
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
 #include "../../OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.h"
+#include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"

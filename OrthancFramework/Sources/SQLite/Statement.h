@@ -105,10 +105,7 @@ namespace Orthanc
                 const StatementId& id,
                 const char* sql);
 
-      ~Statement()
-      {
-        Reset();
-      }
+      ~Statement();
 
       bool Run();
 

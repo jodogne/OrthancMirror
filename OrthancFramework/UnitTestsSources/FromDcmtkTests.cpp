@@ -47,6 +47,7 @@
 #include "../Sources/Images/ImageProcessing.h"
 #include "../Sources/Images/PngReader.h"
 #include "../Sources/Images/PngWriter.h"
+#include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/SystemToolbox.h"
 #include "../Resources/CodeGeneration/EncodingTests.h"
@@ -56,6 +57,7 @@
 #include <dcmtk/dcmdata/dcvrat.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include <pugixml.hpp>

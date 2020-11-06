@@ -59,6 +59,10 @@ namespace Orthanc
     description_ = description;
   }
 
+  const std::string& SetOfCommandsJob::GetDescription() const
+  {
+    return description_;
+  }
 
   void SetOfCommandsJob::Reserve(size_t size)
   {

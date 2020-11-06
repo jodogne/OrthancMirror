@@ -74,10 +74,7 @@ namespace Orthanc
 
     void SetDescription(const std::string& description);
 
-    const std::string& GetDescription() const
-    {
-      return description_;
-    }
+    const std::string& GetDescription() const;
 
     void Reserve(size_t size);
 

@@ -49,6 +49,9 @@
 
 #include "DatabaseConstraint.h"
 
+#include <boost/lexical_cast.hpp>
+
+
 namespace Orthanc
 {
   static std::string FormatLevel(ResourceType level)

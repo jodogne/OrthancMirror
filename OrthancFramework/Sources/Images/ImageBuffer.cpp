@@ -25,6 +25,7 @@
 
 #include "../OrthancException.h"
 
+#include <boost/lexical_cast.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 

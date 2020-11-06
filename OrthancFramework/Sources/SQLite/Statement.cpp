@@ -130,6 +130,11 @@ namespace Orthanc
       LOG_CREATE(sql);
     }
 
+    Statement::~Statement()
+    {
+      Reset();
+    }
+
 
     Statement::Statement(Connection& database,
                          const std::string& sql) :

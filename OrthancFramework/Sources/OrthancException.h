@@ -22,14 +22,9 @@
 
 #pragma once
 
-#include "Compatibility.h"
+#include "Compatibility.h"  // For std::unique_ptr<>
 #include "Enumerations.h"
-#include "Logging.h"
 #include "OrthancFramework.h"
-
-#include <stdint.h>
-#include <string>
-#include <memory>
 
 namespace Orthanc
 {
@@ -47,90 +42,30 @@ namespace Orthanc
     std::unique_ptr<std::string>  details_;
     
   public:
-    OrthancException(const OrthancException& other) : 
-      errorCode_(other.errorCode_),
-      httpStatus_(other.httpStatus_)
-    {
-      if (other.details_.get() != NULL)
-      {
-        details_.reset(new std::string(*other.details_));
-      }
-    }
+    OrthancException(const OrthancException& other);
 
-    explicit OrthancException(ErrorCode errorCode) : 
-      errorCode_(errorCode),
-      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
-    {
-    }
+    explicit OrthancException(ErrorCode errorCode);
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
-                     bool log = true) :
-      errorCode_(errorCode),
-      httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-      details_(new std::string(details))
-    {
-#if ORTHANC_ENABLE_LOGGING == 1
-      if (log)
-      {
-        LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-      }
-#endif
-    }
+                     bool log = true);
 
     OrthancException(ErrorCode errorCode,
-                     HttpStatus httpStatus) :
-      errorCode_(errorCode),
-      httpStatus_(httpStatus)
-    {
-    }
+                     HttpStatus httpStatus);
 
     OrthancException(ErrorCode errorCode,
                      HttpStatus httpStatus,
                      const std::string& details,
-                     bool log = true) :
-      errorCode_(errorCode),
-      httpStatus_(httpStatus),
-      details_(new std::string(details))
-    {
-#if ORTHANC_ENABLE_LOGGING == 1
-      if (log)
-      {
-        LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
-      }
-#endif
-    }
+                     bool log = true);
 
-    ErrorCode GetErrorCode() const
-    {
-      return errorCode_;
-    }
+    ErrorCode GetErrorCode() const;
 
-    HttpStatus GetHttpStatus() const
-    {
-      return httpStatus_;
-    }
+    HttpStatus GetHttpStatus() const;
 
-    const char* What() const
-    {
-      return EnumerationToString(errorCode_);
-    }
+    const char* What() const;
 
-    bool HasDetails() const
-    {
-      return details_.get() != NULL;
-    }
+    bool HasDetails() const;
 
-    const char* GetDetails() const
-    {
-      if (details_.get() == NULL)
-      {
-        return "";
-      }
-      else
-      {
-        return details_->c_str();
-      }
-    }
+    const char* GetDetails() const;
   };
 }

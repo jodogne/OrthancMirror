@@ -40,6 +40,9 @@
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 
+#include <boost/lexical_cast.hpp>
+
+
 namespace Orthanc
 {
   DatabaseLookup::~DatabaseLookup()

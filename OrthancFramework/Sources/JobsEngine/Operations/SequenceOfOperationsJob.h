@@ -85,25 +85,15 @@ namespace Orthanc
       boost::mutex::scoped_lock  lock_;
 
     public:
-      explicit Lock(SequenceOfOperationsJob& that) :
-        that_(that),
-        lock_(that.mutex_)
-      {
-      }
+      explicit Lock(SequenceOfOperationsJob& that);
 
-      bool IsDone() const
-      {
-        return that_.done_;
-      }
+      bool IsDone() const;
 
       void SetTrailingOperationTimeout(unsigned int timeout);
       
       size_t AddOperation(IJobOperation* operation);
 
-      size_t GetOperationsCount() const
-      {
-        return that_.operations_.size();
-      }
+      size_t GetOperationsCount() const;
 
       void AddInput(size_t index,
                     const JobOperationValue& value);
@@ -112,24 +102,17 @@ namespace Orthanc
                    size_t output);
     };
 
-    virtual void Start() ORTHANC_OVERRIDE
-    {
-    }
+    virtual void Start() ORTHANC_OVERRIDE;
 
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
 
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
-    {
-    }
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual float GetProgress() ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
-    {
-      target = "SequenceOfOperations";
-    }
+    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE;
 
     virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
 
@@ -137,14 +120,8 @@ namespace Orthanc
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
-                           const std::string& key) ORTHANC_OVERRIDE
-    {
-      return false;
-    }
+                           const std::string& key);
 
-    void AwakeTrailingSleep()
-    {
-      operationAdded_.notify_one();
-    }
+    void AwakeTrailingSleep();
   };
 }

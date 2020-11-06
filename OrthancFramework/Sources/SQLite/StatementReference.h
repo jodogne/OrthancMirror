@@ -47,7 +47,6 @@
 #include "SQLiteTypes.h"
 
 #include <stdint.h>
-#include <cassert>
 #include <stdlib.h>
 
 
@@ -76,11 +75,7 @@ namespace Orthanc
 
       uint32_t GetReferenceCount() const;
 
-      struct sqlite3_stmt* GetWrappedObject() const
-      {
-        assert(statement_ != NULL);
-        return statement_;
-      }
+      struct sqlite3_stmt* GetWrappedObject() const;
     };
   }
 }

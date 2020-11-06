@@ -23,6 +23,7 @@
 #include "../PrecompiledHeaders.h"
 #include "WebDavStorage.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
 #include "../TemporaryFile.h"

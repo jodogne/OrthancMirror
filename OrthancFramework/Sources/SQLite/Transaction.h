@@ -59,7 +59,7 @@ namespace Orthanc
       virtual ~Transaction();
 
       // Returns true when there is a transaction that has been successfully begun.
-      bool IsOpen() const { return isOpen_; }
+      bool IsOpen() const;
 
       virtual void Begin();
 
