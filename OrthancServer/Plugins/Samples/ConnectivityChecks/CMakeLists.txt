@@ -69,6 +69,7 @@ add_library(ConnectivityChecks SHARED
   ${ORTHANC_CORE_SOURCES_DEPENDENCIES}
   ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Enumerations.cpp
   ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Logging.cpp
+  ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/OrthancException.cpp
   ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/SystemToolbox.cpp
   ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Toolbox.cpp
   Plugin.cpp

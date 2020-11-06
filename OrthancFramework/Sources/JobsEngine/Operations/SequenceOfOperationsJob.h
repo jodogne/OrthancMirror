@@ -120,7 +120,7 @@ namespace Orthanc
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
-                           const std::string& key);
+                           const std::string& key) ORTHANC_OVERRIDE;
 
     void AwakeTrailingSleep();
   };
