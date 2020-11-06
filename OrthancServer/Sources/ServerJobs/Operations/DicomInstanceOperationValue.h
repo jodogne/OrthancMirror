@@ -54,7 +54,7 @@ namespace Orthanc
     {
     }
 
-    virtual Type GetType() const
+    virtual Type GetType() const ORTHANC_OVERRIDE
     {
       return Type_DicomInstance;
     }
