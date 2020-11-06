@@ -36,7 +36,9 @@ namespace Orthanc
     class ICommand : public boost::noncopyable
     {
     public:
-      virtual ~ICommand();
+      virtual ~ICommand()
+      {
+      }
 
       virtual bool Execute(const std::string& jobId) = 0;
 
@@ -46,7 +48,9 @@ namespace Orthanc
     class ICommandUnserializer : public boost::noncopyable
     {
     public:
-      virtual ~ICommandUnserializer();
+      virtual ~ICommandUnserializer()
+      {
+      }
       
       virtual ICommand* Unserialize(const Json::Value& source) const = 0;
     };

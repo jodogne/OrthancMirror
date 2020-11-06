@@ -32,14 +32,6 @@
 
 namespace Orthanc
 {
-  SetOfCommandsJob::ICommand::~ICommand()
-  {
-  }
-
-  SetOfCommandsJob::ICommandUnserializer::~ICommandUnserializer()
-  {
-  }
-
   SetOfCommandsJob::SetOfCommandsJob() :
     started_(false),
     permissive_(false),

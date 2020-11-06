@@ -48,7 +48,9 @@ namespace Orthanc
     class ORTHANC_PUBLIC IObserver : public boost::noncopyable
     {
     public:
-      virtual ~IObserver();
+      virtual ~IObserver()
+      {
+      }
 
       virtual void SignalJobSubmitted(const std::string& jobId) = 0;
 

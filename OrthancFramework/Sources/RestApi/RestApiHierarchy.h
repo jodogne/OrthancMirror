@@ -70,7 +70,9 @@ namespace Orthanc
     class IVisitor : public boost::noncopyable
     {
     public:
-      virtual ~IVisitor();
+      virtual ~IVisitor()
+      {
+      }
 
       virtual bool Visit(const Resource& resource,
                          const UriComponents& uri,

@@ -41,11 +41,6 @@ namespace Orthanc
   static const char* RUNTIME = "Runtime";
 
 
-  JobsRegistry::IObserver::~IObserver()
-  {
-  }
-
-
   class JobsRegistry::JobHandler : public boost::noncopyable
   {
   private:

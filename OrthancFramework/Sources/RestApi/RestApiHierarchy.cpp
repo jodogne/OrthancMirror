@@ -167,11 +167,6 @@ namespace Orthanc
   }
 
 
-  RestApiHierarchy::IVisitor::~IVisitor()
-  {
-  }
-
-
   void RestApiHierarchy::DeleteChildren(Children& children)
   {
     for (Children::iterator it = children.begin();
