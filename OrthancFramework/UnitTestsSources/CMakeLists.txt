@@ -28,7 +28,12 @@ project(UnitTestsProject)
 set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
+
 set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
+set(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
+set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+
+set(BOOST_LOCALE_BACKEND "libiconv" CACHE STRING "Back-end for locales that is used by Boost (can be \"gcc\", \"libiconv\", \"icu\", or \"wconv\" on Windows)")
 set(USE_CXX11 OFF CACHE BOOL "Whether to enable compiler support for C++11")
 
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
