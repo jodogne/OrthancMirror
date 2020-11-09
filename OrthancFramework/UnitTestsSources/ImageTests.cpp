@@ -65,7 +65,7 @@ TEST(PngWriter, ColorPattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_RGB24, width, height, pitch, &image[0]);
 
-  w.WriteToFile("UnitTestsResults/ColorPattern.png", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.png", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
@@ -93,7 +93,7 @@ TEST(PngWriter, Gray8Pattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
 
-  w.WriteToFile("UnitTestsResults/Gray8Pattern.png", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.png", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
@@ -122,7 +122,7 @@ TEST(PngWriter, Gray16Pattern)
 
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
-  w.WriteToFile("UnitTestsResults/Gray16Pattern.png", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.png", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
@@ -153,7 +153,7 @@ TEST(PngWriter, EndToEnd)
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
 
   std::string s;
-  w.WriteToMemory(s, accessor);
+  Orthanc::IImageWriter::WriteToMemory(w, s, accessor);
 
   {
     Orthanc::PngReader r;
@@ -218,9 +218,9 @@ TEST(JpegWriter, Basic)
     }
 
     Orthanc::JpegWriter w;
-    w.WriteToFile("UnitTestsResults/hello.jpg", img);
+    Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/hello.jpg", img);
 
-    w.WriteToMemory(s, img);
+    Orthanc::IImageWriter::WriteToMemory(w, s, img);
     Orthanc::SystemToolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
 
     std::string t;
@@ -274,7 +274,7 @@ TEST(PamWriter, ColorPattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_RGB24, width, height, pitch, &image[0]);
 
-  w.WriteToFile("UnitTestsResults/ColorPattern.pam", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.pam", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.pam");
@@ -302,7 +302,7 @@ TEST(PamWriter, Gray8Pattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
 
-  w.WriteToFile("UnitTestsResults/Gray8Pattern.pam", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.pam", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.pam");
@@ -331,7 +331,7 @@ TEST(PamWriter, Gray16Pattern)
 
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
-  w.WriteToFile("UnitTestsResults/Gray16Pattern.pam", accessor);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.pam", accessor);
 
   std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.pam");
@@ -362,7 +362,7 @@ TEST(PamWriter, EndToEnd)
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
 
   std::string s;
-  w.WriteToMemory(s, accessor);
+  Orthanc::IImageWriter::WriteToMemory(w, s, accessor);
 
   {
     Orthanc::PamReader r(true);

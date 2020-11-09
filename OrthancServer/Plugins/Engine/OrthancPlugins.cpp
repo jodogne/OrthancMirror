@@ -2341,7 +2341,7 @@ namespace Orthanc
       case OrthancPluginImageFormat_Png:
       {
         PngWriter writer;
-        writer.WriteToMemory(compressed, accessor);
+        IImageWriter::WriteToMemory(writer, compressed, accessor);
         translatedOutput.SetContentType(MimeType_Png);
         break;
       }
@@ -2350,7 +2350,7 @@ namespace Orthanc
       {
         JpegWriter writer;
         writer.SetQuality(p.quality);
-        writer.WriteToMemory(compressed, accessor);
+        IImageWriter::WriteToMemory(writer, compressed, accessor);
         translatedOutput.SetContentType(MimeType_Jpeg);
         break;
       }
@@ -2953,7 +2953,7 @@ namespace Orthanc
       case OrthancPluginImageFormat_Png:
       {
         PngWriter writer;
-        writer.WriteToMemory(compressed, accessor);
+        IImageWriter::WriteToMemory(writer, compressed, accessor);
         break;
       }
 
@@ -2961,7 +2961,7 @@ namespace Orthanc
       {
         JpegWriter writer;
         writer.SetQuality(p.quality);
-        writer.WriteToMemory(compressed, accessor);
+        IImageWriter::WriteToMemory(writer, compressed, accessor);
         break;
       }
 

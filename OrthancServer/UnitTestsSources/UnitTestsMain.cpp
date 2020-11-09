@@ -148,7 +148,7 @@ TEST(FontRegistry, Basic)
   }
 
   Orthanc::PngWriter w;
-  w.WriteToFile("UnitTestsResults/font.png", s);
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/font.png", s);
 }
 
 

@@ -42,19 +42,21 @@ namespace Orthanc
   }
 #endif
 
-  void IImageWriter::WriteToMemory(std::string &compressed,
+  void IImageWriter::WriteToMemory(IImageWriter& writer,
+                                   std::string &compressed,
                                    const ImageAccessor &accessor)
   {
-    WriteToMemoryInternal(compressed, accessor.GetWidth(), accessor.GetHeight(),
-                          accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+    writer.WriteToMemoryInternal(compressed, accessor.GetWidth(), accessor.GetHeight(),
+                                 accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
   }
 
 #if ORTHANC_SANDBOXED == 0
-  void IImageWriter::WriteToFile(const std::string &path,
+  void IImageWriter::WriteToFile(IImageWriter& writer,
+                                 const std::string &path,
                                  const ImageAccessor &accessor)
   {
-    WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
-                        accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
+    writer.WriteToFileInternal(path, accessor.GetWidth(), accessor.GetHeight(),
+                               accessor.GetPitch(), accessor.GetFormat(), accessor.GetConstBuffer());
   }
 #endif
 }
