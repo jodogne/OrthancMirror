@@ -236,13 +236,18 @@ def ExploreClass(child, fqn):
                 ReportProblem('Exported public member variable', fqn, i)
 
         elif i.kind == clang.cindex.CursorKind.FUNCTION_TEMPLATE:
+            # An inline function template is OK, as it is not added to
+            # a shared library, but compiled by the client of the library
             if isPublic:
-                ReportProblem('Exported public template method', fqn, i)
+                print('Detected a template function (this is fine, but avoid it as much as possible): %s' % ('::'.join(fqn + [ i.spelling ])))
+                hasImplementation = False
+                for j in i.get_children():
+                    if j.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+                        hasImplementation = True
 
-        elif i.kind == clang.cindex.CursorKind.FRIEND_DECL:
-            if isPublic:
-                ReportProblem('Exported public friend method', fqn, i)
-            
+                if not hasImplementation:
+                    ReportProblem('Exported template function without an inline implementation', fqn, i)
+
         elif (i.kind == clang.cindex.CursorKind.TYPEDEF_DECL or  # Allow "typedef"
               i.kind == clang.cindex.CursorKind.ENUM_DECL):      # Allow enums
             pass

@@ -24,6 +24,7 @@
 
 // To have ORTHANC_ENABLE_LOGGING defined if using the shared library
 #include "OrthancFramework.h"
+#include "Compatibility.h"
 
 #include <iostream>
 
@@ -112,7 +113,7 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void SetTargetFolder(const std::string& path);
 
-    struct NullStream : public std::ostream 
+    struct ORTHANC_LOCAL NullStream : public std::ostream 
     {
       NullStream() : 
         std::ios(0), 
@@ -223,8 +224,6 @@ namespace Orthanc
 
 #if (ORTHANC_ENABLE_LOGGING == 1 &&             \
      ORTHANC_ENABLE_LOGGING_STDIO == 0)
-
-#include "Compatibility.h"  // For std::unique_ptr<>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>

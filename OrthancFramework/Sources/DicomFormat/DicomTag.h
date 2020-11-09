@@ -64,10 +64,10 @@ namespace Orthanc
 
     std::string Format() const;
 
+    std::ostream& FormatStream(std::ostream& o) const;
+
     static bool ParseHexadecimal(DicomTag& tag,
                                  const char* value);
-
-    ORTHANC_PUBLIC friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
 
     static void AddTagsForModule(std::set<DicomTag>& target,
                                  DicomModule module);

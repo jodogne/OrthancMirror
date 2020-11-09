@@ -167,7 +167,8 @@ namespace Orthanc
       const DicomTag& tag = query.GetElement(i).GetTag();
       if (allowedTags.find(tag) == allowedTags.end())
       {
-        CLOG(WARNING, DICOM) << "Tag not allowed for this C-Find level, will be ignored: " << tag;
+        CLOG(WARNING, DICOM) << "Tag not allowed for this C-Find level, will be ignored: ("
+                             << tag.Format() << ")";
       }
       else
       {
