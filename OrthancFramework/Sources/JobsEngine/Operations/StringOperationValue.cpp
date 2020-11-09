@@ -31,12 +31,12 @@ namespace Orthanc
   {
   }
 
-  JobOperationValue::Type StringOperationValue::GetType() const
+  IJobOperationValue::Type StringOperationValue::GetType() const
   {
     return Type_String;
   }
     
-  JobOperationValue* StringOperationValue::Clone() const 
+  IJobOperationValue* StringOperationValue::Clone() const 
   {
     return new StringOperationValue(content_);
   }

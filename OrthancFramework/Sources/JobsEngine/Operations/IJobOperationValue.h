@@ -29,7 +29,7 @@
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC JobOperationValue : public boost::noncopyable
+  class ORTHANC_PUBLIC IJobOperationValue : public boost::noncopyable
   {
   public:
     enum Type
@@ -39,13 +39,13 @@ namespace Orthanc
       Type_String
     };
 
-    virtual ~JobOperationValue()
+    virtual ~IJobOperationValue()
     {
     }
 
     virtual Type GetType() const = 0;
 
-    virtual JobOperationValue* Clone() const = 0;
+    virtual IJobOperationValue* Clone() const = 0;
 
     virtual void Serialize(Json::Value& target) const = 0;
   };

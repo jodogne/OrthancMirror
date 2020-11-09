@@ -140,7 +140,7 @@ namespace Orthanc
   }
 
 
-  JobOperationValue* OrthancJobUnserializer::UnserializeValue(const Json::Value& source)
+  IJobOperationValue* OrthancJobUnserializer::UnserializeValue(const Json::Value& source)
   {
     const std::string type = SerializationToolbox::ReadString(source, "Type");
 

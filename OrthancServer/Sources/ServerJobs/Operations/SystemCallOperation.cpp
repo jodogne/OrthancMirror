@@ -74,7 +74,7 @@ namespace Orthanc
 
 
   void SystemCallOperation::Apply(JobOperationValues& outputs,
-                                  const JobOperationValue& input)
+                                  const IJobOperationValue& input)
   {
     std::vector<std::string> arguments = preArguments_;
 
@@ -84,7 +84,7 @@ namespace Orthanc
     
     switch (input.GetType())
     {
-      case JobOperationValue::Type_DicomInstance:
+      case IJobOperationValue::Type_DicomInstance:
       {
         const DicomInstanceOperationValue& instance =
           dynamic_cast<const DicomInstanceOperationValue&>(input);
@@ -103,7 +103,7 @@ namespace Orthanc
         break;
       }
 
-      case JobOperationValue::Type_String:
+      case IJobOperationValue::Type_String:
       {
         const StringOperationValue& value =
           dynamic_cast<const StringOperationValue&>(input);
@@ -112,7 +112,7 @@ namespace Orthanc
         break;
       }
 
-      case JobOperationValue::Type_Null:
+      case IJobOperationValue::Type_Null:
         break;
 
       default:

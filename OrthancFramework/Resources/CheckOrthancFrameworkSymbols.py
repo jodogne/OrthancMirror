@@ -146,11 +146,14 @@ def ExploreClass(child, fqn):
     ## Ignore pure abstract interfaces, by checking the following
     ## criteria:
     ##   - It must be a C++ class (not a struct)
+    ##   - It must start with "I"
     ##   - All its methods must be pure virtual (abstract) and public
     ##   - Its destructor must be public, virtual, and must do nothing
     ##
     
-    if child.kind == clang.cindex.CursorKind.CLASS_DECL:
+    if (child.kind == clang.cindex.CursorKind.CLASS_DECL and
+        child.spelling[0] == 'I' and
+        child.spelling[1].isupper()):
         abstract = True
         isPublic = False
 
@@ -181,8 +184,7 @@ def ExploreClass(child, fqn):
                         c[0].kind != clang.cindex.CursorKind.COMPOUND_STMT or
                         len(list(c[0].get_children())) != 0):
                         abstract = False
-                elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
-                      i.kind == clang.cindex.CursorKind.STRUCT_DECL):
+                elif i.kind == clang.cindex.CursorKind.CLASS_DECL:
                     ExploreClass(i, fqn + [ i.spelling ])
                 elif (i.kind == clang.cindex.CursorKind.TYPEDEF_DECL or  # Allow "typedef"
                       i.kind == clang.cindex.CursorKind.ENUM_DECL):      # Allow enums
@@ -192,8 +194,11 @@ def ExploreClass(child, fqn):
 
         if abstract:
             print('Detected a pure interface (this is fine): %s' % ('::'.join(fqn)))
-            return
+        else:
+            ReportProblem('Not a pure interface', fqn, child)
 
+        return
+                  
 
     ##
     ## We are facing a standard C++ class or struct
@@ -209,8 +214,7 @@ def ExploreClass(child, fqn):
         elif i.kind == clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL:
             isPublic = (i.access_specifier == clang.cindex.AccessSpecifier.PUBLIC)
 
-        elif (i.kind == clang.cindex.CursorKind.CLASS_DECL or
-              i.kind == clang.cindex.CursorKind.STRUCT_DECL):
+        elif i.kind == clang.cindex.CursorKind.CLASS_DECL:
             # This is a subclass
             if isPublic:
                 ExploreClass(i, fqn + [ i.spelling ])

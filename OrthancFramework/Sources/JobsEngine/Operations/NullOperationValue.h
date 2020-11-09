@@ -22,18 +22,18 @@
 
 #pragma once
 
-#include "JobOperationValue.h"
+#include "IJobOperationValue.h"
 
 #include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC NullOperationValue : public JobOperationValue
+  class ORTHANC_PUBLIC NullOperationValue : public IJobOperationValue
   {
   public:
     virtual Type GetType() const ORTHANC_OVERRIDE;
     
-    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE;
+    virtual IJobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
     virtual void Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
   };

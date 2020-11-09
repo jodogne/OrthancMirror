@@ -44,13 +44,13 @@
 namespace Orthanc
 {
   void StorePeerOperation::Apply(JobOperationValues& outputs,
-                                 const JobOperationValue& input)
+                                 const IJobOperationValue& input)
   {
     // Configure the HTTP client
     HttpClient client(peer_, "instances");
     client.SetMethod(HttpMethod_Post);
 
-    if (input.GetType() != JobOperationValue::Type_DicomInstance)
+    if (input.GetType() != IJobOperationValue::Type_DicomInstance)
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }

@@ -90,7 +90,7 @@ namespace Orthanc
   }
 
 
-  void JobOperationValues::Append(JobOperationValue* value)  // Takes ownership
+  void JobOperationValues::Append(IJobOperationValue* value)  // Takes ownership
   {
     if (value == NULL)
     {
@@ -108,7 +108,7 @@ namespace Orthanc
   }
 
 
-  JobOperationValue& JobOperationValues::GetValue(size_t index) const
+  IJobOperationValue& JobOperationValues::GetValue(size_t index) const
   {
     if (index >= values_.size())
     {

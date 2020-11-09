@@ -52,7 +52,9 @@ namespace Orthanc
 #endif
 
   public:
-    virtual ~IImageWriter();
+    virtual ~IImageWriter()
+    {
+    }
 
     virtual void WriteToMemory(std::string& compressed,
                                const ImageAccessor& accessor);

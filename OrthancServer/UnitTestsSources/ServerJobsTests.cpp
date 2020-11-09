@@ -351,12 +351,12 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
 
 
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
-                                         JobOperationValue& value)
+                                         IJobOperationValue& value)
 {
   Json::Value a = 42;
   value.Serialize(a);
   
-  std::unique_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
+  std::unique_ptr<IJobOperationValue> unserialized(unserializer.UnserializeValue(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -559,9 +559,9 @@ TEST_F(OrthancJobsSerialization, Values)
     instance.Serialize(s);
   }
 
-  std::unique_ptr<JobOperationValue> value;
+  std::unique_ptr<IJobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
-  ASSERT_EQ(JobOperationValue::Type_DicomInstance, value->GetType());
+  ASSERT_EQ(IJobOperationValue::Type_DicomInstance, value->GetType());
   ASSERT_EQ(id, dynamic_cast<DicomInstanceOperationValue&>(*value).GetId());
 
   {

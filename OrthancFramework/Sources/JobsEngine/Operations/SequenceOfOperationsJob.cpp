@@ -66,7 +66,7 @@ namespace Orthanc
       }
     }
 
-    void AddOriginalInput(const JobOperationValue& value)
+    void AddOriginalInput(const IJobOperationValue& value)
     {
       if (currentInput_ != 0)
       {
@@ -122,7 +122,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
 
-      const JobOperationValue* input;
+      const IJobOperationValue* input;
 
       if (currentInput_ < originalInputs_->GetSize())
       {
@@ -275,7 +275,7 @@ namespace Orthanc
 
 
   void SequenceOfOperationsJob::Lock::AddInput(size_t index,
-                                               const JobOperationValue& value)
+                                               const IJobOperationValue& value)
   {
     if (IsDone())
     {

@@ -26,12 +26,12 @@
 
 namespace Orthanc
 {
-  JobOperationValue::Type NullOperationValue::GetType() const
+  IJobOperationValue::Type NullOperationValue::GetType() const
   {
     return Type_Null;
   }
     
-  JobOperationValue* NullOperationValue::Clone() const 
+  IJobOperationValue* NullOperationValue::Clone() const 
   {
     return new NullOperationValue;
   }
