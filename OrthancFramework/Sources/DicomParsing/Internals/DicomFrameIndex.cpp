@@ -350,7 +350,7 @@ namespace Orthanc
     // Extract information about the image structure
     DicomMap tags;
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomSummary(tags, dicom, DicomImageInformation::USEFUL_TAG_LENGTH, ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomSummary(tags, dicom, DicomImageInformation::GetUsefulTagLength(), ignoreTagLength);
 
     DicomImageInformation information(tags);
 
