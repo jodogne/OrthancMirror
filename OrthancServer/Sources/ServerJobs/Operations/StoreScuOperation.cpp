@@ -44,11 +44,11 @@
 namespace Orthanc
 {
   void StoreScuOperation::Apply(JobOperationValues& outputs,
-                                const JobOperationValue& input)
+                                const IJobOperationValue& input)
   {
     TimeoutDicomConnectionManager::Lock lock(connectionManager_, localAet_, modality_);
     
-    if (input.GetType() != JobOperationValue::Type_DicomInstance)
+    if (input.GetType() != IJobOperationValue::Type_DicomInstance)
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }

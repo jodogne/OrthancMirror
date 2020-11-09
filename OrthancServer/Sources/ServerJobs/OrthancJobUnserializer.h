@@ -54,6 +54,6 @@ namespace Orthanc
 
     virtual IJobOperation* UnserializeOperation(const Json::Value& value) ORTHANC_OVERRIDE;
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& value) ORTHANC_OVERRIDE;
+    virtual IJobOperationValue* UnserializeValue(const Json::Value& value) ORTHANC_OVERRIDE;
   };
 }

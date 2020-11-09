@@ -831,12 +831,12 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
 
 
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
-                                         const JobOperationValue& value)
+                                         const IJobOperationValue& value)
 {
   Json::Value a = 42;
   value.Serialize(a);
   
-  std::unique_ptr<JobOperationValue> unserialized(unserializer.UnserializeValue(a));
+  std::unique_ptr<IJobOperationValue> unserialized(unserializer.UnserializeValue(a));
   
   Json::Value b = 43;
   unserialized->Serialize(b);
@@ -891,9 +891,9 @@ TEST(JobsSerialization, JobOperationValues)
     GenericJobUnserializer unserializer;
     std::unique_ptr<JobOperationValues> values(JobOperationValues::Unserialize(unserializer, s));
     ASSERT_EQ(3u, values->GetSize());
-    ASSERT_EQ(JobOperationValue::Type_Null, values->GetValue(0).GetType());
-    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(1).GetType());
-    ASSERT_EQ(JobOperationValue::Type_String, values->GetValue(2).GetType());
+    ASSERT_EQ(IJobOperationValue::Type_Null, values->GetValue(0).GetType());
+    ASSERT_EQ(IJobOperationValue::Type_String, values->GetValue(1).GetType());
+    ASSERT_EQ(IJobOperationValue::Type_String, values->GetValue(2).GetType());
 
     ASSERT_EQ("hello", dynamic_cast<const StringOperationValue&>(values->GetValue(1)).GetContent());
     ASSERT_EQ("world", dynamic_cast<const StringOperationValue&>(values->GetValue(2)).GetContent());
@@ -916,10 +916,10 @@ TEST(JobsSerialization, GenericValues)
   ASSERT_THROW(unserializer.UnserializeJob(s), OrthancException);
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
 
-  std::unique_ptr<JobOperationValue> value;
+  std::unique_ptr<IJobOperationValue> value;
   value.reset(unserializer.UnserializeValue(s));
   
-  ASSERT_EQ(JobOperationValue::Type_Null, value->GetType());
+  ASSERT_EQ(IJobOperationValue::Type_Null, value->GetType());
 
   {
     StringOperationValue str("Hello");
@@ -932,7 +932,7 @@ TEST(JobsSerialization, GenericValues)
   ASSERT_THROW(unserializer.UnserializeOperation(s), OrthancException);
   value.reset(unserializer.UnserializeValue(s));
 
-  ASSERT_EQ(JobOperationValue::Type_String, value->GetType());
+  ASSERT_EQ(IJobOperationValue::Type_String, value->GetType());
   ASSERT_EQ("Hello", dynamic_cast<StringOperationValue&>(*value).GetContent());
 }
 

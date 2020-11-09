@@ -42,10 +42,6 @@ namespace Orthanc
   }
 #endif
 
-  IImageWriter::~IImageWriter()
-  {
-  }
-
   void IImageWriter::WriteToMemory(std::string &compressed,
                                    const ImageAccessor &accessor)
   {

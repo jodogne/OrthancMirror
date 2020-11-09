@@ -23,7 +23,7 @@
 #pragma once
 
 #include "IJob.h"
-#include "Operations/JobOperationValue.h"
+#include "Operations/IJobOperationValue.h"
 #include "Operations/IJobOperation.h"
 
 #include <vector>
@@ -41,6 +41,6 @@ namespace Orthanc
 
     virtual IJobOperation* UnserializeOperation(const Json::Value& value) = 0;
 
-    virtual JobOperationValue* UnserializeValue(const Json::Value& value) = 0;
+    virtual IJobOperationValue* UnserializeValue(const Json::Value& value) = 0;
   };
 }

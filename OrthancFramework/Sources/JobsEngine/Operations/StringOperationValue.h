@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "JobOperationValue.h"
+#include "IJobOperationValue.h"
 
 #include "../../Compatibility.h"  // For ORTHANC_OVERRIDE
 
@@ -30,7 +30,7 @@
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC StringOperationValue : public JobOperationValue
+  class ORTHANC_PUBLIC StringOperationValue : public IJobOperationValue
   {
   private:
     std::string  content_;
@@ -40,7 +40,7 @@ namespace Orthanc
 
     virtual Type GetType() const ORTHANC_OVERRIDE;
     
-    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE;
+    virtual IJobOperationValue* Clone() const ORTHANC_OVERRIDE;
 
     const std::string& GetContent() const;
 

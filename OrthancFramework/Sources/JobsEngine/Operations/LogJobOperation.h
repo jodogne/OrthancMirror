@@ -32,7 +32,7 @@ namespace Orthanc
   {
   public:
     virtual void Apply(JobOperationValues& outputs,
-                       const JobOperationValue& input) ORTHANC_OVERRIDE;
+                       const IJobOperationValue& input) ORTHANC_OVERRIDE;
 
     virtual void Serialize(Json::Value& result) const ORTHANC_OVERRIDE;
   };

@@ -43,11 +43,11 @@
 namespace Orthanc
 {
   void DeleteResourceOperation::Apply(JobOperationValues& outputs,
-                                      const JobOperationValue& input)
+                                      const IJobOperationValue& input)
   {
     switch (input.GetType())
     {
-      case JobOperationValue::Type_DicomInstance:
+      case IJobOperationValue::Type_DicomInstance:
       {
         const DicomInstanceOperationValue& instance = dynamic_cast<const DicomInstanceOperationValue&>(input);
         LOG(INFO) << "Lua: Deleting instance: " << instance.GetId();

@@ -34,13 +34,13 @@
 #pragma once
 
 #include "../../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
-#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/JobOperationValue.h"
+#include "../../../../OrthancFramework/Sources/JobsEngine/Operations/IJobOperationValue.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class DicomInstanceOperationValue : public JobOperationValue
+  class DicomInstanceOperationValue : public IJobOperationValue
   {
   private:
     ServerContext&   context_;
@@ -71,7 +71,7 @@ namespace Orthanc
 
     void ReadDicom(std::string& dicom) const;
 
-    virtual JobOperationValue* Clone() const ORTHANC_OVERRIDE
+    virtual IJobOperationValue* Clone() const ORTHANC_OVERRIDE
     {
       return new DicomInstanceOperationValue(context_, id_);
     }

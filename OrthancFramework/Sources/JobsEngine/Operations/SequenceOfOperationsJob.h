@@ -96,7 +96,7 @@ namespace Orthanc
       size_t GetOperationsCount() const;
 
       void AddInput(size_t index,
-                    const JobOperationValue& value);
+                    const IJobOperationValue& value);
       
       void Connect(size_t input,
                    size_t output);

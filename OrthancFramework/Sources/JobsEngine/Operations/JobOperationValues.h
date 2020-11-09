@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "JobOperationValue.h"
+#include "IJobOperationValue.h"
 
 #include <vector>
 
@@ -33,7 +33,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC JobOperationValues : public boost::noncopyable
   {
   private:
-    std::vector<JobOperationValue*>   values_;
+    std::vector<IJobOperationValue*>   values_;
 
     void Append(JobOperationValues& target,
                 bool clear);
@@ -49,11 +49,11 @@ namespace Orthanc
 
     void Reserve(size_t count);
 
-    void Append(JobOperationValue* value);  // Takes ownership
+    void Append(IJobOperationValue* value);  // Takes ownership
 
     size_t GetSize() const;
 
-    JobOperationValue& GetValue(size_t index) const;
+    IJobOperationValue& GetValue(size_t index) const;
 
     void Serialize(Json::Value& target) const;
 
