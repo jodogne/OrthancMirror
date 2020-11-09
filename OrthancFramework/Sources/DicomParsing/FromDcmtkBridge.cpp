@@ -351,7 +351,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     
     DcmEVR evr = ToDcmtkBridge::Convert(vr);
 
-    LOG(INFO) << "Registering tag in dictionary: " << tag << " " << (DcmVR(evr).getValidVRName()) << " " 
+    LOG(INFO) << "Registering tag in dictionary: (" << tag.Format() << ") "
+              << (DcmVR(evr).getValidVRName()) << " " 
               << name << " (multiplicity: " << minMultiplicity << "-" 
               << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 

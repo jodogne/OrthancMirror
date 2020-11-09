@@ -1186,12 +1186,12 @@ namespace Orthanc
       {
         case DicomModification::TagOperation_Keep:
           target.Keep(tag);
-          LOG(TRACE) << "Keep: " << name << " " << tag;
+          LOG(TRACE) << "Keep: " << name << " (" << tag.Format() << ")";
           break;
 
         case DicomModification::TagOperation_Remove:
           target.Remove(tag);
-          LOG(TRACE) << "Remove: " << name << " " << tag;
+          LOG(TRACE) << "Remove: " << name << " (" << tag.Format() << ")";
           break;
 
         default:
@@ -1227,8 +1227,8 @@ namespace Orthanc
 
       target.Replace(tag, value, false);
 
-      LOG(TRACE) << "Replace: " << name << " " << tag 
-                 << " == " << value.toStyledString();
+      LOG(TRACE) << "Replace: " << name << " (" << tag.Format() 
+                 << ") == " << value.toStyledString();
     }
   }
 

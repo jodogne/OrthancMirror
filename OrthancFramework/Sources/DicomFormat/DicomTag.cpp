@@ -120,13 +120,13 @@ namespace Orthanc
   }
 
 
-  std::ostream& operator<< (std::ostream& o, const DicomTag& tag)
+  std::ostream& DicomTag::FormatStream(std::ostream& o) const
   {
     using namespace std;
     ios_base::fmtflags state = o.flags();
     o.flags(ios::right | ios::hex);
-    o << "(" << setfill('0') << setw(4) << tag.GetGroup()
-      << "," << setw(4) << tag.GetElement() << ")";
+    o << "(" << setfill('0') << setw(4) << GetGroup()
+      << "," << setw(4) << GetElement() << ")";
     o.flags(state);
     return o;
   }
