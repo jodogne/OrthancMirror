@@ -252,7 +252,7 @@ namespace Orthanc
 
       DicomMap m;
       std::set<DicomTag> ignoreTagLength;
-      FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::USEFUL_TAG_LENGTH, ignoreTagLength);
+      FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::GetUsefulTagLength(), ignoreTagLength);
 
       /**
        * Create an accessor to the raw values of the DICOM image.
@@ -325,7 +325,7 @@ namespace Orthanc
   {
     DicomMap m;
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::USEFUL_TAG_LENGTH, ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::GetUsefulTagLength(), ignoreTagLength);
 
     DicomImageInformation info(m);
     PixelFormat format;
@@ -614,7 +614,7 @@ namespace Orthanc
 
     DicomMap m;
     std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::USEFUL_TAG_LENGTH, ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomSummary(m, dataset, DicomImageInformation::GetUsefulTagLength(), ignoreTagLength);
     DicomImageInformation info(m);
 
     std::unique_ptr<ImageAccessor> target(CreateImage(dataset, true));

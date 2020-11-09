@@ -337,4 +337,10 @@ namespace Orthanc
             GetBytesPerValue() *
             GetChannelCount());
   }
+
+
+  unsigned int DicomImageInformation::GetUsefulTagLength()
+  {
+    return 256;
+  }
 }
