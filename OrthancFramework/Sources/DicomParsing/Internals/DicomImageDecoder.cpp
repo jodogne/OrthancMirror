@@ -989,7 +989,7 @@ namespace Orthanc
     ApplyExtractionMode(image, mode, invert);
 
     PamWriter writer;
-    writer.WriteToMemory(result, *image);
+    IImageWriter::WriteToMemory(writer, result, *image);
   }
 
 #if ORTHANC_ENABLE_PNG == 1
@@ -1001,7 +1001,7 @@ namespace Orthanc
     ApplyExtractionMode(image, mode, invert);
 
     PngWriter writer;
-    writer.WriteToMemory(result, *image);
+    IImageWriter::WriteToMemory(writer, result, *image);
   }
 #endif
 
@@ -1023,7 +1023,7 @@ namespace Orthanc
 
     JpegWriter writer;
     writer.SetQuality(quality);
-    writer.WriteToMemory(result, *image);
+    IImageWriter::WriteToMemory(writer, result, *image);
   }
 #endif
 

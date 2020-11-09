@@ -56,12 +56,14 @@ namespace Orthanc
     {
     }
 
-    virtual void WriteToMemory(std::string& compressed,
-                               const ImageAccessor& accessor);
+    static void WriteToMemory(IImageWriter& writer,
+                              std::string& compressed,
+                              const ImageAccessor& accessor);
 
 #if ORTHANC_SANDBOXED == 0
-    virtual void WriteToFile(const std::string& path,
-                             const ImageAccessor& accessor);
+    static void WriteToFile(IImageWriter& writer,
+                            const std::string& path,
+                            const ImageAccessor& accessor);
 #endif
   };
 }
