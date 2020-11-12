@@ -49,7 +49,7 @@ namespace Orthanc
             const JobStatus& status,
             const boost::posix_time::ptime& creationTime,
             const boost::posix_time::ptime& lastStateChangeTime,
-            const boost::posix_time::time_duration& runtime);
+            const boost::posix_time::time_duration& runtime) ORTHANC_LOCAL;
 
     JobInfo();
 
