@@ -19,7 +19,7 @@
 
 
 # source ~/Downloads/emsdk/emsdk_env.sh
-# cmake .. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug -DEMSCRIPTEN_SET_LLVM_WASM_BACKEND=ON -DCMAKE_INSTALL_PREFIX=/tmp/wasm-install/
+# cmake .. -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/tmp/wasm-install/
 # make install
 # cd /tmp/wasm-install
 # python -m SimpleHTTPServer 8000
