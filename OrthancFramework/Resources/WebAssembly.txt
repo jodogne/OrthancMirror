@@ -45,6 +45,10 @@ endif()
 <<<<<
 
 
+The "EMSCRIPTEN_SET_LLVM_WASM_BACKEND" option was totally removed in
+Orthanc 1.8.1.
+
+
 
 
 Linker flags
