@@ -40,6 +40,8 @@ namespace Orthanc
     
     static uint32_t infoCategoriesMask_ = 0;
     static uint32_t traceCategoriesMask_ = 0;
+    static std::string logTargetFolder_;            // keep a track of the log folder in case of reset of the context
+    static std::string logTargetFile_;              // keep a track of the log file in case of reset of the context
     
     const char* EnumerationToString(LogLevel level)
     {
@@ -716,35 +718,24 @@ namespace Orthanc
 
     void Reset()
     {
-      // Recover the old logging context
-      std::unique_ptr<LoggingStreamsContext> old;
+      if (logTargetFile_.empty() && logTargetFolder_.empty())
+      {
+        return;
+      }
 
       {
         boost::mutex::scoped_lock lock(loggingStreamsMutex_);
-        if (loggingStreamsContext_.get() == NULL)
-        {
-          return;
-        }
-        else
-        {
-#if __cplusplus < 201103L
-          old.reset(loggingStreamsContext_.release());
-#else
-          old = std::move(loggingStreamsContext_);
-#endif
+        loggingStreamsContext_.reset(new LoggingStreamsContext);
+      }
 
-          // Create a new logging context, 
-          loggingStreamsContext_.reset(new LoggingStreamsContext);
-        }
-      }
-      
-      if (!old->targetFolder_.empty())
+      // Recover the old logging context if any
+      if (!logTargetFile_.empty())
       {
-        SetTargetFolder(old->targetFolder_);
+        SetTargetFile(logTargetFile_);
       }
-      else if (!old->targetFile_.empty())
+      else if (!logTargetFolder_.empty())
       {
-        SetTargetFile(old->targetFile_);
+        SetTargetFolder(logTargetFolder_);
       }
     }
 
@@ -762,6 +753,7 @@ namespace Orthanc
         loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
         loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
         loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+        logTargetFolder_ = path;
       }
     }
 
@@ -780,6 +772,7 @@ namespace Orthanc
         loggingStreamsContext_->warning_ = loggingStreamsContext_->file_.get();
         loggingStreamsContext_->error_ = loggingStreamsContext_->file_.get();
         loggingStreamsContext_->info_ = loggingStreamsContext_->file_.get();
+        logTargetFile_ = path;
       }
     }
 
