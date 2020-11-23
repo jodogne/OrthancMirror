@@ -187,6 +187,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_GREEN_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1102);
   static const DicomTag DICOM_TAG_BLUE_PALETTE_COLOR_LOOKUP_TABLE_DESCRIPTOR(0x0028, 0x1103);
   static const DicomTag DICOM_TAG_CONTOUR_DATA(0x3006, 0x0050);
+  static const DicomTag DICOM_TAG_CINE_RATE(0x0018, 0x0040);
                              
   // Counting patients, studies and series
   // https://www.medicalconnections.co.uk/kb/Counting_Studies_Series_and_Instances
