@@ -197,7 +197,9 @@
    * Network topology
    **/
 
-  // The list of the known DICOM modalities
+  // The list of the known DICOM modalities. This option is ignored if
+  // "DicomModalitiesInDatabase" is set to "true", in which case you
+  // must use the REST API to define modalities.
   "DicomModalities" : {
     /**
      * Uncommenting the following line would enable Orthanc to
@@ -290,7 +292,9 @@
   // DICOM SCP (server) does not answer.
   "DicomScuTimeout" : 10,
 
-  // The list of the known Orthanc peers
+  // The list of the known Orthanc peers. This option is ignored if
+  // "OrthancPeersInDatabase" is set to "true", in which case you must
+  // use the REST API to define Orthanc peers.
   "OrthancPeers" : {
     /**
      * Each line gives the base URL of an Orthanc peer, possibly
