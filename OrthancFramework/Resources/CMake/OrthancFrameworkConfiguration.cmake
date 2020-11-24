@@ -153,11 +153,15 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/EnumerationDictionary.h
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/MemoryStorageArea.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpContentNegociation.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SerializationToolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/WebServiceParameters.cpp
@@ -299,19 +303,15 @@ if (ENABLE_WEB_SERVER)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/BufferHttpSender.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/FilesystemHttpHandler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/FilesystemHttpSender.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpContentNegociation.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpFileSender.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpServer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpStreamTranscoder.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringHttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApi.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiCall.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiGetCall.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiOutput.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
     )
 
   if (ENABLE_PUGIXML)
@@ -508,6 +508,7 @@ if (ENABLE_DCMTK)
   endif()
 
   set(ORTHANC_DICOM_SOURCES_INTERNAL
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomFindAnswers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomModification.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomWebJsonVisitor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/FromDcmtkBridge.cpp
@@ -531,7 +532,6 @@ if (ENABLE_DCMTK)
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociation.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomAssociationParameters.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomControlUserConnection.cpp
-      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomFindAnswers.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomServer.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/DicomStoreUserConnection.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/CommandDispatcher.cpp

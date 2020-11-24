@@ -36,9 +36,12 @@
 #include "../Sources/Images/PngWriter.h"
 #include "../Sources/Images/PamReader.h"
 #include "../Sources/Images/PamWriter.h"
-#include "../Sources/SystemToolbox.h"
 #include "../Sources/Toolbox.h"
-#include "../Sources/TemporaryFile.h"
+
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/SystemToolbox.h"
+#  include "../Sources/TemporaryFile.h"
+#endif
 
 #include <stdint.h>
 
@@ -65,13 +68,20 @@ TEST(PngWriter, ColorPattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_RGB24, width, height, pitch, &image[0]);
 
-  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.png", accessor);
+  std::string f;
 
-  std::string f, md5;
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.png", accessor);
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
+#endif
+
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("604e785f53c99cae6ea4584870b2c41d", md5);
 }
+
 
 TEST(PngWriter, Gray8Pattern)
 {
@@ -93,10 +103,16 @@ TEST(PngWriter, Gray8Pattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
 
+  std::string f;
+  
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.png", accessor);
-
-  std::string f, md5;
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
+#endif
+
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("5a9b98bea3d0a6d983980cc38bfbcdb3", md5);
 }
@@ -122,10 +138,17 @@ TEST(PngWriter, Gray16Pattern)
 
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
-  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.png", accessor);
 
-  std::string f, md5;
+  std::string f;
+  
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.png", accessor);
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
+#endif
+
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("0785866a08bf0a02d2eeff87f658571c", md5);
 }
@@ -175,6 +198,7 @@ TEST(PngWriter, EndToEnd)
     }
   }
 
+#if ORTHANC_SANDBOXED != 1
   {
     Orthanc::TemporaryFile tmp;
     tmp.Write(s);
@@ -197,6 +221,7 @@ TEST(PngWriter, EndToEnd)
       }
     }
   }
+#endif
 }
 
 
@@ -218,34 +243,51 @@ TEST(JpegWriter, Basic)
     }
 
     Orthanc::JpegWriter w;
-    Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/hello.jpg", img);
-
     Orthanc::IImageWriter::WriteToMemory(w, s, img);
+
+#if ORTHANC_SANDBOXED != 1
+    Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/hello.jpg", img);
     Orthanc::SystemToolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
 
     std::string t;
     Orthanc::SystemToolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
     ASSERT_EQ(s.size(), t.size());
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
+#endif
   }
 
   {
-    Orthanc::JpegReader r1, r2;
-    r1.ReadFromFile("UnitTestsResults/hello.jpg");
+    Orthanc::JpegReader r1;
+    r1.ReadFromMemory(s);
     ASSERT_EQ(16u, r1.GetWidth());
     ASSERT_EQ(16u, r1.GetHeight());
 
-    r2.ReadFromMemory(s);
+#if ORTHANC_SANDBOXED != 1
+    Orthanc::JpegReader r2;
+    r2.ReadFromFile("UnitTestsResults/hello.jpg");
     ASSERT_EQ(16u, r2.GetWidth());
     ASSERT_EQ(16u, r2.GetHeight());
+#endif
 
+    unsigned int value = 0;
     for (unsigned int y = 0; y < r1.GetHeight(); y++)
     {
       const uint8_t* p1 = reinterpret_cast<const uint8_t*>(r1.GetConstRow(y));
+#if ORTHANC_SANDBOXED != 1
       const uint8_t* p2 = reinterpret_cast<const uint8_t*>(r2.GetConstRow(y));
-      for (unsigned int x = 0; x < r1.GetWidth(); x++)
+#endif
+      for (unsigned int x = 0; x < r1.GetWidth(); x++, value++)
       {
+        ASSERT_TRUE(*p1 == value ||
+                    *p1 == value - 1 ||
+                    *p1 == value + 1);  // Be tolerant to differences of +-1
+
+#if ORTHANC_SANDBOXED != 1
         ASSERT_EQ(*p1, *p2);
+        p2++;
+#endif
+
+        p1++;
       }
     }
   }
@@ -274,10 +316,16 @@ TEST(PamWriter, ColorPattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_RGB24, width, height, pitch, &image[0]);
 
-  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.pam", accessor);
+  std::string f;
 
-  std::string f, md5;
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.pam", accessor);
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.pam");
+#endif
+
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("81a3441754e88969ebbe53e69891e841", md5);
 }
@@ -302,10 +350,16 @@ TEST(PamWriter, Gray8Pattern)
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale8, width, height, pitch, &image[0]);
 
-  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.pam", accessor);
+  std::string f;
 
-  std::string f, md5;
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.pam", accessor);
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.pam");
+#endif
+  
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("7873c408d26a9d11dd1c1de5e69cc0a3", md5);
 }
@@ -331,10 +385,17 @@ TEST(PamWriter, Gray16Pattern)
 
   Orthanc::ImageAccessor accessor;
   accessor.AssignReadOnly(Orthanc::PixelFormat_Grayscale16, width, height, pitch, &image[0]);
-  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.pam", accessor);
 
-  std::string f, md5;
+  std::string f;
+
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.pam", accessor);
   Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.pam");
+#endif
+
+  std::string md5;
   Orthanc::Toolbox::ComputeMD5(md5, f);
   ASSERT_EQ("b268772bf28f3b2b8520ff21c5e3dcb6", md5);
 }
@@ -407,6 +468,7 @@ TEST(PamWriter, EndToEnd)
     }
   }
 
+#if ORTHANC_SANDBOXED != 1
   {
     Orthanc::TemporaryFile tmp;
     tmp.Write(s);
@@ -430,7 +492,9 @@ TEST(PamWriter, EndToEnd)
       }
     }
   }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
   {
     Orthanc::TemporaryFile tmp;
     tmp.Write(s);
@@ -455,5 +519,5 @@ TEST(PamWriter, EndToEnd)
       }
     }
   }
-
+#endif
 }

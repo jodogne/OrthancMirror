@@ -28,15 +28,14 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/ChunkedBuffer.h"
-#include "../Sources/HttpClient.h"
-#include "../Sources/Logging.h"
-#include "../Sources/SystemToolbox.h"
-#include "../Sources/RestApi/RestApi.h"
-#include "../Sources/OrthancException.h"
 #include "../Sources/Compression/ZlibCompressor.h"
-#include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/HttpServer/HttpContentNegociation.h"
 #include "../Sources/HttpServer/MultipartStreamReader.h"
+#include "../Sources/Logging.h"
+#include "../Sources/OrthancException.h"
+#include "../Sources/RestApi/RestApi.h"
+#include "../Sources/RestApi/RestApiHierarchy.h"
+#include "../Sources/WebServiceParameters.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
@@ -45,7 +44,7 @@
 
 using namespace Orthanc;
 
-#if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+#if !defined(UNIT_TESTS_WITH_HTTP_CONNEXIONS) && (ORTHANC_SANDBOXED != 1)
 #  error UNIT_TESTS_WITH_HTTP_CONNEXIONS is not defined
 #endif
 
@@ -53,8 +52,13 @@ using namespace Orthanc;
 #  error ORTHANC_ENABLE_SSL is not defined
 #endif
 
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/HttpClient.h"
+#  include "../Sources/SystemToolbox.h"
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(HttpClient, Basic)
 {
   HttpClient c;
@@ -78,9 +82,10 @@ TEST(HttpClient, Basic)
   ASSERT_TRUE(v.isMember("Description"));
 #endif
 }
+#endif
 
 
-#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1 && ORTHANC_ENABLE_SSL == 1
+#if (UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1) && (ORTHANC_ENABLE_SSL == 1) && (ORTHANC_SANDBOXED != 1)
 
 /**
    The HTTPS CA certificates for BitBucket were extracted as follows:
@@ -969,6 +974,8 @@ TEST(ChunkedBuffer, Pending)
 
 
 
+#if ORTHANC_SANDBOXED != 1
+
 namespace
 {
   class TotoBody : public HttpClient::IRequestBody
@@ -1059,6 +1066,7 @@ namespace
 }
 
 
+
 #include "../Sources/HttpServer/HttpServer.h"
 
 TEST(HttpClient, DISABLED_Issue156_Slow)
@@ -1117,3 +1125,4 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
 
   server.Stop();
 }
+#endif
