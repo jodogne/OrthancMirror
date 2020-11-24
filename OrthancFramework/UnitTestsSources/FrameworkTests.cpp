@@ -34,13 +34,13 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/DicomFormat/DicomTag.h"
-#include "../Sources/HttpServer/HttpToolbox.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
 
 #if ORTHANC_SANDBOXED != 1
 #  include "../Sources/FileBuffer.h"
+#  include "../Sources/HttpServer/HttpToolbox.h"
 #  include "../Sources/MetricsRegistry.h"
 #  include "../Sources/SystemToolbox.h"
 #  include "../Sources/TemporaryFile.h"
@@ -101,6 +101,7 @@ TEST(Toolbox, IsSHA1)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetArguments, Basic)
 {
   IHttpHandler::GetArguments b;
@@ -114,7 +115,9 @@ TEST(ParseGetArguments, Basic)
   ASSERT_EQ(a["bb"], "a");
   ASSERT_EQ(a["aa"], "c");
 }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetArguments, BasicEmpty)
 {
   IHttpHandler::GetArguments b;
@@ -128,7 +131,9 @@ TEST(ParseGetArguments, BasicEmpty)
   ASSERT_EQ(a["bb"], "aa");
   ASSERT_EQ(a["aa"], "");
 }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetArguments, Single)
 {
   IHttpHandler::GetArguments b;
@@ -140,7 +145,9 @@ TEST(ParseGetArguments, Single)
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "baaa");
 }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetArguments, SingleEmpty)
 {
   IHttpHandler::GetArguments b;
@@ -152,7 +159,9 @@ TEST(ParseGetArguments, SingleEmpty)
   ASSERT_EQ(1u, a.size());
   ASSERT_EQ(a["aaa"], "");
 }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetQuery, Test1)
 {
   UriComponents uri;
@@ -171,7 +180,9 @@ TEST(ParseGetQuery, Test1)
   ASSERT_EQ(a["bb"], "a");
   ASSERT_EQ(a["aa"], "c");
 }
+#endif
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParseGetQuery, Test2)
 {
   UriComponents uri;
@@ -187,6 +198,7 @@ TEST(ParseGetQuery, Test2)
   ASSERT_EQ("world", uri[2]);
   ASSERT_EQ(0u, a.size());
 }
+#endif
 
 TEST(Uri, SplitUriComponents)
 {

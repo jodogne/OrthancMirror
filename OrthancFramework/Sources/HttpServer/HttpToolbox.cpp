@@ -23,16 +23,15 @@
 #include "../PrecompiledHeaders.h"
 #include "HttpToolbox.h"
 
+#include "HttpOutput.h"
+#include "StringHttpOutput.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 
-#include "HttpOutput.h"
-#include "StringHttpOutput.h"
-
 
 static const char* LOCALHOST = "127.0.0.1";
-
 
 
 namespace Orthanc
@@ -188,7 +187,6 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_SANDBOXED != 1
   bool HttpToolbox::SimpleGet(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
@@ -213,10 +211,8 @@ namespace Orthanc
       return false;
     }
   }
-#endif
 
 
-#if ORTHANC_SANDBOXED != 1
   static bool SimplePostOrPut(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
@@ -245,10 +241,8 @@ namespace Orthanc
       return false;
     }
   }
-#endif
 
 
-#if ORTHANC_SANDBOXED != 1
   bool HttpToolbox::SimplePost(std::string& result,
                                IHttpHandler& handler,
                                RequestOrigin origin,
@@ -259,10 +253,8 @@ namespace Orthanc
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize, httpHeaders);
   }
-#endif
 
 
-#if ORTHANC_SANDBOXED != 1
   bool HttpToolbox::SimplePut(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
@@ -273,10 +265,8 @@ namespace Orthanc
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize, httpHeaders);
   }
-#endif
-  
 
-#if ORTHANC_SANDBOXED != 1
+
   bool HttpToolbox::SimpleDelete(IHttpHandler& handler,
                                  RequestOrigin origin,
                                  const std::string& uri,
@@ -293,5 +283,4 @@ namespace Orthanc
     return handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
                           httpHeaders, getArguments, NULL /* no body for DELETE */, 0);
   }
-#endif
 }
