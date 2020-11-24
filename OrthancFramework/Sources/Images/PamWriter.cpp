@@ -117,16 +117,25 @@ namespace Orthanc
           (reinterpret_cast<const uint8_t*>(buffer) + h * sourcePitch);
         uint16_t* q = reinterpret_cast<uint16_t*>
           (reinterpret_cast<uint8_t*>(&target[offset]) + h * targetPitch);
-        
+
         for (unsigned int w = 0; w < width * channelCount; ++w)
         {
-          // memcpy() is necessary to avoid segmentation fault if the
-          // "pixel" pointer is not 16-bit aligned (which is the case
-          // if "offset" is an odd number). Check out issue #99:
-          // https://bitbucket.org/sjodogne/orthanc/issues/99
-          uint16_t v = htobe16(*p);
-          memcpy(q, &v, sizeof(uint16_t));
-
+          /**
+           * This is Little-Endian computer, and PAM uses
+           * Big-Endian. Need to do a 16-bit swap. We DON'T use
+           * "htobe16()", as the latter only works if the "pixel"
+           * pointer is 16-bit aligned (which is not the case if
+           * "offset" is an odd number), and the trick that was used
+           * in Orthanc <= 1.8.0 (i.e. make a "memcpy()" to a local
+           * uint16_t variable) doesn't seem work for WebAssembly. We
+           * thus use a plain old C implementation. Check out issue
+           * #99: https://bugs.orthanc-server.com/show_bug.cgi?id=99
+           **/
+          const uint8_t* a = reinterpret_cast<const uint8_t*>(p);
+          uint8_t* b = reinterpret_cast<uint8_t*>(q);
+          b[0] = a[1];
+          b[1] = a[0];
+          
           p++;
           q++;
         }

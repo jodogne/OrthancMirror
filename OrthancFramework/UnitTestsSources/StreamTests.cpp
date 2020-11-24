@@ -27,14 +27,17 @@
 
 #include <gtest/gtest.h>
 
-#include "../Sources/SystemToolbox.h"
 #include "../Sources/Toolbox.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/HttpServer/BufferHttpSender.h"
-#include "../Sources/HttpServer/FilesystemHttpSender.h"
 #include "../Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../Sources/Compression/ZlibCompressor.h"
 #include "../Sources/Compression/GzipCompressor.h"
+
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/HttpServer/FilesystemHttpSender.h"
+#  include "../Sources/SystemToolbox.h"
+#endif
 
 
 using namespace Orthanc;
@@ -171,6 +174,7 @@ TEST(Zlib, Empty)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 static bool ReadAllStream(std::string& result,
                           IHttpStreamAnswer& stream,
                           bool allowGzip = false,
@@ -195,8 +199,10 @@ static bool ReadAllStream(std::string& result,
 
   return pos == result.size();
 }
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(BufferHttpSender, Basic)
 {
   const std::string s = "Hello world";
@@ -218,8 +224,10 @@ TEST(BufferHttpSender, Basic)
     ASSERT_EQ(s, t);
   }
 }
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(FilesystemHttpSender, Basic)
 {
   const std::string& path = "UnitTestsResults/stream";
@@ -240,8 +248,10 @@ TEST(FilesystemHttpSender, Basic)
     ASSERT_EQ(0u, t.size());
   }
 }
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(HttpStreamTranscoder, Basic)
 {
   ZlibCompressor compressor;
@@ -322,3 +332,4 @@ TEST(HttpStreamTranscoder, Basic)
     ASSERT_EQ(0u, u.size());
   }
 }
+#endif

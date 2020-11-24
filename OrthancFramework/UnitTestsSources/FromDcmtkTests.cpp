@@ -49,8 +49,11 @@
 #include "../Sources/Images/PngWriter.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
-#include "../Sources/SystemToolbox.h"
 #include "../Resources/CodeGeneration/EncodingTests.h"
+
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/SystemToolbox.h"
+#endif
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
@@ -86,6 +89,7 @@ TEST(DicomFormat, Tag)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(DicomModification, Basic)
 {
   DicomModification m;
@@ -108,6 +112,7 @@ TEST(DicomModification, Basic)
     f->SaveToFile(b);
   }
 }
+#endif
 
 
 TEST(DicomModification, Anonymization)
@@ -182,18 +187,27 @@ TEST(DicomModification, Png)
 
   ParsedDicomFile o(true);
   o.EmbedContent(s);
+
+#if ORTHANC_SANDBOXED != 1
   o.SaveToFile("UnitTestsResults/png1.dcm");
+#endif
 
   // Red dot, without alpha channel
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDTcIn2+8BgAAACJJREFUCNdj/P//PwMjIwME/P/P+J8BBTAxEOL/R9Lx/z8AynoKAXOeiV8AAAAASUVORK5CYII=";
   o.EmbedContent(s);
+
+#if ORTHANC_SANDBOXED != 1
   o.SaveToFile("UnitTestsResults/png2.dcm");
+#endif
 
   // Check box in Graylevel8
   s = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gUGDDcB53FulQAAAElJREFUGNNtj0sSAEEEQ1+U+185s1CtmRkblQ9CZldsKHJDk6DLGLJa6chjh0ooQmpjXMM86zPwydGEj6Ed/UGykkEM8X+p3u8/8LcOJIWLGeMAAAAASUVORK5CYII=";
   o.EmbedContent(s);
   //o.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_DigitalXRayImageStorageForProcessing);
+
+#if ORTHANC_SANDBOXED != 1
   o.SaveToFile("UnitTestsResults/png3.dcm");
+#endif
 
 
   {
@@ -218,7 +232,10 @@ TEST(DicomModification, Png)
     }
 
     o.EmbedImage(accessor);
+
+#if ORTHANC_SANDBOXED != 1
     o.SaveToFile("UnitTestsResults/png4.dcm");
+#endif
   }
 }
 
@@ -743,8 +760,6 @@ TEST(ParsedDicomFile, FromJson)
 
 TEST(TestImages, PatternGrayscale8)
 {
-  static const char* PATH = "UnitTestsResults/PatternGrayscale8.dcm";
-
   Orthanc::Image image(Orthanc::PixelFormat_Grayscale8, 256, 256, false);
 
   for (int y = 0; y < 256; y++)
@@ -764,6 +779,8 @@ TEST(TestImages, PatternGrayscale8)
   image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 255); 
 
+  std::string saved;
+  
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -774,13 +791,11 @@ TEST(TestImages, PatternGrayscale8)
     f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale8");
     f.EmbedImage(image);
 
-    f.SaveToFile(PATH);
+    f.SaveToMemoryBuffer(saved);
   }
 
   {
-    std::string s;
-    Orthanc::SystemToolbox::ReadFile(s, PATH);
-    Orthanc::ParsedDicomFile f(s);
+    Orthanc::ParsedDicomFile f(saved);
     
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
@@ -799,8 +814,6 @@ TEST(TestImages, PatternGrayscale8)
 
 TEST(TestImages, PatternRGB)
 {
-  static const char* PATH = "UnitTestsResults/PatternRGB24.dcm";
-
   Orthanc::Image image(Orthanc::PixelFormat_RGB24, 384, 256, false);
 
   for (int y = 0; y < 256; y++)
@@ -826,6 +839,8 @@ TEST(TestImages, PatternRGB)
     }
   }
 
+  std::string saved;
+
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -836,13 +851,11 @@ TEST(TestImages, PatternRGB)
     f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "RGB24");
     f.EmbedImage(image);
 
-    f.SaveToFile(PATH);
+    f.SaveToMemoryBuffer(saved);
   }
 
   {
-    std::string s;
-    Orthanc::SystemToolbox::ReadFile(s, PATH);
-    Orthanc::ParsedDicomFile f(s);
+    Orthanc::ParsedDicomFile f(saved);
     
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(384u, decoded->GetWidth());
@@ -861,8 +874,6 @@ TEST(TestImages, PatternRGB)
 
 TEST(TestImages, PatternUint16)
 {
-  static const char* PATH = "UnitTestsResults/PatternGrayscale16.dcm";
-
   Orthanc::Image image(Orthanc::PixelFormat_Grayscale16, 256, 256, false);
 
   uint16_t v = 0;
@@ -883,6 +894,8 @@ TEST(TestImages, PatternUint16)
   image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 65535); 
 
+  std::string saved;
+  
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -893,13 +906,11 @@ TEST(TestImages, PatternUint16)
     f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "Grayscale16");
     f.EmbedImage(image);
 
-    f.SaveToFile(PATH);
+    f.SaveToMemoryBuffer(saved);
   }
 
   {
-    std::string s;
-    Orthanc::SystemToolbox::ReadFile(s, PATH);
-    Orthanc::ParsedDicomFile f(s);
+    Orthanc::ParsedDicomFile f(saved);
     
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());
@@ -918,8 +929,6 @@ TEST(TestImages, PatternUint16)
 
 TEST(TestImages, PatternInt16)
 {
-  static const char* PATH = "UnitTestsResults/PatternSignedGrayscale16.dcm";
-
   Orthanc::Image image(Orthanc::PixelFormat_SignedGrayscale16, 256, 256, false);
 
   int16_t v = -32768;
@@ -939,6 +948,8 @@ TEST(TestImages, PatternInt16)
   image.GetRegion(r, 160, 32, 64, 192);
   Orthanc::ImageProcessing::Set(r, 32767); 
 
+  std::string saved;
+  
   {
     ParsedDicomFile f(true);
     f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.7");
@@ -949,13 +960,11 @@ TEST(TestImages, PatternInt16)
     f.ReplacePlainString(DICOM_TAG_SERIES_DESCRIPTION, "SignedGrayscale16");
     f.EmbedImage(image);
 
-    f.SaveToFile(PATH);
+    f.SaveToMemoryBuffer(saved);
   }
 
   {
-    std::string s;
-    Orthanc::SystemToolbox::ReadFile(s, PATH);
-    Orthanc::ParsedDicomFile f(s);
+    Orthanc::ParsedDicomFile f(saved);
     
     std::unique_ptr<Orthanc::ImageAccessor> decoded(f.DecodeFrame(0));
     ASSERT_EQ(256u, decoded->GetWidth());

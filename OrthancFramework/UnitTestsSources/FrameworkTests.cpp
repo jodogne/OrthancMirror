@@ -34,14 +34,17 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/DicomFormat/DicomTag.h"
-#include "../Sources/FileBuffer.h"
 #include "../Sources/HttpServer/HttpToolbox.h"
 #include "../Sources/Logging.h"
-#include "../Sources/MetricsRegistry.h"
 #include "../Sources/OrthancException.h"
-#include "../Sources/SystemToolbox.h"
-#include "../Sources/TemporaryFile.h"
 #include "../Sources/Toolbox.h"
+
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/FileBuffer.h"
+#  include "../Sources/MetricsRegistry.h"
+#  include "../Sources/SystemToolbox.h"
+#  include "../Sources/TemporaryFile.h"
+#endif
 
 #include <ctype.h>
 
@@ -298,6 +301,8 @@ TEST(Uri, Child)
   ASSERT_TRUE(Toolbox::IsChildUri(c5, c5));
 }
 
+
+#if ORTHANC_SANDBOXED != 1
 TEST(Uri, AutodetectMimeType)
 {
   ASSERT_EQ(MimeType_Binary, SystemToolbox::AutodetectMimeType("../NOTES"));
@@ -351,6 +356,8 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("text/css", EnumerationToString(SystemToolbox::AutodetectMimeType(".css")));
   ASSERT_STREQ("text/html", EnumerationToString(SystemToolbox::AutodetectMimeType(".html")));
 }
+#endif
+
 
 TEST(Toolbox, ComputeMD5)
 {
@@ -374,11 +381,13 @@ TEST(Toolbox, ComputeSHA1)
   ASSERT_EQ("da39a3ee-5e6b4b0d-3255bfef-95601890-afd80709", s);
 }
 
+#if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, PathToExecutable)
 {
   printf("[%s]\n", SystemToolbox::GetPathToExecutable().c_str());
   printf("[%s]\n", SystemToolbox::GetDirectoryOfExecutable().c_str());
 }
+#endif
 
 TEST(Toolbox, StripSpaces)
 {
@@ -567,6 +576,7 @@ TEST(Toolbox, AbsoluteDirectory)
 #endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, WriteFile)
 {
   std::string path;
@@ -613,8 +623,10 @@ TEST(Toolbox, WriteFile)
     ASSERT_EQ(s, t);
   }
 }
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, FileBuffer)
 {
   FileBuffer f;
@@ -628,6 +640,7 @@ TEST(Toolbox, FileBuffer)
 
   ASSERT_THROW(f.Append("d", 1), OrthancException);  // File is closed
 }
+#endif
 
 
 TEST(Toolbox, Wildcard)
@@ -820,8 +833,15 @@ TEST(Toolbox, Endianness)
   ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #  endif
 
+  
+  /**
+   * WebAssembly is always little-endian.
+   **/
+  
+#elif defined(__EMSCRIPTEN__)
+  ASSERT_EQ(Endianness_Little, Toolbox::DetectEndianness());
 #else
-#error Support your platform here
+#  error Support your platform here
 #endif
 }
 
@@ -1007,6 +1027,7 @@ TEST(Toolbox, EndiannessConversions64)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, Now)
 {
   LOG(WARNING) << "Local time: " << SystemToolbox::GetNowIsoString(false);
@@ -1019,7 +1040,7 @@ TEST(Toolbox, Now)
   SystemToolbox::GetNowDicom(date, time, true);
   LOG(WARNING) << "Universal DICOM time: [" << date << "] [" << time << "]";
 }
-
+#endif
 
 
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -1040,7 +1061,7 @@ TEST(Toolbox, Xml)
 #endif
 
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && (ORTHANC_SANDBOXED != 1)
 TEST(Toolbox, ExecuteSystemCommand)
 {
   std::vector<std::string> args(2);
@@ -1200,6 +1221,7 @@ TEST(Toolbox, LinesIterator)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, SubstituteVariables)
 {
   std::map<std::string, std::string> env;
@@ -1228,8 +1250,10 @@ TEST(Toolbox, SubstituteVariables)
   ASSERT_EQ("AhelloB",
             Toolbox::SubstituteVariables("A${PATH}B", env));
 }
+#endif
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(MetricsRegistry, Basic)
 {
   {
@@ -1342,3 +1366,4 @@ TEST(MetricsRegistry, Basic)
     ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("b"));
   }
 }
+#endif

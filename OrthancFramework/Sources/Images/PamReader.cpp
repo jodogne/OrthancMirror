@@ -232,35 +232,31 @@ namespace Orthanc
         
         for (unsigned int w = 0; w < width; ++w, ++pixel)
         {
-#if defined(__EMSCRIPTEN__)  // For WebAssembly
-          /* 
-          
-          crash (2019-08-05):
-
-          Uncaught abort(alignment fault) at Error
-            at jsStackTrace
-            at stackTrace
-            at abort
-            at alignfault
-            at SAFE_HEAP_LOAD_i32_2_2 (wasm-function[251132]:39)
-            at __ZN7Orthanc9PamReader12ParseContentEv (wasm-function[11457]:8088)
-
-          Web Assembly IS LITTLE ENDIAN!
-
-          Perhaps in htobe16 ?
-          */
+          /**
+           * This is Little-Endian computer, and PAM uses
+           * Big-Endian. Need to do a 16-bit swap. We DON'T use
+           * "htobe16()", as the latter only works if the "pixel"
+           * pointer is 16-bit aligned (which is not the case if
+           * "offset" is an odd number), and the trick that was used
+           * in Orthanc <= 1.8.0 (i.e. make a "memcpy()" to a local
+           * uint16_t variable) doesn't seem work for WebAssembly. We
+           * thus use a plain old C implementation. Check out issue
+           * #99: https://bugs.orthanc-server.com/show_bug.cgi?id=99
+           *
+           * Here is the crash log on WebAssembly (2019-08-05):
+           * 
+           * Uncaught abort(alignment fault) at Error
+           * at jsStackTrace
+           * at stackTrace
+           * at abort
+           * at alignfault
+           * at SAFE_HEAP_LOAD_i32_2_2 (wasm-function[251132]:39)
+           * at __ZN7Orthanc9PamReader12ParseContentEv (wasm-function[11457]:8088)
+           **/
           uint8_t* srcdst = reinterpret_cast<uint8_t*>(pixel);
           uint8_t tmp = srcdst[0];
           srcdst[0] = srcdst[1];
           srcdst[1] = tmp;
-#else
-          // memcpy() is necessary to avoid segmentation fault if the
-          // "pixel" pointer is not 16-bit aligned (which is the case
-          // if "offset" is an odd number). Check out issue #99:
-          // https://bitbucket.org/sjodogne/orthanc/issues/99
-          uint16_t v = htobe16(*pixel);
-          memcpy(pixel, &v, sizeof(v));
-#endif
         }
       }
     }

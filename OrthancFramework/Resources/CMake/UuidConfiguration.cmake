@@ -35,12 +35,13 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
     
     ##
-    ## Patch for OS X, in order to be compatible with Cocoa (used in Stone)
+    ## Patch for OS X, in order to be compatible with Cocoa, and for
+    ## WebAssembly (used in Stone)
     ## 
 
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/e2fsprogs-1.44.5-apple.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/e2fsprogs-1.44.5.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )

@@ -129,6 +129,7 @@ namespace
 }
 
 
+#if ORTHANC_ENABLE_LOGGING_STDIO == 0
 TEST(FuncStreamBuf, BasicTest)
 {
   LoggingMementoScope loggingConfiguration;
@@ -199,6 +200,7 @@ TEST(FuncStreamBuf, BasicTest)
 
   Orthanc::Logging::EnableTraceLevel(false);  // Back to normal
 }
+#endif
 
 
 

@@ -757,6 +757,8 @@ TEST(DicomTag, Comparisons)
 
 
 
+#if ORTHANC_SANDBOXED != 1
+
 #include "../Sources/SystemToolbox.h"
 
 TEST(DicomMap, DISABLED_ParseDicomMetaInformation)
@@ -1014,3 +1016,5 @@ TEST(DicomStreamReader, DISABLED_Tutu3)
 
   printf("\n== SUCCESSES: %u ==\n\n", success);
 }
+
+#endif
