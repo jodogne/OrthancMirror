@@ -179,6 +179,7 @@ TEST(ChunkedBuffer, Basic)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(RestApi, ParseCookies)
 {
   IHttpHandler::Arguments headers;
@@ -207,6 +208,7 @@ TEST(RestApi, ParseCookies)
   ASSERT_EQ(1u, cookies.size());
   ASSERT_EQ("v", cookies["n"]);
 }
+#endif
 
 
 TEST(RestApi, RestApiPath)
