@@ -22,6 +22,10 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED) 
+#  error Macro ORTHANC_SANDBOXED must be defined
+#endif
+
 #include "../OrthancFramework.h"
 #include "IHttpHandler.h"
 
@@ -51,6 +55,7 @@ namespace Orthanc
     static void CompileGetArguments(IHttpHandler::Arguments& compiled,
                                     const IHttpHandler::GetArguments& source);
 
+#if ORTHANC_SANDBOXED != 1
     static bool SimpleGet(std::string& result,
                           IHttpHandler& handler,
                           RequestOrigin origin,
@@ -77,5 +82,6 @@ namespace Orthanc
                              RequestOrigin origin,
                              const std::string& uri,
                              const IHttpHandler::Arguments& httpHeaders);
+#endif
   };
 }
