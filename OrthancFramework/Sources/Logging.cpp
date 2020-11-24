@@ -718,11 +718,6 @@ namespace Orthanc
 
     void Reset()
     {
-      if (logTargetFile_.empty() && logTargetFolder_.empty())
-      {
-        return;
-      }
-
       {
         boost::mutex::scoped_lock lock(loggingStreamsMutex_);
         loggingStreamsContext_.reset(new LoggingStreamsContext);
