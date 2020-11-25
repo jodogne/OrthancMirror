@@ -2398,7 +2398,7 @@ namespace Orthanc
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, httpHeaders))
+    if (IHttpHandler::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, httpHeaders))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2434,7 +2434,7 @@ namespace Orthanc
     }
       
     std::string result;
-    if (HttpToolbox::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, headers))
+    if (IHttpHandler::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, headers))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2466,8 +2466,8 @@ namespace Orthanc
 
     std::string result;
     if (isPost ? 
-        HttpToolbox::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders) :
-        HttpToolbox::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders))
+        IHttpHandler::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders) :
+        IHttpHandler::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders))
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2494,7 +2494,7 @@ namespace Orthanc
       
     std::map<std::string, std::string> httpHeaders;
 
-    if (!HttpToolbox::SimpleDelete(*handler, RequestOrigin_Plugins, uri, httpHeaders))
+    if (!IHttpHandler::SimpleDelete(*handler, RequestOrigin_Plugins, uri, httpHeaders))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }

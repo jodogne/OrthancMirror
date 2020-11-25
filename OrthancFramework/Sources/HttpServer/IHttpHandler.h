@@ -81,5 +81,32 @@ namespace Orthanc
                         const GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize) = 0;
+
+    static bool SimpleGet(std::string& result,
+                          IHttpHandler& handler,
+                          RequestOrigin origin,
+                          const std::string& uri,
+                          const Arguments& httpHeaders);
+
+    static bool SimplePost(std::string& result,
+                           IHttpHandler& handler,
+                           RequestOrigin origin,
+                           const std::string& uri,
+                           const void* bodyData,
+                           size_t bodySize,
+                           const Arguments& httpHeaders);
+
+    static bool SimplePut(std::string& result,
+                          IHttpHandler& handler,
+                          RequestOrigin origin,
+                          const std::string& uri,
+                          const void* bodyData,
+                          size_t bodySize,
+                          const Arguments& httpHeaders);
+
+    static bool SimpleDelete(IHttpHandler& handler,
+                             RequestOrigin origin,
+                             const std::string& uri,
+                             const Arguments& httpHeaders);
   };
 }

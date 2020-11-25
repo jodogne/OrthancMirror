@@ -405,8 +405,8 @@ namespace Orthanc
     try
     {
       std::string result;
-      if (HttpToolbox::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                 RequestOrigin_Lua, uri, headers))
+      if (IHttpHandler::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  RequestOrigin_Lua, uri, headers))
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -458,10 +458,10 @@ namespace Orthanc
     {
       std::string result;
       if (isPost ?
-          HttpToolbox::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                  RequestOrigin_Lua, uri, bodyData, bodySize, headers) :
-          HttpToolbox::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                 RequestOrigin_Lua, uri, bodyData, bodySize, headers))
+          IHttpHandler::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                   RequestOrigin_Lua, uri, bodyData, bodySize, headers) :
+          IHttpHandler::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  RequestOrigin_Lua, uri, bodyData, bodySize, headers))
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -522,8 +522,8 @@ namespace Orthanc
     
     try
     {
-      if (HttpToolbox::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                    RequestOrigin_Lua, uri, headers))
+      if (IHttpHandler::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                     RequestOrigin_Lua, uri, headers))
       {
         lua_pushboolean(state, 1);
         return 1;

@@ -307,6 +307,7 @@ if (ENABLE_WEB_SERVER)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpServer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpStreamTranscoder.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/IHttpHandler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringHttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApi.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiCall.cpp
