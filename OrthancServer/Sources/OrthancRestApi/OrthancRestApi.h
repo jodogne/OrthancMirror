@@ -83,8 +83,8 @@ namespace Orthanc
                         const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize) ORTHANC_OVERRIDE;
 

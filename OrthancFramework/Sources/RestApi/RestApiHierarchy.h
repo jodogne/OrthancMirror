@@ -76,7 +76,7 @@ namespace Orthanc
 
       virtual bool Visit(const Resource& resource,
                          const UriComponents& uri,
-                         const IHttpHandler::Arguments& components,
+                         const HttpToolbox::Arguments& components,
                          const UriComponents& trailing) = 0;
     };
 
@@ -101,7 +101,7 @@ namespace Orthanc
 
     bool CanGenerateDirectory() const;
 
-    bool LookupResource(IHttpHandler::Arguments& components,
+    bool LookupResource(HttpToolbox::Arguments& components,
                         const UriComponents& uri,
                         IVisitor& visitor,
                         size_t level);

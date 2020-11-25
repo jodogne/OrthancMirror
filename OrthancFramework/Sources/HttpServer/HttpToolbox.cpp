@@ -25,10 +25,14 @@
 
 #include <string.h>
 
+#if ORTHANC_SANDBOXED != 1
+#  include "IHttpHandler.h"
+#endif
+
 
 namespace Orthanc
 {
-  static void SplitGETNameValue(IHttpHandler::GetArguments& result,
+  static void SplitGETNameValue(HttpToolbox::GetArguments& result,
                                 const char* start,
                                 const char* end)
   {
@@ -53,7 +57,7 @@ namespace Orthanc
   }
 
 
-  void HttpToolbox::ParseGetArguments(IHttpHandler::GetArguments& result, 
+  void HttpToolbox::ParseGetArguments(GetArguments& result, 
                                       const char* query)
   {
     const char* pos = query;
@@ -77,7 +81,7 @@ namespace Orthanc
 
 
   void  HttpToolbox::ParseGetQuery(UriComponents& uri,
-                                   IHttpHandler::GetArguments& getArguments, 
+                                   GetArguments& getArguments, 
                                    const char* query)
   {
     const char *questionMark = ::strchr(query, '?');
@@ -95,11 +99,11 @@ namespace Orthanc
   }
 
  
-  std::string HttpToolbox::GetArgument(const IHttpHandler::Arguments& getArguments,
+  std::string HttpToolbox::GetArgument(const Arguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
   {
-    IHttpHandler::Arguments::const_iterator it = getArguments.find(name);
+    Arguments::const_iterator it = getArguments.find(name);
     if (it == getArguments.end())
     {
       return defaultValue;
@@ -111,7 +115,7 @@ namespace Orthanc
   }
 
 
-  std::string HttpToolbox::GetArgument(const IHttpHandler::GetArguments& getArguments,
+  std::string HttpToolbox::GetArgument(const GetArguments& getArguments,
                                        const std::string& name,
                                        const std::string& defaultValue)
   {
@@ -128,12 +132,12 @@ namespace Orthanc
 
 
 
-  void HttpToolbox::ParseCookies(IHttpHandler::Arguments& result, 
-                                 const IHttpHandler::Arguments& httpHeaders)
+  void HttpToolbox::ParseCookies(Arguments& result, 
+                                 const Arguments& httpHeaders)
   {
     result.clear();
 
-    IHttpHandler::Arguments::const_iterator it = httpHeaders.find("cookie");
+    Arguments::const_iterator it = httpHeaders.find("cookie");
     if (it != httpHeaders.end())
     {
       const std::string& cookies = it->second;
@@ -167,8 +171,8 @@ namespace Orthanc
   }
 
 
-  void HttpToolbox::CompileGetArguments(IHttpHandler::Arguments& compiled,
-                                        const IHttpHandler::GetArguments& source)
+  void HttpToolbox::CompileGetArguments(Arguments& compiled,
+                                        const GetArguments& source)
   {
     compiled.clear();
 
@@ -177,4 +181,47 @@ namespace Orthanc
       compiled[source[i].first] = source[i].second;
     }
   }
+
+
+
+#if ORTHANC_SANDBOXED != 1
+  bool HttpToolbox::SimpleGet(std::string& result,
+                              IHttpHandler& handler,
+                              RequestOrigin origin,
+                              const std::string& uri,
+                              const Arguments& httpHeaders)
+  {
+    return IHttpHandler::SimpleGet(result, handler, origin, uri, httpHeaders);
+  }
+
+  bool HttpToolbox::SimplePost(std::string& result,
+                               IHttpHandler& handler,
+                               RequestOrigin origin,
+                               const std::string& uri,
+                               const void* bodyData,
+                               size_t bodySize,
+                               const Arguments& httpHeaders)
+  {
+    return IHttpHandler::SimplePost(result, handler, origin, uri, bodyData, bodySize, httpHeaders);
+  }
+
+  bool HttpToolbox::SimplePut(std::string& result,
+                              IHttpHandler& handler,
+                              RequestOrigin origin,
+                              const std::string& uri,
+                              const void* bodyData,
+                              size_t bodySize,
+                              const Arguments& httpHeaders)
+  {
+    return IHttpHandler::SimplePut(result, handler, origin, uri, bodyData, bodySize, httpHeaders);
+  }
+
+  bool HttpToolbox::SimpleDelete(IHttpHandler& handler,
+                                 RequestOrigin origin,
+                                 const std::string& uri,
+                                 const Arguments& httpHeaders)
+  {
+    return IHttpHandler::SimpleDelete(handler, origin, uri, httpHeaders);
+  }
+#endif
 }

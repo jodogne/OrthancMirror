@@ -31,6 +31,7 @@
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
 #include "HttpToolbox.h"
+#include "IHttpHandler.h"
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "IWebDavBucket.h"
@@ -379,9 +380,9 @@ namespace Orthanc
 
   static PostDataStatus ReadBodyToString(std::string& body,
                                          struct mg_connection *connection,
-                                         const IHttpHandler::Arguments& headers)
+                                         const HttpToolbox::Arguments& headers)
   {
-    IHttpHandler::Arguments::const_iterator contentLength = headers.find("content-length");
+    HttpToolbox::Arguments::const_iterator contentLength = headers.find("content-length");
 
     if (contentLength != headers.end())
     {
@@ -398,9 +399,9 @@ namespace Orthanc
 
   static PostDataStatus ReadBodyToStream(IHttpHandler::IChunkedRequestReader& stream,
                                          struct mg_connection *connection,
-                                         const IHttpHandler::Arguments& headers)
+                                         const HttpToolbox::Arguments& headers)
   {
-    IHttpHandler::Arguments::const_iterator contentLength = headers.find("content-length");
+    HttpToolbox::Arguments::const_iterator contentLength = headers.find("content-length");
 
     if (contentLength != headers.end())
     {
@@ -445,7 +446,7 @@ namespace Orthanc
 
   static PostDataStatus ParseMultipartForm(std::string &completedFile,
                                            struct mg_connection *connection,
-                                           const IHttpHandler::Arguments& headers,
+                                           const HttpToolbox::Arguments& headers,
                                            const std::string& contentType,
                                            ChunkStore& chunkStore)
   {
@@ -459,13 +460,13 @@ namespace Orthanc
       return status;
     }
 
-    /*for (IHttpHandler::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
+    /*for (HttpToolbox::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
       {
       std::cout << "Header [" << i->first << "] = " << i->second << "\n";
       }
       printf("CHUNK\n");*/
 
-    typedef IHttpHandler::Arguments::const_iterator ArgumentIterator;
+    typedef HttpToolbox::Arguments::const_iterator ArgumentIterator;
 
     ArgumentIterator requestedWith = headers.find("x-requested-with");
     ArgumentIterator fileName = headers.find("x-file-name");
@@ -545,11 +546,11 @@ namespace Orthanc
 
 
   static bool IsAccessGranted(const HttpServer& that,
-                              const IHttpHandler::Arguments& headers)
+                              const HttpToolbox::Arguments& headers)
   {
     bool granted = false;
 
-    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    HttpToolbox::Arguments::const_iterator auth = headers.find("authorization");
     if (auth != headers.end())
     {
       std::string s = auth->second;
@@ -565,9 +566,9 @@ namespace Orthanc
   }
 
 
-  static std::string GetAuthenticatedUsername(const IHttpHandler::Arguments& headers)
+  static std::string GetAuthenticatedUsername(const HttpToolbox::Arguments& headers)
   {
-    IHttpHandler::Arguments::const_iterator auth = headers.find("authorization");
+    HttpToolbox::Arguments::const_iterator auth = headers.find("authorization");
 
     if (auth == headers.end())
     {
@@ -600,15 +601,15 @@ namespace Orthanc
 
   static bool ExtractMethod(HttpMethod& method,
                             const struct mg_request_info *request,
-                            const IHttpHandler::Arguments& headers,
-                            const IHttpHandler::GetArguments& argumentsGET)
+                            const HttpToolbox::Arguments& headers,
+                            const HttpToolbox::GetArguments& argumentsGET)
   {
     std::string overriden;
 
     // Check whether some PUT/DELETE faking is done
 
     // 1. Faking with Google's approach
-    IHttpHandler::Arguments::const_iterator methodOverride =
+    HttpToolbox::Arguments::const_iterator methodOverride =
       headers.find("x-http-method-override");
 
     if (methodOverride != headers.end())
@@ -679,11 +680,11 @@ namespace Orthanc
 
 
   static void ConfigureHttpCompression(HttpOutput& output,
-                                       const IHttpHandler::Arguments& headers)
+                                       const HttpToolbox::Arguments& headers)
   {
     // Look if the client wishes HTTP compression
     // https://en.wikipedia.org/wiki/HTTP_compression
-    IHttpHandler::Arguments::const_iterator it = headers.find("accept-encoding");
+    HttpToolbox::Arguments::const_iterator it = headers.find("accept-encoding");
     if (it != headers.end())
     {
       std::vector<std::string> encodings;
@@ -720,7 +721,7 @@ namespace Orthanc
   static bool HandleWebDav(HttpOutput& output,
                            const HttpServer::WebDavBuckets& buckets,
                            const std::string& method,
-                           const IHttpHandler::Arguments& headers,
+                           const HttpToolbox::Arguments& headers,
                            const std::string& uri,
                            struct mg_connection *connection /* to read the PUT body if need be */)
   {
@@ -801,7 +802,7 @@ namespace Orthanc
           
           if (method == "PROPFIND")
           {
-            IHttpHandler::Arguments::const_iterator i = headers.find("depth");
+            HttpToolbox::Arguments::const_iterator i = headers.find("depth");
             if (i == headers.end())
             {
               throw OrthancException(ErrorCode_NetworkProtocol, "WebDAV PROPFIND without depth");
@@ -1080,7 +1081,7 @@ namespace Orthanc
 
 
     // Extract the HTTP headers
-    IHttpHandler::Arguments headers;
+    HttpToolbox::Arguments headers;
     for (int i = 0; i < request->num_headers; i++)
     {
       std::string name = request->http_headers[i].name;
@@ -1098,7 +1099,7 @@ namespace Orthanc
 
 
     // Extract the GET arguments
-    IHttpHandler::GetArguments argumentsGET;
+    HttpToolbox::GetArguments argumentsGET;
     if (!strcmp(request->request_method, "GET"))
     {
       HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
@@ -1241,7 +1242,7 @@ namespace Orthanc
 
       bool isMultipartForm = false;
 
-      IHttpHandler::Arguments::const_iterator ct = headers.find("content-type");
+      HttpToolbox::Arguments::const_iterator ct = headers.find("content-type");
       if (ct != headers.end() &&
           ct->second.size() >= MULTIPART_FORM_LENGTH &&
           !memcmp(ct->second.c_str(), MULTIPART_FORM, MULTIPART_FORM_LENGTH))

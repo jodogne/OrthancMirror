@@ -469,8 +469,8 @@ public:
                          const char* uri,
                          const char* ip,
                          const char* username,
-                         const IHttpHandler::Arguments& httpHeaders,
-                         const IHttpHandler::GetArguments& getArguments) ORTHANC_OVERRIDE
+                         const HttpToolbox::Arguments& httpHeaders,
+                         const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "IHttpHandler.h"
+#include "HttpToolbox.h"
 
 namespace Orthanc
 {
@@ -37,7 +37,7 @@ namespace Orthanc
                            const char* uri,
                            const char* ip,
                            const char* username,
-                           const IHttpHandler::Arguments& httpHeaders,
-                           const IHttpHandler::GetArguments& getArguments) = 0;
+                           const HttpToolbox::Arguments& httpHeaders,
+                           const HttpToolbox::GetArguments& getArguments) = 0;
   };
 }

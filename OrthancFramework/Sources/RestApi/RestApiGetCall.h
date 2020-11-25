@@ -29,7 +29,7 @@ namespace Orthanc
   class RestApiGetCall : public RestApiCall
   {
   private:
-    const IHttpHandler::Arguments& getArguments_;
+    const HttpToolbox::Arguments& getArguments_;
 
   public:
     typedef void (*Handler) (RestApiGetCall& call);   
@@ -39,11 +39,11 @@ namespace Orthanc
                    RequestOrigin origin,
                    const char* remoteIp,
                    const char* username,
-                   const IHttpHandler::Arguments& httpHeaders,
-                   const IHttpHandler::Arguments& uriComponents,
+                   const HttpToolbox::Arguments& httpHeaders,
+                   const HttpToolbox::Arguments& uriComponents,
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
-                   const IHttpHandler::Arguments& getArguments) :
+                   const HttpToolbox::Arguments& getArguments) :
       RestApiCall(output, context, origin, remoteIp, username, 
                   httpHeaders, uriComponents, trailing, fullUri),
       getArguments_(getArguments)

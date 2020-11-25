@@ -154,6 +154,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/MemoryStorageArea.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpContentNegociation.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
@@ -306,7 +307,6 @@ if (ENABLE_WEB_SERVER)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpServer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpStreamTranscoder.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/IHttpHandler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringHttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApi.cpp

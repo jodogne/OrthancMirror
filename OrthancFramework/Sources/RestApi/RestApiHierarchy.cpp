@@ -210,10 +210,10 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::LookupResource(IHttpHandler::Arguments& components,
-                                       const UriComponents& uri,
-                                       IVisitor& visitor,
-                                       size_t level)
+  bool RestApiHierarchy::LookupResource(HttpToolbox::Arguments& components,
+                                        const UriComponents& uri,
+                                        IVisitor& visitor,
+                                        size_t level)
   {
     if (uri.size() != 0 &&
         level > uri.size())
@@ -224,8 +224,8 @@ namespace Orthanc
     UriComponents trailing;
 
     // Look for an exact match on the resource of interest
-      if (uri.size() == 0 ||
-          level == uri.size())
+    if (uri.size() == 0 ||
+        level == uri.size())
     {
       if (!handlers_.IsEmpty() &&
           visitor.Visit(handlers_, uri, components, trailing))
@@ -251,7 +251,7 @@ namespace Orthanc
       for (child = wildcardChildren_.begin();
            child != wildcardChildren_.end(); ++child)
       {
-        IHttpHandler::Arguments subComponents = components;
+        HttpToolbox::Arguments subComponents = components;
         subComponents[child->first] = uri[level];
 
         if (child->second->LookupResource(subComponents, uri, visitor, level + 1))
@@ -420,7 +420,7 @@ namespace Orthanc
   bool RestApiHierarchy::LookupResource(const UriComponents& uri,
                                         IVisitor& visitor)
   {
-    IHttpHandler::Arguments components;
+    HttpToolbox::Arguments components;
     return LookupResource(components, uri, visitor, 0);
   }    
 
@@ -443,7 +443,7 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
-                         const IHttpHandler::Arguments& components,
+                         const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
         if (trailing.size() == 0)  // Ignore universal handlers
@@ -477,7 +477,7 @@ namespace Orthanc
   void RestApiHierarchy::GetAcceptedMethods(std::set<HttpMethod>& methods,
                                             const UriComponents& uri)
   {
-    IHttpHandler::Arguments components;
+    HttpToolbox::Arguments components;
     AcceptedMethodsVisitor visitor(methods);
     if (LookupResource(components, uri, visitor, 0))
     {

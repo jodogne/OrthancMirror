@@ -22,9 +22,14 @@
 
 #pragma once
 
+#if ORTHANC_SANDBOXED == 1
+#  error This file cannot be used in sandboxed environments
+#endif
+
 #include "../Compatibility.h"
 #include "../Toolbox.h"
 #include "HttpOutput.h"
+#include "HttpToolbox.h"
 
 #include <map>
 #include <set>
@@ -37,10 +42,6 @@ namespace Orthanc
   class IHttpHandler : public boost::noncopyable
   {
   public:
-    typedef std::map<std::string, std::string>                  Arguments;
-    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
-
-
     class IChunkedRequestReader : public boost::noncopyable
     {
     public:
@@ -69,7 +70,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers) = 0;
+                                            const HttpToolbox::Arguments& headers) = 0;
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
@@ -77,8 +78,8 @@ namespace Orthanc
                         const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize) = 0;
 
@@ -86,7 +87,7 @@ namespace Orthanc
                           IHttpHandler& handler,
                           RequestOrigin origin,
                           const std::string& uri,
-                          const Arguments& httpHeaders);
+                          const HttpToolbox::Arguments& httpHeaders);
 
     static bool SimplePost(std::string& result,
                            IHttpHandler& handler,
@@ -94,7 +95,7 @@ namespace Orthanc
                            const std::string& uri,
                            const void* bodyData,
                            size_t bodySize,
-                           const Arguments& httpHeaders);
+                           const HttpToolbox::Arguments& httpHeaders);
 
     static bool SimplePut(std::string& result,
                           IHttpHandler& handler,
@@ -102,11 +103,11 @@ namespace Orthanc
                           const std::string& uri,
                           const void* bodyData,
                           size_t bodySize,
-                          const Arguments& httpHeaders);
+                          const HttpToolbox::Arguments& httpHeaders);
 
     static bool SimpleDelete(IHttpHandler& handler,
                              RequestOrigin origin,
                              const std::string& uri,
-                             const Arguments& httpHeaders);
+                             const HttpToolbox::Arguments& httpHeaders);
   };
 }
