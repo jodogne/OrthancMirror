@@ -33,6 +33,18 @@
 #endif
 
 
+// Macro "ORTHANC_DEPRECATED" tags a function as having been deprecated
+#if __cplusplus >= 201402L   // C++14
+#  define ORTHANC_DEPRECATED [[deprecated]]
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ORTHANC_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define ORTHANC_DEPRECATED __declspec(deprecated)
+#else
+#  define ORTHANC_DEPRECATED
+#endif
+
+
 // Macros "ORTHANC_OVERRIDE" and "ORTHANC_FINAL" wrap the "override"
 // and "final" keywords introduced in C++11, to do compile-time
 // checking of virtual methods
@@ -43,11 +55,11 @@
 #  error ORTHANC_OVERRIDE_SUPPORTED cannot be defined at this point
 #endif 
 
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L   // C++11
 #  define ORTHANC_OVERRIDE_SUPPORTED 1
 #else
 #  ifdef _MSC_VER
-#    if _MSC_VER >= 1600
+#    if _MSC_VER >= 1600  // Visual Studio 2010 (10.0)
 #      define ORTHANC_OVERRIDE_SUPPORTED 1
 #    endif
 #  endif
@@ -84,7 +96,7 @@
 // (or higher). This header file can be made for fine-grained, if required, 
 // based on specific _MSC_VER values
 
-#  if _MSC_VER >= 1600
+#  if _MSC_VER >= 1600  // Visual Studio 2010 (10.0)
 #    define ORTHANC_Cxx03_DETECTED 0
 #  else
 #    define ORTHANC_Cxx03_DETECTED 1
@@ -94,7 +106,7 @@
 // of _MSC_VER is not defined, we assume __cplusplus is correctly defined
 // if __cplusplus is not defined (very old compilers??), then the following
 // test will compare 0 < 201103L and will be true --> safe.
-#  if __cplusplus < 201103L
+#  if __cplusplus < 201103L  // C++11
 #    define ORTHANC_Cxx03_DETECTED 1
 #  else
 #    define ORTHANC_Cxx03_DETECTED 0
