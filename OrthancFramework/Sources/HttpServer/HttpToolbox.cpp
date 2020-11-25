@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#if ORTHANC_SANDBOXED != 1
+#if (ORTHANC_ENABLE_MONGOOSE == 1 || ORTHANC_ENABLE_CIVETWEB == 1)
 #  include "IHttpHandler.h"
 #endif
 
@@ -184,7 +184,7 @@ namespace Orthanc
 
 
 
-#if ORTHANC_SANDBOXED != 1
+#if (ORTHANC_ENABLE_MONGOOSE == 1 || ORTHANC_ENABLE_CIVETWEB == 1)
   bool HttpToolbox::SimpleGet(std::string& result,
                               IHttpHandler& handler,
                               RequestOrigin origin,
