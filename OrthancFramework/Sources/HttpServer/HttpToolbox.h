@@ -22,10 +22,6 @@
 
 #pragma once
 
-#if !defined(ORTHANC_SANDBOXED)
-#  error Macro ORTHANC_SANDBOXED must be defined
-#endif
-
 #include "../Compatibility.h"
 #include "../OrthancFramework.h"
 #include "../Toolbox.h"
@@ -65,16 +61,14 @@ namespace Orthanc
     static void CompileGetArguments(Arguments& compiled,
                                     const GetArguments& source);
 
-#if ORTHANC_SANDBOXED != 1
+#if (ORTHANC_ENABLE_MONGOOSE == 1 || ORTHANC_ENABLE_CIVETWEB == 1)
     ORTHANC_DEPRECATED
     static bool SimpleGet(std::string& result,
                           IHttpHandler& handler,
                           RequestOrigin origin,
                           const std::string& uri,
                           const Arguments& httpHeaders);
-#endif
-    
-#if ORTHANC_SANDBOXED != 1
+
     ORTHANC_DEPRECATED
     static bool SimplePost(std::string& result,
                            IHttpHandler& handler,
@@ -83,9 +77,7 @@ namespace Orthanc
                            const void* bodyData,
                            size_t bodySize,
                            const Arguments& httpHeaders);
-#endif
 
-#if ORTHANC_SANDBOXED != 1
     ORTHANC_DEPRECATED
     static bool SimplePut(std::string& result,
                           IHttpHandler& handler,
@@ -94,9 +86,7 @@ namespace Orthanc
                           const void* bodyData,
                           size_t bodySize,
                           const Arguments& httpHeaders);
-#endif
 
-#if ORTHANC_SANDBOXED != 1
     ORTHANC_DEPRECATED
     static bool SimpleDelete(IHttpHandler& handler,
                              RequestOrigin origin,
