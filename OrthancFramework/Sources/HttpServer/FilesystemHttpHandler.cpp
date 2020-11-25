@@ -41,7 +41,7 @@ namespace Orthanc
 
 
   static void OutputDirectoryContent(HttpOutput& output,
-                                     const IHttpHandler::Arguments& headers,
+                                     const HttpToolbox::Arguments& headers,
                                      const UriComponents& uri,
                                      const boost::filesystem::path& p)
   {
@@ -117,17 +117,16 @@ namespace Orthanc
   }
 
 
-  bool FilesystemHttpHandler::Handle(
-    HttpOutput& output,
-    RequestOrigin /*origin*/,
-    const char* /*remoteIp*/,
-    const char* /*username*/,
-    HttpMethod method,
-    const UriComponents& uri,
-    const Arguments& headers,
-    const GetArguments& arguments,
-    const void* /*bodyData*/,
-    size_t /*bodySize*/)
+  bool FilesystemHttpHandler::Handle(HttpOutput& output,
+                                     RequestOrigin /*origin*/,
+                                     const char* /*remoteIp*/,
+                                     const char* /*username*/,
+                                     HttpMethod method,
+                                     const UriComponents& uri,
+                                     const HttpToolbox::Arguments& headers,
+                                     const HttpToolbox::GetArguments& arguments,
+                                     const void* /*bodyData*/,
+                                     size_t /*bodySize*/)
   {
     if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))
     {

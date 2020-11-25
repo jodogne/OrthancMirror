@@ -261,7 +261,7 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    IHttpHandler::Arguments::const_iterator accept = call.GetHttpHeaders().find("accept");
+    HttpToolbox::Arguments::const_iterator accept = call.GetHttpHeaders().find("accept");
     if (accept != call.GetHttpHeaders().end())
     {
       // New in Orthanc 1.5.4

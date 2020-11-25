@@ -22,33 +22,86 @@
 
 #pragma once
 
+#if !defined(ORTHANC_SANDBOXED)
+#  error Macro ORTHANC_SANDBOXED must be defined
+#endif
+
+#include "../Compatibility.h"
 #include "../OrthancFramework.h"
-#include "IHttpHandler.h"
+#include "../Toolbox.h"
+
+#include <boost/noncopyable.hpp>
+#include <map>
+#include <vector>
 
 namespace Orthanc
 {
+  class IHttpHandler;
+  
   class ORTHANC_PUBLIC HttpToolbox : public boost::noncopyable
   {
   public:
-    static void ParseGetArguments(IHttpHandler::GetArguments& result, 
+    typedef std::map<std::string, std::string>                  Arguments;
+    typedef std::vector< std::pair<std::string, std::string> >  GetArguments;
+
+    static void ParseGetArguments(GetArguments& result, 
                                   const char* query);
 
     static void ParseGetQuery(UriComponents& uri,
-                              IHttpHandler::GetArguments& getArguments, 
+                              GetArguments& getArguments, 
                               const char* query);
 
-    static std::string GetArgument(const IHttpHandler::Arguments& getArguments,
+    static std::string GetArgument(const Arguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
 
-    static std::string GetArgument(const IHttpHandler::GetArguments& getArguments,
+    static std::string GetArgument(const GetArguments& getArguments,
                                    const std::string& name,
                                    const std::string& defaultValue);
 
-    static void ParseCookies(IHttpHandler::Arguments& result, 
-                             const IHttpHandler::Arguments& httpHeaders);
+    static void ParseCookies(Arguments& result, 
+                             const Arguments& httpHeaders);
 
-    static void CompileGetArguments(IHttpHandler::Arguments& compiled,
-                                    const IHttpHandler::GetArguments& source);
+    static void CompileGetArguments(Arguments& compiled,
+                                    const GetArguments& source);
+
+#if ORTHANC_SANDBOXED != 1
+    ORTHANC_DEPRECATED
+    static bool SimpleGet(std::string& result,
+                          IHttpHandler& handler,
+                          RequestOrigin origin,
+                          const std::string& uri,
+                          const Arguments& httpHeaders);
+#endif
+    
+#if ORTHANC_SANDBOXED != 1
+    ORTHANC_DEPRECATED
+    static bool SimplePost(std::string& result,
+                           IHttpHandler& handler,
+                           RequestOrigin origin,
+                           const std::string& uri,
+                           const void* bodyData,
+                           size_t bodySize,
+                           const Arguments& httpHeaders);
+#endif
+
+#if ORTHANC_SANDBOXED != 1
+    ORTHANC_DEPRECATED
+    static bool SimplePut(std::string& result,
+                          IHttpHandler& handler,
+                          RequestOrigin origin,
+                          const std::string& uri,
+                          const void* bodyData,
+                          size_t bodySize,
+                          const Arguments& httpHeaders);
+#endif
+
+#if ORTHANC_SANDBOXED != 1
+    ORTHANC_DEPRECATED
+    static bool SimpleDelete(IHttpHandler& handler,
+                             RequestOrigin origin,
+                             const std::string& uri,
+                             const Arguments& httpHeaders);
+#endif
   };
 }

@@ -29,7 +29,7 @@ namespace Orthanc
   {
     result.clear();
 
-    for (IHttpHandler::Arguments::const_iterator 
+    for (HttpToolbox::Arguments::const_iterator 
            it = getArguments_.begin(); it != getArguments_.end(); ++it)
     {
       result[it->first] = it->second;

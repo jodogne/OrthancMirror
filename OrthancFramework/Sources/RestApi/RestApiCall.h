@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../HttpServer/IHttpHandler.h"
 #include "../HttpServer/HttpToolbox.h"
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
@@ -41,8 +40,8 @@ namespace Orthanc
     RequestOrigin origin_;
     const char* remoteIp_;
     const char* username_;
-    const IHttpHandler::Arguments& httpHeaders_;
-    const IHttpHandler::Arguments& uriComponents_;
+    const HttpToolbox::Arguments& httpHeaders_;
+    const HttpToolbox::Arguments& uriComponents_;
     const UriComponents& trailing_;
     const UriComponents& fullUri_;
 
@@ -57,8 +56,8 @@ namespace Orthanc
                 RequestOrigin origin,
                 const char* remoteIp,
                 const char* username,
-                const IHttpHandler::Arguments& httpHeaders,
-                const IHttpHandler::Arguments& uriComponents,
+                const HttpToolbox::Arguments& httpHeaders,
+                const HttpToolbox::Arguments& uriComponents,
                 const UriComponents& trailing,
                 const UriComponents& fullUri) :
       output_(output),
@@ -105,12 +104,12 @@ namespace Orthanc
       return HttpToolbox::GetArgument(httpHeaders_, name, defaultValue);
     }
 
-    const IHttpHandler::Arguments& GetHttpHeaders() const
+    const HttpToolbox::Arguments& GetHttpHeaders() const
     {
       return httpHeaders_;
     }
 
-    void ParseCookies(IHttpHandler::Arguments& result) const
+    void ParseCookies(HttpToolbox::Arguments& result) const
     {
       HttpToolbox::ParseCookies(result, httpHeaders_);
     }

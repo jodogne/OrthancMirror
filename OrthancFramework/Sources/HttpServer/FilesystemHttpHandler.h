@@ -48,22 +48,21 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers)
+                                            const HttpToolbox::Arguments& headers)
     {
       return false;
     }
 
-    virtual bool Handle(
-      HttpOutput& output,
-      RequestOrigin origin,
-      const char* remoteIp,
-      const char* username,
-      HttpMethod method,
-      const UriComponents& uri,
-      const Arguments& headers,
-      const GetArguments& arguments,
-      const void* /*bodyData*/,
-      size_t /*bodySize*/);
+    virtual bool Handle(HttpOutput& output,
+                        RequestOrigin origin,
+                        const char* remoteIp,
+                        const char* username,
+                        HttpMethod method,
+                        const UriComponents& uri,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& arguments,
+                        const void* /*bodyData*/,
+                        size_t /*bodySize*/);
 
     bool IsListDirectoryContent() const
     {

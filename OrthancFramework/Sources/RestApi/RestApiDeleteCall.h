@@ -36,8 +36,8 @@ namespace Orthanc
                       RequestOrigin origin,
                       const char* remoteIp,
                       const char* username,
-                      const IHttpHandler::Arguments& httpHeaders,
-                      const IHttpHandler::Arguments& uriComponents,
+                      const HttpToolbox::Arguments& httpHeaders,
+                      const HttpToolbox::Arguments& uriComponents,
                       const UriComponents& trailing,
                       const UriComponents& fullUri) :
       RestApiCall(output, context, origin, remoteIp, username,

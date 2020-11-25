@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../Toolbox.h"
-#include "../HttpServer/IHttpHandler.h"
+#include "../HttpServer/HttpToolbox.h"
 
 #include <map>
 
@@ -40,11 +39,11 @@ namespace Orthanc
     explicit RestApiPath(const std::string& uri);
 
     // This version is slower
-    bool Match(IHttpHandler::Arguments& components,
+    bool Match(HttpToolbox::Arguments& components,
                UriComponents& trailing,
                const std::string& uriRaw) const;
 
-    bool Match(IHttpHandler::Arguments& components,
+    bool Match(HttpToolbox::Arguments& components,
                UriComponents& trailing,
                const UriComponents& uri) const;
 

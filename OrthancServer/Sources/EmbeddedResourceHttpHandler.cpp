@@ -58,8 +58,8 @@ namespace Orthanc
     const char* /*username*/,
     HttpMethod method,
     const UriComponents& uri,
-    const Arguments& headers,
-    const GetArguments& arguments,
+    const HttpToolbox::Arguments& headers,
+    const HttpToolbox::GetArguments& arguments,
     const void* /*bodyData*/,
     size_t /*bodySize*/)
   {

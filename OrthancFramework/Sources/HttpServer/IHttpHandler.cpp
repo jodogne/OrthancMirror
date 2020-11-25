@@ -36,10 +36,10 @@ namespace Orthanc
                                IHttpHandler& handler,
                                RequestOrigin origin,
                                const std::string& uri,
-                               const IHttpHandler::Arguments& httpHeaders)
+                               const HttpToolbox::Arguments& httpHeaders)
   {
     UriComponents curi;
-    IHttpHandler::GetArguments getArguments;
+    HttpToolbox::GetArguments getArguments;
     HttpToolbox::ParseGetQuery(curi, getArguments, uri.c_str());
 
     StringHttpOutput stream;
@@ -65,9 +65,9 @@ namespace Orthanc
                               const std::string& uri,
                               const void* bodyData,
                               size_t bodySize,
-                              const IHttpHandler::Arguments& httpHeaders)
+                              const HttpToolbox::Arguments& httpHeaders)
   {
-    IHttpHandler::GetArguments getArguments;  // No GET argument for POST/PUT
+    HttpToolbox::GetArguments getArguments;  // No GET argument for POST/PUT
 
     UriComponents curi;
     Toolbox::SplitUriComponents(curi, uri);
@@ -94,7 +94,7 @@ namespace Orthanc
                                 const std::string& uri,
                                 const void* bodyData,
                                 size_t bodySize,
-                                const IHttpHandler::Arguments& httpHeaders)
+                                const HttpToolbox::Arguments& httpHeaders)
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize, httpHeaders);
   }
@@ -106,7 +106,7 @@ namespace Orthanc
                                const std::string& uri,
                                const void* bodyData,
                                size_t bodySize,
-                               const IHttpHandler::Arguments& httpHeaders)
+                               const HttpToolbox::Arguments& httpHeaders)
   {
     return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize, httpHeaders);
   }
@@ -115,12 +115,12 @@ namespace Orthanc
   bool IHttpHandler::SimpleDelete(IHttpHandler& handler,
                                   RequestOrigin origin,
                                   const std::string& uri,
-                                  const IHttpHandler::Arguments& httpHeaders)
+                                  const HttpToolbox::Arguments& httpHeaders)
   {
     UriComponents curi;
     Toolbox::SplitUriComponents(curi, uri);
 
-    IHttpHandler::GetArguments getArguments;  // No GET argument for DELETE
+    HttpToolbox::GetArguments getArguments;  // No GET argument for DELETE
 
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);

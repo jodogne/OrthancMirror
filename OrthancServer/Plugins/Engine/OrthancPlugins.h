@@ -109,8 +109,8 @@ namespace Orthanc
     bool HandleChunkedGetDelete(HttpOutput& output,
                                 HttpMethod method,
                                 const UriComponents& uri,
-                                const Arguments& headers,
-                                const GetArguments& getArguments);
+                                const HttpToolbox::Arguments& headers,
+                                const HttpToolbox::GetArguments& getArguments);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
@@ -260,8 +260,8 @@ namespace Orthanc
                         const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize) ORTHANC_OVERRIDE;
 
@@ -352,8 +352,8 @@ namespace Orthanc
                            const char* uri,
                            const char* ip,
                            const char* username,
-                           const IHttpHandler::Arguments& httpHeaders,
-                           const IHttpHandler::GetArguments& getArguments) ORTHANC_OVERRIDE;
+                           const HttpToolbox::Arguments& httpHeaders,
+                           const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE;
 
     bool HasFindHandler();
 
@@ -375,7 +375,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers) ORTHANC_OVERRIDE;
+                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE;
 
     // New in Orthanc 1.6.0
     IStorageCommitmentFactory::ILookupHandler* CreateStorageCommitment(

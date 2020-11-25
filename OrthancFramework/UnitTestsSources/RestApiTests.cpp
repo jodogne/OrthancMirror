@@ -33,13 +33,16 @@
 #include "../Sources/HttpServer/MultipartStreamReader.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
-#include "../Sources/RestApi/RestApi.h"
 #include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/WebServiceParameters.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
 #include <algorithm>
+
+#if ORTHANC_SANDBOXED != 1
+#  include "../Sources/RestApi/RestApi.h"
+#endif
 
 
 using namespace Orthanc;
@@ -182,8 +185,8 @@ TEST(ChunkedBuffer, Basic)
 #if ORTHANC_SANDBOXED != 1
 TEST(RestApi, ParseCookies)
 {
-  IHttpHandler::Arguments headers;
-  IHttpHandler::Arguments cookies;
+  HttpToolbox::Arguments headers;
+  HttpToolbox::Arguments cookies;
 
   headers["cookie"] = "a=b;c=d;;;e=f;;g=h;";
   HttpToolbox::ParseCookies(cookies, headers);
@@ -213,7 +216,7 @@ TEST(RestApi, ParseCookies)
 
 TEST(RestApi, RestApiPath)
 {
-  IHttpHandler::Arguments args;
+  HttpToolbox::Arguments args;
   UriComponents trail;
 
   {
@@ -311,7 +314,7 @@ namespace
   public:
     virtual bool Visit(const RestApiHierarchy::Resource& resource,
                        const UriComponents& uri,
-                       const IHttpHandler::Arguments& components,
+                       const HttpToolbox::Arguments& components,
                        const UriComponents& trailing) ORTHANC_OVERRIDE
     {
       return resource.Handle(*(RestApiGetCall*) NULL);
@@ -979,6 +982,7 @@ TEST(ChunkedBuffer, Pending)
 
 #if ORTHANC_SANDBOXED != 1
 
+
 namespace
 {
   class TotoBody : public HttpClient::IRequestBody
@@ -1034,7 +1038,7 @@ namespace
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers) ORTHANC_OVERRIDE
+                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -1045,8 +1049,8 @@ namespace
                         const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize) ORTHANC_OVERRIDE
     {

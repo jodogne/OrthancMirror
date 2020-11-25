@@ -1495,13 +1495,13 @@ namespace Orthanc
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
                                 std::vector<const char*>& values,
-                                const IHttpHandler::Arguments& arguments)
+                                const HttpToolbox::Arguments& arguments)
   {
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
     size_t pos = 0;
-    for (IHttpHandler::Arguments::const_iterator 
+    for (HttpToolbox::Arguments::const_iterator 
            it = arguments.begin(); it != arguments.end(); ++it)
     {
       keys[pos] = it->first.c_str();
@@ -1513,7 +1513,7 @@ namespace Orthanc
 
   static void ArgumentsToPlugin(std::vector<const char*>& keys,
                                 std::vector<const char*>& values,
-                                const IHttpHandler::GetArguments& arguments)
+                                const HttpToolbox::GetArguments& arguments)
   {
     keys.resize(arguments.size());
     values.resize(arguments.size());
@@ -1601,7 +1601,7 @@ namespace Orthanc
     public:
       HttpRequestConverter(const RestCallbackMatcher& matcher,
                            HttpMethod method,
-                           const IHttpHandler::Arguments& headers)
+                           const HttpToolbox::Arguments& headers)
       {
         memset(&converted_, 0, sizeof(OrthancPluginHttpRequest));
 
@@ -1646,7 +1646,7 @@ namespace Orthanc
         }
       }
 
-      void SetGetArguments(const IHttpHandler::GetArguments& getArguments)
+      void SetGetArguments(const HttpToolbox::GetArguments& getArguments)
       {
         ArgumentsToPlugin(getKeys_, getValues_, getArguments);
         assert(getKeys_.size() == getValues_.size());
@@ -1714,8 +1714,8 @@ namespace Orthanc
   bool OrthancPlugins::HandleChunkedGetDelete(HttpOutput& output,
                                               HttpMethod method,
                                               const UriComponents& uri,
-                                              const Arguments& headers,
-                                              const GetArguments& getArguments)
+                                              const HttpToolbox::Arguments& headers,
+                                              const HttpToolbox::GetArguments& getArguments)
   {
     RestCallbackMatcher matcher(uri);
 
@@ -1786,8 +1786,8 @@ namespace Orthanc
                               const char* /*username*/,
                               HttpMethod method,
                               const UriComponents& uri,
-                              const Arguments& headers,
-                              const GetArguments& getArguments,
+                              const HttpToolbox::Arguments& headers,
+                              const HttpToolbox::GetArguments& getArguments,
                               const void* bodyData,
                               size_t bodySize)
   {
@@ -2417,7 +2417,7 @@ namespace Orthanc
     CLOG(INFO, PLUGINS) << "Plugin making REST GET call on URI " << p.uri
                         << (p.afterPlugins ? " (after plugins)" : " (built-in API)");
 
-    IHttpHandler::Arguments headers;
+    HttpToolbox::Arguments headers;
 
     for (uint32_t i = 0; i < p.headersCount; i++)
     {
@@ -4901,8 +4901,8 @@ namespace Orthanc
                                  const char* uri,
                                  const char* ip,
                                  const char* username,
-                                 const IHttpHandler::Arguments& httpHeaders,
-                                 const IHttpHandler::GetArguments& getArguments)
+                                 const HttpToolbox::Arguments& httpHeaders,
+                                 const HttpToolbox::GetArguments& getArguments)
   {
     OrthancPluginHttpMethod cMethod = Plugins::Convert(method);
 
@@ -4910,7 +4910,7 @@ namespace Orthanc
     std::vector<const char*> httpValues(httpHeaders.size());
 
     size_t pos = 0;
-    for (IHttpHandler::Arguments::const_iterator
+    for (HttpToolbox::Arguments::const_iterator
            it = httpHeaders.begin(); it != httpHeaders.end(); ++it, pos++)
     {
       httpKeys[pos] = it->first.c_str();
@@ -5071,7 +5071,7 @@ namespace Orthanc
                                                   const char* username,
                                                   HttpMethod method,
                                                   const UriComponents& uri,
-                                                  const Arguments& headers)
+                                                  const HttpToolbox::Arguments& headers)
   {
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)

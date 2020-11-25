@@ -42,8 +42,8 @@ namespace Orthanc
       const char* remoteIp_;
       const char* username_;
       HttpMethod method_;
-      const IHttpHandler::Arguments& headers_;
-      const IHttpHandler::Arguments& getArguments_;
+      const HttpToolbox::Arguments& headers_;
+      const HttpToolbox::Arguments& getArguments_;
       const void* bodyData_;
       size_t bodySize_;
 
@@ -54,8 +54,8 @@ namespace Orthanc
                          const char* remoteIp,
                          const char* username,
                          HttpMethod method,
-                         const IHttpHandler::Arguments& headers,
-                         const IHttpHandler::Arguments& getArguments,
+                         const HttpToolbox::Arguments& headers,
+                         const HttpToolbox::Arguments& getArguments,
                          const void* bodyData,
                          size_t bodySize) :
         api_(api),
@@ -73,7 +73,7 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
-                         const IHttpHandler::Arguments& components,
+                         const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
         if (resource.HasHandler(method_))
@@ -168,8 +168,8 @@ namespace Orthanc
                        const char* username,
                        HttpMethod method,
                        const UriComponents& uri,
-                       const Arguments& headers,
-                       const GetArguments& getArguments,
+                       const HttpToolbox::Arguments& headers,
+                       const HttpToolbox::GetArguments& getArguments,
                        const void* bodyData,
                        size_t bodySize)
   {
@@ -179,7 +179,7 @@ namespace Orthanc
     {
       // Look if the client wishes XML answers instead of JSON
       // http://www.w3.org/Protocols/HTTP/HTRQ_Headers.html#z3
-      Arguments::const_iterator it = headers.find("accept");
+      HttpToolbox::Arguments::const_iterator it = headers.find("accept");
       if (it != headers.end())
       {
         std::vector<std::string> accepted;
@@ -200,7 +200,7 @@ namespace Orthanc
     }
 #endif
 
-    Arguments compiled;
+    HttpToolbox::Arguments compiled;
     HttpToolbox::CompileGetArguments(compiled, getArguments);
 
     HttpHandlerVisitor visitor(*this, wrappedOutput, origin, remoteIp, username, 

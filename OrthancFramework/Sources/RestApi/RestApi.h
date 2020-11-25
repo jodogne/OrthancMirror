@@ -24,6 +24,7 @@
 
 #include "RestApiHierarchy.h"
 #include "../Compatibility.h"
+#include "../HttpServer/IHttpHandler.h"
 
 #include <list>
 
@@ -43,7 +44,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const Arguments& headers)
+                                            const HttpToolbox::Arguments& headers)
     {
       return false;
     }
@@ -54,8 +55,8 @@ namespace Orthanc
                         const char* username,
                         HttpMethod method,
                         const UriComponents& uri,
-                        const Arguments& headers,
-                        const GetArguments& getArguments,
+                        const HttpToolbox::Arguments& headers,
+                        const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
                         size_t bodySize);
 
