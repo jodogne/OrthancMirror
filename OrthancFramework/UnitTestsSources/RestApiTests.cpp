@@ -894,6 +894,36 @@ TEST(MultipartStreamReader, BytePerByte)
 }
 
 
+TEST(MultipartStreamReader, Issue190)
+{
+  // https://bugs.orthanc-server.com/show_bug.cgi?id=190
+  // https://hg.orthanc-server.com/orthanc-dicomweb/rev/6dc2f79b5579
+
+  std::map<std::string, std::string> headers;
+  headers["content-type"] = "multipart/related; type=application/dicom; boundary=0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1";
+
+  {
+    std::string tmp, contentType, subType, boundary;
+    ASSERT_TRUE(Orthanc::MultipartStreamReader::GetMainContentType(tmp, headers));
+    ASSERT_TRUE(Orthanc::MultipartStreamReader::ParseMultipartContentType(contentType, subType, boundary, tmp));
+    ASSERT_EQ("multipart/related", contentType);
+    ASSERT_EQ("application/dicom", subType);
+    ASSERT_EQ("0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1", boundary);
+  }
+
+  headers["content-type"] = "multipart/related; type=\"application/dicom\"; boundary=\"0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1\"";
+
+  {
+    std::string tmp, contentType, subType, boundary;
+    ASSERT_TRUE(Orthanc::MultipartStreamReader::GetMainContentType(tmp, headers));
+    ASSERT_TRUE(Orthanc::MultipartStreamReader::ParseMultipartContentType(contentType, subType, boundary, tmp));
+    ASSERT_EQ("multipart/related", contentType);
+    ASSERT_EQ("application/dicom", subType);
+    ASSERT_EQ("0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1", boundary);
+  }
+}
+
+
 TEST(WebServiceParameters, Url)
 {
   WebServiceParameters w;

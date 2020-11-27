@@ -297,6 +297,17 @@ namespace Orthanc
   }
 
 
+  static void RemoveSurroundingQuotes(std::string& value)
+  {
+    if (value.size() >= 2 &&
+        value[0] == '"' &&
+        value[value.size() - 1] == '"')
+    {
+      value = value.substr(1, value.size() - 2);
+    }
+  }
+  
+
   bool MultipartStreamReader::ParseMultipartContentType(std::string& contentType,
                                                         std::string& subType,
                                                         std::string& boundary,
@@ -331,6 +342,10 @@ namespace Orthanc
         if (boost::iequals("boundary", Toolbox::StripSpaces(items[0])))
         {
           boundary = Toolbox::StripSpaces(items[1]);
+
+          // https://bugs.orthanc-server.com/show_bug.cgi?id=190
+          RemoveSurroundingQuotes(boundary);
+          
           valid = !boundary.empty();
         }
         else if (boost::iequals("type", Toolbox::StripSpaces(items[0])))
@@ -340,12 +355,7 @@ namespace Orthanc
 
           // https://bitbucket.org/sjodogne/orthanc/issues/54/decide-what-to-do-wrt-quoting-of-multipart
           // https://tools.ietf.org/html/rfc7231#section-3.1.1.1
-          if (subType.size() >= 2 &&
-              subType[0] == '"' &&
-              subType[subType.size() - 1] == '"')
-          {
-            subType = subType.substr(1, subType.size() - 2);
-          }
+          RemoveSurroundingQuotes(subType);
         }
       }
     }
