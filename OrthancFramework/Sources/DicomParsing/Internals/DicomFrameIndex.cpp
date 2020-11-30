@@ -311,6 +311,28 @@ namespace Orthanc
 
   unsigned int DicomFrameIndex::GetFramesCount(DcmDataset& dicom)
   {
+    DicomTransferSyntax transferSyntax;
+    if (FromDcmtkBridge::LookupOrthancTransferSyntax(transferSyntax, dicom) &&
+        (transferSyntax == DicomTransferSyntax_MPEG2MainProfileAtMainLevel ||
+         transferSyntax == DicomTransferSyntax_MPEG2MainProfileAtHighLevel ||
+         transferSyntax == DicomTransferSyntax_MPEG4HighProfileLevel4_1 ||
+         transferSyntax == DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1 ||
+         transferSyntax == DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo ||
+         transferSyntax == DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo ||
+         transferSyntax == DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2 ||
+         transferSyntax == DicomTransferSyntax_HEVCMainProfileLevel5_1 ||
+         transferSyntax == DicomTransferSyntax_HEVCMain10ProfileLevel5_1))
+    {
+      /**
+       * Fixes an issue that was present from Orthanc 1.6.0 until
+       * 1.8.0 for the special case of the videos: In a video, the
+       * number of frames doesn't correspond to the number of
+       * fragments. We consider that there is one single frame (the
+       * video itself).
+       **/
+      return 1;
+    }            
+
     const char* tmp = NULL;
     if (!dicom.findAndGetString(DCM_NumberOfFrames, tmp).good() ||
         tmp == NULL)

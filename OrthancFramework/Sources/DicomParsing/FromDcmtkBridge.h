@@ -219,5 +219,8 @@ namespace Orthanc
 
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                             DcmFileFormat& dicom);
+
+    static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                            DcmDataset& dicom);
   };
 }

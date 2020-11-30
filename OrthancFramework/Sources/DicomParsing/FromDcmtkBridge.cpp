@@ -2618,9 +2618,16 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     {
       throw OrthancException(ErrorCode_InternalError);
     }
-        
-    DcmDataset& dataset = *dicom.getDataset();
+    else
+    {
+      return LookupOrthancTransferSyntax(target, *dicom.getDataset());
+    }
+  }
 
+
+  bool FromDcmtkBridge::LookupOrthancTransferSyntax(DicomTransferSyntax& target,
+                                                    DcmDataset& dataset)
+  {
     E_TransferSyntax xfer = dataset.getCurrentXfer();
     if (xfer == EXS_Unknown)
     {
