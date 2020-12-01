@@ -48,7 +48,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers)
+                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -62,7 +62,7 @@ namespace Orthanc
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& arguments,
                         const void* /*bodyData*/,
-                        size_t /*bodySize*/);
+                        size_t /*bodySize*/) ORTHANC_OVERRIDE;
 
     bool IsListDirectoryContent() const
     {

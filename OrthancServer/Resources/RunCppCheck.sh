@@ -12,7 +12,7 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:314
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:318
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1163
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:383

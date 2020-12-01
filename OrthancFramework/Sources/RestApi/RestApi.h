@@ -44,7 +44,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers)
+                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -58,7 +58,7 @@ namespace Orthanc
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize);
+                        size_t bodySize) ORTHANC_OVERRIDE;
 
     void Register(const std::string& path,
                   RestApiGetCall::Handler handler);
