@@ -4,6 +4,7 @@ Pending changes in the mainline
 General
 -------
 
+* New sample tool "OrthancImport.py" to easily import compressed archives (ZIP) into Orthanc
 * Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
 * New command-line option "--trace-dicom" to access full debug information from DCMTK
 
