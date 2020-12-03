@@ -7,6 +7,7 @@ General
 * New sample tool "OrthancImport.py" to easily import compressed archives (ZIP) into Orthanc
 * Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
 * New command-line option "--trace-dicom" to access full debug information from DCMTK
+* New config option "DicomEchoChecksFind" to automatically complement C-GET SCU with C-FIND SCU
 
 REST API
 --------
@@ -16,6 +17,8 @@ REST API
 * "/tools/log-level-*": Dynamically access and/or change the verbosity of logging categories
 * "/peers/{id}/configuration": Get the configuration of one peer (cf. "/peers?expand")
 * "/modalities/{id}/configuration": Get the configuration of one modality (cf. "/modalities?expand")
+* "/tools/dicom-echo" and "/modalities/{id}/echo" now accept the field "CheckFind" in their JSON
+  body to complement C-GET SCU with C-FIND SCU ("DicomEchoChecksFind" on a per-connection basis)
 
 Maintenance
 -----------
