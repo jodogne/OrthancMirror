@@ -1200,6 +1200,25 @@ namespace Orthanc
     }
   }
 
+  static void GetPeerConfiguration(RestApiGetCall& call)
+  {
+    OrthancConfiguration::ReaderLock lock;
+    const std::string peer = call.GetUriComponent("id", "");
+
+    WebServiceParameters info;  
+    if (lock.GetConfiguration().LookupOrthancPeer(info, peer))
+    {
+      Json::Value answer;
+      info.FormatPublic(answer);
+      call.GetOutput().AnswerJson(answer);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "No peer with symbolic name: " + peer);
+    }
+  }
+
   // DICOM bridge -------------------------------------------------------------
 
   static bool IsExistingModality(const OrthancRestApi::SetOfStrings& modalities,
@@ -1291,6 +1310,21 @@ namespace Orthanc
     context.SignalUpdatedModalities();
 
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
+  static void GetModalityConfiguration(RestApiGetCall& call)
+  {
+    const std::string modality = call.GetUriComponent("id", "");
+
+    Json::Value answer;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      lock.GetConfiguration().GetModalityUsingSymbolicName(modality).Serialize(answer, true /* force advanced format */);
+    }
+    
+    call.GetOutput().AnswerJson(answer);
   }
 
 
@@ -1616,6 +1650,7 @@ namespace Orthanc
     Register("/modalities/{id}/store", DicomStore);
     Register("/modalities/{id}/store-straight", DicomStoreStraight);  // New in 1.6.1
     Register("/modalities/{id}/move", DicomMove);
+    Register("/modalities/{id}/configuration", GetModalityConfiguration);  // New in 1.8.1
 
     // For Query/Retrieve
     Register("/modalities/{id}/query", DicomQuery);
@@ -1643,6 +1678,7 @@ namespace Orthanc
     Register("/peers/{id}", DeletePeer);
     Register("/peers/{id}/store", PeerStore);
     Register("/peers/{id}/system", PeerSystem);
+    Register("/peers/{id}/configuration", GetPeerConfiguration);  // New in 1.8.1
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
 
