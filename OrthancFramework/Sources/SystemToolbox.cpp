@@ -224,6 +224,13 @@ namespace Orthanc
 
     std::streamsize size = GetStreamSize(f);
     content.resize(static_cast<size_t>(size));
+
+    if (static_cast<std::streamsize>(content.size()) != size)
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Reading a file that is too large for a 32bit architecture");
+    }
+    
     if (size != 0)
     {
       f.read(&content[0], size);
@@ -806,5 +813,69 @@ namespace Orthanc
     {
       return (base / relative).string();
     }
+  }
+
+
+  void SystemToolbox::ReadFileRange(std::string& content,                              
+                                    const std::string& path,
+                                    uint64_t start,  // Inclusive
+                                    uint64_t end,    // Exclusive
+                                    bool throwIfOverflow)
+  {
+    if (start > end)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    if (!IsRegularFile(path))
+    {
+      throw OrthancException(ErrorCode_RegularFileExpected,
+                             "The path does not point to a regular file: " + path);
+    }
+
+    boost::filesystem::ifstream f;
+    f.open(path, std::ifstream::in | std::ifstream::binary);
+    if (!f.good())
+    {
+      throw OrthancException(ErrorCode_InexistentFile,
+                             "File not found: " + path);
+    }
+
+    uint64_t fileSize = static_cast<uint64_t>(GetStreamSize(f));
+    if (end > fileSize)
+    {
+      if (throwIfOverflow)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "Reading beyond the end of a file");
+      }
+      else
+      {
+        end = fileSize;
+      }
+    }
+
+    if (start <= end)
+    {
+      content.resize(static_cast<size_t>(end - start));
+
+      if (static_cast<uint64_t>(content.size()) != (end - start))
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Reading a file that is too large for a 32bit architecture");
+      }
+
+      if (!content.empty())
+      {
+        f.seekg(start, std::ios::beg);
+        f.read(&content[0], static_cast<std::streamsize>(content.size()));
+      }
+    }
+    else
+    {
+      content.clear();
+    }
+
+    f.close();
   }
 }

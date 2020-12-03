@@ -138,4 +138,13 @@ namespace Orthanc
   {
     return SystemToolbox::GetFileSize(path_);
   }
+
+
+  void TemporaryFile::ReadRange(std::string& content,
+                                uint64_t start,
+                                uint64_t end,
+                                bool throwIfOverflow) const
+  {
+    SystemToolbox::ReadFileRange(content, path_, start, end, throwIfOverflow);
+  }
 }

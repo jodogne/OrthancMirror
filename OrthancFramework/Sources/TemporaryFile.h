@@ -60,5 +60,10 @@ namespace Orthanc
     void Touch();
 
     uint64_t GetFileSize() const;
+
+    void ReadRange(std::string& content,
+                   uint64_t start,
+                   uint64_t end,
+                   bool throwIfOverflow) const;
   };
 }

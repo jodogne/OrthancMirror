@@ -113,5 +113,11 @@ namespace Orthanc
 
     static std::string InterpretRelativePath(const std::string& baseDirectory,
                                              const std::string& relativePath);
+
+    static void ReadFileRange(std::string& content,                              
+                              const std::string& path,
+                              uint64_t start,  // Inclusive
+                              uint64_t end,    // Exclusive
+                              bool throwIfOverflow);
   };
 }
