@@ -60,6 +60,7 @@ namespace Orthanc
   static const char* const KEY_RESOURCES = "Resources";
   static const char* const KEY_TARGET_AET = "TargetAet";
   static const char* const KEY_TIMEOUT = "Timeout";
+  static const char* const KEY_CHECK_FIND = "CheckFind";
   static const char* const SOP_CLASS_UID = "SOPClassUID";
   static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
   
@@ -114,15 +115,42 @@ namespace Orthanc
    ***************************************************************************/
 
   static void ExecuteEcho(RestApiOutput& output,
-                          const DicomAssociationParameters& parameters)
+                          const DicomAssociationParameters& parameters,
+                          const Json::Value& body)
   {
     DicomControlUserConnection connection(parameters);
 
     if (connection.Echo())
     {
+      bool find = false;
+      
+      if (body.type() == Json::objectValue &&
+          body.isMember(KEY_CHECK_FIND))
+      {
+        find = SerializationToolbox::ReadBoolean(body, KEY_CHECK_FIND);
+      }
+      else
+      {
+        OrthancConfiguration::ReaderLock lock;
+        find = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
+      }
+
+      if (find)
+      {
+        // Issue a C-FIND request at the study level about a random Study Instance UID
+        const std::string studyInstanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study);
+        
+        DicomMap query;
+        query.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, studyInstanceUid, false);
+
+        DicomFindAnswers answers(false /* not a worklist */);
+
+        // The following line throws an exception if the remote modality doesn't support C-FIND
+        connection.Find(answers, ResourceType_Study, query, false /* normalize */);
+      }
+
       // Echo has succeeded
       output.AnswerBuffer("{}", MimeType_Json);
-      return;
     }
     else
     {
@@ -134,7 +162,16 @@ namespace Orthanc
   
   static void DicomEcho(RestApiPostCall& call)
   {
-    ExecuteEcho(call.GetOutput(), GetAssociationParameters(call));
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
+    {
+      const DicomAssociationParameters parameters = GetAssociationParameters(call, body);
+      ExecuteEcho(call.GetOutput(), parameters, body);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse the JSON body");
+    }
   }
   
 
@@ -152,7 +189,7 @@ namespace Orthanc
       DicomAssociationParameters params(localAet, modality);
       InjectAssociationTimeout(params, body);
 
-      ExecuteEcho(call.GetOutput(), params);
+      ExecuteEcho(call.GetOutput(), params, body);
     }
     else
     {
