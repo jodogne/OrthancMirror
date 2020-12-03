@@ -1373,3 +1373,37 @@ TEST(MetricsRegistry, Basic)
   }
 }
 #endif
+
+
+#if ORTHANC_SANDBOXED != 1
+TEST(Toolbox, ReadFileRange)
+{
+  TemporaryFile tmp;
+  std::string s;
+
+  tmp.Write("");
+  tmp.Read(s);                     ASSERT_TRUE(s.empty());
+  tmp.ReadRange(s, 0, 0, true);    ASSERT_TRUE(s.empty());
+  tmp.ReadRange(s, 0, 10, false);  ASSERT_TRUE(s.empty());
+  
+  ASSERT_THROW(tmp.ReadRange(s, 0, 1, true), OrthancException);
+  
+  tmp.Write("Hello");
+  tmp.Read(s);                     ASSERT_EQ("Hello", s);
+  tmp.ReadRange(s, 0, 5, true);    ASSERT_EQ("Hello", s);
+  tmp.ReadRange(s, 0, 1, true);    ASSERT_EQ("H", s);
+  tmp.ReadRange(s, 1, 2, true);    ASSERT_EQ("e", s);
+  tmp.ReadRange(s, 2, 3, true);    ASSERT_EQ("l", s);
+  tmp.ReadRange(s, 3, 4, true);    ASSERT_EQ("l", s);
+  tmp.ReadRange(s, 4, 5, true);    ASSERT_EQ("o", s);
+  tmp.ReadRange(s, 2, 5, true);    ASSERT_EQ("llo", s);
+  tmp.ReadRange(s, 2, 50, false);  ASSERT_EQ("llo", s);
+  tmp.ReadRange(s, 2, 2, false);   ASSERT_TRUE(s.empty());
+  tmp.ReadRange(s, 10, 50, false); ASSERT_TRUE(s.empty());
+  
+  ASSERT_THROW(tmp.ReadRange(s, 5, 10, true), OrthancException);
+  ASSERT_THROW(tmp.ReadRange(s, 10, 50, true), OrthancException);
+  ASSERT_THROW(tmp.ReadRange(s, 50, 10, true), OrthancException);
+  ASSERT_THROW(tmp.ReadRange(s, 2, 1, true), OrthancException);
+}
+#endif
