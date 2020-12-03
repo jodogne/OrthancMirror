@@ -56,6 +56,7 @@ static const char* const MEDIA_IMAGES_FOLDER = "IMAGES";
 static const char* const KEY_DESCRIPTION = "Description";
 static const char* const KEY_INSTANCES_COUNT = "InstancesCount";
 static const char* const KEY_UNCOMPRESSED_SIZE_MB = "UncompressedSizeMB";
+static const char* const KEY_ARCHIVE_SIZE_MB = "ArchiveSizeMB";
 static const char* const KEY_TRANSCODE = "Transcode";
 
 
@@ -851,6 +852,7 @@ namespace Orthanc
     currentStep_(0),
     instancesCount_(0),
     uncompressedSize_(0),
+    archiveSize_(0),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit)
   {
@@ -993,10 +995,26 @@ namespace Orthanc
   }
   
 
+  void ArchiveJob::RefreshArchiveSize()
+  {
+    if (synchronousTarget_.get() != NULL)
+    {
+      archiveSize_ = synchronousTarget_->GetFileSize();
+    }
+        
+    if (asynchronousTarget_.get() != NULL)
+    {
+      archiveSize_ = asynchronousTarget_->GetFileSize();
+    }
+  }
+    
+
   void ArchiveJob::FinalizeTarget()
   {
     writer_.reset();  // Flush all the results
 
+    RefreshArchiveSize();
+    
     if (asynchronousTarget_.get() != NULL)
     {
       // Asynchronous behavior: Move the resulting file into the media archive
@@ -1017,7 +1035,7 @@ namespace Orthanc
       return JobStepResult::Failure(ErrorCode_NetworkProtocol,
                                     "A client has disconnected while creating an archive");
     }
-        
+
     if (writer_->GetStepsCount() == 0)
     {
       FinalizeTarget();
@@ -1036,6 +1054,7 @@ namespace Orthanc
       }
       else
       {
+        RefreshArchiveSize();
         return JobStepResult::Continue();
       }
     }
@@ -1077,6 +1096,8 @@ namespace Orthanc
     value[KEY_INSTANCES_COUNT] = instancesCount_;
     value[KEY_UNCOMPRESSED_SIZE_MB] =
       static_cast<unsigned int>(uncompressedSize_ / MEGA_BYTES);
+    value[KEY_ARCHIVE_SIZE_MB] =
+      static_cast<unsigned int>(archiveSize_ / MEGA_BYTES);
 
     if (transcode_)
     {
