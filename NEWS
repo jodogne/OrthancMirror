@@ -12,6 +12,7 @@ REST API
 --------
 
 * API version upgraded to 9
+* "/tools/dicom-echo": Execute C-Echo SCU to a modality that is not registered in "/modalities"
 * "/tools/log-level-*": Dynamically access and/or change the verbosity of logging categories
 * "/peers/{id}/configuration": Get the configuration of one peer (cf. "/peers?expand")
 * "/modalities/{id}/configuration": Get the configuration of one modality (cf. "/modalities?expand")

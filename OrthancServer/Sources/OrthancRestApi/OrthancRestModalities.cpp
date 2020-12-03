@@ -73,11 +73,8 @@ namespace Orthanc
   static void InjectAssociationTimeout(DicomAssociationParameters& params,
                                        const Json::Value& body)
   {
-    if (body.type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON object");
-    }
-    else if (body.isMember(KEY_TIMEOUT))
+    if (body.type() == Json::objectValue &&
+        body.isMember(KEY_TIMEOUT))
     {
       // New in Orthanc 1.7.0
       params.SetTimeout(SerializationToolbox::ReadUnsignedInteger(body, KEY_TIMEOUT));
@@ -102,7 +99,12 @@ namespace Orthanc
   static DicomAssociationParameters GetAssociationParameters(RestApiPostCall& call)
   {
     Json::Value body;
-    call.ParseJsonRequest(body);
+
+    if (!call.ParseJsonRequest(body))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse the JSON body");
+    }
+      
     return GetAssociationParameters(call, body);
   }
   
@@ -111,23 +113,52 @@ namespace Orthanc
    * DICOM C-Echo SCU
    ***************************************************************************/
 
-  static void DicomEcho(RestApiPostCall& call)
+  static void ExecuteEcho(RestApiOutput& output,
+                          const DicomAssociationParameters& parameters)
   {
-    DicomControlUserConnection connection(GetAssociationParameters(call));
+    DicomControlUserConnection connection(parameters);
 
     if (connection.Echo())
     {
       // Echo has succeeded
-      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
+      output.AnswerBuffer("{}", MimeType_Json);
       return;
     }
     else
     {
       // Echo has failed
-      call.GetOutput().SignalError(HttpStatus_500_InternalServerError);
+      output.SignalError(HttpStatus_500_InternalServerError);
     }
   }
+  
+  
+  static void DicomEcho(RestApiPostCall& call)
+  {
+    ExecuteEcho(call.GetOutput(), GetAssociationParameters(call));
+  }
+  
 
+  static void DicomEchoTool(RestApiPostCall& call)
+  {
+    Json::Value body;
+    if (call.ParseJsonRequest(body))
+    {
+      RemoteModalityParameters modality;
+      modality.Unserialize(body);
+
+      const std::string& localAet =
+        OrthancRestApi::GetContext(call).GetDefaultLocalApplicationEntityTitle();
+      
+      DicomAssociationParameters params(localAet, modality);
+      InjectAssociationTimeout(params, body);
+
+      ExecuteEcho(call.GetOutput(), params);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse the JSON body");
+    }
+  }
 
 
   /***************************************************************************
@@ -1295,6 +1326,10 @@ namespace Orthanc
 
       call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
   }
 
 
@@ -1686,5 +1721,7 @@ namespace Orthanc
     Register("/modalities/{id}/storage-commitment", StorageCommitmentScu);
     Register("/storage-commitment/{id}", GetStorageCommitmentReport);
     Register("/storage-commitment/{id}/remove", RemoveAfterStorageCommitment);
+
+    Register("/tools/dicom-echo", DicomEchoTool);  // New in 1.8.1
   }
 }
