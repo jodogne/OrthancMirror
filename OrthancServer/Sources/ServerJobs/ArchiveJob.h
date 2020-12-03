@@ -67,11 +67,14 @@ namespace Orthanc
     size_t                                currentStep_;
     unsigned int                          instancesCount_;
     uint64_t                              uncompressedSize_;
+    uint64_t                              archiveSize_;
     std::string                           mediaArchiveId_;
 
     // New in Orthanc 1.7.0
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
+
+    void RefreshArchiveSize();
     
     void FinalizeTarget();
     

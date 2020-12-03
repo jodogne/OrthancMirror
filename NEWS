@@ -19,6 +19,7 @@ REST API
 * "/modalities/{id}/configuration": Get the configuration of one modality (cf. "/modalities?expand")
 * "/tools/dicom-echo" and "/modalities/{id}/echo" now accept the field "CheckFind" in their JSON
   body to complement C-GET SCU with C-FIND SCU ("DicomEchoChecksFind" on a per-connection basis)
+* Archive/media jobs report the size of the created ZIP file in content field "ArchiveSizeMB"
 
 Maintenance
 -----------
