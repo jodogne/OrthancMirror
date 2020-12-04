@@ -545,24 +545,45 @@ namespace Orthanc
   }
 
 
-  static bool IsAccessGranted(const HttpServer& that,
-                              const HttpToolbox::Arguments& headers)
+  enum AccessMode
   {
-    bool granted = false;
+    AccessMode_Forbidden,
+    AccessMode_AuthorizationToken,
+    AccessMode_RegisteredUser
+  };
+  
+
+  static AccessMode IsAccessGranted(const HttpServer& that,
+                                    const HttpToolbox::Arguments& headers)
+  {
+    static const std::string BASIC = "Basic ";
+    static const std::string BEARER = "Bearer ";
 
     HttpToolbox::Arguments::const_iterator auth = headers.find("authorization");
     if (auth != headers.end())
     {
       std::string s = auth->second;
-      if (s.size() > 6 &&
-          s.substr(0, 6) == "Basic ")
+      if (boost::starts_with(s, BASIC))
       {
-        std::string b64 = s.substr(6);
-        granted = that.IsValidBasicHttpAuthentication(b64);
+        std::string b64 = s.substr(BASIC.length());
+        if (that.IsValidBasicHttpAuthentication(b64))
+        {
+          return AccessMode_RegisteredUser;
+        }
+      }
+      else if (boost::starts_with(s, BEARER) &&
+               that.GetIncomingHttpRequestFilter() != NULL)
+      {
+        // New in Orthanc 1.8.1
+        std::string token = s.substr(BEARER.length());
+        if (that.GetIncomingHttpRequestFilter()->IsValidBearerToken(token))
+        {
+          return AccessMode_AuthorizationToken;
+        }
       }
     }
 
-    return granted;
+    return AccessMode_Forbidden;
   }
 
 
@@ -1075,7 +1096,7 @@ namespace Orthanc
     if (!server.IsRemoteAccessAllowed() &&
         !localhost)
     {
-      output.SendUnauthorized(server.GetRealm());
+      output.SendUnauthorized(server.GetRealm());   // 401 error
       return;
     }
 
@@ -1105,12 +1126,14 @@ namespace Orthanc
       HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
     }
 
+    
+    AccessMode accessMode = IsAccessGranted(server, headers);
 
     // Authenticate this connection
     if (server.IsAuthenticationEnabled() && 
-        !IsAccessGranted(server, headers))
+        accessMode == AccessMode_Forbidden)
     {
-      output.SendUnauthorized(server.GetRealm());
+      output.SendUnauthorized(server.GetRealm());   // 401 error
       return;
     }
 
@@ -1195,16 +1218,22 @@ namespace Orthanc
     }
     
 
-    // Check that this connection is allowed by the user's authentication filter
     const std::string username = GetAuthenticatedUsername(headers);
 
-    IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
-    if (filter != NULL)
+    if (accessMode != AccessMode_AuthorizationToken)
     {
-      if (!filter->IsAllowed(filterMethod, requestUri, remoteIp,
+      // Check that this access is granted by the user's authorization
+      // filter. In the case of an authorization bearer token, grant
+      // full access to the API.
+
+      assert(accessMode == AccessMode_Forbidden ||  // Could be the case if "!server.IsAuthenticationEnabled()"
+             accessMode == AccessMode_RegisteredUser);
+      
+      IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+      if (filter != NULL &&
+          !filter->IsAllowed(filterMethod, requestUri, remoteIp,
                              username.c_str(), headers, argumentsGET))
       {
-        //output.SendUnauthorized(server.GetRealm());
         output.SendStatus(HttpStatus_403_Forbidden);
         return;
       }

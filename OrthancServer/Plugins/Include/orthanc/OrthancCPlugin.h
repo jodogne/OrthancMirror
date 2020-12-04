@@ -117,7 +117,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -435,6 +435,7 @@ extern "C"
     _OrthancPluginService_EncodeDicomWebJson2 = 36,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_EncodeDicomWebXml2 = 37,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_CreateMemoryBuffer = 38,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_GenerateRestApiAuthorizationToken = 39,   /* New in Orthanc 1.8.1 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -8197,6 +8198,51 @@ extern "C"
   }
   
 
+  /**
+   * @brief Generate a token to grant full access to the REST API of Orthanc
+   *
+   * This function generates a token that can be set in the HTTP
+   * header "Authorization" so as to grant full access to the REST API
+   * of Orthanc using an external HTTP client. Using this function
+   * avoids the need of adding a separate user in the
+   * "RegisteredUsers" configuration of Orthanc, which eases
+   * deployments.
+   *
+   * This feature is notably useful in multiprocess scenarios, where a
+   * subprocess created by a plugin has no access to the
+   * "OrthancPluginContext", and thus cannot call
+   * "OrthancPluginRestApi[Get|Post|Put|Delete]()".
+   *
+   * This situation is frequently encountered in Python plugins, where
+   * the "multiprocessing" package can be used to bypass the Global
+   * Interpreter Lock (GIL) and thus to improve performance and
+   * concurrency.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return The authorization token, or NULL value in the case of an error.
+   * This string must be freed by OrthancPluginFreeString().
+   * @ingroup Orthanc
+   **/
+  ORTHANC_PLUGIN_INLINE char* OrthancPluginGenerateRestApiAuthorizationToken(
+    OrthancPluginContext*  context)
+  {
+    char* result;
+
+    _OrthancPluginRetrieveDynamicString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GenerateRestApiAuthorizationToken,
+                               &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
 #ifdef  __cplusplus
 }
 #endif

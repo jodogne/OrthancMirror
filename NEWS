@@ -21,6 +21,11 @@ REST API
   body to complement C-GET SCU with C-FIND SCU ("DicomEchoChecksFind" on a per-connection basis)
 * Archive/media jobs report the size of the created ZIP file in content field "ArchiveSizeMB"
 
+Plugins
+-------
+
+* New function in the SDK: OrthancPluginGenerateRestApiAuthorizationToken()
+
 Maintenance
 -----------
 
@@ -36,8 +41,16 @@ Maintenance
 Version 1.8.0 (2020-10-16)
 ==========================
 
+General
+-------
+
 * Serving the content of Orthanc as a WebDAV network share
 * New config options: "WebDavEnabled", "WebDavDeleteAllowed" and "WebDavUploadAllowed"
+
+Plugins
+-------
+
+* New available origin for a DICOM instance: "OrthancPluginInstanceOrigin_WebDav"
 
 
 Version 1.7.4 (2020-09-18)

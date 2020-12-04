@@ -80,7 +80,6 @@ namespace Orthanc
     public IServerListener,
     public IWorklistRequestHandlerFactory,
     public IDicomImageDecoder,
-    public IIncomingHttpRequestFilter,
     public IFindRequestHandlerFactory,
     public IMoveRequestHandlerFactory,
     public IStorageCommitmentFactory,
@@ -348,12 +347,12 @@ namespace Orthanc
                                   size_t size,
                                   unsigned int frame) ORTHANC_OVERRIDE;
 
-    virtual bool IsAllowed(HttpMethod method,
-                           const char* uri,
-                           const char* ip,
-                           const char* username,
-                           const HttpToolbox::Arguments& httpHeaders,
-                           const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE;
+    bool IsAllowed(HttpMethod method,
+                   const char* uri,
+                   const char* ip,
+                   const char* username,
+                   const HttpToolbox::Arguments& httpHeaders,
+                   const HttpToolbox::GetArguments& getArguments);
 
     bool HasFindHandler();
 
@@ -385,6 +384,9 @@ namespace Orthanc
       const std::vector<std::string>& sopInstanceUids,
       const std::string& remoteAet,
       const std::string& calledAet) ORTHANC_OVERRIDE;
+
+    // New in Orthanc 1.8.1 (cf. "OrthancPluginGenerateRestApiAuthorizationToken()")
+    bool IsValidAuthorizationToken(const std::string& token) const;
   };
 }
 

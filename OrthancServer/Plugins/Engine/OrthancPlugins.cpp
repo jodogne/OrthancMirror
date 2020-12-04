@@ -918,6 +918,7 @@ namespace Orthanc
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;
+    std::set<std::string> authorizationTokens_;
 
     boost::recursive_mutex restCallbackMutex_;
     boost::recursive_mutex storedCallbackMutex_;
@@ -4647,6 +4648,18 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GenerateRestApiAuthorizationToken:
+      {
+        const _OrthancPluginRetrieveDynamicString& p = 
+          *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters);
+        const std::string token = Toolbox::GenerateUuid();
+
+        pimpl_->authorizationTokens_.insert(token);
+        *p.result = CopyString("Bearer " + token);
+
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine
@@ -5256,5 +5269,12 @@ namespace Orthanc
     }
 
     return false;
+  }
+
+
+  bool OrthancPlugins::IsValidAuthorizationToken(const std::string& token) const
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    return (pimpl_->authorizationTokens_.find(token) != pimpl_->authorizationTokens_.end());
   }
 }
