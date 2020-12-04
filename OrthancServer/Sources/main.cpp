@@ -465,6 +465,16 @@ public:
   {
   }
 
+  virtual bool IsValidBearerToken(const std::string& token) ORTHANC_OVERRIDE
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    return (plugins_ != NULL &&
+            plugins_->IsValidAuthorizationToken(token));
+#else
+    return false;
+#endif    
+  }
+  
   virtual bool IsAllowed(HttpMethod method,
                          const char* uri,
                          const char* ip,

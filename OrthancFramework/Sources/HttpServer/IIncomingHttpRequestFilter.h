@@ -33,6 +33,9 @@ namespace Orthanc
     {
     }
 
+    // New in Orthanc 1.8.1
+    virtual bool IsValidBearerToken(const std::string& token) = 0;
+    
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,
