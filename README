@@ -45,6 +45,10 @@ Orthanc is licensed under the GPLv3 license, with the OpenSSL
 exception:
 http://people.gnome.org/~markmc/openssl-and-the-gpl.html
 
+Full information about the licensing of the Orthanc ecosystem is
+available in the Orthanc Book:
+https://book.orthanc-server.com/faq/licensing.html
+
 We also kindly ask scientific works and clinical studies that make
 use of Orthanc to cite Orthanc in their associated publications.
 Similarly, we ask open-source and closed-source products that make
