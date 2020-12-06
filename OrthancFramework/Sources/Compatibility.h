@@ -39,7 +39,7 @@
 #elif defined(__GNUC__) || defined(__clang__)
 #  define ORTHANC_DEPRECATED(f) f __attribute__((deprecated))
 #elif defined(_MSC_VER)
-#  define ORTHANC_DEPRECATED(f) f __declspec(deprecated)
+#  define ORTHANC_DEPRECATED(f) __declspec(deprecated) f
 #else
 #  define ORTHANC_DEPRECATED
 #endif
