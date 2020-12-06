@@ -251,6 +251,16 @@ def ExploreClass(child, fqn):
         elif (i.kind == clang.cindex.CursorKind.TYPEDEF_DECL or  # Allow "typedef"
               i.kind == clang.cindex.CursorKind.ENUM_DECL):      # Allow enums
             pass
+
+        elif i.kind == clang.cindex.CursorKind.FRIEND_DECL:
+            children = list(i.get_children())
+            if (isPublic and
+                (len(children) != 1 or
+                 not children[0].displayname in [
+                     # This is supported for ABI compatibility with Orthanc <= 1.8.0
+                     'operator<<(std::ostream &, const Orthanc::DicomTag &)',
+                 ])):
+                raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
             
         else:
             if isPublic:
