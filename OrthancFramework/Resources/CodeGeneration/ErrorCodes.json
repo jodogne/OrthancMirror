@@ -222,6 +222,11 @@
     "Name": "SslInitialization", 
     "Description": "Cannot initialize SSL encryption, check out your certificates"
   }, 
+  {
+    "Code": 40, 
+    "Name": "DiscontinuedAbi", 
+    "Description": "Calling a function that has been removed from the Orthanc Framework"
+  }, 
 
 
 
