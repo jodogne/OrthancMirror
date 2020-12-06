@@ -84,6 +84,11 @@ namespace Orthanc
       SequenceOfOperationsJob&   that_;
       boost::mutex::scoped_lock  lock_;
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+      void AddInput(size_t index,
+                    const JobOperationValue& value) ORTHANC_DEPRECATED;
+#endif
+      
     public:
       explicit Lock(SequenceOfOperationsJob& that);
 

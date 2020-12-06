@@ -37,7 +37,7 @@ namespace Orthanc
     std::string      chunk_;
     size_t           chunkSize_;
 
-    void Initialize(const boost::filesystem::path& path) ORTHANC_LOCAL;
+    void Initialize(const boost::filesystem::path& path);
 
   public:
     explicit FilesystemHttpSender(const std::string& path);

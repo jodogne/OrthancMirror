@@ -363,4 +363,13 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  std::ostream& operator<< (std::ostream& o, const DicomTag& tag)
+  {
+    tag.FormatStream(o);
+    return o;
+  }
+#endif
 }

@@ -34,6 +34,7 @@ Maintenance
 * Fix keep-alive in the embedded HTTP server by setting the "Keep-Alive" HTTP header
 * Fix access to videos as a single raw frame (feature broken since Orthanc 1.6.0)
 * REST API now returns 404 error if deleting an inexistent peer or modality
+* Improved forward ABI compatibility of Orthanc Framework (notably, no inline methods anymore)
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - civetweb 1.13
 
