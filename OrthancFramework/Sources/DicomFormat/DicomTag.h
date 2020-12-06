@@ -26,6 +26,7 @@
 #include <set>
 #include <stdint.h>
 
+#include "../Compatibility.h"
 #include "../Enumerations.h"
 
 namespace Orthanc
@@ -73,7 +74,7 @@ namespace Orthanc
                                  DicomModule module);
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-    ORTHANC_PUBLIC friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag);
+    ORTHANC_PUBLIC friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag) ORTHANC_DEPRECATED;
 #endif
   };
 
