@@ -181,6 +181,9 @@ namespace Orthanc
       case ErrorCode_SslInitialization:
         return "Cannot initialize SSL encryption, check out your certificates";
 
+      case ErrorCode_DiscontinuedAbi:
+        return "Calling a function that has been removed from the Orthanc Framework";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
