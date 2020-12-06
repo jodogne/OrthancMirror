@@ -34,12 +34,12 @@
 
 
 // Macro "ORTHANC_DEPRECATED" tags a function as having been deprecated
-#if __cplusplus >= 201402L   // C++14
-#  define ORTHANC_DEPRECATED [[deprecated]]
+#if (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_DEPRECATED(f) [[deprecated]] f
 #elif defined(__GNUC__) || defined(__clang__)
-#  define ORTHANC_DEPRECATED __attribute__((deprecated))
+#  define ORTHANC_DEPRECATED(f) f __attribute__((deprecated))
 #elif defined(_MSC_VER)
-#  define ORTHANC_DEPRECATED __declspec(deprecated)
+#  define ORTHANC_DEPRECATED(f) f __declspec(deprecated)
 #else
 #  define ORTHANC_DEPRECATED
 #endif

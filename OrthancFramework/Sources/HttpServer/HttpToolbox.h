@@ -62,36 +62,32 @@ namespace Orthanc
                                     const GetArguments& source);
 
 #if (ORTHANC_ENABLE_MONGOOSE == 1 || ORTHANC_ENABLE_CIVETWEB == 1)
-    ORTHANC_DEPRECATED
-    static bool SimpleGet(std::string& result,
-                          IHttpHandler& handler,
-                          RequestOrigin origin,
-                          const std::string& uri,
-                          const Arguments& httpHeaders);
+    ORTHANC_DEPRECATED(static bool SimpleGet(std::string& result,
+                                             IHttpHandler& handler,
+                                             RequestOrigin origin,
+                                             const std::string& uri,
+                                             const Arguments& httpHeaders));
 
-    ORTHANC_DEPRECATED
-    static bool SimplePost(std::string& result,
-                           IHttpHandler& handler,
-                           RequestOrigin origin,
-                           const std::string& uri,
-                           const void* bodyData,
-                           size_t bodySize,
-                           const Arguments& httpHeaders);
+    ORTHANC_DEPRECATED(static bool SimplePost(std::string& result,
+                                              IHttpHandler& handler,
+                                              RequestOrigin origin,
+                                              const std::string& uri,
+                                              const void* bodyData,
+                                              size_t bodySize,
+                                              const Arguments& httpHeaders));
 
-    ORTHANC_DEPRECATED
-    static bool SimplePut(std::string& result,
-                          IHttpHandler& handler,
-                          RequestOrigin origin,
-                          const std::string& uri,
-                          const void* bodyData,
-                          size_t bodySize,
-                          const Arguments& httpHeaders);
+    ORTHANC_DEPRECATED(static bool SimplePut(std::string& result,
+                                             IHttpHandler& handler,
+                                             RequestOrigin origin,
+                                             const std::string& uri,
+                                             const void* bodyData,
+                                             size_t bodySize,
+                                             const Arguments& httpHeaders));
 
-    ORTHANC_DEPRECATED
-    static bool SimpleDelete(IHttpHandler& handler,
-                             RequestOrigin origin,
-                             const std::string& uri,
-                             const Arguments& httpHeaders);
+    ORTHANC_DEPRECATED(static bool SimpleDelete(IHttpHandler& handler,
+                                                RequestOrigin origin,
+                                                const std::string& uri,
+                                                const Arguments& httpHeaders));
 #endif
   };
 }
