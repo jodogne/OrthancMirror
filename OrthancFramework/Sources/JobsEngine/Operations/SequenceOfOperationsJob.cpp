@@ -236,6 +236,15 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  void SequenceOfOperationsJob::Lock::AddInput(size_t index,
+                                               const JobOperationValue& value)
+  {
+    throw OrthancException(ErrorCode_DiscontinuedAbi, "Removed in 1.8.1");
+  }
+#endif
+
+
   SequenceOfOperationsJob::Lock::Lock(SequenceOfOperationsJob& that) :
     that_(that),
     lock_(that.mutex_)

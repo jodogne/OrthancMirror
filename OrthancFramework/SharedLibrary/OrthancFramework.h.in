@@ -51,6 +51,7 @@
  * "OrthancFrameworkConfiguration.cmake"
  **/
 
+#define ORTHANC_BUILDING_FRAMEWORK_LIBRARY 0
 #define ORTHANC_ENABLE_BASE64 1
 #define ORTHANC_ENABLE_MD5 1
 

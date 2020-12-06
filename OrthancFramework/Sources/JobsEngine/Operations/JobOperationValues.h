@@ -23,6 +23,7 @@
 #pragma once
 
 #include "IJobOperationValue.h"
+#include "../../Compatibility.h"
 
 #include <vector>
 
@@ -30,11 +31,28 @@ namespace Orthanc
 {
   class IJobUnserializer;
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  class JobOperationValue
+  {
+    /**
+     * This is for ABI compatibility with Orthanc framework <= 1.8.0,
+     * only to be able to run unit tests from Orthanc 1.7.2 to
+     * 1.8.0. The class was moved to "IJobOperationValue" in 1.8.1,
+     * and its memory layout has changed. Don't use this anymore.
+     **/
+  };
+#endif
+
   class ORTHANC_PUBLIC JobOperationValues : public boost::noncopyable
   {
   private:
     std::vector<IJobOperationValue*>   values_;
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+    // For binary compatibility with Orthanc <= 1.8.0
+    void Append(JobOperationValue* value) ORTHANC_DEPRECATED;
+#endif
+    
     void Append(JobOperationValues& target,
                 bool clear);
 
