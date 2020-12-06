@@ -50,7 +50,7 @@ namespace Orthanc
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
     // For binary compatibility with Orthanc <= 1.8.0
-    void Append(JobOperationValue* value) ORTHANC_DEPRECATED;
+    ORTHANC_DEPRECATED(void Append(JobOperationValue* value));
 #endif
     
     void Append(JobOperationValues& target,

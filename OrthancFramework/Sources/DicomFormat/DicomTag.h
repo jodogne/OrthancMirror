@@ -74,7 +74,7 @@ namespace Orthanc
                                  DicomModule module);
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
-    ORTHANC_PUBLIC friend std::ostream& operator<< (std::ostream& o, const DicomTag& tag) ORTHANC_DEPRECATED;
+    ORTHANC_PUBLIC ORTHANC_DEPRECATED(friend std::ostream& operator<<(std::ostream& o, const DicomTag& tag));
 #endif
   };
 
