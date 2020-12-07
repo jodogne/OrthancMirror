@@ -180,3 +180,61 @@ TEST(HierarchicalZipWriter, Basic)
 
   **/
 }
+
+
+
+
+
+#include "../Resources/ThirdParty/minizip/unzip.h"
+
+TEST(ZipReader, DISABLED_Basic)
+{
+  unzFile zip = unzOpen("/home/jodogne/DICOM/Demo/BRAINIX.zip");
+  printf(">> %d\n", zip);
+
+  unz_global_info info;
+  printf(">> %d\n", unzGetGlobalInfo(zip, &info));
+  printf("%d %d\n", info.number_entry, info.size_comment);
+
+  unsigned int count = 0;
+  printf(">> %d\n", unzGoToFirstFile(zip));
+  for (;;)
+  {
+    char f[1024];
+    unz_file_info64_s j;
+    unzGetCurrentFileInfo64(zip, &j, f, sizeof(f) - 1, NULL, 0, NULL, 0);
+    printf("[%s] %d %d\n", f, j.uncompressed_size, j.size_filename);
+
+
+    printf("%d\n", unzOpenCurrentFile(zip));
+
+    std::string content;
+    content.resize(j.uncompressed_size);
+    if (!content.empty())
+    {
+      printf("%d\n", unzReadCurrentFile(zip, &content[0], content.size()));
+
+      char g[1024];
+      sprintf(g, "/tmp/i/zip-%06d.dcm", count);
+      FILE* h = fopen(g, "wb");
+      fwrite(content.c_str(), content.size(), 1, h);
+      fclose(h);
+    }
+    
+    printf("%d\n", unzCloseCurrentFile(zip));
+  
+    
+    count += 1;
+    int i = unzGoToNextFile(zip);
+    if (i != 0)
+    {
+      printf("done\n");
+      break;
+    }
+  }
+
+  printf("count: %d\n", count);    
+  
+  unzClose(zip);
+}
+
