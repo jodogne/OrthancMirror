@@ -37,7 +37,7 @@
 
 #if defined(_MSC_VER)
 #  include <BaseTsd.h>   // Definition of SSIZE_T
-typedef SSIZE_T ssize_t;
+// typedef SSIZE_T ssize_t;
 #endif
 
 #include <string.h>
