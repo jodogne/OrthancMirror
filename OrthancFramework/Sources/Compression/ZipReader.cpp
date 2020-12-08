@@ -58,7 +58,7 @@ namespace Orthanc
     {
     }
   
-    MemoryBuffer(const std::string& s) :
+    explicit MemoryBuffer(const std::string& s) :
       content_(s.empty() ? NULL : reinterpret_cast<const uint8_t*>(s.c_str())),
       size_(s.size()),
       pos_(0)
