@@ -29,9 +29,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 
-#if defined(_MSC_VER)
-#  include <BaseTsd.h>   // Definition of ssize_t
-#endif
 
 namespace Orthanc
 {
