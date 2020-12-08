@@ -62,8 +62,8 @@ namespace Orthanc
 
     uint64_t GetFilesCount() const;
 
-    bool ReadNextFile(std::string& content,
-                      std::string& filename);
+    bool ReadNextFile(std::string& filename,
+                      std::string& content);
     
     static ZipReader* CreateFromMemory(const void* buffer,
                                        size_t size);

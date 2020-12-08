@@ -18,7 +18,7 @@ stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1163
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:383
 stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
-syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:129
+syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:130
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:319
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
