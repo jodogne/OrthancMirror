@@ -33,6 +33,7 @@
 
 #include "OrthancWebDav.h"
 
+#include "../../OrthancFramework/Sources/Compression/ZipReader.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/WebDavStorage.h"
@@ -1266,26 +1267,63 @@ namespace Orthanc
     boost::posix_time::ptime time;
     if (uploads_.GetFileContent(mime, content, time, uri))
     {
-      DicomInstanceToStore instance;
-      instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
-      instance.SetBuffer(content.c_str(), content.size());
-
       bool success = false;
 
-      try
+      if (ZipReader::IsZipMemoryBuffer(content))
       {
-        std::string publicId;
-        StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
-        if (status == StoreStatus_Success ||
-            status == StoreStatus_AlreadyStored)
+        // New in Orthanc 1.9.0
+        std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(content));
+
+        std::string filename, content;
+        while (reader->ReadNextFile(filename, content))
         {
-          LOG(INFO) << "Successfully imported DICOM instance from WebDAV: "
-                    << path << " (Orthanc ID: " << publicId << ")";
-          success = true;
+          if (!content.empty())
+          {
+            LOG(INFO) << "Uploading DICOM file extracted from a ZIP archive in WebDAV: " << filename;
+          
+            DicomInstanceToStore instance;
+            instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
+            instance.SetBuffer(content.c_str(), content.size());
+
+            std::string publicId;
+
+            try
+            {
+              context_.Store(publicId, instance, StoreInstanceMode_Default);
+            }
+            catch (OrthancException& e)
+            {
+              if (e.GetErrorCode() == ErrorCode_BadFileFormat)
+              {
+                LOG(ERROR) << "Cannot import non-DICOM file from ZIP archive: " << filename;
+              }
+            }
+          }
         }
+
+        success = true;
       }
-      catch (OrthancException& e)
+      else
       {
+        DicomInstanceToStore instance;
+        instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
+        instance.SetBuffer(content.c_str(), content.size());
+
+        try
+        {
+          std::string publicId;
+          StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
+          if (status == StoreStatus_Success ||
+              status == StoreStatus_AlreadyStored)
+          {
+            LOG(INFO) << "Successfully imported DICOM instance from WebDAV: "
+                      << path << " (Orthanc ID: " << publicId << ")";
+            success = true;
+          }
+        }
+        catch (OrthancException& e)
+        {
+        }
       }
 
       uploads_.DeleteItem(uri);
