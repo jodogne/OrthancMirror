@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* ZIP archives containing DICOM files can be uploaded using WebDAV
 
 REST API
 --------
