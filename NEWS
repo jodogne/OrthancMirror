@@ -2,6 +2,12 @@ Pending changes in the mainline
 ===============================
 
 
+REST API
+--------
+
+* "/instances" can be used to import ZIP archives provided in the POST body
+
+
 Version 1.8.1 (2020-12-07)
 ==========================
 

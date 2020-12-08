@@ -35,6 +35,7 @@
 #include "OrthancRestApi.h"
 
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
+#include "../../../OrthancFramework/Sources/Compression/ZipReader.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -61,18 +62,26 @@ namespace Orthanc
   }
 
 
+  static void SetupResourceAnswer(Json::Value& result,
+                                  DicomInstanceToStore& instance,
+                                  StoreStatus status,
+                                  const std::string& instanceId)
+  {
+    SetupResourceAnswer(result, instanceId, ResourceType_Instance, status);
+
+    result["ParentPatient"] = instance.GetHasher().HashPatient();
+    result["ParentStudy"] = instance.GetHasher().HashStudy();
+    result["ParentSeries"] = instance.GetHasher().HashSeries();
+  }
+
+
   void OrthancRestApi::AnswerStoredInstance(RestApiPostCall& call,
                                             DicomInstanceToStore& instance,
                                             StoreStatus status,
                                             const std::string& instanceId) const
   {
     Json::Value result;
-    SetupResourceAnswer(result, instanceId, ResourceType_Instance, status);
-
-    result["ParentPatient"] = instance.GetHasher().HashPatient();
-    result["ParentStudy"] = instance.GetHasher().HashStudy();
-    result["ParentSeries"] = instance.GetHasher().HashSeries();
-
+    SetupResourceAnswer(result, instance, status, instanceId);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -121,28 +130,75 @@ namespace Orthanc
                              "Received an empty DICOM file");
     }
 
-    // The lifetime of "dicom" must be longer than "toStore", as the
-    // latter can possibly store a reference to the former (*)
-    std::string dicom;
-
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-
-    if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
+    if (ZipReader::IsZipMemoryBuffer(call.GetBodyData(), call.GetBodySize()))
     {
-      GzipCompressor compressor;
-      compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
-      toStore.SetBuffer(dicom.c_str(), dicom.size());  // (*)
+      // New in Orthanc 1.9.0
+      std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(call.GetBodyData(), call.GetBodySize()));
+
+      Json::Value answer = Json::arrayValue;
+      
+      std::string filename, content;
+      while (reader->ReadNextFile(filename, content))
+      {
+        if (!content.empty())
+        {
+          LOG(INFO) << "Uploading DICOM file from ZIP archive: " << filename;
+          
+          DicomInstanceToStore toStore;
+          toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
+          toStore.SetBuffer(content.c_str(), content.size());
+
+          std::string publicId;
+
+          try
+          {
+            StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
+
+            Json::Value info;
+            SetupResourceAnswer(info, toStore, status, publicId);
+            answer.append(info);
+          }
+          catch (OrthancException& e)
+          {
+            if (e.GetErrorCode() == ErrorCode_BadFileFormat)
+            {
+              LOG(ERROR) << "Cannot import non-DICOM file from ZIP archive: " << filename;
+            }
+            else
+            {
+              throw;
+            }
+          }
+        }
+      }      
+
+      call.GetOutput().AnswerJson(answer);
     }
     else
     {
-      toStore.SetBuffer(call.GetBodyData(), call.GetBodySize());
-    }    
+      // The lifetime of "dicom" must be longer than "toStore", as the
+      // latter can possibly store a reference to the former (*)
+      std::string dicom;
 
-    std::string publicId;
-    StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
+      DicomInstanceToStore toStore;
+      toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
 
-    OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, publicId);
+      if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
+      {
+        GzipCompressor compressor;
+        compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
+        toStore.SetBuffer(dicom.c_str(), dicom.size());  // (*)
+      }
+      else
+      {
+        toStore.SetBuffer(call.GetBodyData(), call.GetBodySize());
+      }    
+
+      std::string publicId;
+      StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
+
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, publicId);
+    }
   }
 
 
