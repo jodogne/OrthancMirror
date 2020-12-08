@@ -35,6 +35,10 @@
 #  include "../SystemToolbox.h"
 #endif
 
+#if defined(_MSC_VER)
+#  include <BaseTsd.h>   // Definition of ssize_t
+#endif
+
 #include <string.h>
 
 
