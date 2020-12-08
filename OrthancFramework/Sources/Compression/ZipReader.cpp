@@ -36,7 +36,8 @@
 #endif
 
 #if defined(_MSC_VER)
-#  include <BaseTsd.h>   // Definition of ssize_t
+#  include <BaseTsd.h>   // Definition of SSIZE_T
+typedef SSIZE_T ssize_t;
 #endif
 
 #include <string.h>
@@ -91,7 +92,7 @@ namespace Orthanc
         }
       
         pos_ += s;
-        return s;
+        return static_cast<uLong>(s);
       }             
     }
 
@@ -318,7 +319,8 @@ namespace Orthanc
 
       filename.resize(info.size_filename);
       if (!filename.empty() &&
-          unzGetCurrentFileInfo64(pimpl_->unzip_, &info, &filename[0], filename.size(), NULL, 0, NULL, 0) != 0)
+          unzGetCurrentFileInfo64(pimpl_->unzip_, &info, &filename[0],
+                                  static_cast<uLong>(filename.size()), NULL, 0, NULL, 0) != 0)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
       }
@@ -329,7 +331,8 @@ namespace Orthanc
       {
         if (unzOpenCurrentFile(pimpl_->unzip_) == 0)
         {
-          bool success = (unzReadCurrentFile(pimpl_->unzip_, &content[0], content.size()) != 0);
+          bool success = (unzReadCurrentFile(pimpl_->unzip_, &content[0],
+                                             static_cast<uLong>(content.size())) != 0);
                           
           if (unzCloseCurrentFile(pimpl_->unzip_) != 0 ||
               !success)
