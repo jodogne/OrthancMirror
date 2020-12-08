@@ -369,6 +369,7 @@ if (ENABLE_ZLIB)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/DeflateBaseCompressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/GzipCompressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/IBufferCompressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZipReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZlibCompressor.cpp
     )
 
