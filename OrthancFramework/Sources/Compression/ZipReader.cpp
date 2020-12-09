@@ -35,9 +35,20 @@
 #  include "../SystemToolbox.h"
 #endif
 
+
+/**
+ * I have not been able to correctly define "ssize_t" on all versions
+ * of Visual Studio. As a consequence, I prefered to switch "ssize_t"
+ * to "SSIZE_T", that is properly defined on both MSVC 2008 and 2015.
+ * I define the macro "SSIZE_T" as an alias to "ssize_t" on
+ * POSIX-compliant platforms that wouldn't have "SSIZE_T" defined.
+ **/
 #if defined(_MSC_VER)
 #  include <BaseTsd.h>   // Definition of SSIZE_T
-// typedef SSIZE_T ssize_t;
+#else
+#  if !defined(SSIZE_T)
+typedef ssize_t SSIZE_T;
+#  endif
 #endif
 
 #include <string.h>
@@ -104,20 +115,20 @@ namespace Orthanc
     long Seek(ZPOS64_T offset,
               int origin)
     {
-      ssize_t next;
+      SSIZE_T next;
     
       switch (origin)
       {
         case ZLIB_FILEFUNC_SEEK_CUR:
-          next = static_cast<ssize_t>(offset) + static_cast<ssize_t>(pos_);
+          next = static_cast<SSIZE_T>(offset) + static_cast<SSIZE_T>(pos_);
           break;
 
         case ZLIB_FILEFUNC_SEEK_SET:
-          next = static_cast<ssize_t>(offset);
+          next = static_cast<SSIZE_T>(offset);
           break;
 
         case ZLIB_FILEFUNC_SEEK_END:
-          next = static_cast<ssize_t>(offset) + static_cast<ssize_t>(size_);
+          next = static_cast<SSIZE_T>(offset) + static_cast<SSIZE_T>(size_);
           break;
 
         default:  // Should never occur
