@@ -11,6 +11,11 @@ REST API
 
 * "/instances" can be used to import ZIP archives provided in the POST body
 
+Maintenance
+-----------
+
+* Allow concurrency on the OrthancPluginRegisterIncomingHttpRequestFilter() callbacks
+
 
 Version 1.8.1 (2020-12-07)
 ==========================

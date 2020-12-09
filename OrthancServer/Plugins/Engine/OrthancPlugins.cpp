@@ -930,6 +930,7 @@ namespace Orthanc
     boost::mutex refreshMetricsMutex_;
     boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
+    boost::shared_mutex incomingHttpRequestFilterMutex_;  // New in Orthanc 1.9.0
 
     Properties properties_;
     int argc_;
@@ -2155,6 +2156,8 @@ namespace Orthanc
     const _OrthancPluginIncomingHttpRequestFilter& p = 
       *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter*>(parameters);
 
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+    
     CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters_.push_back(p.callback);
   }
@@ -2165,6 +2168,8 @@ namespace Orthanc
     const _OrthancPluginIncomingHttpRequestFilter2& p = 
       *reinterpret_cast<const _OrthancPluginIncomingHttpRequestFilter2*>(parameters);
 
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+    
     CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming HTTP requests";
     pimpl_->incomingHttpRequestFilters2_.push_back(p.callback);
   }
@@ -4423,6 +4428,14 @@ namespace Orthanc
         return true;
       }
         
+      case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
+        RegisterIncomingHttpRequestFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
+        RegisterIncomingHttpRequestFilter2(parameters);
+        return true;
+
       default:
         return false;
     }
@@ -4482,14 +4495,6 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterJobsUnserializer:
         RegisterJobsUnserializer(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterIncomingHttpRequestFilter:
-        RegisterIncomingHttpRequestFilter(parameters);
-        return true;
-
-      case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
-        RegisterIncomingHttpRequestFilter2(parameters);
         return true;
 
       case _OrthancPluginService_RegisterIncomingDicomInstanceFilter:
@@ -4940,7 +4945,7 @@ namespace Orthanc
     }
 
     {
-      boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+      boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
     
       // Improved callback with support for GET arguments, since Orthanc 1.3.0
       for (PImpl::IncomingHttpRequestFilters2::const_iterator

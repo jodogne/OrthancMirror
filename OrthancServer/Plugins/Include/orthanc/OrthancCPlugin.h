@@ -1267,6 +1267,10 @@ extern "C"
    * ("false"), the server answers with HTTP status code 403
    * (Forbidden).
    *
+   * Pay attention to the fact that this function may be invoked
+   * concurrently by different threads of the Web server of
+   * Orthanc. You must implement proper locking if applicable.
+   *
    * @param method The HTTP method used by the request.
    * @param uri The URI of interest.
    * @param ip The IP address of the HTTP client.
@@ -1295,6 +1299,10 @@ extern "C"
    * this request should be allowed. If the callback returns "0"
    * ("false"), the server answers with HTTP status code 403
    * (Forbidden).
+   *
+   * Pay attention to the fact that this function may be invoked
+   * concurrently by different threads of the Web server of
+   * Orthanc. You must implement proper locking if applicable.
    *
    * @param method The HTTP method used by the request.
    * @param uri The URI of interest.
