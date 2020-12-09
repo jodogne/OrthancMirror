@@ -169,7 +169,7 @@ namespace Orthanc
         return OrthancPluginErrorCode_Success;
 
       case _OrthancPluginService_LogInfo:
-        LOG(INFO) << reinterpret_cast<const char*>(params);
+        CLOG(INFO, PLUGINS) << reinterpret_cast<const char*>(params);
         return OrthancPluginErrorCode_Success;
 
       default:
