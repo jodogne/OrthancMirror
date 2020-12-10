@@ -618,5 +618,16 @@
   // immediately written to the disk. This option only makes sense if
   // the builtin filesystem storage area is used. It defaults to
   // "false" in Orthanc <= 1.7.3, and to "true" in Orthanc >= 1.7.4.
-  "SyncStorageArea" : true
+  "SyncStorageArea" : true,
+
+  // If specified, on compatible systems, call "mallopt(M_ARENA_MAX,
+  // ...)" while starting Orthanc. This has the same effect at setting
+  // the environment variable "MALLOC_ARENA_MAX". This avoids large
+  // growth in RES memory if the threads of the embedded HTTP server
+  // have to allocate large chunks of memory (typically the case with
+  // large DICOM files). By setting "MallocArenaMax" to "N", these
+  // threads share "N" memory pools (known as "arenas"). Setting this
+  // option to "0" doesn't call mallopt()", which was the behavior of
+  // Orthanc <= 1.8.1.
+  "MallocArenaMax" : 5 
 }

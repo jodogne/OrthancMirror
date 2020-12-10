@@ -284,6 +284,15 @@ endif()
 ## Configuration of the C/C++ macros
 #####################################################################
 
+check_symbol_exists(mallopt "malloc.h" HAVE_MALLOPT)
+
+if (HAVE_MALLOPT)
+  add_definitions(-DHAVE_MALLOPT=1)
+else()
+  add_definitions(-DHAVE_MALLOPT=0)
+endif()
+
+
 if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)
 else()
