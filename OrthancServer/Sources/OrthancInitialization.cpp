@@ -38,6 +38,14 @@
 #  include <winsock2.h>
 #endif
 
+#if !defined(HAVE_MALLOPT)
+#  error Macro HAVE_MALLOPT must be defined
+#endif
+
+#if HAVE_MALLOPT == 1
+#  include <malloc.h>
+#endif
+
 #include "OrthancInitialization.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -227,6 +235,11 @@ namespace Orthanc
 
   void OrthancInitialize(const char* configurationFile)
   {
+    static const char* LOCALE = "Locale";
+    static const char* PKCS11 = "Pkcs11";
+    static const char* DEFAULT_ENCODING = "DefaultEncoding";
+    static const char* MALLOC_ARENA_MAX = "MallocArenaMax";
+    
     OrthancConfiguration::WriterLock lock;
 
     InitializeServerEnumerations();
@@ -237,9 +250,9 @@ namespace Orthanc
     {
       std::string locale;
       
-      if (lock.GetJson().isMember("Locale"))
+      if (lock.GetJson().isMember(LOCALE))
       {
-        locale = lock.GetConfiguration().GetStringParameter("Locale", "");
+        locale = lock.GetConfiguration().GetStringParameter(LOCALE, "");
       }
       
       bool loadPrivate = lock.GetConfiguration().GetBooleanParameter("LoadPrivateDictionary", true);
@@ -248,9 +261,9 @@ namespace Orthanc
 
     // The Orthanc framework is now initialized
 
-    if (lock.GetJson().isMember("DefaultEncoding"))
+    if (lock.GetJson().isMember(DEFAULT_ENCODING))
     {
-      std::string encoding = lock.GetConfiguration().GetStringParameter("DefaultEncoding", "");
+      std::string encoding = lock.GetConfiguration().GetStringParameter(DEFAULT_ENCODING, "");
       SetDefaultDicomEncoding(StringToEncoding(encoding.c_str()));
     }
     else
@@ -258,9 +271,9 @@ namespace Orthanc
       SetDefaultDicomEncoding(ORTHANC_DEFAULT_DICOM_ENCODING);
     }
 
-    if (lock.GetJson().isMember("Pkcs11"))
+    if (lock.GetJson().isMember(PKCS11))
     {
-      ConfigurePkcs11(lock.GetJson()["Pkcs11"]);
+      ConfigurePkcs11(lock.GetJson()[PKCS11]);
     }
 
     RegisterUserMetadata(lock.GetJson());
@@ -269,6 +282,28 @@ namespace Orthanc
     LoadCustomDictionary(lock.GetJson());
 
     lock.GetConfiguration().RegisterFont(ServerResources::FONT_UBUNTU_MONO_BOLD_16);
+
+#if HAVE_MALLOPT == 1
+    // New in Orthanc 1.9.0
+    // https://book.orthanc-server.com/faq/scalability.html#controlling-memory-usage
+    unsigned int maxArena = lock.GetConfiguration().GetUnsignedIntegerParameter(MALLOC_ARENA_MAX, 5);
+    if (maxArena != 0)
+    {
+      // https://man7.org/linux/man-pages/man3/mallopt.3.html
+      LOG(INFO) << "Calling mallopt(M_ARENA_MAX, " << maxArena << ")";
+      if (mallopt(M_ARENA_MAX, maxArena) != 1 /* success */)
+      {
+        throw OrthancException(ErrorCode_InternalError, "The call to mallopt(M_ARENA_MAX, " +
+                               boost::lexical_cast<std::string>(maxArena) + ") has failed");
+      }
+    }
+#else
+    if (lock.GetJson().isMember(MALLOC_ARENA_MAX))
+    {
+      LOG(INFO) << "Your platform does not support mallopt(), ignoring configuration option \""
+                << MALLOC_ARENA_MAX << "\"";
+    }
+#endif
   }
 
 

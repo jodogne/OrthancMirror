@@ -5,6 +5,7 @@ General
 -------
 
 * ZIP archives containing DICOM files can be uploaded using WebDAV
+* New config option "MallocArenaMax" to control memory usage on GNU/Linux
 
 REST API
 --------
