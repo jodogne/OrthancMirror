@@ -162,8 +162,10 @@ namespace Orthanc
   
   static void DicomEcho(RestApiPostCall& call)
   {
-    Json::Value body;
-    if (call.ParseJsonRequest(body))
+    Json::Value body = Json::objectValue;
+
+    if (call.GetBodySize() == 0 /* allow empty body, was disallowed in Orthanc 1.7.0->1.8.1 */ ||
+        call.ParseJsonRequest(body))
     {
       const DicomAssociationParameters parameters = GetAssociationParameters(call, body);
       ExecuteEcho(call.GetOutput(), parameters, body);
