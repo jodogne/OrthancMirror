@@ -1631,9 +1631,16 @@ namespace Orthanc
         options.push_back("ssl_ca_file");
         options.push_back(trustedClientCertificates_.c_str());
       }
-
       if (ssl_)
       {
+        // Restrict minimum SSL/TLS protocol version
+        options.push_back("ssl_protocol_version");
+        options.push_back(sslMinimumVersion_.c_str());
+
+        // Set the accepted ciphers list
+        options.push_back("ssl_cipher_list");
+        options.push_back(sslCiphers_.c_str());
+
         // Set the SSL certificate, if any
         options.push_back("ssl_certificate");
         options.push_back(certificate_.c_str());
@@ -1781,6 +1788,18 @@ namespace Orthanc
 #else
     sslVerifyPeers_ = enabled;
 #endif
+  }
+
+  void HttpServer::SetSslMinimumVersion(std::string version)
+  {
+    Stop();
+    sslMinimumVersion_ = std::move(version);
+  }
+
+  void HttpServer::SetSslCiphers(std::string ciphers)
+  {
+    Stop();
+    sslCiphers_ = std::move(ciphers);
   }
 
   void HttpServer::SetKeepAliveEnabled(bool enabled)

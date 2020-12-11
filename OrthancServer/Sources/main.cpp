@@ -1043,6 +1043,38 @@ static bool StartHttpServer(ServerContext& context,
           lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
+        
+        // Default to TLS 1.2 as SSL minimum
+        // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
+        std::string tls1_2 = "4";
+        std::string minimumVersion = lock.GetConfiguration().GetStringParameter("SslMinimumProtocolVersion", tls1_2);
+        httpServer.SetSslMinimumVersion(minimumVersion);
+
+        // Default to FIPS 140-2 ciphers 
+        const std::vector<std::string> fipsCiphers = { 
+          "ECDHE-ECDSA-AES256-GCM-SHA384", 
+          "ECDHE-ECDSA-AES256-SHA384",
+          "ECDHE-RSA-AES256-GCM-SHA384", 
+          "ECDHE-RSA-AES128-GCM-SHA256", 
+          "ECDHE-RSA-AES256-SHA384",
+          "ECDHE-RSA-AES128-SHA256", 
+          "ECDHE-RSA-AES128-SHA", 
+          "ECDHE-RSA-AES256-SHA", 
+          "DHE-RSA-AES256-SHA",
+          "DHE-RSA-AES128-SHA", 
+          "AES256-SHA",
+          "AES128-SHA"};
+
+        // Format default cipher string
+        std::string defaultCipherString;
+        for (const auto &cipher : fipsCiphers)
+        {
+          defaultCipherString += cipher + ":";
+        }
+        defaultCipherString.pop_back();
+
+        std::string ciphersAccepted = lock.GetConfiguration().GetStringParameter("SslCiphersAccepted", defaultCipherString); 
+        httpServer.SetSslCiphers(ciphersAccepted);
       }
       else
       {
