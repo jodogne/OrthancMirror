@@ -556,9 +556,12 @@ namespace Orthanc
   }
 
 
-  void OrthancRestApi::RegisterSystem()
+  void OrthancRestApi::RegisterSystem(bool orthancExplorerEnabled)
   {
-    Register("/", ServeRoot);
+    if (orthancExplorerEnabled)
+    {
+      Register("/", ServeRoot);
+    }
     Register("/system", GetSystemInformation);
     Register("/statistics", GetStatistics);
     Register("/tools/generate-uid", GenerateUid);

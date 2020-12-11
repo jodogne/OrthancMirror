@@ -71,6 +71,12 @@
   // Explorer will not be available.
   "HttpServerEnabled" : true,
 
+  // Enable/Disable the Orthanc Explorer UI.  This option is only
+  // meaningful if the HttpServerEnabled is set to true 
+  /**
+  "OrthancExplorerEnabled" : true,
+  **/
+
   // HTTP port for the REST services and for the GUI
   "HttpPort" : 8042,
 

@@ -58,7 +58,7 @@ namespace Orthanc
     bool                            resetRequestReceived_;
     MetricsRegistry::SharedMetrics  activeRequests_;
 
-    void RegisterSystem();
+    void RegisterSystem(bool orthancExplorerEnabled);
 
     void RegisterChanges();
 
@@ -75,7 +75,8 @@ namespace Orthanc
     static void ShutdownOrthanc(RestApiPostCall& call);
 
   public:
-    explicit OrthancRestApi(ServerContext& context);
+    explicit OrthancRestApi(ServerContext& context,
+                            bool orthancExplorerEnabled);
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
