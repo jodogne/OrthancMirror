@@ -170,6 +170,22 @@
   // if "SslEnabled" is true.
   "SslCertificate" : "certificate.pem",
 
+  // Sets the minimum accepted SSL protocol version
+  // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md 
+  // "ssl_protocol_version" for mapping
+  // By default require SSL 1.2
+  // This option is only meaningful if "SslEnabled" is true.
+  /**
+    "SslMinimumProtocolVersion" : "4",
+  **/
+
+  // Set the allowed ciphers for SSL connections
+  // If not set, this will default to FIPS 140-2 ciphers
+  // This option is only meaningful if "SslEnabled" is true.
+  /**
+    "SslCiphersAccepted" : "",
+  **/
+
   // Whether or not peer client certificates shall be checked. This
   // option is only meaningful if "SslEnabled" is true.
   "SslVerifyPeers" : false,
