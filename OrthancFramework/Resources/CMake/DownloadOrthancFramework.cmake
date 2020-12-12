@@ -529,6 +529,16 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
       include_directories(${DCMTK_INCLUDE_DIRS})
       link_libraries(${DCMTK_LIBRARIES})
     endif()
+
+    # Optional component - OpenSSL
+    if (ENABLE_SSL)
+      include(FindOpenSSL)
+      if (NOT ${OPENSSL_FOUND})
+        message(FATAL_ERROR "Unable to find OpenSSL")
+      endif()
+      include_directories(${OPENSSL_INCLUDE_DIR})
+      link_libraries(${OPENSSL_LIBRARIES})
+    endif()
   endif()
 
   # Look for Orthanc framework shared library
