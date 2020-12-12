@@ -124,7 +124,7 @@ if (FirstRun)
   # The following patch of "e_os2.h" prevents from building OpenSSL
   # as a DLL under Windows. Otherwise, symbols have inconsistent
   # linkage if ${OPENSSL_SOURCES} is used to create a DLL (notably
-  # if building an Orthanc plugin such as MySQL).
+  # if building an Orthanc plugin such as PostgreSQL or MySQL).
   file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h "
 #include \"e_os2_source.h\"
 #if defined(_WIN32)
