@@ -55,6 +55,29 @@ if (FirstRun)
   if (Failure)
     message(FATAL_ERROR "Error while patching a file")
   endif()
+
+  file(RENAME
+    ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h
+    ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2_source.h)
+
+  # The following patch of "e_os2.h" prevents from building OpenSSL
+  # as a DLL under Windows. Otherwise, symbols have inconsistent
+  # linkage if ${OPENSSL_SOURCES} is used to create a DLL (notably
+  # if building an Orthanc plugin such as PostgreSQL or MySQL).
+  file(WRITE ${OPENSSL_SOURCES_DIR}/include/openssl/e_os2.h "
+#include \"e_os2_source.h\"
+#if defined(_WIN32)
+#  undef OPENSSL_EXPORT
+#  undef OPENSSL_IMPORT
+#  undef OPENSSL_EXTERN
+#  undef OPENSSL_GLOBAL
+#  define OPENSSL_EXPORT
+#  define OPENSSL_IMPORT
+#  define OPENSSL_EXTERN extern
+#  define OPENSSL_GLOBAL
+#endif
+")
+
 else()
   message("The patches for OpenSSL have already been applied")
 endif()
