@@ -646,16 +646,21 @@ namespace Orthanc
 
     if (db_.LookupGlobalProperty(oldValue, property))
     {
+      uint64_t oldNumber;
+      
       try
       {
-        uint64_t oldNumber = boost::lexical_cast<uint64_t>(oldValue);
-        db_.SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
-        return oldNumber + 1;
+        oldNumber = boost::lexical_cast<uint64_t>(oldValue);
       }
       catch (boost::bad_lexical_cast&)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        LOG(ERROR) << "Cannot read the global sequence "
+                   << boost::lexical_cast<std::string>(property) << ", resetting it";
+        oldNumber = 0;
       }
+
+      db_.SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
+      return oldNumber + 1;
     }
     else
     {
