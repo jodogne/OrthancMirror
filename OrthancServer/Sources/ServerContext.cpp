@@ -35,7 +35,9 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
@@ -267,7 +269,9 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
-    isIngestTranscoding_(false)
+    isIngestTranscoding_(false),
+    deidentifyDimseQueryLogs_(false),
+    deidentifyDimseQueryLogsDicomVersion_(DicomVersion_2017c)
   {
     try
     {
@@ -318,6 +322,22 @@ namespace Orthanc
           isIngestTranscoding_ = false;
           LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
         }
+
+        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyDimseQueryLogs", false))
+        {
+          deidentifyDimseQueryLogs_ = true;
+          CLOG(INFO, DICOM) << "Deidentification of DIMSE query log contents is enabled";
+
+          deidentifyDimseQueryLogsDicomVersion_ = StringToDicomVersion(
+              lock.GetConfiguration().GetStringParameter("DeidentifyDimseQueryLogsDicomVersion", "2017c"));
+          CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
+                            << EnumerationToString(deidentifyDimseQueryLogsDicomVersion_);
+        }
+        else
+        {
+          deidentifyDimseQueryLogs_ = false;
+          CLOG(INFO, DICOM) << "Deidentification of DIMSE query log contents is disabled";
+        }
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -326,6 +346,11 @@ namespace Orthanc
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
     
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
+
+      if (deidentifyDimseQueryLogs_)
+      {
+        logsDeidentifierRules_.SetupAnonymization(deidentifyDimseQueryLogsDicomVersion_);
+      }
     }
     catch (OrthancException&)
     {
@@ -1625,6 +1650,24 @@ namespace Orthanc
     else
     {
       return false;
+    }
+  }
+
+  const std::string& ServerContext::GetDeidentifiedQueryContent(const DicomElement &element) const
+  {
+    static const std::string redactedContent = "*** POTENTIAL PHI ***";
+
+    const DicomTag& tag = element.GetTag();
+    if (deidentifyDimseQueryLogs_ && (
+            logsDeidentifierRules_.IsCleared(tag) ||
+            logsDeidentifierRules_.IsRemoved(tag) ||
+            logsDeidentifierRules_.IsReplaced(tag)))
+    {
+      return redactedContent;
+    }
+    else
+    {
+      return element.GetValue().GetContent();
     }
   }
 }

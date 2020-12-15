@@ -630,4 +630,15 @@
   // option to "0" doesn't call mallopt()", which was the behavior of
   // Orthanc <= 1.8.1.
   "MallocArenaMax" : 5 
+
+  // Deidentify/anonymize the contents of C-Find, C-Get, and C-Move
+  // queries submitted to Orthanc according to Table E.1-1 of the
+  // DICOM standard
+  "DeidentifyDimseQueryLogs": true,
+
+  // If DeidentifyDimseQueryLogs is true, this sets the DICOM standard
+  // to follow for the deintification/anonymization of the query
+  // contents. Possible values are those that are specified in the
+  // definition of Orthanc::StringToDicomVersion
+  "DeidentifyDimseQueryLogsDicomVersion": "2017c",
 }
