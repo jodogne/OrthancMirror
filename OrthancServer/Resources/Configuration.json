@@ -629,5 +629,16 @@
   // threads share "N" memory pools (known as "arenas"). Setting this
   // option to "0" doesn't call mallopt()", which was the behavior of
   // Orthanc <= 1.8.1.
-  "MallocArenaMax" : 5 
+  "MallocArenaMax" : 5,
+
+  // Deidentify/anonymize the contents of the logs (notably C-Find,
+  // C-Get, and C-Move queries submitted to Orthanc) according to
+  // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2)
+  "DeidentifyLogs" : true,
+
+  // If "DeidentifyLogs" is true, this sets the DICOM standard
+  // to follow for the deidentification/anonymization of the query
+  // contents. Possible values are those that are specified in the
+  // definition of Orthanc::StringToDicomVersion (new in Orthanc 1.8.2)
+  "DeidentifyLogsDicomVersion" : "2017c"
 }

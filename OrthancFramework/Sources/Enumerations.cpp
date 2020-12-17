@@ -1608,7 +1608,8 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unknown specific version of the DICOM standard: " + version);
     }
   }
 

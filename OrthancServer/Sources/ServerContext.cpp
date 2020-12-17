@@ -35,7 +35,9 @@
 #include "ServerContext.h"
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
@@ -267,7 +269,8 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
-    isIngestTranscoding_(false)
+    isIngestTranscoding_(false),
+    deidentifyLogs_(false)
   {
     try
     {
@@ -317,6 +320,24 @@ namespace Orthanc
         {
           isIngestTranscoding_ = false;
           LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
+        }
+
+        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyLogs", true))
+        {
+          deidentifyLogs_ = true;
+          CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
+
+          DicomVersion version = StringToDicomVersion(
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2017c"));
+          CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
+                            << EnumerationToString(version);
+
+          logsDeidentifierRules_.SetupAnonymization(version);
+        }
+        else
+        {
+          deidentifyLogs_ = false;
+          CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is disabled";
         }
       }
 
@@ -1625,6 +1646,24 @@ namespace Orthanc
     else
     {
       return false;
+    }
+  }
+
+  const std::string& ServerContext::GetDeidentifiedContent(const DicomElement &element) const
+  {
+    static const std::string redactedContent = "*** POTENTIAL PHI ***";
+
+    const DicomTag& tag = element.GetTag();
+    if (deidentifyLogs_ && (
+          logsDeidentifierRules_.IsCleared(tag) ||
+          logsDeidentifierRules_.IsRemoved(tag) ||
+          logsDeidentifierRules_.IsReplaced(tag)))
+    {
+      return redactedContent;
+    }
+    else
+    {
+      return element.GetValue().GetContent();
     }
   }
 }
