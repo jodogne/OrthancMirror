@@ -1503,15 +1503,17 @@ namespace Orthanc
     authentication_(false),
     sslVerifyPeers_(false),
     ssl_(false),
+    sslMinimumVersion_(0),  // Default to any of "SSL2+SSL3+TLS1.0+TLS1.1+TLS1.2"
+    sslHasCiphers_(false),
     port_(8000),
     filter_(NULL),
     keepAlive_(false),
     httpCompression_(true),
     exceptionFormatter_(NULL),
     realm_(ORTHANC_REALM),
-    threadsCount_(50),  // Default value in mongoose
+    threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
-    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)    
+    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -1574,6 +1576,7 @@ namespace Orthanc
       std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
       std::string requestTimeoutMilliseconds = boost::lexical_cast<std::string>(requestTimeout_ * 1000);
       std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS * 1000);
+      std::string sslMinimumVersion = boost::lexical_cast<std::string>(sslMinimumVersion_);
 
       if (ssl_)
       {
@@ -1631,9 +1634,20 @@ namespace Orthanc
         options.push_back("ssl_ca_file");
         options.push_back(trustedClientCertificates_.c_str());
       }
-
+      
       if (ssl_)
       {
+        // Restrict minimum SSL/TLS protocol version
+        options.push_back("ssl_protocol_version");
+        options.push_back(sslMinimumVersion.c_str());
+
+        // Set the accepted ciphers list
+        if (sslHasCiphers_)
+        {
+          options.push_back("ssl_cipher_list");
+          options.push_back(sslCiphers_.c_str());
+        }
+
         // Set the SSL certificate, if any
         options.push_back("ssl_certificate");
         options.push_back(certificate_.c_str());
@@ -1781,6 +1795,74 @@ namespace Orthanc
 #else
     sslVerifyPeers_ = enabled;
 #endif
+  }
+
+  void HttpServer::SetSslMinimumVersion(unsigned int version)
+  {
+    Stop();
+    sslMinimumVersion_ = version;
+
+    std::string info;
+    
+    switch (version)
+    {
+      case 0:
+        info = "SSL2+SSL3+TLS1.0+TLS1.1+TLS1.2";
+        break;
+
+      case 1:
+        info = "SSL3+TLS1.0+TLS1.1+TLS1.2";
+        break;
+
+      case 2:
+        info = "TLS1.0+TLS1.1+TLS1.2";
+        break;
+
+      case 3:
+        info = "TLS1.1+TLS1.2";
+        break;
+
+      case 4:
+        info = "TLS1.2";
+        break;
+
+      default:
+        info = "Unknown value (" + boost::lexical_cast<std::string>(version) + ")";
+        break;
+    }
+
+    CLOG(INFO, HTTP) << "Minimal accepted version of SSL/TLS protocol: " << info;
+  }
+
+  void HttpServer::SetSslCiphers(const std::list<std::string>& ciphers)
+  {
+    Stop();
+
+    sslHasCiphers_ = true;
+    sslCiphers_.clear();
+
+    for (std::list<std::string>::const_iterator
+           it = ciphers.begin(); it != ciphers.end(); ++it)
+    {
+      if (it->empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Empty name for a cipher");
+      }
+
+      if (!sslCiphers_.empty())
+      {
+        sslCiphers_ += ':';
+      }
+      
+      sslCiphers_ += (*it);
+    }      
+
+    CLOG(INFO, HTTP) << "List of accepted SSL ciphers: " << sslCiphers_;
+    
+    if (sslCiphers_.empty())
+    {
+      CLOG(WARNING, HTTP) << "No cipher is accepted for SSL";
+    }
   }
 
   void HttpServer::SetKeepAliveEnabled(bool enabled)
