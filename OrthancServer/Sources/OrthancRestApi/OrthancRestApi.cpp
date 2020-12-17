@@ -205,7 +205,8 @@ namespace Orthanc
 
   // Registration of the various REST handlers --------------------------------
 
-  OrthancRestApi::OrthancRestApi(ServerContext& context) : 
+  OrthancRestApi::OrthancRestApi(ServerContext& context, 
+                                 bool orthancExplorerEnabled) : 
     context_(context),
     leaveBarrier_(false),
     resetRequestReceived_(false),
@@ -213,7 +214,7 @@ namespace Orthanc
                     "orthanc_rest_api_active_requests", 
                     MetricsType_MaxOver10Seconds)
   {
-    RegisterSystem();
+    RegisterSystem(orthancExplorerEnabled);
 
     RegisterChanges();
     RegisterResources();
