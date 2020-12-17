@@ -97,7 +97,8 @@ namespace Orthanc
     std::string trustedClientCertificates_;
     bool ssl_;
     std::string certificate_;
-    std::string sslMinimumVersion_;
+    unsigned int sslMinimumVersion_;
+    bool sslHasCiphers_;
     std::string sslCiphers_;
     uint16_t port_;
     IIncomingHttpRequestFilter* filter_;
@@ -145,9 +146,9 @@ namespace Orthanc
 
     // set the minimum accepted version of SSL/TLS protocol according to the CivetWeb table published here:
     // https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md#ssl_protocol_version-0
-    void SetSslMinimumVersion(std::string version);
+    void SetSslMinimumVersion(unsigned int version);
 
-    void SetSslCiphers(std::string ciphers);
+    void SetSslCiphers(const std::list<std::string>& ciphers);
     
     void SetSslTrustedClientCertificates(const char* path);
 
