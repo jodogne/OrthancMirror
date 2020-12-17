@@ -1229,10 +1229,25 @@ static bool ConfigureHttpHandler(ServerContext& context,
   FilesystemHttpHandler staticResources("/app", ORTHANC_PATH "/OrthancExplorer");
 #endif
 
-  context.GetHttpHandler().Register(staticResources, false);
+  // Do not register static resources if orthanc explorer is disabled
+  bool orthancExplorerEnabled = false;
+  {
+    OrthancConfiguration::ReaderLock lock;
+    orthancExplorerEnabled = lock.GetConfiguration().GetBooleanParameter(
+        "OrthancExplorerEnabled", true);
+  }
+
+  if (orthancExplorerEnabled)
+  {
+    context.GetHttpHandler().Register(staticResources, false);
+  }
+  else
+  {
+    LOG(WARNING) << "Orthanc Explorer UI is disabled";
+  }
 
   // Thirdly, consider the built-in REST API of Orthanc
-  OrthancRestApi restApi(context);
+  OrthancRestApi restApi(context, orthancExplorerEnabled);
   context.GetHttpHandler().Register(restApi, true);
 
   context.SetupJobsEngine(false /* not running unit tests */, loadJobsFromDatabase);

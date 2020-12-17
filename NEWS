@@ -11,6 +11,7 @@ General
 * New configuration options (contributions by Varian):
   - "DeidentifyLogs" to remove patient identification from the logs (C-GET, C-MOVE, C-FIND)
   - "DeidentifyLogsDicomVersion" to specify the deidentification rules for the logs
+  - "OrthancExplorerEnabled" to enable/disable the Orthanc Explorer Web user interface
 
 REST API
 --------
