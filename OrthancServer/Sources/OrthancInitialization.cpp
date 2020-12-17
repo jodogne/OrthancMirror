@@ -284,7 +284,7 @@ namespace Orthanc
     lock.GetConfiguration().RegisterFont(ServerResources::FONT_UBUNTU_MONO_BOLD_16);
 
 #if HAVE_MALLOPT == 1
-    // New in Orthanc 1.9.0
+    // New in Orthanc 1.8.2
     // https://book.orthanc-server.com/faq/scalability.html#controlling-memory-usage
     unsigned int maxArena = lock.GetConfiguration().GetUnsignedIntegerParameter(MALLOC_ARENA_MAX, 5);
     if (maxArena != 0)

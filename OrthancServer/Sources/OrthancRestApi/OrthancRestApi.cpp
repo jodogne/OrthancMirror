@@ -132,7 +132,7 @@ namespace Orthanc
 
     if (ZipReader::IsZipMemoryBuffer(call.GetBodyData(), call.GetBodySize()))
     {
-      // New in Orthanc 1.9.0
+      // New in Orthanc 1.8.2
       std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(call.GetBodyData(), call.GetBodySize()));
 
       Json::Value answer = Json::arrayValue;

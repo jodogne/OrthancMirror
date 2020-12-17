@@ -930,7 +930,7 @@ namespace Orthanc
     boost::mutex refreshMetricsMutex_;
     boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
-    boost::shared_mutex incomingHttpRequestFilterMutex_;  // New in Orthanc 1.9.0
+    boost::shared_mutex incomingHttpRequestFilterMutex_;  // New in Orthanc 1.8.2
 
     Properties properties_;
     int argc_;
