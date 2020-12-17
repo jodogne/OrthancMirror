@@ -1043,6 +1043,43 @@ static bool StartHttpServer(ServerContext& context,
           lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
+        
+        // Default to TLS 1.2 as SSL minimum
+        // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
+        static const unsigned int TLS_1_2 = 4;
+        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2);
+        httpServer.SetSslMinimumVersion(minimumVersion);
+
+        static const char* SSL_CIPHERS_ACCEPTED = "SslCiphersAccepted";
+
+        std::list<std::string> ciphers;
+
+        if (lock.GetJson().type() == Json::objectValue &&
+            lock.GetJson().isMember(SSL_CIPHERS_ACCEPTED))
+        {
+          lock.GetConfiguration().GetListOfStringsParameter(ciphers, SSL_CIPHERS_ACCEPTED);
+        }
+        else
+        {
+          // Defaults to FIPS 140-2 ciphers 
+          CLOG(INFO, HTTP) << "No configuration option \"" << SSL_CIPHERS_ACCEPTED
+                           << "\", will accept the FIPS 140-2 ciphers";
+
+          ciphers.push_back("ECDHE-ECDSA-AES256-GCM-SHA384");
+          ciphers.push_back("ECDHE-ECDSA-AES256-SHA384");
+          ciphers.push_back("ECDHE-RSA-AES256-GCM-SHA384");
+          ciphers.push_back("ECDHE-RSA-AES128-GCM-SHA256");
+          ciphers.push_back("ECDHE-RSA-AES256-SHA384");
+          ciphers.push_back("ECDHE-RSA-AES128-SHA256");
+          ciphers.push_back("ECDHE-RSA-AES128-SHA");
+          ciphers.push_back("ECDHE-RSA-AES256-SHA");
+          ciphers.push_back("DHE-RSA-AES256-SHA");
+          ciphers.push_back("DHE-RSA-AES128-SHA");
+          ciphers.push_back("AES256-SHA");
+          ciphers.push_back("AES128-SHA");
+        }
+        
+        httpServer.SetSslCiphers(ciphers);
       }
       else
       {

@@ -12,6 +12,8 @@ General
   - "DeidentifyLogs" to remove patient identification from the logs (C-GET, C-MOVE, C-FIND)
   - "DeidentifyLogsDicomVersion" to specify the deidentification rules for the logs
   - "OrthancExplorerEnabled" to enable/disable the Orthanc Explorer Web user interface
+  - "SslMinimumProtocolVersion" to set the minimal SSL protocol version (now defaults to SSL 1.2)
+  - "SslCiphersAccepted" to set the accepted ciphers over SSL (now defaults to FIPS 140-2)
 
 REST API
 --------
