@@ -247,11 +247,11 @@ namespace Orthanc
                        size_t since,
                        size_t limit);
 
-    // This DicomModification object is intended to be used as a "rules engine"
-    // when de-identifying logs for C-Find, C-Get, and C-Move queries
+    // This DicomModification object is intended to be used as a
+    // "rules engine" when de-identifying logs for C-Find, C-Get, and
+    // C-Move queries (new in Orthanc 1.8.2)
     DicomModification logsDeidentifierRules_;
-    bool deidentifyDimseQueryLogs_;
-    DicomVersion deidentifyDimseQueryLogsDicomVersion_;
+    bool              deidentifyLogs_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -509,6 +509,6 @@ namespace Orthanc
       return transcodeDicomProtocol_;
     }
 
-    const std::string& GetDeidentifiedQueryContent(const DicomElement& element) const;
+    const std::string& GetDeidentifiedContent(const DicomElement& element) const;
   };
 }

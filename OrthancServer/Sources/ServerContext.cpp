@@ -270,8 +270,7 @@ namespace Orthanc
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
     isIngestTranscoding_(false),
-    deidentifyDimseQueryLogs_(false),
-    deidentifyDimseQueryLogsDicomVersion_(DicomVersion_2017c)
+    deidentifyLogs_(false)
   {
     try
     {
@@ -323,20 +322,22 @@ namespace Orthanc
           LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
         }
 
-        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyDimseQueryLogs", false))
+        if (lock.GetConfiguration().GetBooleanParameter("DeidentifyLogs", true))
         {
-          deidentifyDimseQueryLogs_ = true;
-          CLOG(INFO, DICOM) << "Deidentification of DIMSE query log contents is enabled";
+          deidentifyLogs_ = true;
+          CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
 
-          deidentifyDimseQueryLogsDicomVersion_ = StringToDicomVersion(
-              lock.GetConfiguration().GetStringParameter("DeidentifyDimseQueryLogsDicomVersion", "2017c"));
+          DicomVersion version = StringToDicomVersion(
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2017c"));
           CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
-                            << EnumerationToString(deidentifyDimseQueryLogsDicomVersion_);
+                            << EnumerationToString(version);
+
+          logsDeidentifierRules_.SetupAnonymization(version);
         }
         else
         {
-          deidentifyDimseQueryLogs_ = false;
-          CLOG(INFO, DICOM) << "Deidentification of DIMSE query log contents is disabled";
+          deidentifyLogs_ = false;
+          CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is disabled";
         }
       }
 
@@ -346,11 +347,6 @@ namespace Orthanc
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
     
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
-
-      if (deidentifyDimseQueryLogs_)
-      {
-        logsDeidentifierRules_.SetupAnonymization(deidentifyDimseQueryLogsDicomVersion_);
-      }
     }
     catch (OrthancException&)
     {
@@ -1653,15 +1649,15 @@ namespace Orthanc
     }
   }
 
-  const std::string& ServerContext::GetDeidentifiedQueryContent(const DicomElement &element) const
+  const std::string& ServerContext::GetDeidentifiedContent(const DicomElement &element) const
   {
     static const std::string redactedContent = "*** POTENTIAL PHI ***";
 
     const DicomTag& tag = element.GetTag();
-    if (deidentifyDimseQueryLogs_ && (
-            logsDeidentifierRules_.IsCleared(tag) ||
-            logsDeidentifierRules_.IsRemoved(tag) ||
-            logsDeidentifierRules_.IsReplaced(tag)))
+    if (deidentifyLogs_ && (
+          logsDeidentifierRules_.IsCleared(tag) ||
+          logsDeidentifierRules_.IsRemoved(tag) ||
+          logsDeidentifierRules_.IsReplaced(tag)))
     {
       return redactedContent;
     }
