@@ -562,6 +562,7 @@ namespace Orthanc
     {
       Register("/", ServeRoot);
     }
+    
     Register("/system", GetSystemInformation);
     Register("/statistics", GetStatistics);
     Register("/tools/generate-uid", GenerateUid);
