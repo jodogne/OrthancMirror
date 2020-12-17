@@ -1271,7 +1271,7 @@ namespace Orthanc
 
       if (ZipReader::IsZipMemoryBuffer(content))
       {
-        // New in Orthanc 1.9.0
+        // New in Orthanc 1.8.2
         std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(content));
 
         std::string filename, content;
