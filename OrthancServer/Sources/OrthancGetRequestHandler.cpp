@@ -507,7 +507,7 @@ namespace Orthanc
         {
           CLOG(INFO, DICOM) << "  (" << query.GetElement(i).GetTag().Format()
                             << ")  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
-                            << " = " << query.GetElement(i).GetValue().GetContent();
+                            << " = " << context_.GetDeidentifiedContent(query.GetElement(i));
         }
       }
     }
@@ -517,8 +517,14 @@ namespace Orthanc
      **/
 
     const DicomValue* levelTmp = input.TestAndGetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    if (levelTmp == NULL ||
+        levelTmp->IsNull() ||
+        levelTmp->IsBinary())
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                             "C-GET request without the tag 0008,0052 (QueryRetrieveLevel)");
+    }
 
-    assert(levelTmp != NULL);
     ResourceType level = StringToResourceType(levelTmp->GetContent().c_str());      
 
 

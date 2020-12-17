@@ -40,6 +40,8 @@
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
 #include "../../OrthancFramework/Sources/Cache/MemoryCache.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
+#include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 
 
@@ -244,6 +246,12 @@ namespace Orthanc
                        ResourceType queryLevel,
                        size_t since,
                        size_t limit);
+
+    // This DicomModification object is intended to be used as a
+    // "rules engine" when de-identifying logs for C-Find, C-Get, and
+    // C-Move queries (new in Orthanc 1.8.2)
+    DicomModification logsDeidentifierRules_;
+    bool              deidentifyLogs_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -500,5 +508,7 @@ namespace Orthanc
     {
       return transcodeDicomProtocol_;
     }
+
+    const std::string& GetDeidentifiedContent(const DicomElement& element) const;
   };
 }

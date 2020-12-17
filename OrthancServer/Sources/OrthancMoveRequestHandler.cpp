@@ -344,7 +344,7 @@ namespace Orthanc
         {
           CLOG(INFO, DICOM) << "  (" << query.GetElement(i).GetTag().Format()
                             << ")  " << FromDcmtkBridge::GetTagName(query.GetElement(i))
-                            << " = " << query.GetElement(i).GetValue().GetContent();
+                            << " = " << context_.GetDeidentifiedContent(query.GetElement(i));
         }
       }
     }
