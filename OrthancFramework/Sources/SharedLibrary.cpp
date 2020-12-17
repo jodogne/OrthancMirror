@@ -47,7 +47,23 @@ namespace Orthanc
     if (handle_ == NULL)
     {
       LOG(ERROR) << "LoadLibrary(" << path_ << ") failed: Error " << ::GetLastError();
-      throw OrthancException(ErrorCode_SharedLibrary);
+
+      if (::GetLastError() == ERROR_BAD_EXE_FORMAT &&
+          sizeof(void*) == 4)
+      {
+        throw OrthancException(ErrorCode_SharedLibrary,
+                               "You are most probably trying to load a 64bit plugin into a 32bit version of Orthanc");
+      }
+      else if (::GetLastError() == ERROR_BAD_EXE_FORMAT &&
+               sizeof(void*) == 8)
+      {
+        throw OrthancException(ErrorCode_SharedLibrary,
+                               "You are most probably trying to load a 32bit plugin into a 64bit version of Orthanc");
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_SharedLibrary);
+      }
     }
 
 #elif defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)

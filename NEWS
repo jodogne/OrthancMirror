@@ -6,6 +6,8 @@ General
 
 * ZIP archives containing DICOM files can be uploaded using WebDAV
 * New config option "MallocArenaMax" to control memory usage on GNU/Linux
+* Explicit error log if trying to load a 32bit (resp. 64bit) plugin into
+  a 64bit (resp. 32bit) version of Orthanc
 
 REST API
 --------
