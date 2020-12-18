@@ -315,7 +315,7 @@
 
   // Whether the C-GET SCU is automatically followed by a C-FIND SCU,
   // while testing the connectivity from Orthanc to a remote DICOM
-  // modality. This allows to check that the remote modality does
+  // modality. This allows one to check that the remote modality does
   // accept C-FIND requests from Orthanc (new in Orthanc 1.8.1).
   "DicomEchoChecksFind" : false,
 
