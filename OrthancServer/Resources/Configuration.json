@@ -634,6 +634,16 @@
      "IngestTranscoding" : "1.2.840.10008.1.2",
   **/
 
+  // Whether ingest transcoding is applied to incoming DICOM instances
+  // that have an uncompressed transfer syntax, i.e. Little Endian
+  // Implicit, Little Endian Explicit or Big Endian Explicit (new in
+  // Orthanc 1.8.2).
+  "IngestTranscodingOfUncompressed" : true,
+  
+  // Whether ingest transcoding is applied to incoming DICOM instances
+  // that have a compressed transfer syntax (new in Orthanc 1.8.2).
+  "IngestTranscodingOfCompressed" : true,
+  
   // The compression level that is used when transcoding to one of the
   // lossy/JPEG transfer syntaxes (integer between 1 and 100).
   "DicomLossyTranscodingQuality" : 90,
