@@ -15,14 +15,14 @@ knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:318
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1163
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:383
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:384
 stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:130
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:319
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:782
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:784
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:285
@@ -36,6 +36,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1 \
             -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
             -DDCMTK_VERSION_NUMBER=365 \
+            -DHAVE_MALLOPT=1 \
             -DMONGOOSE_USE_CALLBACKS=1 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
             -DORTHANC_BUILDING_SERVER_LIBRARY=1 \
