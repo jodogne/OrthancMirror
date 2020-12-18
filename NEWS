@@ -8,12 +8,15 @@ General
 * New config option "MallocArenaMax" to control memory usage on GNU/Linux
 * Explicit error log if trying to load a 32bit (resp. 64bit) plugin into
   a 64bit (resp. 32bit) version of Orthanc
-* New configuration options (contributions by Varian):
+* New configuration options contributed by Varian Medical Systems:
   - "DeidentifyLogs" to remove patient identification from the logs (C-GET, C-MOVE, C-FIND)
   - "DeidentifyLogsDicomVersion" to specify the deidentification rules for the logs
   - "OrthancExplorerEnabled" to enable/disable the Orthanc Explorer Web user interface
   - "SslMinimumProtocolVersion" to set the minimal SSL protocol version (now defaults to SSL 1.2)
   - "SslCiphersAccepted" to set the accepted ciphers over SSL (now defaults to FIPS 140-2)
+* New configuration options related to ingest transcoding:
+  - "IngestTranscodingOfUncompressed" to control whether uncompressed transfer syntaxes are transcoded
+  - "IngestTranscodingOfCompressed" to control whether compressed transfer syntaxes are transcoded
 
 REST API
 --------

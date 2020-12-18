@@ -236,6 +236,8 @@ namespace Orthanc
     BuiltinDecoderTranscoderOrder builtinDecoderTranscoderOrder_;
     bool isIngestTranscoding_;
     DicomTransferSyntax ingestTransferSyntax_;
+    bool ingestTranscodingOfUncompressed_;
+    bool ingestTranscodingOfCompressed_;
 
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,

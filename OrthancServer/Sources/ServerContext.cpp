@@ -74,6 +74,34 @@ static const size_t DICOM_CACHE_SIZE = 2;
 
 namespace Orthanc
 {
+  static bool IsUncompressedTransferSyntax(DicomTransferSyntax transferSyntax)
+  {
+    return (transferSyntax == DicomTransferSyntax_LittleEndianImplicit ||
+            transferSyntax == DicomTransferSyntax_LittleEndianExplicit ||
+            transferSyntax == DicomTransferSyntax_BigEndianExplicit);
+  }
+
+
+  static bool IsTranscodableTransferSyntax(DicomTransferSyntax transferSyntax)
+  {
+    return (
+      // Do not try to transcode DICOM videos (new in Orthanc 1.8.2)
+      transferSyntax != DicomTransferSyntax_MPEG2MainProfileAtMainLevel &&
+      transferSyntax != DicomTransferSyntax_MPEG2MainProfileAtHighLevel &&
+      transferSyntax != DicomTransferSyntax_MPEG4HighProfileLevel4_1 &&
+      transferSyntax != DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1 &&
+      transferSyntax != DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo &&
+      transferSyntax != DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo &&
+      transferSyntax != DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2 &&
+      transferSyntax != DicomTransferSyntax_HEVCMainProfileLevel5_1 &&
+      transferSyntax != DicomTransferSyntax_HEVCMain10ProfileLevel5_1 &&
+
+      // Do not try to transcode special transfer syntaxes
+      transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
+      transferSyntax != DicomTransferSyntax_XML);
+  }
+
+  
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
   {
@@ -270,6 +298,8 @@ namespace Orthanc
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
     isIngestTranscoding_(false),
+    ingestTranscodingOfUncompressed_(true),
+    ingestTranscodingOfCompressed_(true),
     deidentifyLogs_(false)
   {
     try
@@ -309,6 +339,17 @@ namespace Orthanc
             isIngestTranscoding_ = true;
             LOG(WARNING) << "Incoming DICOM instances will automatically be transcoded to "
                          << "transfer syntax: " << GetTransferSyntaxUid(ingestTransferSyntax_);
+
+            ingestTranscodingOfUncompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfUncompressed", true);
+            ingestTranscodingOfCompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfCompressed", true);
+
+            LOG(WARNING) << "  Ingest transcoding will "
+                         << (ingestTranscodingOfUncompressed_ ? "be applied" : "*not* be applied")
+                         << " to uncompressed transfer syntaxes (Little Endian Implicit/Explicit, Big Endian Explicit)";
+
+            LOG(WARNING) << "  Ingest transcoding will "
+                         << (ingestTranscodingOfCompressed_ ? "be applied" : "*not* be applied")
+                         << " to compressed transfer syntaxes";
           }
           else
           {
@@ -591,24 +632,50 @@ namespace Orthanc
     }
     else
     {
-      // Automated transcoding of incoming DICOM files
+      // Automated transcoding of incoming DICOM instance
+
+      bool transcode = false;
 
       DicomTransferSyntax sourceSyntax;
       if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
             sourceSyntax, dicom.GetParsedDicomFile().GetDcmtkObject()) ||
           sourceSyntax == ingestTransferSyntax_)
       {
+        // Don't transcode if the incoming DICOM is already in the proper transfer syntax
+        transcode = false;
+      }
+      else if (!IsTranscodableTransferSyntax(sourceSyntax))
+      {
+        // Don't try to transcode video files, this is useless (new in
+        // Orthanc 1.8.2). This could be accepted in the future if
+        // video transcoding gets implemented.
+        transcode = false;
+      }
+      else if (IsUncompressedTransferSyntax(sourceSyntax))
+      {
+        // This is an uncompressed transfer syntax (new in Orthanc 1.8.2)
+        transcode = ingestTranscodingOfUncompressed_;
+      }
+      else
+      {
+        // This is an compressed transfer syntax (new in Orthanc 1.8.2)
+        transcode = ingestTranscodingOfCompressed_;
+      }
+
+      if (!transcode)
+      {
         // No transcoding
         return StoreAfterTranscoding(resultPublicId, dicom, mode);
       }
       else
-      {      
+      {
+        // Trancoding
         std::set<DicomTransferSyntax> syntaxes;
         syntaxes.insert(ingestTransferSyntax_);
-
+        
         IDicomTranscoder::DicomImage source;
         source.SetExternalBuffer(dicom.GetBufferData(), dicom.GetBufferSize());
-
+        
         IDicomTranscoder::DicomImage transcoded;
         if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
         {
