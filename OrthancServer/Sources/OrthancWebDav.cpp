@@ -1274,16 +1274,16 @@ namespace Orthanc
         // New in Orthanc 1.8.2
         std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(content));
 
-        std::string filename, content;
-        while (reader->ReadNextFile(filename, content))
+        std::string filename, uncompressedFile;
+        while (reader->ReadNextFile(filename, uncompressedFile))
         {
-          if (!content.empty())
+          if (!uncompressedFile.empty())
           {
             LOG(INFO) << "Uploading DICOM file extracted from a ZIP archive in WebDAV: " << filename;
           
             DicomInstanceToStore instance;
             instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
-            instance.SetBuffer(content.c_str(), content.size());
+            instance.SetBuffer(uncompressedFile.c_str(), uncompressedFile.size());
 
             std::string publicId;
 
