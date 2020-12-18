@@ -373,6 +373,18 @@ namespace Orthanc
           return true;
         }
       }
+      else
+      {
+        // This is a DICOM file without a proper meta-header. Fallback
+        // to DCMTK, which will fully parse the dataset to retrieve
+        // the transfer syntax. Added in Orthanc 1.8.2.
+        std::string transferSyntax;
+        if (GetParsedDicomFile().LookupTransferSyntax(transferSyntax))
+        {
+          result = Toolbox::StripSpaces(transferSyntax);
+          return true;
+        }
+      }
 
       return false;
     }

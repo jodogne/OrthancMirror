@@ -28,6 +28,7 @@ Maintenance
 
 * Allow concurrency on the OrthancPluginRegisterIncomingHttpRequestFilter() callbacks
 * Allow empty request body in "/modalities/{id}/echo"
+* If meta-header is missing, best-effort to extract "TransferSyntax" in "/instances/{id}/metadata"
 
 
 Version 1.8.1 (2020-12-07)
