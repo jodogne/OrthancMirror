@@ -2670,18 +2670,17 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceJson:
       case _OrthancPluginService_GetInstanceSimplifiedJson:
       {
-        Json::StyledWriter writer;
         std::string s;
 
         if (service == _OrthancPluginService_GetInstanceJson)
         {
-          s = writer.write(instance.GetJson());
+          Toolbox::WriteJson(s, instance.GetJson(), false /* styled writer */);
         }
         else
         {
           Json::Value simplified;
           Toolbox::SimplifyDicomAsJson(simplified, instance.GetJson(), DicomToJsonFormat_Human);
-          s = writer.write(simplified);
+          Toolbox::WriteJson(s, simplified, false /* styled writer */);
         }
 
         *p.resultStringToFree = CopyString(s);
@@ -2882,8 +2881,9 @@ namespace Orthanc
           json, Plugins::Convert(p.format), 
           static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
-        Json::FastWriter writer;
-        *p.targetStringToFree = CopyString(writer.write(json));        
+        std::string s;
+        Toolbox::WriteJson(s, json, true /* fast */);
+        *p.targetStringToFree = CopyString(s);        
         return;
       }
       
@@ -3379,8 +3379,9 @@ namespace Orthanc
     dicom->DatasetToJson(json, Plugins::Convert(p.format), 
                          static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
-    Json::FastWriter writer;
-    *p.result = CopyString(writer.write(json));
+    std::string s;
+    Toolbox::WriteJson(s, json, true /* fast */);
+    *p.result = CopyString(s);
   }
         
 
@@ -3396,13 +3397,9 @@ namespace Orthanc
     {
       json = Json::objectValue;
     }
-    else
+    else if (!Toolbox::ReadJson(json, p.json))
     {
-      Json::Reader reader;
-      if (!reader.parse(p.json, json))
-      {
-        throw OrthancException(ErrorCode_BadJson);
-      }
+      throw OrthancException(ErrorCode_BadJson);
     }
 
     std::string dicom;

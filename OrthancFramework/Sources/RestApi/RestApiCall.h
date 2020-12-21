@@ -45,11 +45,6 @@ namespace Orthanc
     const UriComponents& trailing_;
     const UriComponents& fullUri_;
 
-  protected:
-    static bool ParseJsonRequestInternal(Json::Value& result,
-                                         const void* body,
-                                         size_t size);
-
   public:
     RestApiCall(RestApiOutput& output,
                 RestApi& context,

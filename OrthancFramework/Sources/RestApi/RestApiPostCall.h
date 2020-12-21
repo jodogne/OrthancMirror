@@ -70,7 +70,7 @@ namespace Orthanc
 
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE
     {
-      return ParseJsonRequestInternal(result, reinterpret_cast<const char*>(bodyData_), bodySize_);
+      return Toolbox::ReadJson(result, bodyData_, bodySize_);
     }
   };
 }

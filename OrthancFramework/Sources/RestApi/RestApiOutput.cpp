@@ -95,9 +95,8 @@ namespace Orthanc
     }
     else
     {
-      Json::StyledWriter writer;
-      std::string s = writer.write(value);
-      
+      std::string s;
+      Toolbox::WriteJson(s, value, false /* styled, not fast */);
       output_.SetContentType(MIME_JSON_UTF8);      
       output_.Answer(s);
     }
@@ -122,9 +121,7 @@ namespace Orthanc
         contentType == MimeType_Json)
     {
       Json::Value json;
-      Json::Reader reader;
-      if (reader.parse(reinterpret_cast<const char*>(buffer),
-                       reinterpret_cast<const char*>(buffer) + length, json))
+      if (Toolbox::ReadJson(json, buffer, length))
       {
         AnswerJson(json);
       }

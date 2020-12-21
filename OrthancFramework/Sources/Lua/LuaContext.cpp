@@ -113,8 +113,7 @@ namespace Orthanc
     const char* str = lua_tostring(state, 1);
 
     Json::Value value;
-    Json::Reader reader;
-    if (reader.parse(str, str + strlen(str), value))
+    if (Toolbox::ReadJson(value, str, strlen(str)))
     {
       that.PushJson(value);
     }
@@ -148,8 +147,8 @@ namespace Orthanc
     Json::Value json;
     that.GetJson(json, state, 1, keepStrings);
 
-    Json::FastWriter writer;
-    std::string s = writer.write(json);
+    std::string s;
+    Toolbox::WriteJson(s, json, true /* fast */);
     lua_pushlstring(state, s.c_str(), s.size());
 
     return 1;
@@ -635,8 +634,7 @@ namespace Orthanc
     std::string s;
     ExecuteInternal(&s, command);
 
-    Json::Reader reader;
-    if (!reader.parse(s, output))
+    if (!Toolbox::ReadJson(output, s))
     {
       throw OrthancException(ErrorCode_BadJson);
     }

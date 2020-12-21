@@ -62,8 +62,7 @@ namespace Orthanc
   void Font::LoadFromMemory(const std::string& font)
   {
     Json::Value v;
-    Json::Reader reader;
-    if (!reader.parse(font, v) ||
+    if (!Toolbox::ReadJson(v, font) ||
         v.type() != Json::objectValue ||
         !v.isMember("Name") ||
         !v.isMember("Size") ||

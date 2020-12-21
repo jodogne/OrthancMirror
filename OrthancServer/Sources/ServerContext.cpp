@@ -259,8 +259,8 @@ namespace Orthanc
         Json::Value value;
         jobsEngine_.GetRegistry().Serialize(value);
 
-        Json::FastWriter writer;
-        std::string serialized = writer.write(value);
+        std::string serialized;
+        Toolbox::WriteJson(serialized, value, true /* fast */);
 
         index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
       }
@@ -822,8 +822,7 @@ namespace Orthanc
       std::string tmp;
       ReadDicomAsJsonInternal(tmp, instancePublicId);
 
-      Json::Reader reader;
-      if (!reader.parse(tmp, result))
+      if (!Toolbox::ReadJson(result, tmp))
       {
         throw OrthancException(ErrorCode_CorruptedFile);
       }

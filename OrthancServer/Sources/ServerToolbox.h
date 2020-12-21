@@ -35,7 +35,6 @@
 
 #include "ServerEnumerations.h"
 
-#include <json/json.h>
 #include <boost/noncopyable.hpp>
 #include <list>
 

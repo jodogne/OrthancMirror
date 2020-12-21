@@ -25,17 +25,6 @@
 
 namespace Orthanc
 {
-  bool RestApiCall::ParseJsonRequestInternal(Json::Value& result,
-                                             const void* body,
-                                             size_t size)
-  {
-    result.clear();
-    Json::Reader reader;
-    return reader.parse(reinterpret_cast<const char*>(body),
-                        reinterpret_cast<const char*>(body) + size, result);
-  }
-
-
   std::string RestApiCall::FlattenUri() const
   {
     std::string s = "/";

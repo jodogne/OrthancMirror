@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
-#include <json/json.h>
+#include <json/value.h>
 
 
 #if !defined(ORTHANC_ENABLE_BASE64)
@@ -260,6 +260,17 @@ namespace Orthanc
     static void SimplifyDicomAsJson(Json::Value& target,
                                     const Json::Value& source,
                                     DicomToJsonFormat format);
+
+    static bool ReadJson(Json::Value& target,
+                         const std::string& source);
+
+    static bool ReadJson(Json::Value& target,
+                         const void* buffer,
+                         size_t size);
+
+    static void WriteJson(std::string& target,
+                          const Json::Value& source,
+                          bool fast);
   };
 }
 

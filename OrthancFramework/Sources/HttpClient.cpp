@@ -1067,8 +1067,7 @@ namespace Orthanc
     std::string s;
     if (ApplyInternal(s, answerHeaders))
     {
-      Json::Reader reader;
-      return reader.parse(s, answerBody);
+      return Toolbox::ReadJson(answerBody, s);
     }
     else
     {

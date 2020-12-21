@@ -25,8 +25,8 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
-#include <json/reader.h>
 
 namespace Orthanc
 {
@@ -197,8 +197,7 @@ namespace Orthanc
                                           const std::string& serialized)
   {
     Json::Value value;
-    Json::Reader reader;
-    if (reader.parse(serialized, value))
+    if (Toolbox::ReadJson(value, serialized))
     {
       LoadRegistryFromJson(unserializer, value);
     }

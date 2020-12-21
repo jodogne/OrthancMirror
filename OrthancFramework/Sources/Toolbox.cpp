@@ -27,6 +27,8 @@
 #include "OrthancException.h"
 #include "Logging.h"
 
+#include <json/json.h>
+
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -2267,6 +2269,41 @@ namespace Orthanc
       {
         assert(0);
       }
+    }
+  }
+
+
+  bool Toolbox::ReadJson(Json::Value& target,
+                         const std::string& source)
+  {
+    Json::Reader reader;
+    return reader.parse(source, target);
+  }
+  
+
+  bool Toolbox::ReadJson(Json::Value& target,
+                         const void* buffer,
+                         size_t size)
+  {
+    Json::Reader reader;
+    return reader.parse(reinterpret_cast<const char*>(buffer),
+                        reinterpret_cast<const char*>(buffer) + size, target);
+  }
+  
+
+  void Toolbox::WriteJson(std::string& target,
+                          const Json::Value& source,
+                          bool fast)
+  {
+    if (fast)
+    {
+      Json::FastWriter writer;
+      target = writer.write(source);
+    }
+    else
+    {
+      Json::StyledWriter writer;
+      target = writer.write(source);
     }
   }
 }

@@ -29,7 +29,7 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include <json/json.h>
+#include <json/value.h>
 
 #if !defined(ORTHANC_ENABLE_CURL)
 #  error The macro ORTHANC_ENABLE_CURL must be defined

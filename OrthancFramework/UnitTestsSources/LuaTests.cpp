@@ -175,9 +175,8 @@ TEST(Lua, ReturnJson)
     std::string s;
     f.ExecuteToString(s);
 
-    Json::FastWriter writer;
-    std::string t = writer.write(a);
-
+    std::string t;
+    Orthanc::Toolbox::WriteJson(t, a, true /* fast */);
     ASSERT_EQ(s, t);
   }
 }

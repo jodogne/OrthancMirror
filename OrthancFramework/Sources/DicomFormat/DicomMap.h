@@ -28,7 +28,7 @@
 
 #include <set>
 #include <map>
-#include <json/json.h>
+#include <json/value.h>
 
 namespace Orthanc
 {

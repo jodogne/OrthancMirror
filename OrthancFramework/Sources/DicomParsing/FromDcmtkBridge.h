@@ -30,7 +30,7 @@
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcpixseq.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
-#include <json/json.h>
+#include <json/value.h>
 
 #if ORTHANC_ENABLE_DCMTK != 1
 #  error The macro ORTHANC_ENABLE_DCMTK must be set to 1

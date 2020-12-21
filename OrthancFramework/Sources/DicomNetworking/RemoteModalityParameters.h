@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include <string>
-#include <json/json.h>
+#include <json/value.h>
 
 namespace Orthanc
 {
