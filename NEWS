@@ -1,6 +1,9 @@
 Pending changes in the mainline
 ===============================
 
+* Upgraded dependencies for static builds (notably on Windows):
+  - jsoncpp 1.9.3
+
 
 Version 1.8.2 (2020-12-18)
 ==========================
