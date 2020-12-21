@@ -27,7 +27,31 @@
 #include "OrthancException.h"
 #include "Logging.h"
 
-#include <json/json.h>
+#include <json/reader.h>
+#include <json/version.h>
+#include <json/writer.h>
+
+#if !defined(JSONCPP_VERSION_MAJOR) || !defined(JSONCPP_VERSION_MINOR)
+#  error Cannot access the version of JsonCpp
+#endif
+
+
+/**
+ * We use deprecated "Json::Reader", "Json::StyledWriter" and
+ * "Json::StyledReader" if JsonCpp < 1.7.0. This choice is rather
+ * arbitrary, but if Json >= 1.9.0, gcc generates explicit deprecation
+ * warnings (clang was warning in earlier versions). For reference,
+ * these classes seem to have been deprecated since JsonCpp 1.4.0 (on
+ * February 2015) by the following changeset:
+ * https://github.com/open-source-parsers/jsoncpp/commit/8df98f6112890d6272734975dd6d70cf8999bb22
+ **/
+#if (JSONCPP_VERSION_MAJOR >= 2 ||                                      \
+     (JSONCPP_VERSION_MAJOR == 1 && JSONCPP_VERSION_MINOR >= 8))
+#  define JSONCPP_USE_DEPRECATED 0
+#else
+#  define JSONCPP_USE_DEPRECATED 1
+#endif
+
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -2276,8 +2300,12 @@ namespace Orthanc
   bool Toolbox::ReadJson(Json::Value& target,
                          const std::string& source)
   {
+#if JSONCPP_USE_DEPRECATED == 1
     Json::Reader reader;
     return reader.parse(source, target);
+#else
+    return ReadJson(target, source.c_str(), source.size());
+#endif
   }
   
 
@@ -2285,9 +2313,26 @@ namespace Orthanc
                          const void* buffer,
                          size_t size)
   {
+#if JSONCPP_USE_DEPRECATED == 1
     Json::Reader reader;
     return reader.parse(reinterpret_cast<const char*>(buffer),
                         reinterpret_cast<const char*>(buffer) + size, target);
+#else
+    Json::CharReaderBuilder builder;
+    const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    assert(reader.get() != NULL);
+    JSONCPP_STRING err;
+    if (reader->parse(reinterpret_cast<const char*>(buffer),
+                      reinterpret_cast<const char*>(buffer) + size, &target, &err))
+    {
+      return true;
+    }
+    else
+    {
+      LOG(ERROR) << "Cannot parse JSON: " << err;
+      return false;
+    }
+#endif
   }
   
 
@@ -2295,6 +2340,7 @@ namespace Orthanc
                           const Json::Value& source,
                           bool fast)
   {
+#if JSONCPP_USE_DEPRECATED == 1
     if (fast)
     {
       Json::FastWriter writer;
@@ -2305,6 +2351,20 @@ namespace Orthanc
       Json::StyledWriter writer;
       target = writer.write(source);
     }
+#else
+    if (fast)
+    {
+      Json::StreamWriterBuilder builder;
+      builder.settings_["indentation"] = "";
+      target = Json::writeString(builder, source);
+    }
+    else
+    {
+      Json::StreamWriterBuilder builder;
+      builder.settings_["indentation"] = "   ";
+      target = Json::writeString(builder, source);
+    }
+#endif
   }
 }
 
