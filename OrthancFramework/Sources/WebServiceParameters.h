@@ -31,7 +31,7 @@
 #include <map>
 #include <set>
 #include <string>
-#include <json/json.h>
+#include <json/value.h>
 
 namespace Orthanc
 {

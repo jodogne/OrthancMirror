@@ -70,8 +70,7 @@ namespace Orthanc
       content = Toolbox::SubstituteVariables(content, env);
 
       Json::Value tmp;
-      Json::Reader reader;
-      if (!reader.parse(content, tmp) ||
+      if (!Toolbox::ReadJson(tmp, content) ||
           tmp.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_BadJson,
@@ -254,9 +253,8 @@ namespace Orthanc
       {
         std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, "{}");
 
-        Json::Reader reader;
         Json::Value modalities;
-        if (reader.parse(property, modalities))
+        if (Toolbox::ReadJson(modalities, property))
         {
           LoadModalitiesFromJson(modalities);
         }
@@ -294,9 +292,8 @@ namespace Orthanc
       {
         std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, "{}");
 
-        Json::Reader reader;
         Json::Value peers;
-        if (reader.parse(property, peers))
+        if (Toolbox::ReadJson(peers, property))
         {
           LoadPeersFromJson(peers);
         }
@@ -366,9 +363,9 @@ namespace Orthanc
         Json::Value modalities;
         SaveModalitiesToJson(modalities);
 
-        Json::FastWriter writer;
-        std::string s = writer.write(modalities);
-
+        std::string s;
+        Toolbox::WriteJson(s, modalities, true /* fast */);
+        
         serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, s);
       }
     }
@@ -398,8 +395,8 @@ namespace Orthanc
         Json::Value peers;
         SavePeersToJson(peers);
 
-        Json::FastWriter writer;
-        std::string s = writer.write(peers);
+        std::string s;
+        Toolbox::WriteJson(s, peers, true /* fast */);
 
         serverIndex_->SetGlobalProperty(GlobalProperty_Peers, s);
       }
@@ -872,8 +869,7 @@ namespace Orthanc
 
   void OrthancConfiguration::Format(std::string& result) const
   {
-    Json::StyledWriter w;
-    result = w.write(json_);
+    Toolbox::WriteJson(result, json_, false /* styled, not fast */);
   }
 
 
@@ -892,9 +888,9 @@ namespace Orthanc
     Json::Value current;
     ReadConfiguration(current, configurationFileArg_);
 
-    Json::FastWriter writer;
-    std::string a = writer.write(json_);
-    std::string b = writer.write(current);
+    std::string a, b;
+    Toolbox::WriteJson(a, json_, true /* fast */);
+    Toolbox::WriteJson(b, current, true /* fast */);
 
     return a != b;
   }

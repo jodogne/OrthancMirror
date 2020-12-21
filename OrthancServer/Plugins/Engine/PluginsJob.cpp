@@ -41,8 +41,8 @@
 
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
 
-#include <json/reader.h>
 #include <cassert>
 
 namespace Orthanc
@@ -143,9 +143,7 @@ namespace Orthanc
     }
     else
     {
-      Json::Reader reader;
-      
-      if (!reader.parse(content, value) ||
+      if (!Toolbox::ReadJson(value, content) ||
           value.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_Plugin,
@@ -164,9 +162,7 @@ namespace Orthanc
     }
     else
     {
-      Json::Reader reader;
-      
-      if (!reader.parse(serialized, value) ||
+      if (!Toolbox::ReadJson(value, serialized) ||
           value.type() != Json::objectValue)
       {
         throw OrthancException(ErrorCode_Plugin,

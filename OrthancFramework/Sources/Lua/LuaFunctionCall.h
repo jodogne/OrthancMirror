@@ -31,8 +31,6 @@
 #include "../DicomFormat/DicomArray.h"
 #include "../DicomFormat/DicomMap.h"
 
-#include <json/json.h>
-
 namespace Orthanc
 {
   class ORTHANC_PUBLIC LuaFunctionCall : public boost::noncopyable

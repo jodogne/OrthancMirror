@@ -25,7 +25,7 @@
 #include "../HttpServer/HttpOutput.h"
 #include "../HttpServer/HttpFileSender.h"
 
-#include <json/json.h>
+#include <json/value.h>
 
 namespace Orthanc
 {
