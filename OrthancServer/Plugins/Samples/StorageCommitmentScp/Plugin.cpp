@@ -22,8 +22,6 @@
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <json/value.h>
-#include <json/reader.h>
-
 
 
 class StorageCommitmentSample : public OrthancPlugins::IStorageCommitmentScpHandler
