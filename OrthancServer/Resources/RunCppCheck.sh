@@ -38,6 +38,8 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DDCMTK_VERSION_NUMBER=365 \
             -DHAVE_MALLOPT=1 \
             -DMONGOOSE_USE_CALLBACKS=1 \
+            -DJSONCPP_VERSION_MAJOR=1 \
+            -DJSONCPP_VERSION_MINOR=0 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
             -DORTHANC_BUILDING_SERVER_LIBRARY=1 \
             -DORTHANC_BUILD_UNIT_TESTS=1 \
