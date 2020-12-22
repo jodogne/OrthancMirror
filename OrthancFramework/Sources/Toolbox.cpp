@@ -2297,30 +2297,22 @@ namespace Orthanc
   }
 
 
-  bool Toolbox::ReadJson(Json::Value& target,
-                         const std::string& source)
-  {
-#if JSONCPP_USE_DEPRECATED == 1
-    Json::Reader reader;
-    return reader.parse(source, target);
-#else
-    return ReadJson(target, source.c_str(), source.size());
-#endif
-  }
-  
-
-  bool Toolbox::ReadJson(Json::Value& target,
-                         const void* buffer,
-                         size_t size)
+  static bool ReadJsonInternal(Json::Value& target,
+                               const void* buffer,
+                               size_t size,
+                               bool collectComments)
   {
 #if JSONCPP_USE_DEPRECATED == 1
     Json::Reader reader;
     return reader.parse(reinterpret_cast<const char*>(buffer),
-                        reinterpret_cast<const char*>(buffer) + size, target);
+                        reinterpret_cast<const char*>(buffer) + size, target, collectComments);
 #else
     Json::CharReaderBuilder builder;
+    builder.settings_["collectComments"] = collectComments;
+    
     const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     assert(reader.get() != NULL);
+    
     JSONCPP_STRING err;
     if (reader->parse(reinterpret_cast<const char*>(buffer),
                       reinterpret_cast<const char*>(buffer) + size, &target, &err))
@@ -2333,6 +2325,36 @@ namespace Orthanc
       return false;
     }
 #endif
+  }
+
+
+  bool Toolbox::ReadJson(Json::Value& target,
+                         const std::string& source)
+  {
+    return ReadJson(target, source.empty() ? NULL : source.c_str(), source.size());
+  }
+  
+
+  bool Toolbox::ReadJson(Json::Value& target,
+                         const void* buffer,
+                         size_t size)
+  {
+    return ReadJsonInternal(target, buffer, size, true);
+  }
+  
+
+  bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
+                                        const std::string& source)
+  {
+    return ReadJsonWithoutComments(target, source.empty() ? NULL : source.c_str(), source.size());
+  }
+  
+
+  bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
+                                        const void* buffer,
+                                        size_t size)
+  {
+    return ReadJsonInternal(target, buffer, size, false);
   }
   
 

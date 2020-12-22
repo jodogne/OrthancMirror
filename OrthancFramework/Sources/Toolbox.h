@@ -268,6 +268,13 @@ namespace Orthanc
                          const void* buffer,
                          size_t size);
 
+    static bool ReadJsonWithoutComments(Json::Value& target,
+                                        const std::string& source);
+
+    static bool ReadJsonWithoutComments(Json::Value& target,
+                                        const void* buffer,
+                                        size_t size);
+
     static void WriteFastJson(std::string& target,
                               const Json::Value& source);
 
