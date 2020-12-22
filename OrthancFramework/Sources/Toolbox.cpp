@@ -38,7 +38,7 @@
 
 /**
  * We use deprecated "Json::Reader", "Json::StyledWriter" and
- * "Json::StyledReader" if JsonCpp < 1.7.0. This choice is rather
+ * "Json::FastWriter" if JsonCpp < 1.7.0. This choice is rather
  * arbitrary, but if Json >= 1.9.0, gcc generates explicit deprecation
  * warnings (clang was warning in earlier versions). For reference,
  * these classes seem to have been deprecated since JsonCpp 1.4.0 (on
