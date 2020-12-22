@@ -176,7 +176,7 @@ TEST(Lua, ReturnJson)
     f.ExecuteToString(s);
 
     std::string t;
-    Orthanc::Toolbox::WriteJson(t, a, true /* fast */);
+    Orthanc::Toolbox::WriteFastJson(t, a);
     ASSERT_EQ(s, t);
   }
 }

@@ -2674,13 +2674,13 @@ namespace Orthanc
 
         if (service == _OrthancPluginService_GetInstanceJson)
         {
-          Toolbox::WriteJson(s, instance.GetJson(), false /* styled writer */);
+          Toolbox::WriteStyledJson(s, instance.GetJson());
         }
         else
         {
           Json::Value simplified;
           Toolbox::SimplifyDicomAsJson(simplified, instance.GetJson(), DicomToJsonFormat_Human);
-          Toolbox::WriteJson(s, simplified, false /* styled writer */);
+          Toolbox::WriteStyledJson(s, simplified);
         }
 
         *p.resultStringToFree = CopyString(s);
@@ -2882,7 +2882,7 @@ namespace Orthanc
           static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
         std::string s;
-        Toolbox::WriteJson(s, json, true /* fast */);
+        Toolbox::WriteFastJson(s, json);
         *p.targetStringToFree = CopyString(s);        
         return;
       }
@@ -3380,7 +3380,7 @@ namespace Orthanc
                          static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
     std::string s;
-    Toolbox::WriteJson(s, json, true /* fast */);
+    Toolbox::WriteFastJson(s, json);
     *p.result = CopyString(s);
   }
         

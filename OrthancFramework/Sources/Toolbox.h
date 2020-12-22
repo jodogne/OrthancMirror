@@ -268,9 +268,11 @@ namespace Orthanc
                          const void* buffer,
                          size_t size);
 
-    static void WriteJson(std::string& target,
-                          const Json::Value& source,
-                          bool fast);
+    static void WriteFastJson(std::string& target,
+                              const Json::Value& source);
+
+    static void WriteStyledJson(std::string& target,
+                                const Json::Value& source);
   };
 }
 

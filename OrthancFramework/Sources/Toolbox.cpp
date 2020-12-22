@@ -2336,34 +2336,30 @@ namespace Orthanc
   }
   
 
-  void Toolbox::WriteJson(std::string& target,
-                          const Json::Value& source,
-                          bool fast)
+  void Toolbox::WriteFastJson(std::string& target,
+                              const Json::Value& source)
   {
 #if JSONCPP_USE_DEPRECATED == 1
-    if (fast)
-    {
-      Json::FastWriter writer;
-      target = writer.write(source);
-    }
-    else
-    {
-      Json::StyledWriter writer;
-      target = writer.write(source);
-    }
+    Json::FastWriter writer;
+    target = writer.write(source);
 #else
-    if (fast)
-    {
-      Json::StreamWriterBuilder builder;
-      builder.settings_["indentation"] = "";
-      target = Json::writeString(builder, source);
-    }
-    else
-    {
-      Json::StreamWriterBuilder builder;
-      builder.settings_["indentation"] = "   ";
-      target = Json::writeString(builder, source);
-    }
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "";
+    target = Json::writeString(builder, source);
+#endif
+  }
+  
+
+  void Toolbox::WriteStyledJson(std::string& target,
+                                const Json::Value& source)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::StyledWriter writer;
+    target = writer.write(source);
+#else
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "   ";
+    target = Json::writeString(builder, source);
 #endif
   }
 }

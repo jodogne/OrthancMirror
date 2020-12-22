@@ -24,8 +24,32 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/move/unique_ptr.hpp>
 #include <boost/thread.hpp>
+
+
 #include <json/reader.h>
+#include <json/version.h>
 #include <json/writer.h>
+
+#if !defined(JSONCPP_VERSION_MAJOR) || !defined(JSONCPP_VERSION_MINOR)
+#  error Cannot access the version of JsonCpp
+#endif
+
+
+/**
+ * We use deprecated "Json::Reader", "Json::StyledWriter" and
+ * "Json::StyledReader" if JsonCpp < 1.7.0. This choice is rather
+ * arbitrary, but if Json >= 1.9.0, gcc generates explicit deprecation
+ * warnings (clang was warning in earlier versions). For reference,
+ * these classes seem to have been deprecated since JsonCpp 1.4.0 (on
+ * February 2015) by the following changeset:
+ * https://github.com/open-source-parsers/jsoncpp/commit/8df98f6112890d6272734975dd6d70cf8999bb22
+ **/
+#if (JSONCPP_VERSION_MAJOR >= 2 ||                                      \
+     (JSONCPP_VERSION_MAJOR == 1 && JSONCPP_VERSION_MINOR >= 8))
+#  define JSONCPP_USE_DEPRECATED 0
+#else
+#  define JSONCPP_USE_DEPRECATED 1
+#endif
 
 
 #if !ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
@@ -202,10 +226,7 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
-    const char* tmp = reinterpret_cast<const char*>(buffer_.data);
-
-    Json::Reader reader;
-    if (!reader.parse(tmp, tmp + buffer_.size, target))
+    if (!ReadJson(target, buffer_.data, buffer_.size))
     {
       LogError("Cannot convert some memory buffer to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
@@ -292,12 +313,80 @@ namespace OrthancPlugins
   }
 
 
+  bool ReadJson(Json::Value& target,
+                const std::string& source)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::Reader reader;
+    return reader.parse(source, target);
+#else
+    return ReadJson(target, source.c_str(), source.size());
+#endif
+  }
+  
+
+  bool ReadJson(Json::Value& target,
+                const void* buffer,
+                size_t size)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::Reader reader;
+    return reader.parse(reinterpret_cast<const char*>(buffer),
+                        reinterpret_cast<const char*>(buffer) + size, target);
+#else
+    Json::CharReaderBuilder builder;
+    const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    assert(reader.get() != NULL);
+    JSONCPP_STRING err;
+    if (reader->parse(reinterpret_cast<const char*>(buffer),
+                      reinterpret_cast<const char*>(buffer) + size, &target, &err))
+    {
+      return true;
+    }
+    else
+    {
+      LogError("Cannot parse JSON: " + err);
+      return false;
+    }
+#endif
+  }
+  
+
+  void WriteFastJson(std::string& target,
+                     const Json::Value& source)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::FastWriter writer;
+    target = writer.write(source);
+#else
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "";
+    target = Json::writeString(builder, source);
+#endif
+  }
+  
+
+  void WriteStyledJson(std::string& target,
+                       const Json::Value& source)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::StyledWriter writer;
+    target = writer.write(source);
+#else
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "   ";
+    target = Json::writeString(builder, source);
+#endif
+  }
+
+
   bool MemoryBuffer::RestApiPost(const std::string& uri,
                                  const Json::Value& body,
                                  bool applyPlugins)
   {
-    Json::FastWriter writer;
-    return RestApiPost(uri, writer.write(body), applyPlugins);
+    std::string s;
+    WriteFastJson(s, body);
+    return RestApiPost(uri, s, applyPlugins);
   }
 
 
@@ -305,8 +394,9 @@ namespace OrthancPlugins
                                 const Json::Value& body,
                                 bool applyPlugins)
   {
-    Json::FastWriter writer;
-    return RestApiPut(uri, writer.write(body), applyPlugins);
+    std::string s;
+    WriteFastJson(s, body);
+    return RestApiPut(uri, s, applyPlugins);
   }
 
 
@@ -315,8 +405,8 @@ namespace OrthancPlugins
   {
     Clear();
 
-    Json::FastWriter writer;
-    std::string s = writer.write(tags);
+    std::string s;
+    WriteFastJson(s, tags);
 
     Check(OrthancPluginCreateDicom(GetGlobalContext(), &buffer_, s.c_str(), NULL, flags));
   }
@@ -327,8 +417,8 @@ namespace OrthancPlugins
   {
     Clear();
 
-    Json::FastWriter writer;
-    std::string s = writer.write(tags);
+    std::string s;
+    WriteFastJson(s, tags);
 
     Check(OrthancPluginCreateDicom(GetGlobalContext(), &buffer_, s.c_str(), pixelData.GetObject(), flags));
   }
@@ -390,8 +480,7 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
-    Json::Reader reader;
-    if (!reader.parse(str_, target))
+    if (!ReadJson(target, str_))
     {
       LogError("Cannot convert some memory buffer to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
@@ -1190,19 +1279,16 @@ namespace OrthancPlugins
 #endif /* HAS_ORTHANC_PLUGIN_FIND_MATCHER == 1 */
 
   void AnswerJson(const Json::Value& value,
-                  OrthancPluginRestOutput* output
-    )
+                  OrthancPluginRestOutput* output)
   {
-    Json::StyledWriter writer;
-    std::string bodyString = writer.write(value);
-
+    std::string bodyString;
+    WriteStyledJson(bodyString, value);    
     OrthancPluginAnswerBuffer(GetGlobalContext(), output, bodyString.c_str(), bodyString.size(), "application/json");
   }
 
   void AnswerString(const std::string& answer,
                     const char* mimeType,
-                    OrthancPluginRestOutput* output
-    )
+                    OrthancPluginRestOutput* output)
   {
     OrthancPluginAnswerBuffer(GetGlobalContext(), output, answer.c_str(), answer.size(), mimeType);
   }
@@ -1324,8 +1410,9 @@ namespace OrthancPlugins
                    const Json::Value& body,
                    bool applyPlugins)
   {
-    Json::FastWriter writer;
-    return RestApiPost(result, uri, writer.write(body), applyPlugins);
+    std::string s;
+    WriteFastJson(s, body);
+    return RestApiPost(result, uri, s, applyPlugins);
   }
 
 
@@ -1357,8 +1444,9 @@ namespace OrthancPlugins
                   const Json::Value& body,
                   bool applyPlugins)
   {
-    Json::FastWriter writer;
-    return RestApiPut(result, uri, writer.write(body), applyPlugins);
+    std::string s;
+    WriteFastJson(s, body);
+    return RestApiPut(result, uri, s, applyPlugins);
   }
 
 
@@ -2020,8 +2108,7 @@ namespace OrthancPlugins
     }
     else
     {
-      Json::FastWriter writer;
-      content_ = writer.write(content);
+      WriteFastJson(content_, content);
     }
   }
 
@@ -2041,8 +2128,7 @@ namespace OrthancPlugins
     }
     else
     {
-      Json::FastWriter writer;
-      serialized_ = writer.write(serialized);
+      WriteFastJson(serialized_, serialized);
       hasSerialized_ = true;
     }
   }
@@ -2902,8 +2988,7 @@ namespace OrthancPlugins
     std::string body;
     Execute(answerHeaders, body);
     
-    Json::Reader reader;
-    if (!reader.parse(body, answerBody))
+    if (!ReadJson(answerBody, body))
     {
       LogError("Cannot convert HTTP answer body to JSON");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);

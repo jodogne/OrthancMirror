@@ -96,7 +96,7 @@ namespace Orthanc
     else
     {
       std::string s;
-      Toolbox::WriteJson(s, value, false /* styled, not fast */);
+      Toolbox::WriteStyledJson(s, value);
       output_.SetContentType(MIME_JSON_UTF8);      
       output_.Answer(s);
     }

@@ -364,7 +364,7 @@ namespace Orthanc
         SaveModalitiesToJson(modalities);
 
         std::string s;
-        Toolbox::WriteJson(s, modalities, true /* fast */);
+        Toolbox::WriteFastJson(s, modalities);
         
         serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, s);
       }
@@ -396,7 +396,7 @@ namespace Orthanc
         SavePeersToJson(peers);
 
         std::string s;
-        Toolbox::WriteJson(s, peers, true /* fast */);
+        Toolbox::WriteFastJson(s, peers);
 
         serverIndex_->SetGlobalProperty(GlobalProperty_Peers, s);
       }
@@ -869,7 +869,7 @@ namespace Orthanc
 
   void OrthancConfiguration::Format(std::string& result) const
   {
-    Toolbox::WriteJson(result, json_, false /* styled, not fast */);
+    Toolbox::WriteStyledJson(result, json_);
   }
 
 
@@ -889,8 +889,8 @@ namespace Orthanc
     ReadConfiguration(current, configurationFileArg_);
 
     std::string a, b;
-    Toolbox::WriteJson(a, json_, true /* fast */);
-    Toolbox::WriteJson(b, current, true /* fast */);
+    Toolbox::WriteFastJson(a, json_);
+    Toolbox::WriteFastJson(b, current);
 
     return a != b;
   }

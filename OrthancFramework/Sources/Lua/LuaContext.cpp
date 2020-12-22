@@ -148,7 +148,7 @@ namespace Orthanc
     that.GetJson(json, state, 1, keepStrings);
 
     std::string s;
-    Toolbox::WriteJson(s, json, true /* fast */);
+    Toolbox::WriteFastJson(s, json);
     lua_pushlstring(state, s.c_str(), s.size());
 
     return 1;

@@ -260,7 +260,7 @@ namespace Orthanc
         jobsEngine_.GetRegistry().Serialize(value);
 
         std::string serialized;
-        Toolbox::WriteJson(serialized, value, true /* fast */);
+        Toolbox::WriteFastJson(serialized, value);
 
         index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
       }
