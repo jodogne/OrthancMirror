@@ -316,12 +316,7 @@ namespace OrthancPlugins
   bool ReadJson(Json::Value& target,
                 const std::string& source)
   {
-#if JSONCPP_USE_DEPRECATED == 1
-    Json::Reader reader;
-    return reader.parse(source, target);
-#else
-    return ReadJson(target, source.c_str(), source.size());
-#endif
+    return ReadJson(target, source.empty() ? NULL : source.c_str(), source.size());
   }
   
 

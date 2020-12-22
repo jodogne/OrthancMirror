@@ -64,6 +64,21 @@ TEST(Toolbox, Json)
   ASSERT_EQ(Toolbox::StripSpaces(f), "{\n   \"hello\" : \"world\"\n}");
 }
 
+TEST(Toolbox, JsonComments)
+{
+  std::string a = "/* a */ { /* b */ \"hello\" : /* c */ \"world\" /* d */ } // e";
+
+  Json::Value b;
+  ASSERT_TRUE(Toolbox::ReadJsonWithoutComments(b, a));
+
+  std::string c;
+  Toolbox::WriteFastJson(c, b);
+  ASSERT_EQ(Toolbox::StripSpaces(c), "{\"hello\":\"world\"}");
+  
+  Toolbox::WriteStyledJson(c, b);
+  ASSERT_EQ(Toolbox::StripSpaces(c), "{\n   \"hello\" : \"world\"\n}");
+}
+
 TEST(Toolbox, Base64_allByteValues)
 {
   std::string toEncode;
