@@ -24,7 +24,6 @@
 
 #include <boost/filesystem.hpp>
 #include <json/value.h>
-#include <json/reader.h>
 #include <string.h>
 #include <iostream>
 #include <algorithm>

@@ -21,7 +21,6 @@
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
-#include <json/reader.h>
 #include <json/value.h>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
