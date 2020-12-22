@@ -45,13 +45,13 @@ TEST(Toolbox, Json)
   ASSERT_TRUE(Toolbox::ReadJson(c, b));
 
   std::string d, e;
-  Toolbox::WriteJson(d, a, true);
-  Toolbox::WriteJson(e, c, true);
+  Toolbox::WriteFastJson(d, a);
+  Toolbox::WriteFastJson(e, c);
   ASSERT_EQ(d, e);
 
   std::string f, g;
-  Toolbox::WriteJson(f, a, false);
-  Toolbox::WriteJson(g, c, false);
+  Toolbox::WriteStyledJson(f, a);
+  Toolbox::WriteStyledJson(g, c);
   ASSERT_EQ(f, g);
 
   /**

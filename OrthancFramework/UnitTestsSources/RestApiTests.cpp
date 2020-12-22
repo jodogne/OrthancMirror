@@ -343,7 +343,7 @@ TEST(RestApi, RestApiHierarchy)
   root.CreateSiteMap(m);
 
   std::string s;
-  Toolbox::WriteJson(s, m, false /* styled, not fast */);
+  Toolbox::WriteStyledJson(s, m);
 
   Json::Value d;
   ASSERT_FALSE(GetDirectory(d, root, "/hello"));
