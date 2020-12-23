@@ -151,6 +151,15 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
+        std::set<std::string> uriArguments;
+        
+        for (HttpToolbox::Arguments::const_iterator
+               it = components.begin(); it != components.end(); ++it)
+        {
+          assert(it->second.empty());
+          uriArguments.insert(it->first.c_str());
+        }
+
         if (resource.HasHandler(HttpMethod_Get))
         {
           StringHttpOutput o1;
@@ -168,7 +177,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v));
+                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
           }
           catch (OrthancException&)
           {
@@ -203,7 +212,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v));
+                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
           }
           catch (OrthancException&)
           {
@@ -238,7 +247,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v));
+                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
           }
           catch (OrthancException&)
           {
@@ -273,7 +282,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v));
+                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
           }
           catch (OrthancException&)
           {
@@ -477,7 +486,8 @@ namespace Orthanc
     OpenApiVisitor visitor(*this);
     
     UriComponents root;
-    root_.ExploreAllResources(visitor, root);
+    std::set<std::string> uriArguments;
+    root_.ExploreAllResources(visitor, root, uriArguments);
 
     target = Json::objectValue;
 

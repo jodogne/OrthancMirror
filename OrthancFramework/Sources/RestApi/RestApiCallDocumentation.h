@@ -60,7 +60,7 @@ namespace Orthanc
     std::string   tag_;
     std::string   summary_;
     std::string   description_;
-    Parameters    uriComponents_;
+    Parameters    uriArguments_;
     Parameters    httpHeaders_;
     Parameters    getArguments_;
     AllowedTypes  requestTypes_;
@@ -68,12 +68,15 @@ namespace Orthanc
     AllowedTypes  answerTypes_;
     Parameters    answerFields_;  // Only if JSON object
     std::string   answerDescription_;
-    Json::Value   sample_;
+    bool          hasSampleText_;
+    std::string   sampleText_;
+    Json::Value   sampleJson_;
 
   public:
     explicit RestApiCallDocumentation(HttpMethod method) :
       method_(method),
-      sample_(Json::nullValue)
+      hasSampleText_(false),
+      sampleJson_(Json::nullValue)
     {
     }
     
@@ -105,9 +108,14 @@ namespace Orthanc
     RestApiCallDocumentation& AddAnswerType(MimeType type,
                                             const std::string& description);
 
-    RestApiCallDocumentation& SetUriComponent(const std::string& name,
-                                              Type type,
-                                              const std::string& description);
+    RestApiCallDocumentation& SetUriArgument(const std::string& name,
+                                             Type type,
+                                             const std::string& description);
+
+    bool HasUriArgument(const std::string& name) const
+    {
+      return (uriArguments_.find(name) != uriArguments_.end());
+    }
 
     RestApiCallDocumentation& SetHttpHeader(const std::string& name,
                                             const std::string& description);
@@ -120,13 +128,15 @@ namespace Orthanc
                                              Type type,
                                              const std::string& description);
 
-    void SetHttpGetSample(const std::string& url);
+    void SetHttpGetSample(const std::string& url,
+                          bool isJson);
 
     void SetSample(const Json::Value& sample)
     {
-      sample_ = sample;
+      sampleJson_ = sample;
     }
 
-    bool FormatOpenApi(Json::Value& target) const;
+    bool FormatOpenApi(Json::Value& target,
+                       const std::set<std::string>& expectedUriArguments) const;
   };
 }

@@ -77,8 +77,9 @@ namespace Orthanc
       virtual bool Visit(const Resource& resource,
                          const UriComponents& uri,
                          bool hasTrailing,
-                         // The two arguments below are empty if using "ExploreAllResources()"
-                         const HttpToolbox::Arguments& uriComponents,
+                         // "uriArguments" only contains their name if using "ExploreAllResources()"
+                         const HttpToolbox::Arguments& uriArguments,
+                         // "trailing" is empty if using "ExploreAllResources()"
                          const UriComponents& trailing) = 0;
     };
 
@@ -139,6 +140,7 @@ namespace Orthanc
                             const UriComponents& uri);
 
     void ExploreAllResources(IVisitor& visitor,
-                             const UriComponents& path) const;
+                             const UriComponents& path,
+                             const std::set<std::string>& uriArguments) const;
   };
 }
