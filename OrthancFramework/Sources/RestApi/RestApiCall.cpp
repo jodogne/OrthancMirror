@@ -36,4 +36,15 @@ namespace Orthanc
 
     return s;
   }
+
+
+  RestApiCallDocumentation& RestApiCall::GetDocumentation()
+  {
+    if (documentation_.get() == NULL)
+    {
+      documentation_.reset(new RestApiCallDocumentation(method_));
+    }
+    
+    return *documentation_;
+  }
 }

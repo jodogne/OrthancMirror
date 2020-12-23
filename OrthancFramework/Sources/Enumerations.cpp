@@ -2282,6 +2282,97 @@ namespace Orthanc
 
     LOG(INFO) << "Default encoding for DICOM was changed to: " << name;
   }
+
+
+  const char* GetResourceTypeText(ResourceType type,
+                                  bool isPlural,
+                                  bool isUpperCase)
+  {
+    if (isPlural && !isUpperCase)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return "patients";
+
+        case ResourceType_Study:
+          return "studies";
+
+        case ResourceType_Series:
+          return "series";
+
+        case ResourceType_Instance:
+          return "instances";
+      
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    else if (isPlural && isUpperCase)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return "Patients";
+
+        case ResourceType_Study:
+          return "Studies";
+
+        case ResourceType_Series:
+          return "Series";
+
+        case ResourceType_Instance:
+          return "Instances";
+      
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    else if (!isPlural && !isUpperCase)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return "patient";
+
+        case ResourceType_Study:
+          return "study";
+
+        case ResourceType_Series:
+          return "series";
+
+        case ResourceType_Instance:
+          return "instance";
+      
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    else if (!isPlural && isUpperCase)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return "Patient";
+
+        case ResourceType_Study:
+          return "Study";
+
+        case ResourceType_Series:
+          return "Series";
+
+        case ResourceType_Instance:
+          return "Instance";
+      
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
 }
 
 

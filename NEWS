@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
 * Upgraded dependencies for static builds (notably on Windows):
   - jsoncpp 1.9.4
 

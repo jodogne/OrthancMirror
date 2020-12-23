@@ -312,6 +312,7 @@ namespace
   public:
     virtual bool Visit(const RestApiHierarchy::Resource& resource,
                        const UriComponents& uri,
+                       bool hasTrailing,
                        const HttpToolbox::Arguments& components,
                        const UriComponents& trailing) ORTHANC_OVERRIDE
     {

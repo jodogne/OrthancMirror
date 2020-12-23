@@ -32,10 +32,10 @@ namespace Orthanc
   class RestApiOutput
   {
   private:
-    HttpOutput&  output_;
-    HttpMethod   method_;
-    bool         alreadySent_;
-    bool         convertJsonToXml_;
+    HttpOutput&           output_;
+    HttpMethod            method_;
+    bool                  alreadySent_;
+    bool                  convertJsonToXml_;
 
     void CheckStatus();
 

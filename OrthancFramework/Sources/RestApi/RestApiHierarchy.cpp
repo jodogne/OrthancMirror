@@ -39,7 +39,7 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::Resource::HasHandler(HttpMethod method) const
+  bool RestApiHierarchy::Resource::HasMethod(HttpMethod method) const
   {
     switch (method)
     {
@@ -186,7 +186,7 @@ namespace Orthanc
     {
       if (path.IsUniversalTrailing())
       {
-        universalHandlers_.Register(handler);
+        handlersWithTrailing_.Register(handler);
       }
       else
       {
@@ -221,14 +221,14 @@ namespace Orthanc
       return false;
     }
 
-    UriComponents trailing;
-
     // Look for an exact match on the resource of interest
     if (uri.size() == 0 ||
         level == uri.size())
     {
+      UriComponents noTrailing;
+
       if (!handlers_.IsEmpty() &&
-          visitor.Visit(handlers_, uri, components, trailing))
+          visitor.Visit(handlers_, uri, false, components, noTrailing))
       {
         return true;
       }
@@ -263,8 +263,9 @@ namespace Orthanc
 
 
     // As a last resort, call the universal handlers, if any
-    if (!universalHandlers_.IsEmpty())
+    if (!handlersWithTrailing_.IsEmpty())
     {
+      UriComponents trailing;
       trailing.resize(uri.size() - level);
       size_t pos = 0;
       for (size_t i = level; i < uri.size(); i++, pos++)
@@ -274,7 +275,7 @@ namespace Orthanc
 
       assert(pos == trailing.size());
 
-      if (visitor.Visit(universalHandlers_, uri, components, trailing))
+      if (visitor.Visit(handlersWithTrailing_, uri, true, components, trailing))
       {
         return true;
       }
@@ -286,7 +287,7 @@ namespace Orthanc
 
   bool RestApiHierarchy::CanGenerateDirectory() const
   {
-    return (universalHandlers_.IsEmpty() &&
+    return (handlersWithTrailing_.IsEmpty() &&
             wildcardChildren_.empty());
   }
 
@@ -376,22 +377,22 @@ namespace Orthanc
     target = Json::objectValue;
 
     /*std::string s = " ";
-      if (handlers_.HasHandler(HttpMethod_Get))
+      if (handlers_.HasMethod(HttpMethod_Get))
       {
       s += "GET ";
       }
 
-      if (handlers_.HasHandler(HttpMethod_Post))
+      if (handlers_.HasMethod(HttpMethod_Post))
       {
       s += "POST ";
       }
 
-      if (handlers_.HasHandler(HttpMethod_Put))
+      if (handlers_.HasMethod(HttpMethod_Put))
       {
       s += "PUT ";
       }
 
-      if (handlers_.HasHandler(HttpMethod_Delete))
+      if (handlers_.HasMethod(HttpMethod_Delete))
       {
       s += "DELETE ";
       }
@@ -443,27 +444,28 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
+                         bool hasTrailing,
                          const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
-        if (trailing.size() == 0)  // Ignore universal handlers
+        if (!hasTrailing)  // Ignore universal handlers
         {
-          if (resource.HasHandler(HttpMethod_Get))
+          if (resource.HasMethod(HttpMethod_Get))
           {
             methods_.insert(HttpMethod_Get);
           }
 
-          if (resource.HasHandler(HttpMethod_Post))
+          if (resource.HasMethod(HttpMethod_Post))
           {
             methods_.insert(HttpMethod_Post);
           }
 
-          if (resource.HasHandler(HttpMethod_Put))
+          if (resource.HasMethod(HttpMethod_Put))
           {
             methods_.insert(HttpMethod_Put);
           }
 
-          if (resource.HasHandler(HttpMethod_Delete))
+          if (resource.HasMethod(HttpMethod_Delete))
           {
             methods_.insert(HttpMethod_Delete);
           }
@@ -489,4 +491,35 @@ namespace Orthanc
     }
   }
 
+  void RestApiHierarchy::ExploreAllResources(IVisitor& visitor,
+                                             const UriComponents& path) const
+  {
+    if (!handlers_.IsEmpty())
+    {
+      visitor.Visit(handlers_, path, false, HttpToolbox::Arguments(), UriComponents());
+    }
+
+    if (!handlersWithTrailing_.IsEmpty())
+    {
+      visitor.Visit(handlersWithTrailing_, path, true, HttpToolbox::Arguments(), UriComponents());
+    }
+    
+    for (Children::const_iterator
+           it = children_.begin(); it != children_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      UriComponents c = path;
+      c.push_back(it->first);
+      it->second->ExploreAllResources(visitor, c);
+    }
+    
+    for (Children::const_iterator
+           it = wildcardChildren_.begin(); it != wildcardChildren_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      UriComponents c = path;
+      c.push_back("{" + it->first + "}");
+      it->second->ExploreAllResources(visitor, c);
+    }
+  }
 }

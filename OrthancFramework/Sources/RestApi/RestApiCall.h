@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../HttpServer/HttpToolbox.h"
+#include "RestApiCallDocumentation.h"
 #include "RestApiPath.h"
 #include "RestApiOutput.h"
 
@@ -44,6 +45,8 @@ namespace Orthanc
     const HttpToolbox::Arguments& uriComponents_;
     const UriComponents& trailing_;
     const UriComponents& fullUri_;
+    HttpMethod method_;  // To create RestApiCallDocumentation on demand
+    std::unique_ptr<RestApiCallDocumentation>  documentation_;  // Lazy creation
 
   public:
     RestApiCall(RestApiOutput& output,
@@ -51,6 +54,7 @@ namespace Orthanc
                 RequestOrigin origin,
                 const char* remoteIp,
                 const char* username,
+                HttpMethod method,
                 const HttpToolbox::Arguments& httpHeaders,
                 const HttpToolbox::Arguments& uriComponents,
                 const UriComponents& trailing,
@@ -63,7 +67,8 @@ namespace Orthanc
       httpHeaders_(httpHeaders),
       uriComponents_(uriComponents),
       trailing_(trailing),
-      fullUri_(fullUri)
+      fullUri_(fullUri),
+      method_(method)
     {
     }
 
@@ -127,5 +132,12 @@ namespace Orthanc
     }
 
     virtual bool ParseJsonRequest(Json::Value& result) const = 0;
+
+    RestApiCallDocumentation& GetDocumentation();
+
+    bool IsDocumentation() const
+    {
+      return (origin_ == RequestOrigin_Documentation);
+    }
   };
 }

@@ -120,6 +120,27 @@ namespace Orthanc
 
   static void UploadDicomFile(RestApiPostCall& call)
   {
+    if (call.GetRequestOrigin() == RequestOrigin_Documentation)
+    {
+      Json::Value sample = Json::objectValue;
+      sample["ID"] = "19816330-cb02e1cf-df3a8fe8-bf510623-ccefe9f5";
+      sample["ParentPatient"] = "ef9d77db-eb3b2bef-9b31fd3e-bf42ae46-dbdb0cc3";
+      sample["ParentSeries"] = "3774320f-ccda46d8-69ee8641-9e791cbf-3ecbbcc6";
+      sample["ParentStudy"] = "66c8e41e-ac3a9029-0b85e42a-8195ee0a-92c2e62e";
+      sample["Path"] = "/instances/19816330-cb02e1cf-df3a8fe8-bf510623-ccefe9f5";
+      sample["Status"] = "Success";
+      
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Upload DICOM files")
+        .AddRequestType(MimeType_Dicom, "DICOM file to be uploaded")
+        .AddRequestType(MimeType_Zip, "ZIP archive containing DICOM files (new in Orthanc 1.8.2)")
+        .AddAnswerType(MimeType_Json, "Information about the uploaded instance, "
+                       "or list of information for each uploaded instance in the case of ZIP archive")
+        .SetSample(sample);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     CLOG(INFO, HTTP) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";

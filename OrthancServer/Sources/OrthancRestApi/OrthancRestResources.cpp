@@ -161,6 +161,21 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ListResources(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string resources = GetResourceTypeText(resourceType, true /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("List the available " + resources)
+        .SetDescription("List the Orthanc identifiers of all the available DICOM " + resources)
+        .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results")
+        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual " + resources)
+        .SetHttpGetSample("https://demo.orthanc-server.com/" + resources + "?since=0&limit=2");
+      return;
+    }
+    
     ServerIndex& index = OrthancRestApi::GetIndex(call);
 
     std::list<std::string> result;
@@ -198,6 +213,37 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void GetSingleResource(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      std::string sampleUrl;
+      switch (resourceType)
+      {
+        case Orthanc::ResourceType_Instance:
+          sampleUrl = "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
+          break;
+        case Orthanc::ResourceType_Series:
+          sampleUrl = "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
+          break;
+        case Orthanc::ResourceType_Study:
+          sampleUrl = "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
+          break;
+        case Orthanc::ResourceType_Patient:
+          sampleUrl = "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
+          break;          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Get information about some " + resource)
+        .SetDescription("Get information about the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetSample(sampleUrl);
+      return;
+    }
+    
     Json::Value result;
     if (OrthancRestApi::GetIndex(call).LookupResource(result, call.GetUriComponent("id", ""), resourceType))
     {
@@ -208,6 +254,17 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void DeleteSingleResource(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Delete some " + resource)
+        .SetDescription("Delete the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest");
+      return;
+    }
+
     Json::Value result;
     if (OrthancRestApi::GetContext(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
     {
@@ -220,6 +277,16 @@ namespace Orthanc
  
   static void IsProtectedPatient(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Patients")
+        .SetSummary("Is the patient protected against recycling?")
+        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest")
+        .AddAnswerType(MimeType_PlainText, "\"1\" if protected, \"0\" if not protected");
+      return;
+    }
+    
     std::string publicId = call.GetUriComponent("id", "");
     bool isProtected = OrthancRestApi::GetIndex(call).IsProtectedPatient(publicId);
     call.GetOutput().AnswerBuffer(isProtected ? "1" : "0", MimeType_PlainText);
@@ -228,6 +295,16 @@ namespace Orthanc
 
   static void SetPatientProtection(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Patients")
+        .SetSummary("Protect one patient against recycling")
+        .SetDescription("Check out configuration options \"MaximumStorageSize\" and \"MaximumPatientCount\"")
+        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest");
+      return;
+    }
+    
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");

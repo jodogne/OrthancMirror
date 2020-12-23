@@ -39,11 +39,13 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
+#include "Database/SQLiteDatabaseWrapper.h"
 #include "EmbeddedResourceHttpHandler.h"
 #include "OrthancConfiguration.h"
 #include "OrthancFindRequestHandler.h"
@@ -655,8 +657,10 @@ static void PrintHelp(const char* path)
     << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
     << "\t\t\tdatabase (beware that the database will become" << std::endl
     << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
-    << "  --no-jobs\t\tDon't restart the jobs that were stored during" << std::endl
+    << "  --no-jobs\t\tdon't restart the jobs that were stored during" << std::endl
     << "\t\t\tthe last execution of Orthanc" << std::endl
+    << "  --openapi=[file]\twrite the OpenAPI documentation and exit" << std::endl
+    << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Fine-tuning of log categories:" << std::endl;
@@ -1742,6 +1746,43 @@ int main(int argc, char* argv[])
       catch (OrthancException&)
       {
         LOG(ERROR) << "Cannot write sample configuration as file \"" << target << "\"";
+        return -1;
+      }
+    }
+    else if (boost::starts_with(argument, "--openapi="))
+    {
+      std::string target = argument.substr(10);
+
+      try
+      {
+        Json::Value openapi;
+
+        {
+          SQLiteDatabaseWrapper inMemoryDatabase;
+          inMemoryDatabase.Open();
+          MemoryStorageArea inMemoryStorage;
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+          restApi.GenerateOpenApiDocumentation(openapi);
+          context.Stop();
+        }
+        
+        std::string s;
+        Toolbox::WriteStyledJson(s, openapi);
+
+        if (target == "-")
+        {
+          std::cout << s;   // Print to stdout
+        }
+        else
+        {
+          SystemToolbox::WriteFile(s, target);
+        }
+        return 0;
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot export OpenAPI documentation as file \"" << target << "\"";
         return -1;
       }
     }

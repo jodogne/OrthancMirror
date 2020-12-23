@@ -44,7 +44,7 @@ namespace Orthanc
                    const UriComponents& trailing,
                    const UriComponents& fullUri,
                    const HttpToolbox::Arguments& getArguments) :
-      RestApiCall(output, context, origin, remoteIp, username, 
+      RestApiCall(output, context, origin, remoteIp, username, HttpMethod_Get,
                   httpHeaders, uriComponents, trailing, fullUri),
       getArguments_(getArguments)
     {

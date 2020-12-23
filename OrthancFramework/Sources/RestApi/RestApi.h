@@ -44,10 +44,7 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
-    {
-      return false;
-    }
+                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE;
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
@@ -71,5 +68,7 @@ namespace Orthanc
 
     void Register(const std::string& path,
                   RestApiDeleteCall::Handler handler);
+
+    void GenerateOpenApiDocumentation(Json::Value& target);
   };
 }
