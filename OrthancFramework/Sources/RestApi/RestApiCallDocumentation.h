@@ -71,7 +71,7 @@ namespace Orthanc
     Json::Value   sample_;
 
   public:
-    RestApiCallDocumentation(HttpMethod method) :
+    explicit RestApiCallDocumentation(HttpMethod method) :
       method_(method),
       sample_(Json::nullValue)
     {
