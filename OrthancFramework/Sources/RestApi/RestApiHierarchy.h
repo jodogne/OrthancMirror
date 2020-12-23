@@ -45,7 +45,7 @@ namespace Orthanc
     public:
       Resource();
 
-      bool HasHandler(HttpMethod method) const;
+      bool HasMethod(HttpMethod method) const;
 
       void Register(RestApiGetCall::Handler handler);
 
@@ -76,7 +76,9 @@ namespace Orthanc
 
       virtual bool Visit(const Resource& resource,
                          const UriComponents& uri,
-                         const HttpToolbox::Arguments& components,
+                         bool hasTrailing,
+                         // The two arguments below are empty if using "ExploreAllResources()"
+                         const HttpToolbox::Arguments& uriComponents,
                          const UriComponents& trailing) = 0;
     };
 
@@ -87,7 +89,7 @@ namespace Orthanc
     Resource  handlers_;
     Children  children_;
     Children  wildcardChildren_;
-    Resource  universalHandlers_;
+    Resource  handlersWithTrailing_;
 
     static RestApiHierarchy& AddChild(Children& children,
                                       const std::string& name);
@@ -135,5 +137,8 @@ namespace Orthanc
 
     void GetAcceptedMethods(std::set<HttpMethod>& methods,
                             const UriComponents& uri);
+
+    void ExploreAllResources(IVisitor& visitor,
+                             const UriComponents& path) const;
   };
 }

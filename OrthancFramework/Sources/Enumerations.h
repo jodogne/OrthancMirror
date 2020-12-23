@@ -499,7 +499,8 @@ namespace Orthanc
     RequestOrigin_RestApi,
     RequestOrigin_Plugins,
     RequestOrigin_Lua,
-    RequestOrigin_WebDav   // New in Orthanc 1.8.0
+    RequestOrigin_WebDav,   // New in Orthanc 1.8.0
+    RequestOrigin_Documentation  // New in Orthanc in Orthanc 1.8.3 for API documentation (OpenAPI)
   };
 
   enum ServerBarrierEvent
@@ -885,4 +886,9 @@ namespace Orthanc
   ORTHANC_PUBLIC
   bool LookupTransferSyntax(DicomTransferSyntax& target,
                             const std::string& uid);
+
+  ORTHANC_PUBLIC
+  const char* GetResourceTypeText(ResourceType type,
+                                  bool isPlural,
+                                  bool isLowerCase);
 }

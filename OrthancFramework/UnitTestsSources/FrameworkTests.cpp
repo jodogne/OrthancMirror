@@ -787,6 +787,23 @@ TEST(Toolbox, Enumerations)
   ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Study));
   ASSERT_FALSE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Series));
   ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Instance, ResourceType_Instance));
+
+  ASSERT_STREQ("Patients", GetResourceTypeText(ResourceType_Patient, true /* plural */, true /* upper case */));
+  ASSERT_STREQ("patients", GetResourceTypeText(ResourceType_Patient, true, false));
+  ASSERT_STREQ("Patient", GetResourceTypeText(ResourceType_Patient, false, true));
+  ASSERT_STREQ("patient", GetResourceTypeText(ResourceType_Patient, false, false));
+  ASSERT_STREQ("Studies", GetResourceTypeText(ResourceType_Study, true, true));
+  ASSERT_STREQ("studies", GetResourceTypeText(ResourceType_Study, true, false));
+  ASSERT_STREQ("Study", GetResourceTypeText(ResourceType_Study, false, true));
+  ASSERT_STREQ("study", GetResourceTypeText(ResourceType_Study, false, false));
+  ASSERT_STREQ("Series", GetResourceTypeText(ResourceType_Series, true, true));
+  ASSERT_STREQ("series", GetResourceTypeText(ResourceType_Series, true, false));
+  ASSERT_STREQ("Series", GetResourceTypeText(ResourceType_Series, false, true));
+  ASSERT_STREQ("series", GetResourceTypeText(ResourceType_Series, false, false));
+  ASSERT_STREQ("Instances", GetResourceTypeText(ResourceType_Instance, true, true));
+  ASSERT_STREQ("instances", GetResourceTypeText(ResourceType_Instance, true, false));
+  ASSERT_STREQ("Instance", GetResourceTypeText(ResourceType_Instance, false, true));
+  ASSERT_STREQ("instance", GetResourceTypeText(ResourceType_Instance, false, false));
 }
 
 

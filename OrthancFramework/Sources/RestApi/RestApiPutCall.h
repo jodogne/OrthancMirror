@@ -46,7 +46,7 @@ namespace Orthanc
                    const UriComponents& fullUri,
                    const void* bodyData,
                    size_t bodySize) :
-      RestApiCall(output, context, origin, remoteIp, username,
+      RestApiCall(output, context, origin, remoteIp, username, HttpMethod_Put,
                   httpHeaders, uriComponents, trailing, fullUri),
       bodyData_(bodyData),
       bodySize_(bodySize)

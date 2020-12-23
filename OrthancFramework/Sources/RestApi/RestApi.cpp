@@ -23,7 +23,9 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApi.h"
 
+#include "../HttpServer/StringHttpOutput.h"
 #include "../Logging.h"
+#include "../OrthancException.h"
 
 #include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
@@ -73,10 +75,11 @@ namespace Orthanc
 
       virtual bool Visit(const RestApiHierarchy::Resource& resource,
                          const UriComponents& uri,
+                         bool hasTrailing,
                          const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
-        if (resource.HasHandler(method_))
+        if (resource.HasMethod(method_))
         {
           switch (method_)
           {
@@ -120,6 +123,190 @@ namespace Orthanc
         return false;
       }
     };
+
+
+
+    class OpenApiVisitor : public RestApiHierarchy::IVisitor
+    {
+    private:
+      RestApi&    restApi_;
+      Json::Value paths_;
+  
+    public:
+      OpenApiVisitor(RestApi& restApi) :
+        restApi_(restApi)
+      {
+      }
+  
+      virtual bool Visit(const RestApiHierarchy::Resource& resource,
+                         const UriComponents& uri,
+                         bool hasTrailing,
+                         const HttpToolbox::Arguments& components,
+                         const UriComponents& trailing)
+      {
+        const std::string path = Toolbox::FlattenUri(uri);
+
+        if (hasTrailing)
+          LOG(WARNING) << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << path;
+
+        if (paths_.isMember(path))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        //if (path == "/patients/{id}/protected")
+        //asm("int $3");
+
+        if (resource.HasMethod(HttpMethod_Get))
+        {
+          StringHttpOutput o1;
+          HttpOutput o2(o1, false);
+          RestApiOutput o3(o2, HttpMethod_Get);
+          RestApiGetCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
+                              "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
+                              HttpToolbox::Arguments() /* URI components */,
+                              UriComponents() /* trailing */,
+                              uri, HttpToolbox::Arguments() /* GET arguments */);
+
+          bool ok = false;
+          Json::Value v;
+      
+          try
+          {
+            ok = (resource.Handle(call) &&
+                  call.GetDocumentation().FormatOpenApi(v));
+          }
+          catch (OrthancException&)
+          {
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+          }
+
+          if (ok)
+          {
+            paths_[path]["get"] = v;
+          }
+          else
+          {
+            LOG(WARNING) << "Ignoring URI without API documentation: GET " << path;
+          }
+        }
+    
+        if (resource.HasMethod(HttpMethod_Post))
+        {
+          StringHttpOutput o1;
+          HttpOutput o2(o1, false);
+          RestApiOutput o3(o2, HttpMethod_Post);
+          RestApiPostCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
+                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
+                               HttpToolbox::Arguments() /* URI components */,
+                               UriComponents() /* trailing */, uri, NULL /* body */, 0 /* body size */);
+
+          bool ok = false;
+          Json::Value v;
+      
+          try
+          {
+            ok = (resource.Handle(call) &&
+                  call.GetDocumentation().FormatOpenApi(v));
+          }
+          catch (OrthancException&)
+          {
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+          }
+
+          if (ok)
+          {
+            paths_[path]["post"] = v;
+          }
+          else
+          {
+            LOG(WARNING) << "Ignoring URI without API documentation: POST " << path;
+          }
+        }
+    
+        if (resource.HasMethod(HttpMethod_Delete))
+        {
+          StringHttpOutput o1;
+          HttpOutput o2(o1, false);
+          RestApiOutput o3(o2, HttpMethod_Delete);
+          RestApiDeleteCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
+                                 "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
+                                 HttpToolbox::Arguments() /* URI components */,
+                                 UriComponents() /* trailing */, uri);
+
+          bool ok = false;
+          Json::Value v;
+      
+          try
+          {
+            ok = (resource.Handle(call) &&
+                  call.GetDocumentation().FormatOpenApi(v));
+          }
+          catch (OrthancException&)
+          {
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+          }
+
+          if (ok)
+          {
+            paths_[path]["delete"] = v;
+          }
+          else
+          {
+            LOG(WARNING) << "Ignoring URI without API documentation: DELETE " << path;
+          }
+        }
+
+        if (resource.HasMethod(HttpMethod_Put))
+        {
+          StringHttpOutput o1;
+          HttpOutput o2(o1, false);
+          RestApiOutput o3(o2, HttpMethod_Put);
+          RestApiPutCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
+                              "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
+                              HttpToolbox::Arguments() /* URI components */,
+                              UriComponents() /* trailing */, uri, NULL /* body */, 0 /* body size */);
+
+          bool ok = false;
+          Json::Value v;
+      
+          try
+          {
+            ok = (resource.Handle(call) &&
+                  call.GetDocumentation().FormatOpenApi(v));
+          }
+          catch (OrthancException&)
+          {
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+          }
+
+          if (ok)
+          {
+            paths_[path]["put"] = v;
+          }
+          else
+          {
+            LOG(WARNING) << "Ignoring URI without API documentation: PUT " << path;
+          }
+        }
+    
+        return true;
+      }
+
+
+      const Json::Value& GetPaths() const
+      {
+        return paths_;
+      }
+    };
   }
 
 
@@ -160,6 +347,18 @@ namespace Orthanc
     return s;
   }
 
+
+
+  bool RestApi::CreateChunkedRequestReader(std::unique_ptr<IChunkedRequestReader>& target,
+                                           RequestOrigin origin,
+                                           const char* remoteIp,
+                                           const char* username,
+                                           HttpMethod method,
+                                           const UriComponents& uri,
+                                           const HttpToolbox::Arguments& headers)
+  {
+    return false;
+  }
 
 
   bool RestApi::Handle(HttpOutput& output,
@@ -255,13 +454,47 @@ namespace Orthanc
   }
   
   void RestApi::AutoListChildren(RestApiGetCall& call)
-  {
+  {    
+    call.GetDocumentation()
+      .SetTag("Other")
+      .SetSummary("List of operations")
+      .SetDescription("List the available operations under URI: " + call.FlattenUri())
+      .AddAnswerType(MimeType_Json, "List of the available operations");
+
     RestApi& context = call.GetContext();
 
     Json::Value directory;
     if (context.root_.GetDirectory(directory, call.GetFullUri()))
     {
-      call.GetOutput().AnswerJson(directory);
+      if (call.IsDocumentation())
+      {
+        call.GetDocumentation().SetSample(directory);
+      }
+      else
+      {
+        call.GetOutput().AnswerJson(directory);
+      }
     }    
+  }
+
+
+  void RestApi::GenerateOpenApiDocumentation(Json::Value& target)
+  {
+    OpenApiVisitor visitor(*this);
+    
+    UriComponents root;
+    root_.ExploreAllResources(visitor, root);
+
+    target = Json::objectValue;
+
+    target["info"]["version"] = ORTHANC_VERSION;
+    target["info"]["title"] = "Orthanc";
+
+    target["openapi"] = "3.0.0";
+
+    target["servers"].append(Json::objectValue);
+    target["servers"][0]["url"] = "https://demo.orthanc-server.com/";
+
+    target["paths"] = visitor.GetPaths();
   }
 }

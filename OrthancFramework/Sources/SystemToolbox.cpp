@@ -213,30 +213,41 @@ namespace Orthanc
                              log);
     }
 
-    boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ifstream::binary);
-    if (!f.good())
+    try
     {
-      throw OrthancException(ErrorCode_InexistentFile,
-                             "File not found: " + path,
-                             log);
-    }
+      boost::filesystem::ifstream f;
+      f.open(path, std::ifstream::in | std::ifstream::binary);
+      if (!f.good())
+      {
+        throw OrthancException(ErrorCode_InexistentFile,
+                               "File not found: " + path,
+                               log);
+      }
 
-    std::streamsize size = GetStreamSize(f);
-    content.resize(static_cast<size_t>(size));
+      std::streamsize size = GetStreamSize(f);
+      content.resize(static_cast<size_t>(size));
 
-    if (static_cast<std::streamsize>(content.size()) != size)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Reading a file that is too large for a 32bit architecture");
-    }
+      if (static_cast<std::streamsize>(content.size()) != size)
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Reading a file that is too large for a 32bit architecture");
+      }
     
-    if (size != 0)
-    {
-      f.read(&content[0], size);
-    }
+      if (size != 0)
+      {
+        f.read(&content[0], size);
+      }
 
-    f.close();
+      f.close();
+    }
+    catch (boost::filesystem::filesystem_error&)
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+    catch (std::system_error&)
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
   }
 
 
@@ -256,38 +267,49 @@ namespace Orthanc
                              "The path does not point to a regular file: " + path);
     }
 
-    boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ifstream::binary);
-    if (!f.good())
+    try
+    {
+      boost::filesystem::ifstream f;
+      f.open(path, std::ifstream::in | std::ifstream::binary);
+      if (!f.good())
+      {
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
+
+      bool full = true;
+
+      {
+        std::streamsize size = GetStreamSize(f);
+        if (size <= 0)
+        {
+          headerSize = 0;
+          full = false;
+        }
+        else if (static_cast<size_t>(size) < headerSize)
+        {
+          headerSize = static_cast<size_t>(size);  // Truncate to the size of the file
+          full = false;
+        }
+      }
+
+      header.resize(headerSize);
+      if (headerSize != 0)
+      {
+        f.read(&header[0], headerSize);
+      }
+
+      f.close();
+
+      return full;
+    }
+    catch (boost::filesystem::filesystem_error&)
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
-
-    bool full = true;
-
+    catch (std::system_error&)
     {
-      std::streamsize size = GetStreamSize(f);
-      if (size <= 0)
-      {
-        headerSize = 0;
-        full = false;
-      }
-      else if (static_cast<size_t>(size) < headerSize)
-      {
-        headerSize = static_cast<size_t>(size);  // Truncate to the size of the file
-        full = false;
-      }
+      throw OrthancException(ErrorCode_InexistentFile);
     }
-
-    header.resize(headerSize);
-    if (headerSize != 0)
-    {
-      f.read(&header[0], headerSize);
-    }
-
-    f.close();
-
-    return full;
   }
 
 
@@ -296,56 +318,67 @@ namespace Orthanc
                                 const std::string& path,
                                 bool callFsync)
   {
-    //boost::filesystem::ofstream f;
-    boost::iostreams::stream<boost::iostreams::file_descriptor_sink> f;
+    try
+    {
+      //boost::filesystem::ofstream f;
+      boost::iostreams::stream<boost::iostreams::file_descriptor_sink> f;
     
-    f.open(path, std::ofstream::out | std::ofstream::binary);
-    if (!f.good())
+      f.open(path, std::ofstream::out | std::ofstream::binary);
+      if (!f.good())
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile);
+      }
+
+      if (size != 0)
+      {
+        f.write(reinterpret_cast<const char*>(content), size);
+
+        if (!f.good())
+        {
+          f.close();
+          throw OrthancException(ErrorCode_CannotWriteFile);
+        }
+      }
+
+      if (callFsync)
+      {
+        // https://stackoverflow.com/a/23826489/881731
+        f.flush();
+
+        bool success;
+
+        /**
+         * "f->handle()" corresponds to "FILE*" (aka "HANDLE") on
+         * Microsoft Windows, and to "int" (file descriptor) on other
+         * systems:
+         * https://github.com/boostorg/iostreams/blob/develop/include/boost/iostreams/detail/file_handle.hpp
+         **/
+      
+#if defined(_WIN32)
+        // https://docs.microsoft.com/fr-fr/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
+        success = (::FlushFileBuffers(f->handle()) != 0);
+#elif (_POSIX_C_SOURCE >= 199309L || _XOPEN_SOURCE >= 500)
+        success = (::fdatasync(f->handle()) == 0);
+#else
+        success = (::fsync(f->handle()) == 0);
+#endif
+
+        if (!success)
+        {
+          throw OrthancException(ErrorCode_CannotWriteFile, "Cannot force flush to disk");
+        }
+      }
+
+      f.close();
+    }
+    catch (boost::filesystem::filesystem_error&)
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
-
-    if (size != 0)
+    catch (std::system_error&)
     {
-      f.write(reinterpret_cast<const char*>(content), size);
-
-      if (!f.good())
-      {
-        f.close();
-        throw OrthancException(ErrorCode_FileStorageCannotWrite);
-      }
+      throw OrthancException(ErrorCode_CannotWriteFile);
     }
-
-    if (callFsync)
-    {
-      // https://stackoverflow.com/a/23826489/881731
-      f.flush();
-
-      bool success;
-
-      /**
-       * "f->handle()" corresponds to "FILE*" (aka "HANDLE") on
-       * Microsoft Windows, and to "int" (file descriptor) on other
-       * systems:
-       * https://github.com/boostorg/iostreams/blob/develop/include/boost/iostreams/detail/file_handle.hpp
-       **/
-      
-#if defined(_WIN32)
-      // https://docs.microsoft.com/fr-fr/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
-      success = (::FlushFileBuffers(f->handle()) != 0);
-#elif (_POSIX_C_SOURCE >= 199309L || _XOPEN_SOURCE >= 500)
-      success = (::fdatasync(f->handle()) == 0);
-#else
-      success = (::fsync(f->handle()) == 0);
-#endif
-
-      if (!success)
-      {
-        throw OrthancException(ErrorCode_FileStorageCannotWrite, "Cannot force flush to disk");
-      }
-    }
-
-    f.close();
   }
 
 
@@ -393,6 +426,10 @@ namespace Orthanc
       return static_cast<uint64_t>(boost::filesystem::file_size(path));
     }
     catch (boost::filesystem::filesystem_error&)
+    {
+      throw OrthancException(ErrorCode_InexistentFile);
+    }
+    catch (std::system_error&)
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
@@ -575,18 +612,16 @@ namespace Orthanc
 
   bool SystemToolbox::IsRegularFile(const std::string& path)
   {
-    namespace fs = boost::filesystem;
-
     try
     {
-      if (fs::exists(path))
+      if (boost::filesystem::exists(path))
       {
-        fs::file_status status = fs::status(path);
+        boost::filesystem::file_status status = boost::filesystem::status(path);
         return (status.type() == boost::filesystem::regular_file ||
                 status.type() == boost::filesystem::reparse_file);   // Fix BitBucket issue #11
       }
     }
-    catch (fs::filesystem_error&)
+    catch (boost::filesystem::filesystem_error&)
     {
     }
 

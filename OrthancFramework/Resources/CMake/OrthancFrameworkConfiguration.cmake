@@ -311,6 +311,7 @@ if (ENABLE_WEB_SERVER)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringHttpOutput.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApi.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiCall.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiCallDocumentation.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiGetCall.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiOutput.cpp
     )
