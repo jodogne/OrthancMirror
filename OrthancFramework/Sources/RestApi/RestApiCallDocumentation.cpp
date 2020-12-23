@@ -278,13 +278,13 @@ namespace Orthanc
 
           if (it->first == MimeType_Json)
           {
-            for (Parameters::const_iterator it = requestFields_.begin();
-                 it != requestFields_.end(); ++it)
+            for (Parameters::const_iterator field = requestFields_.begin();
+                 field != requestFields_.end(); ++field)
             {
               Json::Value p = Json::objectValue;
-              p["type"] = TypeToString(it->second.type_);
-              p["description"] = it->second.description_;
-              schema["properties"][it->first] = p;         
+              p["type"] = TypeToString(field->second.type_);
+              p["description"] = field->second.description_;
+              schema["properties"][field->first] = p;         
             }        
           }
         }
@@ -300,13 +300,13 @@ namespace Orthanc
 
         if (it->first == MimeType_Json)
         {
-          for (Parameters::const_iterator it = answerFields_.begin();
-               it != answerFields_.end(); ++it)
+          for (Parameters::const_iterator field = answerFields_.begin();
+               field != answerFields_.end(); ++field)
           {
             Json::Value p = Json::objectValue;
-            p["type"] = TypeToString(it->second.type_);
-            p["description"] = it->second.description_;
-            schema["properties"][it->first] = p;         
+            p["type"] = TypeToString(field->second.type_);
+            p["description"] = field->second.description_;
+            schema["properties"][field->first] = p;         
           }        
         }
       }

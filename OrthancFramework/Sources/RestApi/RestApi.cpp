@@ -79,7 +79,7 @@ namespace Orthanc
                          const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
-        if (resource.HasMethod(method_))
+        if (resource.HasHandler(method_))
         {
           switch (method_)
           {
@@ -133,7 +133,7 @@ namespace Orthanc
       Json::Value paths_;
   
     public:
-      OpenApiVisitor(RestApi& restApi) :
+      explicit OpenApiVisitor(RestApi& restApi) :
         restApi_(restApi)
       {
       }
@@ -146,18 +146,12 @@ namespace Orthanc
       {
         const std::string path = Toolbox::FlattenUri(uri);
 
-        if (hasTrailing)
-          LOG(WARNING) << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << path;
-
         if (paths_.isMember(path))
         {
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        //if (path == "/patients/{id}/protected")
-        //asm("int $3");
-
-        if (resource.HasMethod(HttpMethod_Get))
+        if (resource.HasHandler(HttpMethod_Get))
         {
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
@@ -193,7 +187,7 @@ namespace Orthanc
           }
         }
     
-        if (resource.HasMethod(HttpMethod_Post))
+        if (resource.HasHandler(HttpMethod_Post))
         {
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
@@ -228,7 +222,7 @@ namespace Orthanc
           }
         }
     
-        if (resource.HasMethod(HttpMethod_Delete))
+        if (resource.HasHandler(HttpMethod_Delete))
         {
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
@@ -263,7 +257,7 @@ namespace Orthanc
           }
         }
 
-        if (resource.HasMethod(HttpMethod_Put))
+        if (resource.HasHandler(HttpMethod_Put))
         {
           StringHttpOutput o1;
           HttpOutput o2(o1, false);

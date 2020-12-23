@@ -12,9 +12,11 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:318
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:319
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1163
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:174
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:71
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:384
 stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50

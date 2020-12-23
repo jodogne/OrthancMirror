@@ -39,7 +39,7 @@ namespace Orthanc
   }
 
 
-  bool RestApiHierarchy::Resource::HasMethod(HttpMethod method) const
+  bool RestApiHierarchy::Resource::HasHandler(HttpMethod method) const
   {
     switch (method)
     {
@@ -377,22 +377,22 @@ namespace Orthanc
     target = Json::objectValue;
 
     /*std::string s = " ";
-      if (handlers_.HasMethod(HttpMethod_Get))
+      if (handlers_.HasHandler(HttpMethod_Get))
       {
       s += "GET ";
       }
 
-      if (handlers_.HasMethod(HttpMethod_Post))
+      if (handlers_.HasHandler(HttpMethod_Post))
       {
       s += "POST ";
       }
 
-      if (handlers_.HasMethod(HttpMethod_Put))
+      if (handlers_.HasHandler(HttpMethod_Put))
       {
       s += "PUT ";
       }
 
-      if (handlers_.HasMethod(HttpMethod_Delete))
+      if (handlers_.HasHandler(HttpMethod_Delete))
       {
       s += "DELETE ";
       }
@@ -450,22 +450,22 @@ namespace Orthanc
       {
         if (!hasTrailing)  // Ignore universal handlers
         {
-          if (resource.HasMethod(HttpMethod_Get))
+          if (resource.HasHandler(HttpMethod_Get))
           {
             methods_.insert(HttpMethod_Get);
           }
 
-          if (resource.HasMethod(HttpMethod_Post))
+          if (resource.HasHandler(HttpMethod_Post))
           {
             methods_.insert(HttpMethod_Post);
           }
 
-          if (resource.HasMethod(HttpMethod_Put))
+          if (resource.HasHandler(HttpMethod_Put))
           {
             methods_.insert(HttpMethod_Put);
           }
 
-          if (resource.HasMethod(HttpMethod_Delete))
+          if (resource.HasHandler(HttpMethod_Delete))
           {
             methods_.insert(HttpMethod_Delete);
           }

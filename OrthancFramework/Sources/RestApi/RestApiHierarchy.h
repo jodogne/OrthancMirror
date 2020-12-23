@@ -45,7 +45,7 @@ namespace Orthanc
     public:
       Resource();
 
-      bool HasMethod(HttpMethod method) const;
+      bool HasHandler(HttpMethod method) const;
 
       void Register(RestApiGetCall::Handler handler);
 
