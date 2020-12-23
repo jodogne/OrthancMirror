@@ -70,6 +70,24 @@ namespace Orthanc
 
   static void GetChanges(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Tracking changes")
+        .SetSummary("List changes")
+        .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality.")
+        .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
+        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
+        .AddAnswerType(MimeType_Json, "The list of changes")
+        .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
+        .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,
+                        "Whether the last reported change is the last of the full history")
+        .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
+                        "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
+        .SetHttpGetSample("https://demo.orthanc-server.com/changes?since=0&limit=2", true);
+      return;
+    }
+    
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     //std::string filter = GetArgument(getArguments, "filter", "");
@@ -94,6 +112,15 @@ namespace Orthanc
 
   static void DeleteChanges(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Tracking changes")
+        .SetSummary("Clear changes")
+        .SetDescription("Clear the full history stored in the changes log");
+      return;
+    }
+
     OrthancRestApi::GetIndex(call).DeleteChanges();
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }

@@ -43,14 +43,48 @@ namespace Orthanc
       Type_Number,
       Type_Boolean,
       Type_JsonListOfStrings,
+      Type_JsonListOfObjects,
       Type_JsonObject
     };    
     
   private:
-    struct Parameter
+    class Parameter
     {
+    private:
       Type         type_;
       std::string  description_;
+      bool         required_;
+
+    public:
+      Parameter() :
+        type_(Type_Unknown),
+        required_(false)
+      {
+      }
+      
+      Parameter(Type type,
+                const std::string& description,
+                bool required) :
+        type_(type),
+        description_(description),
+        required_(required)
+      {
+      }
+
+      Type GetType() const
+      {
+        return type_;
+      }
+
+      const std::string& GetDescription() const
+      {
+        return description_;
+      }
+
+      bool IsRequired() const
+      {
+        return required_;
+      }
     };
     
     typedef std::map<std::string, Parameter>  Parameters;
@@ -103,7 +137,8 @@ namespace Orthanc
 
     RestApiCallDocumentation& SetRequestField(const std::string& name,
                                               Type type,
-                                              const std::string& description);
+                                              const std::string& description,
+                                              bool required);
 
     RestApiCallDocumentation& AddAnswerType(MimeType type,
                                             const std::string& description);
@@ -122,7 +157,8 @@ namespace Orthanc
 
     RestApiCallDocumentation& SetHttpGetArgument(const std::string& name,
                                                  Type type,
-                                                 const std::string& description);
+                                                 const std::string& description,
+                                                 bool required);
 
     RestApiCallDocumentation& SetAnswerField(const std::string& name,
                                              Type type,

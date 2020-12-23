@@ -69,14 +69,14 @@ namespace Orthanc
         .SetAnswerField("IsHttpServerSecure", RestApiCallDocumentation::Type_Boolean,
                         "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://book.orthanc-server.com/faq/security.html#securing-the-http-server")
         .SetAnswerField("StorageAreaPlugin", RestApiCallDocumentation::Type_String,
-                        "Information about the installed storage area plugin (\"null\" if no such plugin is installed)")
+                        "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField("DatabaseBackendPlugin", RestApiCallDocumentation::Type_String,
-                        "Information about the installed database index plugin (\"null\" if no such plugin is installed)")
+                        "Information about the installed database index plugin (`null` if no such plugin is installed)")
         .SetAnswerField("DicomAet", RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
         .SetAnswerField("DicomPort", RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
         .SetAnswerField("HttpPort", RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
         .SetAnswerField("Name", RestApiCallDocumentation::Type_String,
-                        "The name of the Orthanc server, cf. the \"Name\" configuration option")
+                        "The name of the Orthanc server, cf. the `Name` configuration option")
         .SetAnswerField("PluginsEnabled", RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc was built with support for plugins")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
@@ -131,15 +131,15 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Get statistics")
-        .SetDescription("Get some statistics about Orthanc")
+        .SetSummary("Get database statistics")
+        .SetDescription("Get statistics related to the database of Orthanc")
         .SetAnswerField("CountInstances", RestApiCallDocumentation::Type_Number, "Number of DICOM instances stored in Orthanc")
         .SetAnswerField("CountSeries", RestApiCallDocumentation::Type_Number, "Number of DICOM series stored in Orthanc")
         .SetAnswerField("CountStudies", RestApiCallDocumentation::Type_Number, "Number of DICOM studies stored in Orthanc")
         .SetAnswerField("CountPatients", RestApiCallDocumentation::Type_Number, "Number of patients stored in Orthanc")
         .SetAnswerField("TotalDiskSize", RestApiCallDocumentation::Type_String, "Size of the storage area (in bytes)")
         .SetAnswerField("TotalDiskSizeMB", RestApiCallDocumentation::Type_Number, "Size of the storage area (in megabytes)")
-        .SetAnswerField("TotalUncompressedSize", RestApiCallDocumentation::Type_String, "Total size of all the files once uncompressed (in bytes). This corresponds to \"TotalDiskSize\" if no compression is enabled, cf. \"StorageCompression\" configuration option")
+        .SetAnswerField("TotalUncompressedSize", RestApiCallDocumentation::Type_String, "Total size of all the files once uncompressed (in bytes). This corresponds to `TotalDiskSize` if no compression is enabled, cf. `StorageCompression` configuration option")
         .SetAnswerField("TotalUncompressedSizeMB", RestApiCallDocumentation::Type_Number, "Total size of all the files once uncompressed (in megabytes)")
         .SetHttpGetSample("https://demo.orthanc-server.com/statistics", true);
       return;
@@ -173,7 +173,7 @@ namespace Orthanc
         .SetSummary("Generate an identifier")
         .SetDescription("Generate a random DICOM identifier")
         .SetHttpGetArgument("level", RestApiCallDocumentation::Type_String,
-                            "Type of DICOM resource among: \"patient\", \"study\", \"series\" or \"instance\"")
+                            "Type of DICOM resource among: `patient`, `study`, `series` or `instance`", true)
         .AddAnswerType(MimeType_PlainText, "The generated identifier");
       return;
     }
@@ -205,7 +205,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Execute Lua script")
         .SetDescription("Execute the provided Lua script by the Orthanc server. This is very insecure for "
-                        "Orthanc servers that are remotely accessible, cf. configuration option \"ExecuteLuaEnabled\"")
+                        "Orthanc servers that are remotely accessible, cf. configuration option `ExecuteLuaEnabled`")
         .AddRequestType(MimeType_PlainText, "The Lua script to be executed")
         .AddAnswerType(MimeType_PlainText, "Output of the Lua script");
       return;
@@ -253,6 +253,16 @@ namespace Orthanc
 
   static void GetDicomConformanceStatement(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get DICOM conformance")
+        .SetDescription("Get the DICOM conformance statement of Orthanc")
+        .AddAnswerType(MimeType_PlainText, "The DICOM conformance statement");
+      return;
+    }
+
     std::string statement;
     GetFileResource(statement, ServerResources::DICOM_CONFORMANCE_STATEMENT);
     call.GetOutput().AnswerBuffer(statement, MimeType_PlainText);
@@ -261,6 +271,18 @@ namespace Orthanc
 
   static void GetDefaultEncoding(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get default encoding")
+        .SetDescription("Get the default encoding that is used by Orthanc if parsing "
+                        "a DICOM instance without the `SpecificCharacterEncoding` tag, or during C-FIND. "
+                        "This corresponds to the configuration option `DefaultEncoding`.")
+        .AddAnswerType(MimeType_PlainText, "The name of the encoding");
+      return;
+    }
+
     Encoding encoding = GetDefaultDicomEncoding();
     call.GetOutput().AnswerBuffer(EnumerationToString(encoding), MimeType_PlainText);
   }
@@ -268,6 +290,19 @@ namespace Orthanc
 
   static void SetDefaultEncoding(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Set default encoding")
+        .SetDescription("Change the default encoding that is used by Orthanc if parsing "
+                        "a DICOM instance without the `SpecificCharacterEncoding` tag, or during C-FIND. "
+                        "This corresponds to the configuration option `DefaultEncoding`.")
+        .AddRequestType(MimeType_PlainText, "The name of the encoding. Check out configuration "
+                        "option `DefaultEncoding` for the allowed values.");
+      return;
+    }
+
     std::string body;
     call.BodyToString(body);
 
@@ -508,8 +543,8 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Get metrics")
-        .SetDescription("Get metrics in the Prometheus file format")
+        .SetSummary("Get usage metrics")
+        .SetDescription("Get usage metrics of Orthanc in the Prometheus file format (OpenMetrics)")
         .SetHttpGetSample("https://demo.orthanc-server.com/tools/metrics-prometheus", false);
       return;
     }
@@ -551,6 +586,17 @@ namespace Orthanc
 
   static void GetMetricsEnabled(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Are metrics collected?")
+        .SetDescription("Returns a Boolean specifying whether Prometheus metrics "
+                        "are collected and exposed at `/tools/metrics-prometheus`")
+        .AddAnswerType(MimeType_PlainText, "`1` if metrics are collected, `0` if metrics are disabled");
+      return;
+    }
+
     bool enabled = OrthancRestApi::GetContext(call).GetMetricsRegistry().IsEnabled();
     call.GetOutput().AnswerBuffer(enabled ? "1" : "0", MimeType_PlainText);
   }
@@ -558,6 +604,16 @@ namespace Orthanc
 
   static void PutMetricsEnabled(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Enable collection of metrics")
+        .SetDescription("Enable or disable the collection and publication of metrics at `/tools/metrics-prometheus`")
+        .AddRequestType(MimeType_PlainText, "`1` if metrics are collected, `0` if metrics are disabled");
+      return;
+    }
+
     bool enabled;
 
     std::string body;
@@ -591,7 +647,7 @@ namespace Orthanc
         .SetTag("Logs")
         .SetSummary("Get main log level")
         .SetDescription("Get the main log level of Orthanc")
-        .AddAnswerType(MimeType_PlainText, "Possible values: \"default\", \"verbose\" or \"trace\"");
+        .AddAnswerType(MimeType_PlainText, "Possible values: `default`, `verbose` or `trace`");
       return;
     }
 
@@ -608,7 +664,7 @@ namespace Orthanc
         .SetTag("Logs")
         .SetSummary("Set main log level")
         .SetDescription("Set the main log level of Orthanc")
-        .AddRequestType(MimeType_PlainText, "Possible values: \"default\", \"verbose\" or \"trace\"");
+        .AddRequestType(MimeType_PlainText, "Possible values: `default`, `verbose` or `trace`");
       return;
     }
 
@@ -649,9 +705,9 @@ namespace Orthanc
       std::string category = Logging::GetCategoryName(GetCategory(call));
       call.GetDocumentation()
         .SetTag("Logs")
-        .SetSummary("Get log level for \"" + category + "\"")
-        .SetDescription("Get the log level of the log category \"" + category + "\"")
-        .AddAnswerType(MimeType_PlainText, "Possible values: \"default\", \"verbose\" or \"trace\"");
+        .SetSummary("Get log level for `" + category + "`")
+        .SetDescription("Get the log level of the log category `" + category + "`")
+        .AddAnswerType(MimeType_PlainText, "Possible values: `default`, `verbose` or `trace`");
       return;
     }
 
@@ -667,9 +723,9 @@ namespace Orthanc
       std::string category = Logging::GetCategoryName(GetCategory(call));
       call.GetDocumentation()
         .SetTag("Logs")
-        .SetSummary("Set log level for \"" + category + "\"")
-        .SetDescription("Set the log level of the log category \"" + category + "\"")
-        .AddRequestType(MimeType_PlainText, "Possible values: \"default\", \"verbose\" or \"trace\"");
+        .SetSummary("Set log level for `" + category + "`")
+        .SetDescription("Set the log level of the log category `" + category + "`")
+        .AddRequestType(MimeType_PlainText, "Possible values: `default`, `verbose` or `trace`");
       return;
     }
 

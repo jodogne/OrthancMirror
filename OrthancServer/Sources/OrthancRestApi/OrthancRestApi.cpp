@@ -99,6 +99,14 @@ namespace Orthanc
 
   void OrthancRestApi::ResetOrthanc(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Restart Orthanc");
+      return;
+    }
+
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
     OrthancRestApi::GetApi(call).resetRequestReceived_ = true;
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
@@ -107,6 +115,14 @@ namespace Orthanc
 
   void OrthancRestApi::ShutdownOrthanc(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Shutdown Orthanc");
+      return;
+    }
+
     OrthancRestApi::GetApi(call).leaveBarrier_ = true;
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     LOG(WARNING) << "Shutdown request received";
@@ -132,7 +148,7 @@ namespace Orthanc
       
       call.GetDocumentation()
         .SetTag("Instances")
-        .SetSummary("Upload DICOM files")
+        .SetSummary("Upload DICOM instances")
         .AddRequestType(MimeType_Dicom, "DICOM file to be uploaded")
         .AddRequestType(MimeType_Zip, "ZIP archive containing DICOM files (new in Orthanc 1.8.2)")
         .AddAnswerType(MimeType_Json, "Information about the uploaded instance, "

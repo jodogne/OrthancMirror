@@ -1766,6 +1766,13 @@ int main(int argc, char* argv[])
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
         }
+
+        openapi["info"]["version"] = ORTHANC_VERSION;
+        openapi["info"]["title"] = "Orthanc API";
+
+        Json::Value server = Json::objectValue;
+        server["url"] = "https://demo.orthanc-server.com/";
+        openapi["servers"].append(server);
         
         std::string s;
         Toolbox::WriteStyledJson(s, openapi);

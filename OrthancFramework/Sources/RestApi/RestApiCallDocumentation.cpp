@@ -58,7 +58,8 @@ namespace Orthanc
 
   RestApiCallDocumentation& RestApiCallDocumentation::SetRequestField(const std::string& name,
                                                                       Type type,
-                                                                      const std::string& description)
+                                                                      const std::string& description,
+                                                                      bool required)
   {
     if (method_ != HttpMethod_Post &&
         method_ != HttpMethod_Put)
@@ -77,10 +78,7 @@ namespace Orthanc
     }
     else
     {
-      Parameter p;
-      p.type_ = type;
-      p.description_ = description;
-      requestFields_[name] = p;
+      requestFields_[name] = Parameter(type, description, required);
       return *this;
     }    
   }
@@ -114,10 +112,7 @@ namespace Orthanc
     }
     else
     {
-      Parameter p;
-      p.type_ = type;
-      p.description_ = description;
-      uriArguments_[name] = p;
+      uriArguments_[name] = Parameter(type, description, true);
       return *this;
     }
   }
@@ -132,10 +127,7 @@ namespace Orthanc
     }
     else
     {
-      Parameter p;
-      p.type_ = Type_String;
-      p.description_ = description;
-      httpHeaders_[name] = p;
+      httpHeaders_[name] = Parameter(Type_String, description, false);
       return *this;
     }
   }
@@ -143,7 +135,8 @@ namespace Orthanc
 
   RestApiCallDocumentation& RestApiCallDocumentation::SetHttpGetArgument(const std::string& name,
                                                                          Type type,
-                                                                         const std::string& description)
+                                                                         const std::string& description,
+                                                                         bool required)
   {
     if (method_ != HttpMethod_Get)
     {
@@ -156,10 +149,7 @@ namespace Orthanc
     }
     else
     {
-      Parameter p;
-      p.type_ = type;
-      p.description_ = description;
-      getArguments_[name] = p;
+      getArguments_[name] = Parameter(type, description, required);
       return *this;
     }
   }
@@ -180,10 +170,7 @@ namespace Orthanc
     }
     else
     {
-      Parameter p;
-      p.type_ = type;
-      p.description_ = description;
-      answerFields_[name] = p;
+      answerFields_[name] = Parameter(type, description, false);
       return *this;
     }    
   }
@@ -241,9 +228,12 @@ namespace Orthanc
         return "boolean";
 
       case RestApiCallDocumentation::Type_JsonObject:
-      case RestApiCallDocumentation::Type_JsonListOfStrings:
         return "object";
 
+      case RestApiCallDocumentation::Type_JsonListOfStrings:
+      case RestApiCallDocumentation::Type_JsonListOfObjects:
+        return "array";
+        
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -300,8 +290,8 @@ namespace Orthanc
                  field != requestFields_.end(); ++field)
             {
               Json::Value p = Json::objectValue;
-              p["type"] = TypeToString(field->second.type_);
-              p["description"] = field->second.description_;
+              p["type"] = TypeToString(field->second.GetType());
+              p["description"] = field->second.GetDescription();
               schema["properties"][field->first] = p;         
             }        
           }
@@ -322,8 +312,8 @@ namespace Orthanc
                field != answerFields_.end(); ++field)
           {
             Json::Value p = Json::objectValue;
-            p["type"] = TypeToString(field->second.type_);
-            p["description"] = field->second.description_;
+            p["type"] = TypeToString(field->second.GetType());
+            p["description"] = field->second.GetDescription();
             schema["properties"][field->first] = p;         
           }        
         }
@@ -351,8 +341,9 @@ namespace Orthanc
         Json::Value p = Json::objectValue;
         p["name"] = it->first;
         p["in"] = "query";
-        p["schema"]["type"] = TypeToString(it->second.type_);
-        p["description"] = it->second.description_;
+        p["required"] = it->second.IsRequired();
+        p["schema"]["type"] = TypeToString(it->second.GetType());
+        p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }
 
@@ -362,8 +353,9 @@ namespace Orthanc
         Json::Value p = Json::objectValue;
         p["name"] = it->first;
         p["in"] = "header";
-        p["schema"]["type"] = TypeToString(it->second.type_);
-        p["description"] = it->second.description_;
+        p["required"] = it->second.IsRequired();
+        p["schema"]["type"] = TypeToString(it->second.GetType());
+        p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }
 
@@ -378,9 +370,9 @@ namespace Orthanc
         Json::Value p = Json::objectValue;
         p["name"] = it->first;
         p["in"] = "path";
-        p["required"] = true;
-        p["schema"]["type"] = TypeToString(it->second.type_);
-        p["description"] = it->second.description_;
+        p["required"] = it->second.IsRequired();
+        p["schema"]["type"] = TypeToString(it->second.GetType());
+        p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }
 

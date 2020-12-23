@@ -491,14 +491,9 @@ namespace Orthanc
 
     target = Json::objectValue;
 
-    target["info"]["version"] = ORTHANC_VERSION;
-    target["info"]["title"] = "Orthanc";
-
+    target["info"] = Json::objectValue;
     target["openapi"] = "3.0.0";
-
-    target["servers"].append(Json::objectValue);
-    target["servers"][0]["url"] = "https://demo.orthanc-server.com/";
-
+    target["servers"] = Json::arrayValue;
     target["paths"] = visitor.GetPaths();
   }
 }
