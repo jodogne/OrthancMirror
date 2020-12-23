@@ -244,7 +244,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
-    catch (std::system_error&)
+    catch (...)  // To catch "std::system_error&" in C++11
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
@@ -306,7 +306,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
-    catch (std::system_error&)
+    catch (...)  // To catch "std::system_error&" in C++11
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
@@ -375,7 +375,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
-    catch (std::system_error&)
+    catch (...)  // To catch "std::system_error&" in C++11
     {
       throw OrthancException(ErrorCode_CannotWriteFile);
     }
@@ -429,7 +429,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
-    catch (std::system_error&)
+    catch (...)  // To catch "std::system_error&" in C++11
     {
       throw OrthancException(ErrorCode_InexistentFile);
     }
