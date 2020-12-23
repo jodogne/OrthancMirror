@@ -172,7 +172,7 @@ namespace Orthanc
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index")
         .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
                             "If present, retrieve detailed information about the individual " + resources)
-        .SetHttpGetSample("https://demo.orthanc-server.com/" + resources + "?since=0&limit=2");
+        .SetHttpGetSample("https://demo.orthanc-server.com/" + resources + "?since=0&limit=2", true);
       return;
     }
     
@@ -239,8 +239,8 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Get information about some " + resource)
         .SetDescription("Get information about the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
-        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest")
-        .SetHttpGetSample(sampleUrl);
+        .SetUriArgument("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetSample(sampleUrl, true);
       return;
     }
     
@@ -261,7 +261,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Delete some " + resource)
         .SetDescription("Delete the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
-        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest");
+        .SetUriArgument("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the " + resource + " of interest");
       return;
     }
 
@@ -282,7 +282,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Patients")
         .SetSummary("Is the patient protected against recycling?")
-        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest")
+        .SetUriArgument("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest")
         .AddAnswerType(MimeType_PlainText, "\"1\" if protected, \"0\" if not protected");
       return;
     }
@@ -301,7 +301,7 @@ namespace Orthanc
         .SetTag("Patients")
         .SetSummary("Protect one patient against recycling")
         .SetDescription("Check out configuration options \"MaximumStorageSize\" and \"MaximumPatientCount\"")
-        .SetUriComponent("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest");
+        .SetUriArgument("id", RestApiCallDocumentation::Type_String, "Orthanc identifier of the patient of interest");
       return;
     }
     

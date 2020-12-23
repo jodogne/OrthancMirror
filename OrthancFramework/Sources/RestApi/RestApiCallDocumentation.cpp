@@ -104,20 +104,20 @@ namespace Orthanc
   }
   
 
-  RestApiCallDocumentation& RestApiCallDocumentation::SetUriComponent(const std::string& name,
+  RestApiCallDocumentation& RestApiCallDocumentation::SetUriArgument(const std::string& name,
                                                                       Type type,
                                                                       const std::string& description)
   {
-    if (uriComponents_.find(name) != uriComponents_.end())
+    if (uriArguments_.find(name) != uriArguments_.end())
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange, "URI component \"" + name + "\" is already documented");
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "URI argument \"" + name + "\" is already documented");
     }
     else
     {
       Parameter p;
       p.type_ = type;
       p.description_ = description;
-      uriComponents_[name] = p;
+      uriArguments_[name] = p;
       return *this;
     }
   }
@@ -189,16 +189,33 @@ namespace Orthanc
   }
 
 
-  void RestApiCallDocumentation::SetHttpGetSample(const std::string& url)
+  void RestApiCallDocumentation::SetHttpGetSample(const std::string& url,
+                                                  bool isJson)
   {
 #if ORTHANC_ENABLE_CURL == 1
     HttpClient client;
     client.SetUrl(url);
     client.SetHttpsVerifyPeers(false);
-    if (!client.Apply(sample_))
+
+    if (isJson)
     {
-      LOG(ERROR) << "Cannot GET: " << url;
-      sample_ = Json::nullValue;
+      if (!client.Apply(sampleJson_))
+      {
+        LOG(ERROR) << "Cannot GET: " << url;
+        sampleJson_ = Json::nullValue;
+      }
+    }
+    else
+    {
+      if (client.Apply(sampleText_))
+      {
+        hasSampleText_ = true;
+      }
+      else
+      {
+        LOG(ERROR) << "Cannot GET: " << url;
+        hasSampleText_ = false;
+      }
     }
 #else
     LOG(WARNING) << "HTTP client is not available to generated the documentation";
@@ -233,7 +250,8 @@ namespace Orthanc
   }
 
 
-  bool RestApiCallDocumentation::FormatOpenApi(Json::Value& target) const
+  bool RestApiCallDocumentation::FormatOpenApi(Json::Value& target,
+                                               const std::set<std::string>& expectedUriArguments) const
   {
     if (summary_.empty() &&
         description_.empty())
@@ -310,14 +328,19 @@ namespace Orthanc
           }        
         }
       }
-
-      if (sample_.type() != Json::nullValue)
+      
+      if (sampleJson_.type() != Json::nullValue)
       {
-        target["responses"]["200"]["content"]["application/json"]["schema"]["example"] = sample_;
+        target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
       }
-      else
+      else if (answerTypes_.find(MimeType_Json) != answerTypes_.end())
       {
-        target["responses"]["200"]["content"]["application/json"]["examples"] = Json::arrayValue;
+        target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["examples"] = Json::objectValue;
+      }
+
+      if (hasSampleText_)
+      {
+        target["responses"]["200"]["content"][EnumerationToString(MimeType_PlainText)]["example"] = sampleText_;
       }
 
       Json::Value parameters = Json::arrayValue;
@@ -344,9 +367,14 @@ namespace Orthanc
         parameters.append(p);         
       }
 
-      for (Parameters::const_iterator it = uriComponents_.begin();
-           it != uriComponents_.end(); ++it)
+      for (Parameters::const_iterator it = uriArguments_.begin();
+           it != uriArguments_.end(); ++it)
       {
+        if (expectedUriArguments.find(it->first) == expectedUriArguments.end())
+        {
+          throw OrthancException(ErrorCode_InternalError, "Unexpected URI argument: " + it->first);
+        }
+        
         Json::Value p = Json::objectValue;
         p["name"] = it->first;
         p["in"] = "path";
@@ -354,6 +382,22 @@ namespace Orthanc
         p["schema"]["type"] = TypeToString(it->second.type_);
         p["description"] = it->second.description_;
         parameters.append(p);         
+      }
+
+      for (std::set<std::string>::const_iterator it = expectedUriArguments.begin();
+           it != expectedUriArguments.end(); ++it)
+      {
+        if (uriArguments_.find(*it) == uriArguments_.end())
+        {
+          LOG(WARNING) << "Adding missing expected URI argument: " << *it;
+          Json::Value p = Json::objectValue;
+          p["name"] = *it;
+          p["in"] = "path";
+          p["required"] = true;
+          p["schema"]["type"] = "string";
+          p["description"] = "";
+          parameters.append(p);
+        }
       }
 
       target["parameters"] = parameters;

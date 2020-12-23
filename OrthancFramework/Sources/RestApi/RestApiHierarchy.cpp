@@ -492,16 +492,24 @@ namespace Orthanc
   }
 
   void RestApiHierarchy::ExploreAllResources(IVisitor& visitor,
-                                             const UriComponents& path) const
+                                             const UriComponents& path,
+                                             const std::set<std::string>& uriArguments) const
   {
+    HttpToolbox::Arguments args;
+
+    for (std::set<std::string>::const_iterator it = uriArguments.begin(); it != uriArguments.end(); ++it)
+    {
+      args[*it] = "";
+    }
+    
     if (!handlers_.IsEmpty())
     {
-      visitor.Visit(handlers_, path, false, HttpToolbox::Arguments(), UriComponents());
+      visitor.Visit(handlers_, path, false, args, UriComponents());
     }
 
     if (!handlersWithTrailing_.IsEmpty())
     {
-      visitor.Visit(handlersWithTrailing_, path, true, HttpToolbox::Arguments(), UriComponents());
+      visitor.Visit(handlersWithTrailing_, path, true, args, UriComponents());
     }
     
     for (Children::const_iterator
@@ -510,16 +518,24 @@ namespace Orthanc
       assert(it->second != NULL);
       UriComponents c = path;
       c.push_back(it->first);
-      it->second->ExploreAllResources(visitor, c);
+      it->second->ExploreAllResources(visitor, c, uriArguments);
     }
     
     for (Children::const_iterator
            it = wildcardChildren_.begin(); it != wildcardChildren_.end(); ++it)
     {
+      if (uriArguments.find(it->first) != uriArguments.end())
+      {
+        throw OrthancException(ErrorCode_InternalError, "Twice the same URI argument in a path: " + it->first);
+      }
+
+      std::set<std::string> d = uriArguments;
+      d.insert(it->first);
+      
       assert(it->second != NULL);
       UriComponents c = path;
       c.push_back("{" + it->first + "}");
-      it->second->ExploreAllResources(visitor, c);
+      it->second->ExploreAllResources(visitor, c, d);
     }
   }
 }
