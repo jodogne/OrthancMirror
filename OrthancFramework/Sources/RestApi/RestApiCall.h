@@ -92,6 +92,11 @@ namespace Orthanc
       return trailing_;
     }
 
+    bool HasUriComponent(const std::string& name) const
+    {
+      return (uriComponents_.find(name) != uriComponents_.end());
+    }
+
     std::string GetUriComponent(const std::string& name,
                                 const std::string& defaultValue) const
     {

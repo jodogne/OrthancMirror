@@ -664,8 +664,98 @@ namespace Orthanc
       virtual bool RequiresDicomTags() const = 0;
 
       static void Apply(RestApiGetCall& call,
-                        IDecodedFrameHandler& handler)
+                        IDecodedFrameHandler& handler,
+                        ImageExtractionMode mode /* for generation of documentation */,
+                        bool isRendered /* for generation of documentation */)
       {
+        if (call.IsDocumentation())
+        {
+          std::string m;
+          if (!isRendered)
+          {
+            switch (mode)
+            {
+              case ImageExtractionMode_Preview:
+                m = "preview";
+                break;
+              case ImageExtractionMode_UInt8:
+                m = "uint8";
+                break;
+              case ImageExtractionMode_UInt16:
+                m = "uint16";
+                break;
+              case ImageExtractionMode_Int16:
+                m = "int16";
+                break;
+              default:
+                throw OrthancException(ErrorCode_ParameterOutOfRange);
+            }
+          }
+          
+          std::string description;
+          std::string verb = (isRendered ? "Render" : "Decode");
+          
+          if (call.HasUriComponent("frame"))
+          {
+            description = verb + " one frame of interest from the given DICOM instance.";
+            call.GetDocumentation()
+              .SetSummary(verb + " a frame" + (m.empty() ? "" : " (" + m + ")"))
+              .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
+          }
+          else
+          {
+            description = verb + " the first frame of the given DICOM instance.";
+            call.GetDocumentation()
+              .SetSummary(verb + " an image" + (m.empty() ? "" : " (" + m + ")"));
+          }
+
+          if (isRendered)
+          {
+            description += (" This function takes scaling into account (`RescaleSlope` and `RescaleIntercept` tags), "
+                            "as well as the default windowing stored in the DICOM file (`WindowCenter` and `WindowWidth`tags), "
+                            "and can be used to resize the resulting image. Color images are not affected by windowing.");
+            call.GetDocumentation()
+              .SetHttpGetArgument("window-center",RestApiCallDocumentation::Type_Number, "Windowing center", false)
+              .SetHttpGetArgument("window-width",RestApiCallDocumentation::Type_Number, "Windowing width", false)
+              .SetHttpGetArgument("width",RestApiCallDocumentation::Type_Number, "Width of the resized image", false)
+              .SetHttpGetArgument("height",RestApiCallDocumentation::Type_Number, "Height of the resized image", false)
+              .SetHttpGetArgument("smooth",RestApiCallDocumentation::Type_Boolean, "Whether to smooth image on resize", false);
+          }
+          else
+          {
+            switch (mode)
+            {
+              case ImageExtractionMode_Preview:
+                description += " The full dynamic range of grayscale images is rescaled to the [0,255] range.";
+                break;
+              case ImageExtractionMode_UInt8:
+                description += " Pixels of grayscale images are truncated to the [0,255] range.";
+                break;
+              case ImageExtractionMode_UInt16:
+                description += " Pixels of grayscale images are truncated to the [0,65535] range.";
+                break;
+              case ImageExtractionMode_Int16:
+                description += (" Pixels of grayscale images are truncated to the [-32768,32767] range. "
+                                "Negative values must be interpreted according to two's complement.");
+                break;
+              default:
+                throw OrthancException(ErrorCode_ParameterOutOfRange);
+            }
+          }
+          
+          call.GetDocumentation()
+            .SetTag("Instances")
+            .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+            .SetHttpGetArgument("quality", RestApiCallDocumentation::Type_Number, "Quality for JPEG images (between 1 and 100, defaults to 90)", false)
+            .SetHttpHeader("Accept", "Format of the resulting image. Can be `image/png` (default), `image/jpeg` or `image/x-portable-arbitrarymap`")
+            .AddAnswerType(MimeType_Png, "PNG image")
+            .AddAnswerType(MimeType_Jpeg, "JPEG image")
+            .AddAnswerType(MimeType_Pam, "PAM image (Portable Arbitrary Map)")
+            .SetDescription(description);
+
+          return;
+        }
+        
         ServerContext& context = OrthancRestApi::GetContext(call);
 
         std::string frameId = call.GetUriComponent("frame", "0");
@@ -1060,7 +1150,7 @@ namespace Orthanc
     Semaphore::Locker locker(throttlingSemaphore_);
         
     GetImageHandler handler(mode);
-    IDecodedFrameHandler::Apply(call, handler);
+    IDecodedFrameHandler::Apply(call, handler, mode, false /* not rendered */);
   }
 
 
@@ -1069,7 +1159,7 @@ namespace Orthanc
     Semaphore::Locker locker(throttlingSemaphore_);
         
     RenderedFrameHandler handler;
-    IDecodedFrameHandler::Apply(call, handler);
+    IDecodedFrameHandler::Apply(call, handler, ImageExtractionMode_Preview /* arbitrary value */, true);
   }
 
 

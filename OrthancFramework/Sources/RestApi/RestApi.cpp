@@ -161,18 +161,21 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        std::set<std::string> uriArguments;
+        std::set<std::string> uriArgumentsNames;
+        HttpToolbox::Arguments uriArguments;
         
         for (HttpToolbox::Arguments::const_iterator
                it = components.begin(); it != components.end(); ++it)
         {
           assert(it->second.empty());
-          uriArguments.insert(it->first.c_str());
+          uriArgumentsNames.insert(it->first.c_str());
+          uriArguments[it->first] = "";
         }
 
         if (hasTrailing)
         {
-          uriArguments.insert("...");
+          uriArgumentsNames.insert("...");
+          uriArguments["..."] = "";
         }
 
         if (resource.HasHandler(HttpMethod_Get))
@@ -184,8 +187,7 @@ namespace Orthanc
           RestApiOutput o3(o2, HttpMethod_Get);
           RestApiGetCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
-                              HttpToolbox::Arguments() /* URI components */,
-                              UriComponents() /* trailing */,
+                              uriArguments, UriComponents() /* trailing */,
                               uri, HttpToolbox::Arguments() /* GET arguments */);
 
           bool ok = false;
@@ -194,7 +196,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
+                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -223,8 +225,8 @@ namespace Orthanc
           RestApiOutput o3(o2, HttpMethod_Post);
           RestApiPostCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
-                               HttpToolbox::Arguments() /* URI components */,
-                               UriComponents() /* trailing */, uri, NULL /* body */, 0 /* body size */);
+                               uriArguments, UriComponents() /* trailing */,
+                               uri, NULL /* body */, 0 /* body size */);
 
           bool ok = false;
           Json::Value v;
@@ -232,7 +234,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
+                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -261,8 +263,7 @@ namespace Orthanc
           RestApiOutput o3(o2, HttpMethod_Delete);
           RestApiDeleteCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                  "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
-                                 HttpToolbox::Arguments() /* URI components */,
-                                 UriComponents() /* trailing */, uri);
+                                 uriArguments, UriComponents() /* trailing */, uri);
 
           bool ok = false;
           Json::Value v;
@@ -270,7 +271,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
+                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -299,8 +300,8 @@ namespace Orthanc
           RestApiOutput o3(o2, HttpMethod_Put);
           RestApiPutCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
-                              HttpToolbox::Arguments() /* URI components */,
-                              UriComponents() /* trailing */, uri, NULL /* body */, 0 /* body size */);
+                              uriArguments, UriComponents() /* trailing */, uri,
+                              NULL /* body */, 0 /* body size */);
 
           bool ok = false;
           Json::Value v;
@@ -308,7 +309,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArguments));
+                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -523,8 +524,8 @@ namespace Orthanc
     OpenApiVisitor visitor(*this);
     
     UriComponents root;
-    std::set<std::string> uriArguments;
-    root_.ExploreAllResources(visitor, root, uriArguments);
+    std::set<std::string> uriArgumentsNames;
+    root_.ExploreAllResources(visitor, root, uriArgumentsNames);
 
     target = Json::objectValue;
 
