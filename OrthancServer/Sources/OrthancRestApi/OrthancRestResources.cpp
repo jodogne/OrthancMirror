@@ -2191,8 +2191,20 @@ namespace Orthanc
 
   static void ExtractPdf(RestApiGetCall& call)
   {
-    const std::string id = call.GetUriComponent("id", "");
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Get embedded PDF")
+        .SetDescription("Get the PDF file that is embedded in one DICOM instance. "
+                        "If the DICOM instance doesn't contain the `EncapsulatedDocument` tag or if the "
+                        "`MIMETypeOfEncapsulatedDocument` tag doesn't correspond to the PDF type, a `404` HTTP error is raised.")
+        .SetUriArgument("id", "Orthanc identifier of the instance interest")
+        .AddAnswerType(MimeType_Pdf, "PDF file");
+      return;
+    }
 
+    const std::string id = call.GetUriComponent("id", "");
     std::string pdf;
     ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);
 
