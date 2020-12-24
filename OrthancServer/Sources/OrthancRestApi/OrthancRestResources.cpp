@@ -1201,6 +1201,28 @@ namespace Orthanc
   template <bool GzipCompression>
   static void GetRawFrame(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Access raw frame" + std::string(GzipCompression ? " (compressed)" : ""))
+        .SetDescription("Access the raw content of one individual frame of the DICOM instance of interest, "
+                        "bypassing image decoding. This is notably useful to access the source files "
+                        "in compressed transfer syntaxes." +
+                        std::string(GzipCompression ? " The image is compressed using gzip" : ""))
+        .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
+
+      if (GzipCompression)
+      {
+        call.GetDocumentation().AddAnswerType(MimeType_Gzip, "The raw frame, compressed using gzip");
+      }
+      else
+      {
+        call.GetDocumentation().AddAnswerType(MimeType_Binary, "The raw frame");
+      }
+      return;
+    }
+    
     std::string frameId = call.GetUriComponent("frame", "0");
 
     unsigned int frame;
