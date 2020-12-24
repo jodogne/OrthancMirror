@@ -153,6 +153,9 @@ namespace Orthanc
         .AddRequestType(MimeType_Zip, "ZIP archive containing DICOM files (new in Orthanc 1.8.2)")
         .AddAnswerType(MimeType_Json, "Information about the uploaded instance, "
                        "or list of information for each uploaded instance in the case of ZIP archive")
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Orthanc identifier of the new instance")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to the new instance in the REST API")
+        .SetAnswerField("Status", RestApiCallDocumentation::Type_String, "Can be `Success`, `AlreadyStored`, `Failure`, or `FilteredOut` (removed by some `NewInstanceFilter`)")
         .SetSample(sample);
       return;
     }
