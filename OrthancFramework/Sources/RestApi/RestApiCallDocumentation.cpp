@@ -103,8 +103,7 @@ namespace Orthanc
   
 
   RestApiCallDocumentation& RestApiCallDocumentation::SetUriArgument(const std::string& name,
-                                                                      Type type,
-                                                                      const std::string& description)
+                                                                     const std::string& description)
   {
     if (uriArguments_.find(name) != uriArguments_.end())
     {
@@ -112,7 +111,7 @@ namespace Orthanc
     }
     else
     {
-      uriArguments_[name] = Parameter(type, description, true);
+      uriArguments_[name] = Parameter(Type_String, description, true);
       return *this;
     }
   }
