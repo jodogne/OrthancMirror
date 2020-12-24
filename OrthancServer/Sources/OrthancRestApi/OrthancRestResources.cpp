@@ -336,6 +336,20 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Download DICOM")
+        .SetDescription("Download one DICOM instance")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
+        .AddAnswerType(MimeType_Dicom, "The DICOM instance")
+        .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
+        .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1570,6 +1584,21 @@ namespace Orthanc
 
   static void GetRawContent(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Get raw tag")
+        .SetDescription("Get the raw content of one DICOM tag in the hierarchy of DICOM dataset")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .SetUriArgument("...", "Path to the DICOM tag. This is the interleaving of one DICOM tag, possibly followed "
+                        "by an index for sequences. Sequences are accessible as, for instance, `/0008-1140/1/0008-1150`")
+        .AddAnswerType(MimeType_Binary, "The raw value of the tag of intereset "
+                       "(binary data, whose memory layout depends on the underlying transfer syntax), "
+                       "or JSON array containing the list of available tags if accessing a dataset");
+      return;
+    }
+
     std::string id = call.GetUriComponent("id", "");
 
     ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), id);

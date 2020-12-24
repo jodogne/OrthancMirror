@@ -103,6 +103,7 @@ namespace Orthanc
   
 
   RestApiCallDocumentation& RestApiCallDocumentation::SetUriArgument(const std::string& name,
+                                                                     Type type,
                                                                      const std::string& description)
   {
     if (uriArguments_.find(name) != uriArguments_.end())
@@ -111,7 +112,7 @@ namespace Orthanc
     }
     else
     {
-      uriArguments_[name] = Parameter(Type_String, description, true);
+      uriArguments_[name] = Parameter(type, description, true);
       return *this;
     }
   }
@@ -318,13 +319,24 @@ namespace Orthanc
         }
       }
       
-      if (sampleJson_.type() != Json::nullValue)
+      for (AllowedTypes::const_iterator it = answerTypes_.begin();
+           it != answerTypes_.end(); ++it)
       {
-        target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
-      }
-      else if (answerTypes_.find(MimeType_Json) != answerTypes_.end())
-      {
-        target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["examples"] = Json::objectValue;
+        if (it->first == MimeType_Json &&
+            sampleJson_.type() != Json::nullValue)
+        {
+          target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
+        }
+        else if (it->first == MimeType_PlainText &&
+                 hasSampleText_)
+        {
+          // Handled below
+        }
+        else
+        {
+          // No sample for this MIME type
+          target["responses"]["200"]["content"][EnumerationToString(it->first)]["examples"] = Json::objectValue;
+        }
       }
 
       if (hasSampleText_)

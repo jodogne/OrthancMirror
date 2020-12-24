@@ -144,7 +144,14 @@ namespace Orthanc
                                             const std::string& description);
 
     RestApiCallDocumentation& SetUriArgument(const std::string& name,
+                                             Type type,
                                              const std::string& description);
+
+    RestApiCallDocumentation& SetUriArgument(const std::string& name,
+                                             const std::string& description)
+    {
+      return SetUriArgument(name, Type_String, description);
+    }
 
     bool HasUriArgument(const std::string& name) const
     {

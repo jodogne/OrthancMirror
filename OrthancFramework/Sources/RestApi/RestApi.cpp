@@ -27,6 +27,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <boost/math/special_functions/round.hpp>
 #include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
 
@@ -131,10 +132,15 @@ namespace Orthanc
     private:
       RestApi&    restApi_;
       Json::Value paths_;
+      size_t      successPathsCount_;
+      size_t      totalPathsCount_;
   
     public:
       explicit OpenApiVisitor(RestApi& restApi) :
-        restApi_(restApi)
+        restApi_(restApi),
+        paths_(Json::objectValue),
+        successPathsCount_(0),
+        totalPathsCount_(0)
       {
       }
   
@@ -144,7 +150,11 @@ namespace Orthanc
                          const HttpToolbox::Arguments& components,
                          const UriComponents& trailing)
       {
-        const std::string path = Toolbox::FlattenUri(uri);
+        std::string path = Toolbox::FlattenUri(uri);
+        if (hasTrailing)
+        {
+          path += "/{...}";
+        }
 
         if (paths_.isMember(path))
         {
@@ -160,8 +170,15 @@ namespace Orthanc
           uriArguments.insert(it->first.c_str());
         }
 
+        if (hasTrailing)
+        {
+          uriArguments.insert("...");
+        }
+
         if (resource.HasHandler(HttpMethod_Get))
         {
+          totalPathsCount_ ++;
+          
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
           RestApiOutput o3(o2, HttpMethod_Get);
@@ -189,6 +206,7 @@ namespace Orthanc
           if (ok)
           {
             paths_[path]["get"] = v;
+            successPathsCount_ ++;
           }
           else
           {
@@ -198,6 +216,8 @@ namespace Orthanc
     
         if (resource.HasHandler(HttpMethod_Post))
         {
+          totalPathsCount_ ++;
+          
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
           RestApiOutput o3(o2, HttpMethod_Post);
@@ -224,6 +244,7 @@ namespace Orthanc
           if (ok)
           {
             paths_[path]["post"] = v;
+            successPathsCount_ ++;
           }
           else
           {
@@ -233,6 +254,8 @@ namespace Orthanc
     
         if (resource.HasHandler(HttpMethod_Delete))
         {
+          totalPathsCount_ ++;
+          
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
           RestApiOutput o3(o2, HttpMethod_Delete);
@@ -259,6 +282,7 @@ namespace Orthanc
           if (ok)
           {
             paths_[path]["delete"] = v;
+            successPathsCount_ ++;
           }
           else
           {
@@ -268,6 +292,8 @@ namespace Orthanc
 
         if (resource.HasHandler(HttpMethod_Put))
         {
+          totalPathsCount_ ++;
+          
           StringHttpOutput o1;
           HttpOutput o2(o1, false);
           RestApiOutput o3(o2, HttpMethod_Put);
@@ -294,6 +320,7 @@ namespace Orthanc
           if (ok)
           {
             paths_[path]["put"] = v;
+            successPathsCount_ ++;
           }
           else
           {
@@ -308,6 +335,16 @@ namespace Orthanc
       const Json::Value& GetPaths() const
       {
         return paths_;
+      }
+
+      size_t GetSuccessPathsCount() const
+      {
+        return successPathsCount_;
+      }
+
+      size_t GetTotalPathsCount() const
+      {
+        return totalPathsCount_;
       }
     };
   }
@@ -495,5 +532,18 @@ namespace Orthanc
     target["openapi"] = "3.0.0";
     target["servers"] = Json::arrayValue;
     target["paths"] = visitor.GetPaths();
+
+    assert(visitor.GetSuccessPathsCount() <= visitor.GetTotalPathsCount());
+    size_t total = visitor.GetTotalPathsCount();
+    if (total == 0)
+    {
+      total = 1;  // Avoid division by zero
+    }
+    float coverage = (100.0f * static_cast<float>(visitor.GetSuccessPathsCount()) /
+                      static_cast<float>(total));
+    
+    LOG(WARNING) << "The documentation of the REST API contains " << visitor.GetSuccessPathsCount()
+                 << " paths over a total of " << visitor.GetTotalPathsCount() << " paths "
+                 << "(" << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
   }
 }
