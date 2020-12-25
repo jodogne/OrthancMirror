@@ -1593,12 +1593,12 @@ namespace Orthanc
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
-        .SetSummary("Get size of attachment on the disk")
+        .SetSummary("Get size of attachment on disk")
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../size` if `EnableStorage` is `true`.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment")
-        .AddAnswerType(MimeType_PlainText, "The size of the attachment on the disk");
+        .AddAnswerType(MimeType_PlainText, "The size of the attachment, as stored on the disk");
       return;
     }
 
@@ -1612,6 +1612,20 @@ namespace Orthanc
 
   static void GetAttachmentMD5(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get MD5 of attachment")
+        .SetDescription("Get the MD5 hash of one attachment associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment");
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call) &&
         info.GetUncompressedMD5() != "")
@@ -1623,6 +1637,21 @@ namespace Orthanc
 
   static void GetAttachmentCompressedMD5(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get MD5 of attachment on disk")
+        .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
+                        "This is different from `.../md5` if `EnableStorage` is `true`.")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment, as stored on the disk");
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call) &&
         info.GetCompressedMD5() != "")
@@ -1634,6 +1663,20 @@ namespace Orthanc
 
   static void VerifyAttachment(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Verify attachment")
+        .SetDescription("Verify that the attachment is not corrupted, by validating its MD5 hash")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_Json, "On success, a valid JSON object is returned");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
 
