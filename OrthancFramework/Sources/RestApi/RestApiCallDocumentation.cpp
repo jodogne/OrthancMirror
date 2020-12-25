@@ -325,7 +325,7 @@ namespace Orthanc
         if (it->first == MimeType_Json &&
             sampleJson_.type() != Json::nullValue)
         {
-          target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
+          // Handled below
         }
         else if (it->first == MimeType_PlainText &&
                  hasSampleText_)
@@ -339,6 +339,11 @@ namespace Orthanc
         }
       }
 
+      if (sampleJson_.type() != Json::nullValue)
+      {
+        target["responses"]["200"]["content"][EnumerationToString(MimeType_Json)]["schema"]["example"] = sampleJson_;
+      }
+      
       if (hasSampleText_)
       {
         target["responses"]["200"]["content"][EnumerationToString(MimeType_PlainText)]["example"] = sampleText_;
