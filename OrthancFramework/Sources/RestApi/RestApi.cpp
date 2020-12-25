@@ -545,6 +545,6 @@ namespace Orthanc
     
     LOG(WARNING) << "The documentation of the REST API contains " << visitor.GetSuccessPathsCount()
                  << " paths over a total of " << visitor.GetTotalPathsCount() << " paths "
-                 << "(" << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
+                 << "(coverage: " << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
   }
 }
