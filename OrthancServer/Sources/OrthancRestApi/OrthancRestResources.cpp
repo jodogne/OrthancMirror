@@ -212,37 +212,47 @@ namespace Orthanc
     AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"));
   }
 
+
+
+  static std::string GetDocumentationSampleResource(ResourceType type)
+  {
+    switch (type)
+    {
+      case Orthanc::ResourceType_Instance:
+        return "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
+        break;
+        
+      case Orthanc::ResourceType_Series:
+        return "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
+        break;
+        
+      case Orthanc::ResourceType_Study:
+        return "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
+        break;
+        
+      case Orthanc::ResourceType_Patient:
+        return "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
+        break;
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   template <enum ResourceType resourceType>
   static void GetSingleResource(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
     {
-      std::string sampleUrl;
-      switch (resourceType)
-      {
-        case Orthanc::ResourceType_Instance:
-          sampleUrl = "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
-          break;
-        case Orthanc::ResourceType_Series:
-          sampleUrl = "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
-          break;
-        case Orthanc::ResourceType_Study:
-          sampleUrl = "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
-          break;
-        case Orthanc::ResourceType_Patient:
-          sampleUrl = "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
-          break;          
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      
       const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Get information about some " + resource)
         .SetDescription("Get detailed information about the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
-        .SetHttpGetSample(sampleUrl, true);
+        .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
+        .SetHttpGetSample(GetDocumentationSampleResource(resourceType), true);
       return;
     }
     
@@ -1308,7 +1318,7 @@ namespace Orthanc
 
   static void CheckValidResourceType(const RestApiCall& call)
   {
-    std::string resourceType = call.GetUriComponent("resourceType", "");
+    const std::string resourceType = call.GetFullUri() [0];
     StringToResourceType(resourceType.c_str());
   }
 
@@ -1416,8 +1426,22 @@ namespace Orthanc
 
   static void ListAttachments(RestApiGetCall& call)
   {
-    std::string resourceType = call.GetUriComponent("resourceType", "");
-    std::string publicId = call.GetUriComponent("id", "");
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("List attachments")
+        .SetDescription("Get the list of attachments that are associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the names of the attachments")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/attachments", true);
+      return;
+    }
+
+    const std::string resourceType = call.GetFullUri() [0];
+    const std::string publicId = call.GetUriComponent("id", "");
     std::list<FileContentType> attachments;
     OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
 
@@ -1447,6 +1471,21 @@ namespace Orthanc
 
   static void GetAttachmentOperations(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag("Other")
+        .SetSummary("List of operations on attachments")
+        .SetDescription("Get the list of operations that are available for attachments associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_Json, "List of the available operations")
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2/attachments/dicom", true);
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
@@ -1486,6 +1525,21 @@ namespace Orthanc
   template <int uncompress>
   static void GetAttachmentData(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get attachment" + std::string(uncompress ? "" : " (no decompression)"))
+        .SetDescription("Get the (binary) content of one attachment associated with the given " + r +
+                        std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` if `true`."))
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_Binary, "The attachment");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     CheckValidResourceType(call);
@@ -1509,6 +1563,20 @@ namespace Orthanc
 
   static void GetAttachmentSize(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get size of attachment")
+        .SetDescription("Get the size of one attachment associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_PlainText, "The size of the attachment");
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
@@ -1519,6 +1587,21 @@ namespace Orthanc
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get size of attachment on the disk")
+        .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
+                        "This is different from `.../size` if `EnableStorage` is `true`.")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_PlainText, "The size of the attachment on the disk");
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
@@ -2398,25 +2481,34 @@ namespace Orthanc
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
 
-    Register("/{resourceType}/{id}/metadata", ListMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", DeleteMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", GetMetadata);
-    Register("/{resourceType}/{id}/metadata/{name}", SetMetadata);
+    std::vector<std::string> resourceTypes;
+    resourceTypes.push_back("patients");
+    resourceTypes.push_back("studies");
+    resourceTypes.push_back("series");
+    resourceTypes.push_back("instances");
 
-    Register("/{resourceType}/{id}/attachments", ListAttachments);
-    Register("/{resourceType}/{id}/attachments/{name}", DeleteAttachment);
-    Register("/{resourceType}/{id}/attachments/{name}", GetAttachmentOperations);
-    Register("/{resourceType}/{id}/attachments/{name}", UploadAttachment);
-    Register("/{resourceType}/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
-    Register("/{resourceType}/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
-    Register("/{resourceType}/{id}/attachments/{name}/data", GetAttachmentData<1>);
-    Register("/{resourceType}/{id}/attachments/{name}/is-compressed", IsAttachmentCompressed);
-    Register("/{resourceType}/{id}/attachments/{name}/md5", GetAttachmentMD5);
-    Register("/{resourceType}/{id}/attachments/{name}/size", GetAttachmentSize);
-    Register("/{resourceType}/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
-    Register("/{resourceType}/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+    for (size_t i = 0; i < resourceTypes.size(); i++)
+    {
+      Register("/" + resourceTypes[i] + "/{id}/metadata", ListMetadata);
+      Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", DeleteMetadata);
+      Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", GetMetadata);
+      Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", SetMetadata);
+
+      Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", GetAttachmentOperations);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", UploadAttachment);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/data", GetAttachmentData<1>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/is-compressed", IsAttachmentCompressed);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+    }
 
     Register("/tools/invalidate-tags", InvalidateTags);
     Register("/tools/lookup", Lookup);
