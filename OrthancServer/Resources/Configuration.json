@@ -313,7 +313,7 @@
   // "false", Orthanc only checks the AET of the remote modality.
   "DicomCheckModalityHost" : false,
 
-  // Whether the C-GET SCU is automatically followed by a C-FIND SCU,
+  // Whether the C-ECHO SCU is automatically followed by a C-FIND SCU,
   // while testing the connectivity from Orthanc to a remote DICOM
   // modality. This allows one to check that the remote modality does
   // accept C-FIND requests from Orthanc (new in Orthanc 1.8.1).
