@@ -307,7 +307,8 @@ namespace Orthanc
 
 
   bool RestApiCallDocumentation::FormatOpenApi(Json::Value& target,
-                                               const std::set<std::string>& expectedUriArguments) const
+                                               const std::set<std::string>& expectedUriArguments,
+                                               const std::string& uri) const
   {
     if (summary_.empty() &&
         description_.empty())
@@ -362,6 +363,13 @@ namespace Orthanc
               p["description"] = field->second.GetDescription();
               schema["properties"][field->first] = p;         
             }        
+
+            if (!it->second.empty() &&
+                answerFields_.size() > 0)
+            {
+              LOG(WARNING) << "The JSON description will not be visible if the fields of the JSON request are detailed: "
+                           << EnumerationToString(method_) << " " << uri;
+            }
           }
         }
       }
@@ -383,7 +391,14 @@ namespace Orthanc
             TypeToSchema(p, field->second.GetType());
             p["description"] = field->second.GetDescription();
             schema["properties"][field->first] = p;         
-          }        
+          }
+
+          if (!it->second.empty() &&
+              answerFields_.size() > 0)
+          {
+            LOG(WARNING) << "The JSON description will not be visible if the fields of the JSON answer are detailed: "
+                         << EnumerationToString(method_) << " " << uri;
+          }
         }
       }
       

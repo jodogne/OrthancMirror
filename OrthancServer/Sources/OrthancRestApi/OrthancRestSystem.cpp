@@ -322,6 +322,17 @@ namespace Orthanc
 
   static void ListPlugins(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("List plugins")
+        .SetDescription("List all the installed plugins")
+        .AddAnswerType(MimeType_Json, "JSON array containing the identifiers of the installed plugins")
+        .SetHttpGetSample("https://demo.orthanc-server.com/plugins", true);
+      return;
+    }
+
     Json::Value v = Json::arrayValue;
 
     v.append("explorer.js");
@@ -346,6 +357,18 @@ namespace Orthanc
 
   static void GetPlugin(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get plugin")
+        .SetDescription("Get system information about the plugin whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .AddAnswerType(MimeType_Json, "JSON object containing information about the plugin")
+        .SetHttpGetSample("https://demo.orthanc-server.com/plugins/dicom-web", true);
+      return;
+    }
+
     if (!OrthancRestApi::GetContext(call).HasPlugins())
     {
       return;
@@ -429,6 +452,20 @@ namespace Orthanc
 
   static void ListJobs(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("List jobs")
+        .SetDescription("List all the available jobs")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual jobs", false)
+        .AddAnswerType(MimeType_Json, "JSON array containing either the jobs identifiers, or detailed information "
+                       "about the reported jobs (if `expand` argument is provided)")
+        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/jobs", 3);
+      return;
+    }
+
     bool expand = call.HasArgument("expand");
 
     Json::Value v = Json::arrayValue;
@@ -460,6 +497,36 @@ namespace Orthanc
 
   static void GetJobInfo(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      Json::Value sample;
+      sample["CompletionTime"] = "20201227T161842.520129";
+      sample["Content"]["ArchiveSizeMB"] = 22;
+      sample["Content"]["Description"] = "REST API";
+      sample["Content"]["InstancesCount"] = 232;
+      sample["Content"]["UncompressedSizeMB"] = 64;
+      sample["CreationTime"] = "20201227T161836.428311";
+      sample["EffectiveRuntime"] = 6.0810000000000004;
+      sample["ErrorCode"] = 0;
+      sample["ErrorDescription"] = "Success";
+      sample["ID"] = "645ecb02-7c0e-4465-b767-df873222dcfb";
+      sample["Priority"] = 0;
+      sample["Progress"] = 100;
+      sample["State"] = "Success";
+      sample["Timestamp"] = "20201228T160340.253201";
+      sample["Type"] = "Media";
+      
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Get job")
+        .SetDescription("Retrieve detailed information about the job whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .AddAnswerType(MimeType_Json, "JSON object detailing the job")
+        .SetSample(sample);
+      return;
+    }
+
     std::string id = call.GetUriComponent("id", "");
 
     JobInfo info;
@@ -474,6 +541,19 @@ namespace Orthanc
 
   static void GetJobOutput(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Get job output")
+        .SetDescription("Retrieve some output produced by a job. As of Orthanc 1.8.2, only the jobs that generate a "
+                        "DICOMDIR media or a ZIP archive provide such an output (with `key` equals to `archive`).")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .SetUriArgument("key", "Name of the output of interest")
+        .AddAnswerType(MimeType_Binary, "Content of the output of the job");
+      return;
+    }
+
     std::string job = call.GetUriComponent("id", "");
     std::string key = call.GetUriComponent("key", "");
 
@@ -504,6 +584,42 @@ namespace Orthanc
   template <JobAction action>
   static void ApplyJobAction(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      std::string verb;
+      switch (action)
+      {
+        case JobAction_Cancel:
+          verb = "Cancel";
+          break;
+
+        case JobAction_Pause:
+          verb = "Pause";
+          break;
+ 
+        case JobAction_Resubmit:
+          verb = "Resubmit";
+          break;
+
+        case JobAction_Resume:
+          verb = "Resume";
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }      
+      
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary(verb + " job")
+        .SetDescription(verb + " the job whose identifier is provided in the URL. Check out the "
+                        "Orthanc Book for more information about the state machine applicable to jobs: "
+                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success");
+      return;
+    }
+
     std::string id = call.GetUriComponent("id", "");
 
     bool ok = false;

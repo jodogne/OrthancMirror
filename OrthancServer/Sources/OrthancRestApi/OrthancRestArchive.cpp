@@ -214,7 +214,9 @@ namespace Orthanc
                        "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
       .AddAnswerType(MimeType_Zip, "In synchronous mode, the ZIP file containing the archive")
       .AddAnswerType(MimeType_Json, "In asynchronous mode, information about the job that has been submitted to "
-                     "generate the archive: https://book.orthanc-server.com/users/advanced-rest.html#jobs");
+                     "generate the archive: https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+      .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Identifier of the job")
+      .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to access the job in the REST API");
 
     if (isMedia)
     {
