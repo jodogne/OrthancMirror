@@ -156,6 +156,9 @@ namespace Orthanc
         .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Orthanc identifier of the new instance")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to the new instance in the REST API")
         .SetAnswerField("Status", RestApiCallDocumentation::Type_String, "Can be `Success`, `AlreadyStored`, `Failure`, or `FilteredOut` (removed by some `NewInstanceFilter`)")
+        .SetAnswerField("ParentPatient", RestApiCallDocumentation::Type_String, "Orthanc identifier of the parent patient")
+        .SetAnswerField("ParentStudy", RestApiCallDocumentation::Type_String, "Orthanc identifier of the parent study")
+        .SetAnswerField("ParentSeries", RestApiCallDocumentation::Type_String, "Orthanc identifier of the parent series")
         .SetSample(sample);
       return;
     }
