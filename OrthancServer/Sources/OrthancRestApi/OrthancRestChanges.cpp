@@ -130,6 +130,23 @@ namespace Orthanc
  
   static void GetExports(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Tracking changes")
+        .SetSummary("List exports")
+        .SetDescription("For medical traceability, Orthanc can be configured to store a log of all the resources "
+                        "that have been exported to remote modalities. In auto-routing scenarios, it is important "
+                        "to prevent this log to grow indefinitely as incoming instances are routed. You can either "
+                        "disable this logging by setting the option `LogExportedResources` to `false` in the "
+                        "configuration file, or periodically clear this log by `DELETE`-ing this URI. This route "
+                        "might be removed in future versions of Orthanc.")
+        .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
+        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
+        .AddAnswerType(MimeType_Json, "The list of exports");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     int64_t since;
@@ -153,6 +170,15 @@ namespace Orthanc
 
   static void DeleteExports(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Tracking changes")
+        .SetSummary("Clear exports")
+        .SetDescription("Clear the full history stored in the exports log");
+      return;
+    }
+
     OrthancRestApi::GetIndex(call).DeleteExportedResources();
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }

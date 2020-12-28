@@ -286,6 +286,8 @@ namespace Orthanc
         target["description"] = summary_;
       }
 
+      target["deprecated"] = deprecated_;
+
       if (method_ == HttpMethod_Post ||
           method_ == HttpMethod_Put)
       {

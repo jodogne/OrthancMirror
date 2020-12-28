@@ -105,12 +105,14 @@ namespace Orthanc
     bool          hasSampleText_;
     std::string   sampleText_;
     Json::Value   sampleJson_;
+    bool          deprecated_;
 
   public:
     explicit RestApiCallDocumentation(HttpMethod method) :
       method_(method),
       hasSampleText_(false),
-      sampleJson_(Json::nullValue)
+      sampleJson_(Json::nullValue),
+      deprecated_(false)
     {
     }
     
@@ -194,6 +196,16 @@ namespace Orthanc
     const std::string& GetTag() const
     {
       return tag_;
+    }
+
+    void SetDeprecated()
+    {
+      deprecated_ = true;
+    }
+
+    bool IsDeprecated() const
+    {
+      return deprecated_;
     }
   };
 }
