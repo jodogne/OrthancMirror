@@ -513,6 +513,18 @@ namespace Orthanc
   
   static void ListFrames(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("List available frames")
+        .SetDescription("List the frames that are available in the DICOM instance of interest")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .AddAnswerType(MimeType_Json, "The list of the indices of the available frames")
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/frames", true);      
+      return;
+    }
+
     std::string publicId = call.GetUriComponent("id", "");
 
     unsigned int numberOfFrames;
@@ -1175,6 +1187,31 @@ namespace Orthanc
 
   static void GetMatlabImage(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      std::string description;
+      
+      if (call.HasUriComponent("frame"))
+      {
+        description = "Decode one frame of interest from the given DICOM instance";
+        call.GetDocumentation()
+          .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
+      }
+      else
+      {
+        description = "Decode the first frame of the given DICOM instance.";
+      }
+
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Decode frame for Matlab")
+        .SetDescription(description + ", and export this frame as a Octave/Matlab matrix to be imported with `eval()`: "
+                        "https://book.orthanc-server.com/faq/matlab.html")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .AddAnswerType(MimeType_PlainText, "Octave/Matlab matrix");
+      return;
+    }
+
     Semaphore::Locker locker(throttlingSemaphore_);
         
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -1325,6 +1362,23 @@ namespace Orthanc
 
   static void ListMetadata(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("List metadata")
+        .SetDescription("Get the list of metadata that are associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, also retrieve the value of the individual metadata", false)
+        .AddAnswerType(MimeType_Json, "JSON array containing the names of the available metadata, "
+                       "or JSON associative array mapping metadata to their values (if `expand` argument is provided)")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/metadata", true);
+      return;
+    }
+
     CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
@@ -1362,6 +1416,20 @@ namespace Orthanc
 
   static void GetMetadata(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get metadata")
+        .SetDescription("Get the value of a metadata that is associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
+        .AddAnswerType(MimeType_PlainText, "Value of the metadata");
+      return;
+    }
+
     CheckValidResourceType(call);
     
     std::string publicId = call.GetUriComponent("id", "");
@@ -1378,6 +1446,20 @@ namespace Orthanc
 
   static void DeleteMetadata(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Delete metadata")
+        .SetDescription("Delete some metadata associated with the given DICOM " + r +
+                        ". This call will fail if trying to delete a system metadata (i.e. whose index is < 1024).")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)");
+      return;
+    }
+
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1398,6 +1480,21 @@ namespace Orthanc
 
   static void SetMetadata(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Set metadata")
+        .SetDescription("Set the value of some metadata in the given DICOM " + r +
+                        ". This call will fail if trying to modify a system metadata (i.e. whose index is < 1024).")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
+        .AddRequestType(MimeType_PlainText, "String value of the metadata");
+      return;
+    }
+
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1477,10 +1574,10 @@ namespace Orthanc
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag("Other")
-        .SetSummary("List of operations on attachments")
-        .SetDescription("Get the list of operations that are available for attachments associated with the given " + r)
+        .SetSummary("List operations on attachments")
+        .SetDescription("Get the list of the operations that are available for attachments associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Json, "List of the available operations")
         .SetHttpGetSample("https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2/attachments/dicom", true);
       return;
@@ -1535,7 +1632,7 @@ namespace Orthanc
         .SetDescription("Get the (binary) content of one attachment associated with the given " + r +
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` if `true`."))
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Binary, "The attachment");
       return;
     }
@@ -1572,7 +1669,7 @@ namespace Orthanc
         .SetSummary("Get size of attachment")
         .SetDescription("Get the size of one attachment associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The size of the attachment");
       return;
     }
@@ -1597,7 +1694,7 @@ namespace Orthanc
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../size` iff `EnableStorage` is `true`.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The size of the attachment, as stored on the disk");
       return;
     }
@@ -1621,7 +1718,7 @@ namespace Orthanc
         .SetSummary("Get MD5 of attachment")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment");
       return;
     }
@@ -1647,7 +1744,7 @@ namespace Orthanc
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../md5` iff `EnableStorage` is `true`.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment, as stored on the disk");
       return;
     }
@@ -1672,7 +1769,7 @@ namespace Orthanc
         .SetSummary("Verify attachment")
         .SetDescription("Verify that the attachment is not corrupted, by validating its MD5 hash")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Json, "On success, a valid JSON object is returned");
       return;
     }
@@ -1731,6 +1828,22 @@ namespace Orthanc
 
   static void UploadAttachment(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Set attachment")
+        .SetDescription("Attach a file to the given DICOM " + r +
+                        ". This call will fail if trying to modify a system attachment (i.e. whose index is < 1024).")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
+        .AddRequestType(MimeType_Binary, "Binary data containing the attachment")
+        .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     CheckValidResourceType(call);
  
@@ -1759,9 +1872,10 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Delete attachment")
-        .SetDescription("Delete an attachment associated with the given DICOM " + r)
+        .SetDescription("Delete an attachment associated with the given DICOM " + r +
+                        ". This call will fail if trying to delete a system attachment (i.e. whose index is < 1024).")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment");
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)");
       return;
     }
 
@@ -1818,7 +1932,7 @@ namespace Orthanc
         .SetSummary(compression == CompressionType_None ? "Uncompress attachment" : "Compress attachment")
         .SetDescription("Change the compression scheme that is used to store an attachment.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment");
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)");
       return;
     }
 
@@ -1844,7 +1958,7 @@ namespace Orthanc
         .SetSummary("Is attachment compressed?")
         .SetDescription("Test whether the attachment has been stored as a compressed file on the disk.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment")
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "`0` if the attachment was stored uncompressed, `1` if it was compressed");
       return;
     }

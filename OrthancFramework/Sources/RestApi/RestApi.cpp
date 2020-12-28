@@ -434,6 +434,10 @@ namespace Orthanc
         std::string deleteTag_;
         std::string putTag_;
         std::string summary_;
+        bool        getDeprecated_;
+        bool        postDeprecated_;
+        bool        deleteDeprecated_;
+        bool        putDeprecated_;
         HttpMethod  summaryOrigin_;
 
       public:
@@ -442,12 +446,17 @@ namespace Orthanc
           hasPost_(false),
           hasDelete_(false),
           hasPut_(false),
+          getDeprecated_(false),
+          postDeprecated_(false),
+          deleteDeprecated_(false),
+          putDeprecated_(false),
           summaryOrigin_(HttpMethod_Get)  // Dummy initialization
         {
         }
 
         void AddMethod(HttpMethod method,
-                       const std::string& tag)
+                       const std::string& tag,
+                       bool deprecated)
         {
           switch (method)
           {
@@ -459,6 +468,7 @@ namespace Orthanc
               
               hasGet_ = true;
               getTag_ = tag;
+              getDeprecated_ = deprecated;
               break;
               
             case HttpMethod_Post:
@@ -469,6 +479,7 @@ namespace Orthanc
               
               hasPost_ = true;
               postTag_ = tag;
+              postDeprecated_ = deprecated;
               break;
               
             case HttpMethod_Delete:
@@ -479,6 +490,7 @@ namespace Orthanc
               
               hasDelete_ = true;
               deleteTag_ = tag;
+              deleteDeprecated_ = deprecated;
               break;
               
             case HttpMethod_Put:
@@ -489,6 +501,7 @@ namespace Orthanc
               
               hasPut_ = true;
               putTag_ = tag;
+              putDeprecated_ = deprecated;
               break;
 
             default:
@@ -591,70 +604,68 @@ namespace Orthanc
         {
           std::string p = uri;
           boost::replace_all(p, "/", "~1");
+
+          std::string verb;
+          std::string url;
           
           switch (method)
           {
             case HttpMethod_Get:
               if (hasGet_)
               {
-                if (openApiUrl.empty())
-                {
-                  return "GET";
-                }
-                else
-                {
-                  return ("`GET <" + openApiUrl + "#tag/" + FormatTag(getTag_) + "/paths/" + p + "/get>`__");
-                }
+                verb = (getDeprecated_ ? "(get)" : "GET");
+                url = openApiUrl + "#tag/" + FormatTag(getTag_) + "/paths/" + p + "/get";
               }
               break;
               
             case HttpMethod_Post:
               if (hasPost_)
               {
-                if (openApiUrl.empty())
-                {
-                  return "POST";
-                }
-                else
-                {
-                  return ("`POST <" + openApiUrl + "#tag/" + FormatTag(postTag_) + "/paths/" + p + "/post>`__");
-                }
+                verb = (postDeprecated_ ? "(post)" : "POST");
+                url = openApiUrl + "#tag/" + FormatTag(postTag_) + "/paths/" + p + "/post";
               }
               break;
               
             case HttpMethod_Delete:
               if (hasDelete_)
               {
-                if (openApiUrl.empty())
-                {
-                  return "DELETE";
-                }
-                else
-                {
-                  return ("`DELETE <" + openApiUrl + "#tag/" + FormatTag(deleteTag_) + "/paths/" + p + "/delete>`__");
-                }
+                verb = (deleteDeprecated_ ? "(delete)" : "DELETE");
+                url = openApiUrl + "#tag/" + FormatTag(deleteTag_) + "/paths/" + p + "/delete";
               }
               break;
               
             case HttpMethod_Put:
               if (hasPut_)
               {
-                if (openApiUrl.empty())
-                {
-                  return "GET";
-                }
-                else
-                {
-                  return ("`PUT <" + openApiUrl + "#tag/" + FormatTag(putTag_) + "/paths/" + p + "/put>`__");
-                }
+                verb = (putDeprecated_ ? "(put)" : "PUT");
+                url = openApiUrl + "#tag/" + FormatTag(putTag_) + "/paths/" + p + "/put";
               }
-              break;
+              break;              
 
             default:
               throw OrthancException(ErrorCode_InternalError);
           }
 
-          return "";
+          if (verb.empty())
+          {
+            return "";
+          }
+          else if (openApiUrl.empty())
+          {
+            return verb;
+          }
+          else
+          {
+            return "`" + verb + " <" + url + ">`__";
+          }
+        }
+
+        bool HasDeprecated() const
+        {
+          return ((hasGet_ && getDeprecated_) ||
+                  (hasPost_ && postDeprecated_) ||
+                  (hasDelete_ && deleteDeprecated_) ||
+                  (hasPut_ && putDeprecated_));
         }
       };
 
@@ -668,7 +679,7 @@ namespace Orthanc
       {
         Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
 
-        path.AddMethod(call.GetMethod(), call.GetDocumentation().GetTag());
+        path.AddMethod(call.GetMethod(), call.GetDocumentation().GetTag(), call.GetDocumentation().IsDeprecated());
 
         if (call.GetDocumentation().HasSummary())
         {
@@ -695,6 +706,12 @@ namespace Orthanc
           target += it->second.Format(openApiUrl, HttpMethod_Post, it->first) + ",";
           target += it->second.Format(openApiUrl, HttpMethod_Delete, it->first) + ",";
           target += it->second.Format(openApiUrl, HttpMethod_Put, it->first) + ",";
+          
+          if (it->second.HasDeprecated())
+          {
+            target += "*(deprecated)* ";
+          }
+          
           target += it->second.GetSummary() + "\n";
         }        
       }
