@@ -70,5 +70,8 @@ namespace Orthanc
                   RestApiDeleteCall::Handler handler);
 
     void GenerateOpenApiDocumentation(Json::Value& target);
+
+    void GenerateReStructuredTextCheatSheet(std::string& target,
+                                            const std::string& openApiUrl);
   };
 }
