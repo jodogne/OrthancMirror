@@ -210,7 +210,8 @@ namespace Orthanc
   }
 
 
-  static const char* TypeToString(RestApiCallDocumentation::Type type)
+  static void TypeToSchema(Json::Value& target,
+                           RestApiCallDocumentation::Type type)
   {
     switch (type)
     {
@@ -219,20 +220,30 @@ namespace Orthanc
 
       case RestApiCallDocumentation::Type_String:
       case RestApiCallDocumentation::Type_Text:
-        return "string";
+        target["type"] = "string";
+        return;
 
       case RestApiCallDocumentation::Type_Number:
-        return "number";
+        target["type"] = "number";
+        return;
 
       case RestApiCallDocumentation::Type_Boolean:
-        return "boolean";
+        target["type"] = "boolean";
+        return;
 
       case RestApiCallDocumentation::Type_JsonObject:
-        return "object";
+        target["type"] = "object";
+        return;
 
       case RestApiCallDocumentation::Type_JsonListOfStrings:
+        target["type"] = "array";
+        target["items"]["type"] = "string";
+        return;
+
       case RestApiCallDocumentation::Type_JsonListOfObjects:
-        return "array";
+        target["type"] = "array";
+        target["items"]["type"] = "object";
+        return;
         
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -290,7 +301,7 @@ namespace Orthanc
                  field != requestFields_.end(); ++field)
             {
               Json::Value p = Json::objectValue;
-              p["type"] = TypeToString(field->second.GetType());
+              TypeToSchema(p, field->second.GetType());
               p["description"] = field->second.GetDescription();
               schema["properties"][field->first] = p;         
             }        
@@ -312,7 +323,7 @@ namespace Orthanc
                field != answerFields_.end(); ++field)
           {
             Json::Value p = Json::objectValue;
-            p["type"] = TypeToString(field->second.GetType());
+            TypeToSchema(p, field->second.GetType());
             p["description"] = field->second.GetDescription();
             schema["properties"][field->first] = p;         
           }        
@@ -358,7 +369,7 @@ namespace Orthanc
         p["name"] = it->first;
         p["in"] = "query";
         p["required"] = it->second.IsRequired();
-        p["schema"]["type"] = TypeToString(it->second.GetType());
+        TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }
@@ -370,7 +381,7 @@ namespace Orthanc
         p["name"] = it->first;
         p["in"] = "header";
         p["required"] = it->second.IsRequired();
-        p["schema"]["type"] = TypeToString(it->second.GetType());
+        TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }
@@ -387,7 +398,7 @@ namespace Orthanc
         p["name"] = it->first;
         p["in"] = "path";
         p["required"] = it->second.IsRequired();
-        p["schema"]["type"] = TypeToString(it->second.GetType());
+        TypeToSchema(p["schema"], it->second.GetType());
         p["description"] = it->second.GetDescription();
         parameters.append(p);         
       }

@@ -425,11 +425,14 @@ namespace Orthanc
       class Path
       {
       private:
-        std::string tag_;
         bool        hasGet_;
         bool        hasPost_;
         bool        hasDelete_;
         bool        hasPut_;
+        std::string getTag_;
+        std::string postTag_;
+        std::string deleteTag_;
+        std::string putTag_;
         std::string summary_;
         HttpMethod  summaryOrigin_;
 
@@ -443,24 +446,49 @@ namespace Orthanc
         {
         }
 
-        void AddMethod(HttpMethod method)
+        void AddMethod(HttpMethod method,
+                       const std::string& tag)
         {
           switch (method)
           {
             case HttpMethod_Get:
+              if (hasGet_)
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+              
               hasGet_ = true;
+              getTag_ = tag;
               break;
               
             case HttpMethod_Post:
+              if (hasPost_)
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+              
               hasPost_ = true;
+              postTag_ = tag;
               break;
               
             case HttpMethod_Delete:
+              if (hasDelete_)
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+              
               hasDelete_ = true;
+              deleteTag_ = tag;
               break;
               
             case HttpMethod_Put:
+              if (hasPut_)
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+              
               hasPut_ = true;
+              putTag_ = tag;
               break;
 
             default:
@@ -468,34 +496,9 @@ namespace Orthanc
           }
         }
 
-        bool HasSummary() const
-        {
-          return !summary_.empty();
-        }
-
-        const std::string& GetTag() const
-        {
-          return tag_;
-        }
-
-        void SetSummary(const std::string& tag,
-                        const std::string& summary,
+        void SetSummary(const std::string& summary,
                         HttpMethod newOrigin)
         {
-          if (!tag_.empty() &&
-              !tag.empty() &&
-              tag_ != tag)
-          {
-            printf("===================================================================================\n");
-            throw OrthancException(ErrorCode_InternalError, "Mismatch between HTTP methods in the tag: \"" +
-                                   tag + "\" vs. \"" + tag_ + "\"");
-          }
-
-          if (tag_.empty())
-          {
-            tag_ = tag;
-          }
-          
           if (!summary.empty())
           {
             bool replace;
@@ -544,29 +547,114 @@ namespace Orthanc
           }
         }
 
-        bool HasGet() const
-        {
-          return hasGet_;
-        }
-
-        bool HasPost() const
-        {
-          return hasPost_;
-        }
-
-        bool HasDelete() const
-        {
-          return hasDelete_;
-        }
-
-        bool HasPut() const
-        {
-          return hasPut_;
-        }
-
         const std::string& GetSummary() const
         {
           return summary_;
+        }
+
+        static std::string FormatTag(const std::string& tag)
+        {
+          if (tag.empty())
+          {
+            return tag;
+          }
+          else
+          {
+            std::string s;
+            s.reserve(tag.size());
+            s.push_back(tag[0]);
+
+            for (size_t i = 1; i < tag.size(); i++)
+            {
+              if (tag[i] == ' ')
+              {
+                s.push_back('-');
+              }
+              else if (isupper(tag[i]) &&
+                       tag[i - 1] == ' ')
+              {
+                s.push_back(tolower(tag[i]));
+              }
+              else
+              {
+                s.push_back(tag[i]);
+              }
+            }
+
+            return s;
+          }
+        }
+
+        std::string Format(const std::string& openApiUrl,
+                           HttpMethod method,
+                           const std::string& uri) const
+        {
+          std::string p = uri;
+          boost::replace_all(p, "/", "~1");
+          
+          switch (method)
+          {
+            case HttpMethod_Get:
+              if (hasGet_)
+              {
+                if (openApiUrl.empty())
+                {
+                  return "GET";
+                }
+                else
+                {
+                  return ("`GET <" + openApiUrl + "#tag/" + FormatTag(getTag_) + "/paths/" + p + "/get>`__");
+                }
+              }
+              break;
+              
+            case HttpMethod_Post:
+              if (hasPost_)
+              {
+                if (openApiUrl.empty())
+                {
+                  return "POST";
+                }
+                else
+                {
+                  return ("`POST <" + openApiUrl + "#tag/" + FormatTag(postTag_) + "/paths/" + p + "/post>`__");
+                }
+              }
+              break;
+              
+            case HttpMethod_Delete:
+              if (hasDelete_)
+              {
+                if (openApiUrl.empty())
+                {
+                  return "DELETE";
+                }
+                else
+                {
+                  return ("`DELETE <" + openApiUrl + "#tag/" + FormatTag(deleteTag_) + "/paths/" + p + "/delete>`__");
+                }
+              }
+              break;
+              
+            case HttpMethod_Put:
+              if (hasPut_)
+              {
+                if (openApiUrl.empty())
+                {
+                  return "GET";
+                }
+                else
+                {
+                  return ("`PUT <" + openApiUrl + "#tag/" + FormatTag(putTag_) + "/paths/" + p + "/put>`__");
+                }
+              }
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+
+          return "";
         }
       };
 
@@ -574,80 +662,17 @@ namespace Orthanc
 
       Paths paths_;
 
-      static std::string FormatTag(const std::string& tag)
-      {
-        if (tag.empty())
-        {
-          return tag;
-        }
-        else
-        {
-          std::string s;
-          s.reserve(tag.size());
-          s.push_back(tag[0]);
-
-          for (size_t i = 1; i < tag.size(); i++)
-          {
-            if (tag[i] == ' ')
-            {
-              s.push_back('-');
-            }
-            else if (isupper(tag[i]) &&
-                     tag[i - 1] == ' ')
-            {
-              s.push_back(tolower(tag[i]));
-            }
-            else
-            {
-              s.push_back(tag[i]);
-            }
-          }
-
-          return s;
-        }
-      }
-
-      std::string FormatUrl(const std::string& openApiUrl,
-                            bool hasMethod,
-                            const std::string& tag,
-                            const std::string& uri,
-                            const std::string& method) const
-      {
-        if (hasMethod)
-        {
-          std::string title;
-          Toolbox::ToUpperCase(title, method);
-          
-          if (openApiUrl.empty())
-          {
-            return title;
-          }
-          else
-          {
-            std::string p = uri;
-            boost::replace_all(p, "/", "~1");
-            
-            return ("`" + title + " <" + openApiUrl + "#tag/" +
-                    FormatTag(tag) + "/paths/" + p + "/" + method + ">`__");
-          }
-        }
-        else
-        {
-          return "";
-        }
-      }
-
     protected:
       virtual bool HandleCall(RestApiCall& call,
                               const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
       {
         Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
 
-        path.AddMethod(call.GetMethod());
+        path.AddMethod(call.GetMethod(), call.GetDocumentation().GetTag());
 
         if (call.GetDocumentation().HasSummary())
         {
-          path.SetSummary(call.GetDocumentation().GetTag(), call.GetDocumentation().GetSummary(), call.GetMethod());
+          path.SetSummary(call.GetDocumentation().GetSummary(), call.GetMethod());
         }
         
         return true;
@@ -666,10 +691,10 @@ namespace Orthanc
         for (Paths::const_iterator it = paths_.begin(); it != paths_.end(); ++it)
         {
           target += "``" + it->first + "``,";
-          target += FormatUrl(openApiUrl, it->second.HasGet(), it->second.GetTag(), it->first, "get") + ",";
-          target += FormatUrl(openApiUrl, it->second.HasPost(), it->second.GetTag(), it->first, "post") + ",";
-          target += FormatUrl(openApiUrl, it->second.HasDelete(), it->second.GetTag(), it->first, "delete") + ",";
-          target += FormatUrl(openApiUrl, it->second.HasPut(), it->second.GetTag(), it->first, "put") + ",";
+          target += it->second.Format(openApiUrl, HttpMethod_Get, it->first) + ",";
+          target += it->second.Format(openApiUrl, HttpMethod_Post, it->first) + ",";
+          target += it->second.Format(openApiUrl, HttpMethod_Delete, it->first) + ",";
+          target += it->second.Format(openApiUrl, HttpMethod_Put, it->first) + ",";
           target += it->second.GetSummary() + "\n";
         }        
       }

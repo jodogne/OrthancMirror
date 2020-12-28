@@ -1595,7 +1595,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment on disk")
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
-                        "This is different from `.../size` if `EnableStorage` is `true`.")
+                        "This is different from `.../size` iff `EnableStorage` is `true`.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment")
         .AddAnswerType(MimeType_PlainText, "The size of the attachment, as stored on the disk");
@@ -1645,7 +1645,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment on disk")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
-                        "This is different from `.../md5` if `EnableStorage` is `true`.")
+                        "This is different from `.../md5` iff `EnableStorage` is `true`.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment")
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment, as stored on the disk");
@@ -1752,6 +1752,19 @@ namespace Orthanc
 
   static void DeleteAttachment(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Delete attachment")
+        .SetDescription("Delete an attachment associated with the given DICOM " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment");
+      return;
+    }
+
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1796,6 +1809,19 @@ namespace Orthanc
   template <enum CompressionType compression>
   static void ChangeAttachmentCompression(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary(compression == CompressionType_None ? "Uncompress attachment" : "Compress attachment")
+        .SetDescription("Change the compression scheme that is used to store an attachment.")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment");
+      return;
+    }
+
     CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1809,6 +1835,20 @@ namespace Orthanc
 
   static void IsAttachmentCompressed(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Is attachment compressed?")
+        .SetDescription("Test whether the attachment has been stored as a compressed file on the disk.")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("name", "The name of the attachment")
+        .AddAnswerType(MimeType_PlainText, "`0` if the attachment was stored uncompressed, `1` if it was compressed");
+      return;
+    }
+
     FileInfo info;
     if (GetAttachmentInfo(info, call))
     {
