@@ -179,6 +179,8 @@ namespace Orthanc
   void RestApiCallDocumentation::SetHttpGetSample(const std::string& url,
                                                   bool isJson)
   {
+    //return;  // TODO -REMOVE
+    
 #if ORTHANC_ENABLE_CURL == 1
     HttpClient client;
     client.SetUrl(url);
@@ -208,6 +210,59 @@ namespace Orthanc
     LOG(WARNING) << "HTTP client is not available to generated the documentation";
 #endif
   }
+
+
+  static void Truncate(Json::Value& value,
+                       size_t size)
+  {
+    if (value.type() == Json::arrayValue)
+    {
+      if (value.size() > size)
+      {
+        value.resize(size);
+        value.append("...");
+      }
+
+      for (Json::Value::ArrayIndex i = 0; i < value.size(); i++)
+      {
+        Truncate(value[i], size);
+      }
+    }
+    else if (value.type() == Json::objectValue)
+    {
+      std::vector<std::string> members = value.getMemberNames();
+      if (members.size() > size)
+      {
+        members.resize(size);
+
+        Json::Value v = Json::objectValue;
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          v[members[i]] = value[members[i]];
+        }
+
+        // We use the "{" symbol, as it the last in the 7bit ASCII
+        // table, which places "..." at the end of the object in OpenAPI
+        v["{...}"] = "...";
+        
+        value = v;
+      }
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        Truncate(value[members[i]], size);
+      }
+    }
+  }
+
+  
+  void RestApiCallDocumentation::SetTruncatedJsonHttpGetSample(const std::string& url,
+                                                               size_t size)
+  {
+    SetHttpGetSample(url, true);
+    Truncate(sampleJson_, size);
+  }
+
 
 
   static void TypeToSchema(Json::Value& target,
