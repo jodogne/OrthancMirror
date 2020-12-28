@@ -359,8 +359,10 @@ namespace Orthanc
       virtual bool HandleCall(RestApiCall& call,
                               const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
       {
+        const std::string path = Toolbox::FlattenUri(call.GetFullUri());
+
         Json::Value v;
-        if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames))
+        if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames, path))
         {
           std::string method;
           
@@ -386,8 +388,6 @@ namespace Orthanc
               throw OrthancException(ErrorCode_ParameterOutOfRange);
           }
           
-          const std::string path = Toolbox::FlattenUri(call.GetFullUri());
-
           if ((paths_.isMember(path) &&
                paths_[path].type() != Json::objectValue) ||
               paths_[path].isMember(method))

@@ -184,7 +184,8 @@ namespace Orthanc
     }
 
     bool FormatOpenApi(Json::Value& target,
-                       const std::set<std::string>& expectedUriArguments) const;
+                       const std::set<std::string>& expectedUriArguments,
+                       const std::string& uri /* only used in logs */) const;
 
     bool HasSummary() const
     {
