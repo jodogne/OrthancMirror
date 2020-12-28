@@ -661,6 +661,8 @@ static void PrintHelp(const char* path)
     << "\t\t\tthe last execution of Orthanc" << std::endl
     << "  --openapi=[file]\twrite the OpenAPI documentation and exit" << std::endl
     << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
+    << "  --cheatsheet=[file]\twrite the cheat sheet of REST API as CSV" << std::endl
+    << "\t\t\tand exit (if \"file\" is \"-\", dumps to stdout)" << std::endl
     << "  --version\t\toutput version information and exit" << std::endl
     << std::endl
     << "Fine-tuning of log categories:" << std::endl;
@@ -1790,6 +1792,41 @@ int main(int argc, char* argv[])
       catch (OrthancException&)
       {
         LOG(ERROR) << "Cannot export OpenAPI documentation as file \"" << target << "\"";
+        return -1;
+      }
+    }
+    else if (boost::starts_with(argument, "--cheatsheet="))
+    {
+      std::string target = argument.substr(13);
+
+      try
+      {
+        std::string cheatsheet;
+
+        {
+          SQLiteDatabaseWrapper inMemoryDatabase;
+          inMemoryDatabase.Open();
+          MemoryStorageArea inMemoryStorage;
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
+          //restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://api.orthanc-server.com/index.html");
+          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "http://localhost:8000/a.html");
+          context.Stop();
+        }
+
+        if (target == "-")
+        {
+          std::cout << cheatsheet;   // Print to stdout
+        }
+        else
+        {
+          SystemToolbox::WriteFile(cheatsheet, target);
+        }
+        return 0;
+      }
+      catch (OrthancException&)
+      {
+        LOG(ERROR) << "Cannot export REST cheat sheet as file \"" << target << "\"";
         return -1;
       }
     }

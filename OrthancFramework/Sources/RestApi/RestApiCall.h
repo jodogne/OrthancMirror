@@ -140,6 +140,11 @@ namespace Orthanc
 
     RestApiCallDocumentation& GetDocumentation();
 
+    HttpMethod GetMethod() const
+    {
+      return method_;
+    }
+
     bool IsDocumentation() const
     {
       return (origin_ == RequestOrigin_Documentation);

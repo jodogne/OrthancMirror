@@ -180,5 +180,20 @@ namespace Orthanc
 
     bool FormatOpenApi(Json::Value& target,
                        const std::set<std::string>& expectedUriArguments) const;
+
+    bool HasSummary() const
+    {
+      return !summary_.empty();
+    }
+
+    const std::string& GetSummary() const
+    {
+      return summary_;
+    }
+
+    const std::string& GetTag() const
+    {
+      return tag_;
+    }
   };
 }

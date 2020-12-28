@@ -27,6 +27,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/math/special_functions/round.hpp>
 #include <stdlib.h>   // To define "_exit()" under Windows
 #include <stdio.h>
@@ -127,18 +128,20 @@ namespace Orthanc
 
 
 
-    class OpenApiVisitor : public RestApiHierarchy::IVisitor
+    class DocumentationVisitor : public RestApiHierarchy::IVisitor
     {
     private:
       RestApi&    restApi_;
-      Json::Value paths_;
       size_t      successPathsCount_;
       size_t      totalPathsCount_;
+
+    protected:
+      virtual bool HandleCall(RestApiCall& call,
+                              const std::set<std::string> uriArgumentsNames) = 0;
   
     public:
-      explicit OpenApiVisitor(RestApi& restApi) :
+      explicit DocumentationVisitor(RestApi& restApi) :
         restApi_(restApi),
-        paths_(Json::objectValue),
         successPathsCount_(0),
         totalPathsCount_(0)
       {
@@ -154,11 +157,6 @@ namespace Orthanc
         if (hasTrailing)
         {
           path += "/{...}";
-        }
-
-        if (paths_.isMember(path))
-        {
-          throw OrthancException(ErrorCode_InternalError);
         }
 
         std::set<std::string> uriArgumentsNames;
@@ -191,12 +189,11 @@ namespace Orthanc
                               uri, HttpToolbox::Arguments() /* GET arguments */);
 
           bool ok = false;
-          Json::Value v;
       
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
+                  HandleCall(call, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -207,7 +204,6 @@ namespace Orthanc
 
           if (ok)
           {
-            paths_[path]["get"] = v;
             successPathsCount_ ++;
           }
           else
@@ -229,12 +225,11 @@ namespace Orthanc
                                uri, NULL /* body */, 0 /* body size */);
 
           bool ok = false;
-          Json::Value v;
       
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
+                  HandleCall(call, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -245,7 +240,6 @@ namespace Orthanc
 
           if (ok)
           {
-            paths_[path]["post"] = v;
             successPathsCount_ ++;
           }
           else
@@ -266,12 +260,11 @@ namespace Orthanc
                                  uriArguments, UriComponents() /* trailing */, uri);
 
           bool ok = false;
-          Json::Value v;
       
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
+                  HandleCall(call, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -282,7 +275,6 @@ namespace Orthanc
 
           if (ok)
           {
-            paths_[path]["delete"] = v;
             successPathsCount_ ++;
           }
           else
@@ -304,12 +296,11 @@ namespace Orthanc
                               NULL /* body */, 0 /* body size */);
 
           bool ok = false;
-          Json::Value v;
       
           try
           {
             ok = (resource.Handle(call) &&
-                  call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames));
+                  HandleCall(call, uriArgumentsNames));
           }
           catch (OrthancException&)
           {
@@ -320,7 +311,6 @@ namespace Orthanc
 
           if (ok)
           {
-            paths_[path]["put"] = v;
             successPathsCount_ ++;
           }
           else
@@ -332,12 +322,6 @@ namespace Orthanc
         return true;
       }
 
-
-      const Json::Value& GetPaths() const
-      {
-        return paths_;
-      }
-
       size_t GetSuccessPathsCount() const
       {
         return successPathsCount_;
@@ -346,6 +330,348 @@ namespace Orthanc
       size_t GetTotalPathsCount() const
       {
         return totalPathsCount_;
+      }
+
+      void LogStatistics() const
+      {
+        assert(GetSuccessPathsCount() <= GetTotalPathsCount());
+        size_t total = GetTotalPathsCount();
+        if (total == 0)
+        {
+          total = 1;  // Avoid division by zero
+        }
+        float coverage = (100.0f * static_cast<float>(GetSuccessPathsCount()) /
+                          static_cast<float>(total));
+    
+        LOG(WARNING) << "The documentation of the REST API contains " << GetSuccessPathsCount()
+                     << " paths over a total of " << GetTotalPathsCount() << " paths "
+                     << "(coverage: " << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
+      }
+    };
+
+
+    class OpenApiVisitor : public DocumentationVisitor
+    {
+    private:
+      Json::Value paths_;
+
+    protected:
+      virtual bool HandleCall(RestApiCall& call,
+                              const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
+      {
+        Json::Value v;
+        if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames))
+        {
+          std::string method;
+          
+          switch (call.GetMethod())
+          {
+            case HttpMethod_Get:
+              method = "get";
+              break;
+            
+            case HttpMethod_Post:
+              method = "post";
+              break;
+            
+            case HttpMethod_Delete:
+              method = "delete";
+              break;
+            
+            case HttpMethod_Put:
+              method = "put";
+              break;
+            
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+          
+          const std::string path = Toolbox::FlattenUri(call.GetFullUri());
+
+          if ((paths_.isMember(path) &&
+               paths_[path].type() != Json::objectValue) ||
+              paths_[path].isMember(method))
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          paths_[path][method] = v;
+          
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }      
+  
+    public:
+      explicit OpenApiVisitor(RestApi& restApi) :
+        DocumentationVisitor(restApi),
+        paths_(Json::objectValue)
+      {
+      }
+  
+      const Json::Value& GetPaths() const
+      {
+        return paths_;
+      }
+    };
+
+
+    class ReStructuredTextCheatSheet : public DocumentationVisitor
+    {
+    private:
+      class Path
+      {
+      private:
+        std::string tag_;
+        bool        hasGet_;
+        bool        hasPost_;
+        bool        hasDelete_;
+        bool        hasPut_;
+        std::string summary_;
+        HttpMethod  summaryOrigin_;
+
+      public:
+        Path() :
+          hasGet_(false),
+          hasPost_(false),
+          hasDelete_(false),
+          hasPut_(false),
+          summaryOrigin_(HttpMethod_Get)  // Dummy initialization
+        {
+        }
+
+        void AddMethod(HttpMethod method)
+        {
+          switch (method)
+          {
+            case HttpMethod_Get:
+              hasGet_ = true;
+              break;
+              
+            case HttpMethod_Post:
+              hasPost_ = true;
+              break;
+              
+            case HttpMethod_Delete:
+              hasDelete_ = true;
+              break;
+              
+            case HttpMethod_Put:
+              hasPut_ = true;
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+
+        bool HasSummary() const
+        {
+          return !summary_.empty();
+        }
+
+        const std::string& GetTag() const
+        {
+          return tag_;
+        }
+
+        void SetSummary(const std::string& tag,
+                        const std::string& summary,
+                        HttpMethod newOrigin)
+        {
+          if (!tag_.empty() &&
+              !tag.empty() &&
+              tag_ != tag)
+          {
+            printf("===================================================================================\n");
+            throw OrthancException(ErrorCode_InternalError, "Mismatch between HTTP methods in the tag: \"" +
+                                   tag + "\" vs. \"" + tag_ + "\"");
+          }
+
+          if (tag_.empty())
+          {
+            tag_ = tag;
+          }
+          
+          if (!summary.empty())
+          {
+            bool replace;
+
+            if (summary_.empty())
+            {
+              // We don't have a summary so far
+              replace = true;
+            }
+            else
+            {
+              // We already have a summary. Replace it if the new
+              // summary is associated with a HTTP method of higher
+              // weight (GET > POST > DELETE > PUT)
+              switch (summaryOrigin_)
+              {
+                case HttpMethod_Get:
+                  replace = false;
+                  break;
+
+                case HttpMethod_Post:
+                  replace = (newOrigin == HttpMethod_Get);
+                  break;
+
+                case HttpMethod_Delete:
+                  replace = (newOrigin == HttpMethod_Get ||
+                             newOrigin == HttpMethod_Post);
+                  break;
+
+                case HttpMethod_Put:
+                  replace = (newOrigin == HttpMethod_Get ||
+                             newOrigin == HttpMethod_Post ||
+                             newOrigin == HttpMethod_Delete);
+                  break;
+
+                default:
+                  throw OrthancException(ErrorCode_ParameterOutOfRange);
+              }
+            }
+
+            if (replace)
+            {
+              summary_ = summary;
+              summaryOrigin_ = newOrigin;
+            }
+          }
+        }
+
+        bool HasGet() const
+        {
+          return hasGet_;
+        }
+
+        bool HasPost() const
+        {
+          return hasPost_;
+        }
+
+        bool HasDelete() const
+        {
+          return hasDelete_;
+        }
+
+        bool HasPut() const
+        {
+          return hasPut_;
+        }
+
+        const std::string& GetSummary() const
+        {
+          return summary_;
+        }
+      };
+
+      typedef std::map<std::string, Path>  Paths;
+
+      Paths paths_;
+
+      static std::string FormatTag(const std::string& tag)
+      {
+        if (tag.empty())
+        {
+          return tag;
+        }
+        else
+        {
+          std::string s;
+          s.reserve(tag.size());
+          s.push_back(tag[0]);
+
+          for (size_t i = 1; i < tag.size(); i++)
+          {
+            if (tag[i] == ' ')
+            {
+              s.push_back('-');
+            }
+            else if (isupper(tag[i]) &&
+                     tag[i - 1] == ' ')
+            {
+              s.push_back(tolower(tag[i]));
+            }
+            else
+            {
+              s.push_back(tag[i]);
+            }
+          }
+
+          return s;
+        }
+      }
+
+      std::string FormatUrl(const std::string& openApiUrl,
+                            bool hasMethod,
+                            const std::string& tag,
+                            const std::string& uri,
+                            const std::string& method) const
+      {
+        if (hasMethod)
+        {
+          std::string title;
+          Toolbox::ToUpperCase(title, method);
+          
+          if (openApiUrl.empty())
+          {
+            return title;
+          }
+          else
+          {
+            std::string p = uri;
+            boost::replace_all(p, "/", "~1");
+            
+            return ("`" + title + " <" + openApiUrl + "#tag/" +
+                    FormatTag(tag) + "/paths/" + p + "/" + method + ">`__");
+          }
+        }
+        else
+        {
+          return "";
+        }
+      }
+
+    protected:
+      virtual bool HandleCall(RestApiCall& call,
+                              const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
+      {
+        Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
+
+        path.AddMethod(call.GetMethod());
+
+        if (call.GetDocumentation().HasSummary())
+        {
+          path.SetSummary(call.GetDocumentation().GetTag(), call.GetDocumentation().GetSummary(), call.GetMethod());
+        }
+        
+        return true;
+      }      
+  
+    public:
+      explicit ReStructuredTextCheatSheet(RestApi& restApi) :
+        DocumentationVisitor(restApi)
+      {
+      }
+
+      void Format(std::string& target,
+                  const std::string& openApiUrl) const
+      {
+        target += "Path,GET,POST,DELETE,PUT,Summary\n";
+        for (Paths::const_iterator it = paths_.begin(); it != paths_.end(); ++it)
+        {
+          target += "``" + it->first + "``,";
+          target += FormatUrl(openApiUrl, it->second.HasGet(), it->second.GetTag(), it->first, "get") + ",";
+          target += FormatUrl(openApiUrl, it->second.HasPost(), it->second.GetTag(), it->first, "post") + ",";
+          target += FormatUrl(openApiUrl, it->second.HasDelete(), it->second.GetTag(), it->first, "delete") + ",";
+          target += FormatUrl(openApiUrl, it->second.HasPut(), it->second.GetTag(), it->first, "put") + ",";
+          target += it->second.GetSummary() + "\n";
+        }        
       }
     };
   }
@@ -534,17 +860,21 @@ namespace Orthanc
     target["servers"] = Json::arrayValue;
     target["paths"] = visitor.GetPaths();
 
-    assert(visitor.GetSuccessPathsCount() <= visitor.GetTotalPathsCount());
-    size_t total = visitor.GetTotalPathsCount();
-    if (total == 0)
-    {
-      total = 1;  // Avoid division by zero
-    }
-    float coverage = (100.0f * static_cast<float>(visitor.GetSuccessPathsCount()) /
-                      static_cast<float>(total));
+    visitor.LogStatistics();
+  }
+
+
+  void RestApi::GenerateReStructuredTextCheatSheet(std::string& target,
+                                                   const std::string& openApiUrl)
+  {
+    ReStructuredTextCheatSheet visitor(*this);
     
-    LOG(WARNING) << "The documentation of the REST API contains " << visitor.GetSuccessPathsCount()
-                 << " paths over a total of " << visitor.GetTotalPathsCount() << " paths "
-                 << "(coverage: " << static_cast<unsigned int>(boost::math::iround(coverage)) << "%)";
+    UriComponents root;
+    std::set<std::string> uriArgumentsNames;
+    root_.ExploreAllResources(visitor, root, uriArgumentsNames);
+
+    visitor.Format(target, openApiUrl);
+    
+    visitor.LogStatistics();
   }
 }
