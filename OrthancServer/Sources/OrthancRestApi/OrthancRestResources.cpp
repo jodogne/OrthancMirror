@@ -67,6 +67,32 @@ static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 namespace Orthanc
 {
+  static std::string GetDocumentationSampleResource(ResourceType type)
+  {
+    switch (type)
+    {
+      case Orthanc::ResourceType_Instance:
+        return "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
+        break;
+        
+      case Orthanc::ResourceType_Series:
+        return "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
+        break;
+        
+      case Orthanc::ResourceType_Study:
+        return "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
+        break;
+        
+      case Orthanc::ResourceType_Patient:
+        return "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
+        break;
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+  
+
   static void AnswerDicomAsJson(RestApiCall& call,
                                 const Json::Value& dicom,
                                 DicomToJsonFormat mode)
@@ -213,32 +239,6 @@ namespace Orthanc
   }
 
 
-
-  static std::string GetDocumentationSampleResource(ResourceType type)
-  {
-    switch (type)
-    {
-      case Orthanc::ResourceType_Instance:
-        return "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
-        break;
-        
-      case Orthanc::ResourceType_Series:
-        return "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
-        break;
-        
-      case Orthanc::ResourceType_Study:
-        return "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
-        break;
-        
-      case Orthanc::ResourceType_Patient:
-        return "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
-        break;
-        
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-  
 
   template <enum ResourceType resourceType>
   static void GetSingleResource(RestApiGetCall& call)
@@ -436,7 +436,7 @@ namespace Orthanc
           .SetDescription("Get the DICOM tags in human-readable format")
           .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
           .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-          .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", true);
+          .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
         return;
       }
       else
@@ -487,7 +487,7 @@ namespace Orthanc
         .SetHttpGetArgument("short", RestApiCallDocumentation::Type_String,
                             "If present, report the DICOM tags indexed in hexadecimal format", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", true);      
+        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
     }
 
@@ -2377,6 +2377,21 @@ namespace Orthanc
             enum ResourceType end>
   static void GetChildResources(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string children = GetResourceTypeText(end, true /* plural */, false /* lower case */);
+      const std::string resource = GetResourceTypeText(start, false /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(start, true /* plural */, true /* upper case */))
+        .SetSummary("Get child " + children)
+        .SetDescription("Get detailed information about the child " + children + " of the DICOM " +
+                        resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing information about the child DICOM " + children)
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + children, 5);
+      return;
+    }
+
     ServerIndex& index = OrthancRestApi::GetIndex(call);
 
     std::list<std::string> a, b, c;
@@ -2462,6 +2477,21 @@ namespace Orthanc
   static void GetParentResource(RestApiGetCall& call)
   {
     assert(start > end);
+
+    if (call.IsDocumentation())
+    {
+      const std::string parent = GetResourceTypeText(end, false /* plural */, false /* lower case */);
+      const std::string resource = GetResourceTypeText(start, false /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(start, true /* plural */, true /* upper case */))
+        .SetSummary("Get parent " + parent)
+        .SetDescription("Get detailed information about the parent " + parent + " of the DICOM " +
+                        resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .AddAnswerType(MimeType_Json, "Information about the parent DICOM " + parent)
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + parent, 10);
+      return;
+    }
 
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     

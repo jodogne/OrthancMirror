@@ -175,6 +175,9 @@ namespace Orthanc
     void SetHttpGetSample(const std::string& url,
                           bool isJson);
 
+    void SetTruncatedJsonHttpGetSample(const std::string& url,
+                                       size_t size);
+
     void SetSample(const Json::Value& sample)
     {
       sampleJson_ = sample;
