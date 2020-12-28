@@ -249,7 +249,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Get information about some " + resource)
-        .SetDescription("Get detailed information about the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetDescription("Get detailed information about the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
         .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
         .SetHttpGetSample(GetDocumentationSampleResource(resourceType), true);
@@ -272,7 +272,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
         .SetSummary("Delete some " + resource)
-        .SetDescription("Delete the DICOM " + resource + " of interest whose Orthanc identifier is provided in the URL")
+        .SetDescription("Delete the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest");
       return;
     }
@@ -435,6 +435,8 @@ namespace Orthanc
           .SetSummary("Get human-readable tags")
           .SetDescription("Get the DICOM tags in human-readable format")
           .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+          .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+                              "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
           .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
           .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
         return;
@@ -2077,6 +2079,21 @@ namespace Orthanc
 
   static void GetSharedTags(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get shared tags")
+        .SetDescription("Extract the DICOM tags whose value is constant across all the child instances of "
+                        "the DICOM " + r + " whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON object containing the values of the DICOM tags")
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/shared-tags", 5);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
 
@@ -2385,7 +2402,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(start, true /* plural */, true /* upper case */))
         .SetSummary("Get child " + children)
         .SetDescription("Get detailed information about the child " + children + " of the DICOM " +
-                        resource + " of interest whose Orthanc identifier is provided in the URL")
+                        resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
         .AddAnswerType(MimeType_Json, "JSON array containing information about the child DICOM " + children)
         .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + children, 5);
@@ -2434,6 +2451,23 @@ namespace Orthanc
 
   static void GetChildInstancesTags(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get tags of instances")
+        .SetDescription("Get the tags of all the child instances of the DICOM " + r +
+                        " whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+        .AddAnswerType(MimeType_Json, "JSON object associating the Orthanc identifiers of the instances, with the values of their DICOM tags")
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/instances-tags", 5);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
     DicomToJsonFormat format = GetDicomFormat(call);
@@ -2486,7 +2520,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(start, true /* plural */, true /* upper case */))
         .SetSummary("Get parent " + parent)
         .SetDescription("Get detailed information about the parent " + parent + " of the DICOM " +
-                        resource + " of interest whose Orthanc identifier is provided in the URL")
+                        resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
         .AddAnswerType(MimeType_Json, "Information about the parent DICOM " + parent)
         .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + parent, 10);

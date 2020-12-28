@@ -194,11 +194,56 @@ namespace Orthanc
     }
   }
 
+
+  static void DocumentPostArguments(RestApiPostCall& call,
+                                    bool isMedia,
+                                    bool defaultExtended)
+  {
+    call.GetDocumentation()
+      .SetRequestField("Synchronous", RestApiCallDocumentation::Type_Boolean,
+                     "If `true`, create the archive in synchronous mode, which means that the HTTP answer will directly "
+                     "contain the ZIP file. This is the default, easy behavior, but it is *not* be desirable to archive "
+                     "large amount of data, as it might lead to network timeouts.", false)
+      .SetRequestField("Asynchronous", RestApiCallDocumentation::Type_Boolean,
+                       "If `true`, create the archive in asynchronous mode, which means that a job is submitted to create "
+                       "the archive in background. Prefer this flavor wherever possible.", false)
+      .SetRequestField(KEY_TRANSCODE, RestApiCallDocumentation::Type_String,
+                       "If present, the DICOM files in the archive will be transcoded to the provided "
+                       "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
+      .SetRequestField("Priority", RestApiCallDocumentation::Type_Number,
+                       "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
+      .AddAnswerType(MimeType_Zip, "In synchronous mode, the ZIP file containing the archive")
+      .AddAnswerType(MimeType_Json, "In asynchronous mode, information about the job that has been submitted to "
+                     "generate the archive: https://book.orthanc-server.com/users/advanced-rest.html#jobs");
+
+    if (isMedia)
+    {
+      call.GetDocumentation().SetRequestField(
+        KEY_EXTENDED, RestApiCallDocumentation::Type_Boolean, "If `true`, will include additional "
+        "tags such as `SeriesDescription`, leading to a so-called *extended DICOMDIR*. Default value is " +
+        std::string(defaultExtended ? "`true`" : "`false`") + ".", false);
+    }
+  }
+
   
   template <bool IS_MEDIA,
             bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
   static void CreateBatch(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentPostArguments(call, IS_MEDIA, DEFAULT_IS_EXTENDED);
+      std::string m = (IS_MEDIA ? "DICOMDIR media" : "ZIP archive");
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Create " + m)
+        .SetDescription("Create a " + m + " containing the DICOM resources (patients, studies, series, or instances) "
+                        "whose Orthanc identifiers are provided in the body")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of Orthanc identifiers of interest.", false);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value body;
@@ -228,10 +273,35 @@ namespace Orthanc
   }
   
 
-  template <bool IS_MEDIA,
-            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  template <bool IS_MEDIA>
   static void CreateSingleGet(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string m = (IS_MEDIA ? "DICOMDIR media" : "ZIP archive");
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Create " + m)
+        .SetDescription("Synchronously create a " + m + " containing the DICOM " + r +
+                        " whose Orthanc identifier is provided in the URL. This flavor is synchronous, "
+                        "which might *not* be desirable to archive large amount of data, as it might "
+                        "lead to network timeouts. Prefer the asynchronous version using `POST` method.")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument("transcode", RestApiCallDocumentation::Type_String,
+                            "If present, the DICOM files in the archive will be transcoded to the provided "
+                            "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
+        .AddAnswerType(MimeType_Zip, "ZIP file containing the archive");
+      if (IS_MEDIA)
+      {
+        call.GetDocumentation().SetHttpGetArgument(
+          "extended", RestApiCallDocumentation::Type_String,
+          "If present, will include additional tags such as `SeriesDescription`, leading to a so-called *extended DICOMDIR*", false);
+      }
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string id = call.GetUriComponent("id", "");
@@ -260,10 +330,24 @@ namespace Orthanc
   }
 
 
-  template <bool IS_MEDIA,
-            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  template <bool IS_MEDIA>
   static void CreateSinglePost(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentPostArguments(call, IS_MEDIA, false /* not extended by default */);
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string m = (IS_MEDIA ? "DICOMDIR media" : "ZIP archive");
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Create " + m)
+        .SetDescription("Create a " + m + " containing the DICOM " + r +
+                        " whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string id = call.GetUriComponent("id", "");
@@ -275,7 +359,7 @@ namespace Orthanc
       DicomTransferSyntax transferSyntax;
       int priority;
       GetJobParameters(synchronous, extended, transcode, transferSyntax,
-                       priority, body, DEFAULT_IS_EXTENDED);
+                       priority, body, false /* by default, not extented */);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       job->AddResource(id);
@@ -296,33 +380,18 @@ namespace Orthanc
     
   void OrthancRestApi::RegisterArchive()
   {
-    Register("/patients/{id}/archive",
-             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-    Register("/studies/{id}/archive",
-             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-    Register("/series/{id}/archive",
-             CreateSingleGet<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-
-    Register("/patients/{id}/archive",
-             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-    Register("/studies/{id}/archive",
-             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-    Register("/series/{id}/archive",
-             CreateSinglePost<false /* ZIP */, false /* extended makes no sense in ZIP */>);
-
-    Register("/patients/{id}/media",
-             CreateSingleGet<true /* media */, false /* not extended by default */>);
-    Register("/studies/{id}/media",
-             CreateSingleGet<true /* media */, false /* not extended by default */>);
-    Register("/series/{id}/media",
-             CreateSingleGet<true /* media */, false /* not extended by default */>);
-
-    Register("/patients/{id}/media",
-             CreateSinglePost<true /* media */, false /* not extended by default */>);
-    Register("/studies/{id}/media",
-             CreateSinglePost<true /* media */, false /* not extended by default */>);
-    Register("/series/{id}/media",
-             CreateSinglePost<true /* media */, false /* not extended by default */>);
+    Register("/patients/{id}/archive", CreateSingleGet<false /* ZIP */>);
+    Register("/patients/{id}/archive", CreateSinglePost<false /* ZIP */>);
+    Register("/patients/{id}/media",   CreateSingleGet<true /* media */>);
+    Register("/patients/{id}/media",   CreateSinglePost<true /* media */>);
+    Register("/series/{id}/archive",   CreateSingleGet<false /* ZIP */>);
+    Register("/series/{id}/archive",   CreateSinglePost<false /* ZIP */>);
+    Register("/series/{id}/media",     CreateSingleGet<true /* media */>);
+    Register("/series/{id}/media",     CreateSinglePost<true /* media */>);
+    Register("/studies/{id}/archive",  CreateSingleGet<false /* ZIP */>);
+    Register("/studies/{id}/archive",  CreateSinglePost<false /* ZIP */>);
+    Register("/studies/{id}/media",    CreateSingleGet<true /* media */>);
+    Register("/studies/{id}/media",    CreateSinglePost<true /* media */>);
 
     Register("/tools/create-archive",
              CreateBatch<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
