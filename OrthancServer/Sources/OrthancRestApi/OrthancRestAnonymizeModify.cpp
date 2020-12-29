@@ -700,6 +700,35 @@ namespace Orthanc
 
   static void CreateDicom(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Create one DICOM instance")
+        .SetDescription("Create one DICOM instance, and store it into Orthanc")
+        .SetRequestField("Tags", RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the tags of the new instance to be created", true)
+        .SetRequestField("Content", RestApiCallDocumentation::Type_String,
+                         "This field can be used to embed an image (pixel data) or a PDF inside the created DICOM instance. "
+                         "The PNG image, the JPEG image or the PDF file must be provided using their "
+                         "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme). "
+                         "This field can possibly contain a JSON array, in which case a DICOM series is created "
+                         "containing one DICOM instance for each item in the `Content` field.", false)
+        .SetRequestField("Parent", RestApiCallDocumentation::Type_String,
+                         "If present, the newly created instance will be attached to the parent DICOM resource "
+                         "whose Orthanc identifier is contained in this field. The DICOM tags of the parent "
+                         "modules in the DICOM hierarchy will be automatically copied to the newly created instance.", false)
+        .SetRequestField("InterpretBinaryTags", RestApiCallDocumentation::Type_Boolean,
+                         "If some value in the `Tags` associative array is formatted according to some "
+                         "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme), "
+                         "whether this value is decoded to a binary value or kept as such (`true` by default)", false)
+        .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+                         "The private creator to be used for private tags in `Tags`", false)
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Orthanc identifier of the newly created instance")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to access the instance in the REST API");
+      return;
+    }
+
     Json::Value request;
     if (!call.ParseJsonRequest(request) ||
         !request.isObject())

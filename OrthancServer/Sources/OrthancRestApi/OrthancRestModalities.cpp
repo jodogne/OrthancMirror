@@ -967,7 +967,7 @@ namespace Orthanc
       DocumentRetrieveShared(call);
       call.GetDocumentation()
         .SetSummary("Retrieve one answer")
-        .SetDescription("Start a C-MOVE command as a job, in order to retrieve one answer associated with the "
+        .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve one answer associated with the "
                         "query/retrieve operation whose identifiers are provided in the URL: "
                         "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move")
         .SetUriArgument("index", "Index of the answer");
@@ -986,7 +986,7 @@ namespace Orthanc
       DocumentRetrieveShared(call);
       call.GetDocumentation()
         .SetSummary("Retrieve all answers")
-        .SetDescription("Start a C-MOVE command as a job, in order to retrieve all the answers associated with the "
+        .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve all the answers associated with the "
                         "query/retrieve operation whose identifier is provided in the URL: "
                         "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move");
       return;
@@ -1365,6 +1365,36 @@ namespace Orthanc
 
   static void DicomStore(RestApiPostCall& call)
   {
+    static const char* KEY_MOVE_ORIGINATOR_AET = "MoveOriginatorAet";
+    static const char* KEY_MOVE_ORIGINATOR_ID = "MoveOriginatorID";
+    static const char* KEY_STORAGE_COMMITMENT = "StorageCommitment";
+    
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-STORE SCU")
+        .SetDescription("Start a C-STORE SCU command as a job, in order to send DICOM resources stored locally "
+                        "to some remote DICOM modality whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/rest.html#rest-store-scu")
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
+        .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
+        .SetRequestField(KEY_MOVE_ORIGINATOR_AET, RestApiCallDocumentation::Type_String,
+                         "Move originator AET that is used for this commands, in order to fake a C-MOVE SCU", false)
+        .SetRequestField(KEY_MOVE_ORIGINATOR_ID, RestApiCallDocumentation::Type_Number,
+                         "Move originator ID that is used for this commands, in order to fake a C-MOVE SCU", false)
+        .SetRequestField(KEY_STORAGE_COMMITMENT, RestApiCallDocumentation::Type_Boolean,
+                         "Whether to use DICOM storage commitment to validate the success of the C-STORE: "
+                         "https://book.orthanc-server.com/users/storage-commitment.html", false)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-STORE command, in seconds", false)
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string remote = call.GetUriComponent("id", "");
@@ -1377,9 +1407,9 @@ namespace Orthanc
     std::string localAet = Toolbox::GetJsonStringField
       (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
     std::string moveOriginatorAET = Toolbox::GetJsonStringField
-      (request, "MoveOriginatorAet", context.GetDefaultLocalApplicationEntityTitle());
+      (request, KEY_MOVE_ORIGINATOR_AET, context.GetDefaultLocalApplicationEntityTitle());
     int moveOriginatorID = Toolbox::GetJsonIntegerField
-      (request, "MoveOriginatorID", 0 /* By default, not a C-MOVE */);
+      (request, KEY_MOVE_ORIGINATOR_ID, 0 /* By default, not a C-MOVE */);
 
     job->SetLocalAet(localAet);
     job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
@@ -1390,7 +1420,7 @@ namespace Orthanc
     }
 
     // New in Orthanc 1.6.0
-    if (Toolbox::GetJsonBooleanField(request, "StorageCommitment", false))
+    if (Toolbox::GetJsonBooleanField(request, KEY_STORAGE_COMMITMENT, false))
     {
       job->EnableStorageCommitment(true);
     }

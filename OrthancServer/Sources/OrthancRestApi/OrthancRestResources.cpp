@@ -2293,6 +2293,20 @@ namespace Orthanc
 
   static void Lookup(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Look for DICOM identifiers")
+        .SetDescription("This URI can be used to convert one DICOM identifier to a list of matching Orthanc resources")
+        .AddRequestType(MimeType_PlainText, "The DICOM identifier of interest (i.e. the value of `PatientID`, "
+                        "`StudyInstanceUID`, `SeriesInstanceUID`, or `SOPInstanceUID`)")
+        .AddAnswerType(MimeType_Json, "JSON array containing a list of matching Orthanc resources, each item in the "
+                       "list corresponding to a JSON object with the fields `Type`, `ID` and `Path` identifying one "
+                       "DICOM resource that is stored by Orthanc");
+      return;
+    }
+
     std::string tag;
     call.BodyToString(tag);
 
