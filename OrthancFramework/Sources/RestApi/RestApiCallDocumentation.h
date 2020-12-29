@@ -202,9 +202,10 @@ namespace Orthanc
       return tag_;
     }
 
-    void SetDeprecated()
+    RestApiCallDocumentation& SetDeprecated()
     {
       deprecated_ = true;
+      return *this;
     }
 
     bool IsDeprecated() const
