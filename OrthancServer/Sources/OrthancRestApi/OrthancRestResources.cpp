@@ -1309,6 +1309,57 @@ namespace Orthanc
 
   static void GetResourceStatistics(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get " + r + " statistics")
+        .SetDescription("Get statistics about the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetAnswerField("DiskSize", RestApiCallDocumentation::Type_String,
+                        "Size of the " + r + " on the disk in bytes, expressed as a string for 64bit compatibility with JSON")
+        .SetAnswerField("DiskSizeMB", RestApiCallDocumentation::Type_Number,
+                        "Size of the " + r + " on the disk, expressed in megabytes (MB)")
+        .SetAnswerField("UncompressedSize", RestApiCallDocumentation::Type_String,
+                        "Size of the " + r + " after decompression in bytes, expressed as a string for 64bit compatibility with JSON")
+        .SetAnswerField("UncompressedSizeMB", RestApiCallDocumentation::Type_Number,
+                        "Size of the " + r + " after decompression, expressed in megabytes (MB). "
+                        "This is different from `DiskSizeMB` iff `StorageCompression` is `true`.")
+        .SetAnswerField("DicomDiskSize", RestApiCallDocumentation::Type_String,
+                        "Size on the disk of the DICOM instances associated with the " + r + ", expressed in bytes")
+        .SetAnswerField("DicomDiskSizeMB", RestApiCallDocumentation::Type_Number,
+                        "Size on the disk of the DICOM instances associated with the " + r + ", expressed in megabytes (MB)")
+        .SetAnswerField("DicomUncompressedSize", RestApiCallDocumentation::Type_String,
+                        "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in bytes")
+        .SetAnswerField("DicomUncompressedSizeMB", RestApiCallDocumentation::Type_Number,
+                        "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in megabytes (MB)")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/statistics", true);
+
+      switch (t)
+      {
+        // Do NOT add "break" below this point!
+        case ResourceType_Patient:
+          call.GetDocumentation().SetAnswerField("CountStudies", RestApiCallDocumentation::Type_Number,
+                                                 "Number of child studies within this " + r);
+
+        case ResourceType_Study:
+          call.GetDocumentation().SetAnswerField("CountSeries", RestApiCallDocumentation::Type_Number,
+                                                 "Number of child series within this " + r);
+
+        case ResourceType_Series:
+          call.GetDocumentation().SetAnswerField("CountInstances", RestApiCallDocumentation::Type_Number,
+                                                 "Number of child instances within this " + r);
+
+        case ResourceType_Instance:
+        default:
+          break;
+      }
+
+      return;
+    }
+
     static const uint64_t MEGA_BYTES = 1024 * 1024;
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -1632,7 +1683,7 @@ namespace Orthanc
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get attachment" + std::string(uncompress ? "" : " (no decompression)"))
         .SetDescription("Get the (binary) content of one attachment associated with the given " + r +
-                        std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` if `true`."))
+                        std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Binary, "The attachment");

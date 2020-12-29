@@ -418,6 +418,18 @@ namespace Orthanc
 
   static void GetOrthancExplorerPlugins(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("JavaScript extensions to Orthanc Explorer")
+        .SetDescription("Get the JavaScript extensions that are installed by all the plugins using the "
+                        "`OrthancPluginExtendOrthancExplorer()` function of the plugin SDK. "
+                        "This route is for internal use of Orthanc Explorer.")
+        .AddAnswerType(MimeType_JavaScript, "The JavaScript extensions");
+      return;
+    }
+
     std::string s = "// Extensions to Orthanc Explorer by the registered plugins\n\n";
 
     if (OrthancRestApi::GetContext(call).HasPlugins())
