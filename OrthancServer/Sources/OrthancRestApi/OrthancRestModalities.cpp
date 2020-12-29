@@ -1147,6 +1147,21 @@ namespace Orthanc
 
   static void ListPeers(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List Orthanc peers")
+        .SetDescription("List all the Orthanc peers that are known to Orthanc. This corresponds either to the content of the "
+                        "`OrthancPeers` configuration option, or to the information stored in the database if "
+                        "`OrthancPeersInDatabase` is `true`.")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual Orthanc peers", false)
+        .AddAnswerType(MimeType_Json, "JSON array containing either the identifiers of the peers, or detailed information "
+                       "about the peers (if `expand` argument is provided)");
+      return;
+    }
+
     OrthancConfiguration::ReaderLock lock;
 
     OrthancRestApi::SetOfStrings peers;
@@ -1184,6 +1199,17 @@ namespace Orthanc
 
   static void ListPeerOperations(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List operations on peer")
+        .SetDescription("List the operations that are available for an Orthanc peer.")
+        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .AddAnswerType(MimeType_Json, "List of the available operations");
+      return;
+    }
+
     OrthancConfiguration::ReaderLock lock;
 
     OrthancRestApi::SetOfStrings peers;
@@ -1242,6 +1268,18 @@ namespace Orthanc
 
   static void PeerSystem(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get peer system information")
+        .SetDescription("Get system information about some Orthanc peer. This corresponds to doing a `GET` request "
+                        "against the `/system` URI of the remote peer. This route can be used to test connectivity.")
+        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .AddAnswerType(MimeType_Json, "System information about the peer");
+      return;
+    }
+
     std::string remote = call.GetUriComponent("id", "");
 
     OrthancConfiguration::ReaderLock lock;
@@ -1272,6 +1310,24 @@ namespace Orthanc
 
   static void GetPeerConfiguration(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      Json::Value sample;
+      sample["HttpHeaders"] = Json::objectValue;
+      sample["Password"] = Json::nullValue;
+      sample["Pkcs11"] = false;
+      sample["Url"] = "http://127.0.1.1:5000/";
+      sample["Username"] = "alice";      
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get peer configuration")
+        .SetDescription("Get detailed information about the configuration of some Orthanc peer.")
+        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .AddAnswerType(MimeType_Json, "Configuration of the peer")
+        .SetSample(sample);
+      return;
+    }
+
     OrthancConfiguration::ReaderLock lock;
     const std::string peer = call.GetUriComponent("id", "");
 
@@ -1299,6 +1355,21 @@ namespace Orthanc
 
   static void ListModalities(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List DICOM modalities")
+        .SetDescription("List all the DICOM modalities that are known to Orthanc. This corresponds either to the content of the "
+                        "`DicomModalities` configuration option, or to the information stored in the database if "
+                        "`DicomModalitiesInDatabase` is `true`.")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual DICOM modalities", false)
+        .AddAnswerType(MimeType_Json, "JSON array containing either the identifiers of the modalities, or detailed information "
+                       "about the modalities (if `expand` argument is provided)");
+      return;
+    }
+
     OrthancConfiguration::ReaderLock lock;
 
     OrthancRestApi::SetOfStrings modalities;
@@ -1333,6 +1404,17 @@ namespace Orthanc
 
   static void ListModalityOperations(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List operations on modality")
+        .SetDescription("List the operations that are available for a DICOM modality.")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM modality of interest")
+        .AddAnswerType(MimeType_Json, "List of the available operations");
+      return;
+    }
+
     OrthancConfiguration::ReaderLock lock;
 
     OrthancRestApi::SetOfStrings modalities;
@@ -1374,6 +1456,17 @@ namespace Orthanc
 
   static void DeleteModality(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Delete DICOM modality")
+        .SetDescription("Delete one DICOM modality. This change is permanent iff. `DicomModalitiesInDatabase` is `true`, "
+                        "otherwise it is lost at the next restart of Orthanc.")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM modality of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     {
@@ -1389,6 +1482,31 @@ namespace Orthanc
 
   static void GetModalityConfiguration(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      Json::Value sample;
+      sample["AET"] = "ORTHANCTEST";
+      sample["AllowEcho"] = true;
+      sample["AllowEventReport"] = true;
+      sample["AllowFind"] = true;
+      sample["AllowGet"] = true;
+      sample["AllowMove"] = true;
+      sample["AllowNAction"] = true;
+      sample["AllowStore"] = true;
+      sample["AllowTranscoding"] = true;
+      sample["Host"] = "127.0.1.1";
+      sample["Manufacturer"] = "Generic";
+      sample["Port"] = 5001;
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get modality configuration")
+        .SetDescription("Get detailed information about the configuration of some DICOM modality.")
+        .SetUriArgument("id", "Orthanc identifier of the modality of interest")
+        .AddAnswerType(MimeType_Json, "Configuration of the modality")
+        .SetSample(sample);
+      return;
+    }
+
     const std::string modality = call.GetUriComponent("id", "");
 
     Json::Value answer;
@@ -1426,6 +1544,17 @@ namespace Orthanc
 
   static void DeletePeer(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Delete Orthanc peer")
+        .SetDescription("Delete one Orthanc peer. This change is permanent iff. `OrthancPeersInDatabase` is `true`, "
+                        "otherwise it is lost at the next restart of Orthanc.")
+        .SetUriArgument("id", "Orthanc identifier of the Orthanc peer of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     {
