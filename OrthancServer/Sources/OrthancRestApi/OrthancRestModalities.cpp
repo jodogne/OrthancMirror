@@ -110,6 +110,40 @@ namespace Orthanc
   }
   
 
+  static void DocumentModalityParametersShared(RestApiCall& call,
+                                               bool includePermissions)
+  {
+    call.GetDocumentation()
+      .SetRequestField("AET", RestApiCallDocumentation::Type_String,
+                       "AET of the remote DICOM modality", true)
+      .SetRequestField("Host", RestApiCallDocumentation::Type_String,
+                       "Host address of the remote DICOM modality (typically, an IP address)", true)
+      .SetRequestField("Port", RestApiCallDocumentation::Type_Number,
+                       "TCP port of the remote DICOM modality", true)
+      .SetRequestField("Manufacturer", RestApiCallDocumentation::Type_String, "Manufacturer of the remote DICOM "
+                       "modality (check configuration option `DicomModalities` for possible values", false);
+
+    if (includePermissions)
+    {
+      call.GetDocumentation()
+        .SetRequestField("AllowEcho", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-ECHO SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowStore", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-STORE SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowFind", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-FIND SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowMove", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-MOVE SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowGet", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-GET SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowStorageCommitment", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept storage commitment requests issued by the remote modality", false)
+        .SetRequestField("AllowTranscoding", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to allow transcoding for operations initiated by this modality (typically, C-GET)", false);
+    }
+  }
+
+
   /***************************************************************************
    * DICOM C-Echo SCU
    ***************************************************************************/
@@ -158,10 +192,34 @@ namespace Orthanc
       output.SignalError(HttpStatus_500_InternalServerError);
     }
   }
+
+
+  static void DocumentEchoShared(RestApiPostCall& call)
+  {
+    call.GetDocumentation()
+      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                       "Timeout for the C-ECHO command, in seconds", false)
+      .SetRequestField(KEY_CHECK_FIND, RestApiCallDocumentation::Type_Boolean,
+                       "Issue a dummy C-FIND command after the C-GET SCU, in order to check whether the remote "
+                       "modality knows about Orthanc. This field defaults to the value of the `DicomEchoChecksFind` "
+                       "configuration option. New in Orthanc 1.8.1.", false);
+  }
   
   
   static void DicomEcho(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentEchoShared(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-ECHO SCU")
+        .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-c-echo")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     Json::Value body = Json::objectValue;
 
     if (call.GetBodySize() == 0 /* allow empty body, was disallowed in Orthanc 1.7.0->1.8.1 */ ||
@@ -179,6 +237,18 @@ namespace Orthanc
 
   static void DicomEchoTool(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentEchoShared(call);
+      DocumentModalityParametersShared(call, false);
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Trigger C-ECHO SCU")
+        .SetDescription("Trigger C-ECHO SCU command against a DICOM modality described in the POST body, "
+                        "without having to register the modality in some `/modalities/{id}` (new in Orthanc 1.8.1)");
+      return;
+    }
+
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
@@ -286,6 +356,20 @@ namespace Orthanc
 
   static void DicomFindPatient(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Networking")
+        .SetSummary("C-FIND SCU for patients")
+        .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL, "
+                        "in order to find a patient. Deprecated in favor of `/modalities/{id}/query`.")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching patients")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
 
     DicomMap fields;
@@ -309,6 +393,20 @@ namespace Orthanc
 
   static void DicomFindStudy(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Networking")
+        .SetSummary("C-FIND SCU for studies")
+        .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL, "
+                        "in order to find a study. Deprecated in favor of `/modalities/{id}/query`.")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching studies")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
 
     DicomMap fields;
@@ -338,6 +436,20 @@ namespace Orthanc
 
   static void DicomFindSeries(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Networking")
+        .SetSummary("C-FIND SCU for series")
+        .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL, "
+                        "in order to find a series. Deprecated in favor of `/modalities/{id}/query`.")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching series")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
 
     DicomMap fields;
@@ -368,6 +480,20 @@ namespace Orthanc
 
   static void DicomFindInstance(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Networking")
+        .SetSummary("C-FIND SCU for instances")
+        .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL, "
+                        "in order to find an instance. Deprecated in favor of `/modalities/{id}/query`.")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching instances")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
 
     DicomMap fields;
@@ -412,6 +538,22 @@ namespace Orthanc
 
   static void DicomFind(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Networking")
+        .SetSummary("Hierarchical C-FIND SCU")
+        .SetDescription("Trigger a sequence of C-FIND SCU commands against the DICOM modality whose identifier is provided in URL, "
+                        "in order to discover a hierarchy of matching patients/studies/series. "
+                        "Deprecated in favor of `/modalities/{id}/query`.")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching patients, embedding the "
+                       "matching studies, then the matching series.")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     LOG(WARNING) << "This URI is deprecated: " << call.FlattenUri();
 
     DicomMap m;
@@ -511,6 +653,28 @@ namespace Orthanc
   
   static void DicomQuery(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-FIND SCU")
+        .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+        .SetUriArgument("id", "Identifier of the modality of interest")
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the DICOM tags", true)
+        .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
+                         "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
+        .SetRequestField(KEY_NORMALIZE, RestApiCallDocumentation::Type_Boolean,
+                         "Whether to normalize the query, i.e. whether to wipe out from the query, the DICOM tags "
+                         "that are not applicable for the query-retrieve level of interest", false)
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
+                        "Identifier of the query, to be used with `/queries/{id}`")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
+                        "Root path to the query in the REST API");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     Json::Value request;
 
@@ -791,7 +955,7 @@ namespace Orthanc
                        "AET of the target modality. By default, the AET of Orthanc is used, as defined in the "
                        "`DicomAet` configuration option.", false)
       .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                       "Timeout for the C-MOVE command, in seconds.", false)
+                       "Timeout for the C-MOVE command, in seconds", false)
       .AddRequestType(MimeType_PlainText, "AET of the target modality");
   }
   
@@ -996,7 +1160,7 @@ namespace Orthanc
         .SetUriArgument("id", "Identifier of the query of interest")
         .SetUriArgument("index", "Index of the answer")
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
-                         "Filter on the DICOM tags", false)
+                         "Associative array containing the filter on the values of the DICOM tags", true)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -1244,6 +1408,23 @@ namespace Orthanc
 
   static void DicomStoreStraight(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Straight C-STORE SCU")
+        .SetDescription("Synchronously send the DICOM instance in the POST body to the remote DICOM modality "
+                        "whose identifier is provided in URL, without having to first store it locally within Orthanc. "
+                        "This is an alternative to command-line tools such as `storescu` from DCMTK or dcm4che.")
+        .SetUriArgument("id", "Identifier of the modality of interest")
+        .AddRequestType(MimeType_Dicom, "DICOM instance to be sent")
+        .SetAnswerField(SOP_CLASS_UID, RestApiCallDocumentation::Type_String,
+                        "SOP class UID of the DICOM instance, if the C-STORE SCU has succeeded")
+        .SetAnswerField(SOP_INSTANCE_UID, RestApiCallDocumentation::Type_String,
+                        "SOP instance UID of the DICOM instance, if the C-STORE SCU has succeeded");
+      return;
+    }
+
     Json::Value body = Json::objectValue;  // No body
     DicomStoreUserConnection connection(GetAssociationParameters(call, body));
 
@@ -1495,7 +1676,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("Get peer configuration")
-        .SetDescription("Get detailed information about the configuration of some Orthanc peer.")
+        .SetDescription("Get detailed information about the configuration of some Orthanc peer")
         .SetUriArgument("id", "Identifier of the peer of interest")
         .AddAnswerType(MimeType_Json, "Configuration of the peer")
         .SetSample(sample);
@@ -1604,6 +1785,18 @@ namespace Orthanc
 
   static void UpdateModality(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentModalityParametersShared(call, true);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Update DICOM modality")
+        .SetDescription("Define a new DICOM modality, or update an existing one. This change is permanent iff. "
+                        "`DicomModalitiesInDatabase` is `true`, otherwise it is lost at the next restart of Orthanc.")
+        .SetUriArgument("id", "Identifier of the new/updated DICOM modality");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
@@ -1674,7 +1867,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("Get modality configuration")
-        .SetDescription("Get detailed information about the configuration of some DICOM modality.")
+        .SetDescription("Get detailed information about the configuration of some DICOM modality")
         .SetUriArgument("id", "Identifier of the modality of interest")
         .AddAnswerType(MimeType_Json, "Configuration of the modality")
         .SetSample(sample);
@@ -1696,6 +1889,31 @@ namespace Orthanc
 
   static void UpdatePeer(RestApiPutCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Update Orthanc peer")
+        .SetDescription("Define a new Orthanc peer, or update an existing one. This change is permanent iff. "
+                        "`OrthancPeersInDatabase` is `true`, otherwise it is lost at the next restart of Orthanc.")
+        .SetUriArgument("id", "Identifier of the new/updated Orthanc peer")
+        .SetRequestField("URL", RestApiCallDocumentation::Type_String,
+                         "URL of the root of the REST API of the remote Orthanc peer, for instance `http://localhost:8042/`", true)
+        .SetRequestField("Username", RestApiCallDocumentation::Type_String,
+                         "Username for the credentials", false)
+        .SetRequestField("Password", RestApiCallDocumentation::Type_String,
+                         "Password for the credentials", false)
+        .SetRequestField("CertificateFile", RestApiCallDocumentation::Type_String,
+                         "SSL certificate for the HTTPS connections", false)
+        .SetRequestField("CertificateKeyFile", RestApiCallDocumentation::Type_String,
+                         "Key file for the SSL certificate for the HTTPS connections", false)
+        .SetRequestField("CertificateKeyPassword", RestApiCallDocumentation::Type_String,
+                         "Key password for the SSL certificate for the HTTPS connections", false)
+        .SetRequestField("HttpHeaders", RestApiCallDocumentation::Type_JsonObject,
+                         "HTTP headers to be used for the connections to the remote peer", false);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
@@ -1744,6 +1962,19 @@ namespace Orthanc
 
   static void DicomFindWorklist(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("C-FIND SCU for worklist")
+        .SetDescription("Trigger C-FIND SCU command against the remote worklists of the DICOM modality "
+                        "whose identifier is provided in URL")
+        .SetUriArgument("id", "Identifier of the modality of interest")
+        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching worklists");
+      return;
+    }
+
     Json::Value json;
     if (call.ParseJsonRequest(json))
     {

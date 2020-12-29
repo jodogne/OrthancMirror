@@ -195,11 +195,13 @@ namespace Orthanc
             ok = (resource.Handle(call) &&
                   HandleCall(call, uriArgumentsNames));
           }
-          catch (OrthancException&)
+          catch (OrthancException& e)
           {
+            LOG(ERROR) << "Exception while documenting GET " << path << ": " << e.What();
           }
           catch (boost::bad_lexical_cast&)
           {
+            LOG(ERROR) << "Bad lexical cast while documenting GET " << path;
           }
 
           if (ok)
@@ -231,11 +233,13 @@ namespace Orthanc
             ok = (resource.Handle(call) &&
                   HandleCall(call, uriArgumentsNames));
           }
-          catch (OrthancException&)
+          catch (OrthancException& e)
           {
+            LOG(ERROR) << "Exception while documenting POST " << path << ": " << e.What();
           }
           catch (boost::bad_lexical_cast&)
           {
+            LOG(ERROR) << "Bad lexical cast while documenting POST " << path;
           }
 
           if (ok)
@@ -266,11 +270,13 @@ namespace Orthanc
             ok = (resource.Handle(call) &&
                   HandleCall(call, uriArgumentsNames));
           }
-          catch (OrthancException&)
+          catch (OrthancException& e)
           {
+            LOG(ERROR) << "Exception while documenting DELETE " << path << ": " << e.What();
           }
           catch (boost::bad_lexical_cast&)
           {
+            LOG(ERROR) << "Bad lexical cast while documenting DELETE " << path;
           }
 
           if (ok)
@@ -302,11 +308,13 @@ namespace Orthanc
             ok = (resource.Handle(call) &&
                   HandleCall(call, uriArgumentsNames));
           }
-          catch (OrthancException&)
+          catch (OrthancException& e)
           {
+            LOG(ERROR) << "Exception while documenting PUT " << path << ": " << e.What();
           }
           catch (boost::bad_lexical_cast&)
           {
+            LOG(ERROR) << "Bad lexical cast while documenting PUT " << path;
           }
 
           if (ok)

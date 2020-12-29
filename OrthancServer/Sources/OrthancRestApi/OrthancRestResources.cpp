@@ -408,6 +408,17 @@ namespace Orthanc
 
   static void ExportInstanceFile(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Write DICOM onto filesystem")
+        .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .AddRequestType(MimeType_PlainText, "Target path on the filesystem");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -2363,6 +2374,31 @@ namespace Orthanc
     static const char* const KEY_QUERY = "Query";
     static const char* const KEY_SINCE = "Since";
 
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Look for local resources")
+        .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
+                        "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-finds-within-orthanc")
+        .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
+                         "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
+        .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
+                         "Also retrieve the content of the matching resources, not only their Orthanc identifiers", false)
+        .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
+                         "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
+        .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
+                         "Limit the number of reported resources", false)
+        .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
+                         "Show only the resources since the provided index (in conjunction with `Limit`)", false)
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the DICOM tags", true)
+        .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
+                       "about the reported resources (if `Expand` argument is `true`)");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
@@ -2668,6 +2704,28 @@ namespace Orthanc
 
   static void OrderSlices(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetDeprecated()
+        .SetTag("Series")
+        .SetSummary("Order the slices")
+        .SetDescription("Sort the instances and frames (slices) of the DICOM series whose Orthanc identifier is provided in the URL. "
+                        "This URI is essentially used by the Orthanc Web viewer and by the Osimis Web viewer.")
+        .SetUriArgument("id", "Orthanc identifier of the series of interest")
+        .SetAnswerField("Dicom", RestApiCallDocumentation::Type_JsonListOfStrings,
+                        "Ordered list of paths to DICOM instances")
+        .SetAnswerField("Slices", RestApiCallDocumentation::Type_JsonListOfStrings,
+                        "Ordered list of paths to frames. It is recommended to use this field, as it is also valid "
+                        "in the case of multiframe images.")
+        .SetAnswerField("SlicesShort", RestApiCallDocumentation::Type_JsonListOfObjects,
+                        "Same information as the `Slices` field, but in a compact form")
+        .SetAnswerField("Type", RestApiCallDocumentation::Type_String,
+                        "Can be `Volume` (for 3D volumes) or `Sequence` (notably for cine images)")
+        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/series/1e2c125c-411b8e86-3f4fe68e-a7584dd3-c6da78f0/ordered-slices", 10);
+      return;
+    }
+
     const std::string id = call.GetUriComponent("id", "");
 
     ServerIndex& index = OrthancRestApi::GetIndex(call);
