@@ -2719,6 +2719,18 @@ namespace Orthanc
 
   static void InvalidateTags(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Invalidate DICOM-as-JSON summaries")
+        .SetDescription("Remove all the attachments of the type \"DICOM-as-JSON\" that are associated will all the "
+                        "DICOM instances stored in Orthanc. These summaries will be automatically re-created on the next access. "
+                        "This is notably useful after changes to the `Dictionary` configuration option. "
+                        "https://book.orthanc-server.com/faq/orthanc-storage.html#storage-area");
+      return;
+    }
+
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     
     // Loop over the instances, grouping them by parent studies so as
@@ -2746,6 +2758,21 @@ namespace Orthanc
   template <enum ResourceType type>
   static void ReconstructResource(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string resource = GetResourceTypeText(type, false /* plural */, false /* lower case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(type, true /* plural */, true /* upper case */))
+        .SetSummary("Reconstruct tags of " + resource)
+        .SetDescription("Reconstruct the main DICOM tags of the " + resource + " whose Orthanc identifier is provided "
+                        "in the URL. This is useful if child studies/series/instances have inconsistent values for "
+                        "higher-level tags, in order to force Orthanc to use the value from the resource of interest. "
+                        "Beware that this is a time-consuming operation, as all the children DICOM instances will be "
+                        "parsed again, and the Orthanc index will be updated accordingly.")
+        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
@@ -2754,6 +2781,18 @@ namespace Orthanc
 
   static void ReconstructAllResources(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Reconstruct all the index")
+        .SetDescription("Reconstruct the index of all the tags of all the DICOM instances that are stored in Orthanc. "
+                        "This is notably useful after the deletion of resources whose children resources have inconsistent "
+                        "values with their sibling resources. Beware that this is a highly time-consuming operation, "
+                        "as all the DICOM instances will be parsed again, and as all the Orthanc index will be regenerated.");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::list<std::string> studies;
