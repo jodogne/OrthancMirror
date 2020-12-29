@@ -28,6 +28,7 @@
 #include "RestApiOutput.h"
 
 #include <boost/noncopyable.hpp>
+#include <set>
 
 namespace Orthanc
 {
@@ -91,6 +92,8 @@ namespace Orthanc
     {
       return trailing_;
     }
+
+    void GetUriComponentsNames(std::set<std::string>& components) const;
 
     bool HasUriComponent(const std::string& name) const
     {

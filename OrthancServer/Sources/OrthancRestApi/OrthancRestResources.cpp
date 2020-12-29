@@ -1270,6 +1270,7 @@ namespace Orthanc
                         "bypassing image decoding. This is notably useful to access the source files "
                         "in compressed transfer syntaxes." +
                         std::string(GzipCompression ? " The image is compressed using gzip" : ""))
+        .SetUriArgument("id", "Orthanc identifier of the instance of interest")
         .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
 
       if (GzipCompression)
@@ -2917,6 +2918,7 @@ namespace Orthanc
     Register("/instances/{id}/simplified-tags", GetInstanceTags<DicomToJsonFormat_Human>);
     Register("/instances/{id}/frames", ListFrames);
 
+    Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
     Register("/instances/{id}/frames/{frame}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/frames/{frame}/rendered", GetRenderedFrame);
     Register("/instances/{id}/frames/{frame}/image-uint8", GetImage<ImageExtractionMode_UInt8>);

@@ -271,7 +271,6 @@ namespace Orthanc
     Register("/tools", RestApi::AutoListChildren);
     Register("/tools/reset", ResetOrthanc);
     Register("/tools/shutdown", ShutdownOrthanc);
-    Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
   }
 
 

@@ -874,8 +874,8 @@ namespace Orthanc
   {    
     call.GetDocumentation()
       .SetTag("Other")
-      .SetSummary("List of operations")
-      .SetDescription("List the available operations under URI: " + call.FlattenUri())
+      .SetSummary("List operations")
+      .SetDescription("List the available operations under URI `" + call.FlattenUri() + "`")
       .AddAnswerType(MimeType_Json, "List of the available operations");
 
     RestApi& context = call.GetContext();
@@ -886,12 +886,19 @@ namespace Orthanc
       if (call.IsDocumentation())
       {
         call.GetDocumentation().SetSample(directory);
+
+        std::set<std::string> c;
+        call.GetUriComponentsNames(c);
+        for (std::set<std::string>::const_iterator it = c.begin(); it != c.end(); ++it)
+        {
+          call.GetDocumentation().SetUriArgument(*it, RestApiCallDocumentation::Type_String, "");
+        }    
       }
       else
       {
         call.GetOutput().AnswerJson(directory);
       }
-    }    
+    }
   }
 
 
