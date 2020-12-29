@@ -1378,6 +1378,7 @@ namespace Orthanc
         .SetDescription("Start a C-STORE SCU command as a job, in order to send DICOM resources stored locally "
                         "to some remote DICOM modality whose identifier is provided in the URL: "
                         "https://book.orthanc-server.com/users/rest.html#rest-store-scu")
+        .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
@@ -1387,8 +1388,8 @@ namespace Orthanc
         .SetRequestField(KEY_MOVE_ORIGINATOR_ID, RestApiCallDocumentation::Type_Number,
                          "Move originator ID that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_STORAGE_COMMITMENT, RestApiCallDocumentation::Type_Boolean,
-                         "Whether to use DICOM storage commitment to validate the success of the C-STORE: "
-                         "https://book.orthanc-server.com/users/storage-commitment.html", false)
+                         "Whether to chain C-STORE with DICOM storage commitment to validate the success of the transmission: "
+                         "https://book.orthanc-server.com/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-STORE command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
@@ -1476,6 +1477,30 @@ namespace Orthanc
   
   static void DicomMove(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-MOVE SCU")
+        .SetDescription("Start a C-MOVE SCU command as a job, in order to drive the execution of a sequence of "
+                        "C-STORE commands by some remote DICOM modality whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-c-move")
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
+        .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
+                         "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
+        .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
+        .SetRequestField(KEY_TARGET_AET, RestApiCallDocumentation::Type_String,
+                         "Target AET that will be used by the remote DICOM modality as a target for its C-STORE SCU "
+                         "commands, defaults to `DicomAet` configuration option in order to do a simple query/retrieve", false)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-STORE command, in seconds", false)
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     const ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
@@ -1609,6 +1634,28 @@ namespace Orthanc
 
   static void PeerStore(RestApiPostCall& call)
   {
+    static const char* KEY_TRANSCODE = "Transcode";
+    static const char* KEY_COMPRESS = "Compress";
+
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Send to Orthanc peer")
+        .SetDescription("Send DICOM resources stored locally to some remote Orthanc peer whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/rest.html#sending-one-resource")
+        .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
+        .SetRequestField(KEY_TRANSCODE, RestApiCallDocumentation::Type_String,
+                         "Transcode to the provided DICOM transfer syntax before the actual sending", false)
+        .SetRequestField(KEY_COMPRESS, RestApiCallDocumentation::Type_Boolean,
+                         "Whether to compress the DICOM instances using gzip before the actual sending", false)
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string remote = call.GetUriComponent("id", "");
@@ -1618,18 +1665,16 @@ namespace Orthanc
 
     GetInstancesToExport(request, *job, remote, call);
 
-    static const char* TRANSCODE = "Transcode";
     if (request.type() == Json::objectValue &&
-        request.isMember(TRANSCODE))
+        request.isMember(KEY_TRANSCODE))
     {
-      job->SetTranscode(SerializationToolbox::ReadString(request, TRANSCODE));
+      job->SetTranscode(SerializationToolbox::ReadString(request, KEY_TRANSCODE));
     }
 
-    static const char* COMPRESS = "Compress";
     if (request.type() == Json::objectValue &&
-        request.isMember(COMPRESS))
+        request.isMember(KEY_COMPRESS))
     {
-      job->SetCompress(SerializationToolbox::ReadBoolean(request, COMPRESS));
+      job->SetCompress(SerializationToolbox::ReadBoolean(request, KEY_COMPRESS));
     }
     
     {
@@ -2037,6 +2082,27 @@ namespace Orthanc
     static const char* const ORTHANC_RESOURCES = "Resources";
     static const char* const DICOM_INSTANCES = "DicomInstances";
 
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger storage commitment request")
+        .SetDescription("Trigger a storage commitment request to some remote DICOM modality whose identifier is provided "
+                        "in the URL: https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+        .SetRequestField(ORTHANC_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the DICOM resources to be checked by storage commitment", true)
+        .SetRequestField(DICOM_INSTANCES, RestApiCallDocumentation::Type_JsonListOfObjects,
+                         "List of DICOM resources that are not necessarily stored within Orthanc, but that must "
+                         "be checked by storage commitment. This is a list of JSON objects that must contain the "
+                         "`SOPClassUID` and `SOPInstanceUID` fields.", true)
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
+                        "Identifier of the storage commitment report, to be used with `/storage-commitment/{id}`")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
+                        "Root path to the storage commitment report in the REST API")
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value json;
@@ -2202,6 +2268,27 @@ namespace Orthanc
 
   static void GetStorageCommitmentReport(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get storage commitment report")
+        .SetDescription("Get the storage commitment report whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+        .SetAnswerField("Status", RestApiCallDocumentation::Type_String,
+                        "Can be `Success`, `Failure`, or `Pending` (the latter means that no report has been received yet)")
+        .SetAnswerField("RemoteAET", RestApiCallDocumentation::Type_String,
+                        "AET of the remote DICOM modality")
+        .SetAnswerField("Failures", RestApiCallDocumentation::Type_JsonListOfObjects,
+                        "List of failures that have been encountered during the storage commitment request")
+        .SetAnswerField("Success", RestApiCallDocumentation::Type_JsonListOfObjects,
+                        "List of DICOM instances that have been acknowledged by the remote modality, "
+                        "each one is reported as a JSON object containing the `SOPClassUID` and "
+                        "`SOPInstanceUID` DICOM tags")
+        .SetUriArgument("id", "Identifier of the storage commitment report");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string& transactionUid = call.GetUriComponent("id", "");
@@ -2227,6 +2314,19 @@ namespace Orthanc
 
   static void RemoveAfterStorageCommitment(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Remove after storage commitment")
+        .SetDescription("Remove out of Orthanc, the DICOM instances that have been reported to have been properly "
+                        "received the storage commitment report whose identifier is provided in the URL. This is "
+                        "only possible if the `Status` of the storage commitment report is `Success`. "
+                        "https://book.orthanc-server.com/users/storage-commitment.html#removing-the-instances")
+        .SetUriArgument("id", "Identifier of the storage commitment report");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string& transactionUid = call.GetUriComponent("id", "");
