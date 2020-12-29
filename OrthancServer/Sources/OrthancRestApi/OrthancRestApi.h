@@ -140,5 +140,9 @@ namespace Orthanc
                            SetOfCommandsJob* job,
                            bool isDefaultSynchronous,
                            const Json::Value& body) const;
+
+    static void DocumentSubmitGenericJob(RestApiPostCall& call);
+
+    static void DocumentSubmitCommandsJob(RestApiPostCall& call);
   };
 }

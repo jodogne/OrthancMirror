@@ -568,6 +568,19 @@ namespace Orthanc
 
   static void ListQueries(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List query/retrieve operations")
+        .SetDescription("List the identifiers of all the query/retrieve operations on DICOM modalities, "
+                        "as initiated by calls to `/modalities/{id}/query`. The length of this list is bounded "
+                        "by the `QueryRetrieveSize` configuration option of Orthanc. "
+                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the identifiers");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::list<std::string> queries;
@@ -629,6 +642,23 @@ namespace Orthanc
 
   static void ListQueryAnswers(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List answers to a query")
+        .SetDescription("List the indices of all the available answers resulting from a query/retrieve operation "
+                        "on some DICOM modality, whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual answers", false)        
+        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
+                            "If present and if `expand` is present, format the tags of the answers in human-readable format", false)
+        .AddAnswerType(MimeType_Json, "JSON array containing the indices of the answers, or detailed information "
+                       "about the reported answers (if `expand` argument is provided)");
+      return;
+    }
+
     const bool expand = call.HasArgument("expand");
     const bool simplify = call.HasArgument("simplify");
     
@@ -661,6 +691,21 @@ namespace Orthanc
 
   static void GetQueryOneAnswer(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get one answer")
+        .SetDescription("Get the content (DICOM tags) of one answer associated with the "
+                        "query/retrieve operation whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .SetUriArgument("index", "Index of the answer")
+        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
+                            "If present, format the tags of the answer in human-readable format", false)
+        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags of the answer");
+      return;
+    }
+
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
 
     QueryAccessor query(call);
@@ -734,10 +779,37 @@ namespace Orthanc
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
   }
+
+
+  static void DocumentRetrieveShared(RestApiPostCall& call)
+  {
+    OrthancRestApi::DocumentSubmitCommandsJob(call);
+    call.GetDocumentation()
+      .SetTag("Networking")
+      .SetUriArgument("id", "Identifier of the query of interest")
+      .SetRequestField(KEY_TARGET_AET, RestApiCallDocumentation::Type_String,
+                       "AET of the target modality. By default, the AET of Orthanc is used, as defined in the "
+                       "`DicomAet` configuration option.", false)
+      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                       "Timeout for the C-MOVE command, in seconds.", false)
+      .AddRequestType(MimeType_PlainText, "AET of the target modality");
+  }
   
 
   static void RetrieveOneAnswer(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentRetrieveShared(call);
+      call.GetDocumentation()
+        .SetSummary("Retrieve one answer")
+        .SetDescription("Start a C-MOVE command as a job, in order to retrieve one answer associated with the "
+                        "query/retrieve operation whose identifiers are provided in the URL: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move")
+        .SetUriArgument("index", "Index of the answer");
+      return;
+    }
+
     size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
     SubmitRetrieveJob(call, false, index);
   }
@@ -745,12 +817,37 @@ namespace Orthanc
 
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentRetrieveShared(call);
+      call.GetDocumentation()
+        .SetSummary("Retrieve all answers")
+        .SetDescription("Start a C-MOVE command as a job, in order to retrieve all the answers associated with the "
+                        "query/retrieve operation whose identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move");
+      return;
+    }
+
     SubmitRetrieveJob(call, true, 0);
   }
 
 
   static void GetQueryArguments(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get original query arguments")
+        .SetDescription("Get the original DICOM filter associated with the query/retrieve operation "
+                        "whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
+                            "If present, format the tags of the DICOM filter in human-readable format", false)
+        .AddAnswerType(MimeType_Json, "Content of the original query");
+      return;
+    }
+
     QueryAccessor query(call);
     AnswerDicomMap(call, query.GetHandler().GetQuery(), call.HasArgument("simplify"));
   }
@@ -758,6 +855,18 @@ namespace Orthanc
 
   static void GetQueryLevel(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get level of original query")
+        .SetDescription("Get the query level (value of the `QueryRetrieveLevel` tag) of the query/retrieve operation "
+                        "whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .AddAnswerType(MimeType_PlainText, "The level");
+      return;
+    }
+
     QueryAccessor query(call);
     call.GetOutput().AnswerBuffer(EnumerationToString(query.GetHandler().GetLevel()), MimeType_PlainText);
   }
@@ -765,6 +874,18 @@ namespace Orthanc
 
   static void GetQueryModality(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Get modality of original query")
+        .SetDescription("Get the identifier of the DICOM modality that was targeted by the query/retrieve operation "
+                        "whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .AddAnswerType(MimeType_PlainText, "The identifier of the DICOM modality");
+      return;
+    }
+
     QueryAccessor query(call);
     call.GetOutput().AnswerBuffer(query.GetHandler().GetModalitySymbolicName(), MimeType_PlainText);
   }
@@ -772,6 +893,16 @@ namespace Orthanc
 
   static void DeleteQuery(RestApiDeleteCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Delete a query")
+        .SetDescription("Delete the query/retrieve operation whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
     context.GetQueryRetrieveArchive().Remove(call.GetUriComponent("id", ""));
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
@@ -780,6 +911,17 @@ namespace Orthanc
 
   static void ListQueryOperations(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List operations on a query")
+        .SetDescription("List the available operations for the query/retrieve operation whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the list of operations");
+      return;
+    }
+
     // Ensure that the query of interest does exist
     QueryAccessor query(call);  
 
@@ -789,6 +931,19 @@ namespace Orthanc
 
   static void ListQueryAnswerOperations(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("List operations on an answer")
+        .SetDescription("List the available operations on an answer associated with the "
+                        "query/retrieve operation whose identifier is provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .SetUriArgument("index", "Index of the answer")
+        .AddAnswerType(MimeType_Json, "JSON array containing the list of operations");
+      return;
+    }
+
     // Ensure that the query of interest does exist
     QueryAccessor query(call);
 
@@ -830,6 +985,25 @@ namespace Orthanc
            CHILDREN_LEVEL == ResourceType_Series ||
            CHILDREN_LEVEL == ResourceType_Instance);
     
+    if (call.IsDocumentation())
+    {
+      const std::string resources = GetResourceTypeText(CHILDREN_LEVEL, true /* plural */, false /* lower case */);      
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Query the child " + resources + " of an answer")
+        .SetDescription("Issue a second DICOM C-FIND operation, in order to query the child " + resources +
+                        " associated with one answer to some query/retrieve operation whose identifiers are provided in the URL")
+        .SetUriArgument("id", "Identifier of the query of interest")
+        .SetUriArgument("index", "Index of the answer")
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Filter on the DICOM tags", false)
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
+                        "Identifier of the query, to be used with `/queries/{id}`")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
+                        "Root path to the query in the REST API");
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::unique_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
@@ -1205,7 +1379,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("List operations on peer")
         .SetDescription("List the operations that are available for an Orthanc peer.")
-        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .SetUriArgument("id", "Identifier of the peer of interest")
         .AddAnswerType(MimeType_Json, "List of the available operations");
       return;
     }
@@ -1275,7 +1449,7 @@ namespace Orthanc
         .SetSummary("Get peer system information")
         .SetDescription("Get system information about some Orthanc peer. This corresponds to doing a `GET` request "
                         "against the `/system` URI of the remote peer. This route can be used to test connectivity.")
-        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .SetUriArgument("id", "Identifier of the peer of interest")
         .AddAnswerType(MimeType_Json, "System information about the peer");
       return;
     }
@@ -1322,7 +1496,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Get peer configuration")
         .SetDescription("Get detailed information about the configuration of some Orthanc peer.")
-        .SetUriArgument("id", "Orthanc identifier of the peer of interest")
+        .SetUriArgument("id", "Identifier of the peer of interest")
         .AddAnswerType(MimeType_Json, "Configuration of the peer")
         .SetSample(sample);
       return;
@@ -1410,7 +1584,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("List operations on modality")
         .SetDescription("List the operations that are available for a DICOM modality.")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM modality of interest")
+        .SetUriArgument("id", "Identifier of the DICOM modality of interest")
         .AddAnswerType(MimeType_Json, "List of the available operations");
       return;
     }
@@ -1463,7 +1637,7 @@ namespace Orthanc
         .SetSummary("Delete DICOM modality")
         .SetDescription("Delete one DICOM modality. This change is permanent iff. `DicomModalitiesInDatabase` is `true`, "
                         "otherwise it is lost at the next restart of Orthanc.")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM modality of interest");
+        .SetUriArgument("id", "Identifier of the DICOM modality of interest");
       return;
     }
 
@@ -1501,7 +1675,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Get modality configuration")
         .SetDescription("Get detailed information about the configuration of some DICOM modality.")
-        .SetUriArgument("id", "Orthanc identifier of the modality of interest")
+        .SetUriArgument("id", "Identifier of the modality of interest")
         .AddAnswerType(MimeType_Json, "Configuration of the modality")
         .SetSample(sample);
       return;
@@ -1551,7 +1725,7 @@ namespace Orthanc
         .SetSummary("Delete Orthanc peer")
         .SetDescription("Delete one Orthanc peer. This change is permanent iff. `OrthancPeersInDatabase` is `true`, "
                         "otherwise it is lost at the next restart of Orthanc.")
-        .SetUriArgument("id", "Orthanc identifier of the Orthanc peer of interest");
+        .SetUriArgument("id", "Identifier of the Orthanc peer of interest");
       return;
     }
 
