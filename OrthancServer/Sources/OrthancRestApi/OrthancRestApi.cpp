@@ -430,4 +430,30 @@ namespace Orthanc
 
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
+
+  
+  void OrthancRestApi::DocumentSubmitGenericJob(RestApiPostCall& call)
+  {
+    call.GetDocumentation()
+      .SetRequestField(KEY_SYNCHRONOUS, RestApiCallDocumentation::Type_Boolean,
+                       "If `true`, run the job in synchronous mode, which means that the HTTP answer will directly "
+                       "contain the result of the job. This is the default, easy behavior, but it is *not* desirable for "
+                       "long jobs, as it might lead to network timeouts.", false)
+      .SetRequestField(KEY_ASYNCHRONOUS, RestApiCallDocumentation::Type_Boolean,
+                       "If `true`, run the job in asynchronous mode, which means that the REST API call will immediately "
+                       "return, reporting the identifier of a job. Prefer this flavor wherever possible.", false)
+      .SetRequestField(KEY_PRIORITY, RestApiCallDocumentation::Type_Number,
+                       "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
+      .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
+      .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
+  }
+    
+
+  void OrthancRestApi::DocumentSubmitCommandsJob(RestApiPostCall& call)
+  {
+    DocumentSubmitGenericJob(call);
+    call.GetDocumentation()
+      .SetRequestField(KEY_PERMISSIVE, RestApiCallDocumentation::Type_Boolean,
+                       "If `true`, ignore errors during the individual steps of the job.", false);
+  }
 }

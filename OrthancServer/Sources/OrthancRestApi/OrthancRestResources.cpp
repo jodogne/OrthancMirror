@@ -2221,6 +2221,39 @@ namespace Orthanc
             enum DicomModule module>
   static void GetModule(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
+      std::string m;
+      switch (module)
+      {
+        case DicomModule_Patient:
+          m = "patient";
+          break;
+        case DicomModule_Study:
+          m = "study";
+          break;
+        case DicomModule_Series:
+          m = "series";
+          break;
+        case DicomModule_Instance:
+          m = "instance";
+          break;
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Get " + m + " module" + std::string(resource == m ? "" : " of " + resource))
+        .SetDescription("Get the " + m + " module of the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+        .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
+        .SetHttpGetSample(GetDocumentationSampleResource(resourceType) + "/" + (*call.GetFullUri().rbegin()), true);
+      return;
+    }
+
     GetModuleInternal(call, resourceType, module);
   }
 
