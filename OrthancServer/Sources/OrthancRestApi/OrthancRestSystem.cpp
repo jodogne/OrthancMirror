@@ -672,7 +672,8 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Get usage metrics")
-        .SetDescription("Get usage metrics of Orthanc in the Prometheus file format (OpenMetrics)")
+        .SetDescription("Get usage metrics of Orthanc in the Prometheus file format (OpenMetrics): "
+                        "https://book.orthanc-server.com/users/advanced-rest.html#instrumentation-with-prometheus")
         .SetHttpGetSample("https://demo.orthanc-server.com/tools/metrics-prometheus", false);
       return;
     }

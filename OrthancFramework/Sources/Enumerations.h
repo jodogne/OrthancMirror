@@ -596,7 +596,9 @@ namespace Orthanc
     // Some predefined combinations
     DicomFromJsonFlags_None = 0
   };
-  
+
+  // If adding a new DICOM version below, update the
+  // "DeidentifyLogsDicomVersion" configuration option
   enum DicomVersion
   {
     DicomVersion_2008,

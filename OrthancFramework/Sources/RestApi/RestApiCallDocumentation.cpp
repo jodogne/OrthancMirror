@@ -179,8 +179,6 @@ namespace Orthanc
   void RestApiCallDocumentation::SetHttpGetSample(const std::string& url,
                                                   bool isJson)
   {
-    //return;  // TODO -REMOVE
-    
 #if ORTHANC_ENABLE_CURL == 1
     HttpClient client;
     client.SetUrl(url);
@@ -480,14 +478,7 @@ namespace Orthanc
       {
         if (uriArguments_.find(*it) == uriArguments_.end())
         {
-          LOG(WARNING) << "Adding missing expected URI argument: " << *it;
-          Json::Value p = Json::objectValue;
-          p["name"] = *it;
-          p["in"] = "path";
-          p["required"] = true;
-          p["schema"]["type"] = "string";
-          p["description"] = "";
-          parameters.append(p);
+          throw OrthancException(ErrorCode_InternalError, "Missing URI argument: " + *it);
         }
       }
 

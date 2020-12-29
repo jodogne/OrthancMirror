@@ -58,6 +58,54 @@ namespace Orthanc
   }
 
 
+  static void DocumentModifyOptions(RestApiPostCall& call)
+  {
+    // Check out "DicomModification::ParseModifyRequest()"
+    call.GetDocumentation()
+      .SetRequestField("Transcode", RestApiCallDocumentation::Type_String,
+                       "Transcode the DICOM instances to the provided DICOM transfer syntax: "
+                       "https://book.orthanc-server.com/faq/transcoding.html", false)
+      .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+                       "Allow the modification of tags related to DICOM identifiers, at the risk of "
+                       "breaking the DICOM model of the real world", false)
+      .SetRequestField("RemovePrivateTags", RestApiCallDocumentation::Type_Boolean,
+                       "Remove the private tags from the DICOM instances (defaults to `false`)", false)
+      .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+                       "Associative array to change the value of some DICOM tags in the DICOM instances", false)
+      .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+                       "List of tags that must be removed from the DICOM instances", false)
+      .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
+                       "Keep the original value of the specified tags, to be chosen among the `StudyInstanceUID`, "
+                       "`SeriesInstanceUID` and `SOPInstanceUID` tags. Avoid this feature as much as possible, "
+                       "as this breaks the DICOM model of the real world.", false)
+      .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+                       "The private creator to be used for private tags in `Replace`", false);
+  }
+
+
+  static void DocumentAnonymizationOptions(RestApiPostCall& call)
+  {
+    // Check out "DicomModification::ParseAnonymizationRequest()"
+    call.GetDocumentation()
+      .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+                       "Allow the modification of tags related to DICOM identifiers, at the risk of "
+                       "breaking the DICOM model of the real world", false)
+      .SetRequestField("DicomVersion", RestApiCallDocumentation::Type_String,
+                       "Version of the DICOM standard to be used for anonymization. Check out "
+                       "configuration option `DeidentifyLogsDicomVersion` for possible values.", false)
+      .SetRequestField("KeepPrivateTags", RestApiCallDocumentation::Type_Boolean,
+                       "Keep the private tags from the DICOM instances (defaults to `false`)", false)
+      .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+                       "Associative array to change the value of some DICOM tags in the DICOM instances", false)
+      .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+                       "List of additional tags to be removed from the DICOM instances", false)
+      .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
+                       "List of DICOM tags whose value must not be destroyed by the anonymization", false)
+      .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+                       "The private creator to be used for private tags in `Replace`", false);
+  }
+
+
   static void ParseModifyRequest(Json::Value& request,
                                  DicomModification& target,
                                  const RestApiPostCall& call)
@@ -159,6 +207,19 @@ namespace Orthanc
 
   static void ModifyInstance(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentModifyOptions(call);
+      call.GetDocumentation()
+        .SetTag("Instance")
+        .SetSummary("Modify instance")
+        .SetDescription("Download a modified version of the DICOM instance whose Orthanc identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-a-single-instance")
+        .SetUriArgument("id", "Orthanc identifier of the instance of interest")
+        .AddAnswerType(MimeType_Dicom, "The modified DICOM instance");
+      return;
+    }
+
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
@@ -207,6 +268,19 @@ namespace Orthanc
 
   static void AnonymizeInstance(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      DocumentAnonymizationOptions(call);
+      call.GetDocumentation()
+        .SetTag("Instance")
+        .SetSummary("Anonymize instance")
+        .SetDescription("Download an anonymized version of the DICOM instance whose Orthanc identifier is provided in the URL: "
+                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-a-single-instance")
+        .SetUriArgument("id", "Orthanc identifier of the instance of interest")
+        .AddAnswerType(MimeType_Dicom, "The anonymized DICOM instance");
+      return;
+    }
+
     DicomModification modification;
     modification.SetAllowManualIdentifiers(true);
 
@@ -260,6 +334,22 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void ModifyResource(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      DocumentModifyOptions(call);
+      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);      
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Modify " + r)
+        .SetDescription("Start a job that will modify all the DICOM instances within the " + r +
+                        " whose identifier is provided in the URL. The modified DICOM instances will be "
+                        "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
+                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-studies-or-series")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
+      return;
+    }
+    
     std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
@@ -275,6 +365,22 @@ namespace Orthanc
   template <enum ResourceType resourceType>
   static void AnonymizeResource(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      DocumentAnonymizationOptions(call);
+      const std::string r = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);      
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Anonymize " + r)
+        .SetDescription("Start a job that will anonymize all the DICOM instances within the " + r +
+                        " whose identifier is provided in the URL. The modified DICOM instances will be "
+                        "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
+                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-patients-studies-or-series")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
+      return;
+    }
+
     std::unique_ptr<DicomModification> modification(new DicomModification);
 
     Json::Value body;
@@ -754,6 +860,32 @@ namespace Orthanc
 
   static void SplitStudy(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Studies")
+        .SetSummary("Split study")
+        .SetDescription("Start a new job so as to split the DICOM study whose Orthanc identifier is provided in the URL, "
+                        "by taking some of its children series out of it and putting them into a brand new study (this "
+                        "new study is created by setting the `StudyInstanceUID` tag to a random identifier): "
+                        "https://book.orthanc-server.com/users/anonymization.html#splitting")
+        .SetUriArgument("id", "Orthanc identifier of the study of interest")
+        .SetRequestField("Series", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of series to be separated from the parent study (mandatory option). "
+                         "These series must all be children of the same source study, that is specified in the URI.", true)
+        .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array to change the value of some DICOM tags in the new study. "
+                         "These tags must be part of the \"Patient Module Attributes\" or the \"General Study "
+                         "Module Attributes\", as specified by the DICOM 2011 standard in Tables C.7-1 and C.7-3.", false)
+        .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of tags that must be removed in the new study (from the same modules as in the `Replace` option)", false)
+        .SetRequestField("KeepSource", RestApiCallDocumentation::Type_Boolean,
+                         "If set to `true`, instructs Orthanc to keep a copy of the original series in the source study. "
+                         "By default, the original series are deleted from Orthanc.", false);
+      return;
+    }
+    
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
@@ -833,6 +965,24 @@ namespace Orthanc
 
   static void MergeStudy(RestApiPostCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Studies")
+        .SetSummary("Merge study")
+        .SetDescription("Start a new job so as to move some DICOM series into the DICOM study whose Orthanc identifier "
+                        "is provided in the URL: https://book.orthanc-server.com/users/anonymization.html#merging")
+        .SetUriArgument("id", "Orthanc identifier of the study of interest")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of DICOM resources (patients, studies, series, and/or instances) to be merged "
+                         "into the study of interest (mandatory option)", true)
+        .SetRequestField("KeepSource", RestApiCallDocumentation::Type_Boolean,
+                         "If set to `true`, instructs Orthanc to keep a copy of the original resources in their source study. "
+                         "By default, the original resources are deleted from Orthanc.", false);
+      return;
+    }
+
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     Json::Value request;
