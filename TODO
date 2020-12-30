@@ -17,14 +17,6 @@ General
 * Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
 
 
-=============
-Documentation
-=============
-
-* Expand documentation of REST API with Swagger/OpenAPI:
-  https://hg.orthanc-server.com/orthanc-book/file/default/OpenAPI
-
-
 ========
 REST API
 ========
