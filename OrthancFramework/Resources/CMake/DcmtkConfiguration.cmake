@@ -131,6 +131,21 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     endif()
   endif()
 
+
+  # New in Orthanc 1.9.0 for DICOM TLS
+  if (ENABLE_SSL)
+    # Must be the last command to add files to ${DCMTK_SOURCES},
+    # because of "PROPERTIES COMPILE_DEFINITIONS"
+    AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmtls/libsrc DCMTK_SOURCES)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmtls/include
+      )
+    # The function "SSL_CTX_get0_param()" is available on OpenSSL
+    # 1.1.x that is used for static builds => TODO autodetect
+    set_source_files_properties(${DCMTK_SOURCES}
+      PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL;HAVE_SSL_CTX_GET0_PARAM")
+  endif()
+  
   
   # This fixes crashes related to the destruction of the DCMTK OFLogger
   # http://support.dcmtk.org/docs-snapshot/file_macros.html
