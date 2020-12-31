@@ -140,10 +140,27 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     include_directories(
       ${DCMTK_SOURCES_DIR}/dcmtls/include
       )
-    # The function "SSL_CTX_get0_param()" is available on OpenSSL
-    # 1.1.x that is used for static builds => TODO autodetect
-    set_source_files_properties(${DCMTK_SOURCES}
-      PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL;HAVE_SSL_CTX_GET0_PARAM")
+
+    if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
+      # The function "SSL_CTX_get0_param()" is available on both
+      # OpenSSL 1.0.x and 1.1.x that are used for static builds
+      set(HAVE_SSL_CTX_GET0_PARAM ON)
+    else()
+      # The call below requires "OpenSslConfiguration.cmake" to have
+      # been included beforehand (which is automatically done if using
+      # "OrthancFrameworkConfiguration.cmake")
+      CHECK_LIBRARY_EXISTS(ssl "SSL_CTX_get0_param" "" HAVE_SSL_CTX_GET0_PARAM)
+    endif()
+
+    if (HAVE_SSL_CTX_GET0_PARAM)
+      message("Have SSL_CTX_get0_param(): yes")
+      set_source_files_properties(${DCMTK_SOURCES}
+        PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL;HAVE_SSL_CTX_GET0_PARAM")
+    else()
+      message("Have SSL_CTX_get0_param(): no")
+      set_source_files_properties(${DCMTK_SOURCES}
+        PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL")
+    endif()      
   endif()
   
   

@@ -494,6 +494,8 @@ if (ENABLE_DCMTK)
     message(FATAL_ERROR "DICOM module must be enabled if enabling DCMTK support")
   endif()
 
+  # WARNING - MUST be after "OpenSslConfiguration.cmake", otherwise
+  # DICOM TLS will not be corrected detected
   include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfiguration.cmake)
 
   add_definitions(-DORTHANC_ENABLE_DCMTK=1)
