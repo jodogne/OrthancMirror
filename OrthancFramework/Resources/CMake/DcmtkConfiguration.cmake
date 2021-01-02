@@ -133,7 +133,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
 
 
   # New in Orthanc 1.9.0 for DICOM TLS
-  if (ENABLE_SSL)
+  if (ENABLE_DCMTK_NETWORKING AND ENABLE_SSL)
     # Must be the last command to add files to ${DCMTK_SOURCES},
     # because of "PROPERTIES COMPILE_DEFINITIONS"
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmtls/libsrc DCMTK_SOURCES)
