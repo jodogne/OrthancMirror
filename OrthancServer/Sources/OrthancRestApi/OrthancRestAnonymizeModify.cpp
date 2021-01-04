@@ -211,7 +211,7 @@ namespace Orthanc
     {
       DocumentModifyOptions(call);
       call.GetDocumentation()
-        .SetTag("Instance")
+        .SetTag("Instances")
         .SetSummary("Modify instance")
         .SetDescription("Download a modified version of the DICOM instance whose Orthanc identifier is provided in the URL: "
                         "https://book.orthanc-server.com/users/anonymization.html#modification-of-a-single-instance")
@@ -272,7 +272,7 @@ namespace Orthanc
     {
       DocumentAnonymizationOptions(call);
       call.GetDocumentation()
-        .SetTag("Instance")
+        .SetTag("Instances")
         .SetSummary("Anonymize instance")
         .SetDescription("Download an anonymized version of the DICOM instance whose Orthanc identifier is provided in the URL: "
                         "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-a-single-instance")
