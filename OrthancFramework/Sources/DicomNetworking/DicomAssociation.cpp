@@ -253,8 +253,11 @@ namespace Orthanc
 
     assert(net_ == NULL &&
            params_ == NULL &&
-           assoc_ == NULL &&
-           tls_.get() == NULL);
+           assoc_ == NULL);
+
+#if ORTHANC_ENABLE_SSL == 1
+    assert(tls_.get() == NULL);
+#endif
 
     if (proposed_.empty())
     {
@@ -315,7 +318,11 @@ namespace Orthanc
     CheckConnecting(parameters, ASC_setPresentationAddresses(params_, localHost, remoteHostAndPort));
 
     // Set various options
+#if ORTHANC_ENABLE_SSL == 1
     CheckConnecting(parameters, ASC_setTransportLayerType(params_, (tls_.get() != NULL) /*opt_secureConnection*/));
+#else
+    CheckConnecting(parameters, ASC_setTransportLayerType(params_, false /*opt_secureConnection*/));
+#endif
 
     // Setup the list of proposed presentation contexts
     unsigned int presentationContextId = 1;
