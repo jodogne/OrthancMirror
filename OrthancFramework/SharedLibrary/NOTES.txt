@@ -26,6 +26,17 @@ $ ./UnitTests
 
 
 
+Linux Standard Base
+===================
+
+$ cd lsb
+$ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake /home/jodogne/Subversion/orthanc/OrthancFramework/SharedLibrary -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=/home/jodogne/Subversion/orthanc/OrthancFramework/Resources/Toolchains/LinuxStandardBaseToolchain.cmake \
+  -DCMAKE_BUILD_TYPE=Release -DSTATIC_BUILD=ON
+$ ninja -j4
+
+
+
 Cross-compilation to Windows 32 (using MinGW)
 ===============================
 

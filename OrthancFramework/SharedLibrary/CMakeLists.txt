@@ -98,6 +98,10 @@ else()
   set(ENABLE_WEB_SERVER ON)
 
   set(BOOST_LOCALE_BACKEND "icu")
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    set(USE_LEGACY_JSONCPP ON)
+    set(USE_LEGACY_LIBICU ON)
+  endif()
 endif()
 
 
