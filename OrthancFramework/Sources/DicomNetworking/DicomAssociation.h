@@ -34,6 +34,7 @@
 #  include "Internals/DicomTls.h"
 #endif
 
+#include "../Compatibility.h"  // For std::unique_ptr<>
 #include "DicomAssociationParameters.h"
 
 #include <dcmtk/dcmnet/dimse.h>
