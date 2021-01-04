@@ -84,10 +84,6 @@ namespace Orthanc
     static void ServerThread(DicomServer* server,
                              bool useDicomTls);
 
-#if ORTHANC_ENABLE_SSL == 1
-    void InitializeDicomTls();
-#endif
-
   public:
     DicomServer();
 

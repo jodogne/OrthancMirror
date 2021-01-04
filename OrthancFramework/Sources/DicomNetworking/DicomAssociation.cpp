@@ -116,6 +116,10 @@ namespace Orthanc
     
   void DicomAssociation::CloseInternal()
   {
+#if ORTHANC_ENABLE_SSL == 1
+    tls_.reset(NULL);  // Transport layer must be destroyed before the association itself
+#endif
+    
     if (assoc_ != NULL)
     {
       ASC_releaseAssociation(assoc_);
@@ -249,7 +253,8 @@ namespace Orthanc
 
     assert(net_ == NULL &&
            params_ == NULL &&
-           assoc_ == NULL);
+           assoc_ == NULL &&
+           tls_.get() == NULL);
 
     if (proposed_.empty())
     {
@@ -266,6 +271,26 @@ namespace Orthanc
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
+
+#if ORTHANC_ENABLE_SSL == 1
+    if (false)   // TODO - Configuration option
+    {
+      try
+      {
+        assert(net_ != NULL &&
+               params_ != NULL);
+        
+        // TODO - Configuration options
+        tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR,
+                                                 "/tmp/j/Client.key", "/tmp/j/Client.crt", "/tmp/j/Server.crt"));
+      }
+      catch (OrthancException&)
+      {
+        CloseInternal();
+        throw;
+      }
+    }
+#endif
 
     // Set this application's title and the called application's title in the params
     CheckConnecting(parameters, ASC_setAPTitles(
@@ -290,7 +315,7 @@ namespace Orthanc
     CheckConnecting(parameters, ASC_setPresentationAddresses(params_, localHost, remoteHostAndPort));
 
     // Set various options
-    CheckConnecting(parameters, ASC_setTransportLayerType(params_, /*opt_secureConnection*/ false));
+    CheckConnecting(parameters, ASC_setTransportLayerType(params_, (tls_.get() != NULL) /*opt_secureConnection*/));
 
     // Setup the list of proposed presentation contexts
     unsigned int presentationContextId = 1;

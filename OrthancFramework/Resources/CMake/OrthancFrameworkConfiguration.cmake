@@ -547,6 +547,12 @@ if (ENABLE_DCMTK)
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/RemoteModalityParameters.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/TimeoutDicomConnectionManager.cpp
       )
+
+    if (ENABLE_SSL)
+      list(APPEND ORTHANC_DICOM_SOURCES_INTERNAL
+        ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomNetworking/Internals/DicomTls.cpp
+        )
+    endif()
   else()
     add_definitions(-DORTHANC_ENABLE_DCMTK_NETWORKING=0)
   endif()
