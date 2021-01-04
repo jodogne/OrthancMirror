@@ -253,7 +253,9 @@ namespace Orthanc
 
 
 
-    CommandDispatcher* AcceptAssociation(const DicomServer& server, T_ASC_Network *net)
+    CommandDispatcher* AcceptAssociation(const DicomServer& server,
+                                         T_ASC_Network *net,
+                                         bool useDicomTls)
     {
       DcmAssociationConfiguration asccfg;
       char buf[BUFSIZ];
@@ -265,7 +267,7 @@ namespace Orthanc
       cond = ASC_receiveAssociation(net, &assoc, 
                                     /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
                                     NULL, NULL,
-                                    /*opt_secureConnection*/ OFFalse,
+                                    useDicomTls /*opt_secureConnection*/,
                                     DUL_NOBLOCK, 1);
 
       if (cond == DUL_NOASSOCIATIONREQUEST)

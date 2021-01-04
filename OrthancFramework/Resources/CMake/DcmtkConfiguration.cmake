@@ -155,12 +155,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     if (HAVE_SSL_CTX_GET0_PARAM)
       message("Have SSL_CTX_get0_param(): yes")
       set_source_files_properties(${DCMTK_SOURCES}
-        PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL;HAVE_SSL_CTX_GET0_PARAM")
+        PROPERTIES COMPILE_DEFINITIONS "HAVE_SSL_CTX_GET0_PARAM")
     else()
       message("Have SSL_CTX_get0_param(): no")
-      set_source_files_properties(${DCMTK_SOURCES}
-        PROPERTIES COMPILE_DEFINITIONS "WITH_OPENSSL")
-    endif()      
+    endif()
+
+    add_definitions(-DWITH_OPENSSL=1)
   endif()
   
   

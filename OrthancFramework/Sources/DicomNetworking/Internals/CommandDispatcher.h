@@ -65,7 +65,8 @@ namespace Orthanc
     };
 
     CommandDispatcher* AcceptAssociation(const DicomServer& server, 
-                                         T_ASC_Network *net);
+                                         T_ASC_Network *net,
+                                         bool useDicomTls);
 
     OFCondition EchoScp(T_ASC_Association* assoc, 
                         T_DIMSE_Message* msg, 

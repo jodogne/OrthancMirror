@@ -26,13 +26,18 @@
 #include "../Logging.h"
 #include "../MultiThreading/RunnableWorkersPool.h"
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 #include "../Toolbox.h"
 #include "Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>
 
+#if ORTHANC_ENABLE_SSL == 1
+#  include <dcmtk/dcmtls/tlslayer.h>
+#endif
+
 #if defined(__linux__)
-#include <cstdlib>
+#  include <cstdlib>
 #endif
 
 
@@ -43,10 +48,15 @@ namespace Orthanc
     boost::thread  thread_;
     T_ASC_Network *network_;
     std::unique_ptr<RunnableWorkersPool>  workers_;
+
+#if ORTHANC_ENABLE_SSL == 1
+    std::unique_ptr<DcmTLSTransportLayer> tls_;
+#endif
   };
 
 
-  void DicomServer::ServerThread(DicomServer* server)
+  void DicomServer::ServerThread(DicomServer* server,
+                                 bool useDicomTls)
   {
     CLOG(INFO, DICOM) << "DICOM server started";
 
@@ -54,7 +64,8 @@ namespace Orthanc
     {
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
-      std::unique_ptr<Internals::CommandDispatcher> dispatcher(Internals::AcceptAssociation(*server, server->pimpl_->network_));
+      std::unique_ptr<Internals::CommandDispatcher> dispatcher(
+        Internals::AcceptAssociation(*server, server->pimpl_->network_, useDicomTls));
 
       try
       {
@@ -349,6 +360,82 @@ namespace Orthanc
     }
   }
 
+
+#if ORTHANC_ENABLE_SSL == 1
+  
+#if DCMTK_VERSION_NUMBER < 364
+#  define DCF_Filetype_PEM  SSL_FILETYPE_PEM
+#endif
+
+  // New in Orthanc 1.9.0
+  void DicomServer::InitializeDicomTls()
+  {
+    // TODO - Configuration options
+    const std::string cf = "/tmp/j/Client.crt";    // This is the "--add-cert-file" ("+cf") option from DCMTK command-line tools
+    const std::string key = "/tmp/j/Server.key";   // This is the first argument of "+tls" option
+    const std::string cert = "/tmp/j/Server.crt";  // This is the second argument of "+tls" option
+
+    if (!SystemToolbox::IsRegularFile(cf))
+    {
+      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with trusted certificates for DICOM TLS: " + cf);
+    }
+
+    if (!SystemToolbox::IsRegularFile(key))
+    {
+      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with private key for DICOM TLS: " + key);
+    }
+
+    if (!SystemToolbox::IsRegularFile(cert))
+    {
+      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with server certificate for DICOM TLS: " + cert);
+    }
+
+    CLOG(INFO, DICOM) << "Initializing DICOM TLS";
+    pimpl_->tls_.reset(new DcmTLSTransportLayer(NET_ACCEPTOR /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
+                                                OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
+
+    if (pimpl_->tls_->addTrustedCertificateFile(cf.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with trusted certificates for DICOM TLS: " + cf);
+    }
+
+    if (pimpl_->tls_->setPrivateKeyFile(key.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with private key for DICOM TLS: " + key);
+    }
+
+    if (pimpl_->tls_->setCertificateFile(cert.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with server certificate for DICOM TLS: " + cert);
+    }
+
+    if (!pimpl_->tls_->checkPrivateKeyMatchesCertificate())
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "The private key doesn't match the server certificate: " + key + " vs. " + cert);
+    }
+
+#if DCMTK_VERSION_NUMBER >= 364
+    if (pimpl_->tls_->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/) != TCS_ok)
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
+    }
+    
+    if (pimpl_->tls_->activateCipherSuites())
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
+    }
+#endif
+
+    pimpl_->tls_->setCertificateVerification(DCV_requireCertificate /*opt_certVerification*/);
+
+    if (ASC_setTransportLayer(pimpl_->network_, pimpl_->tls_.get(), 0).bad())
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot enable DICOM TLS in the server");
+    }
+  }
+#endif
+  
+
   void DicomServer::Start()
   {
     if (modalities_ == NULL)
@@ -365,12 +452,40 @@ namespace Orthanc
     if (cond.bad())
     {
       throw OrthancException(ErrorCode_DicomPortInUse,
-                             " (port = " + boost::lexical_cast<std::string>(port_) + ") cannot create network: " + std::string(cond.text()));
+                             " (port = " + boost::lexical_cast<std::string>(port_) +
+                             ") cannot create network: " + std::string(cond.text()));
+    }
+
+    bool useDicomTls = false;    // TODO - Read from configuration option
+
+#if ORTHANC_ENABLE_SSL == 1
+    if (useDicomTls)
+    {
+      try
+      {
+        InitializeDicomTls();
+      }
+      catch (OrthancException&)
+      {
+        pimpl_->tls_.reset(NULL);
+        ASC_dropNetwork(&pimpl_->network_);
+        throw;
+      }
+    }
+#endif
+
+    if (useDicomTls)
+    {
+      CLOG(INFO, DICOM) << "Orthanc SCP will use DICOM TLS";
+    }
+    else
+    {
+      CLOG(INFO, DICOM) << "Orthanc SCP will *not* use DICOM TLS";
     }
 
     continue_ = true;
     pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
-    pimpl_->thread_ = boost::thread(ServerThread, this);
+    pimpl_->thread_ = boost::thread(ServerThread, this, useDicomTls);
   }
 
 
@@ -386,6 +501,10 @@ namespace Orthanc
       }
 
       pimpl_->workers_.reset(NULL);
+
+#if ORTHANC_ENABLE_SSL == 1
+      pimpl_->tls_.reset(NULL);
+#endif
 
       /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */
       /* is the counterpart of ASC_initializeNetwork(...) which was called above. */
