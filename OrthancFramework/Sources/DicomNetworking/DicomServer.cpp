@@ -33,7 +33,7 @@
 #include <boost/thread.hpp>
 
 #if ORTHANC_ENABLE_SSL == 1
-#  include <dcmtk/dcmtls/tlslayer.h>
+#  include "Internals/DicomTls.h"
 #endif
 
 #if defined(__linux__)
@@ -361,81 +361,6 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_ENABLE_SSL == 1
-  
-#if DCMTK_VERSION_NUMBER < 364
-#  define DCF_Filetype_PEM  SSL_FILETYPE_PEM
-#endif
-
-  // New in Orthanc 1.9.0
-  void DicomServer::InitializeDicomTls()
-  {
-    // TODO - Configuration options
-    const std::string cf = "/tmp/j/Client.crt";    // This is the "--add-cert-file" ("+cf") option from DCMTK command-line tools
-    const std::string key = "/tmp/j/Server.key";   // This is the first argument of "+tls" option
-    const std::string cert = "/tmp/j/Server.crt";  // This is the second argument of "+tls" option
-
-    if (!SystemToolbox::IsRegularFile(cf))
-    {
-      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with trusted certificates for DICOM TLS: " + cf);
-    }
-
-    if (!SystemToolbox::IsRegularFile(key))
-    {
-      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with private key for DICOM TLS: " + key);
-    }
-
-    if (!SystemToolbox::IsRegularFile(cert))
-    {
-      throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with server certificate for DICOM TLS: " + cert);
-    }
-
-    CLOG(INFO, DICOM) << "Initializing DICOM TLS";
-    pimpl_->tls_.reset(new DcmTLSTransportLayer(NET_ACCEPTOR /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
-                                                OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
-
-    if (pimpl_->tls_->addTrustedCertificateFile(cf.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with trusted certificates for DICOM TLS: " + cf);
-    }
-
-    if (pimpl_->tls_->setPrivateKeyFile(key.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with private key for DICOM TLS: " + key);
-    }
-
-    if (pimpl_->tls_->setCertificateFile(cert.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with server certificate for DICOM TLS: " + cert);
-    }
-
-    if (!pimpl_->tls_->checkPrivateKeyMatchesCertificate())
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "The private key doesn't match the server certificate: " + key + " vs. " + cert);
-    }
-
-#if DCMTK_VERSION_NUMBER >= 364
-    if (pimpl_->tls_->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/) != TCS_ok)
-    {
-      throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
-    }
-    
-    if (pimpl_->tls_->activateCipherSuites())
-    {
-      throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
-    }
-#endif
-
-    pimpl_->tls_->setCertificateVerification(DCV_requireCertificate /*opt_certVerification*/);
-
-    if (ASC_setTransportLayer(pimpl_->network_, pimpl_->tls_.get(), 0).bad())
-    {
-      throw OrthancException(ErrorCode_InternalError, "Cannot enable DICOM TLS in the server");
-    }
-  }
-#endif
-  
-
   void DicomServer::Start()
   {
     if (modalities_ == NULL)
@@ -459,15 +384,18 @@ namespace Orthanc
     bool useDicomTls = false;    // TODO - Read from configuration option
 
 #if ORTHANC_ENABLE_SSL == 1
+    assert(pimpl_->tls_.get() == NULL);
+
     if (useDicomTls)
     {
       try
       {
-        InitializeDicomTls();
+        // TODO - Configuration options
+        pimpl_->tls_.reset(Internals::InitializeDicomTls(pimpl_->network_, NET_ACCEPTOR,
+                                                         "/tmp/j/Server.key", "/tmp/j/Server.crt", "/tmp/j/Client.crt"));
       }
       catch (OrthancException&)
       {
-        pimpl_->tls_.reset(NULL);
         ASC_dropNetwork(&pimpl_->network_);
         throw;
       }
@@ -503,7 +431,7 @@ namespace Orthanc
       pimpl_->workers_.reset(NULL);
 
 #if ORTHANC_ENABLE_SSL == 1
-      pimpl_->tls_.reset(NULL);
+      pimpl_->tls_.reset(NULL);  // Transport layer must be destroyed before the association itself
 #endif
 
       /* drop the network, i.e. free memory of T_ASC_Network* structure. This call */

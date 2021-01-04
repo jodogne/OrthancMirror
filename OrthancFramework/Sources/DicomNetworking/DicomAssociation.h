@@ -26,6 +26,14 @@
 #  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be set to 1
 #endif
 
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
+#if ORTHANC_ENABLE_SSL == 1
+#  include "Internals/DicomTls.h"
+#endif
+
 #include "DicomAssociationParameters.h"
 
 #include <dcmtk/dcmnet/dimse.h>
@@ -60,6 +68,10 @@ namespace Orthanc
     T_ASC_Network*                            net_;
     T_ASC_Parameters*                         params_;
     T_ASC_Association*                        assoc_;
+
+#if ORTHANC_ENABLE_SSL == 1
+    std::unique_ptr<DcmTLSTransportLayer>     tls_;
+#endif
 
     void Initialize();
 

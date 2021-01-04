@@ -36,6 +36,11 @@ $ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake /home/jodogne/Subversion/orthanc/OrthancF
 $ ninja -j4
 
 
+!! For some reason, the linking step works on Ubuntu 16.04, but *not*
+   on Ubuntu 18.04. It looks as it the symbols from the C++ standard
+   were missing.
+
+
 
 Cross-compilation to Windows 32 (using MinGW)
 ===============================
