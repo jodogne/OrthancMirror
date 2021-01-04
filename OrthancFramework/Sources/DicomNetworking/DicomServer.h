@@ -26,6 +26,10 @@
 #  error The macro ORTHANC_ENABLE_DCMTK_NETWORKING must be set to 1
 #endif
 
+#if !defined(ORTHANC_ENABLE_SSL)
+#  error The macro ORTHANC_ENABLE_SSL must be defined
+#endif
+
 #include "IFindRequestHandlerFactory.h"
 #include "IMoveRequestHandlerFactory.h"
 #include "IGetRequestHandlerFactory.h"
@@ -77,7 +81,12 @@ namespace Orthanc
     IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
 
-    static void ServerThread(DicomServer* server);
+    static void ServerThread(DicomServer* server,
+                             bool useDicomTls);
+
+#if ORTHANC_ENABLE_SSL == 1
+    void InitializeDicomTls();
+#endif
 
   public:
     DicomServer();
