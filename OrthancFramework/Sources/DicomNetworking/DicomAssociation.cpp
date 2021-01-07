@@ -265,8 +265,9 @@ namespace Orthanc
                              "No presentation context was proposed");
     }
 
-    CLOG(INFO, DICOM) << "Opening a DICOM SCU connection from AET \""
-                      << parameters.GetLocalApplicationEntityTitle() 
+    CLOG(INFO, DICOM) << "Opening a DICOM SCU connection "
+                      << (parameters.GetRemoteModality().IsDicomTlsEnabled() ? "using DICOM TLS" : "without DICOM TLS")
+                      << " from AET \"" << parameters.GetLocalApplicationEntityTitle() 
                       << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
                       << "\" on host " << parameters.GetRemoteModality().GetHost()
                       << ":" << parameters.GetRemoteModality().GetPortNumber() 

@@ -86,7 +86,8 @@ namespace Orthanc
 
   DicomServer::DicomServer() : 
     pimpl_(new PImpl),
-    aet_("ANY-SCP")
+    aet_("ANY-SCP"),
+    useDicomTls_(false)
   {
     port_ = 104;
     modalities_ = NULL;
@@ -368,6 +369,16 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "No list of modalities was provided to the DICOM server");
     }
+
+    if (useDicomTls_)
+    {
+      if (ownCertificatePath_.empty() ||
+          ownPrivateKeyPath_.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "DICOM TLS is enabled in Orthanc SCP, but no certificate was provided");
+      }
+    }
     
     Stop();
 
@@ -381,16 +392,15 @@ namespace Orthanc
                              ") cannot create network: " + std::string(cond.text()));
     }
 
-    bool useDicomTls = false;    // TODO - Read from configuration option
-
 #if ORTHANC_ENABLE_SSL == 1
     assert(pimpl_->tls_.get() == NULL);
 
-    if (useDicomTls)
+    if (useDicomTls_)
     {
+      CLOG(INFO, DICOM) << "Orthanc SCP will use DICOM TLS";
+
       try
       {
-        // TODO - Configuration options
         pimpl_->tls_.reset(Internals::InitializeDicomTls(pimpl_->network_, NET_ACCEPTOR,
                                                          "/tmp/j/Server.key", "/tmp/j/Server.crt", "/tmp/j/Client.crt"));
       }
@@ -400,20 +410,17 @@ namespace Orthanc
         throw;
       }
     }
-#endif
-
-    if (useDicomTls)
-    {
-      CLOG(INFO, DICOM) << "Orthanc SCP will use DICOM TLS";
-    }
     else
     {
       CLOG(INFO, DICOM) << "Orthanc SCP will *not* use DICOM TLS";
     }
+#else
+    CLOG(INFO, DICOM) << "Orthanc SCP will *not* use DICOM TLS";
+#endif
 
     continue_ = true;
     pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
-    pimpl_->thread_ = boost::thread(ServerThread, this, useDicomTls);
+    pimpl_->thread_ = boost::thread(ServerThread, this, useDicomTls_);
   }
 
 
@@ -461,5 +468,95 @@ namespace Orthanc
     {
       return modalities_->IsSameAETitle(aet, GetApplicationEntityTitle());
     }
+  }
+
+
+  void DicomServer::SetDicomTlsEnabled(bool enabled)
+  {
+    Stop();
+    useDicomTls_ = enabled;
+  }
+  
+  bool DicomServer::IsDicomTlsEnabled() const
+  {
+    return useDicomTls_;
+  }
+
+  void DicomServer::SetOwnCertificatePath(const std::string& privateKeyPath,
+                                          const std::string& certificatePath)
+  {
+    Stop();
+
+    if (!privateKeyPath.empty() &&
+        !certificatePath.empty())
+    {
+      CLOG(INFO, DICOM) << "Setting the TLS certificate for DICOM SCP connections: " 
+                        << privateKeyPath << " (key), " << certificatePath << " (certificate)";
+
+      if (certificatePath.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "No path to the default DICOM TLS certificate was provided");
+      }
+      
+      if (privateKeyPath.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "No path to the private key for the default DICOM TLS certificate was provided");
+      }
+      
+      if (!SystemToolbox::IsRegularFile(privateKeyPath))
+      {
+        throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + privateKeyPath);
+      }
+
+      if (!SystemToolbox::IsRegularFile(certificatePath))
+      {
+        throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + certificatePath);
+      }
+      
+      ownPrivateKeyPath_ = privateKeyPath;
+      ownCertificatePath_ = certificatePath;
+    }
+    else
+    {
+      ownPrivateKeyPath_.clear();
+      ownCertificatePath_.clear();
+    }
+  }
+  
+  const std::string& DicomServer::GetOwnPrivateKeyPath() const
+  {
+    return ownPrivateKeyPath_;
+  }
+  
+  const std::string& DicomServer::GetOwnCertificatePath() const
+  {
+    return ownCertificatePath_;
+  }
+    
+  void DicomServer::SetTrustedCertificatesPath(const std::string& path)
+  {
+    Stop();
+
+    if (!path.empty())
+    {
+      CLOG(INFO, DICOM) << "Setting the trusted certificates for DICOM SCP connections: " << path;
+
+      if (!SystemToolbox::IsRegularFile(path))
+      {
+        throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + path);
+      }
+      
+      trustedCertificatesPath_ = path;
+    }
+    else
+    {
+      trustedCertificatesPath_.clear();
+    }
+  }
+  
+  const std::string& DicomServer::GetTrustedCertificatesPath() const
+  {
+    return trustedCertificatesPath_;
   }
 }
