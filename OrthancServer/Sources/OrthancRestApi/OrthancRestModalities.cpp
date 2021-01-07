@@ -121,7 +121,9 @@ namespace Orthanc
       .SetRequestField("Port", RestApiCallDocumentation::Type_Number,
                        "TCP port of the remote DICOM modality", true)
       .SetRequestField("Manufacturer", RestApiCallDocumentation::Type_String, "Manufacturer of the remote DICOM "
-                       "modality (check configuration option `DicomModalities` for possible values", false);
+                       "modality (check configuration option `DicomModalities` for possible values", false)
+      .SetRequestField("UseDicomTls", RestApiCallDocumentation::Type_Boolean, "Whether to use DICOM TLS "
+                       "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false);
 
     if (includePermissions)
     {

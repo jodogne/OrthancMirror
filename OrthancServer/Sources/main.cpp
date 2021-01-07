@@ -1437,6 +1437,13 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     {
       LOG(WARNING) << "Setting option \"JobsHistorySize\" to zero is not recommended";
     }
+
+    // Configuration of DICOM TLS (since Orthanc 1.9.0)
+    DicomAssociationParameters::SetDefaultOwnCertificatePath(
+      lock.GetConfiguration().GetStringParameter("DicomTlsPrivateKey", ""),
+      lock.GetConfiguration().GetStringParameter("DicomTlsCertificate", ""));
+    DicomAssociationParameters::SetDefaultTrustedCertificatesPath(
+      lock.GetConfiguration().GetStringParameter("DicomTlsTrustedCertificates", ""));
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);

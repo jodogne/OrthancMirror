@@ -46,8 +46,8 @@ namespace Orthanc
     DcmTLSTransportLayer* InitializeDicomTls(
       T_ASC_Network *network,
       T_ASC_NetworkRole role,
-      const std::string& ownPrivateKeyFile,        // This is the first argument of "+tls" option from DCMTK command-line tools
-      const std::string& ownCertificateFile,       // This is the second argument of "+tls" option
-      const std::string& trustedCertificatesFile); // This is the "--add-cert-file" ("+cf") option
+      const std::string& ownPrivateKeyPath,        // This is the first argument of "+tls" option from DCMTK command-line tools
+      const std::string& ownCertificatePath,       // This is the second argument of "+tls" option
+      const std::string& trustedCertificatesPath); // This is the "--add-cert-file" ("+cf") option
   }
 }

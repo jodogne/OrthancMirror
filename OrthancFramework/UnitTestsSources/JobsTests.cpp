@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
+#include "../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.h"
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
@@ -1269,6 +1270,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     modality.Serialize(s, false);
     ASSERT_EQ(Json::arrayValue, s.type());
+    ASSERT_FALSE(modality.IsDicomTlsEnabled());
   }
 
   {
@@ -1285,19 +1287,20 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
+    ASSERT_FALSE(modality.IsDicomTlsEnabled());
   }
 
   s = Json::nullValue;
 
   {
     RemoteModalityParameters modality;
-    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     ASSERT_THROW(modality.SetPortNumber(0), OrthancException);
     ASSERT_THROW(modality.SetPortNumber(65535), OrthancException);
     modality.SetApplicationEntityTitle("HELLO");
     modality.SetHost("world");
     modality.SetPortNumber(45);
     modality.SetManufacturer(ModalityManufacturer_GenericNoWildcardInDates);
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
   }
@@ -1316,6 +1319,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
+    ASSERT_FALSE(modality.IsDicomTlsEnabled());
   }
 
   s["Port"] = "46";
@@ -1383,6 +1387,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
+    ASSERT_FALSE(modality.IsDicomTlsEnabled());
   }
 
   {
@@ -1393,6 +1398,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     t["Host"] = "host";
     t["Port"] = "104";
     t["AllowTranscoding"] = false;
+    t["UseDicomTls"] = true;
     
     RemoteModalityParameters modality(t);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
@@ -1402,6 +1408,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_FALSE(modality.IsTranscodingAllowed());
+    ASSERT_TRUE(modality.IsDicomTlsEnabled());
   }
 
   {
@@ -1420,5 +1427,60 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NAction));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
+    ASSERT_FALSE(modality.IsDicomTlsEnabled());
   }
+}
+
+
+
+TEST(JobsSerialization, DicomAssociationParameters)
+{
+  {
+    DicomAssociationParameters a;
+
+    Json::Value v = Json::objectValue;
+    a.SerializeJob(v);
+    ASSERT_EQ(Json::objectValue, v.type());
+    ASSERT_EQ("ORTHANC", v["LocalAet"].asString());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), v["Timeout"].asInt());
+    ASSERT_TRUE(v.isMember("Remote"));
+
+    ASSERT_EQ(3u, v.getMemberNames().size());
+  
+    DicomAssociationParameters b;
+    b.UnserializeJob(v);
+    ASSERT_EQ("ANY-SCP", b.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("127.0.0.1", b.GetRemoteModality().GetHost());
+    ASSERT_EQ(104u, b.GetRemoteModality().GetPortNumber());
+    ASSERT_EQ("ORTHANC", b.GetLocalApplicationEntityTitle());
+    ASSERT_FALSE(b.GetRemoteModality().IsDicomTlsEnabled());
+  }
+
+  {
+    RemoteModalityParameters p;
+    p.SetApplicationEntityTitle("WORLD");
+    p.SetPortNumber(4242);
+    p.SetHost("hello.world.com");
+    p.SetDicomTlsEnabled(true);
+    
+    DicomAssociationParameters a("HELLO", p);
+    a.SetOwnCertificatePath("key", "crt");
+    a.SetTrustedCertificatesPath("trusted");
+
+    Json::Value v = Json::objectValue;
+    a.SerializeJob(v);
+
+    ASSERT_EQ(6u, v.getMemberNames().size());
+  
+    DicomAssociationParameters b = DicomAssociationParameters::UnserializeJob(v);
+
+    ASSERT_EQ("WORLD", b.GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("hello.world.com", b.GetRemoteModality().GetHost());
+    ASSERT_EQ(4242u, b.GetRemoteModality().GetPortNumber());
+    ASSERT_EQ("HELLO", b.GetLocalApplicationEntityTitle());
+    ASSERT_TRUE(b.GetRemoteModality().IsDicomTlsEnabled());
+    ASSERT_EQ("key", b.GetOwnPrivateKeyPath());
+    ASSERT_EQ("crt", b.GetOwnCertificatePath());
+    ASSERT_EQ("trusted", b.GetTrustedCertificatesPath());
+  }  
 }
