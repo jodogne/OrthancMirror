@@ -81,6 +81,12 @@ namespace Orthanc
     IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
 
+    // New in Orthanc 1.9.0 for DICOM TLS
+    bool         useDicomTls_;
+    std::string  ownPrivateKeyPath_;
+    std::string  ownCertificatePath_;
+    std::string  trustedCertificatesPath_;
+
     static void ServerThread(DicomServer* server,
                              bool useDicomTls);
 
@@ -137,6 +143,17 @@ namespace Orthanc
     void Stop();
 
     bool IsMyAETitle(const std::string& aet) const;
+
+    void SetDicomTlsEnabled(bool enabled);
+    bool IsDicomTlsEnabled() const;
+
+    void SetOwnCertificatePath(const std::string& privateKeyPath,
+                               const std::string& certificatePath);
+    const std::string& GetOwnPrivateKeyPath() const;    
+    const std::string& GetOwnCertificatePath() const;
+    
+    void SetTrustedCertificatesPath(const std::string& path);
+    const std::string& GetTrustedCertificatesPath() const;
   };
 
 }

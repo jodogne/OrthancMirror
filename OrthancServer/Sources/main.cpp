@@ -64,6 +64,12 @@
 using namespace Orthanc;
 
 
+static const char* const KEY_DICOM_TLS_PRIVATE_KEY = "DicomTlsPrivateKey";
+static const char* const KEY_DICOM_TLS_ENABLED = "DicomTlsEnabled";
+static const char* const KEY_DICOM_TLS_CERTIFICATE = "DicomTlsCertificate";
+static const char* const KEY_DICOM_TLS_TRUSTED_CERTIFICATES = "DicomTlsTrustedCertificates";
+
+
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
@@ -1189,6 +1195,17 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
+
+      // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)
+      dicomServer.SetDicomTlsEnabled(lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_ENABLED, false));
+      if (dicomServer.IsDicomTlsEnabled())
+      {
+        dicomServer.SetOwnCertificatePath(
+          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
+          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
+        dicomServer.SetTrustedCertificatesPath(
+          lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
+      }
     }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1438,12 +1455,12 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       LOG(WARNING) << "Setting option \"JobsHistorySize\" to zero is not recommended";
     }
 
-    // Configuration of DICOM TLS (since Orthanc 1.9.0)
+    // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
-      lock.GetConfiguration().GetStringParameter("DicomTlsPrivateKey", ""),
-      lock.GetConfiguration().GetStringParameter("DicomTlsCertificate", ""));
+      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
+      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
     DicomAssociationParameters::SetDefaultTrustedCertificatesPath(
-      lock.GetConfiguration().GetStringParameter("DicomTlsTrustedCertificates", ""));
+      lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);
