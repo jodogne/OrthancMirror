@@ -36,14 +36,15 @@ static const char* KEY_ALLOW_ECHO = "AllowEcho";
 static const char* KEY_ALLOW_FIND = "AllowFind";
 static const char* KEY_ALLOW_GET = "AllowGet";
 static const char* KEY_ALLOW_MOVE = "AllowMove";
-static const char* KEY_ALLOW_STORE = "AllowStore";
 static const char* KEY_ALLOW_N_ACTION = "AllowNAction";
 static const char* KEY_ALLOW_N_EVENT_REPORT = "AllowEventReport";
 static const char* KEY_ALLOW_STORAGE_COMMITMENT = "AllowStorageCommitment";
+static const char* KEY_ALLOW_STORE = "AllowStore";
 static const char* KEY_ALLOW_TRANSCODING = "AllowTranscoding";
 static const char* KEY_HOST = "Host";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
+static const char* KEY_USE_DICOM_TLS = "UseDicomTls";
 
 
 namespace Orthanc
@@ -62,6 +63,7 @@ namespace Orthanc
     allowNAction_ = true;  // For storage commitment
     allowNEventReport_ = true;  // For storage commitment
     allowTranscoding_ = true;
+    useDicomTls_ = false;
   }
 
 
@@ -279,6 +281,11 @@ namespace Orthanc
     {
       allowTranscoding_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_TRANSCODING);
     }
+
+    if (serialized.isMember(KEY_USE_DICOM_TLS))
+    {
+      useDicomTls_ = SerializationToolbox::ReadBoolean(serialized, KEY_USE_DICOM_TLS);
+    }
   }
 
 
@@ -361,7 +368,8 @@ namespace Orthanc
             !allowMove_ ||
             !allowNAction_ ||
             !allowNEventReport_ ||
-            !allowTranscoding_);
+            !allowTranscoding_ ||
+            useDicomTls_);
   }
 
   
@@ -384,6 +392,7 @@ namespace Orthanc
       target[KEY_ALLOW_N_ACTION] = allowNAction_;
       target[KEY_ALLOW_N_EVENT_REPORT] = allowNEventReport_;
       target[KEY_ALLOW_TRANSCODING] = allowTranscoding_;
+      target[KEY_USE_DICOM_TLS] = useDicomTls_;
     }
     else
     {
@@ -423,5 +432,15 @@ namespace Orthanc
   void RemoteModalityParameters::SetTranscodingAllowed(bool allowed)
   {
     allowTranscoding_ = allowed;
+  }
+
+  bool RemoteModalityParameters::IsDicomTlsEnabled() const
+  {
+    return useDicomTls_;
+  }
+
+  void RemoteModalityParameters::SetDicomTlsEnabled(bool enabled)
+  {
+    useDicomTls_ = enabled;
   }
 }

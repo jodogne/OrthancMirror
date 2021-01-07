@@ -36,8 +36,15 @@ namespace Orthanc
     std::string               localAet_;
     RemoteModalityParameters  remote_;
     uint32_t                  timeout_;
+    std::string               ownPrivateKeyPath_;
+    std::string               ownCertificatePath_;
+    std::string               trustedCertificatesPath_;
 
     static void CheckHost(const std::string& host);
+
+    void SetDefaultParameters();
+    
+    void CheckDicomTlsConfiguration() const;
 
   public:
     DicomAssociationParameters();
@@ -70,12 +77,34 @@ namespace Orthanc
 
     bool HasTimeout() const;
 
-    void SerializeJob(Json::Value& target) const;
+    // This corresponds to the "--enable-tls" or "+tls" argument of
+    // the command-line tools of DCMTK. Both files must be in the PEM format.
+    // The private key file must not be password-protected.
+    void SetOwnCertificatePath(const std::string& privateKeyPath,
+                               const std::string& certificatePath);
+
+    // This corresponds to the "--add-cert-file" or "+cf" argument of
+    // the command-line tools of DCMTK. The file must contain a list
+    // of PEM certificates.
+    void SetTrustedCertificatesPath(const std::string& path);
+
+    const std::string& GetOwnPrivateKeyPath() const;
     
+    const std::string& GetOwnCertificatePath() const;
+
+    const std::string& GetTrustedCertificatesPath() const;
+    
+    void SerializeJob(Json::Value& target) const;
+
     static DicomAssociationParameters UnserializeJob(const Json::Value& serialized);
     
     static void SetDefaultTimeout(uint32_t seconds);
 
     static uint32_t GetDefaultTimeout();
+
+    static void SetDefaultOwnCertificatePath(const std::string& privateKeyPath,
+                                             const std::string& certificatePath);
+
+    static void SetDefaultTrustedCertificatesPath(const std::string& path);
   };
 }

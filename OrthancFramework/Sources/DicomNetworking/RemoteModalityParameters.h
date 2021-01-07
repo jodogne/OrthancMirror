@@ -45,6 +45,7 @@ namespace Orthanc
     bool                  allowNAction_;
     bool                  allowNEventReport_;
     bool                  allowTranscoding_;
+    bool                  useDicomTls_;
     
     void Clear();
 
@@ -95,5 +96,9 @@ namespace Orthanc
     bool IsTranscodingAllowed() const;
 
     void SetTranscodingAllowed(bool allowed);
+
+    bool IsDicomTlsEnabled() const;
+
+    void SetDicomTlsEnabled(bool enabled);
   };
 }

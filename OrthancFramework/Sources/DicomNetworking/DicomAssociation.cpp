@@ -276,16 +276,16 @@ namespace Orthanc
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
 
 #if ORTHANC_ENABLE_SSL == 1
-    if (false)   // TODO - Configuration option
+    if (parameters.GetRemoteModality().IsDicomTlsEnabled())
     {
       try
       {
         assert(net_ != NULL &&
                params_ != NULL);
         
-        // TODO - Configuration options
-        tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR,
-                                                 "/tmp/j/Client.key", "/tmp/j/Client.crt", "/tmp/j/Server.crt"));
+        tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR, parameters.GetOwnPrivateKeyPath(),
+                                                 parameters.GetOwnCertificatePath(),
+                                                 parameters.GetTrustedCertificatesPath()));
       }
       catch (OrthancException&)
       {

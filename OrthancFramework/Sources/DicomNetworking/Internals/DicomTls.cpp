@@ -46,9 +46,9 @@ namespace Orthanc
   {
     DcmTLSTransportLayer* InitializeDicomTls(T_ASC_Network *network,
                                              T_ASC_NetworkRole role,
-                                             const std::string& ownPrivateKeyFile,
-                                             const std::string& ownCertificateFile,
-                                             const std::string& trustedCertificatesFile)
+                                             const std::string& ownPrivateKeyPath,
+                                             const std::string& ownCertificatePath,
+                                             const std::string& trustedCertificatesPath)
     {
       if (network == NULL)
       {
@@ -61,22 +61,22 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown role");
       }
     
-      if (!SystemToolbox::IsRegularFile(trustedCertificatesFile))
+      if (!SystemToolbox::IsRegularFile(trustedCertificatesPath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with trusted certificates for DICOM TLS: " +
-                               trustedCertificatesFile);
+                               trustedCertificatesPath);
       }
 
-      if (!SystemToolbox::IsRegularFile(ownPrivateKeyFile))
+      if (!SystemToolbox::IsRegularFile(ownPrivateKeyPath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with own private key for DICOM TLS: " +
-                               ownPrivateKeyFile);
+                               ownPrivateKeyPath);
       }
 
-      if (!SystemToolbox::IsRegularFile(ownCertificateFile))
+      if (!SystemToolbox::IsRegularFile(ownCertificatePath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with own certificate for DICOM TLS: " +
-                               ownCertificateFile);
+                               ownCertificatePath);
       }
 
       CLOG(INFO, DICOM) << "Initializing DICOM TLS for Orthanc "
@@ -105,28 +105,28 @@ namespace Orthanc
         new DcmTLSTransportLayer(tmpRole /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
                                  OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
 
-      if (tls->addTrustedCertificateFile(trustedCertificatesFile.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (tls->addTrustedCertificateFile(trustedCertificatesPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with trusted certificates for DICOM TLS: " +
-                               trustedCertificatesFile);
+                               trustedCertificatesPath);
       }
 
-      if (tls->setPrivateKeyFile(ownPrivateKeyFile.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (tls->setPrivateKeyFile(ownPrivateKeyPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with private key for DICOM TLS: " +
-                               ownPrivateKeyFile);
+                               ownPrivateKeyPath);
       }
 
-      if (tls->setCertificateFile(ownCertificateFile.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (tls->setCertificateFile(ownCertificatePath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with own certificate for DICOM TLS: " +
-                               ownCertificateFile);
+                               ownCertificatePath);
       }
 
       if (!tls->checkPrivateKeyMatchesCertificate())
       {
         throw OrthancException(ErrorCode_BadFileFormat, "The private key doesn't match the own certificate: " +
-                               ownPrivateKeyFile + " vs. " + ownCertificateFile);
+                               ownPrivateKeyPath + " vs. " + ownCertificatePath);
       }
 
 #if DCMTK_VERSION_NUMBER >= 364
