@@ -16,7 +16,7 @@
  *    - Register all its REST callbacks using ::OrthancPluginRegisterRestCallback().
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
- *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea().
+ *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea2().
  *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
@@ -116,8 +116,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     8
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -437,6 +437,7 @@ extern "C"
     _OrthancPluginService_EncodeDicomWebXml2 = 37,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_CreateMemoryBuffer = 38,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GenerateRestApiAuthorizationToken = 39,   /* New in Orthanc 1.8.1 */
+    _OrthancPluginService_CreateMemoryBuffer64 = 40, /* New in Orthanc 1.9.0 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -455,6 +456,7 @@ extern "C"
     _OrthancPluginService_RegisterStorageCommitmentScpCallback = 1013,
     _OrthancPluginService_RegisterIncomingDicomInstanceFilter = 1014,
     _OrthancPluginService_RegisterTranscoderCallback = 1015,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_RegisterStorageArea2 = 1016,         /* New in Orthanc 1.9.0 */
     
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -991,7 +993,7 @@ extern "C"
   
 
   /**
-   * @brief A memory buffer allocated by the core system of Orthanc.
+   * @brief A 32-bit memory buffer allocated by the core system of Orthanc.
    *
    * A memory buffer allocated by the core system of Orthanc. When the
    * content of the buffer is not useful anymore, it must be free by a
@@ -1009,6 +1011,28 @@ extern "C"
      **/
     uint32_t   size;
   } OrthancPluginMemoryBuffer;
+
+
+
+  /**
+   * @brief A 64-bit memory buffer allocated by the core system of Orthanc.
+   *
+   * A memory buffer allocated by the core system of Orthanc. When the
+   * content of the buffer is not useful anymore, it must be free by a
+   * call to ::OrthancPluginFreeMemoryBuffer64().
+   **/
+  typedef struct
+  {
+    /**
+     * @brief The content of the buffer.
+     **/
+    void*      data;
+
+    /**
+     * @brief The number of bytes in the buffer.
+     **/
+    uint64_t   size;
+  } OrthancPluginMemoryBuffer64;
 
 
 
@@ -1206,6 +1230,7 @@ extern "C"
    * @param type The content type corresponding to this file. 
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * @deprecated New plugins should use OrthancPluginStorageRead2
    * 
    * @warning The "content" buffer *must* have been allocated using
    * the "malloc()" function of your C standard library (i.e. nor
@@ -1218,6 +1243,50 @@ extern "C"
     int64_t* size,
     const char* uuid,
     OrthancPluginContentType type);
+
+
+
+  /**
+   * @brief Callback for reading a whole file from the storage area.
+   *
+   * Signature of a callback function that is triggered when Orthanc
+   * reads a whole file from the storage area.
+   *
+   * @param target Memory buffer where to store the content of the file. It must be allocated by the
+   * plugin using OrthancPluginCreateMemoryBuffer64(). The core of Orthanc will free it.
+   * @param uuid The UUID of the file of interest.
+   * @param type The content type corresponding to this file. 
+   * @ingroup Callbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageReadWhole) (
+    OrthancPluginMemoryBuffer64* target,
+    const char* uuid,
+    OrthancPluginContentType type);
+
+
+
+  /**
+   * @brief Callback for reading a range of a file from the storage area.
+   *
+   * Signature of a callback function that is triggered when Orthanc
+   * reads a portion of a file from the storage area. Orthanc
+   * indicates the start position and the length of the range.
+   *
+   * @param target Memory buffer where to store the content of the range. It must be allocated by the
+   * plugin using OrthancPluginCreateMemoryBuffer64(). The core of Orthanc will free it.
+   * @param uuid The UUID of the file of interest.
+   * @param type The content type corresponding to this file. 
+   * @param rangeStart Start position of the requested range in the file.
+   * @param rangeSize Length of the range of interest.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginStorageReadRange) (
+    OrthancPluginMemoryBuffer64* target,
+    const char* uuid,
+    OrthancPluginContentType type,
+    uint64_t rangeStart,
+    uint64_t rangeSize);
 
 
 
@@ -1863,6 +1932,22 @@ extern "C"
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeMemoryBuffer(
     OrthancPluginContext* context, 
     OrthancPluginMemoryBuffer* buffer)
+  {
+    context->Free(buffer->data);
+  }
+
+
+  /**
+   * @brief Free a memory buffer.
+   * 
+   * Free a memory buffer that was allocated by the core system of Orthanc.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param buffer The memory buffer to release.
+   **/
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeMemoryBuffer64(
+    OrthancPluginContext* context, 
+    OrthancPluginMemoryBuffer64* buffer)
   {
     context->Free(buffer->data);
   }
@@ -3055,6 +3140,7 @@ extern "C"
    * @param read The callback function to read a file from the custom storage area.
    * @param remove The callback function to remove a file from the custom storage area.
    * @ingroup Callbacks
+   * @deprecated Please use OrthancPluginRegisterStorageArea2()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
     OrthancPluginContext*       context,
@@ -4554,6 +4640,8 @@ extern "C"
    * @param type The type of the file content.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiPut()" on
+   * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaCreate(
     OrthancPluginContext*       context,
@@ -4596,6 +4684,8 @@ extern "C"
    * @param type The type of the file content.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiGet()" on
+   * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRead(
     OrthancPluginContext*       context,
@@ -4633,6 +4723,8 @@ extern "C"
    * @param type The type of the file content.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiDelete()" on
+   * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRemove(
     OrthancPluginContext*       context,
@@ -8178,7 +8270,7 @@ extern "C"
   } _OrthancPluginCreateMemoryBuffer;
 
   /**
-   * @brief Create a memory buffer.
+   * @brief Create a 32-bit memory buffer.
    *
    * This function creates a memory buffer that is managed by the
    * Orthanc core. The main use case of this function is for plugins
@@ -8252,6 +8344,84 @@ extern "C"
       return result;
     }
   }
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer64*  target;
+    uint64_t                      size;
+  } _OrthancPluginCreateMemoryBuffer64;
+
+  /**
+   * @brief Create a 64-bit memory buffer.
+   *
+   * This function creates a 64-bit memory buffer that is managed by
+   * the Orthanc core. The main use case of this function is for
+   * plugins that read files from the storage area.
+   * 
+   * Your plugin should never call "free()" on the resulting memory
+   * buffer, as the C library that is used by the plugin is in general
+   * not the same as the one used by the Orthanc core.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param size Size of the memory buffer to be created.
+   * @return 0 if success, or the error code if failure.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateMemoryBuffer64(
+    OrthancPluginContext*         context,
+    OrthancPluginMemoryBuffer64*  target,
+    uint64_t                      size)
+  {
+    _OrthancPluginCreateMemoryBuffer64 params;
+    params.target = target;
+    params.size = size;
+
+    return context->InvokeService(context, _OrthancPluginService_CreateMemoryBuffer64, &params);
+  }
+  
+
+  typedef struct
+  {
+    OrthancPluginStorageCreate    create;
+    OrthancPluginStorageReadWhole readWhole;
+    OrthancPluginStorageReadRange readRange;
+    OrthancPluginStorageRemove    remove;
+  } _OrthancPluginRegisterStorageArea2;
+
+  /**
+   * @brief Register a custom storage area, with support for range request.
+   *
+   * This function registers a custom storage area, to replace the
+   * built-in way Orthanc stores its files on the filesystem. This
+   * function must be called during the initialization of the plugin,
+   * i.e. inside the OrthancPluginInitialize() public function.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param create The callback function to store a file on the custom storage area.
+   * @param readWhole The callback function to read a whole file from the custom storage area.
+   * @param readRange The callback function to read some range of a file from the custom storage area.
+   * If this feature is not supported by the plugin, this value can be set to NULL.
+   * @param remove The callback function to remove a file from the custom storage area.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea2(
+    OrthancPluginContext*          context,
+    OrthancPluginStorageCreate     create,
+    OrthancPluginStorageReadWhole  readWhole,
+    OrthancPluginStorageReadRange  readRange,
+    OrthancPluginStorageRemove     remove)
+  {
+    _OrthancPluginRegisterStorageArea2 params;
+    params.create = create;
+    params.readWhole = readWhole;
+    params.readRange = readRange;
+    params.remove = remove;
+    context->InvokeService(context, _OrthancPluginService_RegisterStorageArea2, &params);
+  }
+
 #ifdef  __cplusplus
 }
 #endif
