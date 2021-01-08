@@ -13,6 +13,13 @@ General
   - "UseDicomTls" in "DicomModalities" to enable DICOM TLS in outgoing SCU on a per-modality basis
 * New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCreateMemoryBuffer64()
+  - OrthancPluginRegisterStorageArea2()
+
 Maintenance
 -----------
 
