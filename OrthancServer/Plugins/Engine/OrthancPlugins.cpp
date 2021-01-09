@@ -369,10 +369,6 @@ namespace Orthanc
         readWhole_(callbacks.readWhole),
         readRange_(callbacks.readRange)
       {
-        if (readRange_)
-        {
-          LOG(WARNING) << "Performance warning: The storage area plugin doesn't implement reading of file ranges";
-        }
       }
 
       virtual void Read(std::string& content,
@@ -410,6 +406,11 @@ namespace Orthanc
       _OrthancPluginRegisterStorageArea2  callbacks2_;
       PluginsErrorDictionary&             errorDictionary_;
 
+      static void WarnNoReadRange()
+      {
+        LOG(WARNING) << "Performance warning: The storage area plugin doesn't implement reading of file ranges";
+      }
+      
     public:
       StorageAreaFactory(SharedLibrary& sharedLibrary,
                          const _OrthancPluginRegisterStorageArea& callbacks,
@@ -419,8 +420,7 @@ namespace Orthanc
         callbacks_(callbacks),
         errorDictionary_(errorDictionary)
       {
-        LOG(WARNING) << "Performance warning: The storage area plugin doesn't "
-                     << "use OrthancPluginRegisterStorageArea2()";
+        WarnNoReadRange();
       }
 
       StorageAreaFactory(SharedLibrary& sharedLibrary,
@@ -431,6 +431,10 @@ namespace Orthanc
         callbacks2_(callbacks),
         errorDictionary_(errorDictionary)
       {
+        if (callbacks.readRange == NULL)
+        {
+          WarnNoReadRange();
+        }
       }
 
       SharedLibrary&  GetSharedLibrary()
