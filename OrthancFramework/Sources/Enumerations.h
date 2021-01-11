@@ -133,6 +133,7 @@ namespace Orthanc
     ErrorCode_BadGeometry = 38    /*!< Geometry error encountered in Stone */,
     ErrorCode_SslInitialization = 39    /*!< Cannot initialize SSL encryption, check out your certificates */,
     ErrorCode_DiscontinuedAbi = 40    /*!< Calling a function that has been removed from the Orthanc Framework */,
+    ErrorCode_BadRange = 41    /*!< Incorrect range request */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

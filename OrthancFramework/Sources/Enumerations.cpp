@@ -184,6 +184,9 @@ namespace Orthanc
       case ErrorCode_DiscontinuedAbi:
         return "Calling a function that has been removed from the Orthanc Framework";
 
+      case ErrorCode_BadRange:
+        return "Incorrect range request";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -2168,6 +2171,9 @@ namespace Orthanc
 
       case ErrorCode_DatabaseUnavailable:
         return HttpStatus_503_ServiceUnavailable;
+
+      case ErrorCode_BadRange:
+        return HttpStatus_416_RequestedRangeNotSatisfiable;
 
       case ErrorCode_CreateDicomNotString:
         return HttpStatus_400_BadRequest;
