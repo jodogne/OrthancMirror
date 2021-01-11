@@ -772,6 +772,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_BadGeometry, "Geometry error encountered in Stone");
     PrintErrorCode(ErrorCode_SslInitialization, "Cannot initialize SSL encryption, check out your certificates");
     PrintErrorCode(ErrorCode_DiscontinuedAbi, "Calling a function that has been removed from the Orthanc Framework");
+    PrintErrorCode(ErrorCode_BadRange, "Incorrect range request");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");

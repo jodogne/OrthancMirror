@@ -227,6 +227,12 @@
     "Name": "DiscontinuedAbi", 
     "Description": "Calling a function that has been removed from the Orthanc Framework"
   }, 
+  {
+    "Code": 41, 
+    "HttpStatus" : 416,
+    "Name": "BadRange",
+    "Description": "Incorrect range request"
+  }, 
 
 
 
