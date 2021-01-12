@@ -197,5 +197,8 @@ namespace Orthanc
     static ImageAccessor* FitSizeKeepAspectRatio(const ImageAccessor& source,
                                                  unsigned int width,
                                                  unsigned int height);
+
+    // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
+    static void ConvertJpegYCbCrToRgb(ImageAccessor& image /* inplace */);
   };
 }

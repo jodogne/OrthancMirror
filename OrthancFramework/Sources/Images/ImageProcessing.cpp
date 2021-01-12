@@ -2570,4 +2570,60 @@ namespace Orthanc
 
     return target.release();
   }
+
+
+  void ImageProcessing::ConvertJpegYCbCrToRgb(ImageAccessor& image)
+  {
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html#sect_C.7.6.3.1.2
+    // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
+    
+    // TODO - Check out the outcome of Mathieu's discussion about
+    // truncation of YCbCr-to-RGB conversion:
+    // https://groups.google.com/forum/#!msg/comp.protocols.dicom/JHuGeyWbTz8/ARoTWrJzAQAJ
+
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    const unsigned int pitch = image.GetPitch();
+    uint8_t* buffer = reinterpret_cast<uint8_t*>(image.GetBuffer());
+        
+    if (image.GetFormat() != PixelFormat_RGB24 ||
+        pitch < 3 * width)
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      uint8_t* p = buffer + y * pitch;
+          
+      for (unsigned int x = 0; x < width; x++, p += 3)
+      {
+        const float Y  = p[0];
+        const float Cb = p[1];
+        const float Cr = p[2];
+
+        const float result[3] = {
+          Y                             + 1.402f    * (Cr - 128.0f),
+          Y - 0.344136f * (Cb - 128.0f) - 0.714136f * (Cr - 128.0f),
+          Y + 1.772f    * (Cb - 128.0f)
+        };
+
+        for (uint8_t i = 0; i < 3 ; i++)
+        {
+          if (result[i] < 0)
+          {
+            p[i] = 0;
+          }
+          else if (result[i] > 255)
+          {
+            p[i] = 255;
+          }
+          else
+          {
+            p[i] = static_cast<uint8_t>(result[i]);
+          }
+        }    
+      }
+    }
+  }
 }
