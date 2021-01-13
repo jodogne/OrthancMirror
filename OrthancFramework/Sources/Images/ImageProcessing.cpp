@@ -1087,7 +1087,7 @@ namespace Orthanc
                              7152 * static_cast<uint16_t>(green) +
                              0722 * static_cast<uint16_t>(blue)) / 10000;
         Orthanc::ImageProcessing::Set(image, grayscale);
-        break;
+        return;
       }
       
       case PixelFormat_RGBA32:
