@@ -1080,6 +1080,16 @@ namespace Orthanc
 
     switch (image.GetFormat())
     {
+      case PixelFormat_Grayscale8:
+      {
+        // New in Orthanc 1.9.0
+        uint8_t grayscale = (2126 * static_cast<uint16_t>(red) + 
+                             7152 * static_cast<uint16_t>(green) +
+                             0722 * static_cast<uint16_t>(blue)) / 10000;
+        Orthanc::ImageProcessing::Set(image, grayscale);
+        break;
+      }
+      
       case PixelFormat_RGBA32:
         p[0] = red;
         p[1] = green;
