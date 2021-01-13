@@ -337,7 +337,7 @@ namespace OrthancPlugins
     }
     else
     {
-      LOG(ERROR) << "Cannot parse JSON: " << err;
+      LogError("Cannot parse JSON: " + std::string(err));
       return false;
     }
 #endif
