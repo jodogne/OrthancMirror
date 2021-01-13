@@ -313,6 +313,37 @@ namespace OrthancPlugins
   }
 
 
+  static bool ReadJsonInternal(Json::Value& target,
+                               const void* buffer,
+                               size_t size,
+                               bool collectComments)
+  {
+#if JSONCPP_USE_DEPRECATED == 1
+    Json::Reader reader;
+    return reader.parse(reinterpret_cast<const char*>(buffer),
+                        reinterpret_cast<const char*>(buffer) + size, target, collectComments);
+#else
+    Json::CharReaderBuilder builder;
+    builder.settings_["collectComments"] = collectComments;
+    
+    const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    assert(reader.get() != NULL);
+    
+    JSONCPP_STRING err;
+    if (reader->parse(reinterpret_cast<const char*>(buffer),
+                      reinterpret_cast<const char*>(buffer) + size, &target, &err))
+    {
+      return true;
+    }
+    else
+    {
+      LOG(ERROR) << "Cannot parse JSON: " << err;
+      return false;
+    }
+#endif
+  }
+
+
   bool ReadJson(Json::Value& target,
                 const std::string& source)
   {
@@ -324,28 +355,24 @@ namespace OrthancPlugins
                 const void* buffer,
                 size_t size)
   {
-#if JSONCPP_USE_DEPRECATED == 1
-    Json::Reader reader;
-    return reader.parse(reinterpret_cast<const char*>(buffer),
-                        reinterpret_cast<const char*>(buffer) + size, target);
-#else
-    Json::CharReaderBuilder builder;
-    const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    assert(reader.get() != NULL);
-    JSONCPP_STRING err;
-    if (reader->parse(reinterpret_cast<const char*>(buffer),
-                      reinterpret_cast<const char*>(buffer) + size, &target, &err))
-    {
-      return true;
-    }
-    else
-    {
-      LogError("Cannot parse JSON: " + err);
-      return false;
-    }
-#endif
+    return ReadJsonInternal(target, buffer, size, true);
   }
   
+
+  bool ReadJsonWithoutComments(Json::Value& target,
+                               const std::string& source)
+  {
+    return ReadJsonWithoutComments(target, source.empty() ? NULL : source.c_str(), source.size());
+  }
+  
+
+  bool ReadJsonWithoutComments(Json::Value& target,
+                               const void* buffer,
+                               size_t size)
+  {
+    return ReadJsonInternal(target, buffer, size, false);
+  }
+
 
   void WriteFastJson(std::string& target,
                      const Json::Value& source)

@@ -483,6 +483,13 @@ namespace OrthancPlugins
                 const void* buffer,
                 size_t size);
 
+  bool ReadJsonWithoutComments(Json::Value& target,
+                               const std::string& source);  
+
+  bool ReadJsonWithoutComments(Json::Value& target,
+                               const void* buffer,
+                               size_t size);
+
   void WriteFastJson(std::string& target,
                      const Json::Value& source);
 
