@@ -107,8 +107,10 @@ def UploadBuffer(dicom):
         print('New imported study:')
         print('  Orthanc ID of the patient: %s' % info['ParentPatient'])
         print('  Orthanc ID of the study: %s' % info['ParentStudy'])
-        print('  DICOM Patient ID: %s' % tags['0010,0020'])
-        print('  DICOM Study Instance UID: %s' % tags['0020,000d'])
+        print('  DICOM Patient ID: %s' % (
+            tags['0010,0020'] if '0010,0020' in tags else '(empty)'))
+        print('  DICOM Study Instance UID: %s' % (
+            tags['0020,000d'] if '0020,000d' in tags else '(empty)'))
         print('')
 
 
