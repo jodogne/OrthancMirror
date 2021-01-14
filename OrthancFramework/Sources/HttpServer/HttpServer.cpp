@@ -123,7 +123,9 @@ namespace Orthanc
 #  if CIVETWEB_HAS_DISABLE_KEEP_ALIVE == 1
         mg_disable_keep_alive(connection_);
 #  else
+#    if defined(__GNUC__) || defined(__clang__)
 #       warning The function "mg_disable_keep_alive()" is not available, DICOMweb might run slowly
+#    endif
         throw OrthancException(ErrorCode_NotImplemented,
                                "Only available if using a patched version of CivetWeb");
 #  endif
