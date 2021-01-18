@@ -68,6 +68,7 @@ static const char* const KEY_DICOM_TLS_PRIVATE_KEY = "DicomTlsPrivateKey";
 static const char* const KEY_DICOM_TLS_ENABLED = "DicomTlsEnabled";
 static const char* const KEY_DICOM_TLS_CERTIFICATE = "DicomTlsCertificate";
 static const char* const KEY_DICOM_TLS_TRUSTED_CERTIFICATES = "DicomTlsTrustedCertificates";
+static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -1207,6 +1208,8 @@ static bool StartDicomServer(ServerContext& context,
         dicomServer.SetTrustedCertificatesPath(
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
       }
+
+      dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
     }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1462,6 +1465,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
     DicomAssociationParameters::SetDefaultTrustedCertificatesPath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
+    DicomAssociationParameters::SetDefaultMaximumPduLength(
+      lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);

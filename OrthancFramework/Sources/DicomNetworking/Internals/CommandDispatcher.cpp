@@ -255,6 +255,7 @@ namespace Orthanc
 
     CommandDispatcher* AcceptAssociation(const DicomServer& server,
                                          T_ASC_Network *net,
+                                         unsigned int maximumPduLength,
                                          bool useDicomTls)
     {
       DcmAssociationConfiguration asccfg;
@@ -264,9 +265,7 @@ namespace Orthanc
       OFString sprofile;
       OFString temp_str;
 
-      cond = ASC_receiveAssociation(net, &assoc, 
-                                    /*opt_maxPDU*/ ASC_DEFAULTMAXPDU, 
-                                    NULL, NULL,
+      cond = ASC_receiveAssociation(net, &assoc, maximumPduLength, NULL, NULL,
                                     useDicomTls /*opt_secureConnection*/,
                                     DUL_NOBLOCK, 1);
 
@@ -694,7 +693,7 @@ namespace Orthanc
       }
 
       IApplicationEntityFilter* filter = server.HasApplicationEntityFilter() ? &server.GetApplicationEntityFilter() : NULL;
-      return new CommandDispatcher(server, assoc, remoteIp, remoteAet, calledAet, filter);
+      return new CommandDispatcher(server, assoc, remoteIp, remoteAet, calledAet, maximumPduLength, filter);
     }
 
 
@@ -703,6 +702,7 @@ namespace Orthanc
                                          const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet,
+                                         unsigned int maximumPduLength,
                                          IApplicationEntityFilter* filter) :
       server_(server),
       assoc_(assoc),

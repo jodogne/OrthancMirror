@@ -39,6 +39,7 @@ namespace Orthanc
     std::string               ownPrivateKeyPath_;
     std::string               ownCertificatePath_;
     std::string               trustedCertificatesPath_;
+    unsigned int              maximumPduLength_;
 
     static void CheckHost(const std::string& host);
 
@@ -93,6 +94,10 @@ namespace Orthanc
     const std::string& GetOwnCertificatePath() const;
 
     const std::string& GetTrustedCertificatesPath() const;
+
+    unsigned int GetMaximumPduLength() const;
+
+    void SetMaximumPduLength(unsigned int pdu);
     
     void SerializeJob(Json::Value& target) const;
 
@@ -106,5 +111,11 @@ namespace Orthanc
                                              const std::string& certificatePath);
 
     static void SetDefaultTrustedCertificatesPath(const std::string& path);
+
+    static void CheckMaximumPduLength(unsigned int pdu);
+
+    static void SetDefaultMaximumPduLength(unsigned int pdu);
+
+    static unsigned int GetDefaultMaximumPduLength();
   };
 }

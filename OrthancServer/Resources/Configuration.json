@@ -714,5 +714,11 @@
   // follow for the deidentification/anonymization of the query
   // contents. Possible values are "2008" and "2017c" (new in Orthanc
   // 1.8.2)
-  "DeidentifyLogsDicomVersion" : "2017c"
+  "DeidentifyLogsDicomVersion" : "2017c",
+
+  // Maximum length of the PDU (Protocol Data Unit) in the DICOM
+  // network protocol, expressed in bytes. This value affects both
+  // Orthanc SCU and Orthanc SCP. It defaults to 16KB. The allowed
+  // range is [4096,131072]. (new in Orthanc 1.9.0)
+  "MaximumPduLength" : 16384
 }

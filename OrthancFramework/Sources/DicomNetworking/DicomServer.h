@@ -86,8 +86,10 @@ namespace Orthanc
     std::string  ownPrivateKeyPath_;
     std::string  ownCertificatePath_;
     std::string  trustedCertificatesPath_;
+    unsigned int maximumPduLength_;
 
     static void ServerThread(DicomServer* server,
+                             unsigned int maximumPduLength,
                              bool useDicomTls);
 
   public:
@@ -154,6 +156,8 @@ namespace Orthanc
     
     void SetTrustedCertificatesPath(const std::string& path);
     const std::string& GetTrustedCertificatesPath() const;
-  };
 
+    unsigned int GetMaximumPduLength() const;
+    void SetMaximumPduLength(unsigned int pdu);
+  };
 }
