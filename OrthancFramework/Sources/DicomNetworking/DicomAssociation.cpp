@@ -274,7 +274,7 @@ namespace Orthanc
                       << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer()) << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
-    CheckConnecting(parameters, ASC_createAssociationParameters(&params_, /*opt_maxReceivePDULength*/ ASC_DEFAULTMAXPDU));
+    CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength()));
 
 #if ORTHANC_ENABLE_SSL == 1
     if (parameters.GetRemoteModality().IsDicomTlsEnabled())

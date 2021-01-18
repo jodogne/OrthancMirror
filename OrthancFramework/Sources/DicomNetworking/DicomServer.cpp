@@ -28,6 +28,7 @@
 #include "../OrthancException.h"
 #include "../SystemToolbox.h"
 #include "../Toolbox.h"
+#include "DicomAssociationParameters.h"
 #include "Internals/CommandDispatcher.h"
 
 #include <boost/thread.hpp>
@@ -56,6 +57,7 @@ namespace Orthanc
 
 
   void DicomServer::ServerThread(DicomServer* server,
+                                 unsigned int maximumPduLength,
                                  bool useDicomTls)
   {
     CLOG(INFO, DICOM) << "DICOM server started";
@@ -65,7 +67,7 @@ namespace Orthanc
       /* receive an association and acknowledge or reject it. If the association was */
       /* acknowledged, offer corresponding services and invoke one or more if required. */
       std::unique_ptr<Internals::CommandDispatcher> dispatcher(
-        Internals::AcceptAssociation(*server, server->pimpl_->network_, useDicomTls));
+        Internals::AcceptAssociation(*server, server->pimpl_->network_, maximumPduLength, useDicomTls));
 
       try
       {
@@ -86,21 +88,22 @@ namespace Orthanc
 
   DicomServer::DicomServer() : 
     pimpl_(new PImpl),
+    checkCalledAet_(true),
     aet_("ANY-SCP"),
-    useDicomTls_(false)
+    port_(104),
+    continue_(false),
+    associationTimeout_(30),
+    modalities_(NULL),
+    findRequestHandlerFactory_(NULL),
+    moveRequestHandlerFactory_(NULL),
+    getRequestHandlerFactory_(NULL),
+    storeRequestHandlerFactory_(NULL),
+    worklistRequestHandlerFactory_(NULL),
+    storageCommitmentFactory_(NULL),
+    applicationEntityFilter_(NULL),
+    useDicomTls_(false),
+    maximumPduLength_(ASC_DEFAULTMAXPDU)
   {
-    port_ = 104;
-    modalities_ = NULL;
-    findRequestHandlerFactory_ = NULL;
-    moveRequestHandlerFactory_ = NULL;
-    getRequestHandlerFactory_ = NULL;
-    storeRequestHandlerFactory_ = NULL;
-    worklistRequestHandlerFactory_ = NULL;
-    storageCommitmentFactory_ = NULL;
-    applicationEntityFilter_ = NULL;
-    checkCalledAet_ = true;
-    associationTimeout_ = 30;
-    continue_ = false;
   }
 
   DicomServer::~DicomServer()
@@ -420,7 +423,7 @@ namespace Orthanc
 
     continue_ = true;
     pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
-    pimpl_->thread_ = boost::thread(ServerThread, this, useDicomTls_);
+    pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
   }
 
 
@@ -558,5 +561,18 @@ namespace Orthanc
   const std::string& DicomServer::GetTrustedCertificatesPath() const
   {
     return trustedCertificatesPath_;
+  }
+
+  unsigned int DicomServer::GetMaximumPduLength() const
+  {
+    return maximumPduLength_;
+  }
+
+  void DicomServer::SetMaximumPduLength(unsigned int pdu)
+  {
+    DicomAssociationParameters::CheckMaximumPduLength(pdu);
+
+    Stop();
+    maximumPduLength_ = pdu;
   }
 }

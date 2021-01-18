@@ -1444,8 +1444,9 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("ORTHANC", v["LocalAet"].asString());
     ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), v["Timeout"].asInt());
     ASSERT_TRUE(v.isMember("Remote"));
+    ASSERT_TRUE(v.isMember("MaximumPduLength"));
 
-    ASSERT_EQ(3u, v.getMemberNames().size());
+    ASSERT_EQ(4u, v.getMemberNames().size());
   
     DicomAssociationParameters b;
     b.UnserializeJob(v);
@@ -1453,6 +1454,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("127.0.0.1", b.GetRemoteModality().GetHost());
     ASSERT_EQ(104u, b.GetRemoteModality().GetPortNumber());
     ASSERT_EQ("ORTHANC", b.GetLocalApplicationEntityTitle());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultMaximumPduLength(), b.GetMaximumPduLength());
     ASSERT_FALSE(b.GetRemoteModality().IsDicomTlsEnabled());
   }
 
@@ -1467,10 +1469,15 @@ TEST(JobsSerialization, DicomAssociationParameters)
     a.SetOwnCertificatePath("key", "crt");
     a.SetTrustedCertificatesPath("trusted");
 
+    ASSERT_THROW(a.SetMaximumPduLength(4095), OrthancException);
+    ASSERT_THROW(a.SetMaximumPduLength(131073), OrthancException);
+    a.SetMaximumPduLength(4096);
+    a.SetMaximumPduLength(131072);
+
     Json::Value v = Json::objectValue;
     a.SerializeJob(v);
 
-    ASSERT_EQ(6u, v.getMemberNames().size());
+    ASSERT_EQ(7u, v.getMemberNames().size());
   
     DicomAssociationParameters b = DicomAssociationParameters::UnserializeJob(v);
 
@@ -1482,5 +1489,6 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("key", b.GetOwnPrivateKeyPath());
     ASSERT_EQ("crt", b.GetOwnCertificatePath());
     ASSERT_EQ("trusted", b.GetTrustedCertificatesPath());
+    ASSERT_EQ(131072, b.GetMaximumPduLength());
   }  
 }

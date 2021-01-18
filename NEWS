@@ -5,12 +5,13 @@ General
 -------
 
 * Support of DICOM TLS
-* New configuration options related to DICOM TLS:
+* New configuration options related to DICOM networking:
   - "DicomTlsEnabled" to enable DICOM TLS in Orthanc SCP
   - "DicomTlsCertificate" to provide the TLS certificate to be used in both Orthanc SCU and SCP
   - "DicomTlsPrivateKey" to provide the private key of the TLS certificate
   - "DicomTlsTrustedCertificates" to provide the list of TLS certificates to be trusted by Orthanc
   - "UseDicomTls" in "DicomModalities" to enable DICOM TLS in outgoing SCU on a per-modality basis
+  - "MaximumPduLength" to tune the maximum PDU length (Protocol Data Unit)
 * New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
 
 Plugins

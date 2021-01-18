@@ -30,6 +30,8 @@
 #include "../SystemToolbox.h"
 #include "NetworkingCompatibility.h"
 
+#include <dcmtk/dcmnet/diutil.h>  // For ASC_DEFAULTMAXPDU
+
 #include <boost/thread/mutex.hpp>
 
 // By default, the default timeout for client DICOM connections is set to 10 seconds
@@ -38,6 +40,7 @@ static uint32_t      defaultTimeout_ = 10;
 static std::string   defaultOwnPrivateKeyPath_;
 static std::string   defaultOwnCertificatePath_;
 static std::string   defaultTrustedCertificatesPath_;
+static unsigned int  defaultMaximumPduLength_ = ASC_DEFAULTMAXPDU;
 
 
 namespace Orthanc
@@ -66,12 +69,14 @@ namespace Orthanc
     ownPrivateKeyPath_ = defaultOwnPrivateKeyPath_;
     ownCertificatePath_ = defaultOwnCertificatePath_;
     trustedCertificatesPath_ = defaultTrustedCertificatesPath_;
+    maximumPduLength_ = defaultMaximumPduLength_;
   }
 
 
   DicomAssociationParameters::DicomAssociationParameters() :
     localAet_("ORTHANC"),
-    timeout_(0)  // Will be set by SetDefaultParameters()
+    timeout_(0),  // Will be set by SetDefaultParameters()
+    maximumPduLength_(0)  // Will be set by SetDefaultParameters()
   {
     remote_.SetApplicationEntityTitle("ANY-SCP");
     SetDefaultParameters();
@@ -81,7 +86,8 @@ namespace Orthanc
   DicomAssociationParameters::DicomAssociationParameters(const std::string& localAet,
                                                          const RemoteModalityParameters& remote) :
     localAet_(localAet),
-    timeout_(0)  // Will be set by SetDefaultParameters()
+    timeout_(0),  // Will be set by SetDefaultParameters()
+    maximumPduLength_(0)  // Will be set by SetDefaultParameters()
   {
     SetRemoteModality(remote);
     SetDefaultParameters();
@@ -139,7 +145,11 @@ namespace Orthanc
             remote_.GetHost() == other.remote_.GetHost() &&
             remote_.GetPortNumber() == other.remote_.GetPortNumber() &&
             remote_.GetManufacturer() == other.remote_.GetManufacturer() &&
-            timeout_ == other.timeout_);
+            timeout_ == other.timeout_ &&
+            ownPrivateKeyPath_ == other.ownPrivateKeyPath_ &&
+            ownCertificatePath_ == other.ownCertificatePath_ &&
+            trustedCertificatesPath_ == other.trustedCertificatesPath_ &&
+            maximumPduLength_ == other.maximumPduLength_);
   }
 
   void DicomAssociationParameters::SetTimeout(uint32_t seconds)
@@ -211,7 +221,18 @@ namespace Orthanc
     return trustedCertificatesPath_;
   }
 
+  unsigned int DicomAssociationParameters::GetMaximumPduLength() const
+  {
+    return maximumPduLength_;
+  }
 
+  void DicomAssociationParameters::SetMaximumPduLength(unsigned int pdu)
+  {
+    CheckMaximumPduLength(pdu);
+    maximumPduLength_ = pdu;
+  }
+    
+  
 
   static const char* const LOCAL_AET = "LocalAet";
   static const char* const REMOTE = "Remote";
@@ -219,6 +240,7 @@ namespace Orthanc
   static const char* const OWN_PRIVATE_KEY = "OwnPrivateKey";             // New in Orthanc 1.9.0
   static const char* const OWN_CERTIFICATE = "OwnCertificate";            // New in Orthanc 1.9.0
   static const char* const TRUSTED_CERTIFICATES = "TrustedCertificates";  // New in Orthanc 1.9.0
+  static const char* const MAXIMUM_PDU_LENGTH = "MaximumPduLength";       // New in Orthanc 1.9.0
 
   
   void DicomAssociationParameters::SerializeJob(Json::Value& target) const
@@ -232,6 +254,7 @@ namespace Orthanc
       target[LOCAL_AET] = localAet_;
       remote_.Serialize(target[REMOTE], true /* force advanced format */);
       target[TIMEOUT] = timeout_;
+      target[MAXIMUM_PDU_LENGTH] = maximumPduLength_;
 
       // Don't write the DICOM TLS parameters if they are not required
       if (ownPrivateKeyPath_.empty())
@@ -278,6 +301,13 @@ namespace Orthanc
       result.remote_ = RemoteModalityParameters(serialized[REMOTE]);
       result.localAet_ = SerializationToolbox::ReadString(serialized, LOCAL_AET);
       result.timeout_ = SerializationToolbox::ReadInteger(serialized, TIMEOUT, GetDefaultTimeout());
+
+      // The calls to "isMember()" below are for compatibility with Orthanc <= 1.8.2 serialization
+      if (serialized.isMember(MAXIMUM_PDU_LENGTH))
+      {
+        result.maximumPduLength_ = SerializationToolbox::ReadUnsignedInteger(
+          serialized, MAXIMUM_PDU_LENGTH, defaultMaximumPduLength_);
+      }
 
       if (serialized.isMember(OWN_PRIVATE_KEY))
       {
@@ -393,5 +423,39 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
       defaultTrustedCertificatesPath_.clear();
     }
+  }
+
+
+
+  void DicomAssociationParameters::CheckMaximumPduLength(unsigned int pdu)
+  {
+    if (pdu > ASC_MAXIMUMPDUSIZE)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Maximum PDU length must be smaller than " +
+                             boost::lexical_cast<std::string>(ASC_MAXIMUMPDUSIZE));
+    }
+    else if (pdu < ASC_MINIMUMPDUSIZE)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Maximum PDU length must be greater than " +
+                             boost::lexical_cast<std::string>(ASC_MINIMUMPDUSIZE));
+    }
+  }
+
+
+  void DicomAssociationParameters::SetDefaultMaximumPduLength(unsigned int pdu)
+  {
+    CheckMaximumPduLength(pdu);
+
+    {
+      boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
+      defaultMaximumPduLength_ = pdu;
+    }
+  }
+
+
+  unsigned int DicomAssociationParameters::GetDefaultMaximumPduLength()
+  {
+    boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
+    return defaultMaximumPduLength_;
   }
 }

@@ -57,6 +57,7 @@ namespace Orthanc
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet,
+                        unsigned int maximumPduLength,
                         IApplicationEntityFilter* filter);
 
       virtual ~CommandDispatcher();
@@ -66,6 +67,7 @@ namespace Orthanc
 
     CommandDispatcher* AcceptAssociation(const DicomServer& server, 
                                          T_ASC_Network *net,
+                                         unsigned int maximumPduLength,
                                          bool useDicomTls);
 
     OFCondition EchoScp(T_ASC_Association* assoc, 
