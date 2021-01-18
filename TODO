@@ -48,6 +48,7 @@ DICOM
 Mid-term
 --------
 
+* Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
 * Support "Retrieve AE Title" (0008,0054) in C-FIND:
   - On SCP side: done by https://hg.orthanc-server.com/orthanc/rev/1ec3e1e18f50
   - On SCU side:
@@ -64,7 +65,6 @@ Mid-term
 Long-term
 ---------
 
-* Support DICOM TLS (cf. "--enable-tls" in storescp)
 * Support extended association:
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 * Support C-MOVE-CANCEL:
@@ -126,9 +126,11 @@ Lua
   https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
 
 
-===========
-Performance
-===========
+============
+Code quality
+============
+
+* Have a look at openQA (cf. GNU Health)
 
 
 ================
