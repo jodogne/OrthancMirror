@@ -23,6 +23,7 @@
 #include "../PrecompiledHeaders.h"
 #include "MultipartStreamReader.h"
 
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
@@ -332,7 +333,7 @@ namespace Orthanc
     bool valid = false;
     subType.clear();
 
-    for (size_t i = 0; i < tokens.size(); i++)
+    for (size_t i = 1; i < tokens.size(); i++)
     {
       std::vector<std::string> items;
       Toolbox::TokenizeString(items, tokens[i], '=');
@@ -361,5 +362,67 @@ namespace Orthanc
     }
 
     return valid;
+  }
+
+  
+  bool MultipartStreamReader::ParseHeaderArguments(std::string& main,
+                                                   std::map<std::string, std::string>& arguments,
+                                                   const std::string& header)
+  {
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, header, ';');
+
+    if (tokens.empty())
+    {
+      return false;
+    }
+
+    main = Toolbox::StripSpaces(tokens[0]);
+    Toolbox::ToLowerCase(main);
+    if (main.empty())
+    {
+      return false;
+    }
+
+    arguments.clear();
+    
+    for (size_t i = 1; i < tokens.size(); i++)
+    {
+      std::vector<std::string> items;
+      Toolbox::TokenizeString(items, tokens[i], '=');
+
+      if (items.size() > 2)
+      {
+        return false;
+      }
+      else if (!items.empty())
+      {
+        std::string key = Toolbox::StripSpaces(items[0]);
+        Toolbox::ToLowerCase(key);
+        
+        if (arguments.find(key) != arguments.end())
+        {
+          LOG(ERROR) << "The same argument was provided twice in an HTTP header: \""
+                     << key << "\" in \"" << header << "\"";
+          return false;
+        }
+        else if (!key.empty())
+        {
+          if (items.size() == 1)
+          {
+            arguments[key] = "";
+          }
+          else
+          {
+            assert(items.size() == 2);
+            std::string value = Toolbox::StripSpaces(items[1]);
+            RemoveSurroundingQuotes(value);
+            arguments[key] = value;
+          }
+        }
+      }
+    }
+
+    return true;
   }
 }

@@ -24,6 +24,7 @@ Plugins
 Maintenance
 -----------
 
+* Partial fix of issue #48 (Windows service not stopped properly), cf. comment 4
 * Upgraded dependencies for static builds (notably on Windows):
   - jsoncpp 1.9.4
 

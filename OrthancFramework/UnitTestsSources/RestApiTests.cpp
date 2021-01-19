@@ -836,6 +836,63 @@ TEST(MultipartStreamReader, ParseHeaders)
 }
 
 
+TEST(MultipartStreamReader, ParseHeaders2)
+{
+  std::string main;
+  std::map<std::string, std::string> args;
+  
+  ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, ""));
+  ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, "     "));
+  ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, "  ;   "));
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "hello"));
+  ASSERT_EQ("hello", main);
+  ASSERT_TRUE(args.empty());
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "hello  ;  a  = \"  b  \";c=d  ;  e=f;"));
+  ASSERT_EQ("hello", main);
+  ASSERT_EQ(3u, args.size());
+  ASSERT_EQ("  b  ", args["a"]);
+  ASSERT_EQ("d", args["c"]);
+  ASSERT_EQ("f", args["e"]);
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "    hello  ;;;;  ;  "));
+  ASSERT_EQ("hello", main);
+  ASSERT_TRUE(args.empty());
+
+  ASSERT_FALSE(MultipartStreamReader::ParseHeaderArguments(main, args, "hello;a=b;c=d;a=f"));
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "multipart/related; dummy=value; boundary=1234; hello=world"));
+  ASSERT_EQ("multipart/related", main);
+  ASSERT_EQ(3u, args.size());
+  ASSERT_EQ("value", args["dummy"]);
+  ASSERT_EQ("1234", args["boundary"]);
+  ASSERT_EQ("world", args["hello"]);
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "multipart/related; boundary="));
+  ASSERT_EQ("multipart/related", main);
+  ASSERT_EQ(1u, args.size());
+  ASSERT_EQ("", args["boundary"]);
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "multipart/related; boundary"));
+  ASSERT_EQ("multipart/related", main);
+  ASSERT_EQ(1u, args.size());
+  ASSERT_EQ("", args["boundary"]);
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "Multipart/Related; TYPE=Application/Dicom; Boundary=heLLO"));
+  ASSERT_EQ("multipart/related", main);
+  ASSERT_EQ(2u, args.size());
+  ASSERT_EQ("Application/Dicom", args["type"]);
+  ASSERT_EQ("heLLO", args["boundary"]);
+
+  ASSERT_TRUE(MultipartStreamReader::ParseHeaderArguments(main, args, "Multipart/Related; type=\"application/DICOM\"; Boundary=a"));
+  ASSERT_EQ("multipart/related", main);
+  ASSERT_EQ(2u, args.size());
+  ASSERT_EQ("application/DICOM", args["type"]);
+  ASSERT_EQ("a", args["boundary"]);
+}
+
+
 TEST(MultipartStreamReader, BytePerByte)
 {
   std::string stream = "GARBAGE";
