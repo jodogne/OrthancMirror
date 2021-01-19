@@ -69,7 +69,24 @@ namespace Orthanc
   }
 
   
-  size_t ParsedDicomCache::GetCurrentSize()  // For unit tests only
+  size_t ParsedDicomCache::GetNumberOfItems()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    if (cache_.get() == NULL)
+    {
+      return (largeDicom_.get() == NULL ? 0 : 1);
+    }
+    else
+    {
+      assert(largeDicom_.get() == NULL);
+      assert(largeSize_ == 0);
+      return cache_->GetNumberOfItems();
+    }
+  }
+
+
+  size_t ParsedDicomCache::GetCurrentSize()
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -79,6 +96,7 @@ namespace Orthanc
     }
     else
     {
+      assert(largeDicom_.get() == NULL);
       assert(largeSize_ == 0);
       return cache_->GetCurrentSize();
     }

@@ -99,6 +99,16 @@ namespace Orthanc
   }
 
 
+  size_t MemoryObjectCache::GetNumberOfItems()
+  {
+#if !defined(__EMSCRIPTEN__)
+    boost::mutex::scoped_lock lock(cacheMutex_);
+#endif
+
+    return content_.GetSize();
+  }
+  
+
   size_t MemoryObjectCache::GetCurrentSize()
   {
 #if !defined(__EMSCRIPTEN__)

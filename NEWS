@@ -24,6 +24,8 @@ Plugins
 Maintenance
 -----------
 
+* Refactoring and improvements to the cache of DICOM files (it can now hold many files)
+* New Prometheus metrics "orthanc_dicom_cache_count" and "orthanc_dicom_cache_size"
 * Fix upload of multiple DICOM files using one single POST call to "multipart/form-data"
   Could be the final resolution of issue #21 (DICOM files missing after uploading with Firefox)
 * Partial fix of issue #48 (Windows service not stopped properly), cf. comments 4 and 5

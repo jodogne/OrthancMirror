@@ -2088,12 +2088,14 @@ TEST(DicomWebJson, Sequence)
 TEST(ParsedDicomCache, Basic)
 {
   ParsedDicomCache cache(10);
-  ASSERT_EQ(0, cache.GetCurrentSize());
+  ASSERT_EQ(0u, cache.GetCurrentSize());
+  ASSERT_EQ(0u, cache.GetNumberOfItems());
 
   DicomMap tags;
   tags.SetValue(DICOM_TAG_PATIENT_ID, "patient1", false);
   cache.Acquire("a", new ParsedDicomFile(tags, Encoding_Latin1, true), 20);
-  ASSERT_EQ(20, cache.GetCurrentSize());
+  ASSERT_EQ(20u, cache.GetCurrentSize());
+  ASSERT_EQ(1u, cache.GetNumberOfItems());
 
   {
     ParsedDicomCache::Accessor accessor(cache, "b");
@@ -2113,10 +2115,12 @@ TEST(ParsedDicomCache, Basic)
   
   tags.SetValue(DICOM_TAG_PATIENT_ID, "patient2", false);
   cache.Acquire("b", new ParsedDicomFile(tags, Encoding_Latin1, true), 5);  
-  ASSERT_EQ(5, cache.GetCurrentSize());
+  ASSERT_EQ(5u, cache.GetCurrentSize());
+  ASSERT_EQ(1u, cache.GetNumberOfItems());
 
   cache.Acquire("c", new ParsedDicomFile(true), 5);
-  ASSERT_EQ(10, cache.GetCurrentSize());
+  ASSERT_EQ(10u, cache.GetCurrentSize());
+  ASSERT_EQ(2u, cache.GetNumberOfItems());
 
   {
     ParsedDicomCache::Accessor accessor(cache, "b");
@@ -2128,18 +2132,31 @@ TEST(ParsedDicomCache, Basic)
   }
   
   cache.Acquire("d", new ParsedDicomFile(true), 5);
-  ASSERT_EQ(10, cache.GetCurrentSize());
+  ASSERT_EQ(10u, cache.GetCurrentSize());
+  ASSERT_EQ(2u, cache.GetNumberOfItems());
 
   ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "b").IsValid());
   ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "c").IsValid());  // recycled by LRU
   ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "d").IsValid());
 
+  cache.Invalidate("d");
+  ASSERT_EQ(5u, cache.GetCurrentSize());
+  ASSERT_EQ(1u, cache.GetNumberOfItems());
+  ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "b").IsValid());
+  ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "d").IsValid());
+
   cache.Acquire("e", new ParsedDicomFile(true), 15);
-  ASSERT_EQ(15, cache.GetCurrentSize());
+  ASSERT_EQ(15u, cache.GetCurrentSize());
+  ASSERT_EQ(1u, cache.GetNumberOfItems());
 
   ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "c").IsValid());
   ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "d").IsValid());
   ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "e").IsValid());
+
+  cache.Invalidate("e");
+  ASSERT_EQ(0u, cache.GetCurrentSize());
+  ASSERT_EQ(0u, cache.GetNumberOfItems());
+  ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "e").IsValid());
 }
 
 

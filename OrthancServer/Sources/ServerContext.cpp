@@ -58,10 +58,8 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 
 
+static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
-#define ENABLE_DICOM_CACHE  1
-
-static const size_t DICOM_CACHE_SIZE = 2;
 
 /**
  * IMPORTANT: We make the assumption that the same instance of
@@ -272,6 +270,15 @@ namespace Orthanc
   }
 
 
+  void ServerContext::PublishDicomCacheMetrics()
+  {
+    metricsRegistry_->SetValue("orthanc_dicom_cache_size",
+                               static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    metricsRegistry_->SetValue("orthanc_dicom_cache_count",
+                               static_cast<float>(dicomCache_.GetNumberOfItems()));
+  }
+
+
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
                                bool unitTesting,
@@ -280,8 +287,8 @@ namespace Orthanc
     area_(area),
     compressionEnabled_(false),
     storeMD5_(true),
-    provider_(*this),
-    dicomCache_(provider_, DICOM_CACHE_SIZE),
+    largeDicomThrottler_(1),
+    dicomCache_(DICOM_CACHE_SIZE),
     mainLua_(*this),
     filterLua_(*this),
     luaListener_(*this),
@@ -528,12 +535,10 @@ namespace Orthanc
         return StoreStatus_FilteredOut;
       }
 
-      {
-        // Remove the file from the DicomCache (useful if
-        // "OverwriteInstances" is set to "true")
-        boost::mutex::scoped_lock lock(dicomCacheMutex_);
-        dicomCache_.Invalidate(resultPublicId);
-      }
+      // Remove the file from the DicomCache (useful if
+      // "OverwriteInstances" is set to "true")
+      dicomCache_.Invalidate(resultPublicId);
+      PublishDicomCacheMetrics();
 
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
@@ -878,34 +883,69 @@ namespace Orthanc
   }
 
 
-  IDynamicObject* ServerContext::DicomCacheProvider::Provide(const std::string& instancePublicId)
+  ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& context,
+                                                    const std::string& instancePublicId) :
+    context_(context),
+    instancePublicId_(instancePublicId)
   {
-    std::string content;
-    context_.ReadDicom(content, instancePublicId);
-    return new ParsedDicomFile(content);
-  }
+    accessor_.reset(new ParsedDicomCache::Accessor(context_.dicomCache_, instancePublicId));
+    
+    if (!accessor_->IsValid())
+    {
+      accessor_.reset(NULL);
 
+      // Throttle to avoid loading several large DICOM files simultaneously
+      largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
+      
+      std::string content;
+      context_.ReadDicom(content, instancePublicId);
 
-  ServerContext::DicomCacheLocker::DicomCacheLocker(ServerContext& that,
-                                                    const std::string& instancePublicId) : 
-    that_(that),
-    lock_(that_.dicomCacheMutex_)
-  {
-#if ENABLE_DICOM_CACHE == 0
-    static std::unique_ptr<IDynamicObject> p;
-    p.reset(that_.provider_.Provide(instancePublicId));
-    dicom_ = dynamic_cast<ParsedDicomFile*>(p.get());
-#else
-    dicom_ = &dynamic_cast<ParsedDicomFile&>(that_.dicomCache_.Access(instancePublicId));
-#endif
+      // Release the throttle if loading "small" DICOM files (under
+      // 50MB, which is an arbitrary value)
+      if (content.size() < 50 * 1024 * 1024)
+      {
+        largeDicomLocker_.reset(NULL);
+      }
+      
+      dicom_.reset(new ParsedDicomFile(content));
+      dicomSize_ = content.size();
+    }
+
+    assert(accessor_.get() != NULL ||
+           dicom_.get() != NULL);
   }
 
 
   ServerContext::DicomCacheLocker::~DicomCacheLocker()
   {
+    if (dicom_.get() != NULL)
+    {
+      try
+      {
+        context_.dicomCache_.Acquire(instancePublicId_, dicom_.release(), dicomSize_);
+        context_.PublishDicomCacheMetrics();
+      }
+      catch (OrthancException&)
+      {
+      }
+    }
   }
 
 
+  ParsedDicomFile& ServerContext::DicomCacheLocker::GetDicom() const
+  {
+    if (dicom_.get() != NULL)
+    {
+      return *dicom_;
+    }
+    else
+    {
+      assert(accessor_.get() != NULL);
+      return accessor_->GetDicom();
+    }
+  }
+
+  
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
     LOG(INFO) << "Storing MD5 for attachments: " << (storeMD5 ? "yes" : "no");
@@ -946,8 +986,8 @@ namespace Orthanc
     if (expectedType == ResourceType_Instance)
     {
       // remove the file from the DicomCache
-      boost::mutex::scoped_lock lock(dicomCacheMutex_);
       dicomCache_.Invalidate(uuid);
+      PublishDicomCacheMetrics();
     }
 
     return index_.DeleteResource(target, uuid, expectedType);
@@ -956,6 +996,13 @@ namespace Orthanc
 
   void ServerContext::SignalChange(const ServerIndexChange& change)
   {
+    if (change.GetResourceType() == ResourceType_Instance &&
+        change.GetChangeType() == ChangeType_Deleted)
+    {
+      dicomCache_.Invalidate(change.GetPublicId());
+      PublishDicomCacheMetrics();
+    }
+    
     pendingChanges_.Enqueue(change.Clone());
   }
 
