@@ -32,6 +32,8 @@
 #include "../TemporaryFile.h"
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
+#include "MultipartStreamReader.h"
+#include "StringHttpOutput.h"
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "IWebDavBucket.h"
@@ -77,10 +79,6 @@
 
 namespace Orthanc
 {
-  static const char MULTIPART_FORM[] = "multipart/form-data; boundary=";
-  static unsigned int MULTIPART_FORM_LENGTH = sizeof(MULTIPART_FORM) / sizeof(char) - 1;
-
-
   namespace
   {
     // Anonymous namespace to avoid clashes between compilation modules
@@ -95,7 +93,9 @@ namespace Orthanc
       {
       }
 
-      virtual void Send(bool isHeader, const void* buffer, size_t length)
+      virtual void Send(bool isHeader,
+                        const void* buffer,
+                        size_t length) ORTHANC_OVERRIDE
       {
         if (length > 0)
         {
@@ -108,12 +108,12 @@ namespace Orthanc
         }
       }
 
-      virtual void OnHttpStatusReceived(HttpStatus status)
+      virtual void OnHttpStatusReceived(HttpStatus status) ORTHANC_OVERRIDE
       {
         // Ignore this
       }
 
-      virtual void DisableKeepAlive()
+      virtual void DisableKeepAlive() ORTHANC_OVERRIDE
       {
 #if ORTHANC_ENABLE_MONGOOSE == 1
         throw OrthancException(ErrorCode_NotImplemented,
@@ -147,29 +147,29 @@ namespace Orthanc
   }
 
 
-// TODO Move this to external file
-
-
-  class ChunkedFile : public ChunkedBuffer
+  namespace
   {
-  private:
-    std::string filename_;
-
-  public:
-    explicit ChunkedFile(const std::string& filename) :
-      filename_(filename)
+    class ChunkedFile : public ChunkedBuffer
     {
-    }
+    private:
+      std::string filename_;
 
-    const std::string& GetFilename() const
-    {
-      return filename_;
-    }
-  };
+    public:
+      explicit ChunkedFile(const std::string& filename) :
+        filename_(filename)
+      {
+      }
+
+      const std::string& GetFilename() const
+      {
+        return filename_;
+      }
+    };
+  }
 
 
 
-  class ChunkStore : public boost::noncopyable
+  class HttpServer::ChunkStore : public boost::noncopyable
   {
   private:
     typedef std::list<ChunkedFile*>  Content;
@@ -224,7 +224,7 @@ namespace Orthanc
     }
 
     PostDataStatus Store(std::string& completed,
-                         const char* chunkData,
+                         const void* chunkData,
                          size_t chunkSize,
                          const std::string& filename,
                          size_t filesize)
@@ -302,11 +302,149 @@ namespace Orthanc
   };
 
 
-  ChunkStore& HttpServer::GetChunkStore()
+  class HttpServer::MultipartFormDataHandler : public MultipartStreamReader::IHandler
   {
-    return pimpl_->chunkStore_;
-  }
+  private:
+    IHttpHandler&         handler_;
+    ChunkStore&           chunkStore_;
+    const std::string&    remoteIp_;
+    const std::string&    username_;
+    const UriComponents&  uri_;
+    bool                  isJQueryUploadChunk_;
+    std::string           jqueryUploadFileName_;
+    size_t                jqueryUploadFileSize_;
 
+    void HandleInternal(const MultipartStreamReader::HttpHeaders& headers,
+                        const void* part,
+                        size_t size)
+    {
+      StringHttpOutput stringOutput;
+      HttpOutput fakeOutput(stringOutput, false);
+      HttpToolbox::GetArguments getArguments;
+      
+      if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
+                           HttpMethod_Post, uri_, headers, getArguments, part, size))
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+    }
+      
+  public:
+    MultipartFormDataHandler(IHttpHandler& handler,
+                             ChunkStore& chunkStore,
+                             const std::string& remoteIp,
+                             const std::string& username,
+                             const UriComponents& uri,
+                             const MultipartStreamReader::HttpHeaders& headers) :
+      handler_(handler),
+      chunkStore_(chunkStore),
+      remoteIp_(remoteIp),
+      username_(username),
+      uri_(uri),
+      isJQueryUploadChunk_(false),
+      jqueryUploadFileSize_(0)  // Dummy initialization
+    {
+      typedef HttpToolbox::Arguments::const_iterator Iterator;
+      
+      Iterator requestedWith = headers.find("x-requested-with");
+      if (requestedWith != headers.end() &&
+          requestedWith->second != "XMLHttpRequest")
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol, "HTTP header \"X-Requested-With\" should be "
+                               "\"XMLHttpRequest\" in multipart uploads");
+      }
+
+      Iterator fileName = headers.find("x-file-name");
+      Iterator fileSize = headers.find("x-file-size");
+      if (fileName != headers.end() ||
+          fileSize != headers.end())
+      {
+        if (fileName == headers.end())
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "HTTP header \"X-File-Name\" is missing");
+        }
+
+        if (fileSize == headers.end())
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "HTTP header \"X-File-Size\" is missing");
+        }
+
+        isJQueryUploadChunk_ = true;
+        jqueryUploadFileName_ = fileName->second;
+
+        try
+        {
+          int64_t s = boost::lexical_cast<int64_t>(fileSize->second);
+          if (s < 0)
+          {
+            throw OrthancException(ErrorCode_NetworkProtocol, "HTTP header \"X-File-Size\" has negative value");
+          }
+          else
+          {
+            jqueryUploadFileSize_ = static_cast<size_t>(s);
+            if (static_cast<int64_t>(jqueryUploadFileSize_) != s)
+            {
+              throw OrthancException(ErrorCode_NotEnoughMemory);
+            }
+          }
+        }
+        catch (boost::bad_lexical_cast& e)
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol, "HTTP header \"X-File-Size\" is not an integer");
+        }
+      }
+    }
+      
+    virtual void HandlePart(const MultipartStreamReader::HttpHeaders& headers,
+                            const void* part,
+                            size_t size) ORTHANC_OVERRIDE
+    {
+      if (isJQueryUploadChunk_)
+      {
+        std::string completedFile;
+
+        PostDataStatus status = chunkStore_.Store(completedFile, part, size, jqueryUploadFileName_, jqueryUploadFileSize_);
+
+        switch (status)
+        {
+          case PostDataStatus_Failure:
+            throw OrthancException(ErrorCode_NetworkProtocol, "Error in the multipart form upload");
+
+          case PostDataStatus_Success:
+            assert(completedFile.size() == jqueryUploadFileSize_);
+            HandleInternal(headers, completedFile.empty() ? NULL : completedFile.c_str(), completedFile.size());
+            break;
+
+          case PostDataStatus_Pending:
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else
+      {
+        HandleInternal(headers, part, size);
+      }
+    }
+  };
+
+
+  void HttpServer::ProcessMultipartFormData(const std::string& remoteIp,
+                                            const std::string& username,
+                                            const UriComponents& uri,
+                                            const std::map<std::string, std::string>& headers,
+                                            const std::string& body,
+                                            const std::string& boundary)
+  {
+    MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers);
+          
+    MultipartStreamReader reader(boundary);
+    reader.SetHandler(handler);
+    reader.AddChunk(body);        
+    reader.CloseStream();
+  }
+  
 
   static PostDataStatus ReadBodyWithContentLength(std::string& body,
                                                   struct mg_connection *connection,
@@ -445,108 +583,7 @@ namespace Orthanc
     }
   }
 
-
-  static PostDataStatus ParseMultipartForm(std::string &completedFile,
-                                           struct mg_connection *connection,
-                                           const HttpToolbox::Arguments& headers,
-                                           const std::string& contentType,
-                                           ChunkStore& chunkStore)
-  {
-    std::string boundary = "--" + contentType.substr(MULTIPART_FORM_LENGTH);
-
-    std::string body;
-    PostDataStatus status = ReadBodyToString(body, connection, headers);
-
-    if (status != PostDataStatus_Success)
-    {
-      return status;
-    }
-
-    /*for (HttpToolbox::Arguments::const_iterator i = headers.begin(); i != headers.end(); i++)
-      {
-      std::cout << "Header [" << i->first << "] = " << i->second << "\n";
-      }
-      printf("CHUNK\n");*/
-
-    typedef HttpToolbox::Arguments::const_iterator ArgumentIterator;
-
-    ArgumentIterator requestedWith = headers.find("x-requested-with");
-    ArgumentIterator fileName = headers.find("x-file-name");
-    ArgumentIterator fileSizeStr = headers.find("x-file-size");
-
-    if (requestedWith != headers.end() &&
-        requestedWith->second != "XMLHttpRequest")
-    {
-      return PostDataStatus_Failure; 
-    }
-
-    size_t fileSize = 0;
-    if (fileSizeStr != headers.end())
-    {
-      try
-      {
-        fileSize = boost::lexical_cast<size_t>(fileSizeStr->second);
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        return PostDataStatus_Failure;
-      }
-    }
-
-    typedef boost::find_iterator<std::string::iterator> FindIterator;
-    typedef boost::iterator_range<char*> Range;
-
-    //chunkStore.Print();
-
-    // TODO - Refactor using class "MultipartStreamReader"
-    try
-    {
-      FindIterator last;
-      for (FindIterator it =
-             make_find_iterator(body, boost::first_finder(boundary));
-           it!=FindIterator();
-           ++it)
-      {
-        if (last != FindIterator())
-        {
-          Range part(&last->back(), &it->front());
-          Range content = boost::find_first(part, "\r\n\r\n");
-          if (/*content != Range()*/!content.empty())
-          {
-            Range c(&content.back() + 1, &it->front() - 2);
-            size_t chunkSize = c.size();
-
-            if (chunkSize > 0)
-            {
-              const char* chunkData = &c.front();
-
-              if (fileName == headers.end())
-              {
-                // This file is stored in a single chunk
-                completedFile.resize(chunkSize);
-                memcpy(&completedFile[0], chunkData, chunkSize);
-                return PostDataStatus_Success;
-              }
-              else
-              {
-                return chunkStore.Store(completedFile, chunkData, chunkSize, fileName->second, fileSize);
-              }
-            }
-          }
-        }
-
-        last = it;
-      }
-    }
-    catch (std::length_error&)
-    {
-      return PostDataStatus_Failure;
-    }
-
-    return PostDataStatus_Pending;
-  }
-
-
+  
   enum AccessMode
   {
     AccessMode_Forbidden,
@@ -1263,8 +1300,6 @@ namespace Orthanc
     // Extract the body of the request for PUT and POST, or process
     // the body as a stream
 
-    // TODO Avoid unneccessary memcopy of the body
-
     std::string body;
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
@@ -1273,17 +1308,26 @@ namespace Orthanc
 
       bool isMultipartForm = false;
 
+      std::string type, subType, boundary;
       HttpToolbox::Arguments::const_iterator ct = headers.find("content-type");
-      if (ct != headers.end() &&
-          ct->second.size() >= MULTIPART_FORM_LENGTH &&
-          !memcmp(ct->second.c_str(), MULTIPART_FORM, MULTIPART_FORM_LENGTH))
+      if (method == HttpMethod_Post &&
+          ct != headers.end() &&
+          MultipartStreamReader::ParseMultipartContentType(type, subType, boundary, ct->second) &&
+          type == "multipart/form-data")
       {
         /** 
          * The user uses the "upload" form of Orthanc Explorer, for
          * file uploads through a HTML form.
          **/
-        status = ParseMultipartForm(body, connection, headers, ct->second, server.GetChunkStore());
         isMultipartForm = true;
+
+        status = ReadBodyToString(body, connection, headers);
+        if (status == PostDataStatus_Success)
+        {
+          server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary);
+          output.SendStatus(HttpStatus_200_Ok);
+          return;
+        }
       }
 
       if (!isMultipartForm)
