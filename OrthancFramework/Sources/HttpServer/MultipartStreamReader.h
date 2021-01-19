@@ -86,5 +86,9 @@ namespace Orthanc
                                           std::string& subType,  // Possibly empty
                                           std::string& boundary,
                                           const std::string& contentTypeHeader);
+
+    static bool ParseHeaderArguments(std::string& main,
+                                     std::map<std::string, std::string>& arguments,
+                                     const std::string& header);
   };
 }
