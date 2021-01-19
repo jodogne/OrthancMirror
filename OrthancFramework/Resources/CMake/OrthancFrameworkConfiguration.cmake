@@ -517,6 +517,7 @@ if (ENABLE_DCMTK)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomModification.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/DicomWebJsonVisitor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/FromDcmtkBridge.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomCache.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomDir.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ParsedDicomFile.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomParsing/ToDcmtkBridge.cpp

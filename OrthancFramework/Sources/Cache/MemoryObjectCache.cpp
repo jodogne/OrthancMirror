@@ -99,6 +99,16 @@ namespace Orthanc
   }
 
 
+  size_t MemoryObjectCache::GetCurrentSize()
+  {
+#if !defined(__EMSCRIPTEN__)
+    boost::mutex::scoped_lock lock(cacheMutex_);
+#endif
+
+    return currentSize_;
+  }
+
+
   size_t MemoryObjectCache::GetMaximumSize()
   {
 #if !defined(__EMSCRIPTEN__)

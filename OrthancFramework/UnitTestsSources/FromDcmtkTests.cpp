@@ -41,6 +41,7 @@
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../Sources/DicomParsing/ParsedDicomCache.h"
 #include "../Sources/Endianness.h"
 #include "../Sources/Images/Image.h"
 #include "../Sources/Images/ImageBuffer.h"
@@ -2081,6 +2082,64 @@ TEST(DicomWebJson, Sequence)
     m.FromDicomWeb(visitor.GetResult());
     ASSERT_EQ(0u, m.GetSize());  // Sequences are not handled by DicomMap
   }
+}
+
+
+TEST(ParsedDicomCache, Basic)
+{
+  ParsedDicomCache cache(10);
+  ASSERT_EQ(0, cache.GetCurrentSize());
+
+  DicomMap tags;
+  tags.SetValue(DICOM_TAG_PATIENT_ID, "patient1", false);
+  cache.Acquire("a", new ParsedDicomFile(tags, Encoding_Latin1, true), 20);
+  ASSERT_EQ(20, cache.GetCurrentSize());
+
+  {
+    ParsedDicomCache::Accessor accessor(cache, "b");
+    ASSERT_FALSE(accessor.IsValid());
+    ASSERT_THROW(accessor.GetDicom(), OrthancException);
+    ASSERT_THROW(accessor.GetFileSize(), OrthancException);
+  }
+  
+  {
+    ParsedDicomCache::Accessor accessor(cache, "a");
+    ASSERT_TRUE(accessor.IsValid());
+    std::string s;
+    ASSERT_TRUE(accessor.GetDicom().GetTagValue(s, DICOM_TAG_PATIENT_ID));
+    ASSERT_EQ("patient1", s);
+    ASSERT_EQ(20u, accessor.GetFileSize());
+  }
+  
+  tags.SetValue(DICOM_TAG_PATIENT_ID, "patient2", false);
+  cache.Acquire("b", new ParsedDicomFile(tags, Encoding_Latin1, true), 5);  
+  ASSERT_EQ(5, cache.GetCurrentSize());
+
+  cache.Acquire("c", new ParsedDicomFile(true), 5);
+  ASSERT_EQ(10, cache.GetCurrentSize());
+
+  {
+    ParsedDicomCache::Accessor accessor(cache, "b");
+    ASSERT_TRUE(accessor.IsValid());
+    std::string s;
+    ASSERT_TRUE(accessor.GetDicom().GetTagValue(s, DICOM_TAG_PATIENT_ID));
+    ASSERT_EQ("patient2", s);
+    ASSERT_EQ(5u, accessor.GetFileSize());
+  }
+  
+  cache.Acquire("d", new ParsedDicomFile(true), 5);
+  ASSERT_EQ(10, cache.GetCurrentSize());
+
+  ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "b").IsValid());
+  ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "c").IsValid());  // recycled by LRU
+  ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "d").IsValid());
+
+  cache.Acquire("e", new ParsedDicomFile(true), 15);
+  ASSERT_EQ(15, cache.GetCurrentSize());
+
+  ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "c").IsValid());
+  ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "d").IsValid());
+  ASSERT_TRUE(ParsedDicomCache::Accessor(cache, "e").IsValid());
 }
 
 
