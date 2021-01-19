@@ -57,7 +57,6 @@
 
 namespace Orthanc
 {
-  class ChunkStore;
   class OrthancException;
 
   class IHttpExceptionFormatter : public boost::noncopyable
@@ -85,6 +84,9 @@ namespace Orthanc
     // http://stackoverflow.com/questions/311166/stdauto-ptr-or-boostshared-ptr-for-pimpl-idiom
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
+
+    class ChunkStore;
+    class MultipartFormDataHandler;
 
     IHttpHandler *handler_;
 
@@ -172,8 +174,6 @@ namespace Orthanc
 
     void SetIncomingHttpRequestFilter(IIncomingHttpRequestFilter& filter);
 
-    ChunkStore& GetChunkStore();
-
     bool IsValidBasicHttpAuthentication(const std::string& basic) const;
 
     void Register(IHttpHandler& handler);
@@ -211,5 +211,13 @@ namespace Orthanc
     void Register(const std::vector<std::string>& root,
                   IWebDavBucket* bucket); // Takes ownership
 #endif
+
+    ORTHANC_LOCAL
+    void ProcessMultipartFormData(const std::string& remoteIp,
+                                  const std::string& username,
+                                  const UriComponents& uri,
+                                  const std::map<std::string, std::string>& headers,
+                                  const std::string& body,
+                                  const std::string& boundary);
   };
 }
