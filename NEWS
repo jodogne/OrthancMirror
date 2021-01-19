@@ -27,6 +27,7 @@ Maintenance
 * Fix upload of multiple DICOM files using one single POST call to "multipart/form-data"
   Could be the final resolution of issue #21 (DICOM files missing after uploading with Firefox)
 * Partial fix of issue #48 (Windows service not stopped properly), cf. comments 4 and 5
+* Explicitly use little-endian to encode uncompressed file size with zlib compression
 * Upgraded dependencies for static builds (notably on Windows):
   - jsoncpp 1.9.4
 
