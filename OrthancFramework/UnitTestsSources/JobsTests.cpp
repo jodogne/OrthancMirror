@@ -1442,7 +1442,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     a.SerializeJob(v);
     ASSERT_EQ(Json::objectValue, v.type());
     ASSERT_EQ("ORTHANC", v["LocalAet"].asString());
-    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), v["Timeout"].asInt());
+    ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), v["Timeout"].asUInt());
     ASSERT_TRUE(v.isMember("Remote"));
     ASSERT_TRUE(v.isMember("MaximumPduLength"));
 
@@ -1489,6 +1489,6 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("key", b.GetOwnPrivateKeyPath());
     ASSERT_EQ("crt", b.GetOwnCertificatePath());
     ASSERT_EQ("trusted", b.GetTrustedCertificatesPath());
-    ASSERT_EQ(131072, b.GetMaximumPduLength());
+    ASSERT_EQ(131072u, b.GetMaximumPduLength());
   }  
 }

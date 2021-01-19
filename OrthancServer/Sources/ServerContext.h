@@ -39,10 +39,11 @@
 #include "ServerIndex.h"
 #include "ServerJobs/IStorageCommitmentFactory.h"
 
-#include "../../OrthancFramework/Sources/Cache/MemoryCache.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
+#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
+#include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
 namespace Orthanc
@@ -122,19 +123,6 @@ namespace Orthanc
       }
     };
     
-    class DicomCacheProvider : public Deprecated::ICachePageProvider  // TODO
-    {
-    private:
-      ServerContext& context_;
-
-    public:
-      explicit DicomCacheProvider(ServerContext& context) : context_(context)
-      {
-      }
-      
-      virtual IDynamicObject* Provide(const std::string& id) ORTHANC_OVERRIDE;
-    };
-
     class ServerListener
     {
     private:
@@ -185,10 +173,9 @@ namespace Orthanc
 
     bool compressionEnabled_;
     bool storeMD5_;
-    
-    DicomCacheProvider provider_;
-    boost::mutex dicomCacheMutex_;
-    Deprecated::MemoryCache dicomCache_;  // TODO
+
+    Semaphore largeDicomThrottler_;  // New in Orthanc 1.9.0 (notably for very large DICOM files in WSI)
+    ParsedDicomCache  dicomCache_;
 
     LuaScripting mainLua_;
     LuaScripting filterLua_;
@@ -249,6 +236,8 @@ namespace Orthanc
                        size_t since,
                        size_t limit);
 
+    void PublishDicomCacheMetrics();
+
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
     // C-Move queries (new in Orthanc 1.8.2)
@@ -259,20 +248,20 @@ namespace Orthanc
     class DicomCacheLocker : public boost::noncopyable
     {
     private:
-      ServerContext& that_;
-      ParsedDicomFile *dicom_;
-      boost::mutex::scoped_lock lock_;
+      ServerContext&                               context_;
+      std::string                                  instancePublicId_;
+      std::unique_ptr<ParsedDicomCache::Accessor>  accessor_;
+      std::unique_ptr<ParsedDicomFile>             dicom_;
+      size_t                                       dicomSize_;
+      std::unique_ptr<Semaphore::Locker>           largeDicomLocker_;
 
     public:
-      DicomCacheLocker(ServerContext& that,
+      DicomCacheLocker(ServerContext& context,
                        const std::string& instancePublicId);
 
       ~DicomCacheLocker();
 
-      ParsedDicomFile& GetDicom()
-      {
-        return *dicom_;
-      }
+      ParsedDicomFile& GetDicom() const;
     };
 
     ServerContext(IDatabaseWrapper& database,

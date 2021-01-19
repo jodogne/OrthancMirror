@@ -27,7 +27,7 @@
 
 namespace Orthanc
 {
-  class ParsedDicomCache : public boost::noncopyable
+  class ORTHANC_PUBLIC ParsedDicomCache : public boost::noncopyable
   {
   private:
     class Item;
@@ -41,6 +41,8 @@ namespace Orthanc
 
   public:
     explicit ParsedDicomCache(size_t size);
+
+    size_t GetNumberOfItems();  // For unit tests only
 
     size_t GetCurrentSize();  // For unit tests only
 
