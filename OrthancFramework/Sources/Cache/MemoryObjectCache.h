@@ -64,6 +64,8 @@ namespace Orthanc
 
     ~MemoryObjectCache();
 
+    size_t GetCurrentSize();  // For unit tests only
+
     size_t GetMaximumSize();
 
     void SetMaximumSize(size_t size);
