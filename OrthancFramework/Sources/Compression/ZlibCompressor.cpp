@@ -23,6 +23,7 @@
 #include "../PrecompiledHeaders.h"
 #include "ZlibCompressor.h"
 
+#include "../Endianness.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
 
@@ -90,6 +91,10 @@ namespace Orthanc
     if (HasPrefixWithUncompressedSize())
     {
       uint64_t s = static_cast<uint64_t>(uncompressedSize);
+
+      // New in Orthanc 1.9.0: Explicitly use litte-endian encoding in size prefix
+      s = htole64(s);
+
       memcpy(&compressed[0], &s, sizeof(uint64_t));
       compressed.resize(compressedSize + sizeof(uint64_t));
     }
@@ -126,6 +131,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
+
+    // New in Orthanc 1.9.0: Explicitly use litte-endian encoding in size prefix
+    uncompressedSize = le64toh(uncompressedSize);
 
     uLongf tmp = static_cast<uLongf>(uncompressedSize);
     int error = uncompress
