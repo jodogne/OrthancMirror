@@ -265,9 +265,15 @@ namespace Orthanc
                              "No presentation context was proposed");
     }
 
+    std::string localAet = parameters.GetLocalApplicationEntityTitle();
+    if (parameters.GetRemoteModality().HasLocalAet())
+    {
+      localAet = parameters.GetRemoteModality().GetLocalAet();
+    }
+
     CLOG(INFO, DICOM) << "Opening a DICOM SCU connection "
                       << (parameters.GetRemoteModality().IsDicomTlsEnabled() ? "using DICOM TLS" : "without DICOM TLS")
-                      << " from AET \"" << parameters.GetLocalApplicationEntityTitle() 
+                      << " from AET \"" << localAet
                       << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
                       << "\" on host " << parameters.GetRemoteModality().GetHost()
                       << ":" << parameters.GetRemoteModality().GetPortNumber() 
@@ -298,7 +304,7 @@ namespace Orthanc
 
     // Set this application's title and the called application's title in the params
     CheckConnecting(parameters, ASC_setAPTitles(
-                      params_, parameters.GetLocalApplicationEntityTitle().c_str(),
+                      params_, localAet.c_str(),
                       parameters.GetRemoteModality().GetApplicationEntityTitle().c_str(), NULL));
 
     // Set the network addresses of the local and remote entities

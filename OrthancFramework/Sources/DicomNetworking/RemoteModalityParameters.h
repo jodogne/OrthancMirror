@@ -46,6 +46,7 @@ namespace Orthanc
     bool                  allowNEventReport_;
     bool                  allowTranscoding_;
     bool                  useDicomTls_;
+    std::string           localAet_;
     
     void Clear();
 
@@ -100,5 +101,11 @@ namespace Orthanc
     bool IsDicomTlsEnabled() const;
 
     void SetDicomTlsEnabled(bool enabled);
+
+    bool HasLocalAet() const;
+
+    const std::string& GetLocalAet() const;
+
+    void SetLocalAet(const std::string& aet);
   };
 }

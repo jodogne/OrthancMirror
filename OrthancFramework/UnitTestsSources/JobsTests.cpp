@@ -1275,6 +1275,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
 
   {
     RemoteModalityParameters modality(s);
+    ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     ASSERT_EQ("ORTHANC", modality.GetApplicationEntityTitle());
     ASSERT_EQ("127.0.0.1", modality.GetHost());
     ASSERT_EQ(104u, modality.GetPortNumber());
@@ -1288,6 +1289,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
+    ASSERT_FALSE(modality.HasLocalAet());
+    ASSERT_THROW(modality.GetLocalAet(), OrthancException);
   }
 
   s = Json::nullValue;
@@ -1303,6 +1306,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsAdvancedFormatNeeded());
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
+    ASSERT_FALSE(modality.HasLocalAet());
   }
 
   {
@@ -1320,6 +1324,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
+    ASSERT_FALSE(modality.HasLocalAet());
   }
 
   s["Port"] = "46";
@@ -1372,6 +1377,23 @@ TEST(JobsSerialization, RemoteModalityParameters)
     }
   }
 
+  s = Json::nullValue;
+
+  {
+    RemoteModalityParameters modality;
+    modality.SetLocalAet("hello");
+    ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
+    modality.Serialize(s, true);
+    ASSERT_EQ(Json::objectValue, s.type());
+    ASSERT_TRUE(modality.HasLocalAet());
+  }
+
+  {
+    RemoteModalityParameters modality(s);
+    ASSERT_TRUE(modality.HasLocalAet());
+    ASSERT_EQ("hello", modality.GetLocalAet());
+  }
+
   {
     Json::Value t;
     t["AllowStorageCommitment"] = false;
@@ -1388,6 +1410,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
+    ASSERT_FALSE(modality.HasLocalAet());
+    ASSERT_THROW(modality.GetLocalAet(), OrthancException);
   }
 
   {
@@ -1399,6 +1423,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     t["Port"] = "104";
     t["AllowTranscoding"] = false;
     t["UseDicomTls"] = true;
+    t["LocalAet"] = "world";
     
     RemoteModalityParameters modality(t);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
@@ -1409,6 +1434,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_FALSE(modality.IsTranscodingAllowed());
     ASSERT_TRUE(modality.IsDicomTlsEnabled());
+    ASSERT_TRUE(modality.HasLocalAet());
+    ASSERT_EQ("world", modality.GetLocalAet());
   }
 
   {
@@ -1428,6 +1455,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_NEventReport));
     ASSERT_TRUE(modality.IsTranscodingAllowed());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
+    ASSERT_FALSE(modality.HasLocalAet());
+    ASSERT_THROW(modality.GetLocalAet(), OrthancException);
   }
 }
 
@@ -1456,6 +1485,8 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("ORTHANC", b.GetLocalApplicationEntityTitle());
     ASSERT_EQ(DicomAssociationParameters::GetDefaultMaximumPduLength(), b.GetMaximumPduLength());
     ASSERT_FALSE(b.GetRemoteModality().IsDicomTlsEnabled());
+    ASSERT_FALSE(b.GetRemoteModality().HasLocalAet());
+    ASSERT_THROW(b.GetRemoteModality().GetLocalAet(), OrthancException);
   }
 
   {

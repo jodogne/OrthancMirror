@@ -45,6 +45,7 @@ static const char* KEY_HOST = "Host";
 static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
 static const char* KEY_USE_DICOM_TLS = "UseDicomTls";
+static const char* KEY_LOCAL_AET = "LocalAet";
 
 
 namespace Orthanc
@@ -64,6 +65,7 @@ namespace Orthanc
     allowNEventReport_ = true;  // For storage commitment
     allowTranscoding_ = true;
     useDicomTls_ = false;
+    localAet_.clear();
   }
 
 
@@ -286,6 +288,11 @@ namespace Orthanc
     {
       useDicomTls_ = SerializationToolbox::ReadBoolean(serialized, KEY_USE_DICOM_TLS);
     }
+
+    if (serialized.isMember(KEY_LOCAL_AET))
+    {
+      localAet_ = SerializationToolbox::ReadString(serialized, KEY_LOCAL_AET);
+    }
   }
 
 
@@ -369,7 +376,8 @@ namespace Orthanc
             !allowNAction_ ||
             !allowNEventReport_ ||
             !allowTranscoding_ ||
-            useDicomTls_);
+            useDicomTls_ ||
+            HasLocalAet());
   }
 
   
@@ -393,6 +401,7 @@ namespace Orthanc
       target[KEY_ALLOW_N_EVENT_REPORT] = allowNEventReport_;
       target[KEY_ALLOW_TRANSCODING] = allowTranscoding_;
       target[KEY_USE_DICOM_TLS] = useDicomTls_;
+      target[KEY_LOCAL_AET] = localAet_;
     }
     else
     {
@@ -442,5 +451,34 @@ namespace Orthanc
   void RemoteModalityParameters::SetDicomTlsEnabled(bool enabled)
   {
     useDicomTls_ = enabled;
+  }
+
+  bool RemoteModalityParameters::HasLocalAet() const
+  {
+    return !localAet_.empty();
+  }
+
+  const std::string& RemoteModalityParameters::GetLocalAet() const
+  {
+    if (localAet_.empty())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "You should have called HasLocalAet()");
+    }
+    else
+    {
+      return localAet_;
+    }
+  }
+
+  void RemoteModalityParameters::SetLocalAet(const std::string& aet)
+  {
+    if (aet.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      localAet_ = aet;
+    }
   }
 }
