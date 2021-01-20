@@ -7,6 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Orthanc Explorer</title>
 
+  <link rel="shortcut icon" href="images/favicon.ico">
+  
   <link rel="stylesheet" href="libs/jquery.mobile.min.css" />
   <link rel="stylesheet" href="libs/jqtree.css" />
   <link rel="stylesheet" href="libs/jquery.mobile.simpledialog.min.css" />
@@ -431,6 +433,12 @@
               <p align="right">
                 <input type="checkbox" id="show-tag-name" checked="checked" class="custom" data-mini="true" />
                 <label for="show-tag-name">Show tag description</label>
+              </p>
+              <h2>Meta header</h2>
+              <div id="dicom-metaheader"></div>
+              <h2>Dataset</h2>
+              <p align="right" id="transfer-syntax">
+                <em>Transfer syntax: <span id="transfer-syntax-text"></span></em>
               </p>
               <div id="dicom-tree"></div>
             </div>

@@ -15,6 +15,11 @@ General
 * New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
 * New metadata automatically computed at the series level: "RemoteAET"
 
+Orthanc Explorer
+----------------
+
+* The DICOM meta-header and the transfer syntax are displayed at the "Instance" level
+
 Plugins
 -------
 

@@ -98,20 +98,23 @@ function Refresh()
 
 
 $(document).ready(function() {
-  var $tree = $('#dicom-tree');
-  $tree.tree({
-    autoEscape: false
-  });
+  var trees = [ '#dicom-tree', '#dicom-metaheader' ];
 
-  $('#dicom-tree').bind(
-    'tree.click',
-    function(event) {
-      if (event.node.is_open)
-        $tree.tree('closeNode', event.node, true);
-      else
-        $tree.tree('openNode', event.node, true);
-    }
-  );
+  for (var i = 0; i < trees.length; i++) {
+    $(trees[i]).tree({
+      autoEscape: false
+    });
+    
+    $(trees[i]).bind(
+      'tree.click',
+      function(event) {
+        if (event.node.is_open)
+          $(trees[i]).tree('closeNode', event.node, true);
+        else
+          $(trees[i]).tree('openNode', event.node, true);
+      }
+    );
+  }
 
   // Inject the template of the warning about insecure setup as the
   // first child of each page
@@ -900,6 +903,19 @@ function RefreshInstance()
 
             GetResource('/instances/' + instance.ID + '/tags', function(s) {
               $('#dicom-tree').tree('loadData', ConvertForTree(s));
+            });
+
+            GetResource('/instances/' + instance.ID + '/header', function(s) {
+              $('#dicom-metaheader').tree('loadData', ConvertForTree(s));
+            });
+
+            $('#transfer-syntax').hide();
+            GetResource('/instances/' + instance.ID + '/metadata?expand', function(s) {
+              transferSyntax = s['TransferSyntax'];
+              if (transferSyntax !== undefined) {
+                $('#transfer-syntax').show();
+                $('#transfer-syntax-text').text(transferSyntax);
+              }
             });
 
             SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
