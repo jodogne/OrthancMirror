@@ -197,4 +197,5 @@ Legal
 Performance
 -----------
 
+* DicomMap: create a cache to the main DICOM tags index
 * Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
