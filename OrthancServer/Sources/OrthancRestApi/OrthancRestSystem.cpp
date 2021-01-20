@@ -54,6 +54,11 @@ namespace Orthanc
     call.GetOutput().Redirect("app/explorer.html");
   }
  
+  static void ServeFavicon(RestApiGetCall& call)
+  {
+    call.GetOutput().Redirect("app/images/favicon.ico");
+  }
+ 
   static void GetSystemInformation(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
@@ -878,6 +883,7 @@ namespace Orthanc
     if (orthancExplorerEnabled)
     {
       Register("/", ServeRoot);
+      Register("/favicon.ico", ServeFavicon);  // New in Orthanc 1.9.0
     }
     
     Register("/system", GetSystemInformation);
