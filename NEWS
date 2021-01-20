@@ -13,6 +13,7 @@ General
   - "UseDicomTls" in "DicomModalities" to enable DICOM TLS in outgoing SCU on a per-modality basis
   - "MaximumPduLength" to tune the maximum PDU length (Protocol Data Unit)
 * New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
+* New metadata automatically computed at the series level: "RemoteAET"
 
 Plugins
 -------

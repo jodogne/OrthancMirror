@@ -1441,6 +1441,7 @@ namespace Orthanc
 
   bool ServerContext::LookupOrReconstructMetadata(std::string& target,
                                                   const std::string& publicId,
+                                                  ResourceType level,
                                                   MetadataType metadata)
   {
     // This is a backwards-compatibility function, that can
@@ -1450,7 +1451,7 @@ namespace Orthanc
     if (metadata == MetadataType_Instance_SopClassUid ||
         metadata == MetadataType_Instance_TransferSyntax)
     {
-      if (index_.LookupMetadata(target, publicId, metadata))
+      if (index_.LookupMetadata(target, publicId, level, metadata))
       {
         return true;
       }
@@ -1505,7 +1506,7 @@ namespace Orthanc
     else
     {
       // No backward
-      return index_.LookupMetadata(target, publicId, metadata);
+      return index_.LookupMetadata(target, publicId, level, metadata);
     }
   }
 

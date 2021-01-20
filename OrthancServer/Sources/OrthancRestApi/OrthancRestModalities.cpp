@@ -2154,7 +2154,7 @@ namespace Orthanc
             {
               std::string sopClassUid, sopInstanceUid;
               DicomMap tags;
-              if (context.LookupOrReconstructMetadata(sopClassUid, *it, MetadataType_Instance_SopClassUid) &&
+              if (context.LookupOrReconstructMetadata(sopClassUid, *it, ResourceType_Instance, MetadataType_Instance_SopClassUid) &&
                   context.GetIndex().GetAllMainDicomTags(tags, *it) &&
                   tags.LookupStringValue(sopInstanceUid, DICOM_TAG_SOP_INSTANCE_UID, false))
               {

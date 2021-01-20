@@ -1420,6 +1420,7 @@ namespace Orthanc
 
   static void CheckValidResourceType(const RestApiCall& call)
   {
+    assert(!call.GetFullUri().empty());
     const std::string resourceType = call.GetFullUri() [0];
     StringToResourceType(resourceType.c_str());
   }
@@ -1444,12 +1445,13 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-    
-    std::string publicId = call.GetUriComponent("id", "");
     std::map<MetadataType, std::string> metadata;
 
-    OrthancRestApi::GetIndex(call).GetAllMetadata(metadata, publicId);
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    OrthancRestApi::GetIndex(call).GetAllMetadata(metadata, publicId, level);
 
     Json::Value result;
 
@@ -1495,14 +1497,15 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-    
-    std::string publicId = call.GetUriComponent("id", "");
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
     std::string value;
-    if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, metadata))
+    if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, level, metadata))
     {
       call.GetOutput().AnswerBuffer(value, MimeType_PlainText);
     }

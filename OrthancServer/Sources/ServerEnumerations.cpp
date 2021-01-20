@@ -59,7 +59,7 @@ namespace Orthanc
     
     dictMetadataType_.Add(MetadataType_Instance_IndexInSeries, "IndexInSeries");
     dictMetadataType_.Add(MetadataType_Instance_ReceptionDate, "ReceptionDate");
-    dictMetadataType_.Add(MetadataType_Instance_RemoteAet, "RemoteAET");
+    dictMetadataType_.Add(MetadataType_RemoteAet, "RemoteAET");
     dictMetadataType_.Add(MetadataType_Series_ExpectedNumberOfInstances, "ExpectedNumberOfInstances");
     dictMetadataType_.Add(MetadataType_ModifiedFrom, "ModifiedFrom");
     dictMetadataType_.Add(MetadataType_AnonymizedFrom, "AnonymizedFrom");

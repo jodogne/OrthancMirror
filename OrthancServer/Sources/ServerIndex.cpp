@@ -914,11 +914,17 @@ namespace Orthanc
         content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
         content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
 
-        if (status.isNewSeries_ &&
-            hasExpectedInstances)
+        if (status.isNewSeries_)
         {
-          content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
-                              boost::lexical_cast<std::string>(expectedInstances));
+          if (hasExpectedInstances)
+          {
+            content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                                boost::lexical_cast<std::string>(expectedInstances));
+          }
+
+          // New in Orthanc 1.9.0
+          content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
+                              instanceToStore.GetOrigin().GetRemoteAetC());
         }
 
         
@@ -926,7 +932,7 @@ namespace Orthanc
         // reflecting these additions into the input metadata map
         SetInstanceMetadata(content, instanceMetadata, instanceId,
                             MetadataType_Instance_ReceptionDate, now);
-        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_RemoteAet,
+        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_RemoteAet,
                             instanceToStore.GetOrigin().GetRemoteAetC());
         SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_Origin, 
                             EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
@@ -1849,13 +1855,15 @@ namespace Orthanc
 
   bool ServerIndex::LookupMetadata(std::string& target,
                                    const std::string& publicId,
+                                   ResourceType expectedType,
                                    MetadataType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
     ResourceType rtype;
     int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId))
+    if (!db_.LookupResource(id, rtype, publicId) ||
+        rtype != expectedType)
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1865,13 +1873,15 @@ namespace Orthanc
 
 
   void ServerIndex::GetAllMetadata(std::map<MetadataType, std::string>& target,
-                                   const std::string& publicId)
+                                   const std::string& publicId,
+                                   ResourceType expectedType)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
     ResourceType type;
     int64_t id;
-    if (!db_.LookupResource(id, type, publicId))
+    if (!db_.LookupResource(id, type, publicId) ||
+        expectedType != type)
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }

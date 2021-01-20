@@ -169,7 +169,7 @@ namespace Orthanc
       if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()))
       {
         std::map<MetadataType, std::string> metadata;
-        that.context_.GetIndex().GetAllMetadata(metadata, change_.GetPublicId());
+        that.context_.GetIndex().GetAllMetadata(metadata, change_.GetPublicId(), change_.GetResourceType());
         
         Json::Value formattedMetadata = Json::objectValue;
 
