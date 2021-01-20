@@ -66,10 +66,11 @@ namespace Orthanc
   static void LookupTime(boost::posix_time::ptime& target,
                          ServerContext& context,
                          const std::string& publicId,
+                         ResourceType level,
                          MetadataType metadata)
   {
     std::string value;
-    if (context.GetIndex().LookupMetadata(value, publicId, metadata))
+    if (context.GetIndex().LookupMetadata(value, publicId, level, metadata))
     {
       try
       {
@@ -168,7 +169,7 @@ namespace Orthanc
         if (resource.get() != NULL)
         {
           boost::posix_time::ptime t;
-          LookupTime(t, context_, publicId, timeMetadata);
+          LookupTime(t, context_, publicId, level_, timeMetadata);
           resource->SetCreationTime(t);
           target_.AddResource(resource.release());
         }
@@ -221,7 +222,7 @@ namespace Orthanc
       }
       else
       {
-        LookupTime(time_, context_, publicId, MetadataType_Instance_ReceptionDate);
+        LookupTime(time_, context_, publicId, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
         context_.ReadDicom(target_, publicId);
         success_ = true;
       }
@@ -504,7 +505,7 @@ namespace Orthanc
                it = resources.begin(); it != resources.end(); ++it)
         {
           boost::posix_time::ptime time;
-          LookupTime(time, context_, *it, MetadataType_Instance_ReceptionDate);
+          LookupTime(time, context_, *it, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
 
           FileInfo info;
           if (context_.GetIndex().LookupAttachment(info, *it, FileContentType_Dicom))
@@ -537,7 +538,7 @@ namespace Orthanc
         {
           mime = MimeType_Dicom;
           context_.ReadDicom(content, instanceId);
-          LookupTime(time, context_, instanceId, MetadataType_Instance_ReceptionDate);
+          LookupTime(time, context_, instanceId, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
           return true;
         }
         catch (OrthancException&)
@@ -804,7 +805,7 @@ namespace Orthanc
         for (ResourcesIndex::Map::const_iterator it = paths.begin(); it != paths.end(); ++it)
         {
           boost::posix_time::ptime time;
-          LookupTime(time, context_, it->second, timeMetadata_);
+          LookupTime(time, context_, it->second, index_->GetLevel(), timeMetadata_);
 
           std::unique_ptr<IWebDavBucket::Resource> resource(new IWebDavBucket::Folder(it->first));
           resource->SetCreationTime(time);

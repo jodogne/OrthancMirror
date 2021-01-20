@@ -200,7 +200,7 @@ namespace Orthanc
              it = instances.begin(); it != instances.end(); ++it)
       {
         std::string value;
-        if (context.LookupOrReconstructMetadata(value, *it, MetadataType_Instance_SopClassUid))
+        if (context.LookupOrReconstructMetadata(value, *it, ResourceType_Instance, MetadataType_Instance_SopClassUid))
         {
           values.insert(value);
         }

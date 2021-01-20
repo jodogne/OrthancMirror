@@ -204,10 +204,12 @@ namespace Orthanc
                         MetadataType type);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
-                        const std::string& publicId);
+                        const std::string& publicId,
+                        ResourceType expectedType);
 
     bool LookupMetadata(std::string& target,
                         const std::string& publicId,
+                        ResourceType expectedType,
                         MetadataType type);
 
     void ListAvailableAttachments(std::list<FileContentType>& target,

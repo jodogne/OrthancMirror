@@ -303,11 +303,11 @@ TEST_F(DatabaseWrapperTest, Simple)
                                        CompressionType_ZlibWithSize, 21, "compressedMD5"));
   index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
-  index_->SetMetadata(a[4], MetadataType_Instance_RemoteAet, "PINNACLE");
+  index_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE");
   
   index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
-  ASSERT_EQ("PINNACLE", md[MetadataType_Instance_RemoteAet]);
+  ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
   index_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
   index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
@@ -316,16 +316,16 @@ TEST_F(DatabaseWrapperTest, Simple)
   index_->GetAllMetadata(md2, a[4]);
   ASSERT_EQ(2u, md2.size());
   ASSERT_EQ("TUTU", md2[MetadataType_ModifiedFrom]);
-  ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
+  ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
   index_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
   index_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
-  ASSERT_EQ("PINNACLE", md[MetadataType_Instance_RemoteAet]);
+  ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
 
   index_->GetAllMetadata(md2, a[4]);
   ASSERT_EQ(1u, md2.size());
-  ASSERT_EQ("PINNACLE", md2[MetadataType_Instance_RemoteAet]);
+  ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
 
   ASSERT_EQ(21u + 42u + 44u, index_->GetTotalCompressedSize());
@@ -339,12 +339,12 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 
-  ASSERT_TRUE(index_->LookupMetadata(s, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_TRUE(index_->LookupMetadata(s, a[4], MetadataType_RemoteAet));
   ASSERT_FALSE(index_->LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
-  ASSERT_TRUE(index_->LookupMetadata(u, a[4], MetadataType_Instance_RemoteAet));
+  ASSERT_TRUE(index_->LookupMetadata(u, a[4], MetadataType_RemoteAet));
   ASSERT_EQ("PINNACLE", u);
   ASSERT_FALSE(index_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
 
@@ -730,7 +730,7 @@ TEST(ServerIndex, AttachmentRecycling)
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments,
                                                false /* don't overwrite */));
     ASSERT_EQ(5u, instanceMetadata.size());
-    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_RemoteAet) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());

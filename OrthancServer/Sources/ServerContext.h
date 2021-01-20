@@ -396,6 +396,7 @@ namespace Orthanc
 
     bool LookupOrReconstructMetadata(std::string& target,
                                      const std::string& publicId,
+                                     ResourceType level,
                                      MetadataType type);
 
 
