@@ -330,6 +330,10 @@
      * The "UseDicomTls" option specifies whether DICOM TLS should be
      * used when opening a SCU connection from Orthanc to this remote
      * modality. By default, DICOM TLS is not enabled.
+     *
+     * The "LocalAet" allows to overwrite the global "DicomAet"
+     * configuration option in order to specify another AET for
+     * Orthanc when initiating an SCU to this very specific modality.
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -344,6 +348,7 @@
     //  "AllowStorageCommitment" : false,  // new in 1.6.0
     //  "AllowTranscoding" : true,         // new in 1.7.0
     //  "UseDicomTls" : false              // new in 1.9.0
+    //  "LocalAet" : "HELLO"               // new in 1.9.0
     //}
   },
 

@@ -671,7 +671,8 @@ namespace Orthanc
                          "Whether to normalize the query, i.e. whether to wipe out from the query, the DICOM tags "
                          "that are not applicable for the query-retrieve level of interest", false)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
+                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -1397,7 +1398,8 @@ namespace Orthanc
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
+                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_AET, RestApiCallDocumentation::Type_String,
                          "Move originator AET that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_ID, RestApiCallDocumentation::Type_Number,
@@ -1506,7 +1508,8 @@ namespace Orthanc
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
-                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
+                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetRequestField(KEY_TARGET_AET, RestApiCallDocumentation::Type_String,
                          "Target AET that will be used by the remote DICOM modality as a target for its C-STORE SCU "
                          "commands, defaults to `DicomAet` configuration option in order to do a simple query/retrieve", false)
