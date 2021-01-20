@@ -647,7 +647,7 @@ static void PrintHelp(const char* path)
     << "Options are read left to right. In particular, options such as \"--verbose\" can " << std::endl
     << "reset the value of other log-related options that were read before." << std::endl
     << std::endl
-    << "The recommended set of options to debug DICOM communications is "
+    << "The recommended set of options to debug DICOM communications is " << std::endl
     << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl
     << std::endl
     << "Command-line options:" << std::endl
