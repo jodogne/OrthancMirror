@@ -115,6 +115,13 @@ namespace Orthanc
   }
 
 
+  void QueryRetrieveHandler::SetLocalAet(const std::string& localAet)
+  {
+    Invalidate();
+    localAet_ = localAet;
+  }
+
+
   void QueryRetrieveHandler::SetLevel(ResourceType level)
   {
     Invalidate();
