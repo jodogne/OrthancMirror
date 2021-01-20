@@ -867,7 +867,7 @@ namespace Orthanc
     private:
       boost::regex              regex_;
       OrthancPluginRestCallback callback_;
-      bool                      lock_;
+      bool                      mutualExclusion_;
 
       OrthancPluginErrorCode InvokeInternal(PluginHttpOutput& output,
                                             const std::string& flatUri,
@@ -881,10 +881,10 @@ namespace Orthanc
     public:
       RestCallback(const char* regex,
                    OrthancPluginRestCallback callback,
-                   bool lockRestCallbacks) :
+                   bool mutualExclusion) :
         regex_(regex),
         callback_(callback),
-        lock_(lockRestCallbacks)
+        mutualExclusion_(mutualExclusion)
       {
       }
 
@@ -893,14 +893,14 @@ namespace Orthanc
         return regex_;
       }
 
-      OrthancPluginErrorCode Invoke(boost::recursive_mutex& restCallbackMutex,
+      OrthancPluginErrorCode Invoke(boost::recursive_mutex& invokationMutex,
                                     PluginHttpOutput& output,
                                     const std::string& flatUri,
                                     const OrthancPluginHttpRequest& request)
       {
-        if (lock_)
+        if (mutualExclusion_)
         {
-          boost::recursive_mutex::scoped_lock lock(restCallbackMutex);
+          boost::recursive_mutex::scoped_lock lock(invokationMutex);
           return InvokeInternal(output, flatUri, request);
         }
         else
@@ -1108,7 +1108,8 @@ namespace Orthanc
     std::unique_ptr<StorageAreaFactory>  storageArea_;
     std::set<std::string> authorizationTokens_;
 
-    boost::recursive_mutex restCallbackMutex_;
+    boost::recursive_mutex restCallbackInvokationMutex_;
+    boost::shared_mutex restCallbackRegistrationMutex_;  // New in Orthanc 1.9.0
     boost::recursive_mutex storedCallbackMutex_;
     boost::recursive_mutex changeCallbackMutex_;
     boost::mutex findCallbackMutex_;
@@ -1912,6 +1913,7 @@ namespace Orthanc
     PImpl::ChunkedRestCallback* callback = NULL;
 
     // Loop over the callbacks registered by the plugins
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->restCallbackRegistrationMutex_);
     for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
          it != pimpl_->chunkedRestCallbacks_.end(); ++it)
     {
@@ -1986,6 +1988,7 @@ namespace Orthanc
     PImpl::RestCallback* callback = NULL;
 
     // Loop over the callbacks registered by the plugins
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->restCallbackRegistrationMutex_);
     for (PImpl::RestCallbacks::const_iterator it = pimpl_->restCallbacks_.begin(); 
          it != pimpl_->restCallbacks_.end(); ++it)
     {
@@ -2013,7 +2016,7 @@ namespace Orthanc
 
     assert(callback != NULL);
     OrthancPluginErrorCode error = callback->Invoke
-      (pimpl_->restCallbackMutex_, pluginOutput, matcher.GetFlatUri(), converter.GetRequest());
+      (pimpl_->restCallbackInvokationMutex_, pluginOutput, matcher.GetFlatUri(), converter.GetRequest());
 
     pluginOutput.Close(error, GetErrorDictionary());
     return true;
@@ -2194,17 +2197,20 @@ namespace Orthanc
 
 
   void OrthancPlugins::RegisterRestCallback(const void* parameters,
-                                            bool lock)
+                                            bool mutualExclusion)
   {
     const _OrthancPluginRestCallback& p = 
       *reinterpret_cast<const _OrthancPluginRestCallback*>(parameters);
 
     CLOG(INFO, PLUGINS) << "Plugin has registered a REST callback "
-                        << (lock ? "with" : "without")
+                        << (mutualExclusion ? "with" : "without")
                         << " mutual exclusion on: " 
                         << p.pathRegularExpression;
 
-    pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, lock));
+    {
+      boost::unique_lock<boost::shared_mutex> lock(pimpl_->restCallbackRegistrationMutex_);
+      pimpl_->restCallbacks_.push_back(new PImpl::RestCallback(p.pathRegularExpression, p.callback, mutualExclusion));
+    }
   }
 
 
@@ -2216,7 +2222,10 @@ namespace Orthanc
     CLOG(INFO, PLUGINS) << "Plugin has registered a REST callback for chunked streams on: " 
                         << p.pathRegularExpression;
 
-    pimpl_->chunkedRestCallbacks_.push_back(new PImpl::ChunkedRestCallback(p));
+    {
+      boost::unique_lock<boost::shared_mutex> lock(pimpl_->restCallbackRegistrationMutex_);
+      pimpl_->chunkedRestCallbacks_.push_back(new PImpl::ChunkedRestCallback(p));
+    }
   }
 
 
@@ -5326,6 +5335,7 @@ namespace Orthanc
     PImpl::ChunkedRestCallback* callback = NULL;
 
     // Loop over the callbacks registered by the plugins
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->restCallbackRegistrationMutex_);
     for (PImpl::ChunkedRestCallbacks::const_iterator it = pimpl_->chunkedRestCallbacks_.begin(); 
          it != pimpl_->chunkedRestCallbacks_.end(); ++it)
     {

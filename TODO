@@ -25,6 +25,8 @@ REST API
 Mid-term
 --------
 
+* Create DICOM from DICOMweb JSON ("application/dicom+json")
+  with "/tools/create-dicom"
 * Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series)
 * In the /studies/{id}/anonymize route, add an option to remove secondary captures.
@@ -142,6 +144,7 @@ Code refactoring
 * Avoid direct calls to FromDcmtkBridge (make most of its 
   methods private), go through ParsedDicomFile wherever possible
 
+
 =================
 Platform-specific
 =================
@@ -179,6 +182,16 @@ External applications
 ====
 Misc
 ====
+
+-----
+Legal
+-----
+
+* Drop "OpenSSL Exception" from the Orthanc license once OpenSSL 3.0.0
+  is released, because that version will replace "OpenSSL license"
+  (incompatible with GPL) by "Apache License 2.0" (compatible with
+  GPL): https://people.gnome.org/~markmc/openssl-and-the-gpl.html
+  
 
 -----------
 Performance
