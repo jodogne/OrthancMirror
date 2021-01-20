@@ -32,7 +32,10 @@ namespace Orthanc
   private:
     class Item;
 
+#if !defined(__EMSCRIPTEN__)
     boost::mutex                        mutex_;
+#endif
+    
     size_t                              cacheSize_;
     std::unique_ptr<MemoryObjectCache>  cache_;
     std::unique_ptr<ParsedDicomFile>    largeDicom_;
@@ -55,7 +58,10 @@ namespace Orthanc
     class Accessor : public boost::noncopyable
     {
     private:
+#if !defined(__EMSCRIPTEN__)
       boost::mutex::scoped_lock  lock_;
+#endif
+      
       std::string                id_;
       ParsedDicomFile*           file_;
       size_t                     fileSize_;
