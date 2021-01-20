@@ -65,6 +65,8 @@ namespace Orthanc
       return modality_;
     }
 
+    void SetLocalAet(const std::string& localAet);
+
     const std::string& GetLocalAet() const
     {
       return localAet_;

@@ -670,6 +670,8 @@ namespace Orthanc
         .SetRequestField(KEY_NORMALIZE, RestApiCallDocumentation::Type_Boolean,
                          "Whether to normalize the query, i.e. whether to wipe out from the query, the DICOM tags "
                          "that are not applicable for the query-retrieve level of interest", false)
+        .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -703,6 +705,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadFileFormat,
                              "The field " + std::string(KEY_QUERY) + " must contain a JSON object");
     }
+    else if (request.isMember(KEY_LOCAL_AET) &&
+             request[KEY_LOCAL_AET].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "The field " + std::string(KEY_LOCAL_AET) + " must contain a string");
+    }
     else
     {
       std::unique_ptr<QueryRetrieveHandler>  handler(new QueryRetrieveHandler(context));
@@ -725,6 +733,11 @@ namespace Orthanc
       if (request.isMember(KEY_NORMALIZE))
       {
         handler->SetFindNormalized(request[KEY_NORMALIZE].asBool());
+      }
+
+      if (request.isMember(KEY_LOCAL_AET))
+      {
+        handler->SetLocalAet(request[KEY_LOCAL_AET].asString());
       }
 
       AnswerQueryHandler(call, handler);

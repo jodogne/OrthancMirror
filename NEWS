@@ -20,6 +20,11 @@ Orthanc Explorer
 
 * The DICOM meta-header and the transfer syntax are displayed at the "Instance" level
 
+REST API
+--------
+
+* "/modalities/{...}/query": New string argument "LocalAet"
+
 Plugins
 -------
 
