@@ -307,6 +307,7 @@ namespace Orthanc
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
+    preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
     deidentifyLogs_(false)
   {
     try
@@ -347,6 +348,7 @@ namespace Orthanc
             LOG(WARNING) << "Incoming DICOM instances will automatically be transcoded to "
                          << "transfer syntax: " << GetTransferSyntaxUid(ingestTransferSyntax_);
 
+            // New options in Orthanc 1.8.2
             ingestTranscodingOfUncompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfUncompressed", true);
             ingestTranscodingOfCompressed_ = lock.GetConfiguration().GetBooleanParameter("IngestTranscodingOfCompressed", true);
 
@@ -370,6 +372,7 @@ namespace Orthanc
           LOG(INFO) << "Automated transcoding of incoming DICOM instances is disabled";
         }
 
+        // New options in Orthanc 1.8.2
         if (lock.GetConfiguration().GetBooleanParameter("DeidentifyLogs", true))
         {
           deidentifyLogs_ = true;
@@ -387,6 +390,17 @@ namespace Orthanc
           deidentifyLogs_ = false;
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is disabled";
         }
+
+        // New option in Orthanc 1.9.0
+        if (lock.GetConfiguration().LookupStringParameter(s, "DicomScuPreferredTransferSyntax") &&
+            !LookupTransferSyntax(preferredTransferSyntax_, s))
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Unknown preferred transfer syntax: " + s);
+        }
+        
+        CLOG(INFO, DICOM) << "Preferred transfer syntax for Orthanc C-STORE SCU: "
+                          << GetTransferSyntaxUid(preferredTransferSyntax_);
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1718,7 +1732,7 @@ namespace Orthanc
     }
     else
     {
-      connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(),
+      connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(), preferredTransferSyntax_,
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
   }

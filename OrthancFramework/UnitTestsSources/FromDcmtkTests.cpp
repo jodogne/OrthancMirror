@@ -2195,7 +2195,8 @@ TEST(Toto, DISABLED_Transcode3)
         std::string c, k;
         try
         {
-          scu.Transcode(c, k, transcoder, source.c_str(), source.size(), false, "", 0);
+          scu.Transcode(c, k, transcoder, source.c_str(), source.size(),
+                        DicomTransferSyntax_LittleEndianExplicit, false, "", 0);
         }
         catch (OrthancException& e)
         {

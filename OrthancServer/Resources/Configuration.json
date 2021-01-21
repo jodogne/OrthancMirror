@@ -367,6 +367,18 @@
   // DICOM SCP (server) does not answer.
   "DicomScuTimeout" : 10,
 
+  // During a C-STORE SCU request initiated by Orthanc, if the remote
+  // modality doesn't support the original transfer syntax of some
+  // DICOM instance, specify which transfer syntax should be preferred
+  // to transcode this instance (provided the remote modality accepts
+  // this syntax). In Orthanc between 1.7.0 and 1.8.2, this parameter
+  // was implicitly set to "Little Endian Implicit"
+  // (1.2.840.10008.1.2). In Orthanc <= 1.6.1 and in Orthanc >= 1.9.0,
+  // this parameter is by default set to "Little Endian Explicit"
+  // (1.2.840.10008.1.2.1). This parameter can possibly correspond to
+  // a compressed transfer syntax. (new in Orthanc 1.9.0)
+  "DicomScuPreferredTransferSyntax" : "1.2.840.10008.1.2.1",
+  
   // The list of the known Orthanc peers. This option is ignored if
   // "OrthancPeersInDatabase" is set to "true", in which case you must
   // use the REST API to define Orthanc peers.
