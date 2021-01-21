@@ -70,7 +70,7 @@ namespace Orthanc
     // "ProposedOriginalClasses" keeps track of the storage classes
     // that were proposed with a single transfer syntax
     typedef std::set< std::pair<std::string, DicomTransferSyntax> > ProposedOriginalClasses;
-    
+
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;  // "shared_ptr" is for PImpl
     RegisteredClasses                    registeredClasses_;
@@ -81,7 +81,9 @@ namespace Orthanc
 
     // Return "false" if there is not enough room remaining in the association
     bool ProposeStorageClass(const std::string& sopClassUid,
-                             const std::set<DicomTransferSyntax>& syntaxes);
+                             const std::set<DicomTransferSyntax>& sourceSyntaxes,
+                             bool hasPreferred,
+                             DicomTransferSyntax preferred);
 
     bool LookupPresentationContext(uint8_t& presentationContextId,
                                    const std::string& sopClassUid,
@@ -89,11 +91,15 @@ namespace Orthanc
     
     bool NegotiatePresentationContext(uint8_t& presentationContextId,
                                       const std::string& sopClassUid,
-                                      DicomTransferSyntax transferSyntax);
+                                      DicomTransferSyntax transferSyntax,
+                                      bool hasPreferred,
+                                      DicomTransferSyntax preferred);
 
     void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                            const std::string& sopClassUid,
-                           DicomTransferSyntax sourceSyntax);
+                           DicomTransferSyntax sourceSyntax,
+                           bool hasPreferred,
+                           DicomTransferSyntax preferred);
 
   public:
     explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -140,6 +146,7 @@ namespace Orthanc
                    IDicomTranscoder& transcoder,
                    const void* buffer,
                    size_t size,
+                   DicomTransferSyntax preferredTransferSyntax,
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);

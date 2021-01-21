@@ -31,6 +31,8 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 
+#include <list>
+
 
 namespace Orthanc
 {
@@ -49,76 +51,77 @@ namespace Orthanc
 
 
   bool DicomStoreUserConnection::ProposeStorageClass(const std::string& sopClassUid,
-                                                     const std::set<DicomTransferSyntax>& syntaxes)
+                                                     const std::set<DicomTransferSyntax>& sourceSyntaxes,
+                                                     bool hasPreferred,
+                                                     DicomTransferSyntax preferred)
   {
-    // Default transfer syntax for DICOM
-    const bool addLittleEndianImplicit = (
-      proposeUncompressedSyntaxes_ &&
-      syntaxes.find(DicomTransferSyntax_LittleEndianImplicit) == syntaxes.end());
-    
-    const bool addLittleEndianExplicit = (
-      proposeUncompressedSyntaxes_ &&
-      syntaxes.find(DicomTransferSyntax_LittleEndianExplicit) == syntaxes.end());
-    
-    const bool addBigEndianExplicit = (
-      proposeUncompressedSyntaxes_ &&
-      proposeRetiredBigEndian_ &&
-      syntaxes.find(DicomTransferSyntax_BigEndianExplicit) == syntaxes.end());
-    
-    size_t requiredCount = syntaxes.size();
-    if (addLittleEndianImplicit)
+    typedef std::list< std::set<DicomTransferSyntax> >  GroupsOfSyntaxes;
+
+    GroupsOfSyntaxes  groups;
+
+    // Firstly, add one group for each individual transfer syntax
+    for (std::set<DicomTransferSyntax>::const_iterator
+           it = sourceSyntaxes.begin(); it != sourceSyntaxes.end(); ++it)
     {
-      requiredCount += 1;
+      std::set<DicomTransferSyntax> group;
+      group.insert(*it);
+      groups.push_back(group);
     }
-      
-    if (addLittleEndianExplicit ||
-        addBigEndianExplicit)
+
+    // Secondly, add one group with the preferred transfer syntax
+    if (hasPreferred &&
+        sourceSyntaxes.find(preferred) == sourceSyntaxes.end())
     {
-      requiredCount += 1;
+      std::set<DicomTransferSyntax> group;
+      group.insert(preferred);
+      groups.push_back(group);
     }
-      
-    if (association_->GetRemainingPropositions() <= requiredCount)
+
+    // Thirdly, add all the uncompressed transfer syntaxes as one single group
+    if (proposeUncompressedSyntaxes_)
+    {
+      static const size_t N = 3;
+      static const DicomTransferSyntax UNCOMPRESSED_SYNTAXES[N] = {
+        DicomTransferSyntax_LittleEndianImplicit,
+        DicomTransferSyntax_LittleEndianExplicit,
+        DicomTransferSyntax_BigEndianExplicit
+      };
+
+      std::set<DicomTransferSyntax> group;
+
+      for (size_t i = 0; i < N; i++)
+      {
+        DicomTransferSyntax syntax = UNCOMPRESSED_SYNTAXES[i];
+        if (sourceSyntaxes.find(syntax) == sourceSyntaxes.end() &&
+            (!hasPreferred || preferred != syntax))
+        {
+          group.insert(syntax);
+        }
+      }
+
+      if (!group.empty())
+      {
+        groups.push_back(group);
+      }
+    }
+
+    // Now, propose each of these groups of transfer syntaxes
+    if (association_->GetRemainingPropositions() <= groups.size())
     {
       return false;  // Not enough room
     }
     else
     {
-      for (std::set<DicomTransferSyntax>::const_iterator
-             it = syntaxes.begin(); it != syntaxes.end(); ++it)
+      for (GroupsOfSyntaxes::const_iterator it = groups.begin(); it != groups.end(); ++it)
       {
         association_->ProposePresentationContext(sopClassUid, *it);
-        proposedOriginalClasses_.insert(std::make_pair(sopClassUid, *it));
-      }
 
-      if (addLittleEndianImplicit)
-      {
-        association_->ProposePresentationContext(sopClassUid, DicomTransferSyntax_LittleEndianImplicit);
-        proposedOriginalClasses_.insert(std::make_pair(sopClassUid, DicomTransferSyntax_LittleEndianImplicit));
-      }
-
-      if (addLittleEndianExplicit ||
-          addBigEndianExplicit)
-      {
-        std::set<DicomTransferSyntax> uncompressed;
-
-        if (addLittleEndianExplicit)
+        // Remember the syntaxes that were individually proposed, in
+        // order to avoid renegociation if they are seen again (**)
+        if (it->size() == 1)
         {
-          uncompressed.insert(DicomTransferSyntax_LittleEndianExplicit);
-        }
-
-        if (addBigEndianExplicit)
-        {
-          uncompressed.insert(DicomTransferSyntax_BigEndianExplicit);
-        }
-
-        association_->ProposePresentationContext(sopClassUid, uncompressed);
-
-        assert(!uncompressed.empty());
-        if (addLittleEndianExplicit ^ addBigEndianExplicit)
-        {
-          // Only one transfer syntax was proposed for this presentation context
-          assert(uncompressed.size() == 1);
-          proposedOriginalClasses_.insert(std::make_pair(sopClassUid, *uncompressed.begin()));
+          DicomTransferSyntax syntax = *it->begin();
+          proposedOriginalClasses_.insert(std::make_pair(sopClassUid, syntax));
         }
       }
 
@@ -247,7 +250,9 @@ namespace Orthanc
   bool DicomStoreUserConnection::NegotiatePresentationContext(
     uint8_t& presentationContextId,
     const std::string& sopClassUid,
-    DicomTransferSyntax transferSyntax)
+    DicomTransferSyntax transferSyntax,
+    bool hasPreferred,
+    DicomTransferSyntax preferred)
   {
     /**
      * Step 1: Check whether this presentation context is already
@@ -265,6 +270,8 @@ namespace Orthanc
       CLOG(INFO, DICOM) << "Re-negotiating DICOM association with "
                         << parameters_.GetRemoteModality().GetApplicationEntityTitle();
 
+      // Don't renegociate if we know that the remote modality was
+      // already proposed this individual transfer syntax (**)
       if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) !=
           proposedOriginalClasses_.end())
       {
@@ -294,7 +301,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
 
-      if (!ProposeStorageClass(sopClassUid, mandatory->second))
+      if (!ProposeStorageClass(sopClassUid, mandatory->second, hasPreferred, preferred))
       {
         // Should never happen in real life: There are no more than
         // 128 transfer syntaxes in DICOM!
@@ -314,7 +321,7 @@ namespace Orthanc
     {
       if (it->first != sopClassUid)
       {
-        ProposeStorageClass(it->first, it->second);
+        ProposeStorageClass(it->first, it->second, hasPreferred, preferred);
       }
     }
       
@@ -340,7 +347,7 @@ namespace Orthanc
         if (c != sopClassUid &&
             registeredClasses_.find(c) == registeredClasses_.end())
         {
-          ProposeStorageClass(c, ts);
+          ProposeStorageClass(c, ts, hasPreferred, preferred);
         }
       }
     }
@@ -367,7 +374,8 @@ namespace Orthanc
     LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
 
     uint8_t presID;
-    if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax))
+    if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax, proposeUncompressedSyntaxes_,
+                                      DicomTransferSyntax_LittleEndianExplicit))
     {
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "No valid presentation context was negotiated for "
@@ -465,7 +473,9 @@ namespace Orthanc
 
   void DicomStoreUserConnection::LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                                                    const std::string& sopClassUid,
-                                                   DicomTransferSyntax sourceSyntax)
+                                                   DicomTransferSyntax sourceSyntax,
+                                                   bool hasPreferred,
+                                                   DicomTransferSyntax preferred)
   {
     acceptedSyntaxes.clear();
 
@@ -473,7 +483,7 @@ namespace Orthanc
     // syntax. We don't use the return code: Transcoding is possible
     // even if the "sourceSyntax" is not supported.
     uint8_t presID;
-    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax);
+    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred);
 
     std::map<DicomTransferSyntax, uint8_t> contexts;
     if (association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
@@ -492,6 +502,7 @@ namespace Orthanc
                                            IDicomTranscoder& transcoder,
                                            const void* buffer,
                                            size_t size,
+                                           DicomTransferSyntax preferredTransferSyntax,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
                                            uint16_t moveOriginatorID)
@@ -503,13 +514,13 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    DicomTransferSyntax inputSyntax;
-    LookupParameters(sopClassUid, sopInstanceUid, inputSyntax, *dicom);
+    DicomTransferSyntax sourceSyntax;
+    LookupParameters(sopClassUid, sopInstanceUid, sourceSyntax, *dicom);
 
     std::set<DicomTransferSyntax> accepted;
-    LookupTranscoding(accepted, sopClassUid, inputSyntax);
+    LookupTranscoding(accepted, sopClassUid, sourceSyntax, true, preferredTransferSyntax);
 
-    if (accepted.find(inputSyntax) != accepted.end())
+    if (accepted.find(sourceSyntax) != accepted.end())
     {
       // No need for transcoding
       Store(sopClassUid, sopInstanceUid, *dicom,
@@ -518,53 +529,105 @@ namespace Orthanc
     else
     {
       // Transcoding is needed
-      std::set<DicomTransferSyntax> uncompressedSyntaxes;
-
-      if (accepted.find(DicomTransferSyntax_LittleEndianImplicit) != accepted.end())
-      {
-        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
-      }
-
-      if (accepted.find(DicomTransferSyntax_LittleEndianExplicit) != accepted.end())
-      {
-        uncompressedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
-      }
-
-      if (accepted.find(DicomTransferSyntax_BigEndianExplicit) != accepted.end())
-      {
-        uncompressedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
-      }
-
       IDicomTranscoder::DicomImage source;
       source.AcquireParsed(dicom.release());
       source.SetExternalBuffer(buffer, size);
 
       const std::string sourceUid = IDicomTranscoder::GetSopInstanceUid(source.GetParsed());
-      
+        
       IDicomTranscoder::DicomImage transcoded;
-      if (transcoder.Transcode(transcoded, source, uncompressedSyntaxes, false))
+      bool success = false;
+      bool isDestructiveCompressionAllowed = false;
+      std::set<DicomTransferSyntax> attemptedSyntaxes;
+
+      if (accepted.find(preferredTransferSyntax) != accepted.end())
       {
-        if (sourceUid != IDicomTranscoder::GetSopInstanceUid(transcoded.GetParsed()))
+        // New in Orthanc 1.9.0: The preferred transfer syntax is
+        // accepted by the remote modality => transcode to this syntax
+        std::set<DicomTransferSyntax> targetSyntaxes;
+        targetSyntaxes.insert(preferredTransferSyntax);
+        attemptedSyntaxes.insert(preferredTransferSyntax);
+
+        success = transcoder.Transcode(transcoded, source, targetSyntaxes, true);
+        isDestructiveCompressionAllowed = true;
+      }
+
+      if (!success)
+      {
+        // Transcode to either one of the uncompressed transfer
+        // syntaxes that are accepted by the remote modality
+
+        std::set<DicomTransferSyntax> targetSyntaxes;
+
+        if (accepted.find(DicomTransferSyntax_LittleEndianImplicit) != accepted.end())
         {
-          throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
-                                 "instance UID while transcoding to an uncompressed transfer syntax");
+          targetSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+          attemptedSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
         }
-        else
+
+        if (accepted.find(DicomTransferSyntax_LittleEndianExplicit) != accepted.end())
         {
-          DicomTransferSyntax transcodedSyntax;
-          
-          // Sanity check
-          if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
-              accepted.find(transcodedSyntax) == accepted.end())
+          targetSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+          attemptedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+        }
+
+        if (accepted.find(DicomTransferSyntax_BigEndianExplicit) != accepted.end())
+        {
+          targetSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
+          attemptedSyntaxes.insert(DicomTransferSyntax_BigEndianExplicit);
+        }
+
+        if (!targetSyntaxes.empty())
+        {
+          success = transcoder.Transcode(transcoded, source, targetSyntaxes, false);
+          isDestructiveCompressionAllowed = false;
+        }
+      }
+
+      if (success)
+      {
+        std::string targetUid = IDicomTranscoder::GetSopInstanceUid(transcoded.GetParsed());
+        if (sourceUid != targetUid)
+        {
+          if (isDestructiveCompressionAllowed)
           {
-            throw OrthancException(ErrorCode_InternalError);
+            LOG(WARNING) << "Because of the use of a preferred transfer syntax that corresponds to "
+                         << "a destructive compression, C-STORE SCU has hanged the SOP Instance UID "
+                         << "of a DICOM instance from \"" << sourceUid << "\" to \"" << targetUid << "\"";
           }
           else
           {
-            Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
-                  hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+            throw OrthancException(ErrorCode_Plugin, "The transcoder has changed the SOP "
+                                   "Instance UID while transcoding to an uncompressed transfer syntax");
           }
         }
+
+        DicomTransferSyntax transcodedSyntax;
+          
+        // Sanity check
+        if (!FromDcmtkBridge::LookupOrthancTransferSyntax(transcodedSyntax, transcoded.GetParsed()) ||
+            accepted.find(transcodedSyntax) == accepted.end())
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        else
+        {
+          Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
+                hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+        }
+      }
+      else
+      {
+        std::string s;
+        for (std::set<DicomTransferSyntax>::const_iterator
+               it = attemptedSyntaxes.begin(); it != attemptedSyntaxes.end(); ++it)
+        {
+          s += " " + std::string(GetTransferSyntaxUid(*it));
+        }
+        
+        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode from " +
+                               std::string(GetTransferSyntaxUid(sourceSyntax)) +
+                               " to one of [" + s + " ]");
       }
     }
   }

@@ -72,7 +72,7 @@ namespace Orthanc
       LOG(WARNING) << "An instance was removed after the job was issued: " << instance;
       return false;
     }
-    
+
     std::string sopClassUid, sopInstanceUid;
     context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
                                   HasMoveOriginator(), moveOriginatorAet_, moveOriginatorId_);

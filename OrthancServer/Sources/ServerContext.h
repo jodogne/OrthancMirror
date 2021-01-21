@@ -225,6 +225,7 @@ namespace Orthanc
     DicomTransferSyntax ingestTransferSyntax_;
     bool ingestTranscodingOfUncompressed_;
     bool ingestTranscodingOfCompressed_;
+    DicomTransferSyntax preferredTransferSyntax_;   // New in Orthanc 1.9.0
 
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
