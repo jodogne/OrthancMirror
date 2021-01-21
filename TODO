@@ -83,6 +83,16 @@ Internationalization
 * Create DICOM files with multibyte encodings (Korean, JapaneseKanji, SimplifiedChinese)
 
 
+===========
+Performance
+===========
+
+* ServerContext::DicomCacheLocker => give access to the raw buffer,
+  useful in ServerContext::DecodeDicomInstance()
+* DicomMap: create a cache to the main DICOM tags index
+* Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
+
+
 =======
 Plugins
 =======
@@ -128,13 +138,6 @@ Lua
   https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
 
 
-============
-Code quality
-============
-
-* Have a look at openQA (cf. GNU Health)
-
-
 ================
 Code refactoring
 ================
@@ -153,7 +156,7 @@ Platform-specific
 Packaging
 ---------
 
-* CentOS and RHEL through EPEL:
+* RHEL through EPEL (as of 2021, CentOS seems to be over):
   http://fedoraproject.org/wiki/EPEL_Package_Maintainers
 
 ------------------------
@@ -171,14 +174,6 @@ Microsoft Windows
   system locale)
 
 
-=====================
-External applications
-=====================
-
-* Create REST bindings with Slicer
-* Create REST bindings with Horos/OsiriX
-
-
 ====
 Misc
 ====
@@ -192,10 +187,15 @@ Legal
   (incompatible with GPL) by "Apache License 2.0" (compatible with
   GPL): https://people.gnome.org/~markmc/openssl-and-the-gpl.html
   
+------------
+Code quality
+------------
 
------------
-Performance
------------
+* Have a look at openQA (cf. GNU Health)
 
-* DicomMap: create a cache to the main DICOM tags index
-* Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
+---------------------
+External applications
+---------------------
+
+* Create REST bindings with Slicer
+* Create REST bindings with Horos/OsiriX
