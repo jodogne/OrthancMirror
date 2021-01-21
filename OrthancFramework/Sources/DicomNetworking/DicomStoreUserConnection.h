@@ -150,5 +150,14 @@ namespace Orthanc
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
+
+    void Transcode(std::string& sopClassUid /* out */,
+                   std::string& sopInstanceUid /* out */,
+                   IDicomTranscoder& transcoder,
+                   const void* buffer,
+                   size_t size,
+                   bool hasMoveOriginator,
+                   const std::string& moveOriginatorAET,
+                   uint16_t moveOriginatorID);
   };
 }
