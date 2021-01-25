@@ -414,4 +414,38 @@ namespace Orthanc
     return (metadata >= MetadataType_StartUser &&
             metadata <= MetadataType_EndUser);
   }
+
+
+  const char* EnumerationToString(TransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        return "Deflated";
+
+      case TransferSyntax_Jpeg:
+        return "JPEG";
+
+      case TransferSyntax_Jpeg2000:
+        return "JPEG2000";
+
+      case TransferSyntax_JpegLossless:
+        return "JPEG Lossless";
+
+      case TransferSyntax_Jpip:
+        return "JPIP";
+
+      case TransferSyntax_Mpeg2:
+        return "MPEG2";
+
+      case TransferSyntax_Mpeg4:
+        return "MPEG4";
+
+      case TransferSyntax_Rle:
+        return "RLE";
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }

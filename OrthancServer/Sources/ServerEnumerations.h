@@ -95,6 +95,19 @@ namespace Orthanc
     StoreInstanceMode_IgnoreDuplicate
   };
 
+  // This enum was previously part of Orthanc framework (until 1.8.2)
+  enum TransferSyntax
+  {
+    TransferSyntax_Deflated,
+    TransferSyntax_Jpeg,
+    TransferSyntax_Jpeg2000,
+    TransferSyntax_JpegLossless,
+    TransferSyntax_Jpip,
+    TransferSyntax_Mpeg2,
+    TransferSyntax_Mpeg4,  // New in Orthanc 1.6.0
+    TransferSyntax_Rle
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -219,4 +232,6 @@ namespace Orthanc
   const char* EnumerationToString(Verbosity verbosity);
 
   bool IsUserMetadata(MetadataType type);
+
+  const char* EnumerationToString(TransferSyntax syntax);
 }
