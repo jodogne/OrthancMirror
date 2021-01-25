@@ -24,6 +24,7 @@
 
 #include "OrthancFramework.h"
 
+#include <set>
 #include <string>
 
 
@@ -894,4 +895,7 @@ namespace Orthanc
   const char* GetResourceTypeText(ResourceType type,
                                   bool isPlural,
                                   bool isLowerCase);
+
+  ORTHANC_PUBLIC
+  void GetAllTransferSyntaxes(std::set<DicomTransferSyntax>& target);
 }

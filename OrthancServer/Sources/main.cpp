@@ -364,6 +364,92 @@ public:
     }
   }
 
+
+  virtual void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
+                                           const std::string& remoteIp,
+                                           const std::string& remoteAet,
+                                           const std::string& calledAet) ORTHANC_OVERRIDE
+  {
+    target.clear();
+    
+    // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+    target.insert(DicomTransferSyntax_LittleEndianExplicit);
+    target.insert(DicomTransferSyntax_BigEndianExplicit);
+    target.insert(DicomTransferSyntax_LittleEndianImplicit);
+
+    // New transfer syntaxes supported since Orthanc 0.7.2
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
+    {
+      target.insert(DicomTransferSyntax_DeflatedLittleEndianExplicit);
+    }
+
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
+    {
+      target.insert(DicomTransferSyntax_JPEGProcess1);
+      target.insert(DicomTransferSyntax_JPEGProcess2_4);
+      target.insert(DicomTransferSyntax_JPEGProcess3_5);
+      target.insert(DicomTransferSyntax_JPEGProcess6_8);
+      target.insert(DicomTransferSyntax_JPEGProcess7_9);
+      target.insert(DicomTransferSyntax_JPEGProcess10_12);
+      target.insert(DicomTransferSyntax_JPEGProcess11_13);
+      target.insert(DicomTransferSyntax_JPEGProcess14);
+      target.insert(DicomTransferSyntax_JPEGProcess15);
+      target.insert(DicomTransferSyntax_JPEGProcess16_18);
+      target.insert(DicomTransferSyntax_JPEGProcess17_19);
+      target.insert(DicomTransferSyntax_JPEGProcess20_22);
+      target.insert(DicomTransferSyntax_JPEGProcess21_23);
+      target.insert(DicomTransferSyntax_JPEGProcess24_26);
+      target.insert(DicomTransferSyntax_JPEGProcess25_27);
+      target.insert(DicomTransferSyntax_JPEGProcess28);
+      target.insert(DicomTransferSyntax_JPEGProcess29);
+      target.insert(DicomTransferSyntax_JPEGProcess14SV1);
+    }
+
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
+    {
+      target.insert(DicomTransferSyntax_JPEG2000);
+      target.insert(DicomTransferSyntax_JPEG2000LosslessOnly);
+      target.insert(DicomTransferSyntax_JPEG2000Multicomponent);
+      target.insert(DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly);
+    }
+
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
+    {
+      target.insert(DicomTransferSyntax_JPEGLSLossless);
+      target.insert(DicomTransferSyntax_JPEGLSLossy);
+    }
+
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
+    {
+      target.insert(DicomTransferSyntax_JPIPReferenced);
+      target.insert(DicomTransferSyntax_JPIPReferencedDeflate);
+    }
+
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
+    {
+      target.insert(DicomTransferSyntax_MPEG2MainProfileAtMainLevel);
+      target.insert(DicomTransferSyntax_MPEG2MainProfileAtHighLevel);
+    }
+
+#if DCMTK_VERSION_NUMBER >= 361
+    // New in Orthanc 1.6.0
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
+    {
+      target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
+      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_1);
+      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo);
+      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
+      target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
+    }
+#endif
+        
+    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
+    {
+      target.insert(DicomTransferSyntax_RLELossless);
+    }
+  }
+
+  
   virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
                                        const std::string& remoteAet,
                                        const std::string& calledAet,

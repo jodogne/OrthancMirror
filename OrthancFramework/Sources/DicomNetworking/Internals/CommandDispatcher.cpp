@@ -409,185 +409,152 @@ namespace Orthanc
 
       {
         /* accept the abstract syntaxes for C-STORE, if presented */
+        
+        std::set<DicomTransferSyntax> storageTransferSyntaxes;
 
-        std::vector<const char*> storageTransferSyntaxes;
-
-        // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
-        storageTransferSyntaxes.push_back(UID_LittleEndianExplicitTransferSyntax);
-        storageTransferSyntaxes.push_back(UID_BigEndianExplicitTransferSyntax);
-        storageTransferSyntaxes.push_back(UID_LittleEndianImplicitTransferSyntax);
-
-        // New transfer syntaxes supported since Orthanc 0.7.2
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
+        if (server.HasApplicationEntityFilter())
         {
-          storageTransferSyntaxes.push_back(UID_DeflatedExplicitVRLittleEndianTransferSyntax); 
+          server.GetApplicationEntityFilter().GetAcceptedTransferSyntaxes(
+            storageTransferSyntaxes, remoteIp, remoteAet, calledAet);
+        }
+        else
+        {
+          /**
+           * In the absence of filter, accept all the known transfer
+           * syntaxes. Note that this is different from Orthanc
+           * framework <= 1.8.2, where only the uncompressed transfer
+           * syntaxes are accepted by default.
+           **/
+          GetAllTransferSyntaxes(storageTransferSyntaxes);
         }
 
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
+        if (storageTransferSyntaxes.empty())
         {
-          storageTransferSyntaxes.push_back(UID_JPEGProcess1TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess2_4TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess3_5TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess6_8TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess7_9TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess10_12TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess11_13TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess14TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess15TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess16_18TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess17_19TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess20_22TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess21_23TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess24_26TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess25_27TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess28TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess29TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGProcess14SV1TransferSyntax);
+          LOG(WARNING) << "The DICOM server accepts no transfer syntax, thus C-STORE SCP is disabled";
         }
+        else
+        {
+          /**
+           * If accepted, put "Little Endian Explicit" at the first
+           * place in the accepted transfer syntaxes. This first place
+           * has an impact on the result of "getscu" (cf. integration
+           * test "test_getscu"). We choose "Little Endian Explicit",
+           * as this preserves the VR of the private tags, even if the
+           * remote modality doesn't have the dictionary of private tags.
+           *
+           * TODO - Should "PREFERRED_TRANSFER_SYNTAX" be an option of
+           * class "DicomServer"?
+           **/
+          const DicomTransferSyntax PREFERRED_TRANSFER_SYNTAX = DicomTransferSyntax_LittleEndianExplicit;
+          
+          std::vector<const char*> storageTransferSyntaxesC;
+          storageTransferSyntaxesC.reserve(storageTransferSyntaxes.size());
 
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
-        {
-          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEG2000LosslessOnlyTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEG2000TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionLosslessOnlyTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEG2000Part2MulticomponentImageCompressionTransferSyntax);
-        }
+          if (storageTransferSyntaxes.find(PREFERRED_TRANSFER_SYNTAX) != storageTransferSyntaxes.end())
+          {
+            storageTransferSyntaxesC.push_back(GetTransferSyntaxUid(PREFERRED_TRANSFER_SYNTAX));
+          }
+          
+          for (std::set<DicomTransferSyntax>::const_iterator
+                 it = storageTransferSyntaxes.begin(); it != storageTransferSyntaxes.end(); ++it)
+          {
+            if (*it != PREFERRED_TRANSFER_SYNTAX)  // Don't add the preferred transfer syntax twice
+            {
+              storageTransferSyntaxesC.push_back(GetTransferSyntaxUid(*it));
+            }
+          }
 
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
-        {
-          storageTransferSyntaxes.push_back(UID_JPEGLSLosslessTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPEGLSLossyTransferSyntax);
-        }
-
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
-        {
-          storageTransferSyntaxes.push_back(UID_JPIPReferencedTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_JPIPReferencedDeflateTransferSyntax);
-        }
-
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
-        {
-          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtMainLevelTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_MPEG2MainProfileAtHighLevelTransferSyntax);
-        }
-
-#if DCMTK_VERSION_NUMBER >= 361
-        // New in Orthanc 1.6.0
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
-        {
-          storageTransferSyntaxes.push_back(UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_1TransferSyntax);
-          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax);
-          storageTransferSyntaxes.push_back(UID_MPEG4StereoHighProfileLevel4_2TransferSyntax);
-        }
-#endif
-
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
-        {
-          storageTransferSyntaxes.push_back(UID_RLELosslessTransferSyntax);
-        }
-
-        /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
-        size_t count = 0;
-        while (dcmAllStorageSOPClassUIDs[count] != NULL)
-        {
-          count++;
-        }
+          /* the array of Storage SOP Class UIDs that is defined within "dcmdata/libsrc/dcuid.cc" */
+          size_t count = 0;
+          while (dcmAllStorageSOPClassUIDs[count] != NULL)
+          {
+            count++;
+          }
         
 #if DCMTK_VERSION_NUMBER >= 362
-        // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
-        // only published if DCMTK >= 3.6.2:
-        // https://bitbucket.org/sjodogne/orthanc/issues/137
-        assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
+          // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
+          // only published if DCMTK >= 3.6.2:
+          // https://bitbucket.org/sjodogne/orthanc/issues/137
+          assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
-        if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
-        {
-          // This branch exactly corresponds to Orthanc <= 1.6.1 (in
-          // which C-GET SCP was not supported)
-          cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
-            assoc->params, dcmAllStorageSOPClassUIDs, count,
-            &storageTransferSyntaxes[0], storageTransferSyntaxes.size());
-          if (cond.bad())
+          if (!server.HasGetRequestHandlerFactory())    // dcmqrsrv.cc line 828
           {
-            CLOG(INFO, DICOM) << cond.text();
-            AssociationCleanup(assoc);
-            return NULL;
-          }
-        }
-        else                                         // see dcmqrsrv.cc lines 839 - 876
-        {
-          /* accept storage syntaxes with proposed role */
-          int npc = ASC_countPresentationContexts(assoc->params);
-          for (int i = 0; i < npc; i++)
-          {
-            T_ASC_PresentationContext pc;
-            ASC_getPresentationContext(assoc->params, i, &pc);
-            if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
+            // This branch exactly corresponds to Orthanc <= 1.6.1 (in
+            // which C-GET SCP was not supported)
+            cond = ASC_acceptContextsWithPreferredTransferSyntaxes(
+              assoc->params, dcmAllStorageSOPClassUIDs, count,
+              &storageTransferSyntaxesC[0], storageTransferSyntaxesC.size());
+            if (cond.bad())
             {
-              /**
-               * We are prepared to accept whatever role the caller
-               * proposes.  Normally we can be the SCP of the Storage
-               * Service Class.  When processing the C-GET operation
-               * we can be the SCU of the Storage Service Class.
-               **/
-              const T_ASC_SC_ROLE role = pc.proposedRole;
-            
-              /**
-               * Accept in the order "least wanted" to "most wanted"
-               * transfer syntax.  Accepting a transfer syntax will
-               * override previously accepted transfer syntaxes.
-               **/
-              for (int k = static_cast<int>(storageTransferSyntaxes.size()) - 1; k >= 0; k--)
+              CLOG(INFO, DICOM) << cond.text();
+              AssociationCleanup(assoc);
+              return NULL;
+            }
+          }
+          else                                         // see dcmqrsrv.cc lines 839 - 876
+          {
+            /* accept storage syntaxes with proposed role */
+            int npc = ASC_countPresentationContexts(assoc->params);
+            for (int i = 0; i < npc; i++)
+            {
+              T_ASC_PresentationContext pc;
+              ASC_getPresentationContext(assoc->params, i, &pc);
+              if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
               {
-                for (int j = 0; j < static_cast<int>(pc.transferSyntaxCount); j++)
+                /**
+                 * We are prepared to accept whatever role the caller
+                 * proposes.  Normally we can be the SCP of the Storage
+                 * Service Class.  When processing the C-GET operation
+                 * we can be the SCU of the Storage Service Class.
+                 **/
+                const T_ASC_SC_ROLE role = pc.proposedRole;
+            
+                /**
+                 * Accept in the order "least wanted" to "most wanted"
+                 * transfer syntax.  Accepting a transfer syntax will
+                 * override previously accepted transfer syntaxes.
+                 **/
+                for (int k = static_cast<int>(storageTransferSyntaxesC.size()) - 1; k >= 0; k--)
                 {
-                  /**
-                   * If the transfer syntax was proposed then we can accept it
-                   * appears in our supported list of transfer syntaxes
-                   **/
-                  if (strcmp(pc.proposedTransferSyntaxes[j], storageTransferSyntaxes[k]) == 0)
+                  for (int j = 0; j < static_cast<int>(pc.transferSyntaxCount); j++)
                   {
-                    cond = ASC_acceptPresentationContext(
-                      assoc->params, pc.presentationContextID, storageTransferSyntaxes[k], role);
-                    if (cond.bad())
+                    /**
+                     * If the transfer syntax was proposed then we can accept it
+                     * appears in our supported list of transfer syntaxes
+                     **/
+                    if (strcmp(pc.proposedTransferSyntaxes[j], storageTransferSyntaxesC[k]) == 0)
                     {
-                      CLOG(INFO, DICOM) << cond.text();
-                      AssociationCleanup(assoc);
-                      return NULL;
+                      cond = ASC_acceptPresentationContext(
+                        assoc->params, pc.presentationContextID, storageTransferSyntaxesC[k], role);
+                      if (cond.bad())
+                      {
+                        CLOG(INFO, DICOM) << cond.text();
+                        AssociationCleanup(assoc);
+                        return NULL;
+                      }
                     }
                   }
                 }
               }
-            }
-          } /* for */
-        }
+            } /* for */
+          }
 
-        if (!server.HasApplicationEntityFilter() ||
-            server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
-        {
-          /*
-           * Promiscous mode is enabled: Accept everything not known not
-           * to be a storage SOP class.
-           **/
-          cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
-            assoc->params, &storageTransferSyntaxes[0], storageTransferSyntaxes.size(), ASC_SC_ROLE_DEFAULT);
-          if (cond.bad())
+          if (!server.HasApplicationEntityFilter() ||
+              server.GetApplicationEntityFilter().IsUnknownSopClassAccepted(remoteIp, remoteAet, calledAet))
           {
-            CLOG(INFO, DICOM) << cond.text();
-            AssociationCleanup(assoc);
-            return NULL;
+            /*
+             * Promiscous mode is enabled: Accept everything not known not
+             * to be a storage SOP class.
+             **/
+            cond = acceptUnknownContextsWithPreferredTransferSyntaxes(
+              assoc->params, &storageTransferSyntaxesC[0], storageTransferSyntaxesC.size(), ASC_SC_ROLE_DEFAULT);
+            if (cond.bad())
+            {
+              CLOG(INFO, DICOM) << cond.text();
+              AssociationCleanup(assoc);
+              return NULL;
+            }
           }
         }
       }
