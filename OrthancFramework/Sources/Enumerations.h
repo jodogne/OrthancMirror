@@ -627,18 +627,6 @@ namespace Orthanc
     DicomRequestType_NEventReport
   };
 
-  enum TransferSyntax
-  {
-    TransferSyntax_Deflated,
-    TransferSyntax_Jpeg,
-    TransferSyntax_Jpeg2000,
-    TransferSyntax_JpegLossless,
-    TransferSyntax_Jpip,
-    TransferSyntax_Mpeg2,
-    TransferSyntax_Mpeg4,  // New in Orthanc 1.6.0
-    TransferSyntax_Rle
-  };
-
   enum JobState
   {
     JobState_Pending,
@@ -786,9 +774,6 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(DicomRequestType type);
-
-  ORTHANC_PUBLIC
-  const char* EnumerationToString(TransferSyntax syntax);
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(DicomVersion version);

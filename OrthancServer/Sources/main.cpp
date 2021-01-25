@@ -282,6 +282,72 @@ private:
   bool            alwaysAllowEcho_;
   bool            alwaysAllowStore_;
 
+  bool IsAllowedTransferSyntax(const std::string& remoteIp,
+                               const std::string& remoteAet,
+                               const std::string& calledAet,
+                               TransferSyntax syntax)
+  {
+    std::string configuration;
+
+    switch (syntax)
+    {
+      case TransferSyntax_Deflated:
+        configuration = "DeflatedTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpeg:
+        configuration = "JpegTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpeg2000:
+        configuration = "Jpeg2000TransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_JpegLossless:
+        configuration = "JpegLosslessTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Jpip:
+        configuration = "JpipTransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Mpeg2:
+        configuration = "Mpeg2TransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Mpeg4:
+        configuration = "Mpeg4TransferSyntaxAccepted";
+        break;
+
+      case TransferSyntax_Rle:
+        configuration = "RleTransferSyntaxAccepted";
+        break;
+
+      default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    {
+      std::string name = "Is" + configuration;
+
+      LuaScripting::Lock lock(context_.GetLuaScripting());
+      
+      if (lock.GetLua().IsExistingFunction(name.c_str()))
+      {
+        LuaFunctionCall call(lock.GetLua(), name.c_str());
+        call.PushString(remoteAet);
+        call.PushString(remoteIp);
+        call.PushString(calledAet);
+        return call.ExecutePredicate();
+      }
+    }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      return lock.GetConfiguration().GetBooleanParameter(configuration, true);
+    }
+  }
+
 public:
   explicit OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
@@ -450,73 +516,6 @@ public:
   }
 
   
-  virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
-                                       const std::string& remoteAet,
-                                       const std::string& calledAet,
-                                       TransferSyntax syntax) ORTHANC_OVERRIDE
-  {
-    std::string configuration;
-
-    switch (syntax)
-    {
-      case TransferSyntax_Deflated:
-        configuration = "DeflatedTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Jpeg:
-        configuration = "JpegTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Jpeg2000:
-        configuration = "Jpeg2000TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_JpegLossless:
-        configuration = "JpegLosslessTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Jpip:
-        configuration = "JpipTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Mpeg2:
-        configuration = "Mpeg2TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Mpeg4:
-        configuration = "Mpeg4TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntax_Rle:
-        configuration = "RleTransferSyntaxAccepted";
-        break;
-
-      default: 
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    {
-      std::string name = "Is" + configuration;
-
-      LuaScripting::Lock lock(context_.GetLuaScripting());
-      
-      if (lock.GetLua().IsExistingFunction(name.c_str()))
-      {
-        LuaFunctionCall call(lock.GetLua(), name.c_str());
-        call.PushString(remoteAet);
-        call.PushString(remoteIp);
-        call.PushString(calledAet);
-        return call.ExecutePredicate();
-      }
-    }
-
-    {
-      OrthancConfiguration::ReaderLock lock;
-      return lock.GetConfiguration().GetBooleanParameter(configuration, true);
-    }
-  }
-
-
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE
