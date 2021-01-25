@@ -44,6 +44,7 @@ Maintenance
 * Partial fix of issue #48 (Windows service not stopped properly), cf. comments 4 and 5
 * Explicitly use little-endian to encode uncompressed file size with zlib compression
 * Upgraded dependencies for static builds (notably on Windows):
+  - dcmtk 3.6.6
   - jsoncpp 1.9.4
 
 
