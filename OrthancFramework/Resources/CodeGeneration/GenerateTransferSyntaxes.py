@@ -26,7 +26,7 @@ import re
 import sys
 import pystache
 
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 
 
@@ -34,7 +34,7 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ## https://cedocs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=EDICOM_transfer_syntax
 
 
-with open(os.path.join(BASE, 'Resources', 'DicomTransferSyntaxes.json'), 'r') as f:
+with open(os.path.join(BASE, 'Resources', 'CodeGeneration', 'DicomTransferSyntaxes.json'), 'r') as f:
     SYNTAXES = json.loads(f.read())
 
 
@@ -43,7 +43,7 @@ with open(os.path.join(BASE, 'Resources', 'DicomTransferSyntaxes.json'), 'r') as
 ## Generate the "DicomTransferSyntax" enumeration in "Enumerations.h"
 ##
 
-path = os.path.join(BASE, 'Core', 'Enumerations.h')
+path = os.path.join(BASE, 'Sources', 'Enumerations.h')
 with open(path, 'r') as f:
     a = f.read()
 
@@ -60,14 +60,14 @@ with open(path, 'w') as f:
 ## Generate the implementations
 ##
 
-with open(os.path.join(BASE, 'Core', 'Enumerations_TransferSyntaxes.impl.h'), 'w') as b:
-    with open(os.path.join(BASE, 'Resources', 'GenerateTransferSyntaxesEnumerations.mustache'), 'r') as a:
+with open(os.path.join(BASE, 'Sources', 'Enumerations_TransferSyntaxes.impl.h'), 'w') as b:
+    with open(os.path.join(BASE, 'Resources', 'CodeGeneration', 'GenerateTransferSyntaxesEnumerations.mustache'), 'r') as a:
         b.write(pystache.render(a.read(), {
             'Syntaxes' : SYNTAXES
         }))
 
-with open(os.path.join(BASE, 'Core', 'DicomParsing', 'FromDcmtkBridge_TransferSyntaxes.impl.h'), 'w') as b:
-    with open(os.path.join(BASE, 'Resources', 'GenerateTransferSyntaxesDcmtk.mustache'), 'r') as a:
+with open(os.path.join(BASE, 'Sources', 'DicomParsing', 'FromDcmtkBridge_TransferSyntaxes.impl.h'), 'w') as b:
+    with open(os.path.join(BASE, 'Resources', 'CodeGeneration', 'GenerateTransferSyntaxesDcmtk.mustache'), 'r') as a:
         b.write(pystache.render(a.read(), {
             'Syntaxes' : SYNTAXES
         }))

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Compatibility.h"
 #include "../Enumerations.h"
 
 #include <string>
@@ -44,10 +45,15 @@ namespace Orthanc
                                   const std::string& calledAet,
                                   DicomRequestType type) = 0;
 
-    virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
-                                         const std::string& remoteAet,
-                                         const std::string& calledAet,
-                                         TransferSyntax syntax) = 0;
+    virtual void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
+                                             const std::string& remoteIp,
+                                             const std::string& remoteAet,
+                                             const std::string& calledAet) = 0;
+    
+    ORTHANC_DEPRECATED(virtual bool IsAllowedTransferSyntax(const std::string& remoteIp,
+                                                            const std::string& remoteAet,
+                                                            const std::string& calledAet,
+                                                            TransferSyntax syntax)) = 0;
 
     virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                            const std::string& remoteAet,

@@ -552,4 +552,52 @@ namespace Orthanc
     
     return false;
   }
+
+
+  void GetAllTransferSyntaxes(std::set<DicomTransferSyntax>& target)
+  {
+    target.clear();
+    target.insert(DicomTransferSyntax_LittleEndianImplicit);
+    target.insert(DicomTransferSyntax_LittleEndianExplicit);
+    target.insert(DicomTransferSyntax_DeflatedLittleEndianExplicit);
+    target.insert(DicomTransferSyntax_BigEndianExplicit);
+    target.insert(DicomTransferSyntax_JPEGProcess1);
+    target.insert(DicomTransferSyntax_JPEGProcess2_4);
+    target.insert(DicomTransferSyntax_JPEGProcess3_5);
+    target.insert(DicomTransferSyntax_JPEGProcess6_8);
+    target.insert(DicomTransferSyntax_JPEGProcess7_9);
+    target.insert(DicomTransferSyntax_JPEGProcess10_12);
+    target.insert(DicomTransferSyntax_JPEGProcess11_13);
+    target.insert(DicomTransferSyntax_JPEGProcess14);
+    target.insert(DicomTransferSyntax_JPEGProcess15);
+    target.insert(DicomTransferSyntax_JPEGProcess16_18);
+    target.insert(DicomTransferSyntax_JPEGProcess17_19);
+    target.insert(DicomTransferSyntax_JPEGProcess20_22);
+    target.insert(DicomTransferSyntax_JPEGProcess21_23);
+    target.insert(DicomTransferSyntax_JPEGProcess24_26);
+    target.insert(DicomTransferSyntax_JPEGProcess25_27);
+    target.insert(DicomTransferSyntax_JPEGProcess28);
+    target.insert(DicomTransferSyntax_JPEGProcess29);
+    target.insert(DicomTransferSyntax_JPEGProcess14SV1);
+    target.insert(DicomTransferSyntax_JPEGLSLossless);
+    target.insert(DicomTransferSyntax_JPEGLSLossy);
+    target.insert(DicomTransferSyntax_JPEG2000LosslessOnly);
+    target.insert(DicomTransferSyntax_JPEG2000);
+    target.insert(DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly);
+    target.insert(DicomTransferSyntax_JPEG2000Multicomponent);
+    target.insert(DicomTransferSyntax_JPIPReferenced);
+    target.insert(DicomTransferSyntax_JPIPReferencedDeflate);
+    target.insert(DicomTransferSyntax_MPEG2MainProfileAtMainLevel);
+    target.insert(DicomTransferSyntax_MPEG2MainProfileAtHighLevel);
+    target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_1);
+    target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
+    target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo);
+    target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
+    target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
+    target.insert(DicomTransferSyntax_HEVCMainProfileLevel5_1);
+    target.insert(DicomTransferSyntax_HEVCMain10ProfileLevel5_1);
+    target.insert(DicomTransferSyntax_RLELossless);
+    target.insert(DicomTransferSyntax_RFC2557MimeEncapsulation);
+    target.insert(DicomTransferSyntax_XML);
+  }
 }
