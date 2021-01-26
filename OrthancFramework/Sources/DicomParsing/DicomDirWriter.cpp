@@ -489,7 +489,7 @@ namespace Orthanc
       return true;   // Newly created
     }
 
-    void Read(std::string& s)
+    void Write(std::string& s)
     {
       if (!GetDicomDir().write(DICOMDIR_DEFAULT_TRANSFERSYNTAX, 
                                EET_UndefinedLength /*encodingType*/, 
@@ -574,7 +574,7 @@ namespace Orthanc
 
   void DicomDirWriter::Encode(std::string& target)
   {
-    pimpl_->Read(target);
+    pimpl_->Write(target);
   }
 
 
