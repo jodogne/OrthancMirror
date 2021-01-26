@@ -416,35 +416,115 @@ namespace Orthanc
   }
 
 
-  const char* EnumerationToString(TransferSyntax syntax)
+  const char* EnumerationToString(TransferSyntaxGroup syntax)
   {
     switch (syntax)
     {
-      case TransferSyntax_Deflated:
+      case TransferSyntaxGroup_Deflated:
         return "Deflated";
 
-      case TransferSyntax_Jpeg:
+      case TransferSyntaxGroup_Jpeg:
         return "JPEG";
 
-      case TransferSyntax_Jpeg2000:
+      case TransferSyntaxGroup_Jpeg2000:
         return "JPEG2000";
 
-      case TransferSyntax_JpegLossless:
+      case TransferSyntaxGroup_JpegLossless:
         return "JPEG Lossless";
 
-      case TransferSyntax_Jpip:
+      case TransferSyntaxGroup_Jpip:
         return "JPIP";
 
-      case TransferSyntax_Mpeg2:
+      case TransferSyntaxGroup_Mpeg2:
         return "MPEG2";
 
-      case TransferSyntax_Mpeg4:
+      case TransferSyntaxGroup_Mpeg4:
         return "MPEG4";
 
-      case TransferSyntax_Rle:
+      case TransferSyntaxGroup_Rle:
         return "RLE";
 
       default: 
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void GetTransferSyntaxGroup(std::set<DicomTransferSyntax>& target,
+                              TransferSyntaxGroup source,
+                              bool clearTarget)
+  {
+    if (clearTarget)
+    {
+      target.clear();
+    }
+
+    switch (source)
+    {    
+      // Transfer syntaxes supported since Orthanc 0.7.2
+      case TransferSyntaxGroup_Deflated:
+        target.insert(DicomTransferSyntax_DeflatedLittleEndianExplicit);
+        break;
+        
+      case TransferSyntaxGroup_Jpeg:
+        target.insert(DicomTransferSyntax_JPEGProcess1);
+        target.insert(DicomTransferSyntax_JPEGProcess2_4);
+        target.insert(DicomTransferSyntax_JPEGProcess3_5);
+        target.insert(DicomTransferSyntax_JPEGProcess6_8);
+        target.insert(DicomTransferSyntax_JPEGProcess7_9);
+        target.insert(DicomTransferSyntax_JPEGProcess10_12);
+        target.insert(DicomTransferSyntax_JPEGProcess11_13);
+        target.insert(DicomTransferSyntax_JPEGProcess14);
+        target.insert(DicomTransferSyntax_JPEGProcess15);
+        target.insert(DicomTransferSyntax_JPEGProcess16_18);
+        target.insert(DicomTransferSyntax_JPEGProcess17_19);
+        target.insert(DicomTransferSyntax_JPEGProcess20_22);
+        target.insert(DicomTransferSyntax_JPEGProcess21_23);
+        target.insert(DicomTransferSyntax_JPEGProcess24_26);
+        target.insert(DicomTransferSyntax_JPEGProcess25_27);
+        target.insert(DicomTransferSyntax_JPEGProcess28);
+        target.insert(DicomTransferSyntax_JPEGProcess29);
+        target.insert(DicomTransferSyntax_JPEGProcess14SV1);
+        break;
+
+      case TransferSyntaxGroup_Jpeg2000:
+        target.insert(DicomTransferSyntax_JPEG2000);
+        target.insert(DicomTransferSyntax_JPEG2000LosslessOnly);
+        target.insert(DicomTransferSyntax_JPEG2000Multicomponent);
+        target.insert(DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly);
+        break;
+
+      case TransferSyntaxGroup_JpegLossless:
+        target.insert(DicomTransferSyntax_JPEGLSLossless);
+        target.insert(DicomTransferSyntax_JPEGLSLossy);
+        break;
+
+      case TransferSyntaxGroup_Jpip:
+        target.insert(DicomTransferSyntax_JPIPReferenced);
+        target.insert(DicomTransferSyntax_JPIPReferencedDeflate);
+        break;
+
+      case TransferSyntaxGroup_Mpeg2:
+        target.insert(DicomTransferSyntax_MPEG2MainProfileAtMainLevel);
+        target.insert(DicomTransferSyntax_MPEG2MainProfileAtHighLevel);
+        break;
+
+      case TransferSyntaxGroup_Mpeg4:
+#if DCMTK_VERSION_NUMBER >= 361
+        // New in Orthanc 1.6.0
+        target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
+        target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_1);
+        target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo);
+        target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
+        target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
+#endif
+        break;
+        
+      case TransferSyntaxGroup_Rle:
+        target.insert(DicomTransferSyntax_RLELossless);
+        break;
+
+      default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }

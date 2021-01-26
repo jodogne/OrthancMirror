@@ -96,16 +96,16 @@ namespace Orthanc
   };
 
   // This enum was previously part of Orthanc framework (until 1.8.2)
-  enum TransferSyntax
+  enum TransferSyntaxGroup
   {
-    TransferSyntax_Deflated,
-    TransferSyntax_Jpeg,
-    TransferSyntax_Jpeg2000,
-    TransferSyntax_JpegLossless,
-    TransferSyntax_Jpip,
-    TransferSyntax_Mpeg2,
-    TransferSyntax_Mpeg4,  // New in Orthanc 1.6.0
-    TransferSyntax_Rle
+    TransferSyntaxGroup_Deflated,
+    TransferSyntaxGroup_Jpeg,
+    TransferSyntaxGroup_Jpeg2000,
+    TransferSyntaxGroup_JpegLossless,
+    TransferSyntaxGroup_Jpip,
+    TransferSyntaxGroup_Mpeg2,
+    TransferSyntaxGroup_Mpeg4,  // New in Orthanc 1.6.0
+    TransferSyntaxGroup_Rle
   };
 
 
@@ -233,5 +233,9 @@ namespace Orthanc
 
   bool IsUserMetadata(MetadataType type);
 
-  const char* EnumerationToString(TransferSyntax syntax);
+  const char* EnumerationToString(TransferSyntaxGroup syntax);
+
+  void GetTransferSyntaxGroup(std::set<DicomTransferSyntax>& target,
+                              TransferSyntaxGroup source,
+                              bool clearTarget);
 }

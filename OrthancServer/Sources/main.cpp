@@ -285,41 +285,41 @@ private:
   bool IsAllowedTransferSyntax(const std::string& remoteIp,
                                const std::string& remoteAet,
                                const std::string& calledAet,
-                               TransferSyntax syntax)
+                               TransferSyntaxGroup syntax)
   {
     std::string configuration;
 
     switch (syntax)
     {
-      case TransferSyntax_Deflated:
+      case TransferSyntaxGroup_Deflated:
         configuration = "DeflatedTransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Jpeg:
+      case TransferSyntaxGroup_Jpeg:
         configuration = "JpegTransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Jpeg2000:
+      case TransferSyntaxGroup_Jpeg2000:
         configuration = "Jpeg2000TransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_JpegLossless:
+      case TransferSyntaxGroup_JpegLossless:
         configuration = "JpegLosslessTransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Jpip:
+      case TransferSyntaxGroup_Jpip:
         configuration = "JpipTransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Mpeg2:
+      case TransferSyntaxGroup_Mpeg2:
         configuration = "Mpeg2TransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Mpeg4:
+      case TransferSyntaxGroup_Mpeg4:
         configuration = "Mpeg4TransferSyntaxAccepted";
         break;
 
-      case TransferSyntax_Rle:
+      case TransferSyntaxGroup_Rle:
         configuration = "RleTransferSyntaxAccepted";
         break;
 
@@ -443,75 +443,25 @@ public:
     target.insert(DicomTransferSyntax_BigEndianExplicit);
     target.insert(DicomTransferSyntax_LittleEndianImplicit);
 
-    // New transfer syntaxes supported since Orthanc 0.7.2
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Deflated))
-    {
-      target.insert(DicomTransferSyntax_DeflatedLittleEndianExplicit);
-    }
+    // Group of transfer syntaxes, supported since Orthanc 0.7.2
+    std::set<TransferSyntaxGroup> groups;
+    groups.insert(TransferSyntaxGroup_Deflated);
+    groups.insert(TransferSyntaxGroup_Jpeg);
+    groups.insert(TransferSyntaxGroup_Jpeg2000);
+    groups.insert(TransferSyntaxGroup_JpegLossless);
+    groups.insert(TransferSyntaxGroup_Jpip);
+    groups.insert(TransferSyntaxGroup_Mpeg2);
+    groups.insert(TransferSyntaxGroup_Mpeg4);   // New in Orthanc 1.6.0
+    groups.insert(TransferSyntaxGroup_Rle);
+    assert(groups.size() == 8u);  // Number of items in enum, cf. "ServerEnumerations.h"
 
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg))
+    for (std::set<TransferSyntaxGroup>::const_iterator
+           group = groups.begin(); group != groups.end(); ++group)
     {
-      target.insert(DicomTransferSyntax_JPEGProcess1);
-      target.insert(DicomTransferSyntax_JPEGProcess2_4);
-      target.insert(DicomTransferSyntax_JPEGProcess3_5);
-      target.insert(DicomTransferSyntax_JPEGProcess6_8);
-      target.insert(DicomTransferSyntax_JPEGProcess7_9);
-      target.insert(DicomTransferSyntax_JPEGProcess10_12);
-      target.insert(DicomTransferSyntax_JPEGProcess11_13);
-      target.insert(DicomTransferSyntax_JPEGProcess14);
-      target.insert(DicomTransferSyntax_JPEGProcess15);
-      target.insert(DicomTransferSyntax_JPEGProcess16_18);
-      target.insert(DicomTransferSyntax_JPEGProcess17_19);
-      target.insert(DicomTransferSyntax_JPEGProcess20_22);
-      target.insert(DicomTransferSyntax_JPEGProcess21_23);
-      target.insert(DicomTransferSyntax_JPEGProcess24_26);
-      target.insert(DicomTransferSyntax_JPEGProcess25_27);
-      target.insert(DicomTransferSyntax_JPEGProcess28);
-      target.insert(DicomTransferSyntax_JPEGProcess29);
-      target.insert(DicomTransferSyntax_JPEGProcess14SV1);
-    }
-
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpeg2000))
-    {
-      target.insert(DicomTransferSyntax_JPEG2000);
-      target.insert(DicomTransferSyntax_JPEG2000LosslessOnly);
-      target.insert(DicomTransferSyntax_JPEG2000Multicomponent);
-      target.insert(DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly);
-    }
-
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_JpegLossless))
-    {
-      target.insert(DicomTransferSyntax_JPEGLSLossless);
-      target.insert(DicomTransferSyntax_JPEGLSLossy);
-    }
-
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Jpip))
-    {
-      target.insert(DicomTransferSyntax_JPIPReferenced);
-      target.insert(DicomTransferSyntax_JPIPReferencedDeflate);
-    }
-
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg2))
-    {
-      target.insert(DicomTransferSyntax_MPEG2MainProfileAtMainLevel);
-      target.insert(DicomTransferSyntax_MPEG2MainProfileAtHighLevel);
-    }
-
-#if DCMTK_VERSION_NUMBER >= 361
-    // New in Orthanc 1.6.0
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Mpeg4))
-    {
-      target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
-      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_1);
-      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo);
-      target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
-      target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
-    }
-#endif
-        
-    if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, TransferSyntax_Rle))
-    {
-      target.insert(DicomTransferSyntax_RLELossless);
+      if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, *group))
+      {
+        GetTransferSyntaxGroup(target, *group, false /* don't clear target */);
+      }
     }
   }
 
