@@ -263,6 +263,6 @@ namespace Orthanc
                                          const ParsedDicomFile& dicom);
 
     static void ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
-                                              const std::string& source);
+                                              const Json::Value& source);
   };
 }

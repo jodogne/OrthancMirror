@@ -104,8 +104,9 @@ namespace Orthanc
     TransferSyntaxGroup_JpegLossless,
     TransferSyntaxGroup_Jpip,
     TransferSyntaxGroup_Mpeg2,
+    TransferSyntaxGroup_Rle,
     TransferSyntaxGroup_Mpeg4,  // New in Orthanc 1.6.0
-    TransferSyntaxGroup_Rle
+    TransferSyntaxGroup_H265    // New in Orthanc 1.9.0
   };
 
 

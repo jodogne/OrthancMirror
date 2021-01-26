@@ -372,11 +372,21 @@ namespace Orthanc
       return;
     }
 
-    std::string body;
-    call.BodyToString(body);
-
     std::set<DicomTransferSyntax> syntaxes;
-    OrthancConfiguration::ParseAcceptedTransferSyntaxes(syntaxes, body);
+
+    Json::Value json;
+    if (call.ParseJsonRequest(json))
+    {
+      std::cout << json.toStyledString();
+      OrthancConfiguration::ParseAcceptedTransferSyntaxes(syntaxes, json);
+    }
+    else
+    {
+      std::string body;
+      call.BodyToString(body);
+      OrthancConfiguration::ParseAcceptedTransferSyntaxes(syntaxes, body);
+    }
+
     OrthancRestApi::GetContext(call).SetAcceptedTransferSyntaxes(syntaxes);
     
     AnswerAcceptedTransferSyntaxes(call);
