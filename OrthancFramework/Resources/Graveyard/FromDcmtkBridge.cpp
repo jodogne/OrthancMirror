@@ -28,7 +28,7 @@
     {
       // This raises BitBucket issue 140 (Modifying private tags with
       // REST API changes VR from LO to UN)
-      // https://bitbucket.org/sjodogne/orthanc/issues/140
+      // https://bugs.orthanc-server.com/show_bug.cgi?id=140
       LOG(WARNING) << "You are using DCMTK < 3.6.1: All the private tags "
         "are considered as having a binary value representation";
       return new DcmOtherByteOtherWord(key);

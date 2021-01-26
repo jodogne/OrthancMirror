@@ -354,7 +354,7 @@ namespace Orthanc
           subType = Toolbox::StripSpaces(items[1]);
           Toolbox::ToLowerCase(subType);
 
-          // https://bitbucket.org/sjodogne/orthanc/issues/54/decide-what-to-do-wrt-quoting-of-multipart
+          // https://bugs.orthanc-server.com/show_bug.cgi?id=54
           // https://tools.ietf.org/html/rfc7231#section-3.1.1.1
           RemoveSurroundingQuotes(subType);
         }

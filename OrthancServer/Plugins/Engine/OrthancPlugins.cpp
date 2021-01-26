@@ -3604,7 +3604,7 @@ namespace Orthanc
     {
       // Fix issue 168 (Plugins can't read private tags from the
       // configuration file)
-      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      // https://bugs.orthanc-server.com/show_bug.cgi?id=168
       std::string privateCreator;
       {
         OrthancConfiguration::ReaderLock lock;
@@ -3793,7 +3793,7 @@ namespace Orthanc
     {
       // Fix issue 168 (Plugins can't read private tags from the
       // configuration file)
-      // https://bitbucket.org/sjodogne/orthanc/issues/168/
+      // https://bugs.orthanc-server.com/show_bug.cgi?id=168
       std::string privateCreator;
       {
         OrthancConfiguration::ReaderLock lock;

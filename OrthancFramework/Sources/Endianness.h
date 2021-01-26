@@ -143,7 +143,7 @@ static inline uint16_t __orthanc_bswap16(uint16_t a)
    * This alternative implementation only hid an underlying problem
    * with pointer alignment on some architectures, and was thus
    * reverted. Check out issue #99:
-   * https://bitbucket.org/sjodogne/orthanc/issues/99
+   * https://bugs.orthanc-server.com/show_bug.cgi?id=99
    **/
   return (a << 8) | (a >> 8);
 }

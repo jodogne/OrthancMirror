@@ -85,7 +85,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Macro specifying whether to apply the patch suggested in issue 66:
  * "Orthanc responses C-MOVE with zero Move Originator Message ID"
- * https://bitbucket.org/sjodogne/orthanc/issues/66/
+ * https://bugs.orthanc-server.com/show_bug.cgi?id=66
  **/
 
 #define APPLY_FIX_ISSUE_66   1

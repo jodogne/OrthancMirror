@@ -53,7 +53,7 @@ else()
   
   # Patch by xnox to fix issue #166 (CMake find_boost version is now
   # broken with newer boost/cmake)
-  # https://bitbucket.org/sjodogne/orthanc/issues/166/
+  # https://bugs.orthanc-server.com/show_bug.cgi?id=166
   if (POLICY CMP0093)
     set(BOOST144 1.44)
   else()
