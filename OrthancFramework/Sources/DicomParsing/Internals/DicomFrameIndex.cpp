@@ -377,7 +377,7 @@ namespace Orthanc
     DicomImageInformation information(tags);
 
     // Test whether this image is composed of a sequence of fragments
-    if (dicom.tagExistsWithValue(DCM_PixelData))
+    if (dicom.tagExists(DCM_PixelData))
     {
       DcmPixelSequence* pixelSequence = FromDcmtkBridge::GetPixelSequence(dicom);
       if (pixelSequence != NULL)
