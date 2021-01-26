@@ -957,7 +957,7 @@ namespace Orthanc
         }
         else
         {
-          target.insert(*syntax);
+          target.erase(*syntax);
         }
       }
     }
@@ -967,11 +967,42 @@ namespace Orthanc
   void OrthancConfiguration::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const
   {
     target.clear();
-    
-    // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+
+#if 1
+    /**
+     * This is the behavior in Orthanc >= 1.9.0. All the transfer
+     * syntaxes are accepted by default, and the
+     * "TransferSyntaxAccepted" options can be used to disable groups
+     * of transfer syntaxes.
+     **/
+
+    static const char* const ACCEPTED_TRANSFER_SYNTAXES = "AcceptedTransferSyntaxes";
+
+    if (json_.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }    
+    else if (json_.isMember(ACCEPTED_TRANSFER_SYNTAXES))
+    {
+      ParseAcceptedTransferSyntaxes(target, json_[ACCEPTED_TRANSFER_SYNTAXES]);
+    }
+    else
+    {
+      GetAllDicomTransferSyntaxes(target);
+    }
+#else
+    /**
+     * This was the behavior of Orthanc <= 1.8.2. The uncompressed
+     * transfer syntaxes were always accepted, and additional transfer
+     * syntaxes were added using the configuration options
+     * "XXXTransferSyntaxAccepted".
+     **/
+
+    // The 3 transfer syntaxes below were the only ones to be supported in Orthanc <= 0.7.1
     target.insert(DicomTransferSyntax_LittleEndianExplicit);
     target.insert(DicomTransferSyntax_BigEndianExplicit);
     target.insert(DicomTransferSyntax_LittleEndianImplicit);
+#endif
 
     // Groups of transfer syntaxes, supported since Orthanc 0.7.2
     GetAcceptOption(target, *this, "DeflatedTransferSyntaxAccepted", TransferSyntaxGroup_Deflated);
@@ -982,6 +1013,7 @@ namespace Orthanc
     GetAcceptOption(target, *this, "Mpeg2TransferSyntaxAccepted", TransferSyntaxGroup_Mpeg2);
     GetAcceptOption(target, *this, "Mpeg4TransferSyntaxAccepted", TransferSyntaxGroup_Mpeg4);
     GetAcceptOption(target, *this, "RleTransferSyntaxAccepted", TransferSyntaxGroup_Rle);
+    GetAcceptOption(target, *this, "H265TransferSyntaxAccepted", TransferSyntaxGroup_H265);
   }
 
 
@@ -1037,38 +1069,29 @@ namespace Orthanc
 
 
   void OrthancConfiguration::ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
-                                                           const std::string& source)
+                                                           const Json::Value& source)
   {
-    Json::Value json;
-    
-    if (Toolbox::ReadJson(json, source))
+    if (source.type() == Json::stringValue)
     {
-      if (json.type() == Json::stringValue)
+      AddTransferSyntaxes(target, source.asString());
+    }
+    else if (source.type() == Json::arrayValue)
+    {
+      for (Json::Value::ArrayIndex i = 0; i < source.size(); i++)
       {
-        AddTransferSyntaxes(target, json.asString());
-      }
-      else if (json.type() == Json::arrayValue)
-      {
-        for (Json::Value::ArrayIndex i = 0; i < json.size(); i++)
+        if (source[i].type() == Json::stringValue)
         {
-          if (json[i].type() == Json::stringValue)
-          {
-            AddTransferSyntaxes(target, json[i].asString());
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_BadFileFormat);
-          }
+          AddTransferSyntaxes(target, source[i].asString());
         }
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat);
+        }
       }
     }
     else
     {
-      AddTransferSyntaxes(target, source);
+      throw OrthancException(ErrorCode_BadFileFormat);
     }
   }
 }

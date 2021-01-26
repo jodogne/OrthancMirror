@@ -471,6 +471,10 @@ namespace Orthanc
         target.insert(DicomTransferSyntax_MPEG2MainProfileAtHighLevel);
         break;
 
+      case TransferSyntaxGroup_Rle:
+        target.insert(DicomTransferSyntax_RLELossless);
+        break;
+
       case TransferSyntaxGroup_Mpeg4:
         // New in Orthanc 1.6.0
         target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
@@ -479,11 +483,13 @@ namespace Orthanc
         target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
         target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
         break;
-        
-      case TransferSyntaxGroup_Rle:
-        target.insert(DicomTransferSyntax_RLELossless);
-        break;
 
+      case TransferSyntaxGroup_H265:
+        // New in Orthanc 1.9.0
+        target.insert(DicomTransferSyntax_HEVCMainProfileLevel5_1);
+        target.insert(DicomTransferSyntax_HEVCMain10ProfileLevel5_1);
+        break;
+        
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
