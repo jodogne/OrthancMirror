@@ -1482,7 +1482,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     {
       // This solves issue 140 (Modifying private tags with REST API
       // changes VR from LO to UN)
-      // https://bitbucket.org/sjodogne/orthanc/issues/140
+      // https://bugs.orthanc-server.com/show_bug.cgi?id=140
       LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
     }
     
