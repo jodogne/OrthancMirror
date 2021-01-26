@@ -71,6 +71,13 @@ namespace Orthanc
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE
     {
       return Toolbox::ReadJson(result, bodyData_, bodySize_);
-    }      
+    }
+
+    bool ParseBooleanBody() const
+    {
+      std::string s;
+      BodyToString(s);
+      return RestApiCall::ParseBoolean(s);
+    }
   };
 }

@@ -23,6 +23,9 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApiCall.h"
 
+#include "../OrthancException.h"
+
+
 namespace Orthanc
 {
   void RestApiCall::GetUriComponentsNames(std::set<std::string>& components) const
@@ -58,5 +61,26 @@ namespace Orthanc
     }
     
     return *documentation_;
+  }
+
+
+  bool RestApiCall::ParseBoolean(const std::string& value)
+  {
+    std::string stripped = Toolbox::StripSpaces(value);
+
+    if (stripped == "0" ||
+        stripped == "false")
+    {
+      return false;
+    }
+    else if (stripped == "1" ||
+             stripped == "true")
+    {
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Boolean value expected");
+    }
   }
 }

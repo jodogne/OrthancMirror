@@ -225,7 +225,12 @@ namespace Orthanc
     DicomTransferSyntax ingestTransferSyntax_;
     bool ingestTranscodingOfUncompressed_;
     bool ingestTranscodingOfCompressed_;
-    DicomTransferSyntax preferredTransferSyntax_;   // New in Orthanc 1.9.0
+
+    // New in Orthanc 1.9.0
+    DicomTransferSyntax preferredTransferSyntax_;
+    boost::mutex dynamicOptionsMutex_;
+    bool isUnknownSopClassAccepted_;
+    std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
 
     StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -503,5 +508,13 @@ namespace Orthanc
     }
 
     const std::string& GetDeidentifiedContent(const DicomElement& element) const;
+
+    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes);
+
+    void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
+
+    bool IsUnknownSopClassAccepted();
+
+    void SetUnknownSopClassAccepted(bool accepted);
   };
 }

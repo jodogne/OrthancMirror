@@ -251,12 +251,13 @@ transfer syntaxes:
   MPEG2MainProfileAtHighLevelTransferSyntax                             | 1.2.840.10008.1.2.4.101
   RLELosslessTransferSyntax                                             | 1.2.840.10008.1.2.5
 
-It is possible to disable a subset of these transfer syntaxes thanks to the
-"*TransferSyntaxAccepted" options in the Orthanc configuration file.
+It is possible to disable a subset of these transfer syntaxes thanks
+to the "AcceptedTransferSyntaxes" and "*TransferSyntaxAccepted"
+options in the Orthanc configuration file.
 
 When possible, Orthanc will prefer the
-LittleEndianImplicitTransferSyntax transfer syntax
-(1.2.840.10008.1.2).
+LittleEndianExplicitTransferSyntax transfer syntax
+(1.2.840.10008.1.2.1).
 
 Orthanc does not support extended negotiation.
 
@@ -267,10 +268,10 @@ Implementation notes
 
 The information above about the SCP support is readily extracted from
 the function "Orthanc::Internals::AcceptAssociation()" from file
-"Core/DicomNetworking/Internals/CommandDispatcher.cpp".
+"OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp".
 
 The information above about the SCU support is derived from the
 classes "Orthanc::DicomControlUserConnection" and
 "Orthanc::DicomStoreUserConnection" from file
-"Core/DicomNetworking/DicomControlUserConnection.cpp" and
-"Core/DicomNetworking/DicomStoreUserConnection.cpp".
+"OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.cpp" and
+"OrthancFramework/Sources/DicomNetworking/DicomStoreUserConnection.cpp".

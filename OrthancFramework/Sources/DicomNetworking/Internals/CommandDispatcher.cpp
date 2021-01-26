@@ -76,14 +76,15 @@
 #  error The macro DCMTK_VERSION_NUMBER must be defined
 #endif
 
-#include "FindScp.h"
-#include "StoreScp.h"
-#include "MoveScp.h"
-#include "GetScp.h"
 #include "../../Compatibility.h"
-#include "../../Toolbox.h"
+#include "../../DicomParsing/FromDcmtkBridge.h"
 #include "../../Logging.h"
 #include "../../OrthancException.h"
+#include "../../Toolbox.h"
+#include "FindScp.h"
+#include "GetScp.h"
+#include "MoveScp.h"
+#include "StoreScp.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>     /* for storage commitment */
 #include <dcmtk/dcmdata/dcsequen.h>     /* for class DcmSequenceOfItems */
@@ -425,7 +426,7 @@ namespace Orthanc
            * framework <= 1.8.2, where only the uncompressed transfer
            * syntaxes are accepted by default.
            **/
-          GetAllTransferSyntaxes(storageTransferSyntaxes);
+          GetAllDicomTransferSyntaxes(storageTransferSyntaxes);
         }
 
         if (storageTransferSyntaxes.empty())
@@ -446,7 +447,10 @@ namespace Orthanc
            * class "DicomServer"?
            **/
           const DicomTransferSyntax PREFERRED_TRANSFER_SYNTAX = DicomTransferSyntax_LittleEndianExplicit;
-          
+
+          E_TransferSyntax dummy;
+          assert(FromDcmtkBridge::LookupDcmtkTransferSyntax(dummy, PREFERRED_TRANSFER_SYNTAX));
+
           std::vector<const char*> storageTransferSyntaxesC;
           storageTransferSyntaxesC.reserve(storageTransferSyntaxes.size());
 
@@ -456,11 +460,13 @@ namespace Orthanc
           }
           
           for (std::set<DicomTransferSyntax>::const_iterator
-                 it = storageTransferSyntaxes.begin(); it != storageTransferSyntaxes.end(); ++it)
+                 syntax = storageTransferSyntaxes.begin(); syntax != storageTransferSyntaxes.end(); ++syntax)
           {
-            if (*it != PREFERRED_TRANSFER_SYNTAX)  // Don't add the preferred transfer syntax twice
+            if (*syntax != PREFERRED_TRANSFER_SYNTAX &&  // Don't add the preferred transfer syntax twice
+                // Make sure that the current version of DCMTK knows this transfer syntax
+                FromDcmtkBridge::LookupDcmtkTransferSyntax(dummy, *syntax))
             {
-              storageTransferSyntaxesC.push_back(GetTransferSyntaxUid(*it));
+              storageTransferSyntaxesC.push_back(GetTransferSyntaxUid(*syntax));
             }
           }
 

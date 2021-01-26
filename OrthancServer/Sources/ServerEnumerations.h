@@ -233,9 +233,6 @@ namespace Orthanc
 
   bool IsUserMetadata(MetadataType type);
 
-  const char* EnumerationToString(TransferSyntaxGroup syntax);
-
   void GetTransferSyntaxGroup(std::set<DicomTransferSyntax>& target,
-                              TransferSyntaxGroup source,
-                              bool clearTarget);
+                              TransferSyntaxGroup source);
 }

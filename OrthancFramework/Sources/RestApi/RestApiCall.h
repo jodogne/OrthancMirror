@@ -152,5 +152,7 @@ namespace Orthanc
     {
       return (origin_ == RequestOrigin_Documentation);
     }
+
+    static bool ParseBoolean(const std::string& value);
   };
 }

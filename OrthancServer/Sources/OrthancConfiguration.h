@@ -160,6 +160,7 @@ namespace Orthanc
 
     void Read(const char* configurationFile);
 
+    // "SetServerIndex()" must have been called
     void LoadModalitiesAndPeers();
     
     void RegisterFont(ServerResources::FileResourceId resource);
@@ -246,6 +247,8 @@ namespace Orthanc
       return GetStringParameter("DicomAet", "ORTHANC");
     }
 
+    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const;
+
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);
     
@@ -258,5 +261,8 @@ namespace Orthanc
     
     static void DefaultDicomHeaderToJson(Json::Value& target,
                                          const ParsedDicomFile& dicom);
+
+    static void ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
+                                              const std::string& source);
   };
 }

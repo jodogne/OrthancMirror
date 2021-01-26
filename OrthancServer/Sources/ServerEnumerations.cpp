@@ -416,48 +416,10 @@ namespace Orthanc
   }
 
 
-  const char* EnumerationToString(TransferSyntaxGroup syntax)
-  {
-    switch (syntax)
-    {
-      case TransferSyntaxGroup_Deflated:
-        return "Deflated";
-
-      case TransferSyntaxGroup_Jpeg:
-        return "JPEG";
-
-      case TransferSyntaxGroup_Jpeg2000:
-        return "JPEG2000";
-
-      case TransferSyntaxGroup_JpegLossless:
-        return "JPEG Lossless";
-
-      case TransferSyntaxGroup_Jpip:
-        return "JPIP";
-
-      case TransferSyntaxGroup_Mpeg2:
-        return "MPEG2";
-
-      case TransferSyntaxGroup_Mpeg4:
-        return "MPEG4";
-
-      case TransferSyntaxGroup_Rle:
-        return "RLE";
-
-      default: 
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   void GetTransferSyntaxGroup(std::set<DicomTransferSyntax>& target,
-                              TransferSyntaxGroup source,
-                              bool clearTarget)
+                              TransferSyntaxGroup source)
   {
-    if (clearTarget)
-    {
-      target.clear();
-    }
+    target.clear();
 
     switch (source)
     {    
@@ -510,14 +472,12 @@ namespace Orthanc
         break;
 
       case TransferSyntaxGroup_Mpeg4:
-#if DCMTK_VERSION_NUMBER >= 361
         // New in Orthanc 1.6.0
         target.insert(DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1);
         target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_1);
         target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For2DVideo);
         target.insert(DicomTransferSyntax_MPEG4HighProfileLevel4_2_For3DVideo);
         target.insert(DicomTransferSyntax_MPEG4StereoHighProfileLevel4_2);
-#endif
         break;
         
       case TransferSyntaxGroup_Rle:

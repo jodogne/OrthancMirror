@@ -282,72 +282,6 @@ private:
   bool            alwaysAllowEcho_;
   bool            alwaysAllowStore_;
 
-  bool IsAllowedTransferSyntax(const std::string& remoteIp,
-                               const std::string& remoteAet,
-                               const std::string& calledAet,
-                               TransferSyntaxGroup syntax)
-  {
-    std::string configuration;
-
-    switch (syntax)
-    {
-      case TransferSyntaxGroup_Deflated:
-        configuration = "DeflatedTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Jpeg:
-        configuration = "JpegTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Jpeg2000:
-        configuration = "Jpeg2000TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_JpegLossless:
-        configuration = "JpegLosslessTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Jpip:
-        configuration = "JpipTransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Mpeg2:
-        configuration = "Mpeg2TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Mpeg4:
-        configuration = "Mpeg4TransferSyntaxAccepted";
-        break;
-
-      case TransferSyntaxGroup_Rle:
-        configuration = "RleTransferSyntaxAccepted";
-        break;
-
-      default: 
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    {
-      std::string name = "Is" + configuration;
-
-      LuaScripting::Lock lock(context_.GetLuaScripting());
-      
-      if (lock.GetLua().IsExistingFunction(name.c_str()))
-      {
-        LuaFunctionCall call(lock.GetLua(), name.c_str());
-        call.PushString(remoteAet);
-        call.PushString(remoteIp);
-        call.PushString(calledAet);
-        return call.ExecutePredicate();
-      }
-    }
-
-    {
-      OrthancConfiguration::ReaderLock lock;
-      return lock.GetConfiguration().GetBooleanParameter(configuration, true);
-    }
-  }
-
 public:
   explicit OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
@@ -436,33 +370,7 @@ public:
                                            const std::string& remoteAet,
                                            const std::string& calledAet) ORTHANC_OVERRIDE
   {
-    target.clear();
-    
-    // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
-    target.insert(DicomTransferSyntax_LittleEndianExplicit);
-    target.insert(DicomTransferSyntax_BigEndianExplicit);
-    target.insert(DicomTransferSyntax_LittleEndianImplicit);
-
-    // Group of transfer syntaxes, supported since Orthanc 0.7.2
-    std::set<TransferSyntaxGroup> groups;
-    groups.insert(TransferSyntaxGroup_Deflated);
-    groups.insert(TransferSyntaxGroup_Jpeg);
-    groups.insert(TransferSyntaxGroup_Jpeg2000);
-    groups.insert(TransferSyntaxGroup_JpegLossless);
-    groups.insert(TransferSyntaxGroup_Jpip);
-    groups.insert(TransferSyntaxGroup_Mpeg2);
-    groups.insert(TransferSyntaxGroup_Mpeg4);   // New in Orthanc 1.6.0
-    groups.insert(TransferSyntaxGroup_Rle);
-    assert(groups.size() == 8u);  // Number of items in enum, cf. "ServerEnumerations.h"
-
-    for (std::set<TransferSyntaxGroup>::const_iterator
-           group = groups.begin(); group != groups.end(); ++group)
-    {
-      if (IsAllowedTransferSyntax(remoteIp, remoteAet, calledAet, *group))
-      {
-        GetTransferSyntaxGroup(target, *group, false /* don't clear target */);
-      }
-    }
+    context_.GetAcceptedTransferSyntaxes(target);
   }
 
   
@@ -470,27 +378,7 @@ public:
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE
   {
-    static const char* configuration = "UnknownSopClassAccepted";
-
-    {
-      std::string lua = "Is" + std::string(configuration);
-
-      LuaScripting::Lock lock(context_.GetLuaScripting());
-      
-      if (lock.GetLua().IsExistingFunction(lua.c_str()))
-      {
-        LuaFunctionCall call(lock.GetLua(), lua.c_str());
-        call.PushString(remoteAet);
-        call.PushString(remoteIp);
-        call.PushString(calledAet);
-        return call.ExecutePredicate();
-      }
-    }
-
-    {
-      OrthancConfiguration::ReaderLock lock;
-      return lock.GetConfiguration().GetBooleanParameter(configuration, false);
-    }
+    return context_.IsUnknownSopClassAccepted();
   }
 };
 
@@ -1536,7 +1424,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   }
 
   {
-    ServerContextConfigurator configurator(context, plugins);
+    ServerContextConfigurator configurator(context, plugins);  // This calls "OrthancConfiguration::SetServerIndex()"
 
     {
       OrthancConfiguration::WriterLock lock;

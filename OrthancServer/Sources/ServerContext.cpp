@@ -391,7 +391,7 @@ namespace Orthanc
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is disabled";
         }
 
-        // New option in Orthanc 1.9.0
+        // New options in Orthanc 1.9.0
         if (lock.GetConfiguration().LookupStringParameter(s, "DicomScuPreferredTransferSyntax") &&
             !LookupTransferSyntax(preferredTransferSyntax_, s))
         {
@@ -401,6 +401,10 @@ namespace Orthanc
         
         CLOG(INFO, DICOM) << "Preferred transfer syntax for Orthanc C-STORE SCU: "
                           << GetTransferSyntaxUid(preferredTransferSyntax_);
+
+        lock.GetConfiguration().GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes_);
+
+        isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -1793,5 +1797,33 @@ namespace Orthanc
     {
       return element.GetValue().GetContent();
     }
+  }
+
+
+  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    syntaxes = acceptedTransferSyntaxes_;
+  }
+  
+
+  void ServerContext::SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    acceptedTransferSyntaxes_ = syntaxes;
+  }
+
+
+  bool ServerContext::IsUnknownSopClassAccepted()
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    return isUnknownSopClassAccepted_;
+  }
+
+  
+  void ServerContext::SetUnknownSopClassAccepted(bool accepted)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    isUnknownSopClassAccepted_ = accepted;
   }
 }
