@@ -322,6 +322,101 @@ namespace Orthanc
   }
 
 
+  static void AnswerAcceptedTransferSyntaxes(RestApiCall& call)
+  {
+    std::set<DicomTransferSyntax> syntaxes;
+    OrthancRestApi::GetContext(call).GetAcceptedTransferSyntaxes(syntaxes);
+    
+    Json::Value json = Json::arrayValue;
+    for (std::set<DicomTransferSyntax>::const_iterator
+           syntax = syntaxes.begin(); syntax != syntaxes.end(); ++syntax)
+    {
+      json.append(GetTransferSyntaxUid(*syntax));
+    }
+    
+    call.GetOutput().AnswerJson(json);
+  }
+  
+
+  static void GetAcceptedTransferSyntaxes(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get accepted transfer syntaxes")
+        .SetDescription("Get the list of UIDs of the DICOM transfer syntaxes that are accepted "
+                        "by Orthanc C-STORE SCP. This corresponds to the configuration options "
+                        "`AcceptedTransferSyntaxes` and `XXXTransferSyntaxAccepted`.")
+        .AddAnswerType(MimeType_Json, "JSON array containing the transfer syntax UIDs");
+      return;
+    }
+
+    AnswerAcceptedTransferSyntaxes(call);
+  }
+
+
+  static void SetAcceptedTransferSyntaxes(RestApiPutCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Set accepted transfer syntaxes")
+        .SetDescription("Set the DICOM transfer syntaxes that accepted by Orthanc C-STORE SCP")
+        .AddRequestType(MimeType_PlainText, "UID of the transfer syntax to be accepted. "
+                        "Wildcards `?` and `*` are accepted.")
+        .AddRequestType(MimeType_Json, "JSON array containing a list of transfer syntax "
+                        "UIDs to be accepted. Wildcards `?` and `*` are accepted.")
+        .AddAnswerType(MimeType_Json, "JSON array containing the now-accepted transfer syntax UIDs");
+      return;
+    }
+
+    std::string body;
+    call.BodyToString(body);
+
+    std::set<DicomTransferSyntax> syntaxes;
+    OrthancConfiguration::ParseAcceptedTransferSyntaxes(syntaxes, body);
+    OrthancRestApi::GetContext(call).SetAcceptedTransferSyntaxes(syntaxes);
+    
+    AnswerAcceptedTransferSyntaxes(call);
+  }
+
+
+  static void GetUnknownSopClassAccepted(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Is unknown SOP class accepted?")
+        .SetDescription("Shall Orthanc C-STORE SCP accept DICOM instances with an unknown SOP class UID?")
+        .AddAnswerType(MimeType_PlainText, "`1` if accepted, `0` if not accepted");
+      return;
+    }
+
+    const bool accepted = OrthancRestApi::GetContext(call).IsUnknownSopClassAccepted();
+    call.GetOutput().AnswerBuffer(accepted ? "1" : "0", MimeType_PlainText);
+  }
+
+
+  static void SetUnknownSopClassAccepted(RestApiPutCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Set unknown SOP class accepted")
+        .SetDescription("Set whether Orthanc C-STORE SCP should accept DICOM instances with an unknown SOP class UID")
+        .AddRequestType(MimeType_PlainText, "`1` if accepted, `0` if not accepted");
+      return;
+    }
+
+    OrthancRestApi::GetContext(call).SetUnknownSopClassAccepted(call.ParseBooleanBody());
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
   
   // Plugins information ------------------------------------------------------
 
@@ -748,24 +843,7 @@ namespace Orthanc
       return;
     }
 
-    bool enabled;
-
-    std::string body;
-    call.BodyToString(body);
-
-    if (body == "1")
-    {
-      enabled = true;
-    }
-    else if (body == "0")
-    {
-      enabled = false;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "The HTTP body must be 0 or 1, but found: " + body);
-    }
+    const bool enabled = call.ParseBooleanBody();
 
     // Success
     OrthancRestApi::GetContext(call).GetMetricsRegistry().SetEnabled(enabled);
@@ -919,5 +997,11 @@ namespace Orthanc
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
     Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
     Register("/jobs/{id}/{key}", GetJobOutput);
+
+    // New in Orthanc 1.9.0
+    Register("/tools/accepted-transfer-syntaxes", GetAcceptedTransferSyntaxes);
+    Register("/tools/accepted-transfer-syntaxes", SetAcceptedTransferSyntaxes);
+    Register("/tools/unknown-sop-class-accepted", GetUnknownSopClassAccepted);
+    Register("/tools/unknown-sop-class-accepted", SetUnknownSopClassAccepted);
   }
 }

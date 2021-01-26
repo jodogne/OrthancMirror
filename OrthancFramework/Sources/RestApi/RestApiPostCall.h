@@ -72,5 +72,12 @@ namespace Orthanc
     {
       return Toolbox::ReadJson(result, bodyData_, bodySize_);
     }
+
+    bool ParseBooleanBody() const
+    {
+      std::string s;
+      BodyToString(s);
+      return RestApiCall::ParseBoolean(s);
+    }
   };
 }

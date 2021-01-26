@@ -44,6 +44,8 @@
 
 #include "ServerIndex.h"
 
+#include <boost/regex.hpp>
+
 
 static const char* const DICOM_MODALITIES = "DicomModalities";
 static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
@@ -577,8 +579,15 @@ namespace Orthanc
 
   void OrthancConfiguration::LoadModalitiesAndPeers()
   {
-    LoadModalities();
-    LoadPeers();
+    if (serverIndex_ == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      LoadModalities();
+      LoadPeers();
+    }
   }
 
 
@@ -928,6 +937,54 @@ namespace Orthanc
   }
 
 
+  static void GetAcceptOption(std::set<DicomTransferSyntax>& target,
+                              const OrthancConfiguration& configuration,
+                              const std::string& optionName,
+                              TransferSyntaxGroup optionGroup)
+  {
+    bool accept;
+    if (configuration.LookupBooleanParameter(accept, optionName))
+    {
+      std::set<DicomTransferSyntax> group;
+      GetTransferSyntaxGroup(group, optionGroup);
+
+      for (std::set<DicomTransferSyntax>::const_iterator
+             syntax = group.begin(); syntax != group.end(); ++syntax)
+      {
+        if (accept)
+        {
+          target.insert(*syntax);
+        }
+        else
+        {
+          target.insert(*syntax);
+        }
+      }
+    }
+  }
+
+
+  void OrthancConfiguration::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const
+  {
+    target.clear();
+    
+    // This is the list of the transfer syntaxes that were supported up to Orthanc 0.7.1
+    target.insert(DicomTransferSyntax_LittleEndianExplicit);
+    target.insert(DicomTransferSyntax_BigEndianExplicit);
+    target.insert(DicomTransferSyntax_LittleEndianImplicit);
+
+    // Groups of transfer syntaxes, supported since Orthanc 0.7.2
+    GetAcceptOption(target, *this, "DeflatedTransferSyntaxAccepted", TransferSyntaxGroup_Deflated);
+    GetAcceptOption(target, *this, "JpegTransferSyntaxAccepted", TransferSyntaxGroup_Jpeg);
+    GetAcceptOption(target, *this, "Jpeg2000TransferSyntaxAccepted", TransferSyntaxGroup_Jpeg2000);
+    GetAcceptOption(target, *this, "JpegLosslessTransferSyntaxAccepted", TransferSyntaxGroup_JpegLossless);
+    GetAcceptOption(target, *this, "JpipTransferSyntaxAccepted", TransferSyntaxGroup_Jpip);
+    GetAcceptOption(target, *this, "Mpeg2TransferSyntaxAccepted", TransferSyntaxGroup_Mpeg2);
+    GetAcceptOption(target, *this, "Mpeg4TransferSyntaxAccepted", TransferSyntaxGroup_Mpeg4);
+    GetAcceptOption(target, *this, "RleTransferSyntaxAccepted", TransferSyntaxGroup_Rle);
+  }
+
+
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
   {
@@ -957,5 +1014,61 @@ namespace Orthanc
                                                       const ParsedDicomFile& dicom)
   {
     dicom.HeaderToJson(target, DicomToJsonFormat_Full);
+  }
+
+
+  static void AddTransferSyntaxes(std::set<DicomTransferSyntax>& target,
+                                  const std::string& source)
+  {
+    boost::regex pattern(Toolbox::WildcardToRegularExpression(source));
+
+    std::set<DicomTransferSyntax> allSyntaxes;
+    GetAllDicomTransferSyntaxes(allSyntaxes);
+
+    for (std::set<DicomTransferSyntax>::const_iterator
+           syntax = allSyntaxes.begin(); syntax != allSyntaxes.end(); ++syntax)
+    {
+      if (regex_match(GetTransferSyntaxUid(*syntax), pattern))
+      {
+        target.insert(*syntax);
+      }
+    }
+  }
+
+
+  void OrthancConfiguration::ParseAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
+                                                           const std::string& source)
+  {
+    Json::Value json;
+    
+    if (Toolbox::ReadJson(json, source))
+    {
+      if (json.type() == Json::stringValue)
+      {
+        AddTransferSyntaxes(target, json.asString());
+      }
+      else if (json.type() == Json::arrayValue)
+      {
+        for (Json::Value::ArrayIndex i = 0; i < json.size(); i++)
+        {
+          if (json[i].type() == Json::stringValue)
+          {
+            AddTransferSyntaxes(target, json[i].asString());
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+    }
+    else
+    {
+      AddTransferSyntaxes(target, source);
+    }
   }
 }

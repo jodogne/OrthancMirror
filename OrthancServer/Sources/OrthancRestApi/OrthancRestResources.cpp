@@ -321,24 +321,8 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
 
-    std::string body;
-    call.BodyToString(body);
-    body = Toolbox::StripSpaces(body);
-
-    if (body == "0")
-    {
-      context.GetIndex().SetProtectedPatient(publicId, false);
-      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
-    }
-    else if (body == "1")
-    {
-      context.GetIndex().SetProtectedPatient(publicId, true);
-      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
-    }
-    else
-    {
-      // Bad request
-    }
+    context.GetIndex().SetProtectedPatient(publicId, call.ParseBooleanBody());
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
 
@@ -1039,22 +1023,7 @@ namespace Orthanc
 
         if (call.HasArgument(ARG_SMOOTH))
         {
-          std::string value = call.GetArgument(ARG_SMOOTH, "");
-          if (value == "0" ||
-              value == "false")
-          {
-            smooth = false;
-          }
-          else if (value == "1" ||
-                   value == "true")
-          {
-            smooth = true;
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                   "Argument must be Boolean: " + std::string(ARG_SMOOTH));
-          }
+          smooth = RestApiCall::ParseBoolean(call.GetArgument(ARG_SMOOTH, ""));
         }        
       }
                                 

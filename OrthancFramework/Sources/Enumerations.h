@@ -882,5 +882,5 @@ namespace Orthanc
                                   bool isLowerCase);
 
   ORTHANC_PUBLIC
-  void GetAllTransferSyntaxes(std::set<DicomTransferSyntax>& target);
+  void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
 }

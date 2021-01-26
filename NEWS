@@ -25,7 +25,15 @@ Orthanc Explorer
 REST API
 --------
 
+* "/tools/accepted-transfer-syntaxes": Get/set transfer syntaxes accepted by Orthanc C-STORE SCP
+* "/tools/unknown-sop-class-accepted": Get/set whether C-STORE SCP accepts unknown SOP class UID
 * "/modalities/{...}/query": New string argument "LocalAet"
+
+Lua
+---
+
+* BREAKING CHANGE: All the Lua callbacks "IsXXXTransferSyntaxAccepted()" and
+  "IsUnknownSopClassAccepted()" have been removed
 
 Plugins
 -------

@@ -554,7 +554,7 @@ namespace Orthanc
   }
 
 
-  void GetAllTransferSyntaxes(std::set<DicomTransferSyntax>& target)
+  void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target)
   {
     target.clear();
     target.insert(DicomTransferSyntax_LittleEndianImplicit);
