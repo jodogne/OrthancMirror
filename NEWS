@@ -43,6 +43,7 @@ Plugins
 * New functions in the SDK:
   - OrthancPluginCreateMemoryBuffer64()
   - OrthancPluginRegisterStorageArea2()
+  - OrthancPluginCreateDicom2()
 
 Maintenance
 -----------

@@ -439,6 +439,7 @@ extern "C"
     _OrthancPluginService_CreateMemoryBuffer = 38,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GenerateRestApiAuthorizationToken = 39,   /* New in Orthanc 1.8.1 */
     _OrthancPluginService_CreateMemoryBuffer64 = 40, /* New in Orthanc 1.9.0 */
+    _OrthancPluginService_CreateDicom2 = 41,         /* New in Orthanc 1.9.0 */
     
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -5317,6 +5318,12 @@ extern "C"
    * memory buffer. Additionally, an image to be encoded within the
    * DICOM instance can also be provided.
    *
+   * Private tags will be associated with the private creator whose
+   * value is specified in the "DefaultPrivateCreator" configuration
+   * option of Orthanc. The function OrthancPluginCreateDicom2() can
+   * be used if another private creator must be used to create this
+   * instance.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param json The input JSON file.
@@ -5324,6 +5331,7 @@ extern "C"
    * @param flags Flags governing the output.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
+   * @see OrthancPluginCreateDicom2
    * @see OrthancPluginDicomBufferToJson
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateDicom(
@@ -8421,6 +8429,56 @@ extern "C"
     params.readRange = readRange;
     params.remove = remove;
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea2, &params);
+  }
+
+
+
+  typedef struct
+  {
+    _OrthancPluginCreateDicom  createDicom;
+    const char*                privateCreator;
+  } _OrthancPluginCreateDicom2;
+
+  /**
+   * @brief Create a DICOM instance from a JSON string and an image, with a private creator.
+   *
+   * This function takes as input a string containing a JSON file
+   * describing the content of a DICOM instance. As an output, it
+   * writes the corresponding DICOM instance to a newly allocated
+   * memory buffer. Additionally, an image to be encoded within the
+   * DICOM instance can also be provided.
+   *
+   * Contrarily to the function OrthancPluginCreateDicom(), this
+   * function can be explicitly provided with a private creator.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target The target memory buffer. It must be freed with OrthancPluginFreeMemoryBuffer().
+   * @param json The input JSON file.
+   * @param pixelData The image. Can be NULL, if the pixel data is encoded inside the JSON with the data URI scheme.
+   * @param flags Flags governing the output.
+   * @param privateCreator The private creator to be used for the private DICOM tags.
+   * Check out the global configuration option "Dictionary" of Orthanc.
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   * @see OrthancPluginCreateDicom
+   * @see OrthancPluginDicomBufferToJson
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateDicom2(
+    OrthancPluginContext*          context,
+    OrthancPluginMemoryBuffer*     target,
+    const char*                    json,
+    const OrthancPluginImage*      pixelData,
+    OrthancPluginCreateDicomFlags  flags,
+    const char*                    privateCreator)
+  {
+    _OrthancPluginCreateDicom2 params;
+    params.createDicom.target = target;
+    params.createDicom.json = json;
+    params.createDicom.pixelData = pixelData;
+    params.createDicom.flags = flags;
+    params.privateCreator = privateCreator;
+
+    return context->InvokeService(context, _OrthancPluginService_CreateDicom2, &params);
   }
 
 #ifdef  __cplusplus

@@ -207,8 +207,8 @@ namespace Orthanc
     void ApplyDicomToJson(_OrthancPluginService service,
                           const void* parameters);
 
-    void ApplyCreateDicom(_OrthancPluginService service,
-                          const void* parameters);
+    void ApplyCreateDicom(const _OrthancPluginCreateDicom& parameters,
+                          const char* privateCreatorC);
 
     void ApplyCreateImage(_OrthancPluginService service,
                           const void* parameters);
