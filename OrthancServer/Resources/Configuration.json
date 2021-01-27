@@ -330,9 +330,10 @@
      *
      * Starting with Orthanc 1.7.0, "AllowTranscoding" can be used to
      * disable the transcoding to uncompressed transfer syntaxes if
-     * the remote modality doesn't support compressed transfer
-     * syntaxes. This option only has an effect if global option
-     * "EnableTranscoding" is set to "true".
+     * this remote modality doesn't support compressed transfer
+     * syntaxes. This option currently applies to Orthanc C-GET SCP
+     * and to Orthanc C-STORE SCU. This option only has an effect if
+     * the global option "EnableTranscoding" is set to "true".
      *
      * By default, all "Allow*" options are true.
      * "AllowStorageCommitment" is actually an alias for 

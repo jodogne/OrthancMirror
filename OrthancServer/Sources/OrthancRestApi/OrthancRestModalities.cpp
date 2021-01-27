@@ -141,7 +141,9 @@ namespace Orthanc
         .SetRequestField("AllowStorageCommitment", RestApiCallDocumentation::Type_Boolean,
                          "Whether to accept storage commitment requests issued by the remote modality", false)
         .SetRequestField("AllowTranscoding", RestApiCallDocumentation::Type_Boolean,
-                         "Whether to allow transcoding for operations initiated by this modality (typically, C-GET)", false);
+                         "Whether to allow transcoding for operations initiated by this modality. "
+                         "This option applies to Orthanc C-GET SCP and to Orthanc C-STORE SCU. "
+                         "It only has an effect if the global option `EnableTranscoding` is set to `true`.", false);
     }
   }
 
