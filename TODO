@@ -9,7 +9,6 @@ General
 
 * Configure an user-defined site UID root if generating DICOM UIDs
   ("FromDcmtkBridge::GenerateUuid()")
-* Support "/preview" and "/matlab" for LUT color images
 * Improve handling of errors in the command queue:
   https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
 * Support partial file retrieval in Orthanc::HttpClient
@@ -25,13 +24,18 @@ REST API
 Mid-term
 --------
 
+* Archive jobs: Resume downloads using "range requests":
+  https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
 * Create DICOM from DICOMweb JSON ("application/dicom+json")
   with "/tools/create-dicom"
 * Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series)
-* In the /studies/{id}/anonymize route, add an option to remove secondary captures.
-  They usually contains Patient info in the image.  The SOPClassUID might be used to
-  identify such secondary captures.
+* Specify the transfer syntax in /tools/create-dicom
+* In the /studies/{id}/anonymize route, add an option to remove
+  secondary captures.  They usually contains Patient info in the
+  image. The SOPClassUID might be used to identify such secondary
+  captures.
+* Support "/preview" and "/matlab" for LUT color images
 
 ---------
 Long-term
