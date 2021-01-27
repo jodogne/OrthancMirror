@@ -453,7 +453,8 @@ namespace Orthanc
   static void InjectTags(ParsedDicomFile& dicom,
                          const Json::Value& tags,
                          bool decodeBinaryTags,
-                         const std::string& privateCreator)
+                         const std::string& privateCreator,
+                         bool force)
   {
     if (tags.type() != Json::objectValue)
     {
@@ -469,7 +470,8 @@ namespace Orthanc
 
       if (tag != DICOM_TAG_SPECIFIC_CHARACTER_SET)
       {
-        if (tag != DICOM_TAG_PATIENT_ID &&
+        if (!force &&
+            tag != DICOM_TAG_PATIENT_ID &&
             tag != DICOM_TAG_ACQUISITION_DATE &&
             tag != DICOM_TAG_ACQUISITION_TIME &&
             tag != DICOM_TAG_CONTENT_DATE &&
@@ -502,7 +504,8 @@ namespace Orthanc
                            ParsedDicomFile& base /* in */,
                            const Json::Value& content,
                            bool decodeBinaryTags,
-                           const std::string& privateCreator)
+                           const std::string& privateCreator,
+                           bool force)
   {
     assert(content.isArray());
     assert(content.size() > 0);
@@ -535,7 +538,7 @@ namespace Orthanc
 
           if (content[i].isMember("Tags"))
           {
-            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags, privateCreator);
+            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags, privateCreator, force);
           }
         }
 
@@ -577,11 +580,21 @@ namespace Orthanc
   static void CreateDicomV2(RestApiPostCall& call,
                             const Json::Value& request)
   {
+    static const char* const CONTENT = "Content";
+    static const char* const FORCE = "Force";
+    static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
+    static const char* const PARENT = "Parent";
+    static const char* const PRIVATE_CREATOR = "PrivateCreator";
+    static const char* const SPECIFIC_CHARACTER_SET_2 = "SpecificCharacterSet";
+    static const char* const TAGS = "Tags";
+    static const char* const TYPE = "Type";
+    static const char* const VALUE = "Value";
+    
     assert(request.isObject());
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    if (!request.isMember("Tags") ||
-        request["Tags"].type() != Json::objectValue)
+    if (!request.isMember(TAGS) ||
+        request[TAGS].type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadRequest);
     }
@@ -591,9 +604,9 @@ namespace Orthanc
     {
       Encoding encoding;
 
-      if (request["Tags"].isMember("SpecificCharacterSet"))
+      if (request[TAGS].isMember(SPECIFIC_CHARACTER_SET_2))
       {
-        const char* tmp = request["Tags"]["SpecificCharacterSet"].asCString();
+        const char* tmp = request[TAGS][SPECIFIC_CHARACTER_SET_2].asCString();
         if (!GetDicomEncoding(encoding, tmp))
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
@@ -610,10 +623,10 @@ namespace Orthanc
 
     ResourceType parentType = ResourceType_Instance;
 
-    if (request.isMember("Parent"))
+    if (request.isMember(PARENT))
     {
       // Locate the parent tags
-      std::string parent = request["Parent"].asString();
+      std::string parent = request[PARENT].asString();
       if (!context.GetIndex().LookupResourceType(parentType, parent))
       {
         throw OrthancException(ErrorCode_CreateDicomBadParent);
@@ -653,9 +666,9 @@ namespace Orthanc
         {
           Encoding encoding;
 
-          if (!siblingTags[SPECIFIC_CHARACTER_SET].isMember("Value") ||
-              siblingTags[SPECIFIC_CHARACTER_SET]["Value"].type() != Json::stringValue ||
-              !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET]["Value"].asCString()))
+          if (!siblingTags[SPECIFIC_CHARACTER_SET].isMember(VALUE) ||
+              siblingTags[SPECIFIC_CHARACTER_SET][VALUE].type() != Json::stringValue ||
+              !GetDicomEncoding(encoding, siblingTags[SPECIFIC_CHARACTER_SET][VALUE].asCString()))
           {
             LOG(WARNING) << "Instance with an incorrect Specific Character Set, "
                          << "using the default Orthanc encoding: " << siblingInstanceId;
@@ -699,13 +712,13 @@ namespace Orthanc
         if (siblingTags.isMember(t))
         {
           const Json::Value& tag = siblingTags[t];
-          if (tag["Type"] == "Null")
+          if (tag[TYPE] == "Null")
           {
             dicom.ReplacePlainString(*it, "");
           }
-          else if (tag["Type"] == "String")
+          else if (tag[TYPE] == "String")
           {
-            std::string value = tag["Value"].asString();  // This is an UTF-8 value (as it comes from JSON)
+            std::string value = tag[VALUE].asString();  // This is an UTF-8 value (as it comes from JSON)
             dicom.ReplacePlainString(*it, value);
           }
         }
@@ -714,9 +727,9 @@ namespace Orthanc
 
 
     bool decodeBinaryTags = true;
-    if (request.isMember("InterpretBinaryTags"))
+    if (request.isMember(INTERPRET_BINARY_TAGS))
     {
-      const Json::Value& v = request["InterpretBinaryTags"];
+      const Json::Value& v = request[INTERPRET_BINARY_TAGS];
       if (v.type() != Json::booleanValue)
       {
         throw OrthancException(ErrorCode_BadRequest);
@@ -728,9 +741,9 @@ namespace Orthanc
 
     // New argument in Orthanc 1.6.0
     std::string privateCreator;
-    if (request.isMember("PrivateCreator"))
+    if (request.isMember(PRIVATE_CREATOR))
     {
-      const Json::Value& v = request["PrivateCreator"];
+      const Json::Value& v = request[PRIVATE_CREATOR];
       if (v.type() != Json::stringValue)
       {
         throw OrthancException(ErrorCode_BadRequest);
@@ -744,7 +757,21 @@ namespace Orthanc
       privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
     }
 
-    
+
+    // New in Orthanc 1.9.0
+    bool force = false;
+    if (request.isMember(FORCE))
+    {
+      const Json::Value& v = request[FORCE];
+      if (v.type() != Json::booleanValue)
+      {
+        throw OrthancException(ErrorCode_BadRequest);
+      }
+
+      force = v.asBool();
+    }
+
+
     // Inject time-related information
     std::string date, time;
     SystemToolbox::GetNowDicom(date, time, true /* use UTC time (not local time) */);
@@ -771,17 +798,17 @@ namespace Orthanc
     }
 
 
-    InjectTags(dicom, request["Tags"], decodeBinaryTags, privateCreator);
+    InjectTags(dicom, request[TAGS], decodeBinaryTags, privateCreator, force);
 
 
     // Inject the content (either an image, or a PDF file)
-    if (request.isMember("Content"))
+    if (request.isMember(CONTENT))
     {
-      const Json::Value& content = request["Content"];
+      const Json::Value& content = request[CONTENT];
 
       if (content.type() == Json::stringValue)
       {
-        dicom.EmbedContent(request["Content"].asString());
+        dicom.EmbedContent(request[CONTENT].asString());
 
       }
       else if (content.type() == Json::arrayValue)
@@ -789,7 +816,7 @@ namespace Orthanc
         if (content.size() > 0)
         {
           // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator);
+          CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator, force);
           return;
         }
       }
@@ -830,6 +857,10 @@ namespace Orthanc
                          "whether this value is decoded to a binary value or kept as such (`true` by default)", false)
         .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
                          "The private creator to be used for private tags in `Tags`", false)
+        .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+                         "Avoid the consistency checks for the DICOM tags that enforce the DICOM model of the real-world. "
+                         "You can notably use this flag if you need to manually set the tags `StudyInstanceUID`, "
+                         "`SeriesInstanceUID`, or `SOPInstanceUID`. Be careful with this feature.", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Orthanc identifier of the newly created instance")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to access the instance in the REST API");
       return;
