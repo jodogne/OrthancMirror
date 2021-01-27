@@ -3582,19 +3582,16 @@ namespace Orthanc
   }
         
 
-  void OrthancPlugins::ApplyCreateDicom(_OrthancPluginService service,
-                                        const void* parameters)
+  void OrthancPlugins::ApplyCreateDicom(const _OrthancPluginCreateDicom& parameters,
+                                        const char* privateCreatorC)
   {
-    const _OrthancPluginCreateDicom& p =
-      *reinterpret_cast<const _OrthancPluginCreateDicom*>(parameters);
-
     Json::Value json;
 
-    if (p.json == NULL)
+    if (parameters.json == NULL)
     {
       json = Json::objectValue;
     }
-    else if (!Toolbox::ReadJson(json, p.json))
+    else if (!Toolbox::ReadJson(json, parameters.json))
     {
       throw OrthancException(ErrorCode_BadJson);
     }
@@ -3606,24 +3603,31 @@ namespace Orthanc
       // configuration file)
       // https://bugs.orthanc-server.com/show_bug.cgi?id=168
       std::string privateCreator;
+
+      if (privateCreatorC == NULL)
       {
         OrthancConfiguration::ReaderLock lock;
         privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
       }
+      else
+      {
+        // New in Orthanc 1.9.0
+        privateCreator.assign(privateCreatorC);
+      }
       
       std::unique_ptr<ParsedDicomFile> file
-        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(p.flags),
+        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(parameters.flags),
                                          privateCreator));
 
-      if (p.pixelData)
+      if (parameters.pixelData)
       {
-        file->EmbedImage(*reinterpret_cast<const ImageAccessor*>(p.pixelData));
+        file->EmbedImage(*reinterpret_cast<const ImageAccessor*>(parameters.pixelData));
       }
 
       file->SaveToMemoryBuffer(dicom);
     }
 
-    CopyToMemoryBuffer(*p.target, dicom);
+    CopyToMemoryBuffer(*parameters.target, dicom);
   }
 
 
@@ -4200,8 +4204,21 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_CreateDicom:
-        ApplyCreateDicom(service, parameters);
+      {
+        const _OrthancPluginCreateDicom& p =
+          *reinterpret_cast<const _OrthancPluginCreateDicom*>(parameters);
+        ApplyCreateDicom(p, NULL);
         return true;
+      }
+
+      case _OrthancPluginService_CreateDicom2:
+      {
+        // New in Orthanc 1.9.0
+        const _OrthancPluginCreateDicom2& p =
+          *reinterpret_cast<const _OrthancPluginCreateDicom2*>(parameters);
+        ApplyCreateDicom(p.createDicom, p.privateCreator);
+        return true;
+      }
 
       case _OrthancPluginService_WorklistAddAnswer:
       {
