@@ -30,6 +30,7 @@ REST API
 * "/tools/accepted-transfer-syntaxes": Get/set transfer syntaxes accepted by Orthanc C-STORE SCP
 * "/tools/unknown-sop-class-accepted": Get/set whether C-STORE SCP accepts unknown SOP class UID
 * "/modalities/{...}/query": New string argument "LocalAet"
+* "/tools/create-dicom": New flag "Force" to bypass consistency checks for the DICOM tags
 
 Lua
 ---
