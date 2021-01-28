@@ -20,37 +20,31 @@
  **/
 
 
-#pragma once
+#include "PrecompiledHeaders.h"
+#include "StringMemoryBuffer.h"
 
-#include "IStorageArea.h"
-
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-
-#include <boost/thread/mutex.hpp>
-#include <map>
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  void StringMemoryBuffer::MoveToString(std::string& target)
   {
-  private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    boost::mutex  mutex_;
-    Content       content_;
-    
-  public:
-    virtual ~MemoryStorageArea();
-    
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    buffer_.swap(target);
+    buffer_.clear();
+  }
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) ORTHANC_OVERRIDE;
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
-  };
+  IMemoryBuffer* StringMemoryBuffer::CreateFromSwap(std::string& buffer)
+  {
+    std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);
+    result->Swap(buffer);
+    return result.release();
+  }
+
+    
+  IMemoryBuffer* StringMemoryBuffer::CreateFromCopy(const std::string& buffer)
+  {
+    std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);
+    result->Copy(buffer);
+    return result.release();
+  }
 }

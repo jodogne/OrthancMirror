@@ -60,6 +60,13 @@ namespace Orthanc
     explicit FilesystemStorage(std::string root);
 #endif
 
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+    // Binary compatibility with Orthanc Framework <= 1.8.2
+    void Read(std::string& content,
+              const std::string& uuid,
+              FileContentType type);
+#endif
+
   public:
     explicit FilesystemStorage(const std::string& root);
 
@@ -71,9 +78,8 @@ namespace Orthanc
                         size_t size,
                         FileContentType type) ORTHANC_OVERRIDE;
 
-    virtual void Read(std::string& content,
-                      const std::string& uuid,
-                      FileContentType type) ORTHANC_OVERRIDE;
+    virtual IMemoryBuffer* Read(const std::string& uuid,
+                                FileContentType type) ORTHANC_OVERRIDE;
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) ORTHANC_OVERRIDE;

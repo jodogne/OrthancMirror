@@ -28,8 +28,9 @@
 
 #include "../Logging.h"
 #include "../OrthancException.h"
-#include "../Toolbox.h"
+#include "../StringMemoryBuffer.h"
 #include "../SystemToolbox.h"
+#include "../Toolbox.h"
 
 #include <boost/filesystem/fstream.hpp>
 
@@ -150,15 +151,16 @@ namespace Orthanc
   }
 
 
-  void FilesystemStorage::Read(std::string& content,
-                               const std::string& uuid,
-                               FileContentType type)
+  IMemoryBuffer* FilesystemStorage::Read(const std::string& uuid,
+                                         FileContentType type)
   {
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type";
 
-    content.clear();
+    std::string content;
     SystemToolbox::ReadFile(content, GetPath(uuid).string());
+
+    return StringMemoryBuffer::CreateFromSwap(content);
   }
 
 
@@ -280,6 +282,17 @@ namespace Orthanc
     fsyncOnWrite_(false)
   {
     Setup(root);
+  }
+#endif
+
+
+#if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
+  void FilesystemStorage::Read(std::string& content,
+                               const std::string& uuid,
+                               FileContentType type)
+  {
+    std::unique_ptr<IMemoryBuffer> buffer(Read(uuid, type));
+    buffer->MoveToString(content);
   }
 #endif
 }

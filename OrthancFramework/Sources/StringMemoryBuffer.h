@@ -22,35 +22,41 @@
 
 #pragma once
 
-#include "IStorageArea.h"
-
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-
-#include <boost/thread/mutex.hpp>
-#include <map>
+#include "IMemoryBuffer.h"
+#include "Compatibility.h"
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  class StringMemoryBuffer : public IMemoryBuffer
   {
   private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    boost::mutex  mutex_;
-    Content       content_;
-    
+    std::string   buffer_;
+
   public:
-    virtual ~MemoryStorageArea();
-    
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    void Copy(const std::string& buffer)
+    {
+      buffer_ = buffer;
+    }
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) ORTHANC_OVERRIDE;
+    void Swap(std::string& buffer)
+    {
+      buffer_.swap(buffer);
+    }
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;
+
+    virtual const void* GetData() const ORTHANC_OVERRIDE
+    {
+      return (buffer_.empty() ? NULL : buffer_.c_str());
+    }
+
+    virtual size_t GetSize() const ORTHANC_OVERRIDE
+    {
+      return buffer_.size();
+    }
+
+    static IMemoryBuffer* CreateFromSwap(std::string& buffer);
+
+    static IMemoryBuffer* CreateFromCopy(const std::string& buffer);
   };
 }

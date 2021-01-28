@@ -23,8 +23,9 @@
 #include "../PrecompiledHeaders.h"
 #include "MemoryStorageArea.h"
 
-#include "../OrthancException.h"
 #include "../Logging.h"
+#include "../OrthancException.h"
+#include "../StringMemoryBuffer.h"
 
 namespace Orthanc
 {
@@ -65,9 +66,8 @@ namespace Orthanc
   }
 
   
-  void MemoryStorageArea::Read(std::string& content,
-                               const std::string& uuid,
-                               FileContentType type)
+  IMemoryBuffer* MemoryStorageArea::Read(const std::string& uuid,
+                                         FileContentType type) 
   {
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \""
               << static_cast<int>(type) << "\" content type";
@@ -86,7 +86,7 @@ namespace Orthanc
     }
     else
     {
-      content.assign(*found->second);
+      return StringMemoryBuffer::CreateFromCopy(*found->second);
     }
   }
       

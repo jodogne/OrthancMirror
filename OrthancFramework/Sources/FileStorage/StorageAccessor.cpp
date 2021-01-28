@@ -147,10 +147,12 @@ namespace Orthanc
   {
     switch (info.GetCompressionType())
     {
-    case CompressionType_None:
-    {
-      MetricsTimer timer(*this, METRICS_READ);
-      area_.Read(content, info.GetUuid(), info.GetContentType());
+      case CompressionType_None:
+      {
+        MetricsTimer timer(*this, METRICS_READ);
+
+        std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+        buffer->MoveToString(content);        
         break;
       }
 
@@ -158,14 +160,14 @@ namespace Orthanc
       {
         ZlibCompressor zlib;
 
-        std::string compressed;
+        std::unique_ptr<IMemoryBuffer> compressed;
 
         {
           MetricsTimer timer(*this, METRICS_READ);
-          area_.Read(compressed, info.GetUuid(), info.GetContentType());
+          compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
         }
 
-        IBufferCompressor::Uncompress(content, zlib, compressed);
+        zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
         break;
       }
 
@@ -183,7 +185,9 @@ namespace Orthanc
                                 const FileInfo& info)
   {
     MetricsTimer timer(*this, METRICS_READ);
-    area_.Read(content, info.GetUuid(), info.GetContentType());
+
+    std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+    buffer->MoveToString(content);        
   }
 
 
@@ -206,7 +210,8 @@ namespace Orthanc
   {
     {
       MetricsTimer timer(*this, METRICS_READ);
-      area_.Read(sender.GetBuffer(), info.GetUuid(), info.GetContentType());
+      std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+      buffer->MoveToString(sender.GetBuffer());
     }
 
     sender.SetContentType(mime);

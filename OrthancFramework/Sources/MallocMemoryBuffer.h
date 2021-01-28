@@ -22,35 +22,46 @@
 
 #pragma once
 
-#include "IStorageArea.h"
+#include "IMemoryBuffer.h"
+#include "Compatibility.h"
 
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-
-#include <boost/thread/mutex.hpp>
-#include <map>
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  class MallocMemoryBuffer : public IMemoryBuffer
   {
-  private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    boost::mutex  mutex_;
-    Content       content_;
-    
   public:
-    virtual ~MemoryStorageArea();
+    typedef void (*FreeFunction) (void* buffer);
     
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
+  private:
+    void*         buffer_;
+    size_t        size_;
+    FreeFunction  free_;
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) ORTHANC_OVERRIDE;
+  public:
+    MallocMemoryBuffer();
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    virtual ~MallocMemoryBuffer()
+    {
+      Clear();
+    }
+
+    void Clear();
+
+    void Assign(void* buffer,
+                size_t size,
+                FreeFunction freeFunction);
+    
+    virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;
+
+    virtual const void* GetData() const ORTHANC_OVERRIDE
+    {
+      return buffer_;
+    }
+
+    virtual size_t GetSize() const ORTHANC_OVERRIDE
+    {
+      return size_;
+    }
   };
 }

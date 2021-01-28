@@ -22,10 +22,10 @@
 
 #pragma once
 
+#include "../IMemoryBuffer.h"
 #include "../Enumerations.h"
 
 #include <string>
-#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
@@ -41,9 +41,8 @@ namespace Orthanc
                         size_t size,
                         FileContentType type) = 0;
 
-    virtual void Read(std::string& content,
-                      const std::string& uuid,
-                      FileContentType type) = 0;
+    virtual IMemoryBuffer* Read(const std::string& uuid,
+                                FileContentType type) = 0;
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
