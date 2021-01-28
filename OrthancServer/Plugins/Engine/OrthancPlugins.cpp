@@ -59,6 +59,7 @@
 #include "../../../OrthancFramework/Sources/Images/PngWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
+#include "../../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -198,51 +199,6 @@ namespace Orthanc
     };
   
 
-    class MemoryBuffer64Raii : public boost::noncopyable
-    {
-    private:
-      OrthancPluginMemoryBuffer64  buffer_;
-
-    public:
-      MemoryBuffer64Raii()
-      {
-        buffer_.size = 0;
-        buffer_.data = NULL;
-      }
-
-      ~MemoryBuffer64Raii()
-      {
-        if (buffer_.size != 0)
-        {
-          free(buffer_.data);
-        }
-      }
-
-      OrthancPluginMemoryBuffer64* GetObject()
-      {
-        return &buffer_;
-      }
-
-      void ToString(std::string& target) const
-      {
-        if ((buffer_.data == NULL && buffer_.size != 0) ||
-            (buffer_.data != NULL && buffer_.size == 0))
-        {
-          throw OrthancException(ErrorCode_Plugin);
-        }
-        else
-        {
-          target.resize(buffer_.size);
-        
-          if (buffer_.size != 0)
-          {
-            memcpy(&target[0], buffer_.data, buffer_.size);
-          }
-        }
-      }
-    };
-  
-
     class StorageAreaBase : public IStorageArea
     {
     private:
@@ -328,38 +284,27 @@ namespace Orthanc
         }
       }
 
-      virtual void Read(std::string& content,
-                        const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE
+      virtual IMemoryBuffer* Read(const std::string& uuid,
+                                  FileContentType type) ORTHANC_OVERRIDE
       {
+        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
+
         void* buffer = NULL;
         int64_t size = 0;
 
         OrthancPluginErrorCode error = read_
           (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
 
-        if (error != OrthancPluginErrorCode_Success)
+        if (error == OrthancPluginErrorCode_Success)
+        {
+          result->Assign(buffer, size, free_);
+          return result.release();
+        }
+        else
         {
           GetErrorDictionary().LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
-
-        try
-        {
-          content.resize(static_cast<size_t>(size));
-        }
-        catch (...)
-        {
-          Free(buffer);
-          throw OrthancException(ErrorCode_NotEnoughMemory);
-        }
-
-        if (size > 0)
-        {
-          memcpy(&content[0], buffer, static_cast<size_t>(size));
-        }
-
-        Free(buffer);
       }
     };
 
@@ -384,22 +329,25 @@ namespace Orthanc
         }
       }
 
-      virtual void Read(std::string& content,
-                        const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE
+      virtual IMemoryBuffer* Read(const std::string& uuid,
+                                  FileContentType type) ORTHANC_OVERRIDE
       {
-        MemoryBuffer64Raii buffer;
-        
-        OrthancPluginErrorCode error = readWhole_
-          (buffer.GetObject(), uuid.c_str(), Plugins::Convert(type));
+        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
 
-        if (error != OrthancPluginErrorCode_Success)
+        OrthancPluginMemoryBuffer64 buffer;
+        
+        OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
+
+        if (error == OrthancPluginErrorCode_Success)
+        {
+          result->Assign(buffer.data, buffer.size, ::free);
+          return result.release();
+        }
+        else
         {
           GetErrorDictionary().LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
-
-        buffer.ToString(content);
       }
     };
 
@@ -4196,9 +4144,8 @@ namespace Orthanc
         const _OrthancPluginStorageAreaRead& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        std::string content;
-        storage.Read(content, p.uuid, Plugins::Convert(p.type));
-        CopyToMemoryBuffer(*p.target, content);
+        std::unique_ptr<IMemoryBuffer> content(storage.Read(p.uuid, Plugins::Convert(p.type)));
+        CopyToMemoryBuffer(*p.target, content->GetData(), content->GetSize());
         return true;
       }
 

@@ -22,35 +22,27 @@
 
 #pragma once
 
-#include "IStorageArea.h"
-
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-
-#include <boost/thread/mutex.hpp>
-#include <map>
+#include <string>
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  /**
+   * This class abstracts a memory buffer and its memory unallocation
+   * function.
+   **/
+  class IMemoryBuffer : public boost::noncopyable
   {
-  private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    boost::mutex  mutex_;
-    Content       content_;
-    
   public:
-    virtual ~MemoryStorageArea();
-    
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    virtual ~IMemoryBuffer()
+    {
+    }
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) ORTHANC_OVERRIDE;
+    // The content of the memory buffer will emptied after this call
+    virtual void MoveToString(std::string& target) = 0;
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
+    virtual const void* GetData() const = 0;
+
+    virtual size_t GetSize() const = 0;
   };
 }

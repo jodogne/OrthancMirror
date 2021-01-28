@@ -359,7 +359,7 @@ namespace Orthanc
       virtual void Create(const std::string& uuid,
                           const void* content, 
                           size_t size,
-                          FileContentType type)
+                          FileContentType type) ORTHANC_OVERRIDE
       {
         if (type != FileContentType_Dicom)
         {
@@ -367,13 +367,12 @@ namespace Orthanc
         }
       }
 
-      virtual void Read(std::string& content,
-                        const std::string& uuid,
-                        FileContentType type)
+      virtual IMemoryBuffer* Read(const std::string& uuid,
+                                  FileContentType type) ORTHANC_OVERRIDE
       {
         if (type != FileContentType_Dicom)
         {
-          storage_.Read(content, uuid, type);
+          return storage_.Read(uuid, type);
         }
         else
         {
@@ -382,7 +381,7 @@ namespace Orthanc
       }
 
       virtual void Remove(const std::string& uuid,
-                          FileContentType type) 
+                          FileContentType type) ORTHANC_OVERRIDE
       {
         if (type != FileContentType_Dicom)
         {

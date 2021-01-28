@@ -58,7 +58,10 @@ TEST(FilesystemStorage, Basic)
   std::string uid = Toolbox::GenerateUuid();
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
-  s.Read(d, uid, FileContentType_Unknown);
+  {
+    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    buffer->MoveToString(d);    
+  }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
@@ -73,7 +76,10 @@ TEST(FilesystemStorage, Basic2)
   std::string uid = Toolbox::GenerateUuid();
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
-  s.Read(d, uid, FileContentType_Unknown);
+  {
+    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    buffer->MoveToString(d);    
+  }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());

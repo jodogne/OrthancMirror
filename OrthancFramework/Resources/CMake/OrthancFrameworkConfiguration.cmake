@@ -158,11 +158,13 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MallocMemoryBuffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SerializationToolbox.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/StringMemoryBuffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/WebServiceParameters.cpp
   )
