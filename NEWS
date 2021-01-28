@@ -15,6 +15,8 @@ General
   - "LocalAet" in "DicomModalities" to overwrite global "DicomAet" for SCU on a per-modality basis
   - "AcceptedTransferSyntaxes" to set the transfer syntax UIDs accepted by Orthanc C-STORE SCP
   - "H265TransferSyntaxAccepted" to enable/disable all the transfer syntaxes related to H.265
+  - "DicomAlwaysAllowFind" to disable verification of the remote modality in C-FIND SCP
+  - "DicomAlwaysAllowGet" to disable verification of the remote modality in C-GET SCP
 * New configuration option: "DicomScuPreferredTransferSyntax" to control transcoding in C-STORE SCU
 * New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
 * New metadata automatically computed at the series level: "RemoteAET"

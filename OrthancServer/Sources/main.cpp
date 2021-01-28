@@ -280,15 +280,31 @@ class OrthancApplicationEntityFilter : public IApplicationEntityFilter
 private:
   ServerContext&  context_;
   bool            alwaysAllowEcho_;
+  bool            alwaysAllowFind_;  // New in Orthanc 1.9.0
+  bool            alwaysAllowGet_;   // New in Orthanc 1.9.0
   bool            alwaysAllowStore_;
 
 public:
   explicit OrthancApplicationEntityFilter(ServerContext& context) :
     context_(context)
   {
-    OrthancConfiguration::ReaderLock lock;
-    alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
-    alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
+    {
+      OrthancConfiguration::ReaderLock lock;
+      alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
+      alwaysAllowFind_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false);
+      alwaysAllowGet_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false);
+      alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
+    }
+
+    if (alwaysAllowFind_)
+    {
+      LOG(WARNING) << "Security risk in DICOM SCP: C-FIND requests are always allowed, even from unknown modalities";
+    }
+
+    if (alwaysAllowGet_)
+    {
+      LOG(WARNING) << "Security risk in DICOM SCP: C-GET requests are always allowed, even from unknown modalities";
+    }
   }
 
   virtual bool IsAllowedConnection(const std::string& remoteIp,
@@ -299,6 +315,8 @@ public:
               << " on IP " << remoteIp << ", calling AET " << calledAet;
 
     if (alwaysAllowEcho_ ||
+        alwaysAllowFind_ ||
+        alwaysAllowGet_ ||
         alwaysAllowStore_)
     {
       return true;
@@ -324,10 +342,22 @@ public:
       // Incoming C-Echo requests are always accepted, even from unknown AET
       return true;
     }
+    else if (type == DicomRequestType_Find &&
+             alwaysAllowFind_)
+    {
+      // Incoming C-Find requests are always accepted, even from unknown AET
+      return true;
+    }
     else if (type == DicomRequestType_Store &&
              alwaysAllowStore_)
     {
       // Incoming C-Store requests are always accepted, even from unknown AET
+      return true;
+    }
+    else if (type == DicomRequestType_Get &&
+             alwaysAllowGet_)
+    {
+      // Incoming C-Get requests are always accepted, even from unknown AET
       return true;
     }
     else

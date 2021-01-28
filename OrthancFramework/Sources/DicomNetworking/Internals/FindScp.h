@@ -33,7 +33,6 @@ namespace Orthanc
     OFCondition findScp(T_ASC_Association * assoc, 
                         T_DIMSE_Message * msg, 
                         T_ASC_PresentationContextID presID,
-                        DicomServer::IRemoteModalities& modalities,
                         IFindRequestHandler* findHandler,   // can be NULL
                         IWorklistRequestHandler* worklistHandler,   // can be NULL
                         const std::string& remoteIp,
