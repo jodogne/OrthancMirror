@@ -264,6 +264,11 @@ namespace Orthanc
         remove_(remove),
         errorDictionary_(errorDictionary)
       {
+        if (create_ == NULL ||
+            remove_ == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives");
+        }
       }
 
       virtual void Create(const std::string& uuid,
@@ -317,6 +322,10 @@ namespace Orthanc
         read_(callbacks.read),
         free_(callbacks.free)
       {
+        if (read_ == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement the \"Read\" primitive");
+        }
       }
 
       virtual void Read(std::string& content,
@@ -369,6 +378,10 @@ namespace Orthanc
         readWhole_(callbacks.readWhole),
         readRange_(callbacks.readRange)
       {
+        if (readWhole_ == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement the \"ReadWhole\" primitive");
+        }
       }
 
       virtual void Read(std::string& content,

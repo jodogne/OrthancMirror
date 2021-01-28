@@ -1274,12 +1274,12 @@ extern "C"
    * reads a portion of a file from the storage area. Orthanc
    * indicates the start position and the length of the range.
    *
-   * @param target Memory buffer where to store the content of the range. It must be allocated by the
-   * plugin using OrthancPluginCreateMemoryBuffer64(). The core of Orthanc will free it.
+   * @param target Memory buffer where to store the content of the range.
+   * The memory buffer is allocated and freed by Orthanc. The length of the range
+   * of interest corresponds to the size of this buffer.
    * @param uuid The UUID of the file of interest.
    * @param type The content type corresponding to this file. 
    * @param rangeStart Start position of the requested range in the file.
-   * @param rangeSize Length of the range of interest.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
@@ -1287,8 +1287,7 @@ extern "C"
     OrthancPluginMemoryBuffer64* target,
     const char* uuid,
     OrthancPluginContentType type,
-    uint64_t rangeStart,
-    uint64_t rangeSize);
+    uint64_t rangeStart);
 
 
 
