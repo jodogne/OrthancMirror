@@ -53,7 +53,6 @@ namespace Orthanc
     std::string localAet_;
     std::vector<std::string> instances_;
     size_t position_;
-    RemoteModalityParameters remote_;
     std::string originatorAet_;
     
     unsigned int completedCount_;
@@ -62,6 +61,7 @@ namespace Orthanc
     std::string failedUIDs_;
     
     uint32_t timeout_;
+    bool allowTranscoding_;
 
     bool LookupIdentifiers(std::list<std::string>& publicIds,
                            ResourceType level,

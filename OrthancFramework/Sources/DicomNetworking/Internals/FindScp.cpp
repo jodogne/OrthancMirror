@@ -129,7 +129,6 @@ namespace Orthanc
   {  
     struct FindScpData
     {
-      DicomServer::IRemoteModalities* modalities_;
       IFindRequestHandler* findHandler_;
       IWorklistRequestHandler* worklistHandler_;
       DicomFindAnswers answers_;
@@ -139,7 +138,6 @@ namespace Orthanc
       const std::string* calledAet_;
 
       FindScpData() :
-        modalities_(NULL),
         findHandler_(NULL),
         worklistHandler_(NULL),
         answers_(false),
@@ -227,15 +225,6 @@ namespace Orthanc
            * Ensure that the remote modality is known to Orthanc for C-FIND requests.
            **/
 
-          assert(data.modalities_ != NULL);
-          if (!data.modalities_->LookupAETitle(modality, *data.remoteAet_))
-          {
-            throw OrthancException(ErrorCode_UnknownModality,
-                                   "Modality with AET \"" + (*data.remoteAet_) +
-                                   "\" is not defined in the \"DicomModalities\" configuration option");
-          }
-
-          
           if (sopClassUid == UID_FINDModalityWorklistInformationModel)
           {
             data.answers_.SetWorklist(true);
@@ -359,7 +348,6 @@ namespace Orthanc
   OFCondition Internals::findScp(T_ASC_Association * assoc, 
                                  T_DIMSE_Message * msg, 
                                  T_ASC_PresentationContextID presID,
-                                 DicomServer::IRemoteModalities& modalities,
                                  IFindRequestHandler* findHandler,
                                  IWorklistRequestHandler* worklistHandler,
                                  const std::string& remoteIp,
@@ -368,7 +356,6 @@ namespace Orthanc
                                  int timeout)
   {
     FindScpData data;
-    data.modalities_ = &modalities;
     data.findHandler_ = findHandler;
     data.worklistHandler_ = worklistHandler;
     data.lastRequest_ = NULL;

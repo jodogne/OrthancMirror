@@ -240,13 +240,10 @@ namespace Orthanc
                              ") " + sopClassUid);
     }
 
-    bool allowTranscoding = (context_.IsTranscodeDicomProtocol() &&
-                             remote_.IsTranscodingAllowed());
-    
     T_ASC_PresentationContextID presId = 0;  // Unnecessary initialization, makes code clearer
     DicomTransferSyntax selectedSyntax;
     if (!SelectPresentationContext(presId, selectedSyntax, assoc, sopClassUid,
-                                   sourceSyntax, allowTranscoding) ||
+                                   sourceSyntax, allowTranscoding_) ||
         presId == 0)
     {
       failedCount_++;
@@ -479,13 +476,14 @@ namespace Orthanc
 
 
   OrthancGetRequestHandler::OrthancGetRequestHandler(ServerContext& context) :
-    context_(context)
+    context_(context),
+    position_(0),
+    completedCount_ (0),
+    warningCount_(0),
+    failedCount_(0),
+    timeout_(0),
+    allowTranscoding_(false)
   {
-    position_ = 0;
-    completedCount_  = 0;
-    warningCount_ = 0;
-    failedCount_ = 0;
-    timeout_ = 0;
   }
 
 
@@ -546,7 +544,26 @@ namespace Orthanc
     
     {
       OrthancConfiguration::ReaderLock lock;
-      remote_ = lock.GetConfiguration().GetModalityUsingAet(originatorAet);
+
+      RemoteModalityParameters remote;
+
+      if (lock.GetConfiguration().LookupDicomModalityUsingAETitle(remote, originatorAet))
+      {
+        allowTranscoding_ = (context_.IsTranscodeDicomProtocol() &&
+                             remote.IsTranscodingAllowed());
+      }
+      else if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false))
+      {
+        CLOG(INFO, DICOM) << "C-GET: Allowing SCU request from unknown modality with AET: " << originatorAet;
+        allowTranscoding_ = context_.IsTranscodeDicomProtocol();
+      }
+      else
+      {
+        // This should never happen, given the test at bottom of
+        // "OrthancApplicationEntityFilter::IsAllowedRequest()"
+        throw OrthancException(ErrorCode_InexistentItem,
+                               "C-GET: Rejecting SCU request from unknown modality with AET: " + originatorAet);
+      }
     }
 
     for (std::list<std::string>::const_iterator

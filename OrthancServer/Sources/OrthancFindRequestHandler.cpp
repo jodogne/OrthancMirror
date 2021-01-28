@@ -592,6 +592,36 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_find_scp_duration_ms");
 
+
+    /**
+     * Deal with global configuration
+     **/
+
+    bool caseSensitivePN;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
+
+      RemoteModalityParameters remote;
+      if (!lock.GetConfiguration().LookupDicomModalityUsingAETitle(remote, remoteAet))
+      {
+        if (lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false))
+        {
+          CLOG(INFO, DICOM) << "C-FIND: Allowing SCU request from unknown modality with AET: " << remoteAet;
+        }
+        else
+        {
+          // This should never happen, given the test at bottom of
+          // "OrthancApplicationEntityFilter::IsAllowedRequest()"
+          throw OrthancException(ErrorCode_InexistentItem,
+                                 "C-FIND: Rejecting SCU request from unknown modality with AET: " + remoteAet);
+        }
+      }
+    }
+
+
+
     /**
      * Possibly apply the user-supplied Lua filter.
      **/
@@ -667,13 +697,6 @@ namespace Orthanc
      **/
 
     DatabaseLookup lookup;
-
-    bool caseSensitivePN;
-
-    {
-      OrthancConfiguration::ReaderLock lock;
-      caseSensitivePN = lock.GetConfiguration().GetBooleanParameter("CaseSensitivePN", false);
-    }
 
     for (size_t i = 0; i < query.GetSize(); i++)
     {

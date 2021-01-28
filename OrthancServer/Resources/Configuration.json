@@ -264,13 +264,25 @@
   // Whether the Orthanc SCP allows incoming C-ECHO requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0
-  // is the only version to behave as if this argument was set to "false".
+  // is the only version to behave as if this argument were set to "false".
   "DicomAlwaysAllowEcho" : true,
 
   // Whether the Orthanc SCP allows incoming C-STORE requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above)
   "DicomAlwaysAllowStore" : true,
+
+  // Whether the Orthanc SCP allows incoming C-FIND requests, even
+  // from SCU modalities it does not know about (i.e. that are not
+  // listed in the "DicomModalities" option above). Setting this
+  // option to "true" implies security risks. (new in Orthanc 1.9.0)
+  "DicomAlwaysAllowFind" : false,
+
+  // Whether the Orthanc SCP allows incoming C-GET requests, even
+  // from SCU modalities it does not know about (i.e. that are not
+  // listed in the "DicomModalities" option above). Setting this
+  // option to "true" implies security risks. (new in Orthanc 1.9.0)
+  "DicomAlwaysAllowGet" : false,
 
   // Whether Orthanc checks the IP/hostname address of the remote
   // modality initiating a DICOM connection (as listed in the
