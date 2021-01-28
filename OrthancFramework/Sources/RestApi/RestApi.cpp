@@ -137,7 +137,7 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
-                              const std::set<std::string> uriArgumentsNames) = 0;
+                              const std::set<std::string>& uriArgumentsNames) = 0;
   
     public:
       explicit DocumentationVisitor(RestApi& restApi) :
@@ -365,7 +365,7 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
-                              const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
+                              const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
         const std::string path = Toolbox::FlattenUri(call.GetFullUri());
 
@@ -683,7 +683,7 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
-                              const std::set<std::string> uriArgumentsNames) ORTHANC_OVERRIDE
+                              const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
         Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
 
