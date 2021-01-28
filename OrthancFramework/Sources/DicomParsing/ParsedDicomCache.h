@@ -55,7 +55,7 @@ namespace Orthanc
                  ParsedDicomFile* dicom,  // Takes ownership
                  size_t fileSize);
 
-    class Accessor : public boost::noncopyable
+    class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
 #if !defined(__EMSCRIPTEN__)
