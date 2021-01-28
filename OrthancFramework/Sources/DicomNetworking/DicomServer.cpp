@@ -404,8 +404,8 @@ namespace Orthanc
 
       try
       {
-        pimpl_->tls_.reset(Internals::InitializeDicomTls(pimpl_->network_, NET_ACCEPTOR,
-                                                         "/tmp/j/Server.key", "/tmp/j/Server.crt", "/tmp/j/Client.crt"));
+        pimpl_->tls_.reset(Internals::InitializeDicomTls(pimpl_->network_, NET_ACCEPTOR, ownPrivateKeyPath_,
+                                                         ownCertificatePath_, trustedCertificatesPath_));
       }
       catch (OrthancException&)
       {
