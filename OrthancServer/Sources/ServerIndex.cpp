@@ -55,6 +55,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <stdio.h>
+#include <stack>
 
 static const uint64_t MEGA_BYTES = 1024 * 1024;
 
