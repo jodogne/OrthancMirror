@@ -122,6 +122,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
         set(ORTHANC_FRAMEWORK_MD5 "db094f96399cbe8b9bbdbce34884c220")
       elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.8.2")
         set(ORTHANC_FRAMEWORK_MD5 "8bfa10e66c9931e74111be0bfb1f4548")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.9.0")
+        set(ORTHANC_FRAMEWORK_MD5 "cea0b02ce184671eaf1bd668beefbf28")
 
       # Below this point are development snapshots that were used to
       # release some plugin, before an official release of the Orthanc

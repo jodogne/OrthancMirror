@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.0 (2021-01-29)
+==========================
+
 General
 -------
 
@@ -29,6 +33,7 @@ Orthanc Explorer
 REST API
 --------
 
+* API version upgraded to 10
 * "/tools/accepted-transfer-syntaxes": Get/set transfer syntaxes accepted by Orthanc C-STORE SCP
 * "/tools/unknown-sop-class-accepted": Get/set whether C-STORE SCP accepts unknown SOP class UID
 * "/modalities/{...}/query": New string argument "LocalAet"
