@@ -978,11 +978,7 @@ namespace Orthanc
 
     static const char* const ACCEPTED_TRANSFER_SYNTAXES = "AcceptedTransferSyntaxes";
 
-    if (json_.type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }    
-    else if (json_.isMember(ACCEPTED_TRANSFER_SYNTAXES))
+    if (json_.isMember(ACCEPTED_TRANSFER_SYNTAXES))
     {
       ParseAcceptedTransferSyntaxes(target, json_[ACCEPTED_TRANSFER_SYNTAXES]);
     }
