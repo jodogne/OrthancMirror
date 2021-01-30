@@ -123,6 +123,9 @@ namespace Orthanc
 
     uint64_t uncompressedSize = ReadUncompressedSizePrefix(compressed, compressedSize);
     
+    // New in Orthanc 1.9.0: Explicitly use litte-endian encoding in size prefix
+    uncompressedSize = le64toh(uncompressedSize);
+
     try
     {
       uncompressed.resize(static_cast<size_t>(uncompressedSize));
@@ -131,9 +134,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
-
-    // New in Orthanc 1.9.0: Explicitly use litte-endian encoding in size prefix
-    uncompressedSize = le64toh(uncompressedSize);
 
     uLongf tmp = static_cast<uLongf>(uncompressedSize);
     int error = uncompress
