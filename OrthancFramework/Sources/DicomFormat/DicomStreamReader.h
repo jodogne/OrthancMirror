@@ -58,10 +58,13 @@ namespace Orthanc
       virtual bool VisitDatasetTag(const DicomTag& tag,
                                    const ValueRepresentation& vr,
                                    const std::string& value,
-                                   bool isLittleEndian) = 0;
+                                   bool isLittleEndian,
+                                   uint64_t fileOffset) = 0;
     };
     
   private:
+    class PixelDataVisitor;
+    
     enum State
     {
       State_Preamble,
@@ -79,6 +82,7 @@ namespace Orthanc
     DicomTransferSyntax  transferSyntax_;
     DicomTag             danglingTag_;  // Current root-level tag
     ValueRepresentation  danglingVR_;
+    uint64_t             danglingOffset_;
     unsigned int         sequenceDepth_;
     
     bool IsLittleEndian() const;
@@ -94,7 +98,8 @@ namespace Orthanc
 
     void HandleDatasetExplicitLength(uint32_t length);
     
-    void HandleDatasetExplicitLength(const std::string& block);
+    void HandleDatasetExplicitLength(IVisitor& visitor,
+                                     const std::string& block);
 
     void HandleSequenceExplicitLength(const std::string& block);
 
@@ -121,5 +126,8 @@ namespace Orthanc
     bool IsDone() const;
 
     uint64_t GetProcessedBytes() const;
+
+    static bool LookupPixelDataOffset(uint64_t& offset,
+                                      const std::string& dicom);
   };
 }

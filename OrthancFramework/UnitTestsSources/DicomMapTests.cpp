@@ -806,8 +806,14 @@ namespace
   {
   private:
     DicomMap  map_;
+    uint64_t  pixelDataOffset_;
     
   public:
+    V() :
+      pixelDataOffset_(0)
+    {
+    }
+    
     const DicomMap& GetDicomMap() const
     {
       return map_;
@@ -828,24 +834,34 @@ namespace
     virtual bool VisitDatasetTag(const DicomTag& tag,
                                  const ValueRepresentation& vr,
                                  const std::string& value,
-                                 bool isLittleEndian) ORTHANC_OVERRIDE
+                                 bool isLittleEndian,
+                                 uint64_t fileOffset) ORTHANC_OVERRIDE
     {
       if (!isLittleEndian)
         printf("** ");
-      if (tag.GetGroup() < 0x7f00)
+
+      if (tag == DICOM_TAG_PIXEL_DATA)
       {
         std::cout << "Dataset: " << tag.Format() << " " << EnumerationToString(vr)
-                  << " [" << Toolbox::ConvertToAscii(value).c_str() << "] (" << value.size() << ")" << std::endl;
+                  << " [PIXEL] (" << value.size() << "), offset: " << std::hex << fileOffset << std::dec << std::endl;
+        pixelDataOffset_ = fileOffset;
+        return false;
       }
       else
       {
         std::cout << "Dataset: " << tag.Format() << " " << EnumerationToString(vr)
-                  << " [PIXEL] (" << value.size() << ")" << std::endl;
+                  << " [" << Toolbox::ConvertToAscii(value).c_str() << "] (" << value.size()
+                  << "), offset: " << std::hex << fileOffset << std::dec << std::endl;
       }
 
       map_.SetValue(tag, value, Toolbox::IsAsciiString(value));
                                                             
       return true;
+    }
+
+    uint64_t GetPixelDataOffset() const
+    {
+      return pixelDataOffset_;
     }
   };
 }
@@ -855,40 +871,81 @@ namespace
 TEST(DicomStreamReader, DISABLED_Tutu)
 {
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
-  
-  std::string dicom;
-  SystemToolbox::ReadFile(dicom, PATH + "../ColorTestMalaterre.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.1.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.2.dcm", false);  // Big Endian
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.51.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.57.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.70.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.80.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.81.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.90.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.91.dcm", false);
-  //SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.5.dcm", false);
-  
-  std::stringstream stream;
-  size_t pos = 0;
-  
-  DicomStreamReader r(stream);
-  V visitor;
 
-  while (pos < dicom.size() &&
-         !r.IsDone())
+  typedef std::list< std::pair<std::string, uint64_t> >  Sources;
+
+  Sources sources;
+  sources.push_back(std::make_pair(PATH + "../ColorTestMalaterre.dcm", 0x03a0u));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", 0x037c));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", 0x03e8));  // Big Endian
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", 0x04ac));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", 0x072c));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", 0x0620));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", 0x065a));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", 0x0b46));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", 0x073e));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", 0x0b66));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", 0x19b8));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", 0x0b0a));
+
   {
-    //printf("."); 
-    //printf("%d\n", pos);
-    r.Consume(visitor);
-    stream.clear();
-    stream.put(dicom[pos++]);
+    std::string dicom;
+
+    uint64_t offset;
+    // Not a DICOM image
+    SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.png", false);
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+
+    // Image without valid DICOM preamble
+    SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.dcm", false);
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
   }
+  
+  for (Sources::const_iterator it = sources.begin(); it != sources.end(); ++it)
+  {
+    std::string dicom;
+    SystemToolbox::ReadFile(dicom, it->first, false);
 
-  r.Consume(visitor);
+    {
+      uint64_t offset;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+      ASSERT_EQ(it->second, offset);
+    }
+    
+    ParsedDicomFile a(dicom);
+    Json::Value aa;
+    a.DatasetToJson(aa, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
 
-  printf(">> %d\n", static_cast<int>(r.GetProcessedBytes()));
+    std::stringstream stream;
+    size_t pos = 0;
+  
+    DicomStreamReader r(stream);
+    V visitor;
+
+    // Test reading byte per byte
+    while (pos < dicom.size() &&
+           !r.IsDone())
+    {
+      r.Consume(visitor);
+      stream.clear();
+      stream.put(dicom[pos++]);
+    }
+
+    r.Consume(visitor);
+
+    ASSERT_EQ(it->second, visitor.GetPixelDataOffset());
+
+    // Truncate the original DICOM up to pixel data
+    dicom.resize(visitor.GetPixelDataOffset());
+
+    ParsedDicomFile b(dicom);
+    Json::Value bb;
+    b.DatasetToJson(bb, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
+
+    aa.removeMember("7fe0,0010");
+    aa.removeMember("fffc,fffc");  // For "1.2.840.10008.1.2.5.dcm"
+    ASSERT_EQ(aa.toStyledString(), bb.toStyledString());
+  }
 }
 
 TEST(DicomStreamReader, DISABLED_Tutu2)
